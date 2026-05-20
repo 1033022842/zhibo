@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>直播平台开发任务清单</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      background: #f5f7fb;
+      color: #1f2937;
+      line-height: 1.65;
+    }
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    .hero {
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      color: white;
+      border-radius: 20px;
+      padding: 28px 32px;
+      box-shadow: 0 18px 40px rgba(37, 99, 235, 0.22);
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 34px;
+    }
+    .hero p {
+      margin: 0;
+      opacity: 0.95;
+      font-size: 15px;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin: 22px 0 28px;
+    }
+    .summary-card, .stage-card, .table-card {
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+    .summary-card {
+      padding: 18px 20px;
+    }
+    .summary-label {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    .summary-value {
+      font-size: 30px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .stage-card {
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .stage-card h2, .table-card h2 {
+      margin: 0 0 14px;
+      font-size: 24px;
+    }
+    .section-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 14px;
+      background: #fbfdff;
+    }
+    .section-card h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #1d4ed8;
+    }
+    .task-item {
+      padding: 12px 0;
+      border-top: 1px solid #eef2f7;
+    }
+    .task-item:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+    }
+    .task-main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 78px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge.todo { background: #e5e7eb; color: #374151; }
+    .badge.doing { background: #fef3c7; color: #92400e; }
+    .badge.done { background: #dcfce7; color: #166534; }
+    .badge.blocked { background: #fee2e2; color: #991b1b; }
+    .task-id {
+      font-family: Consolas, monospace;
+      color: #4338ca;
+      font-weight: 700;
+    }
+    .task-text {
+      flex: 1 1 520px;
+    }
+    .task-item ul {
+      margin: 8px 0 0 94px;
+      padding-left: 18px;
+      color: #4b5563;
+    }
+    .table-card {
+      padding: 20px;
+      margin-top: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 14px;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+    th {
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-weight: 700;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>直播平台开发任务清单</h1>
+      <p>基于 LIVE_PLATFORM_SOLUTION.md 方案拆解，按阶段顺序执行。</p>
+    </section>
+    <section class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">总任务数</div>
+          <div class="summary-value">189</div>
+        </div>
+        
+        <div class="summary-card">
+          <div class="summary-label">待开始</div>
+          <div class="summary-value">181</div>
+        </div>
+        
+        <div class="summary-card">
+          <div class="summary-label">进行中</div>
+          <div class="summary-value">0</div>
+        </div>
+        
+        <div class="summary-card">
+          <div class="summary-label">已完成</div>
+          <div class="summary-value">8</div>
+        </div>
+        
+        <div class="summary-card">
+          <div class="summary-label">阻塞/待确认</div>
+          <div class="summary-value">0</div>
+        </div>
+        </section>
+    
+            <section class="stage-card">
+              <h2>第零阶段：基础设施搭建</h2>
+              
+                <section class="section-card">
+                  <h3>0.1 后端骨架</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.1.1</span>
+                        <span class="task-text">拉取 BuildAdmin（ThinkPHP8）到 php\buildadmin，切到兼容版本</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.1.2</span>
+                        <span class="task-text">配置 .env（数据库 live_platform、Redis、App 密钥）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.1.3</span>
+                        <span class="task-text">composer install 安装 ThinkPHP 依赖</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.1.4</span>
+                        <span class="task-text">导入 live_platform_schema.sql 建库建表</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.1.5</span>
+                        <span class="task-text">配置数据库连接 config/database.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.1.6</span>
+                        <span class="task-text">配置 Redis 连接 config/cache.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.1.7</span>
+                        <span class="task-text">验证：访问 ThinkPHP 默认首页，确认框架正常运行</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>0.2 通用基础设施</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.2.1</span>
+                        <span class="task-text">创建 app/common/constants/ 常量定义（业务类型、状态枚举等）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.2.2</span>
+                        <span class="task-text">创建 app/common/enums/ 枚举类（RoomMode、TaskStatus 等）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.2.3</span>
+                        <span class="task-text">创建 app/common/exception/BusinessException.php 业务异常类</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.2.4</span>
+                        <span class="task-text">创建 app/common/web/Result.php 统一响应格式</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.2.5</span>
+                        <span class="task-text">创建 app/common/web/ResultCode.php 错误码枚举</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.2.6</span>
+                        <span class="task-text">完善 app/BaseController.php（success/successPaginate/fail 方法）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.2.7</span>
+                        <span class="task-text">创建 app/common/util/ 工具类（雪花 ID 生成、签名、时间等）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.2.8</span>
+                        <span class="task-text">创建 app/common/redis/ Redis 操作封装</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>0.3 前端适配</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.3.1</span>
+                        <span class="task-text">配置前端 .env 指向真实后端 API 地址</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.3.2</span>
+                        <span class="task-text">创建 src/api/live.ts 直播相关 API 封装（替代 mock）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.3.3</span>
+                        <span class="task-text">逐步移除 axios-mock-adapter 依赖，切到真实接口</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-0.3.4</span>
+                        <span class="task-text">验证：首页能通过真实后端接口获取数据</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+            <section class="stage-card">
+              <h2>第一阶段：首页信息流 + 用户 + 房间</h2>
+              
+                <section class="section-card">
+                  <h3>1.1 用户模块</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.1</span>
+                        <span class="task-text">创建 lp_user 模型 app/user/model/User.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.2</span>
+                        <span class="task-text">创建 lp_user_auth 模型 app/user/model/UserAuth.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.3</span>
+                        <span class="task-text">创建 lp_user_profile 模型 app/user/model/UserProfile.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.4</span>
+                        <span class="task-text">创建 lp_user_device 模型 app/user/model/UserDevice.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.5</span>
+                        <span class="task-text">创建用户注册验证器 app/user/validate/UserValidate.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.6</span>
+                        <span class="task-text">创建 app/user/service/UserService.php（注册、登录逻辑）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.7</span>
+                        <span class="task-text">创建 app/user/controller/UserController.php</span>
+                      </div>
+                      <ul><li>POST /api/v1/user/register 注册</li><li>POST /api/v1/user/login 登录</li><li>GET /api/v1/user/profile 获取个人信息</li><li>PUT /api/v1/user/profile 更新个人信息</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.8</span>
+                        <span class="task-text">创建用户路由 route/user.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.9</span>
+                        <span class="task-text">实现 JWT Token 生成与解析 app/auth/service/JwtService.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.10</span>
+                        <span class="task-text">创建认证中间件 app/middleware/Auth.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.1.11</span>
+                        <span class="task-text">验证：注册 → 登录 → 获取 Token → 访问需认证接口</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>1.2 房间与人设模块</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.1</span>
+                        <span class="task-text">创建 lp_persona 模型 app/room/model/Persona.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.2</span>
+                        <span class="task-text">创建 lp_room 模型 app/room/model/Room.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.3</span>
+                        <span class="task-text">创建 lp_room_group 模型 app/room/model/RoomGroup.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.4</span>
+                        <span class="task-text">创建 lp_room_binding 模型 app/room/model/RoomBinding.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.5</span>
+                        <span class="task-text">创建 lp_room_tag 模型 app/room/model/RoomTag.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.6</span>
+                        <span class="task-text">创建 app/room/service/RoomService.php（房间查询、状态逻辑）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.7</span>
+                        <span class="task-text">创建 app/room/controller/RoomController.php</span>
+                      </div>
+                      <ul><li>GET /api/v1/feed/live 首页信息流（游标分页）</li><li>GET /api/v1/rooms/{id} 房间详情</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.8</span>
+                        <span class="task-text">创建直播间路由 route/room.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-1.2.9</span>
+                        <span class="task-text">验证：首页接口返回正确字段结构（标题、人设、封面、播放地址）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>1.3 前端首页改造</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge done">已完成</span>
+                        <span class="task-id">T-1.3.1</span>
+                        <span class="task-text">将 src/pages/home/slide/LongVideo.vue 改为直播间信息流容器</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge done">已完成</span>
+                        <span class="task-id">T-1.3.2</span>
+                        <span class="task-text">接入首页接口 GET /api/v1/feed/live，替换 mock 数据</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge done">已完成</span>
+                        <span class="task-id">T-1.3.3</span>
+                        <span class="task-text">实现上下滑切换直播间（复用现有 IntersectionObserver 逻辑）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge done">已完成</span>
+                        <span class="task-id">T-1.3.4</span>
+                        <span class="task-text">每个直播卡片展示：封面、标题、人设标签、在线人数</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge done">已完成</span>
+                        <span class="task-id">T-1.3.5</span>
+                        <span class="task-text">实现播放地址懒加载（进入视口才请求播放 URL）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge done">已完成</span>
+                        <span class="task-id">T-1.3.6</span>
+                        <span class="task-text">集成 WebRTC 播放器（SRS-Player 核心），秒开首屏</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge done">已完成</span>
+                        <span class="task-id">T-1.3.7</span>
+                        <span class="task-text">HLS 兜底播放（WebRTC 不可用时降级）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge done">已完成</span>
+                        <span class="task-id">T-1.3.8</span>
+                        <span class="task-text">验证：首页流畅上下滑，直播间秒切</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+            <section class="stage-card">
+              <h2>第二阶段：WebSocket 实时互动</h2>
+              
+                <section class="section-card">
+                  <h3>2.1 Webman WebSocket 服务</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.1.1</span>
+                        <span class="task-text">初始化 Webman 项目到 apps/ws-webman/</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.1.2</span>
+                        <span class="task-text">配置 Webman WebSocket 端口与进程</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.1.3</span>
+                        <span class="task-text">实现 WebSocket 鉴权（连接时校验 JWT Token）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.1.4</span>
+                        <span class="task-text">实现心跳机制（30 秒超时断开）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.1.5</span>
+                        <span class="task-text">实现房间管理（join_room / leave_room）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.1.6</span>
+                        <span class="task-text">创建 apps/ws-webman/app/websocket/protocol/ 消息协议定义</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>2.2 弹幕</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.2.1</span>
+                        <span class="task-text">实现客户端 → 服务端 send_chat 消息处理</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.2.2</span>
+                        <span class="task-text">消息持久化到 lp_chat_message 表</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.2.3</span>
+                        <span class="task-text">实现房间内弹幕广播 chat_message</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.2.4</span>
+                        <span class="task-text">弹幕内容写入 Redis Stream stream:danmu:ingest</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.2.5</span>
+                        <span class="task-text">敏感词过滤（基础版）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.2.6</span>
+                        <span class="task-text">前端接入 WebSocket，连接并收发弹幕</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.2.7</span>
+                        <span class="task-text">前端弹幕 UI（滚动弹幕 + 底部消息列表）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.2.8</span>
+                        <span class="task-text">验证：多端同时进房，弹幕互相同步、1 秒内可见</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>2.3 点赞</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.3.1</span>
+                        <span class="task-text">实现 send_like 消息处理</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.3.2</span>
+                        <span class="task-text">点赞频率限制（每人每秒最多 N 次）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.3.3</span>
+                        <span class="task-text">Redis 计数器 room:like:{room_id} 实时累加</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.3.4</span>
+                        <span class="task-text">定时（每 5 秒）批量广播 like_burst 增量</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.3.5</span>
+                        <span class="task-text">前端点赞动效（爱心飘出）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.3.6</span>
+                        <span class="task-text">验证：连点点赞，广播增量正确</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>2.4 房间实时状态</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.4.1</span>
+                        <span class="task-text">实现入房时推送 room_snapshot 快照</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.4.2</span>
+                        <span class="task-text">Redis 维护 room:online:{room_id} 在线人数</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.4.3</span>
+                        <span class="task-text">每分钟定时写入 lp_room_online_minute 聚合数据</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.4.4</span>
+                        <span class="task-text">前端展示在线人数、点赞数动态更新</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-2.4.5</span>
+                        <span class="task-text">验证：进出房间在线人数正确变化</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+            <section class="stage-card">
+              <h2>第三阶段：钱包 + 充值</h2>
+              
+                <section class="section-card">
+                  <h3>3.1 钱包核心</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.1.1</span>
+                        <span class="task-text">创建 lp_wallet_account 模型 app/wallet/model/WalletAccount.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.1.2</span>
+                        <span class="task-text">创建 lp_wallet_ledger 模型 app/wallet/model/WalletLedger.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.1.3</span>
+                        <span class="task-text">创建 app/wallet/service/WalletService.php</span>
+                      </div>
+                      <ul><li>getBalance(userId) 查询钻石余额</li><li>deduct(userId, amount, bizType, bizId) 扣费（检查余额）</li><li>credit(userId, amount, bizType, bizId) 充值入账</li><li>freeze(userId, amount) / unfreeze(userId, amount) 冻结/解冻</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.1.4</span>
+                        <span class="task-text">所有资产变动必须写入 lp_wallet_ledger 流水</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.1.5</span>
+                        <span class="task-text">扣费逻辑加乐观锁（status = 1 AND diamond_balance &gt;= amount）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.1.6</span>
+                        <span class="task-text">创建 app/wallet/controller/WalletController.php</span>
+                      </div>
+                      <ul><li>GET /api/v1/wallet/balance 查询余额</li><li>GET /api/v1/wallet/ledger 查询流水</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.1.7</span>
+                        <span class="task-text">创建钱包路由 route/wallet.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>3.2 充值订单</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.2.1</span>
+                        <span class="task-text">创建 lp_recharge_order 模型 app/payment/model/RechargeOrder.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.2.2</span>
+                        <span class="task-text">创建 lp_asset_exchange_rate 模型 app/payment/model/AssetExchangeRate.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.2.3</span>
+                        <span class="task-text">创建 app/payment/service/PaymentService.php</span>
+                      </div>
+                      <ul><li>createOrder(userId, payChannel, payAmount) 创建充值订单</li><li>getOrderStatus(orderNo) 查询订单状态</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.2.4</span>
+                        <span class="task-text">创建 app/payment/controller/PaymentController.php</span>
+                      </div>
+                      <ul><li>POST /api/v1/payment/recharge/create 创建充值订单</li><li>GET /api/v1/payment/recharge/status/{orderNo} 查询充值状态</li><li>GET /api/v1/payment/exchange-rate 查询汇率</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.2.5</span>
+                        <span class="task-text">充值订单 30 分钟过期自动关闭（定时任务）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.2.6</span>
+                        <span class="task-text">创建支付路由 route/payment.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>3.3 USDT-TRC20 支付回调</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.3.1</span>
+                        <span class="task-text">创建 lp_payment_callback_log 模型 app/payment/model/PaymentCallbackLog.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.3.2</span>
+                        <span class="task-text">实现 POST /api/v1/payment/callback/usdt-trc20 回调接口</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.3.3</span>
+                        <span class="task-text">回调签名校验（第三方网关签名算法）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.3.4</span>
+                        <span class="task-text">回调幂等处理（payload_hash 去重）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.3.5</span>
+                        <span class="task-text">验签成功后：更新订单状态 → 钱包入账 → 记录流水</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.3.6</span>
+                        <span class="task-text">验签失败：记录日志，不做入账</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.3.7</span>
+                        <span class="task-text">前端轮询订单状态，支付成功后刷新钻石余额</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-3.3.8</span>
+                        <span class="task-text">验证：模拟回调，完整充值链路（下单 → 回调 → 到账）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+            <section class="stage-card">
+              <h2>第四阶段：礼物 + 房间切换</h2>
+              
+                <section class="section-card">
+                  <h3>4.1 礼物配置</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.1.1</span>
+                        <span class="task-text">创建 lp_gift 模型 app/gift/model/Gift.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.1.2</span>
+                        <span class="task-text">创建 app/gift/service/GiftService.php（礼物列表、价格查询）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.1.3</span>
+                        <span class="task-text">创建 app/gift/controller/GiftController.php</span>
+                      </div>
+                      <ul><li>GET /api/v1/gifts 礼物列表</li><li>GET /api/v1/gifts/{id} 礼物详情</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.1.4</span>
+                        <span class="task-text">创建礼物路由 route/gift.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.1.5</span>
+                        <span class="task-text">插入初始礼物数据（玫瑰、VIP 专属礼物等）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>4.2 送礼流程</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.2.1</span>
+                        <span class="task-text">创建 lp_gift_order 模型 app/gift/model/GiftOrder.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.2.2</span>
+                        <span class="task-text">WebSocket 实现 send_gift 消息处理</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.2.3</span>
+                        <span class="task-text">送礼完整流程：</span>
+                      </div>
+                      <ul><li>校验礼物是否存在</li><li>查询用户钻石余额</li><li>扣减钻石（调用 WalletService.deduct）</li><li>创建礼物订单 lp_gift_order</li><li>写入钱包流水</li><li>房间内广播 gift_effect</li><li>若礼物有 trigger_mode，触发切流逻辑</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.2.4</span>
+                        <span class="task-text">前端礼物面板（底部弹出，展示礼物列表与钻石余额）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.2.5</span>
+                        <span class="task-text">前端送礼动效（礼物飘入动画）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.2.6</span>
+                        <span class="task-text">前端 gift_effect 消息展示送礼通知</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.2.7</span>
+                        <span class="task-text">验证：送礼 → 扣费 → 广播 → 动效，完整链路</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>4.3 房间状态机</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.3.1</span>
+                        <span class="task-text">创建 lp_room_state_snapshot 模型 app/room/model/RoomStateSnapshot.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.3.2</span>
+                        <span class="task-text">创建 lp_room_switch_task 模型 app/room/model/RoomSwitchTask.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.3.3</span>
+                        <span class="task-text">创建 lp_room_play_task 模型 app/room/model/RoomPlayTask.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.3.4</span>
+                        <span class="task-text">创建 lp_room_event_log 模型 app/room/model/RoomEventLog.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.3.5</span>
+                        <span class="task-text">实现 app/room/service/RoomStateMachine.php 状态机核心</span>
+                      </div>
+                      <ul><li>状态定义：offline / public_ready / public_live / switching / interaction_live / privilege_live / degraded</li><li>状态迁移方法（带乐观锁 version）</li><li>transition(roomId, fromState, toState) 原子状态切换</li><li>enterPrivilege(roomId, taskId, durationSec) 进入特权</li><li>leavePrivilege(roomId) 退出特权</li><li>enterInteraction(roomId, taskId) 进入互动</li><li>leaveInteraction(roomId) 退出互动</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.3.6</span>
+                        <span class="task-text">实现切换任务调度 app/room/service/RoomSwitchScheduler.php</span>
+                      </div>
+                      <ul><li>礼物触发切特权流（30 秒倒计时）</li><li>倒计时结束自动切回公共流</li><li>切流任务写入 lp_room_switch_task 记录</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.3.7</span>
+                        <span class="task-text">实现优先级抢占逻辑</span>
+                      </div>
+                      <ul><li>特权 &gt; 互动 &gt; 公共</li><li>特权期间：拒绝互动插播</li><li>互动期间被特权抢占：标记互动跳过</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.3.8</span>
+                        <span class="task-text">WebSocket 推送切流信令</span>
+                      </div>
+                      <ul><li>privilege_started 特权开始</li><li>privilege_countdown 倒计时（每秒或每 5 秒）</li><li>privilege_ended 特权结束</li><li>interaction_started / interaction_ended 互动开始/结束</li><li>stream_reload 通知前端重连播放器</li></ul>
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>4.4 前端切流响应</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.4.1</span>
+                        <span class="task-text">前端监听 privilege_started 消息，展示特权标识 + 倒计时</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.4.2</span>
+                        <span class="task-text">前端监听 stream_reload，重新加载当前房间播放器（不改真实源地址）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.4.3</span>
+                        <span class="task-text">前端监听 privilege_ended，隐藏倒计时，恢复正常 UI</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.4.4</span>
+                        <span class="task-text">前端口播提示（&quot;XXX 送出了专属礼物&quot;）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-4.4.5</span>
+                        <span class="task-text">验证：送礼 → 切特权流 → 30 秒倒计时 → 自动切回公共流</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+            <section class="stage-card">
+              <h2>第五阶段：AI 任务对接</h2>
+              
+                <section class="section-card">
+                  <h3>5.1 AI 任务管理</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.1.1</span>
+                        <span class="task-text">创建 lp_ai_task 模型 app/ai/model/AiTask.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.1.2</span>
+                        <span class="task-text">创建 lp_ai_task_log 模型 app/ai/model/AiTaskLog.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.1.3</span>
+                        <span class="task-text">创建 lp_control_command_log 模型 app/ai/model/ControlCommandLog.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.1.4</span>
+                        <span class="task-text">创建 app/ai/service/AiTaskService.php</span>
+                      </div>
+                      <ul><li>createTask(roomId, sourceType, sourceRefId, content, personaId) 从弹幕创建互动任务</li><li>getPendingTask(roomId) 获取待处理任务</li><li>updateStatus(taskId, status) 更新任务状态</li><li>completeTask(taskId, resultData) 完成回调</li><li>failTask(taskId, errorData) 失败回调</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.1.5</span>
+                        <span class="task-text">AI 任务写入 Redis 队列 queue:interaction:ready:{room_id}</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.1.6</span>
+                        <span class="task-text">室编排器消费就绪任务，安排插播时机</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>5.2 AI 外部接口</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.2.1</span>
+                        <span class="task-text">创建 app/ai/controller/AiController.php</span>
+                      </div>
+                      <ul><li>GET /api/v1/ai/tasks/pull AI 拉取待处理任务</li><li>POST /api/v1/ai/tasks/accept AI 接单</li><li>POST /api/v1/ai/tasks/progress AI 进度上报</li><li>POST /api/v1/ai/tasks/complete AI 完成回调</li><li>POST /api/v1/ai/tasks/fail AI 失败回调</li><li>POST /api/v1/ai/tasks/stream-token 获取实时推流参数</li></ul>
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.2.2</span>
+                        <span class="task-text">创建 AI 路由 route/ai.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.2.3</span>
+                        <span class="task-text">AI 接口鉴权（API Key / Token 模式）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.2.4</span>
+                        <span class="task-text">AI 完成回调后：任务完成 → 排入互动播放队列 → 择机插播</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>5.3 弹幕触发 AI 互动</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.3.1</span>
+                        <span class="task-text">WebSocket send_chat 消息接入 AI 任务队列</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.3.2</span>
+                        <span class="task-text">弹幕内容写入 Redis Stream，AI 侧消费后生成互动视频</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.3.3</span>
+                        <span class="task-text">AI 完成回调后，房间编排器安排插入互动流播放</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.3.4</span>
+                        <span class="task-text">互动流优先级低于特权流（特权来了可抢占）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.3.5</span>
+                        <span class="task-text">WebSocket 推送 interaction_task_created / interaction_ready</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.3.6</span>
+                        <span class="task-text">前端展示互动状态（&quot;AI 正在回应...&quot;）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-5.3.7</span>
+                        <span class="task-text">验证：发弹幕 → AI 任务生成 → 回调 → 插播互动流</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+            <section class="stage-card">
+              <h2>第六阶段：Channel Worker + SRS 流编排</h2>
+              
+                <section class="section-card">
+                  <h3>6.1 素材与播单管理</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.1.1</span>
+                        <span class="task-text">创建 lp_media_asset 模型 app/room/model/MediaAsset.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.1.2</span>
+                        <span class="task-text">创建 lp_playlist_template 模型 app/room/model/PlaylistTemplate.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.1.3</span>
+                        <span class="task-text">创建 lp_playlist_template_item 模型 app/room/model/PlaylistTemplateItem.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.1.4</span>
+                        <span class="task-text">创建 lp_stream_template 模型 app/room/model/StreamTemplate.php</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.1.5</span>
+                        <span class="task-text">创建素材上传接口（上传到 CDN/对象存储）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.1.6</span>
+                        <span class="task-text">创建播单编排管理接口</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>6.2 Channel Worker</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.2.1</span>
+                        <span class="task-text">初始化 Channel Worker 到 services/channel-worker/</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.2.2</span>
+                        <span class="task-text">实现公共流播单循环引擎（从 MySQL 读取播单，循环播放素材）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.2.3</span>
+                        <span class="task-text">实现特权流切换（接收切流指令，即时切换播单）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.2.4</span>
+                        <span class="task-text">实现互动流插播（播放 AI 生成的互动视频文件）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.2.5</span>
+                        <span class="task-text">实现流推送到 SRS（RTMP/WebRTC 推流）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.2.6</span>
+                        <span class="task-text">流命名规范：room/{room_id}（公共流）、room/{room_id}/privilege（特权流）、room/{room_id}/interaction（互动流）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>6.3 SRS 配置</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.3.1</span>
+                        <span class="task-text">配置 SRS WebRTC 播放（HTTP API 回调鉴权）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.3.2</span>
+                        <span class="task-text">配置 HLS 兜底（WebRTC 不可用时降级）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.3.3</span>
+                        <span class="task-text">配置播放域名（前端只访问播放域名，不暴露源站 IP）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.3.4</span>
+                        <span class="task-text">配置推流鉴权（防止未授权推流）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.3.5</span>
+                        <span class="task-text">配置 CDN 边缘节点（生产环境）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>6.4 Control Agent</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.4.1</span>
+                        <span class="task-text">初始化 Control Agent 到 services/control-agent/</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.4.2</span>
+                        <span class="task-text">实现 Channel Worker 心跳上报</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.4.3</span>
+                        <span class="task-text">实现 Channel Worker 指令下发（切流、暂停、恢复）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-6.4.4</span>
+                        <span class="task-text">实现 Channel Worker 健康监控</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+            <section class="stage-card">
+              <h2>第七阶段：后台管理 + 完善</h2>
+              
+                <section class="section-card">
+                  <h3>7.1 BuildAdmin 后台管理</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.1.1</span>
+                        <span class="task-text">接入 BuildAdmin 后台，配置管理员账号</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.1.2</span>
+                        <span class="task-text">房间管理页面（CRUD + 启停 + 排序）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.1.3</span>
+                        <span class="task-text">人设管理页面（CRUD + 标签配置）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.1.4</span>
+                        <span class="task-text">用户管理页面（列表 + 状态管理）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.1.5</span>
+                        <span class="task-text">礼物管理页面（CRUD + 触发模式配置）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.1.6</span>
+                        <span class="task-text">素材管理页面（上传 + 播单编排）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.1.7</span>
+                        <span class="task-text">充值订单管理页面（列表 + 手动补单）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.1.8</span>
+                        <span class="task-text">AI 任务管理页面（列表 + 状态查看 + 重试）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>7.2 安全与风控</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.2.1</span>
+                        <span class="task-text">API 接口频率限制（基于 topthink/think-throttle）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.2.2</span>
+                        <span class="task-text">WebSocket 消息频率限制（防刷弹幕、点赞）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.2.3</span>
+                        <span class="task-text">IP 隐藏：前端只获取播放域名，不暴露源站</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.2.4</span>
+                        <span class="task-text">播放地址加签名 Token 防盗链</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.2.5</span>
+                        <span class="task-text">支付回调签名校验（第三方网关密钥管理）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.2.6</span>
+                        <span class="task-text">异常充值检测（单日限额、重复回调检测）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.2.7</span>
+                        <span class="task-text">Token 黑名单机制（登出、封禁时失效）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>7.3 运维与监控</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.3.1</span>
+                        <span class="task-text">关键业务日志记录（充值、送礼、切流）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.3.2</span>
+                        <span class="task-text">房间在线人数监控</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.3.3</span>
+                        <span class="task-text">AI 任务队列积压告警</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.3.4</span>
+                        <span class="task-text">SRS 流健康监控</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.3.5</span>
+                        <span class="task-text">Channel Worker 存活监控</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-7.3.6</span>
+                        <span class="task-text">定时任务：过期订单关闭、聚合数据写入</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+            <section class="stage-card">
+              <h2>第八阶段：高级特性 + 优化</h2>
+              
+                <section class="section-card">
+                  <h3>8.1 AI 实时推流模式（可选后期）</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.1.1</span>
+                        <span class="task-text">AI 实时推流接口完善（stream_token 获取 → AI 推流 → SRS 接收）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.1.2</span>
+                        <span class="task-text">实时互动流房间编排（边推边播，延迟 &lt; 3 秒）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.1.3</span>
+                        <span class="task-text">AI Worker 多节点调度（多 GPU 工作站负载均衡）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>8.2 性能优化</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.2.1</span>
+                        <span class="task-text">首页接口 Redis 缓存（热门房间列表）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.2.2</span>
+                        <span class="task-text">WebSocket 连接数优化（单机 10k+ 并发）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.2.3</span>
+                        <span class="task-text">数据库查询优化（索引、慢查询）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.2.4</span>
+                        <span class="task-text">静态资源 CDN 化</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.2.5</span>
+                        <span class="task-text">多节点扩展（SRS Edge、WebSocket 集群）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+                <section class="section-card">
+                  <h3>8.3 用户体验</h3>
+                  
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.3.1</span>
+                        <span class="task-text">前端预加载（当前房间前后各 1 个房间数据预拉）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.3.2</span>
+                        <span class="task-text">弱网降级（WebRTC → HLS 自动切换）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.3.3</span>
+                        <span class="task-text">断线重连（WebSocket 断开自动重连 + 房间状态恢复）</span>
+                      </div>
+                      
+                    </div>
+                    
+                    <div class="task-item">
+                      <div class="task-main">
+                        <span class="badge todo">待开始</span>
+                        <span class="task-id">T-8.3.4</span>
+                        <span class="task-text">离线消息拉取（进房时拉最近 N 条弹幕）</span>
+                      </div>
+                      
+                    </div>
+                    
+                </section>
+                
+            </section>
+            
+    
+        <section class="table-card">
+          <h2>任务状态说明</h2>
+          <table>
+            <thead><tr><th>状态</th><th>含义</th></tr></thead>
+            <tbody><tr><td>[ ]</td><td>待开始</td></tr><tr><td>[~]</td><td>进行中</td></tr><tr><td>[x]</td><td>已完成</td></tr><tr><td>[!]</td><td>阻塞/待确认</td></tr></tbody>
+          </table>
+        </section>
+        
+    
+        <section class="table-card">
+          <h2>优先级速查</h2>
+          <table>
+            <thead><tr><th>阶段</th><th>内容</th><th>优先级</th><th>预估可并行</th></tr></thead>
+            <tbody><tr><td>第零阶段</td><td>基础设施搭建</td><td>🔴 最高</td><td>0.1 / 0.2 / 0.3 可并行</td></tr><tr><td>第一阶段</td><td>首页 + 用户 + 房间</td><td>🔴 高</td><td>1.1 / 1.2 可并行</td></tr><tr><td>第二阶段</td><td>WebSocket 互动</td><td>🔴 高</td><td>2.1~2.4 依赖先后</td></tr><tr><td>第三阶段</td><td>钱包 + 充值</td><td>🟡 中</td><td>3.1 / 3.2 可并行</td></tr><tr><td>第四阶段</td><td>礼物 + 房间切换</td><td>🟡 中</td><td>4.1 / 4.3 可并行</td></tr><tr><td>第五阶段</td><td>AI 任务对接</td><td>🟢 中低</td><td>5.1 / 5.2 可并行</td></tr><tr><td>第六阶段</td><td>流编排</td><td>🟢 低</td><td>6.1~6.4 依赖于前面</td></tr><tr><td>第七阶段</td><td>后台管理 + 风控</td><td>🟢 低</td><td>7.1~7.3 可并行</td></tr><tr><td>第八阶段</td><td>高级特性</td><td>⚪ 后期</td><td>按需</td></tr></tbody>
+          </table>
+        </section>
+        
+  </div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+# IDE
+.idea/
+.vscode/
+**/.idea/
+**/.vscode/
+
+# OS / logs
+*.log
+*.tmp
+*.cache
+Thumbs.db
+Desktop.ini
+
+# PHP / ThinkPHP
+php/vendor/
+php/runtime/
+php/public/assets/
+php/public/hls/
+php/public/install.lock
+php/tmp_make_token.php
+php/.env
+
+# BuildAdmin web
+php/web/node_modules/
+php/web/dist/
+
+# User H5
+vue/node_modules/
+vue/dist/
+vue/.vite/
+
+# Webman
+apps/ws-webman/vendor/
+apps/ws-webman/runtime/
+apps/ws-webman/.env
+
+# Nested package managers
+**/node_modules/
+**/vendor/
