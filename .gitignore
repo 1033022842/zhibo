@@ -40,8 +40,16 @@ apps/ws-webman/.env
 # Not included in current source package scope
 DEVELOPMENT_TASKS.md
 LIVE_PLATFORM_SOLUTION.md
-services/
 tools/
+
+# Services
+services/*
+!services/channel-worker/
+services/channel-worker/*
+!services/channel-worker/bin/
+!services/channel-worker/config/
+!services/channel-worker/src/
+services/channel-worker/runtime/
 
 # Nested package managers
 **/node_modules/
