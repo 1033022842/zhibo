@@ -24,6 +24,7 @@ php/.env
 php/web/node_modules/
 php/web/dist/
 php/web/.vscode/
+php/web/.vscode/*
 
 # User H5
 vue/node_modules/
