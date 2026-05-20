@@ -23,16 +23,24 @@ php/.env
 # BuildAdmin web
 php/web/node_modules/
 php/web/dist/
+php/web/.vscode/
 
 # User H5
 vue/node_modules/
 vue/dist/
 vue/.vite/
+vue/env/
 
 # Webman
 apps/ws-webman/vendor/
 apps/ws-webman/runtime/
 apps/ws-webman/.env
+
+# Not included in current source package scope
+DEVELOPMENT_TASKS.md
+LIVE_PLATFORM_SOLUTION.md
+services/
+tools/
 
 # Nested package managers
 **/node_modules/
