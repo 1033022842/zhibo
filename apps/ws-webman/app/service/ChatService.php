@@ -7,8 +7,8 @@ use support\Redis;
 
 final class ChatService
 {
-    /** @var array<int, int> */
-    private static array $userSpeakAt = [];
+    /** @var array<string, int> */
+    private static array $speakerSpeakAt = [];
 
     public function create(array $session, array $message): array
     {
@@ -33,7 +33,7 @@ final class ChatService
             return ['ok' => false, 'code' => 'WS2003', 'msg' => '消息长度超过限制'];
         }
 
-        if (!$this->allowSpeak($userId)) {
+        if (!$this->allowSpeak($session)) {
             return ['ok' => false, 'code' => 'WS2004', 'msg' => '发送过于频繁'];
         }
 
@@ -50,6 +50,8 @@ final class ChatService
             'status' => (string) $status,
             'created_at' => (string) $createdAt,
         ]);
+
+        $this->xaddAiTask($roomId, $userId, (string) ($session['nickname'] ?? ''), $content);
 
         return [
             'ok' => true,
@@ -68,17 +70,33 @@ final class ChatService
         ];
     }
 
-    private function allowSpeak(int $userId): bool
+    private function allowSpeak(array $session): bool
     {
         $now = time();
         $limit = max(1, (int) config('chat.rate_limit_per_second', 1));
-        $lastSpeakAt = self::$userSpeakAt[$userId] ?? 0;
+        $speakerKey = $this->speakerKey($session);
+        $lastSpeakAt = self::$speakerSpeakAt[$speakerKey] ?? 0;
         if (($now - $lastSpeakAt) < $limit) {
             return false;
         }
 
-        self::$userSpeakAt[$userId] = $now;
+        self::$speakerSpeakAt[$speakerKey] = $now;
         return true;
+    }
+
+    private function speakerKey(array $session): string
+    {
+        $userId = (int) ($session['user_id'] ?? 0);
+        if ($userId > 0) {
+            return 'user:' . $userId;
+        }
+
+        $userNo = trim((string) ($session['user_no'] ?? ''));
+        if ($userNo !== '') {
+            return 'session:' . $userNo;
+        }
+
+        return 'guest:' . md5((string) ($session['nickname'] ?? 'guest'));
     }
 
     private function containsSensitiveWord(string $content): bool
@@ -95,19 +113,15 @@ final class ChatService
 
     private function insertMessage(int $roomId, int $userId, string $content, int $status): int
     {
-        $pdo = $this->pdo();
-        $statement = $pdo->prepare(
-            'INSERT INTO lp_chat_message (room_id, user_id, message_type, content, status) VALUES (:room_id, :user_id, :message_type, :content, :status)'
-        );
-        $statement->execute([
-            'room_id' => $roomId,
-            'user_id' => $userId,
-            'message_type' => 'text',
-            'content' => $content,
-            'status' => $status,
-        ]);
+        try {
+            return $this->insertMessageOnce($roomId, $userId, $content, $status);
+        } catch (\PDOException $exception) {
+            if (!$this->isConnectionLost($exception)) {
+                throw $exception;
+            }
 
-        return (int) $pdo->lastInsertId();
+            return $this->insertMessageOnce($roomId, $userId, $content, $status, true);
+        }
     }
 
     private function appendStream(array $payload): void
@@ -125,9 +139,65 @@ final class ChatService
         }
     }
 
-    private function pdo(): \PDO
+    private function xaddAiTask(int $roomId, int $userId, string $nickname, string $content): void
+    {
+        try {
+            $streamKey = (string) config('live_ws.ai_task_stream_key', 'stream:ai:tasks');
+            $personaId = (int) config('live_ws.ai_default_persona_id', 0);
+
+            $args = [$streamKey, '*'];
+            $args[] = 'room_id';
+            $args[] = (string) $roomId;
+            $args[] = 'user_id';
+            $args[] = (string) $userId;
+            $args[] = 'nickname';
+            $args[] = $nickname;
+            $args[] = 'content';
+            $args[] = $content;
+            $args[] = 'persona_id';
+            $args[] = (string) $personaId;
+            $args[] = 'created_ts';
+            $args[] = (string) time();
+
+            Redis::rawCommand('XADD', ...$args);
+        } catch (\Throwable) {
+        }
+    }
+
+    private function insertMessageOnce(int $roomId, int $userId, string $content, int $status, bool $forceReconnect = false): int
+    {
+        $pdo = $this->pdo($forceReconnect);
+        $statement = $pdo->prepare(
+            'INSERT INTO lp_chat_message (room_id, user_id, message_type, content, status) VALUES (:room_id, :user_id, :message_type, :content, :status)'
+        );
+        $statement->execute([
+            'room_id' => $roomId,
+            'user_id' => $userId,
+            'message_type' => 'text',
+            'content' => $content,
+            'status' => $status,
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    private function isConnectionLost(\PDOException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        return str_contains($message, 'server has gone away')
+            || str_contains($message, 'lost connection')
+            || str_contains($message, 'error while sending')
+            || str_contains($message, 'is dead or not enabled')
+            || str_contains($message, 'no connection to the server');
+    }
+
+    private function pdo(bool $forceReconnect = false): \PDO
     {
         static $pdo = null;
+        if ($forceReconnect) {
+            $pdo = null;
+        }
+
         if ($pdo instanceof \PDO) {
             return $pdo;
         }

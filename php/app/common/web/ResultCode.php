@@ -24,6 +24,9 @@ enum ResultCode: string
     case ROOM_NOT_FOUND   = 'E0100';
     case ROOM_OFFLINE     = 'E0101';
     case ROOM_SWITCHING   = 'E0102';
+    case ROOM_STATE_CONFLICT          = 'E0103';
+    case ROOM_STATE_TRANSITION_INVALID = 'E0104';
+    case ROOM_PRIVILEGE_BLOCKING      = 'E0105';
     case TASK_NOT_FOUND   = 'F0100';
     case TASK_EXPIRED     = 'F0101';
     case TASK_ALREADY_DONE = 'F0102';
@@ -52,6 +55,9 @@ enum ResultCode: string
             self::ROOM_NOT_FOUND => '房间不存在',
             self::ROOM_OFFLINE => '房间已下线',
             self::ROOM_SWITCHING => '房间正在切换中',
+            self::ROOM_STATE_CONFLICT => '房间状态冲突',
+            self::ROOM_STATE_TRANSITION_INVALID => '非法状态迁移',
+            self::ROOM_PRIVILEGE_BLOCKING => '特权进行中，操作被阻止',
             self::TASK_NOT_FOUND => '任务不存在',
             self::TASK_EXPIRED => '任务已过期',
             self::TASK_ALREADY_DONE => '任务已完成',

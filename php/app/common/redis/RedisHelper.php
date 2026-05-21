@@ -52,6 +52,11 @@ final class RedisHelper
         return 'stream:room:switch';
     }
 
+    public static function streamAiTask(): string
+    {
+        return 'stream:ai:tasks';
+    }
+
     public static function queueInteractionReady(int $roomId): string
     {
         return 'queue:interaction:ready:' . $roomId;

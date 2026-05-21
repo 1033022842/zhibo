@@ -1,6 +1,12 @@
-import axios, { type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import axios, {
+  type AxiosError,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig
+} from 'axios'
 import config from '@/config'
 import { _notice } from './index'
+import { getAccessToken, setTokens, clearTokens, getRefreshToken } from './auth'
 
 export const axiosInstance = axios.create({
   baseURL: config.baseUrl,
@@ -9,18 +15,21 @@ export const axiosInstance = axios.create({
 
 // request拦截器
 axiosInstance.interceptors.request.use(
-  (config) => {
-    // 如果没有设置Content-Type，默认application/json
-    if (!config.headers['Content-Type']) {
-      config.headers['Content-Type'] = 'application/json'
+  (reqConfig: InternalAxiosRequestConfig) => {
+    if (!reqConfig.headers['Content-Type']) {
+      reqConfig.headers['Content-Type'] = 'application/json'
     }
-    if (typeof config.url === 'string' && config.url.startsWith('/api/')) {
-      config.params = {
-        ...(config.params || {}),
+    if (typeof reqConfig.url === 'string' && reqConfig.url.startsWith('/api/')) {
+      reqConfig.params = {
+        ...(reqConfig.params || {}),
         server: 1
       }
     }
-    return config
+    const token = getAccessToken()
+    if (token) {
+      reqConfig.headers['Authorization'] = `Bearer ${token}`
+    }
+    return reqConfig
   },
   (error) => {
     return Promise.reject(error)
@@ -113,6 +122,89 @@ axiosInstance.interceptors.response.use(
         return data
       }
     }
+  }
+)
+
+// Token 刷新逻辑 — 注册在已有拦截器之后，因此响应时最先执行
+let isRefreshing = false
+let refreshSubscribers: Array<(token: string | null) => void> = []
+
+function onRefreshed(token: string | null) {
+  refreshSubscribers.forEach((cb) => cb(token))
+  refreshSubscribers = []
+}
+
+async function doRefreshToken(): Promise<string | null> {
+  try {
+    const refreshToken = getRefreshToken()
+    if (!refreshToken) return null
+
+    const rawAxios = axios.create({ baseURL: config.baseUrl, timeout: 30000 })
+    const resp = await rawAxios.post('/api/live/refresh_token', {
+      refresh_token: refreshToken
+    })
+
+    const body = resp.data || {}
+    if (body.code === 0 && body.data?.access_token) {
+      setTokens(body.data.access_token, body.data.refresh_token)
+      return body.data.access_token
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+axiosInstance.interceptors.response.use(
+  (response) => response, // 成功直接透传
+  async (error: AxiosError) => {
+    const reqConfig = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _queueId?: number }
+    if (!reqConfig) return Promise.reject(error)
+
+    if (error.response?.status !== 401) return Promise.reject(error)
+    if (reqConfig._retry) return Promise.reject(error)
+
+    const url = reqConfig.url || ''
+    if (url.includes('/login') || url.includes('/register') || url.includes('/refresh_token')) {
+      return Promise.reject(error)
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve) => {
+        refreshSubscribers.push((token: string | null) => {
+          if (token) {
+            const headers = reqConfig.headers as Record<string, string>
+            headers['Authorization'] = `Bearer ${token}`
+            reqConfig._retry = true
+            resolve(axiosInstance(reqConfig))
+          } else {
+            resolve(Promise.reject(error))
+          }
+        })
+      })
+    }
+
+    isRefreshing = true
+
+    try {
+      const newToken = await doRefreshToken()
+      if (newToken) {
+        onRefreshed(newToken)
+        isRefreshing = false
+        reqConfig._retry = true
+        const headers = reqConfig.headers as Record<string, string>
+        headers['Authorization'] = `Bearer ${newToken}`
+        return axiosInstance(reqConfig)
+      }
+      onRefreshed(null)
+    } catch {
+      onRefreshed(null)
+    }
+
+    isRefreshing = false
+    clearTokens()
+    window.location.href = '/login'
+    return Promise.reject(error)
   }
 )
 

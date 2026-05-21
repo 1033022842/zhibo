@@ -47,6 +47,7 @@ final class RoomService
         $personas = $this->loadPersonas($personaIds);
         $tags = $this->loadRoomTags($roomIds);
         [$bindings, $groups, $streamTemplates, $previewVideos] = $this->loadBindingContext($roomIds, $domain);
+        $giftPanel = $this->loadGiftPanel();
 
         $list = [];
         foreach ($rows as $row) {
@@ -58,6 +59,7 @@ final class RoomService
                 $groups,
                 $streamTemplates,
                 $previewVideos,
+                $giftPanel,
                 $domain
             );
         }
@@ -86,6 +88,7 @@ final class RoomService
         $personas = $this->loadPersonas([(int) $roomData['persona_id']]);
         $tags = $this->loadRoomTags([$roomId]);
         [$bindings, $groups, $streamTemplates, $previewVideos] = $this->loadBindingContext([$roomId], $domain);
+        $giftPanel = $this->loadGiftPanel();
 
         $result = $this->formatRoom(
             $roomData,
@@ -95,6 +98,7 @@ final class RoomService
             $groups,
             $streamTemplates,
             $previewVideos,
+            $giftPanel,
             $domain
         );
 
@@ -189,6 +193,7 @@ final class RoomService
         array $groups,
         array $streamTemplates,
         array $previewVideos,
+        array $giftPanel,
         string $domain
     ): array {
         $streamTemplate = $binding ? ($streamTemplates[$binding['stream_template_id']] ?? null) : null;
@@ -238,20 +243,52 @@ final class RoomService
                 'allow_like' => true,
                 'allow_gift' => true,
             ],
-            'gift_panel'        => [
-                'currency_name' => '钻石',
-                'quick_gifts'   => [
-                    ['gift_id' => 1, 'name' => '玫瑰', 'price' => 10],
-                    [
-                        'gift_id'              => 12,
-                        'name'                 => '特权礼物',
-                        'price'                => 199,
-                        'trigger_mode'         => 'privilege',
-                        'trigger_duration_sec' => 30,
-                    ],
-                ],
-            ],
+            'gift_panel'        => $giftPanel,
             'room_tags'         => array_values($roomTags),
+        ];
+    }
+
+    private function loadGiftPanel(): array
+    {
+        $rows = Db::connect('live_mysql')
+            ->table('lp_gift')
+            ->where('status', 1)
+            ->order('price_diamond', 'asc')
+            ->order('id', 'asc')
+            ->field(['id', 'name', 'price_diamond', 'trigger_mode', 'trigger_duration_sec', 'effect_code'])
+            ->limit(8)
+            ->select()
+            ->toArray();
+
+        $quickGifts = [];
+        foreach ($rows as $row) {
+            $gift = [
+                'gift_id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+                'price' => (float) $row['price_diamond'],
+            ];
+
+            $triggerMode = (string) ($row['trigger_mode'] ?? 'none');
+            if ($triggerMode !== '' && $triggerMode !== 'none') {
+                $gift['trigger_mode'] = $triggerMode;
+            }
+
+            $triggerDurationSec = (int) ($row['trigger_duration_sec'] ?? 0);
+            if ($triggerDurationSec > 0) {
+                $gift['trigger_duration_sec'] = $triggerDurationSec;
+            }
+
+            $effectCode = trim((string) ($row['effect_code'] ?? ''));
+            if ($effectCode !== '') {
+                $gift['effect_code'] = $effectCode;
+            }
+
+            $quickGifts[] = $gift;
+        }
+
+        return [
+            'currency_name' => '钻石',
+            'quick_gifts' => $quickGifts,
         ];
     }
 

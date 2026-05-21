@@ -4,5 +4,8 @@
 // +----------------------------------------------------------------------
 return [
     // 指令定义
-    'commands' => [],
+    'commands' => [
+        \app\command\RoomSwitchCron::class,
+        \app\command\AiTaskCron::class,
+    ],
 ];
