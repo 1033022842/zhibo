@@ -51,6 +51,12 @@ services/channel-worker/*
 !services/channel-worker/src/
 services/channel-worker/runtime/
 
+# Archive / large binary files
+*.zip
+php/composer.zip
+tools.zip
+vue/dist.zip
+
 # Nested package managers
 **/node_modules/
 **/vendor/

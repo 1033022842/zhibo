@@ -85,3 +85,30 @@ export function liveRoomDetail(id: number) {
     method: 'get'
   })
 }
+
+export interface UserProfile {
+  id: number
+  user_no: string
+  nickname: string
+  avatar: string
+  level: number
+  status: number
+  gender: number
+  bio: string
+  last_login_at: string | null
+}
+
+export function getProfile() {
+  return request<UserProfile>({
+    url: '/api/live/profile',
+    method: 'get'
+  })
+}
+
+export function updateProfile(data: { nickname?: string; gender?: number; bio?: string }) {
+  return request<void>({
+    url: '/api/live/update-profile',
+    method: 'put',
+    data
+  })
+}

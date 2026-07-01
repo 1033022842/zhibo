@@ -31,6 +31,11 @@ enum ResultCode: string
     case TASK_EXPIRED     = 'F0101';
     case TASK_ALREADY_DONE = 'F0102';
     case RATE_LIMIT       = 'G0100';
+    case EMAIL_SEND_TOO_FREQUENT = 'G0101';
+    case EMAIL_SEND_DAILY_LIMIT  = 'G0102';
+    case VERIFY_CODE_EXPIRED     = 'G0200';
+    case VERIFY_CODE_ERROR       = 'G0201';
+    case EMAIL_ALREADY_REGISTERED = 'G0300';
     case SERVER_ERROR     = 'H0001';
 
     public function getMsg(): string
@@ -62,6 +67,11 @@ enum ResultCode: string
             self::TASK_EXPIRED => '任务已过期',
             self::TASK_ALREADY_DONE => '任务已完成',
             self::RATE_LIMIT => '请求过于频繁',
+            self::EMAIL_SEND_TOO_FREQUENT => '验证码发送过于频繁，请60秒后再试',
+            self::EMAIL_SEND_DAILY_LIMIT => '今日验证码发送次数已达上限',
+            self::VERIFY_CODE_EXPIRED => '验证码已过期',
+            self::VERIFY_CODE_ERROR => '验证码错误',
+            self::EMAIL_ALREADY_REGISTERED => '该邮箱已注册',
             self::SERVER_ERROR => '服务器内部错误',
         };
     }

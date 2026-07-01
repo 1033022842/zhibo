@@ -27,79 +27,13 @@ const routes: RouteRecordRaw[] = [
 
   { path: '/me', component: () => import('@/pages/me/Me.vue') },
   {
-    path: '/me/edit-userinfo',
-    component: () => import('@/pages/me/userinfo/EditUserInfo.vue')
+    path: '/me/edit',
+    component: () => import('@/pages/me/EditProfile.vue')
   },
   {
-    path: '/me/edit-userinfo-item',
-    component: () => import('@/pages/me/userinfo/EditUserInfoItem.vue')
+    path: '/me/setting',
+    component: () => import('@/pages/me/Setting.vue')
   },
-  {
-    path: '/me/country-choose',
-    component: () => import('@/pages/login/countryChoose.vue')
-  },
-  { path: '/me/my-card', component: () => import('@/pages/me/MyCard.vue') },
-  {
-    path: '/me/add-school',
-    component: () => import('@/pages/me/userinfo/AddSchool.vue')
-  },
-  {
-    path: '/me/choose-school',
-    component: () => import('@/pages/me/userinfo/ChooseSchool.vue')
-  },
-  {
-    path: '/me/declare-school',
-    component: () => import('@/pages/me/userinfo/DeclareSchool.vue')
-  },
-  {
-    path: '/me/choose-department',
-    component: () => import('@/pages/me/userinfo/ChooseDepartment.vue')
-  },
-  {
-    path: '/me/display-type',
-    component: () => import('@/pages/me/userinfo/DisplayType.vue')
-  },
-  {
-    path: '/me/choose-location',
-    component: () => import('@/pages/me/userinfo/ChooseLocation.vue')
-  },
-  {
-    path: '/me/choose-province',
-    component: () => import('@/pages/me/userinfo/ChooseProvince.vue')
-  },
-  {
-    path: '/me/choose-city',
-    component: () => import('@/pages/me/userinfo/ChooseCity.vue')
-  },
-  {
-    path: '/me/right-menu/look-history',
-    component: () => import('@/pages/me/rightMenu/LookHistory.vue')
-  },
-  {
-    path: '/me/right-menu/minor-protection/index',
-    component: () => import('@/pages/me/rightMenu/MinorProtection/Index.vue')
-  },
-  {
-    path: '/me/right-menu/minor-protection/detail-setting',
-    component: () => import('@/pages/me/rightMenu/MinorProtection/DetailSetting.vue')
-  },
-  {
-    path: '/me/right-menu/minor-protection/trigger-time',
-    component: () => import('@/pages/me/rightMenu/MinorProtection/TriggerTime.vue')
-  },
-  {
-    path: '/me/right-menu/setting',
-    component: () => import('@/pages/me/rightMenu/Setting.vue')
-  },
-  {
-    path: '/me/collect/music-collect',
-    component: () => import('@/pages/me/collect/MusicCollect.vue')
-  },
-  {
-    path: '/me/collect/video-collect',
-    component: () => import('@/pages/me/collect/VideoCollect.vue')
-  },
-  { path: '/me/my-music', component: () => import('@/pages/me/MyMusic.vue') },
 
   // {path: '/message', component: Message},
   { path: '/message', component: () => import('@/pages/message/Message.vue') },
@@ -205,15 +139,6 @@ const routes: RouteRecordRaw[] = [
   },
   { path: '/login/help', component: () => import('@/pages/login/Help.vue') },
 
-  //前面的要跳到这些页面，所以放后面
-  {
-    path: '/me/request-update',
-    component: () => import('@/pages/me/RequestUpdate.vue')
-  },
-  {
-    path: '/me/my-request-update',
-    component: () => import('@/pages/me/MyRequestUpdate.vue')
-  },
   { path: '/home/report', component: () => import('@/pages/home/Report.vue') },
   {
     path: '/home/submit-report',

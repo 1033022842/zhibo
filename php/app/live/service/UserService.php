@@ -14,13 +14,16 @@ use think\facade\Db;
 
 final class UserService
 {
-    public function register(string $username, string $password, string $nickname, string $ip = ''): array
+    public function register(string $email, string $code, string $password, string $nickname, string $ip = ''): array
     {
-        $exists = UserAuth::where('auth_type', 'username')
-            ->where('auth_key', $username)
+        $verifyService = new EmailVerifyService();
+        $verifyService->verify($email, $code);
+
+        $exists = UserAuth::where('auth_type', 'email')
+            ->where('auth_key', $email)
             ->find();
         if ($exists) {
-            throw new BusinessException(ResultCode::AUTH_FAILED, '用户名已存在');
+            throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
         }
 
         Db::startTrans();
@@ -28,14 +31,16 @@ final class UserService
             $user = new User();
             $user->user_no = StrHelper::orderNo('U');
             $user->nickname = $nickname;
+            $user->email    = $email;
             $user->status   = 1;
             $user->level    = 1;
+            $user->created_at = date('Y-m-d H:i:s');
             $user->save();
 
             $auth = new UserAuth();
             $auth->user_id       = (int)$user->id;
-            $auth->auth_type     = 'username';
-            $auth->auth_key      = $username;
+            $auth->auth_type     = 'email';
+            $auth->auth_key      = $email;
             $auth->password_hash = hash_password($password);
             $auth->save();
 
@@ -47,20 +52,27 @@ final class UserService
             Db::commit();
 
             return $user->toArray();
+        } catch (BusinessException $e) {
+            Db::rollback();
+            throw $e;
         } catch (\Exception $e) {
             Db::rollback();
             throw new BusinessException(ResultCode::SERVER_ERROR, '注册失败: ' . $e->getMessage());
         }
     }
 
-    public function login(string $username, string $password, string $ip = '', string $deviceId = ''): array
+    public function login(string $account, string $password, string $ip = '', string $deviceId = ''): array
     {
-        $auth = UserAuth::where('auth_type', 'username')
-            ->where('auth_key', $username)
+        $isEmail = str_contains($account, '@');
+        $authType = $isEmail ? 'email' : 'username';
+
+        $auth = UserAuth::where('auth_type', $authType)
+            ->where('auth_key', $account)
             ->find();
 
         if (!$auth || !verify_password($password, $auth->password_hash)) {
-            throw new BusinessException(ResultCode::AUTH_FAILED, '用户名或密码错误');
+            $label = $isEmail ? '邮箱' : '用户名';
+            throw new BusinessException(ResultCode::AUTH_FAILED, $label . '或密码错误');
         }
 
         $user = User::find($auth->user_id);

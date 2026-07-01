@@ -12,7 +12,8 @@ final class UserValidate extends Validate
         'password' => 'require|length:6,20',
         'nickname' => 'require|max:50',
         'mobile'   => 'mobile',
-        'email'    => 'email',
+        'email'    => 'require|email|max:255',
+        'code'     => 'require|length:6',
     ];
 
     protected $message = [
@@ -24,12 +25,17 @@ final class UserValidate extends Validate
         'nickname.require'  => '昵称不能为空',
         'nickname.max'      => '昵称最多50个字符',
         'mobile.mobile'     => '手机号格式错误',
+        'email.require'     => '邮箱不能为空',
         'email.email'       => '邮箱格式错误',
+        'code.require'      => '验证码不能为空',
+        'code.length'       => '验证码为6位数字',
     ];
 
     protected $scene = [
-        'register'    => ['username', 'password', 'nickname'],
-        'login'       => ['username', 'password'],
-        'updateProfile' => ['nickname'],
+        'register'       => ['email', 'code', 'password', 'nickname'],
+        'sendCode'       => ['email'],
+        'emailLogin'     => ['email', 'password'],
+        'usernameLogin'  => ['username', 'password'],
+        'updateProfile'  => ['nickname'],
     ];
 }

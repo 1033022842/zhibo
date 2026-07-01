@@ -135,36 +135,6 @@ async function fetchData() {
 
 //TODO 有个bug，一开始只返回了6条数据，但第二次前端传过来的pageNo是2了，就是会从第10条数据开始返回，导致中间漏了4条
 export async function startMock() {
-  mock.onGet(/video\/recommended/).reply(async (config) => {
-    const { start, pageSize } = config.params
-    // console.log('allRecommendVideos', cloneDeep(allRecommendVideos.length), config.params)
-    return [
-      200,
-      {
-        data: {
-          total: 844,
-          list: allRecommendVideos.slice(start, start + pageSize) // list: allRecommendVideos.slice(0, 6),
-        },
-        code: 200,
-        msg: ''
-      }
-    ]
-  })
-  mock.onGet(/video\/long\/recommended/).reply(async (config) => {
-    const page = getPage2(config.params)
-    return [
-      200,
-      {
-        data: {
-          total: 844,
-          list: allRecommendVideos.slice(page.offset, page.limit)
-        },
-        code: 200,
-        msg: ''
-      }
-    ]
-  })
-
   mock.onGet(/video\/comments/).reply(async (config) => {
     const videoIds = [
       '7260749400622894336',
@@ -196,41 +166,9 @@ export async function startMock() {
     return [200, { code: 500 }]
   })
 
-  mock.onGet(/video\/private/).reply(async (config) => {
-    const page = getPage2(config.params)
-    return [
-      200,
-      {
-        data: {
-          total: 10,
-          list: allRecommendVideos.slice(100, 110).slice(page.offset, page.limit)
-        },
-        code: 200,
-        msg: ''
-      }
-    ]
-  })
-
-  mock.onGet(/video\/like/).reply(async (config) => {
-    const page = getPage2(config.params)
-    return [
-      200,
-      {
-        data: {
-          total: 150,
-          list: allRecommendVideos.slice(200, 350).slice(page.offset, page.limit)
-        },
-        code: 200,
-        msg: ''
-      }
-    ]
-  })
-
   mock.onGet(/video\/my/).reply(async (config) => {
     const page = getPage2(config.params)
     if (!userVideos.length) {
-      // let r = await fetch(BASE_URL + '/data/user-71158770.json')
-      // let r = await fetch(BASE_URL + '/data/user-8357999.json')
       const r = await _fetch(BASE_URL + '/data/user_video_list/user-12345xiaolaohu.md')
       const list = await r.json()
       const baseStore = useBaseStore()
@@ -252,41 +190,6 @@ export async function startMock() {
           pageNo: page.pageNo,
           total: userVideos.length,
           list: userVideos.slice(page.offset, page.limit)
-        },
-        code: 200,
-        msg: ''
-      }
-    ]
-  })
-
-  mock.onGet(/video\/history/).reply(async (config) => {
-    const page = getPage2(config.params)
-    return [
-      200,
-      {
-        data: {
-          total: 150,
-          list: allRecommendVideos.slice(200, 350).slice(page.offset, page.limit)
-        },
-        code: 200,
-        msg: ''
-      }
-    ]
-  })
-
-  mock.onGet(/user\/collect/).reply(async () => {
-    return [
-      200,
-      {
-        data: {
-          video: {
-            total: 50,
-            list: allRecommendVideos.slice(350, 400)
-          },
-          music: {
-            total: resource.music.length,
-            list: resource.music
-          }
         },
         code: 200,
         msg: ''
@@ -320,43 +223,6 @@ export async function startMock() {
     const r2 = await _fetch(BASE_URL + '/data/users.md')
     const v = await r2.json()
     return [200, { data: v, code: 200 }]
-  })
-
-  mock.onGet(/historyOther/).reply(async (config) => {
-    const page = getPage2(config.params)
-    return [
-      200,
-      {
-        data: {
-          pageNo: page.pageNo,
-          total: 0,
-          list: []
-        },
-        code: 200,
-        msg: ''
-      }
-    ]
-  })
-
-  mock.onGet(/post\/recommended/).reply(async (config) => {
-    const page = getPage2(config.params)
-
-    if (!allRecommendPosts.length) {
-      const r = await _fetch(BASE_URL + '/data/posts.md')
-      allRecommendPosts = await r.json()
-    }
-    return [
-      200,
-      {
-        data: {
-          pageNo: page.pageNo,
-          total: allRecommendPosts.length,
-          list: allRecommendPosts.slice(0, 1000).slice(page.offset, page.limit)
-        },
-        code: 200,
-        msg: ''
-      }
-    ]
   })
 
   mock.onGet(/shop\/recommended/).reply(async (config) => {
