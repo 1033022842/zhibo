@@ -3,6 +3,7 @@
 use think\facade\Route;
 
 // 公开接口
+Route::post('user/send-code', 'live.controller.UserController/sendCode');
 Route::post('user/register', 'live.controller.UserController/register');
 Route::post('user/login', 'live.controller.UserController/login');
 Route::post('user/refresh-token', 'live.controller.UserController/refreshToken');

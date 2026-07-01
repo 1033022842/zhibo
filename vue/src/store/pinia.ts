@@ -79,7 +79,10 @@ export const useBaseStore = defineStore('base', {
       authUserId: 0,
       authUserNo: '',
       authNickname: '',
-      authAvatar: ''
+      authAvatar: '',
+      authLevel: 1,
+      authGender: 0,
+      authBio: ''
     }
   },
   getters: {
@@ -137,6 +140,7 @@ export const useBaseStore = defineStore('base', {
           this.authUserNo = user.user_no
           this.authNickname = user.nickname
           this.authAvatar = user.avatar
+          this.authLevel = (user as any).level || 1
           this.userinfo.nickname = user.nickname
           this.isAuthReady = true
 
@@ -150,15 +154,16 @@ export const useBaseStore = defineStore('base', {
     },
 
     async doRegister(
-      username: string,
+      email: string,
       password: string,
-      nickname: string
+      nickname: string,
+      code: string
     ): Promise<{ ok: boolean; msg: string }> {
       try {
         const res = await request<any>({
           url: '/api/live/register',
           method: 'POST',
-          data: { username, password, nickname }
+          data: { email, password, nickname, code }
         })
 
         if (res.success || res.data?.code === 200) {
@@ -192,12 +197,15 @@ export const useBaseStore = defineStore('base', {
           method: 'GET'
         })
         if (res.success && res.data) {
-          const user = res.data
+          const user = res.data as any
           setStoredUserInfo(user)
           this.authUserId = user.id
           this.authUserNo = user.user_no
           this.authNickname = user.nickname
           this.authAvatar = user.avatar
+          this.authLevel = user.level || 1
+          this.authGender = user.gender || 0
+          this.authBio = user.bio || ''
           this.userinfo.nickname = user.nickname
         }
       } catch {
@@ -210,6 +218,9 @@ export const useBaseStore = defineStore('base', {
       this.authUserNo = ''
       this.authNickname = ''
       this.authAvatar = ''
+      this.authLevel = 1
+      this.authGender = 0
+      this.authBio = ''
       this.userinfo.nickname = ''
       this.isAuthReady = true
     },

@@ -91,13 +91,14 @@ async function loadFeed(refresh = false) {
 
   const result = res.data
   const currentList = refresh ? [] : state.list.slice()
-  const mappedList = result.list.map((item) => {
+  const feedList = result.data?.list || result.list || []
+  const mappedList = feedList.map((item: LiveRoom) => {
     const oldItem = currentList.find((current) => current.room_id === item.room_id)
     return normalizeLiveRoom(item, oldItem)
   })
 
-  state.cursor = result.cursor || ''
-  state.hasMore = !!result.has_more
+  state.cursor = result.data?.cursor || result.cursor || ''
+  state.hasMore = !!(result.data?.has_more ?? result.has_more)
   state.list = refresh ? mappedList : currentList.concat(mappedList)
   state.initialized = true
 
@@ -113,7 +114,7 @@ async function ensurePlayInfo(index: number) {
   room.play_loading = false
   if (!res.success) return
 
-  state.list[index] = normalizeLiveRoom(res.data, {
+  state.list[index] = normalizeLiveRoom((res.data as any)?.data || res.data, {
     ...room,
     play_loaded: true
   })

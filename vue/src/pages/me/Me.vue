@@ -1,898 +1,497 @@
 <template>
   <div class="Me">
-    <SlideRowList name="baseSlide" style="width: 100%" v-model:active-index="baseActiveIndex">
-      <SlideItem>
-        <div ref="float" class="float" :class="floatFixed ? 'fixed' : ''">
-          <div
-            :style="floatFixed ? 'opacity: 0;' : ''"
-            class="left"
-            @click="$nav('/me/edit-userinfo')"
-          >
-            <Icon icon="ri:edit-fill" />
-            <span>编辑资料</span>
-          </div>
-          <transition name="fade">
-            <div class="center" v-if="floatShowName">
-              <p class="name f14 mt1r mb1r">{{ userinfo.nickname }}</p>
-            </div>
-          </transition>
-          <div class="right">
-            <div
-              class="item"
-              :style="floatFixed ? 'opacity: 0;' : ''"
-              @click="$nav('/me/request-update')"
-            >
-              <Icon class="finger" icon="fluent-emoji-high-contrast:middle-finger" />
-            </div>
-            <div
-              class="item"
-              :style="floatFixed ? 'opacity: 0;' : ''"
-              @click="$nav('/message/visitors')"
-            >
-              <Icon icon="eva:people-outline" />
-            </div>
-            <div class="item" @click="_no">
-              <Icon icon="ic:round-search" />
-            </div>
-            <div class="item" @click.stop="baseActiveIndex = 1">
-              <Icon icon="ic:round-menu" />
-            </div>
-          </div>
+    <div class="bg-glow bg-glow--top"></div>
+    <div class="bg-glow bg-glow--bottom"></div>
+
+    <div class="hero" v-anim>
+      <div class="avatar-stage">
+        <div class="avatar-ring"></div>
+        <div class="avatar-inner">
+          <img class="avatar-img" :src="avatarUrl || defaultAvatar" alt="avatar" />
         </div>
-        <div
-          class="scroll"
-          ref="scroll"
-          @touchstart="touchStart($event)"
-          @touchmove="touchMove($event)"
-          @touchend="touchEnd($event)"
-        >
-          <div ref="desc" class="desc">
-            <header
-              ref="header"
-              :style="{
-                backgroundImage: `url(${_checkImgUrl(userinfo.cover_url[0].url_list[0])})`
-              }"
-              @click="previewImg = _checkImgUrl(userinfo.cover_url[0].url_list[0])"
-            >
-              <div class="info">
-                <img
-                  :src="_checkImgUrl(userinfo.avatar_168x168.url_list[0])"
-                  class="avatar"
-                  @click.stop="previewImg = _checkImgUrl(userinfo.avatar_300x300.url_list[0])"
-                />
-                <div class="right">
-                  <p class="name">{{ userinfo.nickname }}</p>
-                  <div class="number mb1r">
-                    <span class="mr1r" v-if="userinfo.is_private">私密账号</span>
-                    <span>抖音号：{{ _getUserDouyinId({ author: userinfo }) }}</span>
-                    <img
-                      src="../../assets/img/icon/me/qrcode-gray.png"
-                      alt=""
-                      @click.stop="$nav('/me/my-card')"
-                    />
-                  </div>
-                </div>
-              </div>
-            </header>
-            <div class="detail">
-              <div class="head">
-                <div class="heat">
-                  <div class="text" @click="isShowStarCount = true">
-                    <span class="num">{{ _formatNumber(userinfo.aweme_count) }}</span>
-                    <span>获赞</span>
-                  </div>
-                  <div class="text" @click="$nav('/people/follow-and-fans', { type: 0 })">
-                    <span class="num">{{ _formatNumber(userinfo.following_count) }}</span>
-                    <span>朋友</span>
-                  </div>
-                  <div class="text" @click="$nav('/people/follow-and-fans', { type: 0 })">
-                    <span class="num">{{ _formatNumber(userinfo.following_count) }}</span>
-                    <span>关注</span>
-                  </div>
-                  <div class="text" @click="$nav('/people/follow-and-fans', { type: 1 })">
-                    <span class="num">{{ _formatNumber(userinfo.follower_count) }}</span>
-                    <span>粉丝</span>
-                  </div>
-                </div>
-                <div class="button" @click="$nav('/people/find-acquaintance')">添加朋友</div>
-              </div>
-              <div class="signature" @click="$nav('/me/edit-userinfo-item', { type: 3 })">
-                <template v-if="!userinfo.signature">
-                  <span>点击添加介绍，让大家认识你...</span>
-                  <img src="../../assets/img/icon/me/write-gray.png" alt="" />
-                </template>
-                <div v-else class="text" v-html="userinfo.signature"></div>
-              </div>
-              <div class="more" @click="$nav('/me/edit-userinfo')">
-                <div class="age item" v-if="userinfo.user_age !== -1">
-                  <img
-                    v-if="userinfo.gender == 2"
-                    src="../../assets/img/icon/me/woman.png"
-                    alt=""
-                  />
-                  <img v-if="userinfo.gender == 1" src="../../assets/img/icon/me/man.png" alt="" />
-                  <span>{{ userinfo.user_age }}岁</span>
-                </div>
-                <div class="item" v-if="userinfo.province || userinfo.city">
-                  {{ userinfo.province }}
-                  <template v-if="userinfo.province && userinfo.city"> -</template>
-                  {{ userinfo.city }}
-                </div>
-                <div class="item" v-if="userinfo.school?.name">
-                  {{ userinfo.school.name }}
-                </div>
-              </div>
-              <div class="other">
-                <div class="item" @click="_no">
-                  <Icon icon="iconamoon:shopping-card-light" />
-                  <span>抖音商城</span>
-                </div>
-                <div class="item" @click="$nav('/me/my-music')">
-                  <Icon icon="iconamoon:music-2-light" />
-                  <span>我的音乐</span>
-                </div>
-                <div class="item" @click="_no">
-                  <Icon icon="streamline:chat-two-bubbles-oval" />
-                  <span>我的群聊</span>
-                </div>
-                <div class="item" @click="_no">
-                  <Icon icon="iconamoon:shopping-card-light" />
-                  <span>查看更多</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <Indicator
-            name="videoList"
-            tabStyleWidth="25%"
-            :tabTexts="['作品', '私密', '喜欢', '收藏']"
-            v-model:active-index="contentIndex"
-          >
-          </Indicator>
-          <SlideRowList
-            ref="videoSlideRowList"
-            name="videoList"
-            :style="videoSlideRowListStyle"
-            v-model:active-index="contentIndex"
-          >
-            <SlideItem class="SlideItem" @scroll="scroll" :style="SlideItemStyle">
-              <Posters v-if="videos.my.total !== -1" :list="videos.my.list"></Posters>
-              <Loading v-if="loadings.loading0" :is-full-screen="false"></Loading>
-              <no-more v-else />
-            </SlideItem>
-            <SlideItem class="SlideItem" @scroll="scroll" :style="SlideItemStyle">
-              <div class="notice">
-                <img src="../../assets/img/icon/me/lock-gray.png" alt="" />
-                <span>只有你能看到设为私密的作品和日常</span>
-              </div>
-              <Posters
-                v-if="videos.private.total !== -1"
-                mode="date"
-                :list="videos.private.list"
-              ></Posters>
-              <Loading v-if="loadings.loading1" :is-full-screen="false"></Loading>
-              <no-more v-else />
-            </SlideItem>
-            <SlideItem class="SlideItem" @scroll="scroll" :style="SlideItemStyle">
-              <div class="notice">
-                <img src="../../assets/img/icon/me/lock-gray.png" alt="" />
-                <span>只有你能看到自己的喜欢列表</span>
-              </div>
-              <Posters v-if="videos.like.total !== -1" :list="videos.like.list"></Posters>
-              <Loading v-if="loadings.loading2" :is-full-screen="false"></Loading>
-              <no-more v-else />
-            </SlideItem>
-            <SlideItem class="SlideItem" @scroll="scroll" :style="SlideItemStyle">
-              <div class="notice">
-                <img src="../../assets/img/icon/me/lock-gray.png" alt="" />
-                <span>只有你能看到自己的收藏列表</span>
-              </div>
-              <div class="collect" ref="collect">
-                <div class="video" v-if="videos.collect.video.total !== -1">
-                  <div class="top" @click="$nav('/me/collect/video-collect')">
-                    <div class="left">
-                      <img src="../../assets/img/icon/me/video-whitegray.png" alt="" />
-                      <span>视频</span>
-                    </div>
-                    <div class="right">
-                      <span>全部</span>
-                      <dy-back direction="right"></dy-back>
-                    </div>
-                  </div>
-                  <Posters
-                    v-if="videos.collect.video.total !== -1"
-                    :list="videos.collect.video.list"
-                  ></Posters>
-                </div>
-
-                <div class="music" v-if="videos.collect.music.total !== -1">
-                  <div class="top" @click="$nav('/me/collect/music-collect')">
-                    <div class="left">
-                      <img src="../../assets/img/icon/me/music-whitegray.png" alt="" />
-                      <span>音乐</span>
-                    </div>
-                    <div class="right">
-                      <span>全部</span>
-                      <dy-back direction="right"></dy-back>
-                    </div>
-                  </div>
-                  <div class="list">
-                    <div
-                      class="item"
-                      @click.stop="$nav('/home/music', i)"
-                      :key="j"
-                      v-for="(i, j) in videos.collect.music.list.slice(0, 3)"
-                    >
-                      <img class="poster" :src="_checkImgUrl(i.cover)" alt="" />
-                      <div class="title">{{ i.name }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <Loading v-if="loadings.loading3" :is-full-screen="false"></Loading>
-              <no-more v-else />
-            </SlideItem>
-          </SlideRowList>
-        </div>
-        <BaseFooter v-bind:init-tab="5" />
-        <transition name="fade">
-          <div class="mask" v-if="baseActiveIndex === 1" @click="baseActiveIndex = 0"></div>
-        </transition>
-      </SlideItem>
-      <SlideItem style="width: 70vw; overflow: auto">
-        <transition name="fade1">
-          <div class="ul" v-if="!isMoreFunction">
-            <div class="li" @click="_no">
-              <img src="../../assets/img/icon/newicon/left_menu/shopping.png" alt="" />
-              <span>我的订单</span>
-            </div>
-            <div class="li" @click="_no">
-              <img src="../../assets/img/icon/newicon/left_menu/wallet.png" alt="" />
-              <span>钱包</span>
-            </div>
-            <div class="line"></div>
-
-            <div class="li" @click="$nav('/me/my-card')">
-              <img src="../../assets/img/icon/newicon/left_menu/qrcode.png" alt="" />
-              <span>我的二维码</span>
-            </div>
-            <div class="li" @click="$nav('/me/right-menu/look-history')">
-              <img src="../../assets/img/icon/newicon/left_menu/time.png" alt="" />
-              <span>观看历史</span>
-            </div>
-            <div class="li" @click="_no">
-              <img src="../../assets/img/icon/newicon/left_menu/clock.png" alt="" />
-              <span>时间管理</span>
-            </div>
-            <div class="li" @click="_no">
-              <img src="../../assets/img/icon/newicon/left_menu/workbench.png" alt="" />
-              <span>创作者服务中心</span>
-            </div>
-
-            <div class="line"></div>
-
-            <div class="li" @click="_no">
-              <img src="../../assets/img/icon/newicon/left_menu/bytedance-mini-app.png" alt="" />
-              <span>小程序</span>
-            </div>
-            <div class="li" @click="_no">
-              <img src="../../assets/img/icon/newicon/left_menu/gongyi.png" alt="" />
-              <span>抖音公益</span>
-            </div>
-            <div class="li" @click="$nav('/me/right-menu/minor-protection/index')">
-              <img src="../../assets/img/icon/newicon/left_menu/umbrella.png" alt="" />
-              <span>未成年保护工具</span>
-            </div>
-            <div class="li" @click="_no">
-              <img src="../../assets/img/icon/newicon/left_menu/headset.png" alt="" />
-              <span>我的客服</span>
-            </div>
-            <div class="li" @click="$nav('/me/right-menu/setting')">
-              <img src="../../assets/img/icon/newicon/left_menu/setting-one.png" alt="" />
-              <span>设置</span>
-            </div>
-          </div>
-          <div v-else class="more-function">
-            <div class="title">生活服务</div>
-            <div class="functions">
-              <div class="function" @click="_no">
-                <img src="../../assets/img/icon/newicon/left_menu/quan.png" alt="" />
-                <span>卡券</span>
-              </div>
-              <div class="function" @click="_no">
-                <img src="../../assets/img/icon/newicon/left_menu/sd-card.png" alt="" />
-                <span>免流量</span>
-              </div>
-              <div class="function" @click="_no">
-                <img src="../../assets/img/icon/newicon/left_menu/alarmmmmmmmmmmmm.png" alt="" />
-                <span>视频彩铃</span>
-              </div>
-            </div>
-            <div class="title">拓展功能</div>
-            <div class="functions">
-              <div class="function" @click="_no">
-                <img src="../../assets/img/icon/newicon/left_menu/sun-one.png" alt="" />
-                <span>我的动态</span>
-              </div>
-              <div class="function" @click="_no">
-                <img src="../../assets/img/icon/newicon/left_menu/download.png" alt="" />
-                <span>我的缓存</span>
-              </div>
-              <div class="function" @click="_no">
-                <img src="../../assets/img/icon/newicon/left_menu/hot.png" alt="" />
-                <span>上热门</span>
-              </div>
-              <div class="function" @click="_no">
-                <img src="../../assets/img/icon/newicon/left_menu/shop.png" alt="" />
-                <span>小店随心推</span>
-              </div>
-              <div class="function" @click="_no">
-                <img src="../../assets/img/icon/newicon/left_menu/yuandi.png" alt="" />
-                <span>投教园地</span>
-              </div>
-            </div>
-          </div>
-        </transition>
-        <div class="button-ctn">
-          <div class="button" v-if="!isMoreFunction" @click="isMoreFunction = true">
-            <img src="../../assets/img/icon/newicon/left_menu/more.png" alt="" />
-            <span>更多功能</span>
-          </div>
-          <div class="button" v-if="isMoreFunction" @click="isMoreFunction = false">
-            <span>返回</span>
-          </div>
-        </div>
-      </SlideItem>
-    </SlideRowList>
-    <transition name="fade">
-      <div class="preview-img" v-if="previewImg" @click="previewImg = ''">
-        <img class="resource" :src="previewImg" alt="" />
-        <img
-          class="download"
-          src="@/assets/img/icon/components/video/download.png"
-          alt=""
-          @click.stop="_no"
-        />
+        <div class="avatar-sparkle sparkle--1"></div>
+        <div class="avatar-sparkle sparkle--2"></div>
+        <div class="avatar-sparkle sparkle--3"></div>
       </div>
-    </transition>
 
-    <ConfirmDialog
-      v-model:visible="isShowStarCount"
-      :subtitle="`&quot;${userinfo.nickname}&quot;共获得${_formatNumber(userinfo.aweme_count)}个赞`"
-      okText="确认"
-      cancelText="取消"
-      @ok="isShowStarCount = false"
-      @cancel="isShowStarCount = false"
-    >
-      <template v-slot:header>
-        <img style="width: 100%" src="../../assets/img/icon/star-bg.png" alt="" />
-      </template>
-    </ConfirmDialog>
+      <div class="identity" v-anim>
+        <h1 class="nickname">{{ nickname }}</h1>
+        <p class="userno">ID: {{ userNo }}</p>
+        <div class="chips">
+          <span class="chip chip--level">
+            <span class="chip-dot"></span>
+            Lv.{{ level }}
+          </span>
+          <span class="chip chip--gender">{{ genderIcon }} {{ genderLabel }}</span>
+        </div>
+      </div>
+
+      <p class="bio-text" v-if="bio" v-anim>{{ bio }}</p>
+      <p class="bio-text bio-text--empty" v-else v-anim>写一句签名，让大家认识你</p>
+    </div>
+
+    <div class="actions" v-anim>
+      <button class="btn-edit" @click="goEdit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        <span>编辑资料</span>
+      </button>
+    </div>
+
+    <nav class="menu" v-anim>
+      <div class="menu-group">
+        <button class="menu-row" @click="goSetting">
+          <span class="menu-icon menu-icon--violet">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          <span class="menu-label">账号安全</span>
+          <svg class="menu-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="menu-row" @click="goAbout">
+          <span class="menu-icon menu-icon--cyan">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </span>
+          <span class="menu-label">关于平台</span>
+          <svg class="menu-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <div class="logout-zone" v-anim>
+      <button class="btn-logout" @click="handleLogout">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>退出登录</span>
+      </button>
+    </div>
+
+    <BaseFooter />
   </div>
 </template>
-<script>
-import Posters from '../../components/Posters'
-import Indicator from '../../components/slide/Indicator'
-import { nextTick } from 'vue'
-import { mapState } from 'pinia'
 
-import bus from '../../utils/bus'
-import ConfirmDialog from '../../components/dialog/ConfirmDialog'
-import { _checkImgUrl, _formatNumber, _getUserDouyinId, _no, _stopPropagation } from '@/utils'
-import { likeVideo, myVideo, privateVideo } from '@/api/videos'
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import BaseFooter from '@/components/BaseFooter.vue'
 import { useBaseStore } from '@/store/pinia'
-import { userCollect } from '@/api/user'
-import SlideRowList from '@/components/slide/SlideRowList.vue'
+import { getProfile } from '@/api/live'
 
-export default {
-  name: 'Me',
-  components: { SlideRowList, Posters, Indicator, ConfirmDialog },
-  data() {
-    return {
-      previewImg: '',
-      contentIndex: 0,
-      baseActiveIndex: 0,
-      tabContents: [],
-      isShowStarCount: false,
-      floatFixed: false,
-      floatShowName: false,
-      isScroll: false,
-      isMoreFunction: false,
-      refs: {
-        header: null,
-        headerHeight: 0,
-        descHeight: 0,
-        videoSlideHeight: 0,
-        maxSlideHeight: 0
-      },
-      videoItemHeight: 0,
-      startLocationY: 0,
-      fixedLocationY: 0,
-      lastMoveYDistance: 0,
-      canTransformY: 0,
-      startTime: 0,
-      floatHeight: 46,
-      videos: {
-        my: {
-          list: [],
-          total: -1,
-          pageNo: 0
-        },
-        private: {
-          list: [],
-          total: -1,
-          pageNo: 0
-        },
-        like: {
-          list: [],
-          total: -1,
-          pageNo: 0
-        },
-        collect: {
-          video: {
-            list: [],
-            total: -1
-          },
-          music: {
-            list: [],
-            total: -1
-          }
-        }
-      },
-      pageSize: 15,
-      initSlideHeight: 0,
-      loadings: {
-        loading0: false,
-        loading1: false,
-        loading2: false,
-        loading3: false
-      },
-      tempScroll: false,
-      acceleration: 1.2,
-      sprint: 15,
-      canScroll: true
-    }
-  },
-  computed: {
-    videoSlideRowListStyle() {
-      return {
-        height:
-          this.refs.videoSlideHeight !== 0
-            ? this.refs.videoSlideHeight + 'px'
-            : 'calc(var(--vh, 1vh) * 100 - 146rem)'
-      }
-    },
-    SlideItemStyle() {
-      if (this.tempScroll || this.isScroll) return { overflow: 'auto' }
-      return { overflow: 'hidden' }
-    },
-    ...mapState(useBaseStore, ['userinfo', 'bodyHeight', 'bodyWidth'])
-  },
-  watch: {
-    contentIndex(newVal, oldVal) {
-      this.changeIndex(newVal, oldVal)
-    }
-  },
-  mounted() {
-    nextTick(() => {
-      this.refs.header = this.$refs.header
-      this.refs.headerHeight = this.$refs.header.offsetHeight
-      this.refs.descHeight = this.$refs.desc.offsetHeight
-      this.refs.maxSlideHeight = this.$refs.videoSlideRowList.wrapperHeight
-      this.initSlideHeight = this.bodyHeight - 50 - this.refs.descHeight - 50
-      this.canTransformY = this.refs.descHeight - this.floatHeight
-      this.changeIndex(0, null)
-    })
-    this.videoItemHeight = (this.bodyWidth / 3) * 1.2 + 2
-    bus.on('baseSlide-moved', () => (this.canScroll = false))
-    bus.on('baseSlide-end', () => (this.canScroll = true))
-  },
-  methods: {
-    _no,
-    _getUserDouyinId,
-    _checkImgUrl,
-    _formatNumber,
-    $nav(path) {
-      this.$router.push(path)
-    },
-    setLoadingFalse() {
-      this.loadings.loading0 = false
-      this.loadings.loading1 = false
-      this.loadings.loading2 = false
-      this.loadings.loading3 = false
-    },
-    click(e) {
-      if (this.baseActiveIndex === 0) return
-      if (this.baseActiveIndex === 1) {
-        this.baseActiveIndex = 0
-        _stopPropagation(e)
-      }
-    },
-    async getScrollAreaHeight(index = this.contentIndex) {
-      let scrollAreaHeight = 0
-      if (index === 3) {
-        nextTick(async () => {
-          scrollAreaHeight = this.$refs.collect.clientHeight + 60 + 40
-        })
-      } else {
-        scrollAreaHeight =
-          Math.ceil(this.videos[Object.keys(this.videos)[index]].list.length / 3) *
-          this.videoItemHeight
-        switch (index) {
-          case 0:
-            scrollAreaHeight += 60
-            break
-          case 1:
-            scrollAreaHeight += 60 + 40
-            break
-          case 2:
-            scrollAreaHeight += 60 + 40
-            break
-        }
-      }
-      return scrollAreaHeight
-    },
-    async changeIndex(newVal, oldVal) {
-      // debugger
-      if (this.loadings['loading' + newVal]) return
-      let videoOb = this.videos[Object.keys(this.videos)[newVal]]
-      if (newVal === 3) {
-        if (videoOb.video.total === -1) {
-          this.loadings['loading' + newVal] = true
-          let res = await userCollect()
-          console.log('res', res)
-          if (res.success) this.videos.collect = res.data
-        }
-      } else {
-        if (videoOb.total === -1) {
-          this.loadings['loading' + newVal] = true
-          let res
-          switch (newVal) {
-            case 0:
-              res = await myVideo({
-                pageNo: this.videos.my.pageNo,
-                pageSize: this.pageSize
-              })
-              if (res.success) this.videos.my = res.data
-              break
-            case 1:
-              res = await privateVideo({
-                pageNo: this.videos.private.pageNo,
-                pageSize: this.pageSize
-              })
-              if (res.success) this.videos.private = res.data
-              break
-            case 2:
-              res = await likeVideo({
-                pageNo: this.videos.like.pageNo,
-                pageSize: this.pageSize
-              })
-              if (res.success) this.videos.like = res.data
-              break
-          }
-        }
-      }
-      this.setLoadingFalse()
-      let scrollAreaHeight = await this.getScrollAreaHeight(newVal)
+defineOptions({ name: 'Me' })
 
-      if (oldVal !== null) {
-        let transformY = this.getTransform(this.$refs.scroll)
-        let screenSlideHeight = this.initSlideHeight + Math.abs(transformY)
-        if (this.isScroll) {
-          this.refs.videoSlideHeight = this.refs.maxSlideHeight
-        } else {
-          if (scrollAreaHeight > screenSlideHeight) {
-            this.refs.videoSlideHeight = this.refs.maxSlideHeight
-          } else {
-            this.refs.videoSlideHeight = screenSlideHeight
-          }
-        }
-      } else {
-        if (scrollAreaHeight < this.refs.maxSlideHeight) {
-          this.refs.videoSlideHeight = scrollAreaHeight
-        } else {
-          this.refs.videoSlideHeight = this.refs.maxSlideHeight
-        }
-      }
-    },
-    async loadMoreData() {
-      if (this.loadings['loading' + this.contentIndex]) return
-      console.log('到底了')
-      let videoOb = this.videos[Object.keys(this.videos)[this.contentIndex]]
+const router = useRouter()
+const store = useBaseStore()
 
-      if (this.contentIndex !== 3 && videoOb.total > videoOb.list.length) {
-        videoOb.pageNo++
-        this.loadings['loading' + this.contentIndex] = true
-        let res
-        switch (this.contentIndex) {
-          case 0:
-            res = await myVideo({
-              pageNo: videoOb.pageNo,
-              pageSize: this.pageSize
-            })
-            break
-          case 1:
-            res = await privateVideo({
-              pageNo: videoOb.pageNo,
-              pageSize: this.pageSize
-            })
-            break
-          case 2:
-            res = await likeVideo({
-              pageNo: videoOb.pageNo,
-              pageSize: this.pageSize
-            })
-            break
-          case 3:
-            res = await userCollect({
-              pageNo: videoOb.pageNo,
-              pageSize: this.pageSize
-            })
-            break
-        }
-        this.loadings['loading' + this.contentIndex] = false
-        if (res.success) {
-          videoOb.list = videoOb.list.concat(res.data.list)
-        }
-      }
-    },
-    touchStart(e) {
-      this.$refs.scroll.style.transition = 'none'
-      this.fixedLocationY = this.startLocationY = e.touches[0].pageY
-      this.startTime = Date.now()
-    },
-    move() {
-      // (!this.isScroll) && e.preventDefault();
-    },
-    async scroll() {
-      if (this.isScroll) {
-        let SlideItems = document.querySelectorAll('.SlideItem')
-        let SlideItem = SlideItems[this.contentIndex]
-        if (SlideItem.scrollHeight - SlideItem.clientHeight < SlideItem.scrollTop + 60) {
-          this.loadMoreData()
-        }
-      }
-    },
-    async touchMove(e) {
-      if (!this.canScroll) return
-      let moveDistance = e.touches[0].pageY - this.startLocationY
-      let pageMoveDistance = this.lastMoveYDistance + moveDistance * this.acceleration
-      // console.log('move-pageMoveDistance', pageMoveDistance)
-      // console.log('move-moveDistance', moveDistance)
-      //手指往上划，是负
+const defaultAvatar = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="%231f2534" width="100" height="100" rx="50"/><circle cx="50" cy="38" r="16" fill="%23555"/><ellipse cx="50" cy="82" rx="28" ry="18" fill="%23555"/></svg>')
 
-      if (this.isScroll) {
-        let SlideItems = document.querySelectorAll('.SlideItem')
-        let SlideItem = SlideItems[this.contentIndex]
-        if (SlideItem.scrollTop === 0) {
-          this.tempScroll = this.isScroll = false
-          this.startLocationY = e.touches[0].pageY
-          this.lastMoveYDistance = -this.canTransformY
-        }
-      } else {
-        //手指往下划，页面向上动
-        if (moveDistance > 0) {
-          if (pageMoveDistance > 0) {
-            this.$refs.scroll.style.transform = `translate3d(0,0,0)`
-            if (pageMoveDistance < 400) {
-              this.refs.header.style.transition = 'all 0s'
-              this.refs.header.style.height = this.refs.headerHeight + pageMoveDistance / 2 + 'px'
-            }
-          } else {
-            let scrollAreaHeight = await this.getScrollAreaHeight()
-            //如果可滚动区的高度大于posterHeight，并且移动超过30，就直接滚到顶
-            if (this.refs.videoSlideHeight > scrollAreaHeight && Math.abs(moveDistance) > 20) {
-              this.$refs.scroll.style.transition = 'all .2s'
-              this.$refs.scroll.style.transform = `translate3d(0,0,0)`
-              let SlideItems = document.querySelectorAll('.SlideItem')
-              SlideItems.forEach((SlideItem) => {
-                SlideItem.scrollTop = 0
-              })
-              this.floatShowName = this.floatFixed = this.isScroll = false
-              this.lastMoveYDistance = 0
-              this.startLocationY = e.touches[0].pageY
-              this.changeIndex(this.contentIndex, this.contentIndex)
-              return
-            }
-            if (Math.abs(pageMoveDistance) < this.canTransformY) {
-              let SlideItems = document.querySelectorAll('.SlideItem')
-              SlideItems.forEach((SlideItem) => {
-                SlideItem.scrollTop = 0
-              })
-              this.tempScroll = false
-            }
-            this.floatFixed = Math.abs(pageMoveDistance) > 100
-            this.floatShowName = Math.abs(pageMoveDistance) > 150
-            this.$refs.scroll.style.transform = `translate3d(0,${pageMoveDistance}px,0)`
-          }
-        } else {
-          //手指往上划，页面向下动
-          if (Math.abs(pageMoveDistance) < this.canTransformY) {
-            if (this.refs.videoSlideHeight < this.refs.maxSlideHeight) {
-              let endTransformY =
-                Math.abs(this.canTransformY) -
-                (this.refs.maxSlideHeight - this.refs.videoSlideHeight)
-              let moveTransformY =
-                Math.abs(pageMoveDistance) < Math.abs(endTransformY)
-                  ? pageMoveDistance
-                  : -endTransformY
-              this.$refs.scroll.style.transform = `translate3d(0,${moveTransformY}px,0)`
+const nickname = computed(() => store.authNickname || '未命名用户')
+const userNo = computed(() => store.authUserNo || '')
+const level = computed(() => store.authLevel)
+const avatarUrl = computed(() => store.authAvatar || '')
+const bio = computed(() => store.authBio)
+const gender = computed(() => store.authGender)
 
-              this.startLocationY = e.touches[0].pageY
-              this.lastMoveYDistance = moveTransformY
+const genderIcon = computed(() => {
+  if (gender.value === 1) return '♂'
+  if (gender.value === 2) return '♀'
+  return '⚬'
+})
+const genderLabel = computed(() => {
+  if (gender.value === 1) return '男'
+  if (gender.value === 2) return '女'
+  return '未设置'
+})
 
-              this.floatFixed = Math.abs(moveTransformY) > 100
-              this.floatShowName = Math.abs(moveTransformY) > 150
-            } else {
-              this.floatFixed = Math.abs(pageMoveDistance) > 100
-              this.floatShowName = Math.abs(pageMoveDistance) > 150
-              this.$refs.scroll.style.transform = `translate3d(0,${pageMoveDistance}px,0)`
-            }
-          } else {
-            this.refs.header.style.height = this.refs.headerHeight + 'px'
-            this.$refs.scroll.style.transform = `translate3d(0,${-this.canTransformY}px,0)`
-            let SlideItems = document.querySelectorAll('.SlideItem')
-            let SlideItem = SlideItems[this.contentIndex]
+onMounted(async () => {
+  await store.fetchProfile()
+})
 
-            if (!this.isScroll) {
-              this.tempScroll = true
-              SlideItem.scrollTop =
-                Math.abs(pageMoveDistance) - this.refs.descHeight + this.floatHeight
-            }
-            if (SlideItem.scrollHeight - SlideItem.clientHeight < SlideItem.scrollTop + 60) {
-              this.loadMoreData()
-            }
-          }
-        }
-      }
-    },
-    async touchEnd(e) {
-      if (!this.canScroll) return
-      let moveDistance = e.changedTouches[0].pageY - this.startLocationY
-      let pageMoveDistance = this.lastMoveYDistance + moveDistance * this.acceleration
+function goEdit() { router.push('/me/edit') }
+function goSetting() { router.push('/me/setting') }
+function goAbout() { router.push('/me/setting?tab=about') }
 
-      // console.log('end-pageMoveDistance', pageMoveDistance)
-      // console.log('end-moveDistance', moveDistance)
-
-      if (this.isScroll) {
-        this.tempScroll = false
-        this.lastMoveYDistance = -this.canTransformY
-      } else {
-        let endTime = Date.now()
-        let gapTime = endTime - this.startTime
-
-        // console.log('end-gapTime', gapTime)
-        let endTransformY =
-          Math.abs(this.canTransformY) - (this.refs.maxSlideHeight - this.refs.videoSlideHeight)
-
-        //手指往下划，页面向上动
-        if (moveDistance >= 0) {
-          if (pageMoveDistance > 0) {
-            this.refs.header.style.transition = 'all .3s'
-            this.refs.header.style.height = this.refs.headerHeight + 'px'
-            this.lastMoveYDistance = 0
-            this.floatShowName = this.floatFixed = this.isScroll = this.tempScroll = false
-          } else {
-            //猛的划一下
-            if (Math.abs(moveDistance) > 100 && gapTime > 100 && gapTime < 150) {
-              this.floatShowName = this.floatFixed = this.isScroll = false
-
-              //用cancelAnimationFrame快速滚动到顶部，要比transition = 'all .3s'快
-              this.$refs.scroll.style.transition = 'none'
-              let transformY = this.getTransform(this.$refs.scroll)
-              //当前的transformY
-              // console.log('transformY', transformY)
-              let timer
-              cancelAnimationFrame(timer)
-              let fn = () => {
-                //说明没到顶
-                if (transformY < 0) {
-                  transformY = transformY + 40
-                  this.$refs.scroll.style.transform = `translate3d(0,${transformY > 0 ? 0 : transformY}px,0)`
-                  timer = requestAnimationFrame(fn)
-                } else {
-                  //transformY === 0说明，本来就在顶部，然后猛的一划,这里要判断下
-                  if (transformY !== 0) {
-                    if (_css(this.refs.header, 'height') < 400) {
-                      this.refs.header.style.transition = 'none'
-                      this.refs.header.style.height = _css(this.refs.header, 'height') + 10 + 'px'
-                      timer = requestAnimationFrame(fn)
-                    } else {
-                      this.refs.header.style.transition = 'all .6s'
-                      this.refs.header.style.height = this.refs.headerHeight + 'px'
-                      this.lastMoveYDistance = 0
-                      cancelAnimationFrame(timer)
-                    }
-                  } else {
-                    //快速动画结束
-                    this.lastMoveYDistance = 0
-                    cancelAnimationFrame(timer)
-                  }
-                }
-              }
-              timer = requestAnimationFrame(fn)
-            } else if (Math.abs(moveDistance) > 100 && gapTime > 150 && gapTime < 300) {
-              //   //用cancelAnimationFrame快速滚动到顶部，要比transition = 'all .3s'快
-              this.$refs.scroll.style.transition = 'all .3s'
-              this.$refs.scroll.style.transform = `translate3d(0,0,0)`
-              this.lastMoveYDistance = 0
-              this.floatShowName = this.floatFixed = this.isScroll = false
-              let SlideItems = document.querySelectorAll('.SlideItem')
-              SlideItems.forEach((SlideItem) => {
-                SlideItem.scrollTop = 0
-              })
-              this.tempScroll = this.isScroll = false
-            } else {
-              this.lastMoveYDistance = pageMoveDistance
-            }
-          }
-        } else {
-          if (Math.abs(moveDistance) > 100 && gapTime < 250) {
-            //往下划
-            this.$refs.scroll.style.transition = 'all .3s'
-            if (this.refs.videoSlideHeight < this.refs.maxSlideHeight) {
-              this.$refs.scroll.style.transform = `translate3d(0,${-endTransformY}px,0)`
-              // this.floatShowName = this.floatFixed = true
-              this.floatFixed = Math.abs(endTransformY) > 100
-              this.floatShowName = Math.abs(endTransformY) > 150
-              this.lastMoveYDistance = -endTransformY
-            } else {
-              this.$refs.scroll.style.transform = `translate3d(0,${-this.canTransformY}px,0)`
-              this.floatShowName = this.floatFixed = this.isScroll = true
-              this.tempScroll = false
-              this.lastMoveYDistance = -this.canTransformY
-            }
-          } else {
-            //手指往上划，页面向下动
-            if (Math.abs(pageMoveDistance) < this.canTransformY) {
-              if (this.refs.videoSlideHeight < this.refs.maxSlideHeight) {
-                this.lastMoveYDistance =
-                  Math.abs(pageMoveDistance) < Math.abs(endTransformY)
-                    ? pageMoveDistance
-                    : -endTransformY
-              } else {
-                let endDistance = pageMoveDistance
-                if (Math.abs(moveDistance) > 20) {
-                  if (moveDistance > 0) {
-                    endDistance += this.sprint
-                  } else {
-                    endDistance -= this.sprint
-                  }
-                }
-                this.lastMoveYDistance = endDistance
-                this.$refs.scroll.style.transition = 'all .3s'
-                this.$refs.scroll.style.transform = `translate3d(0,${endDistance}px,0)`
-              }
-            } else {
-              this.isScroll = true
-              this.tempScroll = false
-              this.lastMoveYDistance = -this.canTransformY
-            }
-          }
-        }
-      }
-    },
-    getTransform(el) {
-      let transform = el.style.transform
-      if (!transform) return 0
-      // console.log('transform',transform)
-      let transformY = transform.substring(
-        transform.indexOf('0px') + 5,
-        transform.lastIndexOf('0px') - 4
-      )
-      // console.log('transformY',transformY)
-      //当前的transformY
-      transformY = parseInt(transformY)
-      return transformY
-    },
-    filterAge(age) {
-      let date = new Date(age)
-      return new Date().getFullYear() - date.getFullYear()
-    }
-  }
+async function handleLogout() {
+  if (!confirm('确定要退出登录吗？')) return
+  await store.doLogout()
+  router.replace('/home')
 }
 </script>
 
 <style scoped lang="less">
-@import 'Me';
+@import '@/assets/less/index';
+
+@accent: #ff2d55;
+@accent-glow: rgba(255, 45, 85, 0.35);
+@cyan: #00d4aa;
+@cyan-glow: rgba(0, 212, 170, 0.3);
+@violet: #7c5cfc;
+@violet-glow: rgba(124, 92, 252, 0.3);
+@surface: rgba(255, 255, 255, 0.04);
+@surface-hover: rgba(255, 255, 255, 0.07);
+@border: rgba(255, 255, 255, 0.06);
+
+@keyframes ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 @accent-glow, 0 0 0 0 rgba(0, 212, 170, 0.2), 0 0 20px 0 rgba(255, 45, 85, 0.15); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 45, 85, 0), 0 0 0 12px rgba(0, 212, 170, 0), 0 0 35px 0 rgba(255, 45, 85, 0.35); }
+}
+
+@keyframes sparkle-fade {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  40% { opacity: 1; transform: scale(1) rotate(90deg); }
+  80% { opacity: 0.6; transform: scale(0.6) rotate(180deg); }
+}
+
+@keyframes glow-drift-top {
+  0%, 100% { transform: translate(-50%, -40%) scale(1); opacity: 0.5; }
+  50% { transform: translate(-30%, -50%) scale(1.2); opacity: 0.8; }
+}
+
+@keyframes glow-drift-bottom {
+  0%, 100% { transform: translate(30%, 50%) scale(1); opacity: 0.4; }
+  50% { transform: translate(50%, 30%) scale(1.15); opacity: 0.7; }
+}
+
+@keyframes fade-slide-up {
+  from { opacity: 0; transform: translateY(16rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes chip-appear {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.fade-slide(@delay: 0ms) {
+  opacity: 0;
+  animation: fade-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) @delay forwards;
+}
+
+.Me {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0c0e18 0%, #11131f 40%, #0d0f1a 100%);
+  padding: 0 0 calc(var(--footer-height) + 20rem);
+  color: #fff;
+  overflow: hidden;
+}
+
+.bg-glow {
+  position: fixed;
+  width: 70vw;
+  height: 70vw;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+
+  &--top {
+    top: -20%;
+    left: 50%;
+    transform: translate(-50%, -40%);
+    background: radial-gradient(circle, @accent-glow 0%, transparent 70%);
+    animation: glow-drift-top 8s ease-in-out infinite;
+  }
+
+  &--bottom {
+    bottom: -25%;
+    left: 30%;
+    transform: translate(30%, 50%);
+    background: radial-gradient(circle, @cyan-glow 0%, transparent 70%);
+    animation: glow-drift-bottom 10s ease-in-out infinite;
+  }
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56rem 0 28rem;
+}
+
+.avatar-stage {
+  position: relative;
+  width: 90rem;
+  height: 90rem;
+  margin-bottom: 18rem;
+
+  .avatar-ring {
+    position: absolute;
+    inset: -4rem;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, @accent, @cyan, @violet, @accent);
+    animation: ring-pulse 3s ease-in-out infinite;
+    mask: radial-gradient(farthest-side, transparent calc(100% - 3rem), #000 calc(100% - 2.5rem));
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3rem), #000 calc(100% - 2.5rem));
+  }
+
+  .avatar-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3rem solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: linear-gradient(135deg, #1a1d2e, #252840);
+    }
+  }
+
+  .avatar-sparkle {
+    position: absolute;
+    width: 8rem;
+    height: 8rem;
+    border-radius: 50%;
+    background: @accent;
+    filter: blur(1px);
+
+    &.sparkle--1 { top: -2rem; right: 10rem; animation: sparkle-fade 2.5s ease-in-out 0s infinite; }
+    &.sparkle--2 { bottom: 8rem; left: -2rem; animation: sparkle-fade 2.5s ease-in-out 0.8s infinite; background: @cyan; }
+    &.sparkle--3 { top: 12rem; right: -4rem; animation: sparkle-fade 2.5s ease-in-out 1.6s infinite; background: @violet; }
+  }
+}
+
+.identity {
+  text-align: center;
+
+  .nickname {
+    font-size: 22rem;
+    font-weight: 700;
+    letter-spacing: 0.5rem;
+    margin: 0 0 6rem;
+    background: linear-gradient(135deg, #fff 0%, #d4d4e8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .userno {
+    font-size: 12rem;
+    color: rgba(255, 255, 255, 0.35);
+    margin: 0 0 14rem;
+    letter-spacing: 0.5rem;
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+  }
+}
+
+.chips {
+  display: flex;
+  gap: 8rem;
+  justify-content: center;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5rem;
+  font-size: 12rem;
+  padding: 5rem 12rem;
+  border-radius: 20rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  .chip-dot {
+    width: 6rem;
+    height: 6rem;
+    border-radius: 50%;
+  }
+
+  &--level {
+    background: linear-gradient(135deg, rgba(255, 45, 85, 0.15), rgba(255, 45, 85, 0.05));
+    color: @accent;
+    border-color: rgba(255, 45, 85, 0.2);
+
+    .chip-dot {
+      background: @accent;
+      box-shadow: 0 0 6px @accent-glow;
+    }
+  }
+
+  &--gender {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.55);
+  }
+}
+
+.bio-text {
+  max-width: 260rem;
+  text-align: center;
+  font-size: 14rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 20rem 0 0;
+
+  &--empty {
+    opacity: 0.35;
+    font-style: italic;
+    font-size: 13rem;
+  }
+}
+
+.actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 0 30rem;
+}
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rem;
+  padding: 12rem 32rem;
+  border: none;
+  border-radius: 30rem;
+  font-size: 14rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  position: relative;
+  background: linear-gradient(135deg, @accent, #d42148);
+  box-shadow: 0 4px 20px rgba(255, 45, 85, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 30rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+    pointer-events: none;
+  }
+
+  &:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 10px rgba(255, 45, 85, 0.2);
+  }
+
+  svg {
+    width: 16rem;
+    height: 16rem;
+  }
+}
+
+.menu {
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--page-padding);
+  margin-bottom: 30rem;
+}
+
+.menu-group {
+  background: linear-gradient(135deg, @surface, rgba(255,255,255,0.02));
+  border: 1px solid @border;
+  border-radius: 16rem;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 16rem var(--page-padding);
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font-size: 15rem;
+  transition: background 0.2s;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid @border;
+  }
+
+  &:hover {
+    background: @surface-hover;
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36rem;
+  height: 36rem;
+  border-radius: 10rem;
+  margin-right: 14rem;
+
+  &--violet {
+    background: linear-gradient(135deg, rgba(124, 92, 252, 0.15), rgba(124, 92, 252, 0.05));
+    color: @violet;
+  }
+
+  &--cyan {
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.15), rgba(0, 212, 170, 0.05));
+    color: @cyan;
+  }
+}
+
+.menu-label {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+  letter-spacing: 0.3rem;
+}
+
+.menu-chevron {
+  width: 20rem;
+  height: 20rem;
+  color: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.logout-zone {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--page-padding);
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rem;
+  padding: 12rem 0;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  font-size: 14rem;
+  transition: color 0.2s;
+
+  &:hover {
+    color: rgba(255, 45, 85, 0.7);
+  }
+
+  svg {
+    width: 18rem;
+    height: 18rem;
+  }
+}
+
+/* entrance animations — applied via v-anim directive */
+.hero {
+  .avatar-stage { .fade-slide(0ms); }
+  .identity { .fade-slide(100ms); }
+  .chips .chip {
+    opacity: 0;
+    &:nth-child(1) { animation: chip-appear 0.4s ease-out 150ms forwards; }
+    &:nth-child(2) { animation: chip-appear 0.4s ease-out 200ms forwards; }
+  }
+  .bio-text { .fade-slide(250ms); }
+}
+
+.actions { .fade-slide(300ms); }
+.menu { .fade-slide(400ms); }
+.logout-zone { .fade-slide(500ms); }
 </style>

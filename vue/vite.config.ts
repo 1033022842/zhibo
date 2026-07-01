@@ -18,7 +18,7 @@ export default defineConfig((): Promise<UserConfig> => {
         latestCommitHash = commit.shortHash
       }
       resolve({
-        base: './',
+        base: '/',
         envDir: 'env',
         plugins: [
           VueMacros({

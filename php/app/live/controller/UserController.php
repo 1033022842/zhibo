@@ -8,6 +8,7 @@ use app\BaseController;
 use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use app\live\service\UserService;
+use app\live\service\EmailVerifyService;
 use app\live\validate\UserValidate;
 
 final class UserController extends BaseController
@@ -20,13 +21,24 @@ final class UserController extends BaseController
         $this->userService = new UserService();
     }
 
+    public function sendCode()
+    {
+        $params = $this->request->post();
+        $this->validate($params, UserValidate::class, 'sendCode');
+
+        $emailService = new EmailVerifyService();
+        $emailService->sendCode($params['email']);
+
+        return $this->jsonSuccess(null, '验证码已发送');
+    }
+
     public function register()
     {
         $params = $this->request->post();
         $this->validate($params, UserValidate::class, 'register');
 
         $ip = $this->request->ip();
-        $this->userService->register($params['username'], $params['password'], $params['nickname'], $ip);
+        $this->userService->register($params['email'], $params['code'], $params['password'], $params['nickname'], $ip);
 
         return $this->jsonSuccess(null, '注册成功');
     }
@@ -34,12 +46,20 @@ final class UserController extends BaseController
     public function login()
     {
         $params = $this->request->post();
-        $this->validate($params, UserValidate::class, 'login');
+
+        $isEmail = str_contains($params['username'] ?? '', '@');
+        if ($isEmail) {
+            $this->validate($params, UserValidate::class, 'emailLogin');
+            $account = $params['email'];
+        } else {
+            $this->validate($params, UserValidate::class, 'usernameLogin');
+            $account = $params['username'];
+        }
 
         $ip       = $this->request->ip();
         $deviceId = $params['device_id'] ?? '';
 
-        $result = $this->userService->login($params['username'], $params['password'], $ip, $deviceId);
+        $result = $this->userService->login($account, $params['password'], $ip, $deviceId);
 
         return $this->jsonSuccess($result);
     }

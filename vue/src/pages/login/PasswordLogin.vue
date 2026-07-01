@@ -7,10 +7,28 @@
     </BaseHeader>
     <div class="content">
       <div class="desc">
-        <div class="title">{{ isRegister ? '注册新账号' : '手机号密码登录' }}</div>
+        <div class="title">{{ isRegister ? '注册新账号' : '账号密码登录' }}</div>
       </div>
 
-      <LoginInput autofocus type="phone" v-model="phone" placeholder="请输入手机号" />
+      <LoginInput
+        autofocus
+        type="email"
+        v-model="email"
+        placeholder="请输入邮箱"
+      />
+      <template v-if="isRegister">
+        <div class="code-row mt1r">
+          <LoginInput
+            type="text"
+            v-model="code"
+            placeholder="请输入验证码"
+            class="code-input"
+          />
+          <span class="send-code-btn" :class="{ disabled: codeSending }" @click="sendCode">
+            {{ codeBtnText }}
+          </span>
+        </div>
+      </template>
       <LoginInput
         class="mt1r"
         type="password"
@@ -34,13 +52,13 @@
           已阅读并同意
           <span
             class="link"
-            @click="$router.push('/service-protocol', { type: '“抖音”用户服务协议' })"
+            @click="goUserAgreement"
             >用户协议</span
           >
           和
           <span
             class="link"
-            @click="$router.push('/service-protocol', { type: '“抖音”隐私政策' })"
+            @click="goPrivacyPolicy"
             >隐私政策</span
           >
           ，同时登录并使用抖音火山版（原"火山小视频"）和抖音
@@ -83,6 +101,7 @@ import Tooltip from './components/Tooltip'
 import Base from './Base'
 import { useBaseStore } from '@/store/pinia'
 import { _notice } from '@/utils'
+import { request } from '@/utils/request'
 
 export default {
   name: 'PasswordLogin',
@@ -94,25 +113,84 @@ export default {
   },
   data() {
     return {
-      phone: '',
+      email: '',
       password: '',
       nickname: '',
+      code: '',
       notice: '',
-      isRegister: false
+      isRegister: false,
+      codeSending: false,
+      countdown: 0,
+      countdownTimer: null
     }
   },
   computed: {
     disabled() {
       if (this.isRegister) {
-        return !(this.phone && this.password && this.nickname)
+        return !(this.email && this.code && this.password && this.nickname)
       }
-      return !(this.phone && this.password)
+      return !(this.email && this.password)
+    },
+    codeBtnText() {
+      if (this.codeSending) return '发送中...'
+      if (this.countdown > 0) return `${this.countdown}s`
+      return '发送验证码'
     }
   },
+  beforeDestroy() {
+    if (this.countdownTimer) clearInterval(this.countdownTimer)
+  },
   methods: {
+    goUserAgreement() {
+      this.$router.push('/service-protocol', { type: '\u201c抖音\u201d用户服务协议' })
+    },
+    goPrivacyPolicy() {
+      this.$router.push('/service-protocol', { type: '\u201c抖音\u201d隐私政策' })
+    },
     toggleMode() {
       this.isRegister = !this.isRegister
       this.notice = ''
+      this.code = ''
+    },
+    async sendCode() {
+      if (this.codeSending || this.countdown > 0) return
+
+      const email = this.email.trim()
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        this.notice = '请输入正确的邮箱地址'
+        return
+      }
+
+      this.notice = ''
+      this.codeSending = true
+
+      try {
+        const res = await request({
+          url: '/api/live/user/send-code',
+          method: 'POST',
+          data: { email }
+        })
+        if (res.success) {
+          this.notice = ''
+          this.startCountdown()
+        } else {
+          this.notice = (res.data && res.data.message) || '发送失败'
+        }
+      } catch (e) {
+        this.notice = e?.message || '发送失败'
+      }
+
+      this.codeSending = false
+    },
+    startCountdown() {
+      this.countdown = 60
+      this.countdownTimer = setInterval(() => {
+        this.countdown--
+        if (this.countdown <= 0) {
+          clearInterval(this.countdownTimer)
+          this.countdownTimer = null
+        }
+      }, 1000)
     },
     async submit() {
       const ok = await this.check()
@@ -124,11 +202,16 @@ export default {
       const store = useBaseStore()
 
       if (this.isRegister) {
-        const res = await store.doRegister(this.phone, this.password, this.nickname)
+        const res = await store.doRegister(
+          this.email.trim(),
+          this.password,
+          this.nickname.trim(),
+          this.code
+        )
         this.loading = false
         if (res.ok) {
           _notice('注册成功，正在登录...')
-          const loginRes = await store.doLogin(this.phone, this.password)
+          const loginRes = await store.doLogin(this.email.trim(), this.password)
           if (loginRes.ok) {
             this.$router.replace('/home')
           } else {
@@ -138,7 +221,7 @@ export default {
           this.notice = res.msg || '注册失败'
         }
       } else {
-        const res = await store.doLogin(this.phone, this.password)
+        const res = await store.doLogin(this.email.trim(), this.password)
         this.loading = false
         if (res.ok) {
           this.$router.replace('/home')
@@ -220,6 +303,27 @@ export default {
       font-size: 13rem;
       margin-bottom: 10rem;
       text-align: center;
+    }
+    .code-row {
+      display: flex;
+      align-items: center;
+      gap: 10rem;
+      .code-input {
+        flex: 1;
+      }
+      .send-code-btn {
+        flex-shrink: 0;
+        color: var(--primary-color, #fe2c55);
+        font-size: 13rem;
+        cursor: pointer;
+        white-space: nowrap;
+        min-width: 80rem;
+        text-align: center;
+        &.disabled {
+          color: #ccc;
+          pointer-events: none;
+        }
+      }
     }
   }
 }
