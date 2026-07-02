@@ -22,7 +22,7 @@
                         label="状态"
                         v-model="baTable.form.items!.status"
                         type="radio"
-                        :input-attr="{ border: true, content: { '1': '启用', '0': '禁用' } }"
+                        :input-attr="{ border: true, content: { '0': '禁用', '1': '准备中', '2': '启用' } }"
                     />
                 </el-form>
             </div>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<style type="text/css">
+			.turbo-progress-bar {
+			  position: fixed;
+			  display: block;
+			  top: 0;
+			  left: 0;
+			  height: 3px;
+			  background: #0076ff;
+			  z-index: 2147483647;
+			  transition:
+			    width 300ms ease-out,
+			    opacity 150ms 150ms ease-in;
+			  transform: translate3d(0, 0, 0);
+			}
+			@media only screen and (max-width: 768px) {
+              .pc-nav{
+               display: none;
+              }
+            }
+            .login-pf{display:none;}
+            #user-login{display:none;}
+		</style>
+		
+		<title>Upload Video - Candy.AI</title>
+		<meta name="description" content="Upload and manage your videos">
+		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
+	
+		<link rel="stylesheet" href="./assets/fy.css" data-turbo-track="reload">
+		<link rel="stylesheet" href="./charactersIndex_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
+		<script src="./charactersIndex_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
+		<script src="./charactersIndex_files/alpine-ace55a5cbc1qrn7xh648wnlqp4x8q5wchk6dt2yky6yyuv6xw77a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
+	
+		<script src="./charactersIndex_files/jquery-3.6.0.min.js"></script>
+		<script src="./assets/layer/3.1.1/layer.js"></script>
+		<script src="./js/event.js"></script>
+		<script src="./js/main.js"></script>
+		<script src="./js/upload_video.js"></script>
+		
+		<link rel="icon" type="image/x-icon" href="/assets/favico-c002e20e13e2ee0d917bef3242cab0236c1087207a951e9d578b370c519d800a.png">
+	</head>
+	<body class="bg-main characters index stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="true" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="#&lt;User:0x00007f3ba06e9c80&gt;">
+		<noscript>
+			<iframe src="./charactersIndex_files/ns.html" height="0" width="0" style="display:none;visibility:hidden"></iframe>
+		</noscript>
+
+		<!-- Sidebar (复制自 charactersIndex.html) -->
+		<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+			<span class="tooltip-containers absolute" data-main-target="tooltipContainer">
+				<div id="tooltip-explore" role="tooltip" class="relative z-100 invisible px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 30px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Explore
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-image" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 198px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Generate Image
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-character" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 254px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Create Character
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-my-ai" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 310px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					My AI
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+			</span>
+			<nav class="flex flex-col justify-between h-full ">
+				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto  overflow-x-auto">
+					<li class="relative w-full" data-tooltip-target="tooltip-explore" data-tooltip-placement="right">
+						<a href="./Anime.html" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-image" data-tooltip-placement="right">
+						<a href="./Image.html" class="relative h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-character" data-tooltip-placement="right">
+						<a href="./characters.html" class="relative h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-my-ai" data-tooltip-placement="right">
+						<a href="./charactersIndex.html" class="h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+						</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+
+		<!-- Header -->
+		<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">
+			<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger">
+				<span class="sr-only">Open sidebar</span>
+				<svg class="nav-hamburger h-8 w-8 mr-1 text-white" data-action="click->main#handleMenuClick" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+				</svg>
+			</button>
+			<a href="./Girls.html">
+				<img src="./Girls_files/candyai-navbar-d321c31d58617371f7caf9e34a4e3f9624dce580afcceb6fecdf48c78beafd83.svg" class="h-[30px] md:h-[30px] w-[115px]">
+			</a>
+			<div class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">
+				<form class="relative flex flex-1" action="/#" method="GET"></form>
+				<div class="headerfy"></div>
+				<div class="gap-x-2 flex pc-rg-login">
+					<div class="flex items-center gap-x-4 lg:gap-x-6 ">
+						<div data-redirect-url="/" data-action="click->main#openRegistrationModal" data-main-target="registerButton" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+							<div class="text-white text-sm font-semibold leading-tight">Register</div>
+						</div>
+					</div>
+					<div class="flex items-center gap-x-4 lg:gap-x-6">
+						<div data-action="click->main#openSignInModal" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+							<div class="text-sm font-semibold leading-tight">Login</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div id="user-setting" style="display:none;" class="flex flex-1  self-stretch lg:gap-x-6 bg-main">
+				<form class="relative flex flex-1" action="#" method="GET"></form>
+				<div class="headerfy"></div>
+				<div class="flex items-center gap-x-4 lg:gap-x-6 nav-zk">
+					<a href="./Subscriptions.html" class="justify-center items-center primary-gradient flex max-w-full gap-2 px-2 py-1.5 rounded-xl">
+						<img src="/assets/olympic-sale/torch-62c1f4e586ca3ad6b1eadcb4457ba71edbe67652e8f775909a81c208c256996c.svg" class="object-cover object-center w-4 overflow-hidden shrink-0">
+						<div class="text-white text-xs font-semibold self-stretch">
+							Subscribe 75% OFF
+						</div>
+					</a>
+				</div>
+				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+					<div class="lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true"></div>
+					<div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-fit relative ">
+						<button type="button" class="-m-1.5 flex items-center p-1.5 " id="user-menu-button" @click="open = !open" aria-expanded="false" :aria-expanded="open.toString()">
+							<span class="sr-only">Open user menu</span>
+							<img src="/assets/user-icons/woman-875180869a83d543d3ac906ca91d24634cc13f486d5c2565ed2908927a1fc10e.svg" class="h-8 w-8 rounded-full">
+							<span class="hidden lg:flex lg:items-center">
+								<span class="ml-4 text-sm font-semibold leading-6 text-white" aria-hidden="true">My Profile</span>
+								<svg class="ml-2 h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+									<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>
+								</svg>
+							</span>
+						</button>
+						<div x-show="open" @keydown.arrow-up.prevent="" @keydown.arrow-down.prevent="" @keydown.tab="open = false" @keydown.enter.prevent="open = false" class="absolute right-0 z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none" data-controller="users" style="display: none;">
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./Subscriptions.html">
+								<div class="w-5 h-5 relative">
+									<img src="//assets/sidebar-icons/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Subscription</div>
+							</a>
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./setting.html">
+								<div class="w-5 h-5 relative">
+									<img src="//assets/settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Settings</div>
+							</a>
+							<form class="button_to" method="post" onsubmit="return false">
+								<input type="hidden" name="_method" value="delete" autocomplete="off">
+								<button data-turbo="false" id="logout" class="rounded-b-lg w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" type="submit">
+									<div class="w-5 h-5 relative">
+										<img src="//assets/logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg">
+									</div>
+									<div class="text-white text-sm font-semibold leading-normal">Logout</div>
+								</button>
+								<input type="hidden" name="authenticity_token" value="sQJXhrDTp_Ev7C193Oa-PTVmRkWdvSycvObq6DIY4fCrI-9C84LjijJ0wuJ-DP03BnvYa8r9ajga1oD4vqNtlQ" autocomplete="off">
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Main Content -->
+		<div class="main-content-container" data-main-target="contentContainer">
+			<div class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[56px] h-full" id="upload-video-main-wrapper">
+				<main class="ml-0 lg:ml-[100px]">
+					<div class="px-4 py-6">
+						<div class="mx-auto max-w-7xl">
+							<!-- Header with Title and Upload Button -->
+							<div class="flex justify-between items-center mb-6">
+								<div class="w-full text-center lg:text-left">
+									<h1 class="text-xl font-semibold tracking-tight text-white md:text-3xl">
+										<div>
+											<span class="text-white font-semibold">Upload</span>
+											<span class="text-primary"> Video</span>
+										</div>
+									</h1>
+								</div>
+								<div class="hidden lg:flex">
+									<button id="upload-video-btn" class="px-4 py-2 bg-[#E75275] hover:bg-[#d64568] rounded-lg text-white text-sm font-semibold flex items-center gap-2">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+										</svg>
+										Upload Video
+									</button>
+								</div>
+							</div>
+
+							<!-- Mobile Upload Button -->
+							<div class="lg:hidden mb-4">
+								<button id="upload-video-btn-mobile" class="w-full px-4 py-2 bg-[#E75275] hover:bg-[#d64568] rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+									</svg>
+									Upload Video
+								</button>
+							</div>
+
+							<!-- Video List -->
+							<div id="video-list-container" class="mt-6">
+								<ul id="video-list" role="list" class="mx-auto grid max-w-2xl grid-cols-1 gap-5 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3 xl:grid-cols-4">
+									<!-- Video items will be inserted here by JavaScript -->
+								</ul>
+							</div>
+
+							<!-- Empty State -->
+							<div id="empty-state" class="hidden text-center py-12">
+								<svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+								</svg>
+								<h3 class="mt-2 text-sm font-medium text-gray-300">No videos uploaded</h3>
+								<p class="mt-1 text-sm text-gray-500">Get started by uploading your first video.</p>
+							</div>
+						</div>
+					</div>
+				</main>
+			</div>
+		</div>
+
+		<!-- Upload Video Modal -->
+		<div id="upload-modal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100">
+			<div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0 w-[90%] max-w-[500px]">
+				<button type="button" class="absolute w-5 h-5 right-3 top-3 z-10" id="close-upload-modal">
+					<img class="w-auto" src="./Girls_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+				</button>
+				<div class="flex flex-col relative bg-black-dark rounded-[10px] w-full p-6 lg:p-10">
+					<div class="mb-6">
+						<h2 class="text-[24px] text-white leading-7 lg:leading-8 font-bold mb-3">
+							Upload Video
+						</h2>
+						<p class="text-gray-400 text-sm">Select a video file to upload</p>
+					</div>
+					<form id="upload-video-form" class="flex flex-col gap-4">
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Video File <span class="text-red-500">*</span></label>
+							<input type="file" id="video-file-input" accept="video/*" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#E75275] file:text-white hover:file:bg-[#d64568]">
+						</div>
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Intimacy (1-100) <span class="text-red-500">*</span></label>
+							<input type="number" id="video-intimacy-input" min="1" max="100" value="50" placeholder="Enter intimacy value (1-100)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							<p class="text-xs text-gray-500 mt-1">Enter a number between 1 and 100</p>
+						</div>
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Keywords</label>
+							<input type="text" id="video-keywords-input" placeholder="Enter keywords separated by spaces (e.g. happy smile dance)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							<p class="text-xs text-gray-500 mt-1">Separate multiple keywords with spaces</p>
+						</div>
+						<div class="w-full">
+							<label class="flex items-center gap-3 cursor-pointer">
+								<input type="checkbox" id="video-is-sensitive-input" class="w-4 h-4 text-[#E75275] bg-black-medium border-gray-600 rounded focus:ring-[#E75275] focus:ring-2">
+								<span class="text-sm font-medium text-gray-300">Is Sensitive</span>
+							</label>
+							<p class="text-xs text-gray-500 mt-1 ml-7">Mark this video as sensitive content</p>
+							<div id="gift-select-container" class="hidden mt-3 ml-7">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Select Gift <span class="text-red-500">*</span></label>
+								<select id="gift-select-input" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="">Loading gifts...</option>
+								</select>
+								<p class="text-xs text-gray-500 mt-1">Please select a gift for sensitive content</p>
+							</div>
+						</div>
+						<div class="w-full">
+							<label class="flex items-center gap-3 cursor-pointer">
+								<input type="checkbox" id="video-is-default-input" class="w-4 h-4 text-[#E75275] bg-black-medium border-gray-600 rounded focus:ring-[#E75275] focus:ring-2">
+								<span class="text-sm font-medium text-gray-300">Is Default</span>
+							</label>
+							<p class="text-xs text-gray-500 mt-1 ml-7">Set this video as default video</p>
+						</div>
+						<div class="flex gap-4 mt-4">
+							<button type="submit" class="flex-1 px-4 py-3 bg-[#E75275] hover:bg-[#d64568] rounded-[10px] text-white text-sm font-semibold">
+								Upload
+							</button>
+							<button type="button" id="cancel-upload-btn" class="flex-1 px-4 py-3 border border-gray-600 hover:bg-gray-800 rounded-[10px] text-white text-sm font-semibold">
+								Cancel
+							</button>
+						</div>
+					</form>
+					<div id="upload-progress" class="hidden mt-4">
+						<div class="w-full bg-gray-700 rounded-full h-2.5">
+							<div id="upload-progress-bar" class="bg-[#E75275] h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+						</div>
+						<p class="text-sm text-gray-400 mt-2 text-center" id="upload-progress-text">Uploading... 0%</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Video Item Template -->
+		<script type="text/template" id="video-item-template">
+			<li class="flex flex-col">
+				<div class="relative rounded-lg overflow-hidden bg-gray-800 group">
+					<video class="w-full h-[200px] object-cover" controls preload="metadata">
+						<source src="{{video_url}}" type="video/mp4">
+						Your browser does not support the video tag.
+					</video>
+					<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+						<button class="delete-video-btn bg-red-600 hover:bg-red-700 text-white p-2 rounded-full" data-video-id="{{id}}">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+							</svg>
+						</button>
+					</div>
+					<div class="p-4 bg-gray-900">
+						<div class="flex items-center justify-between mb-2">
+							<span class="text-white text-sm font-semibold">Intimacy: {{intimacy}}</span>
+							<div class="flex gap-2" id="video-badges-{{id}}">
+								{{is_sensitive_badge}}
+								{{is_default_badge}}
+							</div>
+						</div>
+						<div id="video-keywords-{{id}}" class="text-gray-400 text-xs mb-2">
+							{{keywords_display}}
+						</div>
+						<div id="video-gift-{{id}}">
+							{{gift}}
+						</div>
+						<div class="flex justify-between items-center text-xs text-gray-500">
+							<span>{{upload_date}}</span>
+							<span>{{file_size}}</span>
+						</div>
+					</div>
+				</div>
+			</li>
+		</script>
+
+		<!-- Mobile Bottom Navigation -->
+		<div class="flex px-5 py-2 justify-between w-full h-[70px] fixed bottom-0 z-50 border-t border-white border-opacity-20 bg-black-default lg:hidden">
+			<a href="/Girls.html" class="flex flex-col items-center relative">
+				<img src="./Girls_files/explore-271b6507dab3d31b26d45e198ec8046b2b8f148862ca272167fb8ce5455002e8.svg" class="w-6 h-6">
+				<span class="text-[#A1A1A1] text-[10px] mt-1">Explore</span>
+			</a>
+			<a href="./Image.html" class="flex flex-col items-center relative">
+				<img src="./charactersIndex_files/generate-e0a4445659c35cbc82e7046cf089cf881179d55eaa82d4bf32dae229a06666c1.svg" class="w-6 h-6">
+				<span class="text-[#A1A1A1] text-[10px] mt-1">Generate</span>
+			</a>
+			<a href="./characters.html" class="flex flex-col items-center">
+				<img src="./Girls_files/mobile-magic-wand-d445265367be8ddfbfe1c22810893d0ea4dbdaf1eadd7c4496861113d5388d78.svg" class="w-6 h-6">
+				<span class="text-[#A1A1A1] text-[10px] mt-1">Create</span>
+			</a>
+			<a href="./Subscriptions.html" class="flex flex-col items-center cursor-pointer">
+				<img src="./Girls_files/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+				<span class="text-[#A1A1A1] text-[10px] mt-1">Premium</span>
+			</a>
+		</div>
+
+		<!-- Hidden file input for upload -->
+		<input type="file" id="hidden-video-input" accept="video/*" style="display: none;">
+	</body>
+</html>

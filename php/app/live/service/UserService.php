@@ -19,6 +19,27 @@ final class UserService
         $verifyService = new EmailVerifyService();
         $verifyService->verify($email, $code);
 
+        return $this->createUser($email, $password, $nickname, $ip, 'email');
+    }
+
+    /**
+     * AI 前端注册（无需邮箱验证码）
+     */
+    public function registerFromAi(string $username, string $email, string $password, string $ip = ''): array
+    {
+        // 检查用户名/邮箱是否已存在
+        $exists = UserAuth::where('auth_key', $email)
+            ->whereOr('auth_key', $username)
+            ->find();
+        if ($exists) {
+            throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
+        }
+
+        return $this->createUser($email, $password, $username, $ip, 'username');
+    }
+
+    private function createUser(string $email, string $password, string $nickname, string $ip, string $authType): array
+    {
         $exists = UserAuth::where('auth_type', 'email')
             ->where('auth_key', $email)
             ->find();

@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<!-- saved from url=(0025)/settings -->
+<html lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<style type="text/css">
+			.turbo-progress-bar {
+						  position: fixed;
+						  display: block;
+						  top: 0;
+						  left: 0;
+						  height: 3px;
+						  background: #0076ff;
+						  z-index: 2147483647;
+						  transition:
+						    width 300ms ease-out,
+						    opacity 150ms 150ms ease-in;
+						  transform: translate3d(0, 0, 0);
+						}
+			@media only screen and (max-width: 768px) {
+              /* 在这里编写针对移动设备的CSS规则 */
+              .pc-nav{
+               display: none;
+              }
+            }
+            .login-pf{display:none;}
+            #user-login{display:none;}
+		</style>
+		
+	
+
+		<!--<script type="text/javascript" async="" src="./setting_files/js"></script>-->
+		<!--<script async="true" src="./setting_files/edd61b2c-749c-47e6-abc3-1cebb0f1139f.js" crossorigin="anonymous"></script>-->
+		<!--<script async="" src="./setting_files/gtm.js"></script>-->
+		<!--<script async="" src="./setting_files/scevent.min.js"></script>-->
+		<!--<script src="./setting_files/1331886174129149" async=""></script>-->
+		<!--<script async="" src="./setting_files/fbevents.js"></script>-->
+		<!--<script type="text/javascript" async="" src="./setting_files/mixpanel-2-latest.min.js"></script>-->
+		
+		<title>Candy.AI: Create Your AI Girlfriend &amp; Start Chatting</title>
+		<meta name="description" content="Your dream companion awaits! Create your AI Girlfriend, shape her look, personality, and bring her to life in one click. 100% powered by Artificial Intelligence">
+		<!-- Facebook Open Graph data -->
+
+		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
+	
+	<link rel="stylesheet" href="./assets/fy.css" data-turbo-track="reload">
+		<link rel="stylesheet" href="./setting_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
+		<script src="./setting_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
+		<script src="./setting_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
+		<meta>
+		<script src="./setting_files/jquery-3.6.0.min.js"></script>
+	    <script src="./assets/layer/3.1.1/layer.js"></script>
+		<script src="./js/settings.js"></script>
+		<script src="./js/event.js"></script>
+        <script src="./js/main.js"></script>
+
+
+		<link rel="icon" type="image/x-icon" href="/assets/favico-c002e20e13e2ee0d917bef3242cab0236c1087207a951e9d578b370c519d800a.png">
+
+
+
+	</head>
+	<body class="bg-main users edit stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="true" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="#&lt;User:0x00007fad286ec8c8&gt;" data-main-selected-character-id-from-generate-image="">
+
+		<!-- Google Tag Manager (noscript) -->
+		<noscript>
+			<iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NM6MQN67"
+					height="0" width="0" style="display:none;visibility:hidden"></iframe>
+		</noscript>
+		<!-- End Google Tag Manager (noscript) -->
+
+	
+		<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar pc-nav" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+			<span class="tooltip-containers absolute" data-main-target="tooltipContainer">
+				<div id="tooltip-explore" role="tooltip" class="relative z-100 invisible px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 30px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Explore
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<!--<div id="tooltip-chat" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 86px, 0px);" data-popper-placement="right">-->
+				<!--	Chat-->
+				<!--	<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>-->
+				<!--</div>-->
+				<div id="tooltip-gallery" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 142px, 0px);" data-popper-placement="right">
+					Gallery
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-image" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 198px, 0px);" data-popper-placement="right">
+					Generate Image
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-character" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 254px, 0px);" data-popper-placement="right">
+					Create Character
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-my-ai" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 310px, 0px);" data-popper-placement="right">
+					My AI
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-tokens" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700">
+					Buy Tokens
+					<div class="tooltip-arrow" data-popper-arrow=""></div>
+				</div>
+				<div id="tooltip-premium" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 366px, 0px);" data-popper-placement="right">
+					Become Premium
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+			</span>
+			<nav class="flex flex-col justify-between h-full ">
+				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto  overflow-x-auto">
+						<li class="relative w-full" data-tooltip-target="tooltip-explore" data-tooltip-placement="right">
+						<a href="javascript:;" onclick="location.reload()" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+						</a>
+					</li>
+					<!--<li class="relative w-full" data-tooltip-target="tooltip-chat" data-tooltip-placement="right">-->
+					<!--	<a href="./Chat.html" class="h-[48px] w-[52px]  hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">-->
+					<!--		<img class="w-6 h-6" src="./setting_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg">-->
+					<!--	</a>-->
+					<!--</li>-->
+				<li class="relative w-full" data-tooltip-target="tooltip-image" data-tooltip-placement="right">
+						<a href="./Image.html" class="relative
+          h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border
+          border-white border-opacity-10 justify-start px-3 items-center
+          gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-character" data-tooltip-placement="right">
+						<a href="./characters.html" class="relative h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-my-ai" data-tooltip-placement="right">
+						<a href="./charactersIndex.html" class="h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-premium" data-tooltip-placement="right">
+						<a href="./Subscriptions.html" class="h-[48px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Anime_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+						</a>
+					</li>
+				</ul>
+				<ul role="list" class="hidden flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
+					<li class="relative w-full" data-tooltip-target="tooltip-discord" data-tooltip-placement="right">
+						<div id="tooltip-discord" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(59.3333px, 6px, 0px);" data-popper-placement="right">
+							Discord
+							<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+						</div>
+						<a href="https://discord.gg/candyai" target="_blank" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+							<img class="w-6 h-6" src="./setting_files/discord-526bbe3abf7210fa8bd8e76658d4df5a5c67d569f1349a2441b1d0bbd170c84d.svg">
+						</a>
+					</li>
+					<li class="relative w-full toggle-popup" data-tooltip-target="tooltip-contact" data-tooltip-placement="right">
+						<div id="tooltip-contact" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(59.3333px, 6px, 0px);" data-popper-placement="right">
+							Contact Us
+							<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+						</div>
+						<div data-action="click-&gt;main#openContactUs" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+							<img class="w-6 h-6" src="./setting_files/contact-c50065a887c8d0061543beceae78cec1bdaaac55ec7d37f11601912b3250e119.svg">
+						</div>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-affiliate" data-tooltip-placement="right">
+						<a target="_blank" class="" href="https://webforms.pipedrive.com/f/bYSTErXD8pcDoco3iakbUUKFRtWtAjNDJphn0GpYA3B88R2NYvCzVMM2wsNCjtVMkP">
+							<div id="tooltip-affiliate" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(59.3333px, 6px, 0px);" data-popper-placement="right">
+								Affiliate Program
+								<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+							</div>
+							<div class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+								<img class="w-6 h-6" src="./setting_files/trophy-55ba15bcf830427b6fc776e11ff4465cce75c1c2a1a27ba0bd2eea0e5c03ff55.svg">
+							</div>
+						</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+		<div data-controller="contact-us">
+			<div class="hidden" data-contact-us-target="contactUsModalContainer" data-main-target="contactUsModalContainer">
+				<form data-contact-us-target="form" class="space-y-6" action="/contact_us" accept-charset="UTF-8" method="post">
+					<input type="hidden" name="authenticity_token" value="H6neqycddSm5TS7yV_i2frElUbhKpcJJp3JKrclB8wWoIBUD3pHAo5-4oEpIbcZ_y7i56whd2BA1AEFAzcIi-A" autocomplete="off">
+					<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm modal-backdrop" style="margin-top: 0px;"></div>
+					<div id="contactUs" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto h-[calc(100%-1rem)] max-h-full flex justify-center items-center ">
+						<div class="relative max-h-full">
+							<div class="relative rounded-lg shadow dark:bg-gray-700">
+								<div class="md:w-[396px] max-w-[396px] md:h-[354px] h-[340px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+									<div class="w-full md:h-[354px] h-[340px] p-7 gap-6 flex  flex-col relative bg-stone-900 rounded-[10px] border border-neutral-700 overflow-hidden">
+										<div class="flex flex-col justify-start items-start gap-2 w-full">
+											<div class="flex justify-between items-center w-full text-white text-2xl font-bold leading-[34px]">
+												<div>Contact us</div>
+												<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" data-action="click-&gt;contact-us#closeContactUs" class="cursor-pointer absolute top-3 right-3" style="width: 24px; height: 24px;">
+											</div>
+											<div class="text-neutral-400 text-sm font-medium leading-tight">Write your message here.</div>
+										</div>
+										<div class="flex flex-col justify-start items-start gap-7 w-full">
+											<div class="w-full">
+												<textarea label="false" id="textarea_contact_us_closed_sidebar" class="w-full h-[120px] p-[15px] text-white bg-neutral-800 rounded-[10px] border border-neutral-700 p-2.5" placeholder="Description" data-contact-us-target="description" name="contact_us[description]"></textarea>
+											</div>
+											<button type="button" data-action="click-&gt;contact-us#submitForm" class="px-4 py-3  w-full bg-[#E75275] rounded-[10px] border border-[#E75275] text-white text-sm font-semibold leading-tight items-center justify-center inline-flex">
+												Send
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<div data-controller="contact-us">
+			<div id="success-modal-container" data-contact-us-target="successModalContainer" class="hidden">
+				<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm email-modal modal-backdrop" style="margin-top: 0px;"></div>
+				<div id="successModal" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center">
+					<div class="relative max-h-full">
+						<div class="relative rounded-lg shadow dark:bg-gray-700">
+							<div class="max-w-[335px] h-[272px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+								<div class="w-full max-h-[300px] pt-7 px-6 pb-6 gap-6 flex flex-col relative bg-stone-900 rounded-[10px] border border-neutral-700 overflow-hidden">
+									<div class="flex-col justify-center items-center gap-2 flex">
+										<img src="./setting_files/success-17ae59f4f39940dd52a6668c3770f74ed07a12b78f26930fa22b9e3ca9671fca.svg">
+										<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-3 right-3 cursor-pointer" data-action="click-&gt;contact-us#closeSuccessModal">
+									</div>
+									<div class="flex-col justify-center items-center gap-2 flex mt-4.5">
+										<div class="flex-col justify-center items-center gap-2 flex">
+											<div class="text-white text-md text-center font-semibold leading-[34px]">Thank you for your message!</div>
+											<div class="w-full text-center text-neutral-400 text-sm font-normal leading-tight">We'll reply to within 24 hours. Watch your inbox!</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+		<div data-main-target="mainSidebarOpenedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[220px] lg:pb-5 w-[220px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+			<nav class="flex flex-col justify-between h-full ">
+				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto  overflow-x-auto">
+				<li class="relative w-full">
+						<a href="javascript:;" onclick="location.reload()"  class="h-[40px] w-full  hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">
+							<img class="w-4 h-4" src="./Anime_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+							<span class="text-start text-grey-medium text-xxs font-medium leading-4">Explore</span>
+						</a>
+					</li>
+					<!--<li class="relative w-full">-->
+					<!--	<a href="./Chat.html" class="h-[40px] w-full  hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">-->
+					<!--		<img class="w-4 h-4" src="./setting_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg">-->
+					<!--		<span class="text-start text-grey-medium text-xxs font-medium leading-4">Chat</span>-->
+					<!--	</a>-->
+					<!--</li>-->
+					<li class="relative w-full">
+						<a href="./Image.html" class="relative
+          h-[40px] hover:bg-zinc-700  rounded-[10px] border
+          border-white border-opacity-10 justify-start px-3 items-center
+          gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./Anime_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">
+								Generate Image
+							</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./characters.html" class="relative h-[40px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./Anime_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+							<div class="text-start  text-grey-medium text-xxs font-medium leading-none">Create Character
+							</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./charactersIndex.html" class="h-[40px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./Anime_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">
+								My AI
+							</div>
+						</a>
+					</li>
+						<li class="relative w-full">
+						<a  class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer" href="/Subscriptions.html">
+							<img class="w-4 h-4" src="./Anime_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+							<div class="text-start text-pink-default text-xxs font-medium leading-none">
+								Become Premium
+							</div>
+						</a>
+					</li>
+				</ul>
+				<ul role="list" class="hidden flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
+					<li class="relative w-full">
+						<a href="https://discord.gg/candyai" target="_blank" class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+							<img class="w-4 h-4" src="./setting_files/discord-526bbe3abf7210fa8bd8e76658d4df5a5c67d569f1349a2441b1d0bbd170c84d.svg">
+							<div class="text-start text-grey-medium text-xs font-medium leading-4">Discord</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<div data-action="click-&gt;main#openContactUs" class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+							<img class="w-4 h-4" src="./setting_files/contact-c50065a887c8d0061543beceae78cec1bdaaac55ec7d37f11601912b3250e119.svg">
+							<div class="text-start sidebar-text  text-grey-medium text-xs font-medium leading-4" @click="">Contact Us</div>
+						</div>
+					</li>
+					<li class="relative w-full">
+						<a target="_blank" class="" href="https://webforms.pipedrive.com/f/bYSTErXD8pcDoco3iakbUUKFRtWtAjNDJphn0GpYA3B88R2NYvCzVMM2wsNCjtVMkP">
+							<div class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+								<img class="w-4 h-4" src="./setting_files/trophy-55ba15bcf830427b6fc776e11ff4465cce75c1c2a1a27ba0bd2eea0e5c03ff55.svg">
+								<div class="text-start  text-grey-medium text-xs font-medium leading-4">Affiliate Program</div>
+							</div>
+						</a>
+					</li>
+					<li class="text-[8px] flex text-grey-medium pt-3 w-full">
+						<a class="leading-none mr-2" href="/privacy-policy">Privacy Policy</a>
+						<ul class="list-none">
+							<li class="flex items-center mr-2">
+								<span class="bg-white h-1 w-1 rounded-full mr-2"></span>
+								<a class="leading-none" href="/legal-information">Terms of Service</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+			</nav>
+		</div>
+		<div data-controller="contact-us">
+			<div class="hidden" data-contact-us-target="contactUsModalContainer" data-main-target="contactUsModalContainer">
+				<form data-contact-us-target="form" class="space-y-6" action="/contact_us" accept-charset="UTF-8" method="post">
+					<input type="hidden" name="authenticity_token" value="wUHtCsz9gU1-u4OLv_0NUYC911iZyoRDLVL5EsGvqc52yCaiNXE0x1hODTOgaH1Q-iA_C9synhq_IPL_xSx4Mw" autocomplete="off">
+					<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm modal-backdrop" style="margin-top: 0px;"></div>
+					<div id="contactUs" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto h-[calc(100%-1rem)] max-h-full flex justify-center items-center ">
+						<div class="relative max-h-full">
+							<div class="relative rounded-lg shadow dark:bg-gray-700">
+								<div class="md:w-[396px] max-w-[396px] md:h-[354px] h-[340px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+									<div class="w-full md:h-[354px] h-[340px] p-7 gap-6 flex  flex-col relative bg-stone-900 rounded-[10px] border border-neutral-700 overflow-hidden">
+										<div class="flex flex-col justify-start items-start gap-2 w-full">
+											<div class="flex justify-between items-center w-full text-white text-2xl font-bold leading-[34px]">
+												<div>Contact us</div>
+												<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" data-action="click-&gt;contact-us#closeContactUs" class="cursor-pointer absolute top-3 right-3" style="width: 24px; height: 24px;">
+											</div>
+											<div class="text-neutral-400 text-sm font-medium leading-tight">Write your message here.</div>
+										</div>
+										<div class="flex flex-col justify-start items-start gap-7 w-full">
+											<div class="w-full">
+												<textarea label="false" id="textarea_contact_us_opened_sidebar" class="w-full h-[120px] p-[15px] text-white bg-neutral-800 rounded-[10px] border border-neutral-700 p-2.5" placeholder="Description" data-contact-us-target="description" name="contact_us[description]"></textarea>
+											</div>
+											<button type="button" data-action="click-&gt;contact-us#submitForm" class="px-4 py-3  w-full bg-[#E75275] rounded-[10px] border border-[#E75275] text-white text-sm font-semibold leading-tight items-center justify-center inline-flex">
+												Send
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<div data-controller="contact-us">
+			<div id="success-modal-container" data-contact-us-target="successModalContainer" class="hidden">
+				<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm email-modal modal-backdrop" style="margin-top: 0px;"></div>
+				<div id="successModal" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center">
+					<div class="relative max-h-full">
+						<div class="relative rounded-lg shadow dark:bg-gray-700">
+							<div class="max-w-[335px] h-[272px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+								<div class="w-full max-h-[300px] pt-7 px-6 pb-6 gap-6 flex flex-col relative bg-stone-900 rounded-[10px] border border-neutral-700 overflow-hidden">
+									<div class="flex-col justify-center items-center gap-2 flex">
+										<img src="./setting_files/success-17ae59f4f39940dd52a6668c3770f74ed07a12b78f26930fa22b9e3ca9671fca.svg">
+										<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-3 right-3 cursor-pointer" data-action="click-&gt;contact-us#closeSuccessModal">
+									</div>
+									<div class="flex-col justify-center items-center gap-2 flex mt-4.5">
+										<div class="flex-col justify-center items-center gap-2 flex">
+											<div class="text-white text-md text-center font-semibold leading-[34px]">Thank you for your message!</div>
+											<div class="w-full text-center text-neutral-400 text-sm font-normal leading-tight">We'll reply to within 24 hours. Watch your inbox!</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+		<div data-main-target="mainMobileSidebarContainer" data-action="click-&gt;main#setMobileSidebarValueToDefault" class="inset-y-0 w-[100vw] mt-[64px] z-[100] pr-[40vw] no-scroll fixed left-0 webkit-transition-sidebar webkit-transform-sidebar">
+			<nav class="flex flex-col justify-between h-full  w-[240px] " style="background: linear-gradient(0deg, #131313 0%, #131313 100%)">
+				<div class="flex flex-col justify-between h-full">
+				    <div  class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login">
+			
+        				
+        				<div class="gap-x-2 flex px-5 py-5">
+        					<div class="flex  gap-x-4 lg:gap-x-6 ">
+        						<div data-redirect-url="/" data-action="click-&gt;main#openRegistrationModal" data-main-target="registerButton" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+        							<div class="text-white text-sm font-semibold leading-tight">Register</div>
+        						</div>
+        					</div>
+        					<div class="flex  gap-x-4 lg:gap-x-6">
+        						<div data-action="click-&gt;main#openSignInModal" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+        							<div class="text-sm font-semibold leading-tight">Login</div>
+        						</div>
+        					</div>
+        				</div>
+        				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+        				</div>
+        			</div>
+					<ul role="list" class="flex flex-col items-center justify-start px-5 bg-zinc-900 h-screen overflow-auto">
+					    
+					    <li class="user-dropdown relative w-full py-4 border-b border-white border-opacity-10 login-pf">
+                        	<!-- Profile dropdown -->
+                        	<div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false">
+                        		<button type="button" class="user-dropdown w-full flex text-xs leading-5" id="user-menu-button" @click="open = !open" aria-expanded="false" :aria-expanded="open.toString()">
+                        			<img alt="Woman" src="/assets/user-icons/woman-875180869a83d543d3ac906ca91d24634cc13f486d5c2565ed2908927a1fc10e.svg" class="h-5 w-5 rounded-full">
+                        			<div class="user-dropdown flex items-center justify-between w-full">
+                        				<div class="user-dropdown ml-2 text-xs font-semibold leading-5 text-grey-medium " aria-hidden="true">
+                        					My Profile
+                        				</div>
+                        				<svg class="user-dropdown ml-2 h-4 w-4 text-white " viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        					<path class="" fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>
+                        				</svg>
+                        			</div>
+                        		</button>
+                        		<div x-show="open" @keydown.arrow-up.prevent="" @keydown.arrow-down.prevent="" @keydown.tab="open = false" @keydown.enter.prevent="open = false" class="relative right-0 z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none w-full bg-zinc-900" data-controller="users" style="display: none;">
+                        			<a class="w-full mt-4 justify-start items-center gap-2 inline-flex" href="./Subscriptions.html">
+                        				<div class="relative">
+                        					<img class="w-5 h-5 " src="/assets/sidebar-icons/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+                        				</div>
+                        				<div class=" text-grey-medium text-sm font-semibold leading-5">Subscription</div>
+                        			</a>
+                        			<a class="w-full mt-4 justify-start items-center gap-2 inline-flex " href="javascript" onclick="location.reload();">
+                        				<div class="relative">
+                        					<img class="w-5 h-5 " src="/assets/settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg">
+                        				</div>
+                        				<div class=" text-grey-medium text-sm font-semibold leading-5">Settings</div>
+                        			</a>
+                        			<form class="button_to" method="post" onsubmit="return false">
+                                    	<input type="hidden" name="_method" value="delete" autocomplete="off">
+                                    	<button data-turbo="false"  class="rounded-b-lg w-full h-11  py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex logout" type="submit">
+                                    		<div class="w-5 h-5 relative">
+                                    			<img src="//assets/logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg">
+                                    		</div>
+                                    		<div class="text-white text-sm font-semibold leading-normal">Logout</div>
+                                    	</button>
+                                    	<input type="hidden" name="authenticity_token" value="sQJXhrDTp_Ev7C193Oa-PTVmRkWdvSycvObq6DIY4fCrI-9C84LjijJ0wuJ-DP03BnvYa8r9ajga1oD4vqNtlQ" autocomplete="off">
+                                    </form>
+                        		</div>
+                        	</div>
+                        </li>
+					    
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="javascript:;" onclick="location.reload()" class="w-full flex justify-start items-center gap-2 ">
+								<img class="w-5 h-5 " src="./Anime_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+								<span class="text-start text-grey-medium text-xs leading-5 font-semibold">Explore</span>
+							</a>
+						</li>
+						<!--<li class="relative w-full py-4 border-b border-white border-opacity-10">-->
+						<!--	<a data-action="click-&gt;main#closeMobileMenuAndOpenRegistrationModal" class="justify-start items-center gap-2 flex mx-auto   cursor-pointer">-->
+						<!--		<img class="w-5 h-5 " src="./Anime_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg">-->
+						<!--		<div class="text-start text-grey-medium text-xs leading-5 font-semibold">Chat-->
+						<!--		</div>-->
+						<!--	</a>-->
+						<!--</li>-->
+						<!--<li class="relative w-full py-4 border-b border-white border-opacity-10">-->
+						<!--	<a data-action="click-&gt;main#closeMobileMenuAndOpenRegistrationModalOrRedirectToGallery" class="justify-start items-center gap-2 flex mx-auto   cursor-pointer">-->
+						<!--		<img class="w-5 h-5 " src="./Anime_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg">-->
+						<!--		<div class="text-start text-grey-medium text-xs leading-5 font-semibold">Gallery-->
+						<!--		</div>-->
+						<!--	</a>-->
+						<!--</li>-->
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Image.html" class="relative
+          justify-start items-center
+          gap-2 flex mx-auto ">
+								<img class="w-5 h-5 " src="./Anime_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+								<div class="text-start text-grey-medium text-xs font-medium leading-none">
+									Generate Image
+								</div>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./characters.html" class="relative justify-start items-center gap-2 flex mx-auto ">
+								<img class="w-5 h-5 " src="./Anime_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+								<div class="text-start  text-grey-medium text-xs font-medium leading-none">Create Character
+								</div>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./charactersIndex.html" class="justify-start items-center gap-2 flex mx-auto ">
+								<img class="w-5 h-5 " src="./Anime_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+								<div class="text-start text-grey-medium text-xs font-medium leading-none">
+									My AI
+								</div>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Subscriptions.html" class=" justify-start items-center gap-2 flex mx-auto cursor-pointer">
+								<img class="w-5 h-5" src="./Anime_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+								<div class="text-start text-pink-default text-xs font-medium leading-none">
+									Become Premium
+								</div>
+							</a>
+						</li>
+					</ul>
+					<!--<div class="p-5 bg-[#1A1A1A] flex-col justify-end items-start gap-[17px] inline-flex">-->
+					<!--	<div class="justify-start items-start gap-5 inline-flex">-->
+					<!--		<div class="px-2.5 py-1 rounded-[5px] border border-neutral-400 justify-center items-center gap-2.5 flex">-->
+					<!--			<div class="w-[70px] text-center text-neutral-200 text-xs font-semibold leading-tight">-->
+					<!--				<a href="https://discord.gg/candyai" class="" target="_blank"> Discord</a>-->
+					<!--			</div>-->
+					<!--		</div>-->
+					<!--		<div class="px-2.5 py-1 rounded-[5px] border border-neutral-400 justify-center items-center gap-2.5 flex">-->
+					<!--			<div class="w-[70px] text-center text-neutral-200 text-xs font-semibold leading-tight">-->
+					<!--				<a data-action="click-&gt;main#closeMobileMenuAndOpenRegistrationModal" class=" whitespace-nowrap">-->
+					<!--					Contact Us-->
+					<!--				</a>-->
+					<!--			</div>-->
+					<!--		</div>-->
+					<!--	</div>-->
+					<!--	<div class="justify-start items-start gap-5 inline-flex">-->
+					<!--		<div class="px-2.5 py-1 rounded-[5px] border border-neutral-400 justify-center items-center gap-2.5 flex ">-->
+					<!--			<a target="_blank" class="" href="https://webforms.pipedrive.com/f/bYSTErXD8pcDoco3iakbUUKFRtWtAjNDJphn0GpYA3B88R2NYvCzVMM2wsNCjtVMkP">-->
+					<!--				<div class="w-[70px] text-center text-neutral-200 text-xs font-semibold leading-tight">Affiliate</div>-->
+					<!--			</a>-->
+					<!--		</div>-->
+					<!--	</div>-->
+					<!--	<div class="justify-start items-center gap-2 inline-flex">-->
+					<!--		<a class="text-neutral-300 text-[8px] font-medium leading-[14px] " href="/privacy-policy">Privacy Policy</a>-->
+					<!--		<div class="w-1 h-1 bg-zinc-300 rounded-full"></div>-->
+					<!--		<a class="text-neutral-300 text-[8px] font-medium leading-[14px] " href="/legal-information">Terms of Service</a>-->
+					<!--	</div>-->
+					<!--</div>-->
+				</div>
+			</nav>
+		</div>
+
+
+		<style>
+			.no-scroll {
+      overflow: hidden;
+      /* Optional: to ensure the layout doesn't shift due to the scrollbar disappearing */
+      padding-right: calc(env(safe-area-inset-right, 0px) + (100vw - 100%));
+  }
+</style>
+
+		<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">
+			<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger">
+				<span class="sr-only">Open sidebar</span>
+				<svg class="nav-hamburger h-8 w-8 mr-1 text-white" data-action="click-&gt;main#handleMenuClick" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+				</svg>
+			</button>
+			<a href="./Girls.html">
+				<img src="./Guys_files/candyai-navbar-d321c31d58617371f7caf9e34a4e3f9624dce580afcceb6fecdf48c78beafd83.svg" class="h-[30px] md:h-[30px] w-[115px]">
+			</a>
+			<!-- Separator -->
+			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
+			<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
+				<script type="text/template" id="head-template">
+					<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Girls.html" accept-charset="UTF-8" data-remote="true" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off"><input type="hidden" name="authenticity_token" value="cXB7VrtfJ_0bQDgOVi1MQxdcJchuXDvwvtqB1c28Vd0_Rv8mKsX9VeywPT5Y2tBG2zHhYbRTXULtGO-3PGiTxQ" autocomplete="off">
+       <input type="hidden" name="gender_interest" id="gender_interest" value="female" autocomplete="off">
+       <input type="hidden" name="query_string" id="query_string" value="" autocomplete="off">
+       <button data-id="27" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+         <div class="flex items-center">
+           <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+         <path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+               </svg>
+           </div>
+               <div class="text-white text-[13px] font-semibold leading-normal">
+                Girls
+               </div>
+             </div>
+           </button>
+ </form> 
+ 
+       <form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Anime.html" accept-charset="UTF-8" data-remote="true" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off"><input type="hidden" name="authenticity_token" value="cXB7VrtfJ_0bQDgOVi1MQxdcJchuXDvwvtqB1c28Vd0_Rv8mKsX9VeywPT5Y2tBG2zHhYbRTXULtGO-3PGiTxQ" autocomplete="off">
+       <input type="hidden" name="gender_interest" id="gender_interest" value="female" autocomplete="off">
+       <input type="hidden" name="query_string" id="query_string" value="" autocomplete="off">
+       <button data-id="36" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+         <div class="flex items-center">
+           <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+         <path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+               </svg>
+           </div>
+               <div class="text-white text-[13px] font-semibold leading-normal">
+                 Anime
+               </div>
+             </div>
+           </button>
+ </form> 
+ 
+       <form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Guys.html" accept-charset="UTF-8" data-remote="true" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off"><input type="hidden" name="authenticity_token" value="cXB7VrtfJ_0bQDgOVi1MQxdcJchuXDvwvtqB1c28Vd0_Rv8mKsX9VeywPT5Y2tBG2zHhYbRTXULtGO-3PGiTxQ" autocomplete="off">
+       <input type="hidden" name="gender_interest" id="gender_interest" value="female" autocomplete="off">
+       <input type="hidden" name="query_string" id="query_string" value="" autocomplete="off">
+       <button data-id="35" data-url="./Guys.html" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+         <div class="flex items-center">
+           <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+         <path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+               </svg>
+           </div>
+               <div class="text-white text-[13px] font-semibold leading-normal">
+                 Guys
+               </div>
+             </div>
+           </button>
+ </form> 
+       </script>
+
+
+
+
+			</div>
+
+			<div id="user-login" class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">
+				<form class="relative flex flex-1" action="/#" method="GET"></form>
+				
+				<!--fy-->
+                   <div class="headerfy"></div>
+                    <!--fy-->
+				
+				<div class="gap-x-2 flex pc-rg-login">
+					<div class="flex items-center gap-x-4 lg:gap-x-6 ">
+						<div data-redirect-url="/" data-action="click-&gt;main#openRegistrationModal" data-main-target="registerButton" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+							<div class="text-white text-sm font-semibold leading-tight">Register</div>
+						</div>
+					</div>
+					<div class="flex items-center gap-x-4 lg:gap-x-6">
+						<div data-action="click-&gt;main#openSignInModal" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+							<div class="text-sm font-semibold leading-tight">Login</div>
+						</div>
+					</div>
+				</div>
+				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+				</div>
+			</div>
+
+			<div id="user-setting" style="display: none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main">
+				<form class="relative flex flex-1" action="#" method="GET"></form>
+				
+				<!--fy-->
+                  <div class="headerfy"></div>
+                    <!--fy-->
+				<div class="flex items-center gap-x-4 lg:gap-x-6 nav-zk">
+					<a href="./Subscriptions.html" class="justify-center items-center primary-gradient flex max-w-full gap-2 px-2 py-1.5 rounded-xl">
+						<img src="/assets/olympic-sale/torch-62c1f4e586ca3ad6b1eadcb4457ba71edbe67652e8f775909a81c208c256996c.svg" class="object-cover object-center w-4 overflow-hidden shrink-0">
+						<div class="text-white text-xs font-semibold self-stretch">
+							Subscribe 75% OFF
+						</div>
+					</a>
+				</div>
+				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+					<!-- Separator -->
+					<div class="lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true"></div>
+					<!-- Profile dropdown -->
+					<div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-fit relative ">
+						<button type="button" class="-m-1.5 flex items-center p-1.5 " id="user-menu-button" @click="open = !open" aria-expanded="false" :aria-expanded="open.toString()">
+							<span class="sr-only">Open user menu</span>
+							<img src="/assets/user-icons/woman-875180869a83d543d3ac906ca91d24634cc13f486d5c2565ed2908927a1fc10e.svg" class="h-8 w-8 rounded-full">
+							<span class="hidden lg:flex lg:items-center">
+								<span class="ml-4 text-sm font-semibold leading-6 text-white" aria-hidden="true">My Profile</span>
+								<svg class="ml-2 h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+									<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>
+								</svg>
+							</span>
+						</button>
+						<div x-show="open" @keydown.arrow-up.prevent="" @keydown.arrow-down.prevent="" @keydown.tab="open = false" @keydown.enter.prevent="open = false" class="absolute right-0 z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none" data-controller="users" style="display: none;">
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./Subscriptions.html">
+								<div class="w-5 h-5 relative">
+									<img src="//assets/sidebar-icons/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Subscription</div>
+							</a>
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="javascript" onclick="location.reload();">
+								<div class="w-5 h-5 relative">
+									<img src="//assets/settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Settings</div>
+							</a>
+							<form class="button_to" method="post" onsubmit="return false">
+								<input type="hidden" name="_method" value="delete" autocomplete="off">
+								<button data-turbo="false" id="logout" class="rounded-b-lg w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" type="submit">
+									<div class="w-5 h-5 relative">
+										<img src="//assets/logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg">
+									</div>
+									<div class="text-white text-sm font-semibold leading-normal">Logout</div>
+								</button>
+								<input type="hidden" name="authenticity_token" value="sQJXhrDTp_Ev7C193Oa-PTVmRkWdvSycvObq6DIY4fCrI-9C84LjijJ0wuJ-DP03BnvYa8r9ajga1oD4vqNtlQ" autocomplete="off">
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<turbo-frame id="registration-modal">
+			<div data-main-target="registrationModal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100" x-cloak="">
+				<div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0">
+					<button type="button" class="absolute w-5 h-5 right-3 top-3 z-10" data-action="click-&gt;main#closeRegistrationModal">
+						<img class="w-auto" src="./setting_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+					</button>
+					<div class="hidden lg:flex h-full relative">
+						<div id="user-signup-image">
+							<div class="flex justify-center absolute bottom-0 w-full mb-8">
+								<img class="" src="./setting_files/candy.ai-65df24cd0fbc2899bc9e90b5e1af77e05e951ea0d6c3aec1b76f811040e368f6.svg">
+							</div>
+							<img class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top" src="./setting_files/image2-22de8af2c140eb94f353877688d55dc44a7d62accc8f9667213888e17a511d85.webp">
+						</div>
+					</div>
+					<div class="flex flex-col relative bg-black-dark rounded-tr-[10px] rounded-br-[10px] rounded-tl-[10px] rounded-bl-[10px] lg:rounded-tl-0 lg:rounded-bl-0 w-[335px] lg:w-[407px]">
+						<div id="user-signup-container" class="flex-1 mx-6 lg:mx-10 mt-6 lg:mt-10">
+							<div class="relative">
+								<form data-turbo="true" class="simple_form new_user" id="new_user_registration" novalidate="novalidate" action="/users" accept-charset="UTF-8" method="post">
+									<input type="hidden" name="authenticity_token" value="158vMftsdYzcj0khczvrfRCg655at4I96pe9jvlZ-8W_T9HibO8FfR1OIv-VeLbtME7l7nKlwuw_DdCtd_42BQ" autocomplete="off">
+									<input type="hidden" name="profile_id" id="profile_id_registration" data-main-target="characterIDForGenerateImage" autocomplete="off">
+									<input type="hidden" name="prompt" id="prompt_registration" data-main-target="promptForGenerateImage" autocomplete="off">
+									<div class="form-inputs mb-3">
+										<div class="text-[24px] text-white leading-7 lg:leading-8 font-bold mb-3 lg:mb-3">
+											Create Account
+										</div>
+										<div class="w-full flex-col justify-start items-start gap-1.5 inline-flex">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img alt="Email icon" src="./setting_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+												</div>
+												<div class="input email required user_email w-full">
+													<input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_email_registration" required="required" aria-required="true" placeholder="E-mail" type="email" name="user[email]">
+												</div>
+											</div>
+										</div>
+										<div class="w-full flex-col justify-start items-start inline-flex mt-4">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img alt="Lock icon" src="./setting_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+												</div>
+												<div class="w-5 h-5 absolute top-[13px] right-[10px]">
+													<img alt="Visibility icon" src="./setting_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+												</div>
+												<div class="input password required user_password field_with_hint w-full">
+													<input class="password required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_password_registration" required="required" aria-required="true" placeholder="Password" type="password" name="user[password]">
+													<span class="hint">
+														<span style="color: gray; display: flex; font-size: 14px; margin-top: 5px;">Minimum 6 characters</span>
+													</span>
+												</div>
+											</div>
+										</div>
+									</div>
+									<turbo-frame id="recaptchas">
+										<script src="./setting_files/api.js"></script>
+										<script>
+											// Define function so that we can call it again later if we need to reset it
+          // This executes reCAPTCHA and then calls our callback.
+          function executeRecaptchaForSignup() {
+            grecaptcha.ready(function() {
+              grecaptcha.execute('6LciBZ8pAAAAAE9nywycJp39d22puoEkqsLPoAdh', {action: 'signup'}).then(function(token) {
+                setInputWithRecaptchaResponseTokenForSignup('g-recaptcha-response-data-signup', token)
+              });
+            });
+          };
+          // Invoke immediately
+          executeRecaptchaForSignup()
+
+          // Async variant so you can await this function from another async function (no need for
+          // an explicit callback function then!)
+          // Returns a Promise that resolves with the response token.
+          async function executeRecaptchaForSignupAsync() {
+            return new Promise((resolve, reject) => {
+             grecaptcha.ready(async function() {
+                resolve(await grecaptcha.execute('6LciBZ8pAAAAAE9nywycJp39d22puoEkqsLPoAdh', {action: 'signup'}))
+              });
+            })
+          };
+
+                  var setInputWithRecaptchaResponseTokenForSignup = function(id, token) {
+          var element = document.getElementById(id);
+          if (element !== null) element.value = token;
+        }
+
+        </script>
+										<input type="hidden" name="g-recaptcha-response-data[signup]" id="g-recaptcha-response-data-signup" data-sitekey="6LciBZ8pAAAAAE9nywycJp39d22puoEkqsLPoAdh" class="g-recaptcha g-recaptcha-response " style="" value="03AFcWeA4UXeDThIAH2289ubjz9bBt7DA8aTHe2VqHVSO1gKrh72zJflpZeucEwBoMmi9l1C6w6-OjWhzmK3uyzk4B0pAxM6QnCaKUoGpggEOY_9TTDJO3coYlcT3H1ZVwEESI5jUKYnXV-Pt1lvNcKCfwO95fHateIoeNy0rqjlrAucMRD1j0Z0KvBKXGMTfF7dVicjsgzo5lF0OgYnZrmbll8CZ6E0Zq0Y4IR8baxFjpZHW2wPHGIVc_FfrEI7cueoRww9t7Pib1adWjeIce_JoZF370mhMG0xACh-hjaXcEoviEqaWi1bMOKWXsVOerplNiseaN9LUgk0NaoCIz_ibVAgu3IVDNM4uWv68ej68wi64CwfarSYMQOiQdpfvLSBG4LAbuJ0YoWvqNcMELiy6LHiPIDLCbrwoYcVFbGO4kZqSgljj3xpkkypH6E2Q7YJwk9s8r1n6EdDi5vdyRWVuB-tLPVkaMqaq2vCwJobN2ez4OVNe9RWEBt5yplN605kKoX0NpEfY5e_zffwzpdoeUCMaDrqHWFDP3hPR2LXi6J23HhftTMh_45M-NAYPi5tra5JI7P5IVR2OVutAOrezGFkZqBrevPF6drv2NIjGb601XXXWgPUh9zgaQU3EMc06yu0JeZgieqr10Eph2T2FHtugXzm-25IqYjLiSedysdF1QBEbfsYQvYnuHNMG8nE4-Dt70OfGwJyHGjM7uwX_lksa70vZZDkmwMFfP6OQX4iIvMVTU1tHOZjcvN8C4Zig0HLumxaBYyRUXruMv76CQq_n0filqguL2zJh0M7_Zf8q5IQUZUVIJBaaXzRgypN6-xPGh8TSI7TY0Qbd8Zz8DK8Oudsqgcu-uFo8WLs83F8Fg4HPSQjXrVuVTtU6mz_yKw86GLElp4O7XLfY6IHYVU0aOJobUKlQBlXqk3HsQPHhZZjhcqbeSSKSLzWUCsDgwNrdSp2AeTtBwkCFy_m1w5CyBIT18Ka3JYto7mdkxsjtZzvugm70BNgWbnoWrSNp2EqmNJbk4bqOVMpQifmbRX8kPG8J3iUTD3X0rrDxSjem8PYWsAwMKOxApT9FlF5LKkm52VciEqjBqTxLcN9tW1OSK9eSrarVGSVmb4ohetjgBESiNe1PKkVVDj4yciuRbilJ5bRErA4HbtNst0h3HFh5zIQlW0UYMZulWwxlyUGyycfVNNyV4wVKsMCF8TppT30leadcuwxlHHJQ0JyHTrzkRpb3yK3LDul0vB2LN7ZgVZtLAw6p8yBmFZSQI6jgk4Lo8kZe5F8Erpse8tF1Av9DhKD6oCnomBOzKU4dMHppbw57_OQGQ5UVZG0MpO66kJwdANiZv5xa5h1NNlfMFKFMXTk6gnKbCdf2ds050bPth1AIm2OoiqUfkSD0dqCDgG9TgRvzEi0bw1hd8YoxUvnavkUzXOlB6jdGbB9veSciUDaqrphEU624zOgcMeap3wMJ5nGFN_eriRz-kP78T9N9hLZTqCR9TmtvoT237aMFmULKrqrtC_R8S-RTTKPQMcHHSyEGxxkq_RVlgaJujAlgsU-0UvwxLGpIFPi12gmyMhkxIwoPAJxJG7BZNiC3GrGzIT0Ip-vp6Sv718ZexZcKhZQ30oB7uOWe1eRxGn87MUBbvutaZqEZfTfeqt8ImzUh0DKrKEsf9y7hR1N9Mg3WyJ8e84zYVcH-GYdARiCNU3586Cl23CkMVZvv8O2O4fYI3_qHTjc53MdQGBHn15lLdfzEiu7dnJ0pUVyriYeX7mg-JELiWCTLtEW-7qT_uniqhBd_PpKxw2J0JVqPOGmfvUrhDpPtBrEX679P0maaoLd2NKhwKyqfoy5wD759AFE62yIsDiJtDJvpvHZqgqmCvLj6DVQR6s10HZ8L_PaFvJGl50a2GOwni0q9m-BvAiO9YnqDO6NZWsXhnYCMXGIZvfka1TAJnPLYkyCWmO9clRLJ0sW9nZ-D9LaaSXJMGF7s9Q16CyyLahppRv2UuS-sO5FYZ40UnMi8m26pjFRrhA5UE9f9hw7r8x06MWpDFXi-sb4oJIXbqSiJlOcKpQ-dT7BuZHal8zZmdMQOwWZsyEmz1ccGfi23Elh2458C_9MfWqWPEyKsK0Hrso13WpRHRdhjlJHSzQkwPAXZgIvrhHp_zzAu0-YYEA-2tjUzfIFHbHWVeTYhPXQOY6GiWoov2xjuhag">
+										<div style="width: 304px; height: 78px;">
+											<div>
+												<iframe title="reCAPTCHA" width="304" height="78" role="presentation" name="a-9tqli9ygbeh6" frameborder="0" scrolling="no" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation" src="./setting_files/anchor.html"></iframe>
+											</div>
+											<textarea id="g-recaptcha-response" name="g-recaptcha-response" class="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea>
+										</div>
+										<iframe style="display: none;" src="./setting_files/saved_resource(1).html"></iframe>
+										</input>
+
+									</turbo-frame>
+									<div id="signup-btn">
+										<button name="button" type="submit" class="flex w-full mt-4 px-4 py-3 bg-[#E75275] rounded-[10px] justify-center items-center text-white text-sm font-semibold" id="signup-btn" data-controller="loading-button-state" data-loading-button-state-target="submit" data-action="loading-button-state#handleClick">
+											Create Account
+										</button>
+									</div>
+								</form>
+								<div class="flex flex-row items-center pt-6 pb-5">
+									<div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.00) 100%);"></div>
+									<div class="flex-0 text-white text-sm font-medium mx-4">or continue with</div>
+									<div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.30) 100%);"></div>
+								</div>
+								<div id="authentication_sign_up_container">
+									<form data-turbo="false" action="./setting.html" accept-charset="UTF-8" method="post">
+										<input type="hidden" name="authenticity_token" value="skeRv5xqrkihktm-G09zZcL6JJ-CSIm7J5h-LecN4oIvxIlT0-AntQ56LuDVolIInKvvDLRciOTVdp2-tFAKBA" autocomplete="off">
+										<input type="hidden" name="authenticity_token" id="authenticity_token" value="qf8nKAIzpoOq0TB3OZIAOKuCR-j6BHhGr9J0DqVziRINZ3XzDD5it12On6MPtHZoNta3yhWcrp4bnixM1fX5UA" autocomplete="off">
+										<button name="button" type="submit" formaction="/users/auth/google_oauth2" class="inline-flex items-center justify-center w-full rounded-[10px] px-4 py-2.5 mb-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">
+											<img alt="Google" class="h-6 w-6 mr-3" src="./setting_files/google-auth-a8a364c5c399770d07ce74e6110a120970b1953557a47719692d85ea9334efb6.png">
+											<div class="font-normal text-[#344054]">
+												Google
+											</div>
+										</button>
+										<div class="flex flex-wrap gap-2.5 ">
+											<div class="flex-1">
+												<button name="button" type="submit" formaction="/users/auth/discord" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-discord-indigo text-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">
+													<img alt="discord" class="h-6 w-6 mr-3" src="./setting_files/discord-e159d04d15be58e9fe9767c08b3338ee2735feb84f54b7301303c9c49ed543a2.svg">
+													<div class="text-white font-normal ">
+														Discord
+													</div>
+												</button>
+											</div>
+											<div class="flex-1">
+												<button name="button" type="submit" formaction="/users/auth/twitter" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">
+													<img alt="X" class="h-6 w-6 mr-3" src="./setting_files/X-26904e26c6e97e747b58528737ef2a47ec6a26e01283df190498f526760cf325.svg">
+													<div class=" font-normal text-[#344054]">
+														X
+													</div>
+												</button>
+											</div>
+										</div>
+										<!-- Closing the flex container -->
+									</form>
+								</div>
+								<div class="text-xxs font-medium text-grey-default text-center mt-5 lg:mt-5 mb-8 lg:mb-5">By signing up, you agree
+									to <a class="underline" href="/legal-information">Terms of Service</a>
+								</div>
+							</div>
+
+						</div>
+						<div class="flex-0 px-8" style="width: 100%; height: 0px; opacity: 0.20; border: 0.50px white solid"></div>
+						<div class="flex flex-0 mt-5 font-medium text-sm justify-center items-center text-white px-8 mb-5">
+							Already have an account yet? &nbsp;
+							<div data-action="click-&gt;main#closeRegistrationModal click-&gt;main#openSignInModal" class="text-[#E75275] text-sm font-semibold leading-normal cursor-pointer">
+								Sign in
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</turbo-frame>
+		<turbo-frame id="sign-in-modal">
+			<div data-main-target="signInModal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100" x-cloak="">
+				<div class="flex relative bg-black-dark rounded-[10px]">
+					<div class="hidden lg:flex h-full relative">
+						<div id="user-login-image">
+							<div class="flex justify-center absolute bottom-0 w-full mb-8">
+								<img class="" src="./setting_files/candy.ai-65df24cd0fbc2899bc9e90b5e1af77e05e951ea0d6c3aec1b76f811040e368f6.svg">
+							</div>
+							<img class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top" src="./setting_files/image4-5394425cc1b0320d5651ccdcc7f084e082e1bf776acf7f0e0a854695ad8b94c0.webp">
+						</div>
+					</div>
+					<div class="flex flex-col relative bg-black-dark rounded-tr-[10px] rounded-br-[10px] rounded-tl-[10px] rounded-bl-[10px] lg:rounded-tl-0 lg:rounded-bl-0 w-[335px] lg:w-[407px]">
+						<button type="button" class="absolute w-5 h-5 right-3 top-3" data-action="click-&gt;main#closeSignInModal">
+							<img class="w-auto" src="./setting_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+						</button>
+						<div class="flex-1 px-6 lg:px-10 pt-0 lg:pt-5">
+							<div id="user-login-container">
+								<form data-turbo="true" class="simple_form mt-5" id="new_user" novalidate="novalidate" action="/users/sign_in" accept-charset="UTF-8" method="post">
+									<input type="hidden" name="authenticity_token" value="L_5B05XyX3VmFLlZjk2ppV_avNAr-4ebZfw7bKIjqaKdMF89paRhdkSnMssqm-efCFNAYIcjwdB0HU4O2gekaQ" autocomplete="off">
+									<input type="hidden" name="profile_id" id="profile_id" data-main-target="characterIDForGenerateImage" autocomplete="off">
+									<input type="hidden" name="prompt" id="prompt" data-main-target="promptForGenerateImage" autocomplete="off">
+									<div class="form-inputs mb-3">
+										<div class="text-[24px] text-white leading-7 lg:leading-8 font-bold  mb-4 mb-3">
+											Sign in
+										</div>
+										<div class="w-full flex-col justify-start items-start gap-1.5 inline-flex">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img src="./setting_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+												</div>
+												<div class="input email required user_email w-full">
+													<input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="E-mail" type="email" value="" name="user[email]" id="user_email">
+												</div>
+											</div>
+										</div>
+										<div class="w-full flex-col justify-start items-start gap-1.5 inline-flex mt-5">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img src="./setting_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+												</div>
+												<div class="w-5 h-5 absolute top-[13px] right-[10px]">
+													<img src="./setting_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+												</div>
+												<div class="input password required user_password w-full">
+													<input class="password required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="Password" type="password" name="user[password]" id="user_password">
+												</div>
+											</div>
+										</div>
+									</div>
+									<!--<a target="_blank" class="text-white mb-4 font-medium text-sm underline" href="/users/password/new">Forgot password?</a>-->
+									<br>
+									<button name="button" type="submit" class="flex w-full mt-6 px-4 py-3 bg-[#E75275] rounded-[10px] justify-center items-center text-white text-sm font-semibold" id="signin-btn" data-controller="loading-button-state" data-loading-button-state-target="submit" data-action="loading-button-state#handleClick">
+										Sign in
+									</button>
+								</form>
+								<!--<div id="authentication_sign_in_container" class="mb-8">-->
+								<!--  <div class="flex flex-row items-center mt-8 mb-5">-->
+								<!--    <div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.00) 100%);"></div>-->
+								<!--    <div class="flex-0 text-white text-sm font-medium mx-4">or sign in with</div>-->
+								<!--    <div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.30) 100%);"></div>-->
+								<!--  </div>-->
+								<!--    <form data-turbo="false" action="/settings#" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="ttAf6I2AOjFCqdkUS6Ns_E_pIcg5ySx2cBjmQcpTHNUrUwcEwgqzzO1BLkqFTk2REbjqWw_dLSmC9gXSmQ70Uw" autocomplete="off">-->
+								<!--      <input type="hidden" name="authenticity_token" id="authenticity_token" value="-_pxCD3iUPG_rj6vitlQ6MKo3d9-tflVrQe_VW5RA6NfYiPTM--UxUjxkXu8_ya4X_wt_ZEtL40ZS-cXHtdz4Q" autocomplete="off">-->
+								<!--          <button name="button" type="submit" formaction="/users/auth/google_oauth2" class="inline-flex items-center justify-center w-full rounded-[10px] px-4 py-2.5 mb-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--            <img alt="Google" class="h-6 w-6 mr-3" src="./setting_files/google-auth-a8a364c5c399770d07ce74e6110a120970b1953557a47719692d85ea9334efb6.png">-->
+								<!--            <div class="font-normal text-[#344054]">-->
+								<!--              Google-->
+								<!--            </div>-->
+								<!--</button>            <div class="flex flex-wrap gap-2.5">-->
+								<!--          <div class="flex-1">-->
+								<!--            <button name="button" type="submit" formaction="/users/auth/discord" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-discord-indigo text-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--              <img alt="discord" class="h-6 w-6 mr-3" src="./setting_files/discord-e159d04d15be58e9fe9767c08b3338ee2735feb84f54b7301303c9c49ed543a2.svg">-->
+								<!--              <div class="text-white font-normal ">-->
+								<!--                Discord-->
+								<!--              </div>-->
+								<!--</button>          </div>-->
+								<!--          <div class="flex-1">-->
+								<!--            <button name="button" type="submit" formaction="/users/auth/twitter" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--              <img alt="X" class="h-6 w-6 mr-3" src="./setting_files/X-26904e26c6e97e747b58528737ef2a47ec6a26e01283df190498f526760cf325.svg">-->
+								<!--              <div class=" font-normal text-[#344054]">-->
+								<!--                X-->
+								<!--              </div>-->
+								<!--</button>          </div>-->
+								<!--            </div>-->
+								<!-- Closing the flex container -->
+								<!--</form></div>-->
+
+							</div>
+						</div>
+						<div style="width: 100%; height: 0px; opacity: 0.20; border: 0.50px white solid"></div>
+						<div class="flex mt-5 font-medium text-sm justify-center items-center text-white px-6 lg:px-10 pb-5">
+							Don't have an account yet? &nbsp;
+							<div data-action="click-&gt;main#closeSignInModal click-&gt;main#openRegistrationModal" class="text-[#E75275] text-sm font-semibold leading-normal cursor-pointer">
+								Sign up
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</turbo-frame>
+		<div class="main-content-container" data-main-target="contentContainer">
+			<turbo-cable-stream-source channel="Turbo::StreamsChannel" signed-stream-name="IloybGtPaTh2WTJoaGRDMWphR0YwTDFWelpYSXZPVEl4TnpBeE9ROmNoYXJhY3Rlcl9jcmVhdGVkX3RvYXN0Ig==--6c59009c0132aee8ad5a1b5e6f45a8a331f494cd0767d9a91cbe31eaad988ebf"></turbo-cable-stream-source>
+			<div id="character-created-toast"></div>
+			<div id="coingate-confirmed-topped-up"></div>
+			<div id="coingate-purchase-invalid"></div>
+			<turbo-cable-stream-source channel="Turbo::StreamsChannel" signed-stream-name="IloybGtPaTh2WTJoaGRDMWphR0YwTDFWelpYSXZPVEl4TnpBeE9ROnBob25lX2NhbGxfZmVlZGJhY2si--5addc517570033e7b807021049e0222c9ead6d5fb3230e3975846b23953b841f"></turbo-cable-stream-source>
+			<div id="phone-call-feedback"></div>
+
+
+
+
+			<div data-controller="delete-account" class="overflow-x-auto ml-0 lg:ml-[100px] mt-16 lg:h-auto h-[calc(100vh-8rem)]">
+				<div class="text-white text-[32px] font-bold leading-[42px] text-center my-10">Profile Settings</div>
+
+
+
+
+
+
+				<!-- Tab navigations -->
+				<ul data-generate-image-target="additionalSuggestedFemalePromptTabs" class="tabs grid grid-cols-3 remove-border-3rd md:flex md:flex-wrap md:justify-between mb-4 bg-black-medium rounded-xl p-[2px] gap-y-2.5 md:gap-0 
+				w-[350px] sm:w-[450px] md:w-[580px] lg:w-[846px] relative bg-zinc-900 rounded-[10px] border border-neutral-700 mx-auto">
+					<li class="items-center text-center text-xs px-2 py-1 my-0.5 text-grey-default cursor-pointer border-grey-light border-opacity-40 md:flex-1 active bg-[#616161] text-white font-semibold rounded-lg" data-tab-target="1" data-action="click-&gt;generate-image#changeTab" data-generate-image-target="tab" onclick="window.location.href='./setting.html'">
+						<a href="javascript:;">
+							Profile Settings
+						</a>
+					</li>
+					<li class="items-center text-center text-xs px-2 py-1 my-0.5 text-grey-default cursor-pointer border-grey-light border-opacity-40 md:flex-1 " data-tab-target="2" data-action="click-&gt;generate-image#changeTab" data-generate-image-target="tab" onclick="window.location.href='./Inviter.html'">
+						<a href="javascript:;">
+							Inviter
+						</a>
+					</li>
+					<li class="items-center text-center text-xs px-2 py-1 my-0.5 text-grey-default cursor-pointer border-grey-light border-opacity-40 md:flex-1 " data-tab-target="3" data-action="click-&gt;generate-image#changeTab" data-generate-image-target="tab" onclick="window.location.href='./Financial.html'">
+						<a href="javascript:;">
+							Financial details
+						</a>
+					</li>
+
+
+				</ul>
+
+
+
+
+
+
+
+				<div class="w-[350px] sm:w-[450px] md:w-[580px] lg:w-[846px] relative bg-zinc-900 rounded-[10px] border border-neutral-700 mx-auto">
+
+
+					<div class="justify-start items-center w-full lg:inline-flex p-6 max-w-full">
+						<div class="w-[30%] max-w-[30%] h-[100px] relative mx-auto">
+							<img src="./setting_files/1730827773154.jpg" class="w-[100px] h-[100px] left-0 top-0 absolute bg-gradient-to-b from-black to-black rounded-full" id="useravatar">
+						</div>
+						<div class="justify-between lg:justify-start items-start lg:gap-[72px] lg:max-w-[70%] lg:w-[70%] flex mt-10 lg:mt-0">
+							<div class="flex-col justify-start items-start gap-4 inline-flex w-[calc(50%-18px)] max-w-[calc(50%-18px)] lg:w-[calc(50%-36px)] lg:max-w-[calc(50%-36px)]">
+								<div class="flex-col justify-start items-start gap-1 flex w-full">
+									<div class="justify-start items-start gap-1.5 inline-flex">
+										<div class="text-neutral-400 text-sm font-medium leading-tight">Nickname</div>
+										<div class="w-5 h-5 p-1 rounded-[50px] border border-white border-opacity-20 justify-center items-center flex">
+											<div class="grow shrink basis-0 self-stretch p-[1.80px] justify-center items-center inline-flex">
+												<div class="w-[10px] h-[10px] relative toggle-popup cursor-pointer" data-modal="nickname-modal">
+													<img src="./setting_files/edit-89ac1fa2963a2bf01367dc9cd3567671414b5b9c3d582731ef96233dfc181772.svg">
+												</div>
+											</div>
+										</div>
+									</div>
+									<div id="nickName" class="text-white text-sm font-semibold leading-normal w-full max-w-full truncate notranslate"></div>
+								</div>
+								<div class="flex-col justify-start items-start gap-1 flex w-full max-w-full">
+									<div class="justify-start items-start gap-1.5 inline-flex">
+										<div class="text-neutral-400 text-sm font-medium leading-tight">E-mail</div>
+										<div class="w-5 h-5 p-1 rounded-[50px] border border-white border-opacity-20 justify-center items-center flex">
+											<div class="grow shrink basis-0 self-stretch p-[1.80px] justify-center items-center inline-flex">
+												<div class="w-[10px] h-[10px] relative toggle-popup cursor-pointer" data-modal="email-modal">
+													<img src="./setting_files/edit-89ac1fa2963a2bf01367dc9cd3567671414b5b9c3d582731ef96233dfc181772.svg">
+												</div>
+											</div>
+										</div>
+									</div>
+									<div id="E-mail" class="text-white text-sm font-semibold leading-normal max-w-full w-full truncate notranslate"></div>
+								</div>
+								<div class="flex-col justify-start items-start gap-1 flex max-w-full w-full">
+									<div class="justify-start items-start gap-1.5 inline-flex">
+										<div class="text-neutral-400 text-sm font-medium leading-tight">Phone Number</div>
+										<div class="w-5 h-5 p-1 rounded-[50px] border border-white border-opacity-20 justify-center items-center flex">
+											<div class="grow shrink basis-0 self-stretch p-[1.80px] justify-center items-center inline-flex">
+												<div class="w-[10px] h-[10px] relative toggle-popup cursor-pointer" data-modal="phone-number-modal">
+													<img src="./setting_files/edit-89ac1fa2963a2bf01367dc9cd3567671414b5b9c3d582731ef96233dfc181772.svg">
+												</div>
+											</div>
+										</div>
+									</div>
+									<div id="phoneNumber" class="text-white text-sm font-semibold leading-normal w-full max-w-full truncate"></div>
+								</div>
+
+								<div class="flex-col justify-start items-start gap-1 flex max-w-full w-full">
+									<div class="justify-start items-start gap-1.5 inline-flex">
+										<div class="text-neutral-400 text-sm font-medium leading-tight">Balance</div>
+
+									</div>
+									<div id="Money" class="text-white text-sm font-semibold leading-normal w-full max-w-full truncate notranslate"></div>
+								</div>
+
+							</div>
+							<div class="flex-col justify-start items-start gap-4 inline-flex w-[calc(50%-36px)]">
+								<div class="flex-col justify-start items-start gap-1 flex">
+									<div class="justify-start items-start gap-1.5 inline-flex">
+										<div class="text-neutral-400 text-sm font-medium leading-tight">Gender</div>
+										<div class="w-5 h-5 p-1 rounded-[50px] border border-white border-opacity-20 justify-center items-center flex">
+											<div class="grow shrink basis-0 self-stretch p-[1.80px] justify-center items-center inline-flex">
+												<div class="w-[10px] h-[10px] relative toggle-popup cursor-pointer" data-modal="nickname-modal">
+													<img src="./setting_files/edit-89ac1fa2963a2bf01367dc9cd3567671414b5b9c3d582731ef96233dfc181772.svg">
+												</div>
+											</div>
+										</div>
+									</div>
+									<div id="gender" class="text-white text-sm font-semibold leading-normal">female</div>
+								</div>
+								<div class="flex-col justify-start items-start gap-1 flex">
+									<div class="justify-start items-start gap-1.5 inline-flex">
+										<div class="text-neutral-400 text-sm font-medium leading-tight">Password</div>
+										<div class="w-5 h-5 p-1 rounded-[50px] border border-white border-opacity-20 justify-center items-center flex">
+											<div class="grow shrink basis-0 self-stretch p-[1.80px] justify-center items-center inline-flex">
+												<div class="w-[10px] h-[10px] relative toggle-popup cursor-pointer" data-modal="password-modal">
+													<img src="./setting_files/edit-89ac1fa2963a2bf01367dc9cd3567671414b5b9c3d582731ef96233dfc181772.svg">
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="text-white text-sm font-semibold leading-normal">********</div>
+								</div>
+
+								<div class="flex-col justify-start items-start gap-1 flex">
+									<div class="justify-start items-start gap-1.5 inline-flex">
+										<div class="text-neutral-400 text-sm font-medium leading-tight">Withdrawal</div>
+										<div class="w-5 h-5 p-1 rounded-[50px] border border-white border-opacity-20 justify-center items-center flex">
+											<div class="grow shrink basis-0 self-stretch p-[1.80px] justify-center items-center inline-flex">
+												<div class="w-[10px] h-[10px] relative toggle-popup cursor-pointer" data-modal="withdrawal-modal">
+													<img src="./setting_files/edit-89ac1fa2963a2bf01367dc9cd3567671414b5b9c3d582731ef96233dfc181772.svg">
+												</div>
+											</div>
+										</div>
+									</div>
+									<div id="withdrawal" class="text-white text-sm font-semibold leading-normal" style="width: 100px;    white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"></div>
+								</div>
+
+								<div class="flex-col justify-start items-start gap-1 flex max-w-full w-full">
+									<div class="justify-start items-start gap-1.5 inline-flex">
+										<div class="text-neutral-400 text-sm font-medium leading-tight">Number of Invitees</div>
+
+									</div>
+									<div id="invite_num" class="text-white text-sm font-semibold leading-normal w-full max-w-full truncate"></div>
+								</div>
+
+							</div>
+						</div>
+					</div>
+					<!-- <div class="w-[349px] lg:w-[639px] h-[0px] border border-neutral-700"></div> -->
+					<!--    <div class="flex-col justify-start items-start gap-3.5 inline-flex p-8">-->
+					<!--      <div class="text-white text-base font-semibold leading-relaxed">Automatic Notifications</div>-->
+					<!--      <div class="justify-start items-start gap-2 inline-flex">-->
+					<!--        <div class="w-6 h-6 relative">-->
+					<!--          <form class="edit_user" id="edit_user_9217019" action="/users/9217019" accept-charset="UTF-8" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off"><input type="hidden" name="authenticity_token" value="q2uHXrPgEfcPJtazGHMzM5rsdZTvbWBK0sFCaGbDc7qOS1tzPBHtqHUGLOOi4MWVoxs5-z7aKkXmIzr02kA7DQ" autocomplete="off">-->
+					<!--            <input name="user[marketing_notification]" type="hidden" value="0" autocomplete="off"><input checked-value="true" oninput="this.form.submit()" type="checkbox" value="1" checked="checked" name="user[marketing_notification]" id="user_marketing_notification">-->
+					<!--</form>        </div>-->
+					<!--        <div class="text-white text-sm font-light leading-normal">As a user, you will receive automatic notifications from us. If you don't want any notifications, uncheck the box by clicking on it.</div>-->
+					<!--      </div>-->
+					<!--    </div>-->
+					<!-- <div class="w-[349px] lg:w-[639px] h-[0px] border border-neutral-700"></div> -->
+
+				</div>
+				<div class="w-[350px] sm:w-[450px] md:w-[580px] lg:w-[846px] relative bg-zinc-900 rounded-[10px] border border-neutral-700 mx-auto mt-10 mb-10 background-gradient">
+
+					<div class="md:flex px-8 py-6 flex-col md:flex-row items-center">
+
+
+
+						<div class="flex gap-x-2">
+							<div class="text-white text-base font-semibold leading-relaxed">Current Plan</div>
+							<div class="text-[#E75275] text-base font-semibold leading-relaxed" id="Current_Plan">Free
+							</div>
+
+							<!-- 	<div class="text-white text-base font-semibold leading-relaxed">Expiration time</div>
+							<div class="text-[#E75275] text-base font-semibold leading-relaxed">2024-10-25 10:25:20
+							</div> -->
+						</div>
+						<div class="ml-auto">
+							<!-- 	<a href="./Subscriptions.html" class="px-4 py-2 bg-neutral-700 rounded-[10px] md:flex block w-fit mt-5 md:mt-0">
+								<div class="text-white text-sm font-semibold">Change plan</div>
+							</a> -->
+
+							<div data-controller="button-component" data-button-component-target="button" data-action="click->button-component#handleClick" data-button-component-track-mixpanel-value="false" data-button-component-mixpanel-data-value="">
+								<a class="relative flex justify-center w-full items-center rounded-[10px] primary-gradient text-white text-sm font-medium p-2.5 h-10" href="./Subscriptions.html">
+									<div class="flex justify-center items-center">
+										<div>
+											Change plan
+										</div>
+									</div>
+								</a>
+							</div>
+						</div>
+					</div>
+					<div class="w-[349px] lg:w-[846px] h-[0px] rotate-180 opacity-20 border border-white"></div>
+					<div class="justify-start items-center p-8 block lg:flex justify-around">
+						<div class="justify-start items-start gap-1 flex lg:my-0 my-2">
+							<div class="text-neutral-400 text-sm font-medium leading-tight" id="vip_expired_text"></div>
+							<div class="text-white text-sm font-medium leading-tight" id="vip_expired_time"></div>
+						</div>
+						<!-- <div class="justify-start items-start gap-1 flex lg:my-0 my-2">
+							<div class="text-neutral-400 text-sm font-medium leading-tight">Subscription to:</div>
+							<div class="text-white text-sm font-medium leading-tight">19.08.24</div>
+						</div> -->
+					</div>
+
+
+					<div class="justify-start items-center p-8 block lg:flex justify-around">
+						<div class="justify-start items-start gap-1 flex lg:my-0 my-2">
+							<div class="text-neutral-400 text-sm font-medium leading-tight">Invite Link:</div>
+							<div class="text-white text-sm font-medium leading-tight notranslate" id="invite_link"></div>
+
+						</div>
+						<div class="justify-start items-start gap-1 flex lg:my-0 my-2">
+							<a href="javascript:;" class="px-4 py-2 bg-neutral-700 rounded-[10px] md:flex block w-fit mt-5 md:mt-0">
+								<div class="text-white text-sm font-semibold" id="copyhtmlbutton">copy</div>
+							</a>
+						</div>
+					</div>
+
+
+					<div class="justify-start items-center p-8 block lg:flex justify-around" style="width:50%;margin-left:25%;">
+						<a class="relative flex justify-center w-full items-center rounded-[10px] primary-gradient text-white text-sm font-medium p-2.5 h-10 toggle-popup cursor-pointer" data-modal="withdrawal-tx-modal" href="javascript:;">
+							<div class="flex justify-center items-center">
+								<div>
+									Withdrawal
+								</div>
+							</div>
+						</a>
+					</div>
+				</div>
+
+
+			</div>
+		</div>
+		<div id="redirect"></div>
+		<form data-turbo="false" class="space-y-6" onsubmit="return false;" accept-charset="UTF-8" method="post">
+			<input type="hidden" name="_method" value="patch" autocomplete="off">
+			<input type="hidden" name="authenticity_token" value="93oR7NILXyPK8D24Sy3qMJMm71N5QRUg5MZ9n0JDHIzSWs3BXfqjfLDQx-jxvhyWqtGjPKj2Xy_QJAUD_sBUOw" autocomplete="off">
+			<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm hidden nickname-modal modal-backdrop" data-modal="nickname-modal" style="margin-top: 0px;"></div>
+			<div id="staticModal" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center hidden nickname-modal">
+				<div class="relative max-h-full">
+					<div class="relative rounded-lg shadow dark:bg-gray-700">
+						<div class="w-[356px] min-h-[330px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+							<div class="text-white text-[20px] font-semibold leading-[30px] ml-[33px] mt-2">Edit Profile</div>
+							<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-[7px] right-[10px] cursor-pointer toggle-popup" data-modal="nickname-modal">
+							<div class="form-inputs text-center">
+								<div class="mt-[25px] text-center">
+									<div class="w-[287px] flex-col justify-start items-start gap-1.5 inline-flex">
+										<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+											<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+												<img src="./setting_files/user-136475e1e7120a61ab13061e84c88cdf96837d2fb8eafda7a8c5b73815512f42.svg">
+											</div>
+											<input label="false" placeholder="Enter Nickname" required="required" class="self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex text-white bg-stone-900" type="text" value="" name="user[nickname]" id="user_nickname">
+										</div>
+									</div>
+								</div>
+								<div class="my-[25px] text-center">
+									<div class="w-[287px] flex-col justify-start items-start inline-flex">
+										<div class="self-stretch flex-col justify-start items-start gap-1.5 flex">
+											<select class="self-stretch px-3.5 py-2.5 bg-stone-900 text-white rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex" name="user[gender]" id="user_gender">
+												<option value="male">Male</option>
+												<option selected="selected" value="female">Female</option>
+											</select>
+										</div>
+									</div>
+								</div>
+								<button id="saveNickname" class="w-[280px] px-4 py-3 mt-[25px] bg-[#E75275] rounded-[10px] border border-[#E75275] justify-center items-center gap-2 inline-flex text-white">
+									Save Changes</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+
+		<form data-turbo="false" class="space-y-6" onsubmit="return false;" accept-charset="UTF-8" method="post">
+			<input type="hidden" name="_method" value="patch" autocomplete="off">
+			<input type="hidden" name="authenticity_token" value="93oR7NILXyPK8D24Sy3qMJMm71N5QRUg5MZ9n0JDHIzSWs3BXfqjfLDQx-jxvhyWqtGjPKj2Xy_QJAUD_sBUOw" autocomplete="off">
+			<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm hidden withdrawal-modal modal-backdrop" data-modal="withdrawal-modal" style="margin-top: 0px;"></div>
+			<div id="staticModal" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center hidden withdrawal-modal">
+				<div class="relative max-h-full">
+					<div class="relative rounded-lg shadow dark:bg-gray-700">
+						<div class="w-[356px] min-h-[330px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+							<div class="text-white text-[20px] font-semibold leading-[30px] ml-[33px] mt-2">Edit withdrawal account</div>
+							<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-[7px] right-[10px] cursor-pointer toggle-popup" data-modal="withdrawal-modal">
+							<div class="form-inputs text-center">
+								<div class="mt-[25px] text-center">
+									<div class="w-[287px] flex-col justify-start items-start gap-1.5 inline-flex">
+										<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+											<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+												<svg t="1732190926268" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="20307" width="22" height="22"><path d="M87.04 345.6H15.36V148.48C15.36 83.456 68.096 30.72 133.12 30.72h535.04c65.024 0 117.76 52.736 117.76 117.76v135.68h-71.68V148.48c0-25.6-20.48-46.08-46.08-46.08H133.12c-25.6 0-46.08 20.48-46.08 46.08v197.12z" p-id="20308" fill="#8a8a8a"></path><path d="M862.72 990.72H133.12c-65.024 0-117.76-52.736-117.76-117.76V334.336c0-65.024 52.736-117.76 117.76-117.76h729.6c65.024 0 117.76 52.736 117.76 117.76v538.624c0 64.512-52.736 117.76-117.76 117.76zM133.12 288.256c-25.6 0-46.08 20.48-46.08 46.08v538.624c0 25.6 20.48 46.08 46.08 46.08h729.6c25.6 0 46.08-20.48 46.08-46.08V334.336c0-25.6-20.48-46.08-46.08-46.08H133.12z" p-id="20309" fill="#8a8a8a"></path><path d="M908.8 768.512h-240.64c-91.136 0-165.376-74.24-165.376-165.376 0-91.136 74.24-165.376 165.376-165.376h240.64v71.68h-240.64c-51.712 0-93.696 41.984-93.696 93.696s41.984 93.696 93.696 93.696h240.64v71.68z" p-id="20310" fill="#8a8a8a"></path><path d="M666.112 603.648m-38.912 0a38.912 38.912 0 1 0 77.824 0 38.912 38.912 0 1 0-77.824 0Z" p-id="20311" fill="#8a8a8a"></path></svg>
+											</div>
+											<input label="false" placeholder="Enter Withdrawal Account" required="required" class="self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex text-white bg-stone-900" type="text" value="" name="user[withdrawal]" id="user_withdrawal">
+										</div>
+									</div>
+								</div>
+								<div class="my-[25px] text-center">
+									<div class="w-[287px] flex-col justify-start items-start inline-flex">
+										<div class="self-stretch flex-col justify-start items-start gap-1.5 flex">
+											<select class="self-stretch px-3.5 py-2.5 bg-stone-900 text-white rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex" name="user[network]" id="user_network">
+												<option selected="selected" value="ERC20">ERC20</option>
+												<option value="TRC20">TRC20</option>
+												<option value="Omni">Omni</option>
+											</select>
+										</div>
+									</div>
+								</div>
+								<button id="saveWithdrawal" class="w-[280px] px-4 py-3 mt-[25px] bg-[#E75275] rounded-[10px] border border-[#E75275] justify-center items-center gap-2 inline-flex text-white">
+									Save Changes</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+
+
+
+		<form data-turbo="false" class="space-y-6" onsubmit="return false;" accept-charset="UTF-8" method="post">
+			<input type="hidden" name="_method" value="patch" autocomplete="off">
+			<input type="hidden" name="authenticity_token" value="93oR7NILXyPK8D24Sy3qMJMm71N5QRUg5MZ9n0JDHIzSWs3BXfqjfLDQx-jxvhyWqtGjPKj2Xy_QJAUD_sBUOw" autocomplete="off">
+			<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm hidden withdrawal-tx-modal modal-backdrop" data-modal="withdrawal-tx-modal" style="margin-top: 0px;"></div>
+			<div id="staticModal" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center hidden withdrawal-tx-modal">
+				<div class="relative max-h-full">
+					<div class="relative rounded-lg shadow dark:bg-gray-700">
+						<div class="w-[356px] min-h-[400px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+							<div class="text-white text-[20px] font-semibold leading-[30px] ml-[33px] mt-2">Balance withdrawal</div>
+							<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-[7px] right-[10px] cursor-pointer toggle-popup" data-modal="withdrawal-tx-modal">
+							<div class="form-inputs text-center">
+								<div class="mt-[25px] text-center">
+									<div class="w-[287px] flex-col justify-start items-start gap-1.5 inline-flex">
+										<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+											<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+												<svg t="1732190926268" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="20307" width="22" height="22"><path d="M87.04 345.6H15.36V148.48C15.36 83.456 68.096 30.72 133.12 30.72h535.04c65.024 0 117.76 52.736 117.76 117.76v135.68h-71.68V148.48c0-25.6-20.48-46.08-46.08-46.08H133.12c-25.6 0-46.08 20.48-46.08 46.08v197.12z" p-id="20308" fill="#8a8a8a"></path><path d="M862.72 990.72H133.12c-65.024 0-117.76-52.736-117.76-117.76V334.336c0-65.024 52.736-117.76 117.76-117.76h729.6c65.024 0 117.76 52.736 117.76 117.76v538.624c0 64.512-52.736 117.76-117.76 117.76zM133.12 288.256c-25.6 0-46.08 20.48-46.08 46.08v538.624c0 25.6 20.48 46.08 46.08 46.08h729.6c25.6 0 46.08-20.48 46.08-46.08V334.336c0-25.6-20.48-46.08-46.08-46.08H133.12z" p-id="20309" fill="#8a8a8a"></path><path d="M908.8 768.512h-240.64c-91.136 0-165.376-74.24-165.376-165.376 0-91.136 74.24-165.376 165.376-165.376h240.64v71.68h-240.64c-51.712 0-93.696 41.984-93.696 93.696s41.984 93.696 93.696 93.696h240.64v71.68z" p-id="20310" fill="#8a8a8a"></path><path d="M666.112 603.648m-38.912 0a38.912 38.912 0 1 0 77.824 0 38.912 38.912 0 1 0-77.824 0Z" p-id="20311" fill="#8a8a8a"></path></svg>
+											</div>
+											<input label="false"  required="required" class="self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex text-white bg-stone-900" type="text" value="" name="user[withdrawal]" id="user_tx_withdrawal">
+										</div>
+									</div>
+								</div>
+								<div class="my-[25px] text-center">
+									<div class="w-[287px] flex-col justify-start items-start inline-flex">
+										<div class="self-stretch flex-col justify-start items-start gap-1.5 flex">
+											<select class="self-stretch px-3.5 py-2.5 bg-stone-900 text-white rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex" name="user[network]" id="user_tx_network" >
+												<option selected="selected" value="ERC20">ERC20</option>
+												<option value="TRC20">TRC20</option>
+												<option value="Omni">Omni</option>
+											</select>
+										</div>
+									</div>
+								</div>
+								
+								
+
+								<div class="mt-[25px] text-center">
+									<div class="w-[287px] flex-col justify-start items-start gap-1.5 inline-flex">
+										<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+
+											<input min="1" onkeyup="value=value.replace(/[^\d]/g,'')" label="false" placeholder="Enter the withdrawal amount" required="required" class="self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex text-white bg-stone-900" type="number" value="" name="user[withdrawal_amount]" id="user_tx_anmount" style="text-align:left;">
+										</div>
+									</div>
+								</div>
+								<div class="mt-[25px]  w-[287px] flex-col  flex">
+									
+									<div class="text-neutral-400 text-xs font-medium font-['Poppins'] leading-none pt-1 ml-0">Minimum amount：<span id="withdrawal_amount"></span></div>
+    							</div>
+    							
+    							<div class=" w-[287px] flex-col  flex">
+									
+									<div class="text-neutral-400 text-xs font-medium font-['Poppins'] leading-none pt-1 ml-0">Withdrawal Fee：<span id="withdrawal_fee"></span>%</div>
+    							</div>
+
+								<button id="WithdrawalAmount" class="w-[280px] px-4 py-3 mt-[25px] bg-[#E75275] rounded-[10px] border border-[#E75275] justify-center items-center gap-2 inline-flex text-white">
+									Withdrawal</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+
+
+		<form data-turbo="false" class="space-y-6 " id="edit_user_9217019" onsubmit="return false;" accept-charset="UTF-8" method="post" >
+			<input type="hidden" name="_method" value="patch" autocomplete="off">
+			<input type="hidden" name="authenticity_token" value="ZxKhvc7hE3PrmUdgy7DgCZadjDR5sh5jujiw9XdiXWhCMn2QQRDvLJG5vTBxIxavr2rAW6gFVGyO2shpy-EV3w" autocomplete="off">
+			<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm hidden phone-number-modal modal-backdrop" data-modal="phone-number-modal" style="margin-top: 0px;"></div>
+			<div data-controller="edit-profile" data-edit-profile-default-user-phone-number="" id="staticModal" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center hidden phone-number-modal" data-edit-profile-phone-number-value="">
+				<div class="relative max-h-full">
+					<div class="relative rounded-lg shadow dark:bg-gray-700">
+						<div class="w-[356px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+							<div class="text-white text-[20px] font-semibold leading-[30px] ml-[33px] mt-2">Edit Phone Number</div>
+							<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-[7px] right-[10px] cursor-pointer toggle-popup" data-modal="phone-number-modal">
+							<div class="form-inputs text-center">
+								<div class="text-center">
+									<div class="w-[287px] mt-5 flex-col justify-start items-start gap-1.5 inline-flex">
+										<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+											<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+												<img src="./setting_files/call-3d54f2c5ae159297cdd88a2cc4ebb4e626150d5633a77a9bfa84b626e39ab985.svg">
+											</div>
+											<div class="iti iti--allow-dropdown iti--show-flags iti--inline-dropdown">
+
+												<input label="false" required="required" class="self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex text-white bg-stone-900 iti__tel-input" type="text" name="user[phone_number]" id="user_phone_number" autocomplete="off"  placeholder="(201) 555-0123">
+											</div>
+										</div>
+									</div>
+								</div>
+								<div data-edit-profile-target="phoneNumberInputError" class="hidden font-xxs text-[#EE6363] mt-1 ml-9 text-left">
+									Wrong phone number
+								</div>
+								<button id="saveMobile" class="w-[287px] mb-5 px-4 py-3 mt-[25px] bg-[#E75275] rounded-[10px] border border-[#E75275] justify-center items-center gap-2 inline-flex text-white" data-action="click-&gt;edit-profile#submitEditProfile">Save Changes</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+		<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm hidden password-modal modal-backdrop" data-modal="password-modal" style="margin-top: 0px;"></div>
+		<div id="staticModal" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center hidden password-modal">
+			<div class="relative">
+				<div class="relative rounded-lg shadow dark:bg-gray-700">
+					<div class="w-[356px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+						<div class="text-white text-[20px] font-semibold leading-[30px] p-7">Edit Password</div>
+						<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-[7px] right-[10px] cursor-pointer toggle-popup password-modal-close-icon" data-modal="password-modal">
+						<div id="password-change-form">
+							<form data-turbo="true" class="simple_form" novalidate="novalidate" onsubmit="return false;" action="/password_change?id=9217019" accept-charset="UTF-8" method="post">
+								<input type="hidden" name="_method" value="patch" autocomplete="off">
+								<input type="hidden" name="authenticity_token" value="bW_0wDiAd6Cwwqdtwm9KDiOKxnsdj_ITusS2wqzQzK-oxtgiplIiMCLMjdgSLBOGSznbOTnNkzDNWlsaksx1wQ" autocomplete="off">
+								<div class="form-inputs text-center p-7">
+
+									<div class="my-[25px] text-center">
+										<div class="w-full flex-col justify-start items-start gap-1.5 inline-flex">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img src="./setting_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+												</div>
+												<div class="w-5 h-5 absolute top-[13px] right-[10px]">
+													<img src="./setting_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+												</div>
+												<div class="input password required user_password field_with_errors w-full">
+													<input class="password required w-full self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow border border-[#363636] justify-start items-center gap-2 inline-flex text-white bg-stone-900" required="required" aria-required="true" aria-invalid="true" placeholder="New Password" type="password" name="user[password]" id="user_new_password">
+													<span class="error"></span>
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="w-full">
+										<button id="savePwd" name="button" type="submit" class="w-full my-5 px-4 py-3 bg-[#E75275] rounded-[10px] border border-[#E75275] justify-center items-center gap-2 inline-flex text-white" id="signup-btn" data-controller="loading-button-state" data-loading-button-state-target="submit" data-action="loading-button-state#handleClick">
+											Save Changes
+										</button>
+									</div>
+								</div>
+							</form>
+						</div>
+
+					</div>
+				</div>
+			</div>
+		</div>
+		</div>
+
+		<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm hidden email-modal modal-backdrop" data-modal="email-modal" style="margin-top: 0px;"></div>
+		<div id="staticModal" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center hidden email-modal">
+			<div class="relative max-h-full">
+				<div class="relative rounded-lg shadow dark:bg-gray-700">
+					<div class="w-[356px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+						<div class="text-white text-[20px] font-semibold leading-[30px] ml-[33px] mt-2">Edit Email</div>
+						<img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-[7px] right-[10px] cursor-pointer toggle-popup" data-modal="email-modal">
+						<div id="email-edit-form" class="w-full">
+							<div class="form-inputs text-center">
+								<div class="my-[25px] text-center">
+									<form class="w-full" onsubmit="return false" action="/users/9217019" accept-charset="UTF-8" method="post">
+										<input type="hidden" name="_method" value="patch" autocomplete="off">
+										<input type="hidden" name="authenticity_token" value="aID5BFgphRonAMchpZkemPLIzENs80ExHjWaJkWtExpNoCUp19h5RV0gPXEfCug-yz-ALL1ECz4q1-K6-S5brQ" autocomplete="off">
+										<div class="w-[287px] flex-col justify-start items-start gap-1.5 inline-flex">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img src="./setting_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+												</div>
+												<input label="false" value="" placeholder="Enter Email" required="required" class="w-full self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex text-white bg-stone-900" type="text" name="user[email]" id="change_user_email">
+											</div>
+										</div>
+										<button id="saveEmail" class="w-[280px] mt-5 px-4 py-3 bg-[#E75275] rounded-[10px] border border-[#E75275] justify-center items-center gap-2 inline-flex text-white" button="" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit">Save Changes</button>
+									</form>
+								</div>
+							</div>
+
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+
+
+
+		</div>
+
+
+
+		<div>
+
+		</div>
+
+	</body>
+</html>
