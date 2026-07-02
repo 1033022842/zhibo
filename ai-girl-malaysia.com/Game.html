@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="./characters_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
+<link rel="icon" type="image/x-icon" href="./assets/favico-c002e20e13e2ee0d917bef3242cab0236c1087207a951e9d578b370c519d800a.png">
+ <link rel="stylesheet" href="./assets/fy.css" data-turbo-track="reload">
+ 	<script src="./Guys_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
+		<script src="./Guys_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
+ <script src="./Girls_files/jquery-3.6.0.min.js"></script>
+		
+   <script src="./assets/layer/3.1.1/layer.js"></script>
+   <!-- <script src="./assets/js/tailwindcss.js"></script> -->
+	<script src="./js/main.js"></script>
+	<script src="./js/event.js"></script>
+    
+    <script src="./js/websocket.js"></script>
+	<script src="./js/game.js"></script>
+
+<title></title>
+<style>
+  #slideshow {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  #slideshow img, #slideshow video {
+    display: none;
+    width: 100%;
+  }
+     /* styles.css */
+body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* 隐藏任何可能出现的滚动条 */
+}
+#dialogue-box {
+    width: 70%;
+    position: absolute;
+    bottom: 100px; /* 对话框距离底部的距离 */
+    left: 50%; /* 水平居中，需要配合 transform */
+    transform: translateX(-50%); /* 水平居中 */
+    background-color: rgba(255, 255, 255, 0.7); /* 半透明白色背景 */
+    padding: 15px; /* 内边距 */
+    border-radius: 10px; /* 圆角 */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); /* 阴影效果 */
+}
+
+#dialogue-box p {
+    margin: 0; /* 去除段落默认的上下边距 */
+}
+#button-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    text-align: center; /* 使按钮水平居中 */
+    max-width:700px;
+}
+.dialogue-button {
+    display: inline-block; /* 使按钮可以并排显示 */
+    margin: 0 5px; /* 设置按钮之间的间距 */
+    padding: 10px 20px; /* 设置按钮的内边距 */
+    font-size: 16px; /* 设置字体大小 */
+    border-radius: 5px; /* 设置圆角 */
+    border: none; /* 去除边框 */
+    background: linear-gradient(87.94deg, #4346E6 -0.38%, #F77389 100%); /* 设置背景色 */
+    color: #fff; /* 设置文字颜色 */
+    cursor: pointer; /* 鼠标悬停时显示小手图标 */
+    transition: background-color 0.3s ease; /* 添加背景色过渡效果 */
+}
+
+/*.dialogue-button:hover {
+    background-color: #444; 
+}*/
+.hidden{
+    display: none;
+}
+.bg {
+  background: #131313; /* 设置图片路径 */
+  background-size: cover; /* 背景图片覆盖整个元素 */
+  background-repeat: no-repeat; /* 背景图片不重复 */
+  background-position: center; /* 背景图片居中 */
+  width: 100%; /* 元素宽度 */
+  height: 100% /* 元素高度 */
+}
+
+	@media only screen and (min-width: 768px) {
+              /* 在这里编写针对移动设备的CSS规则 */
+             #slideshow video{height:1100px;}
+              #backbbutton{width:140px}
+              
+              .pc-nav{ display: none;}
+            }
+             .login-pf{display:none;}
+            #user-login{display:none;}
+             #slideshow{
+               margin-top:40px;
+              }
+     	@media only screen and (max-width: 768px) {         
+              #head-btn-group{display:none;}
+     }
+     
+     /* 自定义滚动条样式 */
+     #chat-history::-webkit-scrollbar {
+         width: 6px;
+     }
+     
+     #chat-history::-webkit-scrollbar-track {
+         background: #333333;
+         border-radius: 3px;
+     }
+     
+     #chat-history::-webkit-scrollbar-thumb {
+         background: #000000;
+         border-radius: 3px;
+     }
+     
+     #chat-history::-webkit-scrollbar-thumb:hover {
+         background: #1a1a1a;
+     }
+     
+     /* 连接状态样式 */
+     .status {
+         padding: 4px 8px;
+         border-radius: 4px;
+         font-weight: 500;
+     }
+     
+     .status.connecting {
+         background: #fbbf24;
+         color: #000;
+     }
+     
+     .status.connected {
+         background: #10b981;
+         color: #fff;
+     }
+     
+     .status.reconnecting {
+         background: #f59e0b;
+         color: #000;
+     }
+     
+     .status.disconnected {
+         background: #ef4444;
+         color: #fff;
+     }
+     
+     .status.error {
+         background: #dc2626;
+         color: #fff;
+     }
+     
+     /* 重连按钮动画 */
+     @keyframes pulse {
+         0%, 100% { opacity: 1; }
+         50% { opacity: 0.5; }
+     }
+     
+     .reconnecting .status {
+         animation: pulse 1s infinite;
+     }
+     
+     /* Loading 动画样式 */
+     @keyframes spin {
+         0% { transform: rotate(0deg); }
+         100% { transform: rotate(360deg); }
+     }
+     
+     .animate-spin {
+         animation: spin 1s linear infinite;
+     }
+</style>
+</head>
+<body  class="bg bg-main pages home stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
+    <noscript>
+			<iframe src="./Girls_files/ns.html" height="0" width="0" style="display:none;visibility:hidden"></iframe>
+		</noscript>
+		<!-- End Google Tag Manager (noscript) -->
+
+		<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+			<span class="tooltip-containers absolute" data-main-target="tooltipContainer">
+				<div id="tooltip-explore" role="tooltip" class="relative z-100 invisible px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 30px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Explore
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-chat" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 86px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Chat
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-gallery" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 142px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Gallery
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-image" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 198px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Generate Image
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-character" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 254px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Create Character
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-my-ai" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 310px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					My AI
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+				<div id="tooltip-tokens" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700">
+					Buy Tokens
+					<div class="tooltip-arrow" data-popper-arrow=""></div>
+				</div>
+				<div id="tooltip-premium" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 366px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+					Become Premium
+					<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+				</div>
+			</span>
+			<nav class="flex flex-col justify-between h-full ">
+				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto  overflow-x-auto">
+					<li class="relative w-full" data-tooltip-target="tooltip-explore" data-tooltip-placement="right">
+						<a href="./Girls.html" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">
+							<img class="w-6 h-6" src="./Girls_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+						</a>
+					</li>
+					<!--<li class="relative w-full" data-tooltip-target="tooltip-chat" data-tooltip-placement="right">-->
+					<!--	<a href="./Chat.html" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">-->
+					<!--		<img class="w-6 h-6" src="./Girls_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg">-->
+					<!--	</a>-->
+					<!--</li>-->
+					<li class="hidden relative w-full" data-tooltip-target="tooltip-gallery" data-tooltip-placement="right">
+						<a data-action="click-&gt;main#openRegistrationModalOrRedirectToGallery" class="h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Girls_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-image" data-tooltip-placement="right">
+						<a href="./Image.html" class="relative
+          h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border
+          border-white border-opacity-10 justify-start px-3 items-center
+          gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Girls_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-character" data-tooltip-placement="right">
+						<a href="./characters.html" class="relative h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Girls_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-my-ai" data-tooltip-placement="right">
+						<a href="./charactersIndex.html" class="h-[48px] w-[52px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Girls_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+						</a>
+					</li>
+					<li class="hidden relative w-full" data-tooltip-target="tooltip-premium" data-tooltip-placement="right">
+						<a data-action="click-&gt;main#openRegistrationModal" class="h-[48px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./Girls_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+						</a>
+					</li>
+				</ul>
+				<ul role="list" class="hidden flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
+					<li class="relative w-full" data-tooltip-target="tooltip-discord" data-tooltip-placement="right">
+						<div id="tooltip-discord" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(59.3333px, 6px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+							Discord
+							<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+						</div>
+						<a href="https://discord.gg/candyai" target="_blank" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+							<img class="w-6 h-6" src="./Girls_files/discord-526bbe3abf7210fa8bd8e76658d4df5a5c67d569f1349a2441b1d0bbd170c84d.svg">
+						</a>
+					</li>
+					<li class="relative w-full toggle-popup" data-tooltip-target="tooltip-contact" data-tooltip-placement="right">
+						<div id="tooltip-contact" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(59.3333px, 6px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+							Contact Us
+							<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+						</div>
+						<a data-action="click-&gt;main#openRegistrationModal" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+							<img class="w-6 h-6" src="./Girls_files/contact-c50065a887c8d0061543beceae78cec1bdaaac55ec7d37f11601912b3250e119.svg">
+						</a>
+					</li>
+					<li class="relative w-full" data-tooltip-target="tooltip-affiliate" data-tooltip-placement="right">
+						<a target="_blank" class="" href="https://webforms.pipedrive.com/f/bYSTErXD8pcDoco3iakbUUKFRtWtAjNDJphn0GpYA3B88R2NYvCzVMM2wsNCjtVMkP">
+							<div id="tooltip-affiliate" role="tooltip" class="absolute z-100 invisible whitespace-nowrap px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(59.3333px, 6px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+								Affiliate Program
+								<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+							</div>
+							<div class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+								<img class="w-6 h-6" src="./Girls_files/trophy-55ba15bcf830427b6fc776e11ff4465cce75c1c2a1a27ba0bd2eea0e5c03ff55.svg">
+							</div>
+						</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+
+		<div data-main-target="mainSidebarOpenedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[220px] lg:pb-5 w-[220px] fixed top-0 left-0 h-full webkit-transition-sidebar pc-nav" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+			<nav class="flex flex-col justify-between h-full ">
+				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto  overflow-x-auto">
+					<li class="relative w-full">
+						<a href="./Anime.html" class="h-[40px] w-full  hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">
+							<img class="w-4 h-4" src="./Anime_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+							<span class="text-start text-grey-medium text-xxs font-medium leading-4">Explore</span>
+						</a>
+					</li>
+					<!--<li class="relative w-full">-->
+					<!--	<a data-action="click-&gt;main#openRegistrationModal" class="h-[40px] w-full  hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">-->
+					<!--		<img class="w-4 h-4" src="./Anime_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg">-->
+					<!--		<span class="text-start text-grey-medium text-xxs font-medium leading-4">Chat</span>-->
+					<!--	</a>-->
+					<!--</li>-->
+					<!--<li class="relative w-full">-->
+					<!--	<a data-action="click-&gt;main#openRegistrationModalOrRedirectToGallery" class="h-[40px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">-->
+					<!--		<img class="w-4 h-4" src="./Anime_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg">-->
+					<!--		<div class="text-start text-grey-medium text-xxs font-medium leading-4">Gallery-->
+					<!--		</div>-->
+					<!--	</a>-->
+					<!--</li>-->
+					<li class="relative w-full">
+						<a href="./Image.html" class="relative
+          h-[40px] hover:bg-zinc-700  rounded-[10px] border
+          border-white border-opacity-10 justify-start px-3 items-center
+          gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./Anime_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">
+								Generate Image
+							</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./characters.html" class="relative h-[40px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./Anime_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+							<div class="text-start  text-grey-medium text-xxs font-medium leading-none">Create Character
+							</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./charactersIndex.html" class="h-[40px] hover:bg-zinc-700  rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./Anime_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">
+								My AI
+							</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a  class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer" href="/Subscriptions.html">
+							<img class="w-4 h-4" src="./Anime_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+							<div class="text-start text-pink-default text-xxs font-medium leading-none">
+								Become Premium
+							</div>
+						</a>
+					</li>
+				</ul>
+				<!--<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">-->
+				<!--	<li class="relative w-full">-->
+				<!--		<a href="https://discord.gg/candyai" target="_blank" class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">-->
+				<!--			<img class="w-4 h-4" src="./Anime_files/discord-526bbe3abf7210fa8bd8e76658d4df5a5c67d569f1349a2441b1d0bbd170c84d.svg">-->
+				<!--			<div class="text-start text-grey-medium text-xs font-medium leading-4">Discord</div>-->
+				<!--		</a>-->
+				<!--	</li>-->
+				<!--	<li class="relative w-full">-->
+				<!--		<a data-action="click-&gt;main#openRegistrationModal">-->
+				<!--			<div class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">-->
+				<!--				<img class="w-4 h-4" src="./Anime_files/contact-c50065a887c8d0061543beceae78cec1bdaaac55ec7d37f11601912b3250e119.svg">-->
+				<!--				<div class="text-start sidebar-text  text-grey-medium text-xs font-medium leading-4">Contact Us</div>-->
+				<!--			</div>-->
+				<!--		</a>-->
+				<!--	</li>-->
+				<!--	<li class="relative w-full">-->
+				<!--		<a target="_blank" class="" href="https://webforms.pipedrive.com/f/bYSTErXD8pcDoco3iakbUUKFRtWtAjNDJphn0GpYA3B88R2NYvCzVMM2wsNCjtVMkP">-->
+				<!--			<div class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">-->
+				<!--				<img class="w-4 h-4" src="./Anime_files/trophy-55ba15bcf830427b6fc776e11ff4465cce75c1c2a1a27ba0bd2eea0e5c03ff55.svg">-->
+				<!--				<div class="text-start  text-grey-medium text-xs font-medium leading-4">Affiliate Program</div>-->
+				<!--			</div>-->
+				<!--		</a>-->
+				<!--	</li>-->
+				<!--	<li class="text-[8px] flex text-grey-medium pt-3 w-full">-->
+				<!--		<a class="leading-none mr-2" href="privacy-policy">Privacy Policy</a>-->
+				<!--		<ul class="list-none">-->
+				<!--			<li class="flex items-center mr-2">-->
+				<!--				<span class="bg-white h-1 w-1 rounded-full mr-2"></span>-->
+				<!--				<a class="leading-none" href="legal-information">Terms of Service</a>-->
+				<!--			</li>-->
+				<!--		</ul>-->
+				<!--	</li>-->
+				<!--</ul>-->
+			</nav>
+		</div>
+
+		<div data-main-target="mainMobileSidebarContainer" data-action="click-&gt;main#setMobileSidebarValueToDefault" class="inset-y-0 w-[100vw] mt-[64px] z-[100] pr-[40vw] no-scroll fixed left-0 webkit-transition-sidebar webkit-transform-sidebar">
+			<nav class="flex flex-col justify-between h-full  w-[240px] " style="background: linear-gradient(0deg, #131313 0%, #131313 100%)">
+				<div class="flex flex-col justify-between h-full">
+				    <div  class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login">
+			
+        				
+        				<div class="gap-x-2 flex px-5 py-5">
+        					<div class="flex  gap-x-4 lg:gap-x-6 ">
+        						<div data-redirect-url="" data-action="click-&gt;main#openRegistrationModal" data-main-target="registerButton" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+        							<div class="text-white text-sm font-semibold leading-tight">Register</div>
+        						</div>
+        					</div>
+        					<div class="flex  gap-x-4 lg:gap-x-6">
+        						<div data-action="click-&gt;main#openSignInModal" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+        							<div class="text-sm font-semibold leading-tight">Login</div>
+        						</div>
+        					</div>
+        				</div>
+        				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+        				</div>
+        			</div>
+					<ul role="list" class="flex flex-col items-center justify-start px-5 bg-zinc-900 h-screen overflow-auto">
+					    
+					    
+					    
+					    <li class="user-dropdown relative w-full py-4 border-b border-white border-opacity-10 login-pf">
+                        	<!-- Profile dropdown -->
+                        	<div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false">
+                        		<button type="button" class="user-dropdown w-full flex text-xs leading-5" id="user-menu-button" @click="open = !open" aria-expanded="false" :aria-expanded="open.toString()">
+                        			<img alt="Woman" src="/assets/user-icons/woman-875180869a83d543d3ac906ca91d24634cc13f486d5c2565ed2908927a1fc10e.svg" class="h-5 w-5 rounded-full">
+                        			<div class="user-dropdown flex items-center justify-between w-full">
+                        				<div class="user-dropdown ml-2 text-xs font-semibold leading-5 text-grey-medium " aria-hidden="true">
+                        					My Profile
+                        				</div>
+                        				<svg class="user-dropdown ml-2 h-4 w-4 text-white " viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        					<path class="" fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>
+                        				</svg>
+                        			</div>
+                        		</button>
+                        		<div x-show="open" @keydown.arrow-up.prevent="" @keydown.arrow-down.prevent="" @keydown.tab="open = false" @keydown.enter.prevent="open = false" class="relative right-0 z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none w-full bg-zinc-900" data-controller="users" style="display: none;">
+                        			<a class="w-full mt-4 justify-start items-center gap-2 inline-flex" href="./Subscriptions.html">
+                        				<div class="relative">
+                        					<img class="w-5 h-5 " src="/assets/sidebar-icons/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+                        				</div>
+                        				<div class=" text-grey-medium text-sm font-semibold leading-5">Subscription</div>
+                        			</a>
+                        			<a class="w-full mt-4 justify-start items-center gap-2 inline-flex " href="./setting.html">
+                        				<div class="relative">
+                        					<img class="w-5 h-5 " src="/assets/settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg">
+                        				</div>
+                        				<div class=" text-grey-medium text-sm font-semibold leading-5">Settings</div>
+                        			</a>
+                        			<form class="button_to" method="post" onsubmit="return false">
+                                    	<input type="hidden" name="_method" value="delete" autocomplete="off">
+                                    	<button data-turbo="false"  class="rounded-b-lg w-full h-11  py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex logout" type="submit">
+                                    		<div class="w-5 h-5 relative">
+                                    			<img src="/assets/logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg">
+                                    		</div>
+                                    		<div class="text-white text-sm font-semibold leading-normal">Logout</div>
+                                    	</button>
+                                    	<input type="hidden" name="authenticity_token" value="sQJXhrDTp_Ev7C193Oa-PTVmRkWdvSycvObq6DIY4fCrI-9C84LjijJ0wuJ-DP03BnvYa8r9ajga1oD4vqNtlQ" autocomplete="off">
+                                    </form>
+                        		</div>
+                        	</div>
+                        </li>
+					    
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Girls.html" class="w-full flex justify-start items-center gap-2 ">
+								<img class="w-5 h-5 " src="./Girls_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+								<span class="text-start text-grey-medium text-xs leading-5 font-semibold">Explore</span>
+							</a>
+						</li>
+						<!--<li class="relative w-full py-4 border-b border-white border-opacity-10">-->
+						<!--	<a href="./Chat.html" class="justify-start items-center gap-2 flex mx-auto   cursor-pointer">-->
+						<!--		<img class="w-5 h-5 " src="./Girls_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg">-->
+						<!--		<div class="text-start text-grey-medium text-xs leading-5 font-semibold">Chat-->
+						<!--		</div>-->
+						<!--	</a>-->
+						<!--</li>-->
+						<li class="hidden relative w-full py-4 border-b border-white border-opacity-10">
+							<a class="justify-start items-center gap-2 flex mx-auto   cursor-pointer">
+								<img class="w-5 h-5 " src="./Girls_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg">
+								<div class="text-start text-grey-medium text-xs leading-5 font-semibold">Gallery
+								</div>
+							</a>
+						</li>
+						<li class="hiddenrelative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Image.html" class="relative
+          justify-start items-center
+          gap-2 flex mx-auto ">
+								<img class="w-5 h-5 " src="./Girls_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+								<div class="text-start text-grey-medium text-xs font-medium leading-none">
+									Generate Image
+								</div>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./characters.html" class="relative justify-start items-center gap-2 flex mx-auto ">
+								<img class="w-5 h-5 " src="./Girls_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+								<div class="text-start  text-grey-medium text-xs font-medium leading-none">Create Character
+								</div>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./charactersIndex.html" class="justify-start items-center gap-2 flex mx-auto ">
+								<img class="w-5 h-5 " src="./Girls_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+								<div class="text-start text-grey-medium text-xs font-medium leading-none">
+									My AI
+								</div>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Subscriptions.html" class=" justify-start items-center gap-2 flex mx-auto cursor-pointer">
+								<img class="w-5 h-5" src="./Girls_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+								<div class="text-start text-pink-default text-xs font-medium leading-none">
+									Become Premium
+								</div>
+							</a>
+						</li>
+					</ul>
+					
+				</div>
+			</nav>
+		</div>
+
+		<style>
+			.no-scroll {
+      overflow: hidden;
+      /* Optional: to ensure the layout doesn't shift due to the scrollbar disappearing */
+      padding-right: calc(env(safe-area-inset-right, 0px) + (100vw - 100%));
+  }
+</style>
+
+		<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">
+			<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger">
+				<span class="sr-only">Open sidebar</span>
+				<svg class="nav-hamburger h-8 w-8 mr-1 text-white" data-action="click-&gt;main#handleMenuClick" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+				</svg>
+			</button>
+			<a href="./Girls.html">
+				<img src="./Girls_files/candyai-navbar-d321c31d58617371f7caf9e34a4e3f9624dce580afcceb6fecdf48c78beafd83.svg" class="h-[30px] md:h-[30px] w-[115px]">
+			</a>
+			<!-- Separator -->
+			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
+			<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
+				<script type="text/template" id="head-template">
+					<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Girls.html" accept-charset="UTF-8" data-remote="true" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off"><input type="hidden" name="authenticity_token" value="cXB7VrtfJ_0bQDgOVi1MQxdcJchuXDvwvtqB1c28Vd0_Rv8mKsX9VeywPT5Y2tBG2zHhYbRTXULtGO-3PGiTxQ" autocomplete="off">
+      <input type="hidden" name="gender_interest" id="gender_interest" value="female" autocomplete="off">
+      <input type="hidden" name="query_string" id="query_string" value="" autocomplete="off">
+      <button data-id="27" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+        <div class="flex items-center">
+          <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+              </svg>
+          </div>
+              <div class="text-white text-[13px] font-semibold leading-normal">
+               Girls
+              </div>
+            </div>
+          </button>
+</form> 
+
+      <form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Anime.html" accept-charset="UTF-8" data-remote="true" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off"><input type="hidden" name="authenticity_token" value="cXB7VrtfJ_0bQDgOVi1MQxdcJchuXDvwvtqB1c28Vd0_Rv8mKsX9VeywPT5Y2tBG2zHhYbRTXULtGO-3PGiTxQ" autocomplete="off">
+      <input type="hidden" name="gender_interest" id="gender_interest" value="female" autocomplete="off">
+      <input type="hidden" name="query_string" id="query_string" value="" autocomplete="off">
+      <button data-id="36" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+        <div class="flex items-center">
+          <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none">
+                      <path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path>
+                          </svg>
+          </div>
+              <div class="text-white text-[13px] font-semibold leading-normal">
+                Anime
+              </div>
+            </div>
+          </button>
+</form> 
+
+      <form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Guys.html" accept-charset="UTF-8" data-remote="true" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off"><input type="hidden" name="authenticity_token" value="cXB7VrtfJ_0bQDgOVi1MQxdcJchuXDvwvtqB1c28Vd0_Rv8mKsX9VeywPT5Y2tBG2zHhYbRTXULtGO-3PGiTxQ" autocomplete="off">
+      <input type="hidden" name="gender_interest" id="gender_interest" value="female" autocomplete="off">
+      <input type="hidden" name="query_string" id="query_string" value="" autocomplete="off">
+      <button data-id="35" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+        <div class="flex items-center">
+          <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+                <path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+                <path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+              </svg>
+          </div>
+              <div class="text-white text-[13px] font-semibold leading-normal">
+                Guys
+              </div>
+            </div>
+          </button>
+</form> 
+      </script>
+
+
+
+
+			</div>
+
+			<div  class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">
+				<form class="relative flex flex-1" action="#" method="GET"></form>
+				
+				<!--fy-->
+                    <div class="headerfy"></div>
+                    <!--fy-->
+				
+				<div class="gap-x-2 flex pc-rg-login">
+					<div class="flex items-center gap-x-4 lg:gap-x-6 ">
+						<div data-redirect-url="" data-action="click-&gt;main#openRegistrationModal" data-main-target="registerButton" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+							<div class="text-white text-sm font-semibold leading-tight">Register</div>
+						</div>
+					</div>
+					<div class="flex items-center gap-x-4 lg:gap-x-6">
+						<div data-action="click-&gt;main#openSignInModal" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+							<div class="text-sm font-semibold leading-tight">Login</div>
+						</div>
+					</div>
+				</div>
+				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+				</div>
+			</div>
+
+			<div id="user-setting" style="display:none;" class="flex flex-1  self-stretch lg:gap-x-6 bg-main">
+				<form class="relative flex flex-1" action="#" method="GET"></form>
+				
+				<!--fy-->
+                    <div class="headerfy"></div>
+                    <!--fy-->
+				<div class="flex items-center gap-x-4 lg:gap-x-6 nav-zk">
+					<a href="./Subscriptions.html" class="justify-center items-center primary-gradient flex max-w-full gap-2 px-2 py-1.5 rounded-xl">
+						<img src="assets/olympic-sale/torch-62c1f4e586ca3ad6b1eadcb4457ba71edbe67652e8f775909a81c208c256996c.svg" class="object-cover object-center w-4 overflow-hidden shrink-0">
+						<div class="text-white text-xs font-semibold self-stretch">
+							Subscribe 75% OFF
+						</div>
+					</a>
+				</div>
+				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+					<!-- Separator -->
+					<div class="lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true"></div>
+					<!-- Profile dropdown -->
+					<div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-fit relative ">
+						<button type="button" class="-m-1.5 flex items-center p-1.5 " id="user-menu-button" @click="open = !open" aria-expanded="false" :aria-expanded="open.toString()">
+							<span class="sr-only">Open user menu</span>
+							<img src="assets/user-icons/woman-875180869a83d543d3ac906ca91d24634cc13f486d5c2565ed2908927a1fc10e.svg" class="h-8 w-8 rounded-full">
+							<span class="hidden lg:flex lg:items-center">
+								<span class="ml-4 text-sm font-semibold leading-6 text-white" aria-hidden="true">My Profile</span>
+								<svg class="ml-2 h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+									<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>
+								</svg>
+							</span>
+						</button>
+						<div x-show="open" @keydown.arrow-up.prevent="" @keydown.arrow-down.prevent="" @keydown.tab="open = false" @keydown.enter.prevent="open = false" class="absolute right-0 z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none" data-controller="users" style="display: none;">
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./Subscriptions.html">
+								<div class="w-5 h-5 relative">
+									<img src="/assets/sidebar-icons/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Subscription</div>
+							</a>
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./setting.html">
+								<div class="w-5 h-5 relative">
+									<img src="/assets/settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Settings</div>
+							</a>
+							<form class="button_to" method="post" onsubmit="return false">
+								<input type="hidden" name="_method" value="delete" autocomplete="off">
+								<button data-turbo="false" id="logout" class="rounded-b-lg w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" type="submit">
+									<div class="w-5 h-5 relative">
+										<img src="/assets/logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg">
+									</div>
+									<div class="text-white text-sm font-semibold leading-normal">Logout</div>
+								</button>
+								<input type="hidden" name="authenticity_token" value="sQJXhrDTp_Ev7C193Oa-PTVmRkWdvSycvObq6DIY4fCrI-9C84LjijJ0wuJ-DP03BnvYa8r9ajga1oD4vqNtlQ" autocomplete="off">
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<turbo-frame id="registration-modal">
+			<div data-main-target="registrationModal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100">
+				<div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0">
+					<button type="button" class="absolute w-5 h-5 right-3 top-3 z-10" data-action="click-&gt;main#closeRegistrationModal">
+						<img class="w-auto" src="./Girls_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+					</button>
+					<div class="hidden lg:flex h-full relative">
+						<div id="user-signup-image">
+
+							<img class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top" src="./Girls_files/image5-bd5309d84f7f2bbd60a70e38d705f827c63611034bb3cce450b24d5ada8e4b4d.webp">
+						</div>
+					</div>
+					<div class="flex flex-col relative bg-black-dark rounded-tr-[10px] rounded-br-[10px] rounded-tl-[10px] rounded-bl-[10px] lg:rounded-tl-0 lg:rounded-bl-0 w-[335px] lg:w-[407px]">
+						<div id="user-signup-container" class="flex-1 mx-6 lg:mx-10 mt-6 lg:mt-10">
+							<div class="relative">
+								<form class="simple_form new_user" id="new_user_registration">
+									<input type="hidden" name="authenticity_token" value="96wKu-yRF3Jdz2pFaHKPYisdStOPlS63cfMqi5lzHb9-9wXYXq68ufa3xM2p7DBdyykyAQbTs3Bq5qzSXQZlUQ" autocomplete="off">
+									<input type="hidden" name="profile_id" id="profile_id_registration" data-main-target="characterIDForGenerateImage" autocomplete="off">
+									<input type="hidden" name="prompt" id="prompt_registration" data-main-target="promptForGenerateImage" autocomplete="off">
+									<div class="form-inputs mb-3">
+										<div class="text-[24px] text-white leading-7 lg:leading-8 font-bold mb-3 lg:mb-3">
+											Create Account
+										</div>
+
+										<div class="w-full flex-col justify-start items-start gap-1.5 inline-flex">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img src="./Girls_files/username.svg">
+												</div>
+												<div class="input name required user_name w-full">
+													<input class="string name required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="Username" type="username" value="" name="user[username]" id="user_username_registration">
+												</div>
+											</div>
+										</div>
+
+
+
+										<div class="w-full flex-col justify-start items-start gap-1.5 inline-flex mt-4">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img alt="Email icon" src="./Girls_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+												</div>
+												<div class="input email required user_email w-full">
+													<input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_email_registration" required="required" aria-required="true" placeholder="E-mail" type="email" name="user[email]">
+												</div>
+											</div>
+										</div>
+
+
+
+
+										<div class="w-full flex-col justify-start items-start inline-flex mt-4">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img alt="Lock icon" src="./Girls_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+												</div>
+												<div class="w-5 h-5 absolute top-[13px] right-[10px]">
+													<img alt="Visibility icon" src="./Girls_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+												</div>
+												<div class="input password required user_password field_with_hint w-full">
+													<input class="password required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_password_registration" required="required" aria-required="true" placeholder="Password" type="password" name="user[password]">
+													<span class="hint">
+														<span style="color: gray; display: flex; font-size: 14px; margin-top: 5px;">Minimum 6 characters</span>
+													</span>
+												</div>
+											</div>
+										</div>
+
+
+										<div class="w-full flex-col justify-start items-start inline-flex mt-4">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img alt="Lock icon" src="./assets/Invite.svg">
+												</div>
+
+												<div class="input email required user_email w-full">
+													<input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_code_registration" required="required" aria-required="true" placeholder="invitation Code" type="text" name="user[Invite_code]">
+													<span class="hint">
+														<span style="color: gray; display: flex; font-size: 14px; margin-top: 5px;">Not required</span>
+													</span>
+												</div>
+											</div>
+										</div>
+
+
+
+									</div>
+
+									<div>
+										<button name="button" type="submit" class="flex w-full mt-4 px-4 py-3 bg-[#E75275] rounded-[10px] justify-center items-center text-white text-sm font-semibold" id="signup-btn" data-loading-button-state-target="submit">
+											Create Account
+										</button>
+									</div>
+								</form>
+								<!--<div class="flex flex-row items-center pt-6 pb-5">-->
+								<!--    <div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.00) 100%);"></div>-->
+								<!--    <div class="flex-0 text-white text-sm font-medium mx-4">or continue with</div>-->
+								<!--    <div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.30) 100%);"></div>-->
+								<!--  </div>-->
+								<!--  <div id="authentication_sign_up_container">-->
+								<!--      <form data-turbo="false" action="/" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="cngiDoBTRc5Vd9EHCVpIVR__598UbpmJ8RcK9Lszc3jlFgIdiy58c5hbN2PMZTT9bienBAfRr2pUQm6XwkwnzA" autocomplete="off">-->
+								<!--        <input type="hidden" name="authenticity_token" id="authenticity_token" value="N1n0SvwyfP3NUQKefAq6M8xado6QwjzXQoZXrNTHSLE7QXAWEkBvBCst7OdKLRdLC_zm0rqoJCdqNpNfCr8F_g" autocomplete="off">-->
+								<!--            <button name="button" type="submit" formaction="/users/auth/google_oauth2" class="inline-flex items-center justify-center w-full rounded-[10px] px-4 py-2.5 mb-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--              <img alt="Google" class="h-6 w-6 mr-3" src="./Girls_files/google-auth-a8a364c5c399770d07ce74e6110a120970b1953557a47719692d85ea9334efb6.png">-->
+								<!--              <div class="font-normal text-[#344054]">-->
+								<!--                Google-->
+								<!--              </div>-->
+								<!--</button>              <div class="flex flex-wrap gap-2.5 ">-->
+								<!--            <div class="flex-1">-->
+								<!--              <button name="button" type="submit" formaction="/users/auth/discord" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-discord-indigo text-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--                <img alt="discord" class="h-6 w-6 mr-3" src="./Girls_files/discord-e159d04d15be58e9fe9767c08b3338ee2735feb84f54b7301303c9c49ed543a2.svg">-->
+								<!--                <div class="text-white font-normal ">-->
+								<!--                  Discord-->
+								<!--                </div>-->
+								<!--</button>            </div>-->
+								<!--            <div class="flex-1">-->
+								<!--              <button name="button" type="submit" formaction="/users/auth/twitter" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--                <img alt="X" class="h-6 w-6 mr-3" src="./Girls_files/X-26904e26c6e97e747b58528737ef2a47ec6a26e01283df190498f526760cf325.svg">-->
+								<!--                <div class=" font-normal text-[#344054]">-->
+								<!--                  X-->
+								<!--                </div>-->
+								<!--</button>            </div>-->
+								<!--              </div>-->
+								<!-- Closing the flex container -->
+								<!--</form>  </div>-->
+								<!--  <div class="text-xxs font-medium text-grey-default text-center mt-5 lg:mt-5 mb-8 lg:mb-5">By signing up, you agree-->
+								<!--    to <a class="underline" href="legal-information">Terms of Service</a>-->
+								<!--  </div>-->
+							</div>
+
+						</div>
+						<div class="flex-0 px-8" style="width: 100%; height: 0px; opacity: 0.20; border: 0.50px white solid"></div>
+						<div class="flex flex-0 mt-5 font-medium text-sm justify-center items-center text-white px-8 mb-5">
+							Already have an account yet? &nbsp;
+							<div data-action="click-&gt;main#closeRegistrationModal click-&gt;main#openSignInModal" class="text-[#E75275] text-sm font-semibold leading-normal cursor-pointer">
+								Sign in
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</turbo-frame>
+		<turbo-frame id="sign-in-modal">
+			<div data-main-target="signInModal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100">
+				<div class="flex relative bg-black-dark rounded-[10px]">
+					<div class="hidden lg:flex h-full relative">
+						<div id="user-login-image">
+
+							<img class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top" src="./Girls_files/image1-510c9159fd51d7802ef2de3bc1e6edcbd5c5dc0a87ef225a5871143c46eaba02.webp">
+						</div>
+					</div>
+					<div class="flex flex-col relative bg-black-dark rounded-tr-[10px] rounded-br-[10px] rounded-tl-[10px] rounded-bl-[10px] lg:rounded-tl-0 lg:rounded-bl-0 w-[335px] lg:w-[407px]">
+						<button type="button" class="absolute w-5 h-5 right-3 top-3" data-action="click-&gt;main#closeSignInModal">
+							<img class="w-auto" src="./Girls_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+						</button>
+						<div class="flex-1 px-6 lg:px-10 pt-0 lg:pt-5">
+							<div id="user-login-container">
+								<form data-turbo="true" class="simple_form mt-5" id="new_user" accept-charset="UTF-8" method="post">
+									<input type="hidden" name="authenticity_token" value="grmMEynVD3TfmFg2gTag2PhWWvF_XJeaAsPBQnjrvf1fU2fDvshrJmqT1j19iDYUGePiAruJFz0WPxZWrH6-3Q" autocomplete="off">
+									<input type="hidden" name="profile_id" id="profile_id" data-main-target="characterIDForGenerateImage" autocomplete="off">
+									<input type="hidden" name="prompt" id="prompt" data-main-target="promptForGenerateImage" autocomplete="off">
+									<div class="form-inputs mb-3">
+										<div class="text-[24px] text-white leading-7 lg:leading-8 font-bold  mb-4 mb-3">
+											Sign in
+										</div>
+
+
+
+
+										<div class="w-full flex-col justify-start items-start gap-1.5 inline-flex mt-5">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img src="./Girls_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+												</div>
+												<div class="input email required user_email w-full">
+													<input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="E-mail" type="email" value="" name="user[email]" id="user_email">
+												</div>
+											</div>
+										</div>
+										<div class="w-full flex-col justify-start items-start gap-1.5 inline-flex mt-5">
+											<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+												<div class="w-5 h-5 absolute top-[13px] left-[10px]">
+													<img src="./Girls_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+												</div>
+												<div class="w-5 h-5 absolute top-[13px] right-[10px]">
+													<img src="./Girls_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+												</div>
+												<div class="input password required user_password w-full">
+													<input class="password required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="Password" type="password" name="user[password]" id="user_password">
+												</div>
+											</div>
+										</div>
+									</div>
+									<!--<a target="_blank" class="text-white mb-4 font-medium text-sm underline" href="users/password/new">Forgot password?</a>-->
+									<br>
+									<button name="button" type="submit" class="flex w-full mt-6 px-4 py-3 bg-[#E75275] rounded-[10px] justify-center items-center text-white text-sm font-semibold" id="signin-btn" data-controller="loading-button-state" data-loading-button-state-target="submit">
+										Sign in
+									</button>
+								</form>
+								<!--<div id="authentication_sign_in_container" class="mb-8">-->
+								<!--  <div class="flex flex-row items-center mt-8 mb-5">-->
+								<!--    <div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.00) 100%);"></div>-->
+								<!--    <div class="flex-0 text-white text-sm font-medium mx-4">or sign in with</div>-->
+								<!--    <div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.30) 100%);"></div>-->
+								<!--  </div>-->
+								<!--    <form data-turbo="false" action="#" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="_TRdyQJrQENVOLXm4ni3AN2aS9erAp0ylh2v5xXw4bxqWn3aCRZ5_pgUU4InR8uorEILDLi9q9EzSMuEbI-1CA" autocomplete="off">-->
+								<!--      <input type="hidden" name="authenticity_token" id="authenticity_token" value="gBJWn36pqDuEt97Ltms47TcWHgUwkwNbtHkzLTcAewSMCtLDkNu7wmLLMLKATJWV8LCOWRr5G6ucyffe6Xg2Sw" autocomplete="off">-->
+								<!--          <button name="button" type="submit" formaction="/users/auth/google_oauth2" class="inline-flex items-center justify-center w-full rounded-[10px] px-4 py-2.5 mb-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--            <img alt="Google" class="h-6 w-6 mr-3" src="./Girls_files/google-auth-a8a364c5c399770d07ce74e6110a120970b1953557a47719692d85ea9334efb6.png">-->
+								<!--            <div class="font-normal text-[#344054]">-->
+								<!--              Google-->
+								<!--            </div>-->
+								<!--</button>            <div class="flex flex-wrap gap-2.5">-->
+								<!--          <div class="flex-1">-->
+								<!--            <button name="button" type="submit" formaction="/users/auth/discord" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-discord-indigo text-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--              <img alt="discord" class="h-6 w-6 mr-3" src="./Girls_files/discord-e159d04d15be58e9fe9767c08b3338ee2735feb84f54b7301303c9c49ed543a2.svg">-->
+								<!--              <div class="text-white font-normal ">-->
+								<!--                Discord-->
+								<!--              </div>-->
+								<!--</button>          </div>-->
+								<!--          <div class="flex-1">-->
+								<!--            <button name="button" type="submit" formaction="/users/auth/twitter" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">-->
+								<!--              <img alt="X" class="h-6 w-6 mr-3" src="./Girls_files/X-26904e26c6e97e747b58528737ef2a47ec6a26e01283df190498f526760cf325.svg">-->
+								<!--              <div class=" font-normal text-[#344054]">-->
+								<!--                X-->
+								<!--              </div>-->
+								<!--</button>          </div>-->
+								<!--            </div>-->
+								<!-- Closing the flex container -->
+								<!--</form></div>-->
+
+							</div>
+						</div>
+						<div style="width: 100%; height: 0px; opacity: 0.20; border: 0.50px white solid"></div>
+						<div class="flex mt-5 font-medium text-sm justify-center items-center text-white px-6 lg:px-10 pb-5">
+							Don't have an account yet? &nbsp;
+							<div data-action="click-&gt;main#closeSignInModal click-&gt;main#openRegistrationModal" class="text-[#E75275] text-sm font-semibold leading-normal cursor-pointer">
+								Sign up
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</turbo-frame>
+    
+    
+    
+    
+    <!--<div onclick="location.href='./Girls.html'" class="form-navigation mx-5  mb-5  mt-3 flex md:flex-row  md:justify-start justify-center gap-4 text-white text-[14px] font-semibold" id="backbbutton" >-->
+				<!--			<a href="javascript:;" class="md:w-[140px] w-full px-4 py-3 rounded-[10px] border-2 border-[#A4A4A4] cursor-pointer justify-center items-center gap-3 flex" data-controller="loading-button-cma" data-loading-button-cma-target="submit">-->
+				<!--				<img class="style-image-class" src="./chooseEthnicityAnime_files/arrow-west-7b1a6d80d4ff8c1cdbd8edbd7986c939539d9967bc38ef96bb8fcb88843d1117.svg">-->
+				<!--				<div>back</div>-->
+				<!--			</a>-->
+					
+				<!--		</div>-->
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" style="display: none;">
+    <div class="bg-gray-900 bg-opacity-70 rounded-lg p-8 flex flex-col items-center">
+      <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-pink-500 mb-4" style="border-bottom: 2px pink solid;"></div>
+      <div class="text-white text-lg font-medium">Loading...</div>
+      <div id="loading-text" class="text-gray-400 text-sm mt-2">Get role information...</div>
+    </div>
+  </div>
+
+  <div id="buy-vip-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" style="display: none;">
+	<div class="bg-gray-900 bg-opacity-70 rounded-lg p-8 flex flex-col items-center">
+		<div class="text-white text-lg font-medium">Your trial has expired. You need to purchase a membership to use it.</div>
+		<div class="text-gray-400 text-sm mt-2">Please purchase a membership to continue using the service.</div>
+		<button class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-all duration-200 transform hover:scale-105 whitespace-nowrap" onclick="location.href='./Buy.html'">Purchase Membership</button>
+	</div>
+  </div>
+
+  <div id="slideshow" class="flex flex-col lg:mx-auto items-center  w-full lg:w-[760px]   max-w-[333px] md:max-w-none mx-auto relative">
+	<div class="fleassasax class1 class2 class3" id="videoPlayer" style="position:relative;">
+		<video id="videoA" 
+			   controls autoplay loop muted playsinline preload="auto"
+			   style="object-fit:cover;opacity:1;transition:opacity 0.5s;display:block;"></video>
+		<video id="videoB" 
+			   controls autoplay loop muted playsinline preload="auto"
+			   style="object-fit:cover;opacity:0;transition:opacity 0.5s;display:none;"></video>
+	</div>
+	
+	<!-- 浮动对话框 -->
+	<div class="fixed bottom-4 left-4 right-4 z-50">
+		<div class="bg-black bg-opacity-30 backdrop-blur-sm rounded-lg p-3 md:p-4 border border-gray-600 max-w-[600px] mx-auto" style="max-width: 600px;">
+			<!-- 对话历史区域 -->
+			<div id="chat-history" class="max-h-24 md:max-h-32 overflow-y-auto mb-2 md:mb-3 text-white text-xs md:text-sm" style="scrollbar-width: thin; scrollbar-color: #000000 #333333;max-height: 300px;">
+				<div class="text-gray-300 text-xs mb-2">Conversation history will appear here...</div>
+				<div class="text-gray-300 text-xs mb-2">Intimacy points: <span id="intimacy-points">0</span></div>
+			</div>
+			
+			<!-- 输入区域 -->
+			<div class="flex gap-2">
+				<input type="text" 
+					id="userInput" 
+					   placeholder="Enter your conversation..." 
+					   class="flex-1 bg-gray-800 bg-opacity-80 text-white placeholder-gray-400 border border-gray-600 rounded-md px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500">
+				<button id="sendBtn" 
+						class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-all duration-200 transform hover:scale-105 whitespace-nowrap">
+					Send
+				</button>
+				<button id="privateChannelBtn" 
+						class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-all duration-200 transform hover:scale-105 whitespace-nowrap">
+					Private Channel
+				</button>
+			</div>
+		</div>
+	</div>
+  </div>
+
+  <!-- 连接状态显示 -->
+  <div class="fixed top-4 right-4 z-50" style="top:3rem !important;">
+    <div class="bg-black bg-opacity-80 backdrop-blur-sm rounded-lg p-3 border border-gray-600">
+      <div class="flex items-center gap-2">
+        <div id="status" class="status disconnected text-sm font-medium">Connecting...</div>
+        <button id="reconnectBtn" 
+                onclick="window.manualReconnect && window.manualReconnect()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors duration-200">
+          Reconnect
+        </button>
+      </div>
+      <div id="connectionInfo" class="text-xs text-gray-400 mt-1">
+        Checking connection...
+      </div>
+    </div>
+  </div>
+
+  <div id="need-purchase-points-modal" class="fixed top-[40%] w-[80%] mx-auto inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" style="display: none;">
+	<div class="bg-gray-900 bg-opacity-70 rounded-lg p-8 flex flex-col items-center">
+		<div class="text-white text-lg font-medium">Your character intimacy is not enough, please purchase points to continue	.</div>
+		<div class="text-gray-400 text-sm mt-2">Purchase points to continue your conversation and <span class="text-pink-500 underline font-bold">unlock private channel.</span></div>
+		<button class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-all duration-200 transform hover:scale-105 whitespace-nowrap" onclick="location.href='./Subscriptions.html'">Purchase Points</button>
+	</div>
+  </div>
+
+  <div id="need-confirm-purchase-modal" class="fixed top-[40%] w-[80%] mx-auto inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" style="display: none;">
+	<div class="bg-gray-900 bg-opacity-70 rounded-lg p-8 flex flex-col items-center">
+		<div class="text-white text-lg font-medium">Please confirm your purchase.</div>
+		<div class="text-gray-400 text-sm mt-2">Please confirm your purchase to continue using the service.</div>
+		<button class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-all duration-200 transform hover:scale-105 whitespace-nowrap" id="confirm-purchase-btn" onclick="confirmPurchase()" data-character-id="" data-points=""  data-user-id="" data-video-id="">Confirm Purchase</button>
+	</div>
+  </div>
+
+  <audio id="bgMusic" loop>
+    <source id="music-source" src="" type="audio/mp3">
+    <!-- 可以添加其他格式的音频源 -->
+  </audio>
+<!--  <div id="dialogue-box">-->
+<!--    <p>这里是一些文字...</p>-->
+<!--</div>-->
+<div id="button-container" class="form-navigation mx-5 lg:mx-10 mb-5 lg:mb-10  lg:mt-12 flex md:flex-row  md:justify-end justify-center gap-4 text-white text-[14px] font-semibold lg:mx-0 lg:max-w-none lg:grid-cols-4">
+    <ul>
+        
+    
+    <!--<button class="dialogue-button" onclick="btnChange('1')" id="start-btn">Start</button>-->
+    <!--<button class="dialogue-button" id="load-btn">Load</button>-->
+    <!--<button class="dialogue-button" id="save-btn">Save</button>-->
+    <!--<button class="dialogue-button" id="system-btn">System</button>-->
+    <!--<button class="dialogue-button" onclick="location.href='./Girls.html'" id="system-btn">Back</button>-->
+    <!--</ul>-->
+</div>
+<input type="hidden" id="characterName" value="">
+<input type="hidden" id="defaultVideo" value="">
+<input type="hidden" id="currentVideo" value="A">
+  <script>
+    // 连接状态监控
+    function updateConnectionInfo() {
+      const connectionInfo = document.getElementById('connectionInfo');
+      const reconnectBtn = document.getElementById('reconnectBtn');
+      const statusEl = document.getElementById('status');
+      
+      if (window.isConnected) {
+        connectionInfo.textContent = '✅ WebSocket connected';
+        reconnectBtn.style.display = 'none';
+        statusEl.parentElement.classList.remove('reconnecting');
+      } else if (window.isReconnecting) {
+        connectionInfo.textContent = '🔄 Attempting to reconnect...';
+        reconnectBtn.style.display = 'none';
+        statusEl.parentElement.classList.add('reconnecting');
+      } else {
+        connectionInfo.textContent = '❌ WebSocket disconnected';
+        reconnectBtn.style.display = 'inline-block';
+        statusEl.parentElement.classList.remove('reconnecting');
+      }
+    }
+    
+    // 定期检查连接状态
+    setInterval(updateConnectionInfo, 1000);
+    
+      // 确保视频自动播放
+      document.addEventListener('DOMContentLoaded', function() {
+        const video = document.querySelector('video');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatHistory = document.getElementById('chat-history');
+        const privateChannelBtn = document.getElementById('privateChannelBtn');
+        
+        // Private Channel 按钮点击事件
+        if (privateChannelBtn) {
+          privateChannelBtn.addEventListener('click', function() {
+			// 检查用户的亲密点数是否足够
+			var intimacyPoints = localStorage.getItem('intimacyPoints')
+			if(intimacyPoints){
+				if(intimacyPoints < 100){
+					document.getElementById('need-purchase-points-modal').style.display = 'flex'
+					return
+				}
+			}
+            // 获取当前角色ID
+            function getParam(name) {  
+              var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");  
+              var r = location.search.substring(1).match(reg);  
+              if (r != null) return decodeURI(decodeURI(r[2])); 
+            }
+            var id = getParam('id');
+            if (id) {
+              window.location.href = './PrivateChannel.html?id=' + id;
+            } else {
+              window.location.href = './PrivateChannel.html';
+            }
+          });
+        }
+      
+      // 尝试播放视频
+      function playVideo() {
+        if (video) {
+          video.muted = true; // 确保静音
+          video.play().then(function() {
+            console.log('视频开始自动播放');
+          }).catch(function(error) {
+            console.log('自动播放失败:', error);
+            // 如果自动播放失败，添加点击事件来播放
+            document.addEventListener('click', function() {
+              video.play();
+            }, { once: true });
+          });
+        }
+      }
+      
+      // 页面加载后尝试播放
+      playVideo();
+      
+      // 监听视频加载完成事件
+      video.addEventListener('loadeddata', function() {
+        playVideo();
+      });
+      
+      // 监听视频错误事件
+      video.addEventListener('error', function(e) {
+        console.log('视频加载错误:', e);
+      });
+      
+      // 对话功能
+      function addMessage(message, isUser = true) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `mb-2 ${isUser ? 'text-right' : 'text-left'}`;
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = `inline-block px-3 py-2 rounded-lg text-sm max-w-xs break-words ${
+          isUser 
+            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' 
+            : 'bg-gray-700 text-white'
+        }`;
+        messageBubble.textContent = message;
+        
+        messageDiv.appendChild(messageBubble);
+        chatHistory.appendChild(messageDiv);
+        
+        // 滚动到底部
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      }
+      
+      // 发送消息
+      function sendMessage() {
+		// 检查用户的VIP是否过期 如果过期则提示用户充值
+		var userInfo = localStorage.getItem('userInfo')
+		if(userInfo){
+			var userInfoObj = JSON.parse(userInfo)
+			if(userInfoObj.vip == 'Trail_Expired'){
+				// addMessage('Your trial has expired. You need to purchase a membership to use it.', false)
+				// return
+				// 页面居中位置弹出需要购买会员提示框 并在3秒后跳转购买页面
+				document.getElementById('buy-vip-modal').style.display = 'flex'
+				setTimeout(() => {
+					document.getElementById('buy-vip-modal').style.display = 'none'
+					location.href = "Subscriptions.html"
+				}, 5000)
+				return
+			}
+		}
+		
+        const message = userInput.value.trim();
+        if (message) {
+          addMessage(message, true);
+          userInput.value = '';
+          
+          // 检查是否有websocket连接，如果有则发送websocket消息
+          if (window.sendWebSocketMessage && window.isConnected) {
+            // 调用websocket.js中的sendMessage函数
+            window.sendWebSocketMessage(message);
+          }
+          
+          // 这里可以添加与视频互动的逻辑
+          // 例如：根据消息内容控制视频播放、暂停等
+          handleVideoInteraction(message);
+        }
+      }
+      
+      // 处理视频互动
+      function handleVideoInteraction(message) {
+        const lowerMessage = message.toLowerCase();
+        
+        // 简单的关键词检测示例
+        if (lowerMessage.includes('暂停') || lowerMessage.includes('pause')) {
+          video.pause();
+          addMessage('Video Paused', false);
+        } else if (lowerMessage.includes('播放') || lowerMessage.includes('play')) {
+          video.play();
+          addMessage('Video has started playing', false);
+        } else if (lowerMessage.includes('重播') || lowerMessage.includes('replay')) {
+          video.currentTime = 0;
+          video.play();
+          addMessage('Video has been replayed', false);
+        } else if (lowerMessage.includes('音量') || lowerMessage.includes('volume')) {
+          if (lowerMessage.includes('静音') || lowerMessage.includes('mute')) {
+            video.muted = true;
+            addMessage('Video has been muted', false);
+          } else if (lowerMessage.includes('取消静音') || lowerMessage.includes('unmute')) {
+            video.muted = false;
+            addMessage('Video has been unmuted', false);
+          }
+        } else {
+          // 如果有websocket连接，不显示默认回复，让websocket处理
+          if (!window.isConnected) {
+            // 默认回复
+            setTimeout(() => {
+              addMessage('Received your message, processing...', false);
+            }, 500);
+          }
+        }
+      }
+      
+      // 绑定发送按钮事件
+      sendBtn.addEventListener('click', sendMessage);
+      
+      // 绑定回车键事件
+      userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          sendMessage();
+        }
+      });
+      
+      // 自动聚焦到输入框
+      userInput.focus();
+    });
+    
+    // 原有的轮播代码（已注释）
+    /*
+     var slideshowItems = [];
+      var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫秒
+      var currentIndex = -1; // 初始索引为 -1，因为点击按钮后会先增加到 0
+    function getParam(name) {  
+		var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");  
+		var r = location.search.substring(1).match(reg);  
+		if (r != null) return decodeURI(decodeURI(r[2])); 
+	}
+  var id = getParam('id')
+
+
+var carouselData = getParam('data')
+      var bgMusic = document.getElementById("bgMusic");
+      bgMusic.play();
+      var startSlideshowBtn = document.getElementById("startSlideshowBtn");
+
+      // 隐藏所有项目
+      slideshowItems.forEach(function(item) {
+        item.style.display = "none";
+      });
+      startSlideshowBtn.style.display = "none";
+      document.getElementById("dialogue-box").classList.remove('hidden')
+      document.getElementById('button-container').classList.remove('hidden')
+      // 点击按钮开始轮播
+      startSlideshowBtn.addEventListener("click", function() {
+        startSlideshowBtn.style.display = "none"; // 隐藏按钮
+        document.getElementById("dialogue-box").classList.remove('hidden')
+        document.getElementById('button-container').classList.remove('hidden')
+        bgMusic.play(); // 播放背景音乐
+        showNextItem(); // 开始轮播
+      });
+     function btnChange(id){
+        var dom = document.getElementById('slideshow')
+        var list = [{
+            id: '1',
+            img: './assets/11.jpg',
+            videos: ['./assets/v1.mp4', './assets/v11.mp4'],
+            msg: '12313'
+        }]
+        var obj = list.find(t => {
+            return t.id === id
+        })
+        var html = ''
+        image.src = obj.img
+        video1.src = obj.videos[0]
+        video2.src = obj.videos[1]
+        document.getElementById('dialogue-box').innerHTML = obj.msg
+        //dom.innerHTML = html
+        bgMusic.play(); // 播放背景音乐
+        currentIndex = -1;
+        showNextItem(); // 开始轮播
+      }
+      function showNextItem() {
+        // 显示下一个项目之前先隐藏当前项目
+        if (currentIndex >= 0) {
+          slideshowItems[currentIndex].style.display = "none";
+
+          // 如果当前项目是视频，则停止视频播放
+          if (slideshowItems[currentIndex].tagName === "VIDEO") {
+            slideshowItems[currentIndex].pause();
+            slideshowItems[currentIndex].currentTime = 0;
+          }
+        }
+
+        // 更新索引以显示下一个项目
+        currentIndex = (currentIndex + 1) % slideshowItems.length;
+
+        // 显示下一个项目
+        slideshowItems[currentIndex].style.display = "block";
+
+        // 如果下一个项目是视频，则自动播放视频
+        if (slideshowItems[currentIndex].tagName === "VIDEO") {
+          bgMusic.pause(); // 暂停背景音乐
+          slideshowItems[currentIndex].play(); // 播放视频
+          slideshowItems[currentIndex].addEventListener('ended', function() {
+            bgMusic.play(); // 视频播放结束后恢复背景音乐
+          });
+        } else {
+          // 否则继续播放背景音乐
+          bgMusic.play();
+        }
+
+        // 计算下一个项目的显示时间
+        var nextDuration = durations[currentIndex];
+
+        // 设置定时器，等待显示下一个项目
+        setTimeout(showNextItem, nextDuration);
+      }
+      // function audioAutoPlay(audio){
+      //   play = function(){
+      //     audio.play();
+      //     document.removeEventListener("touchstart",play, false);
+      //   };
+
+      //   audio.play();
+      //   document.addEventListener("WeixinJSBridgeReady", function () {
+      //     play();
+      //   }, false);
+
+      //   document.addEventListener('YixinJSBridgeReady', function() {
+      //     play();
+      //   }, false);
+
+      //   document.addEventListener("touchstart",play, false);
+      // }
+    document.addEventListener("DOMContentLoaded", function() {
+      startSlideshowBtn.click()
+      //每隔2秒检测是否播放音乐,播放则停止定时器
+      // let t = setInterval(() => {
+      //   if(bgMusic.paused === false){
+      //     console.log('停止定时器');
+      //     clearInterval(t);
+      //     showNextItem(); // 开始轮播
+      //   }else{
+      //     console.log('执行定时器');
+      //     audioAutoPlay(bgMusic);
+      //   }
+      // },500);
+    });
+    */
+  </script>
+	<script>
+		function confirmPurchase(){
+			var characterId = document.getElementById('confirm-purchase-btn').dataset.characterId;
+			var points = document.getElementById('confirm-purchase-btn').dataset.points;
+			var userId = document.getElementById('confirm-purchase-btn').dataset.userId;
+			var videoId = document.getElementById('confirm-purchase-btn').dataset.videoId;
+			console.log(characterId, points, userId, videoId);
+			const base = 'http://127.0.0.1:8049'
+			// 调用后端接口确认购买
+			$.ajax({
+				url: `${base}/api/user/confirm_purchase`,
+				method: 'POST',
+				data: {
+					character_id: characterId,
+					points: points,
+					user_id: userId,
+					video_id: videoId
+				},
+				success: function(res){
+					console.log(res);
+					if(res.code == 1){
+						// 购买成功，关闭模态框
+						document.getElementById('need-confirm-purchase-modal').style.display = 'none';
+						// 触发购买成功后的视频播放
+						if(window.handlePurchaseSuccess) {
+							window.handlePurchaseSuccess();
+						}
+					}else{
+						alert(res.msg);
+					}
+				},
+				error: function(err){
+					console.log(err);
+				}
+			})
+		}
+	</script>
+</body>
+</html>

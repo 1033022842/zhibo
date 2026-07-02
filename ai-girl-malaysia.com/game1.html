@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="background">
+        <!-- 这里使用CSS来设置背景图 -->
+    </div>
+    <div id="dialogue-box">
+        <p>这里是一些文字...</p>
+    </div>
+    <div id="button-container">
+        <button class="dialogue-button" id="start-btn">Start</button>
+        <button class="dialogue-button" id="load-btn">Load</button>
+        <button class="dialogue-button" id="save-btn">Save</button>
+        <button class="dialogue-button" id="system-btn">System</button>
+        <button class="dialogue-button" onclick="location.href='./Chat.html'" id="system-btn">Back</button>
+    </div>
+</body>
+</html>
+<style>
+    /* styles.css */
+body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* 隐藏任何可能出现的滚动条 */
+}
+
+#background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* 确保背景图在对话框下方 */
+}
+
+#dialogue-box {
+    width: 70%;
+    position: absolute;
+    bottom: 100px; /* 对话框距离底部的距离 */
+    left: 50%; /* 水平居中，需要配合 transform */
+    transform: translateX(-50%); /* 水平居中 */
+    background-color: rgba(255, 255, 255, 0.7); /* 半透明白色背景 */
+    padding: 15px; /* 内边距 */
+    border-radius: 10px; /* 圆角 */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); /* 阴影效果 */
+}
+
+#dialogue-box p {
+    margin: 0; /* 去除段落默认的上下边距 */
+}
+#button-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    text-align: center; /* 使按钮水平居中 */
+}
+.dialogue-button {
+    display: inline-block; /* 使按钮可以并排显示 */
+    margin: 0 5px; /* 设置按钮之间的间距 */
+    padding: 10px 20px; /* 设置按钮的内边距 */
+    font-size: 16px; /* 设置字体大小 */
+    border-radius: 5px; /* 设置圆角 */
+    border: none; /* 去除边框 */
+    background-color: #333; /* 设置背景色 */
+    color: #fff; /* 设置文字颜色 */
+    cursor: pointer; /* 鼠标悬停时显示小手图标 */
+    transition: background-color 0.3s ease; /* 添加背景色过渡效果 */
+}
+
+.dialogue-button:hover {
+    background-color: #444; /* 鼠标悬停时改变背景色 */
+}
+</style>
+<script>
+
+</script>

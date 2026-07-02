@@ -30,13 +30,14 @@ const baTable = new baTableClass(
             { label: '人设名称', prop: 'name', align: 'center', operator: 'LIKE' },
             { label: '标签', prop: 'tags', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
             { label: '封面', prop: 'cover_url', align: 'center', render: 'image', operator: false },
+            { label: '所属用户', prop: 'user.nickname', align: 'center', operator: false },
             {
                 label: '状态',
                 prop: 'status',
                 align: 'center',
                 render: 'tag',
-                custom: { '0': 'danger', '1': 'success' },
-                replaceValue: { '0': '禁用', '1': '启用' },
+                custom: { '0': 'danger', '1': 'warning', '2': 'success' },
+                replaceValue: { '0': '禁用', '1': '准备中', '2': '启用' },
             },
             {
                 label: '操作',
@@ -54,6 +55,7 @@ const baTable = new baTableClass(
             status: 1,
             cover_url: '',
             tags: '',
+            user_id: 0,
         },
     }
 )

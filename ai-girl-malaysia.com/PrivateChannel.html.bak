@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="./characters_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
+<link rel="icon" type="image/x-icon" href="./assets/favico-c002e20e13e2ee0d917bef3242cab0236c1087207a951e9d578b370c519d800a.png">
+ <link rel="stylesheet" href="./assets/fy.css" data-turbo-track="reload">
+	<script src="./Guys_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
+		<script src="./Guys_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
+ <script src="./Girls_files/jquery-3.6.0.min.js"></script>
+		
+  <script src="./assets/layer/3.1.1/layer.js"></script>
+	<!-- PAG Web SDK - 使用 type="module" 加载 -->
+	<!-- 官方文档: https://pag.io/docs/zh-CN/web-play-pagfile.html -->
+	<!-- 尝试使用 unpkg CDN 或其他方式加载 PAG -->
+	<script type="module">
+		// 尝试多个 CDN 源和不同的文件路径
+		var PAG_CDN_SOURCES = [
+			// 尝试 ESM 版本
+			'https://unpkg.com/libpag@latest/lib/libpag.esm.js',
+			'https://cdn.jsdelivr.net/npm/libpag@latest/lib/libpag.esm.js',
+			// 尝试标准版本
+			'https://unpkg.com/libpag@latest/lib/libpag.min.js',
+			'https://cdn.jsdelivr.net/npm/libpag@latest/lib/libpag.min.js',
+			// 尝试完整路径
+			'https://unpkg.com/libpag@latest/lib/libpag.js',
+			'https://cdn.jsdelivr.net/npm/libpag@latest/lib/libpag.js'
+		];
+		
+		var currentSourceIndex = 0;
+		
+		function tryLoadPAG(sourceIndex) {
+			if (sourceIndex >= PAG_CDN_SOURCES.length) {
+				// 所有 CDN 都失败，尝试本地文件
+				console.warn('所有 PAG CDN 加载失败，尝试本地文件');
+				import('./assets/libpag/libpag.min.js').then(function(module) {
+					handlePAGModule(module, '本地文件');
+				}).catch(function(localError) {
+					console.error('PAG 加载完全失败:', localError);
+					if (window.onPAGError) {
+						window.onPAGError(localError);
+					}
+				});
+				return;
+			}
+			
+			var url = PAG_CDN_SOURCES[sourceIndex];
+			console.log('尝试加载 PAG 从:', url);
+			
+			import(url).then(function(module) {
+				handlePAGModule(module, url);
+			}).catch(function(error) {
+				console.warn('PAG 加载失败 (' + url + '):', error.message);
+				// 尝试下一个源
+				tryLoadPAG(sourceIndex + 1);
+			});
+		}
+		
+		function handlePAGModule(module, source) {
+			console.log('PAG 模块加载成功，来源:', source);
+			console.log('原始模块:', module);
+			console.log('模块类型:', typeof module);
+			console.log('模块 keys:', Object.keys(module));
+			
+			// 尝试多种方式获取 PAG
+			var libpag = null;
+			
+			// 方式1: default 导出
+			if (module.default) {
+				libpag = module.default;
+				console.log('使用 module.default');
+			}
+			
+			// 方式2: 直接使用 module
+			if (!libpag && (module.PAGFile || module.PAGView)) {
+				libpag = module;
+				console.log('使用 module 本身');
+			}
+			
+			// 方式3: 查找 PAG 或 libpag 属性
+			if (!libpag && module.PAG) {
+				libpag = module.PAG;
+				console.log('使用 module.PAG');
+			}
+			
+			if (!libpag && module.libpag) {
+				libpag = module.libpag;
+				console.log('使用 module.libpag');
+			}
+			
+			// 方式4: 如果 module 本身有方法，直接使用
+			if (!libpag && typeof module === 'object' && Object.keys(module).length > 0) {
+				libpag = module;
+				console.log('使用 module 对象（非空）');
+			}
+			
+			if (libpag) {
+				window.libpag = libpag;
+				console.log('PAG 库已设置到 window.libpag');
+				console.log('libpag 类型:', typeof libpag);
+				console.log('libpag keys:', Object.keys(libpag));
+				
+				// 检查关键 API（按照官方文档，应该有 PAGInit 方法）
+				var apiCheck = {
+					hasPAGInit: typeof libpag.PAGInit === 'function',
+					hasPAGFile: !!(libpag.PAGFile),
+					hasPAGView: !!(libpag.PAGView),
+					hasTypes: !!(libpag.types)
+				};
+				console.log('API 检查:', apiCheck);
+				
+				// 按照官方文档，libpag 应该有 PAGInit 方法
+				if (!apiCheck.hasPAGInit) {
+					console.warn('PAGInit 方法未找到，PAG 可能无法正常初始化');
+				} else {
+					console.log('✓ PAGInit 方法可用，可以正常初始化 PAG');
+				}
+				
+				if (window.onPAGLoaded) {
+					window.onPAGLoaded(window.libpag);
+				}
+			} else {
+				console.error('无法从模块中提取 PAG 库');
+				console.error('建议：请下载 PAG 库到本地 ./assets/libpag/libpag.min.js');
+				console.error('下载地址：https://github.com/Tencent/libpag/releases');
+				if (window.onPAGError) {
+					window.onPAGError(new Error('PAG 模块结构不正确，请使用本地文件'));
+				}
+			}
+		}
+		
+		// 开始加载
+		tryLoadPAG(0);
+	</script>
+	<script src="./js/main.js"></script>
+	<script src="./js/event.js"></script>
+
+<title>Private Channel</title>
+<style>
+  /* styles.css */
+body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+.bg {
+  background: #131313;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 100%;
+  height: 100%;
+}
+
+#video-container {
+    position: relative;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 80px;
+    padding-bottom: 200px;
+}
+
+#videoPlayer {
+    position: relative;
+    width: 100%;
+    max-width: 760px;
+}
+
+#videoPlayer video {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    display: block;
+    border-radius: 10px;
+}
+
+#user-info {
+    position: relative; /* 相对于 gift-container 定位 */
+    text-align: left; /* 左对齐 */
+    font-size: 20px;
+    color: #fff;
+    padding: 10px 20px;
+    margin-bottom: 10px; /* 与礼物列表的间距 */
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+	max-width: 760px;
+	margin: 0 auto;
+}
+
+/* 礼物栏样式 */
+#gift-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.5));
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    z-index: 50;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#gift-list {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.gift-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    min-width: 80px;
+}
+
+.gift-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-5px);
+}
+
+.gift-item:active {
+    transform: translateY(0) scale(0.95);
+}
+
+.gift-image {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    margin-bottom: 8px;
+    border-radius: 8px;
+}
+
+.gift-name {
+    color: #fff;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.gift-price {
+    color: #F77389;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* 礼物效果动画 */
+.gift-effect {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1000;
+    animation: giftFly 3s ease-out forwards;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+}
+
+@keyframes giftFly {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.8) rotate(0deg);
+    }
+    25% {
+        opacity: 1;
+        transform: translateY(-50px) scale(1.2) rotate(10deg);
+    }
+    50% {
+        opacity: 0.9;
+        transform: translateY(-150px) scale(1.3) rotate(-10deg);
+    }
+    75% {
+        opacity: 0.6;
+        transform: translateY(-250px) scale(1.1) rotate(5deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-350px) scale(0.6) rotate(0deg);
+    }
+}
+
+/* PAG 动画层样式 */
+#gift-animation-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(-5%); /* 向上移动 10% */
+}
+
+.gift-pag-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gift-pag-container.center {
+    align-items: center;
+    justify-content: center;
+}
+
+.gift-pag-container.fullscreen {
+    width: 100%;
+    height: 100%;
+}
+
+.gift-pag-container.bottom {
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 20%;
+}
+
+.gift-pag-canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* 视频动画样式 */
+.gift-video-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+	width: 100%;
+}
+
+.gift-video-container.center {
+    align-items: center;
+    justify-content: center;
+}
+
+.gift-video-container.fullscreen {
+    width: 100%;
+    height: 100%;
+}
+
+.gift-video-container.bottom {
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 20%;
+}
+
+.gift-animation-video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+}
+
+/* Loading 动画样式 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* 自定义滚动条样式 */
+#gift-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#gift-container::-webkit-scrollbar-track {
+    background: #333333;
+    border-radius: 3px;
+}
+
+#gift-container::-webkit-scrollbar-thumb {
+    background: #000000;
+    border-radius: 3px;
+}
+
+#gift-container::-webkit-scrollbar-thumb:hover {
+    background: #1a1a1a;
+}
+
+@media only screen and (min-width: 768px) {
+    #videoPlayer video {
+        height: 1100px;
+    }
+}
+
+@media only screen and (max-width: 768px) {
+    #head-btn-group {
+        display: none;
+    }
+    #video-container {
+        padding-top: 60px;
+        padding-bottom: 180px;
+    }
+    .gift-item {
+        min-width: 70px;
+    }
+    .gift-image {
+        width: 50px;
+        height: 50px;
+    }
+}
+</style>
+</head>
+<body class="bg bg-main pages home stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
+    <noscript>
+		<iframe src="./Girls_files/ns.html" height="0" width="0" style="display:none;visibility:hidden"></iframe>
+	</noscript>
+
+	<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+		<span class="tooltip-containers absolute" data-main-target="tooltipContainer">
+			<div id="tooltip-explore" role="tooltip" class="relative z-100 invisible px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-sm opacity-0 tooltip tooltip-sidebar dark:bg-gray-700" style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate3d(83.3333px, 30px, 0px);" data-popper-reference-hidden="" data-popper-placement="right">
+				Explore
+				<div class="tooltip-arrow" data-popper-arrow="" style="position: absolute; top: 0px; transform: translate3d(0px, 14px, 0px);"></div>
+			</div>
+		</span>
+		<nav class="flex flex-col justify-between h-full ">
+			<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto  overflow-x-auto">
+				<li class="relative w-full" data-tooltip-target="tooltip-explore" data-tooltip-placement="right">
+					<a href="./Girls.html" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">
+						<img class="w-6 h-6" src="./Girls_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+					</a>
+				</li>
+			</ul>
+		</nav>
+	</div>
+
+	<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">
+		<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger">
+			<span class="sr-only">Open sidebar</span>
+			<svg class="nav-hamburger h-8 w-8 mr-1 text-white" data-action="click->main#handleMenuClick" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+			</svg>
+		</button>
+		<a href="./Girls.html">
+			<img src="./Girls_files/candyai-navbar-d321c31d58617371f7caf9e34a4e3f9624dce580afcceb6fecdf48c78beafd83.svg" class="h-[30px] md:h-[30px] w-[115px]">
+		</a>
+		<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
+		<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
+		</div>
+
+		<div class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">
+			<form class="relative flex flex-1" action="#" method="GET"></form>
+			<div class="headerfy"></div>
+			<div class="gap-x-2 flex pc-rg-login">
+				<div class="flex items-center gap-x-4 lg:gap-x-6 ">
+					<div data-redirect-url="" data-action="click->main#openRegistrationModal" data-main-target="registerButton" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+						<div class="text-white text-sm font-semibold leading-tight">Register</div>
+					</div>
+				</div>
+				<div class="flex items-center gap-x-4 lg:gap-x-6">
+					<div data-action="click->main#openSignInModal" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+						<div class="text-sm font-semibold leading-tight">Login</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="user-setting" style="display:none;" class="flex flex-1  self-stretch lg:gap-x-6 bg-main">
+			<form class="relative flex flex-1" action="#" method="GET"></form>
+			<div class="headerfy"></div>
+			<div class="flex items-center gap-x-4 lg:gap-x-6 nav-zk">
+				<a href="./Subscriptions.html" class="justify-center items-center primary-gradient flex max-w-full gap-2 px-2 py-1.5 rounded-xl">
+					<img src="assets/olympic-sale/torch-62c1f4e586ca3ad6b1eadcb4457ba71edbe67652e8f775909a81c208c256996c.svg" class="object-cover object-center w-4 overflow-hidden shrink-0">
+					<div class="text-white text-xs font-semibold self-stretch">
+						Subscribe 75% OFF
+					</div>
+				</a>
+			</div>
+			<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+				<div class="lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true"></div>
+				<div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-fit relative ">
+					<button type="button" class="-m-1.5 flex items-center p-1.5 " id="user-menu-button" @click="open = !open" aria-expanded="false" :aria-expanded="open.toString()">
+						<span class="sr-only">Open user menu</span>
+						<img src="assets/user-icons/woman-875180869a83d543d3ac906ca91d24634cc13f486d5c2565ed2908927a1fc10e.svg" class="h-8 w-8 rounded-full">
+						<span class="hidden lg:flex lg:items-center">
+							<span class="ml-4 text-sm font-semibold leading-6 text-white" aria-hidden="true">My Profile</span>
+							<svg class="ml-2 h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+								<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>
+							</svg>
+						</span>
+					</button>
+					<div x-show="open" @keydown.arrow-up.prevent="" @keydown.arrow-down.prevent="" @keydown.tab="open = false" @keydown.enter.prevent="open = false" class="absolute right-0 z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none" data-controller="users" style="display: none;">
+						<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./Subscriptions.html">
+							<div class="w-5 h-5 relative">
+								<img src="/assets/sidebar-icons/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+							</div>
+							<div class="text-white text-sm font-semibold leading-normal">Subscription</div>
+						</a>
+						<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./setting.html">
+							<div class="w-5 h-5 relative">
+								<img src="/assets/settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg">
+							</div>
+							<div class="text-white text-sm font-semibold leading-normal">Settings</div>
+						</a>
+						<form class="button_to" method="post" onsubmit="return false">
+							<input type="hidden" name="_method" value="delete" autocomplete="off">
+							<button data-turbo="false" id="logout" class="rounded-b-lg w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" type="submit">
+								<div class="w-5 h-5 relative">
+									<img src="/assets/logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Logout</div>
+							</button>
+							<input type="hidden" name="authenticity_token" value="sQJXhrDTp_Ev7C193Oa-PTVmRkWdvSycvObq6DIY4fCrI-9C84LjijJ0wuJ-DP03BnvYa8r9ajga1oD4vqNtlQ" autocomplete="off">
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Loading Overlay -->
+	<div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" style="display: none;">
+		<div class="bg-gray-900 bg-opacity-70 rounded-lg p-8 flex flex-col items-center">
+			<div class="animate-spin rounded-full h-16 w-16 border-b-2 border-pink-500 mb-4" style="border-bottom: 2px pink solid;"></div>
+			<div class="text-white text-lg font-medium">Loading...</div>
+			<div id="loading-text" class="text-gray-400 text-sm mt-2">Loading video...</div>
+		</div>
+	</div>
+
+	<!-- 视频容器 -->
+	<div id="video-container">
+		<div id="videoPlayer" style="position:relative;">
+			<video id="videoA" 
+				   controls autoplay loop muted playsinline preload="auto"
+				   style="object-fit:cover;opacity:1;transition:opacity 0.5s;display:block;"></video>
+			<!-- PAG 动画效果层 -->
+			<div id="gift-animation-layer"></div>
+		</div>
+	</div>
+
+	<!-- 礼物栏 -->
+	<div id="gift-container">
+		<div id="user-info" style="display:none;">
+			<div class="user-balance">Balance: $0</div>
+		</div>
+		<div id="gift-list">
+			<!-- 礼物列表将通过 JavaScript 动态加载 -->
+		</div>
+	</div>
+
+	<!-- 充值提示 Modal -->
+	<div id="need-recharge-modal" class="fixed top-[40%] w-[80%] mx-auto inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" style="display: none;" onclick="closeRechargeModal()">
+		<div class="bg-gray-900 bg-opacity-70 rounded-lg p-8 flex flex-col items-center" onclick="event.stopPropagation()">
+			<div class="text-white text-lg font-medium">Insufficient balance</div>
+			<div class="text-gray-400 text-sm mt-2">Your balance is insufficient to purchase this gift, please go to recharge.</div>
+			<div class="flex gap-4 mt-4">
+				<button class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200" onclick="closeRechargeModal()">Cancel</button>
+				<button class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 transform hover:scale-105" onclick="location.href='./Subscriptions.html'">Go to recharge</button>
+			</div>
+		</div>
+	</div>
+
+	<input type="hidden" id="characterName" value="">
+	<input type="hidden" id="defaultVideo" value="">
+
+	<script>
+	(()=>{
+		var base = 'https://api.kisss.ai'
+		var token = localStorage.getItem('token')
+		var giftList = []
+		
+		function getParam(name) {  
+			var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");  
+			var r = location.search.substring(1).match(reg);  
+			if (r != null) return decodeURI(decodeURI(r[2])); 
+		}
+		
+		var id = getParam('id')
+		
+		// 显示loading
+		function showLoading(text) {
+			const loadingEl = document.getElementById('loading-overlay');
+			const loadingText = document.getElementById('loading-text');
+			if (loadingEl) {
+				loadingEl.style.display = 'flex';
+			}
+			if (loadingText && text) {
+				loadingText.textContent = text;
+			}
+		}
+		
+		// 隐藏loading
+		function hideLoading() {
+			const loadingEl = document.getElementById('loading-overlay');
+			if (loadingEl) {
+				loadingEl.style.display = 'none';
+			}
+		}
+
+		// 检查token是否存在
+		if(token) {
+			var tokenExpire = localStorage.getItem('tokenExpire')
+			if(tokenExpire) {
+				var now = new Date().getTime()
+				if(now > tokenExpire) {
+					localStorage.removeItem('token')
+					localStorage.removeItem('userInfo')
+					location.reload()
+				}
+			}
+
+			getUserInfo()
+		} else {
+			// 如果没有token，可以跳转到登录页或允许继续
+			// location.href = './Login.html'
+		}
+
+		//获取用户信息
+		function getUserInfo(){
+			var token = localStorage.getItem('token')
+			var headers = {}
+			if(token) {
+				headers = {
+					token
+				}
+			}
+
+			const settings = {
+				"async": true,
+				"crossDomain": true,
+				"url":  base + "/api/user/user_info",
+				"method": "POST",
+				"headers": headers,
+				"processData": false,
+				"contentType": false,
+				"mimeType": "multipart/form-data",
+			};
+			
+			$.ajax(settings).done(function (response) {
+				if(typeof(response) === 'string') {
+					response = JSON.parse(response)
+				}
+				var res = response
+				if(res.code === 1) {
+					localStorage.setItem('userInfo', JSON.stringify(res.data))
+					// 显示用户余额（样式已在 CSS 中定义）
+					document.getElementById('user-info').style.display = 'block'
+					document.getElementById('user-info').innerHTML = `
+						<div class="user-balance">Balance: $${res.data.money}</div>
+					`
+
+
+					// location.reload()
+				} else {
+					layer.msg(res.msg);  
+				}
+			}).catch(error => {
+				console.error(error)
+				layer.msg('Failed to get user info');  
+			})
+		}
+		// 加载角色默认视频
+		function loadVideo(id) {
+			showLoading('Loading video...');
+			
+			var token = localStorage.getItem('token')
+			var headers = {}
+			if(token) {
+				headers = {
+					token
+				}
+			}
+
+			const settings = {
+				"async": true,
+				"crossDomain": true,
+				"url": "https://websocket.trd.lat" + "/api/characters/" + id + "/default_video",
+				"method": "get",
+				"headers": headers,
+				"processData": false,
+				"contentType": false,
+				"mimeType": "multipart/form-data",
+			};
+			
+			$.ajax(settings).done(function (response) {
+				if(typeof(response) === 'string') {
+					response = JSON.parse(response)
+				}
+				var res = response
+				if(res.code === 1) {
+					var video = document.getElementById('videoA')
+					if (video) {
+						video.src = res.video_file
+						document.getElementById('defaultVideo').value = res.video_file
+						
+						video.addEventListener('loadeddata', function() {
+							console.log('视频加载完成');
+							video.play();
+							hideLoading();
+						}, { once: true });
+						
+						video.addEventListener('error', function(e) {
+							console.error('视频加载失败:', e);
+							hideLoading();
+						}, { once: true });
+						
+						setTimeout(function() {
+							if (video.readyState < 2) {
+								console.log('视频加载超时，强制隐藏loading');
+								hideLoading();
+							}
+						}, 10000);
+					} else {
+						console.error('找不到 video 元素')
+						hideLoading();
+					}
+				} else {
+					layer.msg(res.msg)
+					hideLoading();
+				}
+			}).catch(error => {
+				console.error(error)
+				hideLoading();
+			})
+		}
+
+		// 加载礼物列表
+		function loadGiftList() {
+			var token = localStorage.getItem('token')
+			var headers = {}
+			if(token) {
+				headers = {
+					token
+				}
+			}
+
+			const settings = {
+				"async": true,
+				"crossDomain": true,
+				"url": base + "/api/common/giftlist",
+				"method": "get",
+				"headers": headers,
+				"processData": false,
+				"contentType": false,
+			};
+			
+			$.ajax(settings).done(function (response) {
+				if(typeof(response) === 'string') {
+					response = JSON.parse(response)
+				}
+				var res = response
+				if(res.code === 1 && res.data) {
+					giftList = res.data
+					renderGiftList(giftList)
+				} else {
+					console.error('加载礼物列表失败:', res.msg)
+				}
+			}).catch(error => {
+				console.error('加载礼物列表错误:', error)
+			})
+		}
+
+		// 渲染礼物列表
+		function renderGiftList(gifts) {
+			var giftListEl = document.getElementById('gift-list')
+			if (!giftListEl) return
+			
+			giftListEl.innerHTML = ''
+			
+			gifts.forEach(function(gift) {
+				var giftItem = document.createElement('div')
+				giftItem.className = 'gift-item'
+				giftItem.setAttribute('data-gift-id', gift.id)
+				giftItem.setAttribute('data-gift-name', gift.name)
+				giftItem.setAttribute('data-gift-price', gift.price)
+				
+				giftItem.innerHTML = `
+					<img src="${gift.image}" alt="${gift.name}" class="gift-image">
+					<div class="gift-name">${gift.name}</div>
+					<div class="gift-price">$${gift.price}</div>
+				`
+				
+				giftItem.addEventListener('click', function() {
+					handleGiftClick(gift)
+				})
+				
+				giftListEl.appendChild(giftItem)
+			})
+		}
+
+		// 显示充值 Modal
+		function showRechargeModal() {
+			var modal = document.getElementById('need-recharge-modal')
+			if (modal) {
+				modal.style.display = 'flex'
+			}
+		}
+
+		// 关闭充值 Modal
+		function closeRechargeModal() {
+			var modal = document.getElementById('need-recharge-modal')
+			if (modal) {
+				modal.style.display = 'none'
+			}
+		}
+
+		// 将函数暴露到全局作用域，以便 HTML onclick 可以访问
+		window.showRechargeModal = showRechargeModal
+		window.closeRechargeModal = closeRechargeModal
+
+		// 检查用户余额
+		function checkUserBalance(giftPrice) {
+			var userInfoStr = localStorage.getItem('userInfo')
+			if (!userInfoStr) {
+				// 如果没有用户信息，尝试获取
+				getUserInfo()
+				return false
+			}
+			
+			try {
+				var userInfo = JSON.parse(userInfoStr)
+				var userBalance = parseFloat(userInfo.money || 0)
+				var price = parseFloat(giftPrice || 0)
+				
+				return userBalance >= price
+			} catch (error) {
+				console.error('解析用户信息失败:', error)
+				return false
+			}
+		}
+
+		// 发送礼物订单到后端
+		function submitGiftOrder(gift, callback) {
+			var token = localStorage.getItem('token')
+			var headers = {}
+			if(token) {
+				headers = {
+					token
+				}
+			}
+
+			const form = new FormData()
+			form.append('gift_id', gift.id)
+			form.append('character_id', id)
+
+			const settings = {
+				"async": true,
+				"crossDomain": true,
+				"url": base + "/api/user/submit_gift_order",
+				"method": "POST",
+				"headers": headers,
+				"processData": false,
+				"contentType": false,
+				"mimeType": "multipart/form-data",
+				"data": form
+			};
+			
+			$.ajax(settings).done(function (response) {
+				if(typeof(response) === 'string') {
+					response = JSON.parse(response)
+				}
+				var res = response
+				if(res.code === 1) {
+					console.log('礼物订单提交成功')
+					// 更新用户余额
+					if (res.data && res.data.remaining_balance !== undefined) {
+						var userInfoStr = localStorage.getItem('userInfo')
+						if (userInfoStr) {
+							try {
+								var userInfo = JSON.parse(userInfoStr)
+								userInfo.money = res.data.remaining_balance
+								localStorage.setItem('userInfo', JSON.stringify(userInfo))
+								// 更新显示的余额
+								var userInfoEl = document.getElementById('user-info')
+								if (userInfoEl) {
+									userInfoEl.innerHTML = `
+										<div class="user-balance">Balance: $${res.data.remaining_balance}</div>
+									`
+								}
+							} catch (e) {
+								console.error('更新用户信息失败:', e)
+							}
+						}
+					}
+					// 执行回调（播放礼物特效）
+					if (callback && typeof callback === 'function') {
+						callback()
+					}
+				} else {
+					console.error('礼物订单提交失败:', res.msg)
+					layer.msg(res.msg || '礼物订单提交失败')
+				}
+			}).catch(error => {
+				console.error('发送礼物订单错误:', error)
+				layer.msg('网络错误，请稍后重试')
+			})
+		}
+
+		// 处理礼物点击
+		function handleGiftClick(gift) {
+			console.log('点击礼物:', gift)
+			
+			// 检查用户余额
+			var giftPrice = parseFloat(gift.price || 0)
+			if (giftPrice <= 0) {
+				layer.msg('礼物价格无效')
+				return
+			}
+
+			if (!checkUserBalance(giftPrice)) {
+				// 余额不足，显示充值 modal
+				showRechargeModal()
+				return
+			}
+
+			// 余额足够，发送礼物订单请求
+			submitGiftOrder(gift, function() {
+				// 订单提交成功后，播放礼物特效
+				createGiftEffect(gift)
+			})
+		}
+
+		// PAG 动画播放队列管理
+		var pagAnimationQueue = []
+		var isPlayingPAG = false
+		var PAG = null // PAG 模块引用
+		
+		// 视频动画播放队列管理
+		var videoAnimationQueue = []
+		var isPlayingVideo = false
+		
+		// 初始化 PAG 模块（按照官方文档：先加载 libpag，再调用 PAGInit）
+		async function initPAG() {
+			if (PAG) return PAG
+			
+			// 等待 libpag 加载完成
+			if (typeof window.libpag === 'undefined') {
+				await new Promise(function(resolve, reject) {
+					var checkCount = 0
+					var maxChecks = 150 // 15秒，每100ms检查一次
+					
+					// 设置加载完成回调
+					window.onPAGLoaded = function() {
+						window.onPAGLoaded = null
+						resolve()
+					}
+					
+					// 设置错误回调
+					window.onPAGError = function(error) {
+						window.onPAGError = null
+						reject(error)
+					}
+					
+					// 轮询检查（备用方案）
+					var checkInterval = setInterval(function() {
+						if (typeof window.libpag !== 'undefined') {
+							clearInterval(checkInterval)
+							if (window.onPAGLoaded) {
+								window.onPAGLoaded = null
+							}
+							resolve()
+						} else if (checkCount++ >= maxChecks) {
+							clearInterval(checkInterval)
+							if (window.onPAGError) {
+								window.onPAGError = null
+							}
+							reject(new Error('PAG 加载超时'))
+						}
+					}, 100)
+				})
+			}
+			
+			// 检查 libpag 是否有 PAGInit 方法
+			if (!window.libpag || typeof window.libpag.PAGInit !== 'function') {
+				throw new Error('PAGInit 方法不可用')
+			}
+			
+			// 按照官方文档调用 PAGInit 初始化 PAG
+			try {
+				PAG = await window.libpag.PAGInit()
+				console.log('PAG 初始化成功:', {
+					hasPAGFile: !!(PAG && PAG.PAGFile),
+					hasPAGView: !!(PAG && PAG.PAGView),
+					keys: PAG ? Object.keys(PAG).slice(0, 10) : []
+				})
+				return PAG
+			} catch (error) {
+				console.error('PAGInit 调用失败:', error)
+				throw error
+			}
+		}
+		
+		// 检查 PAG 是否可用
+		async function isPAGAvailable() {
+			try {
+				var pag = await initPAG()
+				if (!pag) {
+					console.log('PAG 模块未加载')
+					return false
+				}
+				
+				// 检查 PAG API 结构（按照官方文档：应该有 PAGFile 和 PAGView）
+				var hasPAGFile = !!(pag.PAGFile)
+				var hasPAGView = !!(pag.PAGView)
+				
+				if (!hasPAGFile || !hasPAGView) {
+					console.log('PAG API 结构不匹配:', {
+						hasPAGFile: hasPAGFile,
+						hasPAGView: hasPAGView,
+						pagKeys: Object.keys(pag || {})
+					})
+				}
+				
+				return hasPAGFile && hasPAGView
+			} catch (error) {
+				console.error('检查 PAG 可用性时出错:', error)
+				return false
+			}
+		}
+		
+		// 播放 PAG 动画
+		async function playPAGAnimation(gift) {
+			var pagAvailable = await isPAGAvailable()
+			if (!pagAvailable) {
+				console.warn('PAG library not available, fallback to static animation')
+				createStaticGiftEffect(gift)
+				return
+			}
+			
+			var animationLayer = document.getElementById('gift-animation-layer')
+			if (!animationLayer) {
+				console.error('Animation layer not found')
+				createStaticGiftEffect(gift)
+				return
+			}
+			
+			var animation = gift.animation
+			if (!animation || !animation.url) {
+				console.warn('No animation URL provided, fallback to static animation')
+				createStaticGiftEffect(gift)
+				return
+			}
+			
+			var container = null
+			var canvas = null
+			var pagView = null
+			
+			try {
+				// 确保 PAG 已初始化（会调用 PAGInit）
+				if (!PAG) {
+					PAG = await initPAG()
+				}
+				
+				if (!PAG || !PAG.PAGFile || !PAG.PAGView) {
+					console.error('PAG API 不完整:', {
+						hasPAG: !!PAG,
+						hasPAGFile: !!(PAG && PAG.PAGFile),
+						hasPAGView: !!(PAG && PAG.PAGView),
+						availableKeys: PAG ? Object.keys(PAG) : []
+					})
+					throw new Error('PAG library API not available')
+				}
+				
+				// 创建容器
+				container = document.createElement('div')
+				container.className = 'gift-pag-container'
+				
+				// 根据 position 设置样式
+				var position = animation.position || 'center'
+				container.classList.add(position)
+				
+				// 创建 canvas
+				canvas = document.createElement('canvas')
+				canvas.className = 'gift-pag-canvas'
+				
+				// 先添加到 DOM，再设置尺寸（PAG 需要 canvas 在 DOM 中）
+				container.appendChild(canvas)
+				animationLayer.appendChild(container)
+				
+				// 加载 PAG 文件（处理 CORS 问题）
+				var pagUrl = animation.url
+				var response = null
+				var arrayBuffer = null
+				
+				// 检查 URL 是否是跨域的
+				var isCrossOrigin = false
+				var targetOrigin = null
+				try {
+					var urlObj = new URL(pagUrl, window.location.href)
+					targetOrigin = urlObj.origin
+					isCrossOrigin = targetOrigin !== window.location.origin
+				} catch (e) {
+					// URL 解析失败，可能是相对路径，视为同源
+					isCrossOrigin = false
+				}
+				
+				// 如果 URL 是 localhost:8049（后端服务器），且当前页面是 localhost:8080，需要处理 CORS
+				if (isCrossOrigin && targetOrigin && targetOrigin.includes('localhost:8049')) {
+					// 方案1: 尝试通过后端 API 代理（如果后端有代理接口）
+					// 方案2: 直接使用 fetch，但需要后端配置 CORS 头
+					console.log('检测到跨域 PAG 文件，尝试加载:', pagUrl)
+					
+					try {
+						// 先尝试直接 fetch（如果后端已配置 CORS）
+						response = await fetch(pagUrl, {
+							mode: 'cors',
+							credentials: 'omit'
+						})
+						
+						if (!response.ok) {
+							throw new Error('HTTP ' + response.status + ': ' + response.statusText)
+						}
+						
+						arrayBuffer = await response.arrayBuffer()
+					} catch (corsError) {
+						// CORS 失败，尝试通过后端代理或使用相对路径
+						console.warn('CORS 错误，尝试其他方式加载:', corsError.message)
+						
+						// 如果 URL 是完整路径，尝试提取相对路径
+						try {
+							var fullUrl = new URL(pagUrl)
+							var relativePath = fullUrl.pathname
+							
+							// 如果路径以 /assets/ 开头，直接使用（假设后端支持）
+							if (relativePath.startsWith('/assets/')) {
+								// 尝试使用当前页面的 origin + 路径（如果后端在同一域名下）
+								var sameOriginUrl = window.location.origin + relativePath
+								console.log('尝试同源 URL:', sameOriginUrl)
+								
+								try {
+									response = await fetch(sameOriginUrl)
+									if (response.ok) {
+										arrayBuffer = await response.arrayBuffer()
+									} else {
+										throw new Error('Same origin fetch failed')
+									}
+								} catch (e) {
+									// 如果还是失败，抛出原始 CORS 错误
+									throw new Error('CORS 错误：后端服务器 ' + targetOrigin + ' 需要配置 Access-Control-Allow-Origin 头。\n' +
+										'或者将 PAG 文件放到前端服务器的同源路径下。\n' +
+										'原始错误: ' + corsError.message)
+								}
+							} else {
+								throw corsError
+							}
+						} catch (e) {
+							throw new Error('无法加载 PAG 文件。CORS 错误：' + corsError.message + 
+								'\n请确保后端服务器配置了 CORS 头，或者将 PAG 文件放到前端可访问的位置。')
+						}
+					}
+				} else {
+					// 同源请求或官方 CDN（通常已配置 CORS）
+					response = await fetch(pagUrl, {
+						mode: isCrossOrigin ? 'cors' : 'same-origin',
+						credentials: 'omit'
+					})
+					
+					if (!response.ok) {
+						throw new Error('Failed to load PAG file: ' + response.statusText)
+					}
+					
+					arrayBuffer = await response.arrayBuffer()
+				}
+				
+				// 按照官方文档使用 PAG.PAGFile.load()
+				var pagFile = await PAG.PAGFile.load(arrayBuffer)
+				
+				// 设置 canvas 尺寸（使用 PAG 文件的原始尺寸或配置的尺寸）
+				if (animation.size) {
+					canvas.width = animation.size.width || pagFile.width()
+					canvas.height = animation.size.height || pagFile.height()
+					canvas.style.width = canvas.width + 'px'
+					canvas.style.height = canvas.height + 'px'
+				} else {
+					// 使用 PAG 文件的原始尺寸
+					canvas.width = pagFile.width()
+					canvas.height = pagFile.height()
+					canvas.style.width = canvas.width + 'px'
+					canvas.style.height = canvas.height + 'px'
+				}
+				
+				// 按照官方文档使用 PAG.PAGView.init()
+				pagView = await PAG.PAGView.init(pagFile, canvas)
+				
+				// 设置缩放模式（可选，如果 API 支持）
+				if (pagView && pagView.setScaleMode) {
+					// 尝试从 PAG 对象获取 ScaleMode，或者使用数字常量
+					// 0=LetterBox, 1=Stretch, 2=Zoom, 3=ZoomOut
+					try {
+						if (PAG.ScaleMode && PAG.ScaleMode.LetterBox !== undefined) {
+							pagView.setScaleMode(PAG.ScaleMode.LetterBox)
+						} else {
+							// 使用数字常量：0 = LetterBox
+							pagView.setScaleMode(0)
+						}
+					} catch (e) {
+						// 忽略错误，这个设置是可选的
+						console.log('setScaleMode 失败，继续播放:', e)
+					}
+				}
+				
+				// 设置播放参数
+				if (pagView.setRepeatCount) {
+					pagView.setRepeatCount(1) // 播放1次
+				}
+				if (pagView.setProgress) {
+					pagView.setProgress(0) // 从开始播放
+				}
+				
+				// 设置超时保护，防止动画卡住
+				var duration = animation.duration || 3000
+				var timeoutId = null
+				var isCleanedUp = false
+				
+				// 清理函数
+				var cleanup = function() {
+					if (isCleanedUp) return
+					isCleanedUp = true
+					
+					if (timeoutId) {
+						clearTimeout(timeoutId)
+					}
+					
+					// 清理资源
+					try {
+						if (pagView && pagView.destroy) {
+							pagView.destroy()
+						}
+					} catch (e) {
+						console.error('Error destroying PAG view:', e)
+					}
+					
+					if (container && container.parentNode) {
+						container.parentNode.removeChild(container)
+					}
+					
+					// 播放队列中的下一个动画
+					isPlayingPAG = false
+					if (pagAnimationQueue.length > 0) {
+						var nextGift = pagAnimationQueue.shift()
+						playPAGAnimation(nextGift)
+					}
+				}
+				
+				// 监听播放完成事件
+				if (pagView.addListener) {
+					pagView.addListener('onAnimationEnd', cleanup)
+				} else if (pagView.onAnimationEnd) {
+					// 备用方式
+					pagView.onAnimationEnd = cleanup
+				}
+				
+				// 设置超时保护
+				timeoutId = setTimeout(function() {
+					if (!isCleanedUp) {
+						console.warn('PAG animation timeout, cleaning up')
+						cleanup()
+					}
+				}, duration + 2000) // 比预期时长多2秒
+				
+				// 开始播放
+				if (pagView.play) {
+					await pagView.play()
+				} else if (pagView.start) {
+					await pagView.start()
+				}
+				
+				isPlayingPAG = true
+				
+			} catch (error) {
+				console.error('PAG animation error:', error)
+				// 清理可能创建的元素
+				if (container && container.parentNode) {
+					container.parentNode.removeChild(container)
+				}
+				// 降级到静态动画
+				createStaticGiftEffect(gift)
+				isPlayingPAG = false
+				// 继续播放队列
+				if (pagAnimationQueue.length > 0) {
+					var nextGift = pagAnimationQueue.shift()
+					playPAGAnimation(nextGift)
+				}
+			}
+		}
+		
+		// 播放视频动画（WebM 格式）
+		async function playVideoAnimation(gift) {
+			var animationLayer = document.getElementById('gift-animation-layer')
+			if (!animationLayer) {
+				console.error('Animation layer not found')
+				createStaticGiftEffect(gift)
+				return
+			}
+			
+			var animation = gift.animation
+			if (!animation || !animation.url) {
+				console.warn('No animation URL provided, fallback to static animation')
+				createStaticGiftEffect(gift)
+				return
+			}
+			
+			var container = null
+			var video = null
+			
+			try {
+				// 创建容器
+				container = document.createElement('div')
+				container.className = 'gift-video-container'
+				
+				// 根据 position 设置样式
+				var position = animation.position || 'center'
+				container.classList.add(position)
+				
+				// 创建 video 元素
+				video = document.createElement('video')
+				video.className = 'gift-animation-video'
+				video.muted = true // 静音播放
+				video.playsInline = true // iOS 内联播放
+				video.loop = false // 不循环
+				video.preload = 'auto'
+				
+				// 设置视频源
+				video.src = animation.url
+				
+				// 设置视频尺寸
+				if (animation.size) {
+					// video.style.width = (animation.size.width || 400) + 'px'
+					// video.style.height = (animation.size.height || 400) + 'px'
+				} else {
+					// 默认尺寸
+					var videoPlayer = document.getElementById('videoPlayer')
+					if (videoPlayer) {
+						var rect = videoPlayer.getBoundingClientRect()
+						// video.style.width = Math.min(400, rect.width) + 'px'
+						// video.style.height = Math.min(400, rect.height) + 'px'
+					}
+				}
+				
+				container.appendChild(video)
+				animationLayer.appendChild(container)
+				
+				// 设置超时保护
+				var duration = animation.duration || 3000
+				var timeoutId = null
+				var isCleanedUp = false
+				
+				// 清理函数
+				var cleanup = function() {
+					if (isCleanedUp) return
+					isCleanedUp = true
+					
+					if (timeoutId) {
+						clearTimeout(timeoutId)
+					}
+					
+					// 停止视频播放
+					try {
+						if (video) {
+							video.pause()
+							video.src = '' // 清空源，释放资源
+							video.load() // 重置视频元素
+						}
+					} catch (e) {
+						console.error('Error cleaning up video:', e)
+					}
+					
+					// 移除 DOM 元素
+					if (container && container.parentNode) {
+						container.parentNode.removeChild(container)
+					}
+					
+					// 播放队列中的下一个动画
+					isPlayingVideo = false
+					if (videoAnimationQueue.length > 0) {
+						var nextGift = videoAnimationQueue.shift()
+						playVideoAnimation(nextGift)
+					}
+				}
+				
+				// 监听播放完成事件
+				video.addEventListener('ended', cleanup, { once: true })
+				
+				// 监听错误事件
+				video.addEventListener('error', function(e) {
+					console.error('Video animation error:', e)
+					cleanup()
+					// 降级到静态动画
+					createStaticGiftEffect(gift)
+				}, { once: true })
+				
+				// 设置超时保护
+				timeoutId = setTimeout(function() {
+					if (!isCleanedUp) {
+						console.warn('Video animation timeout, cleaning up')
+						cleanup()
+					}
+				}, duration + 2000) // 比预期时长多2秒
+				
+				// 开始播放
+				isPlayingVideo = true
+				
+				try {
+					await video.play()
+					console.log('Video animation started')
+				} catch (playError) {
+					console.error('Video play failed:', playError)
+					// 某些浏览器可能需要用户交互才能播放
+					// 尝试静音播放
+					video.muted = true
+					try {
+						await video.play()
+					} catch (e) {
+						console.error('Video play failed even with muted:', e)
+						cleanup()
+						createStaticGiftEffect(gift)
+					}
+				}
+				
+			} catch (error) {
+				console.error('Video animation error:', error)
+				// 清理可能创建的元素
+				if (container && container.parentNode) {
+					container.parentNode.removeChild(container)
+				}
+				// 降级到静态动画
+				createStaticGiftEffect(gift)
+				isPlayingVideo = false
+				// 继续播放队列
+				if (videoAnimationQueue.length > 0) {
+					var nextGift = videoAnimationQueue.shift()
+					playVideoAnimation(nextGift)
+				}
+			}
+		}
+		
+		// 创建静态礼物效果（降级方案）
+		function createStaticGiftEffect(gift) {
+			var videoContainer = document.getElementById('video-container')
+			if (!videoContainer) return
+			
+			// 创建效果元素
+			var effect = document.createElement('div')
+			effect.className = 'gift-effect'
+			
+			var img = document.createElement('img')
+			img.src = gift.image
+			img.style.width = '100px'
+			img.style.height = '100px'
+			img.style.objectFit = 'contain'
+			img.style.borderRadius = '10px'
+			
+			// 添加礼物名称
+			var nameDiv = document.createElement('div')
+			nameDiv.style.color = '#fff'
+			nameDiv.style.fontSize = '14px'
+			nameDiv.style.fontWeight = 'bold'
+			nameDiv.style.marginTop = '5px'
+			nameDiv.style.textShadow = '0 0 5px rgba(0,0,0,0.8)'
+			nameDiv.textContent = gift.name
+			
+			effect.appendChild(img)
+			effect.appendChild(nameDiv)
+			
+			// 随机位置，从视频容器底部向上飞
+			var containerRect = videoContainer.getBoundingClientRect()
+			var randomX = Math.random() * (containerRect.width - 100)
+			effect.style.left = (containerRect.left + randomX) + 'px'
+			effect.style.top = (containerRect.bottom - 50) + 'px'
+			
+			document.body.appendChild(effect)
+			
+			// 3秒后移除元素
+			setTimeout(function() {
+				if (effect.parentNode) {
+					effect.parentNode.removeChild(effect)
+				}
+			}, 3000)
+		}
+		
+		// 创建礼物效果动画（主函数）
+		function createGiftEffect(gift) {
+			var animation = gift.animation
+			
+			if (!animation || !animation.url) {
+				// 没有动画配置，使用静态效果
+				createStaticGiftEffect(gift)
+				return
+			}
+			
+			// 根据动画类型选择播放方式
+			if (animation.type === 'video') {
+				// 视频动画（WebM 格式）
+				if (isPlayingVideo) {
+					videoAnimationQueue.push(gift)
+					console.log('Video animation queued, current queue length:', videoAnimationQueue.length)
+				} else {
+					playVideoAnimation(gift)
+				}
+			} else if (animation.type === 'pag') {
+				// PAG 动画（保留向后兼容）
+				if (isPlayingPAG) {
+					pagAnimationQueue.push(gift)
+					console.log('PAG animation queued, current queue length:', pagAnimationQueue.length)
+				} else {
+					playPAGAnimation(gift)
+				}
+			} else {
+				// 未知类型或没有指定类型，尝试根据 URL 判断
+				var url = animation.url.toLowerCase()
+				if (url.endsWith('.webm') || url.endsWith('.mp4') || url.endsWith('.mov')) {
+					// 视频文件，使用视频播放
+					if (isPlayingVideo) {
+						videoAnimationQueue.push(gift)
+					} else {
+						playVideoAnimation(gift)
+					}
+				} else if (url.endsWith('.pag')) {
+					// PAG 文件，使用 PAG 播放
+					if (isPlayingPAG) {
+						pagAnimationQueue.push(gift)
+					} else {
+						playPAGAnimation(gift)
+					}
+				} else {
+					// 无法识别，使用静态效果
+					console.warn('Unknown animation type, fallback to static effect')
+					createStaticGiftEffect(gift)
+				}
+			}
+		}
+
+		// 发送礼物到服务器（可选）
+		function sendGiftToServer(gift) {
+			var token = localStorage.getItem('token')
+			var headers = {}
+			if(token) {
+				headers = {
+					token
+				}
+			}
+
+			const settings = {
+				"async": true,
+				"crossDomain": true,
+				"url": base + "/api/gift/send", // 根据实际API调整
+				"method": "POST",
+				"headers": headers,
+				"data": {
+					character_id: id,
+					gift_id: gift.id,
+					gift_price: gift.price
+				},
+				"processData": true,
+				"contentType": "application/json",
+			};
+			
+			$.ajax(settings).done(function (response) {
+				if(typeof(response) === 'string') {
+					response = JSON.parse(response)
+				}
+				var res = response
+				if(res.code === 1) {
+					console.log('礼物发送成功')
+				} else {
+					console.error('礼物发送失败:', res.msg)
+					layer.msg(res.msg)
+				}
+			}).catch(error => {
+				console.error('发送礼物错误:', error)
+			})
+		}
+
+		// 确保视频自动播放
+		document.addEventListener('DOMContentLoaded', function() {
+			const video = document.getElementById('videoA');
+			
+			function playVideo() {
+				if (video) {
+					video.muted = true;
+					video.play().then(function() {
+						console.log('视频开始自动播放');
+					}).catch(function(error) {
+						console.log('自动播放失败:', error);
+						document.addEventListener('click', function() {
+							video.play();
+						}, { once: true });
+					});
+				}
+			}
+			
+			playVideo();
+			
+			if (video) {
+				video.addEventListener('loadeddata', function() {
+					playVideo();
+				});
+				
+				video.addEventListener('error', function(e) {
+					console.log('视频加载错误:', e);
+				});
+			}
+		});
+
+		// 初始化
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', function() {
+				if (id) {
+					loadVideo(id)
+				}
+				loadGiftList()
+			})
+		} else {
+			if (id) {
+				loadVideo(id)
+			}
+			loadGiftList()
+		}
+	})()
+	</script>
+</body>
+</html>
+
