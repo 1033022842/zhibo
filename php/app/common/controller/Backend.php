@@ -200,7 +200,7 @@ class Backend extends Api
             $where[] = [implode("|", $quickSearchArr), "LIKE", '%' . str_replace('%', '\%', $quickSearch) . '%'];
         }
         if ($initValue) {
-            $where[] = [$initKey, $initOperator, $initValue];
+            $where[] = [str_contains($initKey, '.') ? $initKey : $mainTableAlias . $initKey, $initOperator, $initValue];
             $limit   = 999999;
         }
 

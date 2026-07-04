@@ -83,5 +83,7 @@ const baTable = new baTableClass(
     }
 )
 
+baTable.mount()
+baTable.getData()
 provide('baTable', baTable)
 </script>

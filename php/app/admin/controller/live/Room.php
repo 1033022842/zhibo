@@ -84,6 +84,13 @@ final class Room extends Backend
                     continue;
                 }
 
+                // 删除房间后，还原绑定的 persona 为未使用
+                if ($room->persona_id > 0) {
+                    Db::connect('live_mysql')->table('lp_persona')
+                        ->where('id', $room->persona_id)
+                        ->update(['status' => 1]);
+                }
+
                 $binding = RoomBinding::where('room_id', $id)->find();
                 if ($binding) {
                     $playlistId = (int) $binding->playlist_template_id;
@@ -158,10 +165,26 @@ final class Room extends Backend
                 if (!$room) {
                     $this->error(__('Record not found'));
                 }
+                $oldPersonaId = (int) $room->persona_id;
                 $room->save($data);
+                $newPersonaId = (int) $data['persona_id'];
+                // 更换了 persona：旧的回退为未使用，新的设为正在使用
+                if ($oldPersonaId > 0 && $oldPersonaId !== $newPersonaId) {
+                    Db::connect('live_mysql')->table('lp_persona')
+                        ->where('id', $oldPersonaId)->update(['status' => 1]);
+                }
+                if ($newPersonaId > 0) {
+                    Db::connect('live_mysql')->table('lp_persona')
+                        ->where('id', $newPersonaId)->update(['status' => 2]);
+                }
             } else {
                 $room = new RoomModel();
                 $room->save($data);
+                // 新 room 绑定的 persona 设为正在使用
+                if ((int) $data['persona_id'] > 0) {
+                    Db::connect('live_mysql')->table('lp_persona')
+                        ->where('id', (int) $data['persona_id'])->update(['status' => 2]);
+                }
             }
 
             $roomIdValue = (int) $room->id;

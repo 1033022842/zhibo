@@ -12,7 +12,7 @@ use app\common\web\ResultCode;
 final class PersonaService
 {
     /**
-     * AI 前端创建角色 → 写入 lp_persona（status=1 准备中）
+     * AI 前端创建角色 → 写入 lp_persona（status=1 准备中）+ 自动创建维护态房间
      */
     public function createFromAi(int $userId, array $data): array
     {
@@ -27,6 +27,22 @@ final class PersonaService
         $persona->source_fields = $this->extractAiFields($data);
         $persona->created_at = date('Y-m-d H:i:s');
         $persona->updated_at = date('Y-m-d H:i:s');
+        $persona->save();
+
+        // 自动创建维护态房间，等待运营上传素材
+        $room = new Room();
+        $room->room_no     = StrHelper::orderNo('R');
+        $room->title       = $persona->name . '的直播间';
+        $room->persona_id  = $persona->id;
+        $room->room_type   = 'live';
+        $room->status      = 2; // 2=维护中（等待运营上传素材）
+        $room->cover_url   = $persona->cover_url;
+        $room->created_at  = date('Y-m-d H:i:s');
+        $room->updated_at  = date('Y-m-d H:i:s');
+        $room->save();
+
+        // 人设已被房间绑定 → 正在使用
+        $persona->status = 2;
         $persona->save();
 
         return $persona->toArray();

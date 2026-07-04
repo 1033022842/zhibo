@@ -167,10 +167,14 @@ final class Live extends BaseController
         $upload->setTopic('ai');
         $userId = $this->getAuthUserId();
         $attachment = $upload->upload(null, 0, $userId);
-
+        $url = $attachment['url'];
+        // 拼接完整URL，方便跨端口前端直接加载图片
+        if (!str_starts_with($url, 'http')) {
+            $url = rtrim($this->request->domain(), '/') . '/' . ltrim($url, '/');
+        }
         return $this->jsonSuccess([
-            'fullurl' => $attachment['url'],
-            'url'     => $attachment['url'],
+            'fullurl' => $url,
+            'url'     => $url,
         ]);
     }
 

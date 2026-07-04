@@ -32,24 +32,20 @@ class LiveUser extends Backend
 
     public function index(): void
     {
-        if ($this->request->param('select')) {
-            $this->select();
-        }
-
         list($where, $alias, $limit, $order) = $this->queryBuilder();
 
         $res = $this->model
             ->field('
-                lp_user.id, lp_user.user_no, lp_user.nickname, lp_user.avatar,
-                lp_user.email, lp_user.status, lp_user.level, lp_user.created_at,
+                live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
+                live_user.email, live_user.status, live_user.level, live_user.created_at,
                 IFNULL(lp_user_auth.auth_key, \'\') as auth_account,
                 IFNULL(lp_user_auth.auth_type, \'\') as auth_type,
                 IFNULL(lp_user_profile.last_login_ip, \'\') as last_login_ip,
                 IFNULL(lp_user_profile.last_login_at, NULL) as last_login_at
             ')
             ->alias($alias)
-            ->leftJoin('lp_user_auth', 'lp_user_auth.user_id = lp_user.id')
-            ->leftJoin('lp_user_profile', 'lp_user_profile.user_id = lp_user.id')
+            ->leftJoin('lp_user_auth', 'lp_user_auth.user_id = live_user.id')
+            ->leftJoin('lp_user_profile', 'lp_user_profile.user_id = live_user.id')
             ->where($where)
             ->order($order)
             ->paginate($limit);

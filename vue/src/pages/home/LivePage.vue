@@ -1,4 +1,4 @@
-﻿﻿﻿<template>
+﻿﻿﻿﻿<template>
   <div class="live-room-page">
     <video
       ref="videoEl"
