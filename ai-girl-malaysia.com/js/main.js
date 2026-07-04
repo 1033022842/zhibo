@@ -1,9 +1,9 @@
 (()=>{
     var cacheTemplate = ''
     var base = 'http://127.0.0.1:8000/api/live'
-    var token = localStorage.getItem('token')
+    var token = localStorage.getItem('live_access_token')
 	
-	var userJson = localStorage.getItem('userInfo')
+	var userJson = localStorage.getItem('live_user_info')
 	var usercode = localStorage.getItem('code')
 	var user = JSON.parse(userJson)
     var isSubmittingValue = false;
@@ -34,13 +34,13 @@
             isSubmittingValue = false;
         })
         $('.logout').on('click', function () {
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
+          localStorage.removeItem('live_access_token')
+          localStorage.removeItem('live_user_info')
           location.reload()
         })
          $('#logout').on('click', function () {
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
+          localStorage.removeItem('live_access_token')
+          localStorage.removeItem('live_user_info')
           location.reload()
         })
         getInfoList()
@@ -150,8 +150,8 @@
               avatar: res.data.user.avatar,
               email: res.data.user.email || ''
             }
-            localStorage.setItem('userInfo', JSON.stringify(userinfo))
-            localStorage.setItem('token', res.data.access_token)
+            localStorage.setItem('live_user_info', JSON.stringify(userinfo))
+            localStorage.setItem('live_access_token', res.data.access_token)
             token = res.data.access_token
            layer.msg(res.msg || '注册成功')
             setTimeout(() => {
@@ -193,12 +193,13 @@
               avatar: res.data.user.avatar,
               email: res.data.user.email || ''
             }
-            localStorage.setItem('userInfo', JSON.stringify(userinfo))
-            localStorage.setItem('token', res.data.access_token)
+            localStorage.setItem('live_user_info', JSON.stringify(userinfo))
+            localStorage.setItem('live_access_token', res.data.access_token)
             token = res.data.access_token
            layer.msg(res.msg || '登录成功')
-            setTimeout(() => {
-              window.location.href = './Girls.html'
+            setTimeout(function() {
+              var redirect = getUrlParam(window.location.href, 'redirect')
+              window.location.href = redirect && redirect !== 'null' ? decodeURIComponent(redirect) : './Girls.html'
             }, 800);
           } else {
             layer.msg(res.msg)
@@ -359,7 +360,7 @@
         var headers = {}
         if(token) {
           headers = {
-            token
+            Authorization: 'Bearer ' + token
           }
         }
         const form = new FormData();

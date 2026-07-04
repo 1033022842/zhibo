@@ -600,7 +600,7 @@ body, html {
 	<script>
 	(()=>{
 		var base = 'https://api.kisss.ai'
-		var token = localStorage.getItem('token')
+		var token = localStorage.getItem('live_access_token')
 		var giftList = []
 		
 		function getParam(name) {  
@@ -637,8 +637,8 @@ body, html {
 			if(tokenExpire) {
 				var now = new Date().getTime()
 				if(now > tokenExpire) {
-					localStorage.removeItem('token')
-					localStorage.removeItem('userInfo')
+					localStorage.removeItem('live_access_token')
+					localStorage.removeItem('live_user_info')
 					location.reload()
 				}
 			}
@@ -651,7 +651,7 @@ body, html {
 
 		//获取用户信息
 		function getUserInfo(){
-			var token = localStorage.getItem('token')
+			var token = localStorage.getItem('live_access_token')
 			var headers = {}
 			if(token) {
 				headers = {
@@ -676,7 +676,7 @@ body, html {
 				}
 				var res = response
 				if(res.code === 1) {
-					localStorage.setItem('userInfo', JSON.stringify(res.data))
+					localStorage.setItem('live_user_info', JSON.stringify(res.data))
 					// 显示用户余额（样式已在 CSS 中定义）
 					document.getElementById('user-info').style.display = 'block'
 					document.getElementById('user-info').innerHTML = `
@@ -697,7 +697,7 @@ body, html {
 		function loadVideo(id) {
 			showLoading('Loading video...');
 			
-			var token = localStorage.getItem('token')
+			var token = localStorage.getItem('live_access_token')
 			var headers = {}
 			if(token) {
 				headers = {
@@ -760,7 +760,7 @@ body, html {
 
 		// 加载礼物列表
 		function loadGiftList() {
-			var token = localStorage.getItem('token')
+			var token = localStorage.getItem('live_access_token')
 			var headers = {}
 			if(token) {
 				headers = {
@@ -844,7 +844,7 @@ body, html {
 
 		// 检查用户余额
 		function checkUserBalance(giftPrice) {
-			var userInfoStr = localStorage.getItem('userInfo')
+			var userInfoStr = localStorage.getItem('live_user_info')
 			if (!userInfoStr) {
 				// 如果没有用户信息，尝试获取
 				getUserInfo()
@@ -994,7 +994,7 @@ body, html {
 
 		// 发送礼物订单到后端
 		function submitGiftOrder(gift, callback) {
-			var token = localStorage.getItem('token')
+			var token = localStorage.getItem('live_access_token')
 			var headers = {}
 			if(token) {
 				headers = {
@@ -1027,12 +1027,12 @@ body, html {
 					console.log('礼物订单提交成功')
 					// 更新用户余额
 					if (res.data && res.data.remaining_balance !== undefined) {
-						var userInfoStr = localStorage.getItem('userInfo')
+						var userInfoStr = localStorage.getItem('live_user_info')
 						if (userInfoStr) {
 							try {
 								var userInfo = JSON.parse(userInfoStr)
 								userInfo.money = res.data.remaining_balance
-								localStorage.setItem('userInfo', JSON.stringify(userInfo))
+								localStorage.setItem('live_user_info', JSON.stringify(userInfo))
 								// 更新显示的余额
 								var userInfoEl = document.getElementById('user-info')
 								if (userInfoEl) {
@@ -1711,7 +1711,7 @@ body, html {
 
 		// 发送礼物到服务器（可选）
 		function sendGiftToServer(gift) {
-			var token = localStorage.getItem('token')
+			var token = localStorage.getItem('live_access_token')
 			var headers = {}
 			if(token) {
 				headers = {

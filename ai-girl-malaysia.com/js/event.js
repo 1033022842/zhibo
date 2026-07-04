@@ -1,6 +1,6 @@
 (()=>{
     var base = 'http://127.0.0.1:8000/api/live'
-    var token = localStorage.getItem('token')
+    var token = localStorage.getItem('live_access_token')
 	
 	// var userJson = localStorage.getItem('userInfo')
 	
@@ -27,16 +27,16 @@
         }
         cacheTemplate = $('#profilesLayout').html();
         $('.logout').on('click', function () {
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
+          localStorage.removeItem('live_access_token')
+          localStorage.removeItem('live_user_info')
           layer.msg("Logout successful")
            setTimeout(() => {
             location.reload()
             }, 800);
         })
          $('#logout').on('click', function () {
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
+          localStorage.removeItem('live_access_token')
+          localStorage.removeItem('live_user_info')
           layer.msg("Logout successful")
            setTimeout(() => {
             location.reload()
@@ -151,7 +151,7 @@
         var headers = {}
         if(token) {
           headers = {
-            token
+            Authorization: 'Bearer ' + token
           }
         }
         const settings = {
@@ -817,8 +817,8 @@
             // 检查是否是认证失败
             if(res.code !== "00000" && (res.code === "10003" || res.code === "10004")) {
               layer.msg(res.msg || "请登录后操作")
-              localStorage.removeItem('token')
-              localStorage.removeItem('userInfo')
+              localStorage.removeItem('live_access_token')
+              localStorage.removeItem('live_user_info')
               setTimeout(() => {
                 location.href = './Login.html'
               }, 800);
@@ -856,8 +856,8 @@
               
               if(isUnauthorized) {
                 layer.msg(errorMsg)
-                localStorage.removeItem('token')
-                localStorage.removeItem('userInfo')
+                localStorage.removeItem('live_access_token')
+                localStorage.removeItem('live_user_info')
                 setTimeout(() => {
                   location.href = './Login.html'
                 }, 800);
@@ -1007,7 +1007,7 @@
               var headers = {}
               if(token) {
                   headers = {
-                  token
+                  Authorization: 'Bearer ' + token
                   }
               }
               const settings = {
