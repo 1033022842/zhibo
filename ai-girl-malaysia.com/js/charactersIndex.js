@@ -55,9 +55,24 @@
               var hobbyLabel = sf.hobby !== undefined ? 'hobby: ' + hobbyArr[sf.hobby] : ''
               var describe = [eyeLabel, hobbyLabel, hairLabel].filter(Boolean).join('. ')
               
-              // status: 1=准备中, 2=已启用
-              var statusText = t.status === 1 ? 'Preparing...' : t.status === 2 ? 'Active' : 'Disabled'
+              // room status: 0=closed, 1=live, 2=maintenance
               var hasLiveRoom = t.room && t.room.id && t.room.status === 1
+              var isMaintenance = t.room && t.room.id && t.room.status === 2
+              
+              var liveUrl, liveClass, liveText
+              if (hasLiveRoom) {
+                liveUrl = '/home/live?roomId=' + t.room.id
+                liveClass = ''
+                liveText = 'View Live Stream'
+              } else if (isMaintenance) {
+                liveUrl = '#'
+                liveClass = 'pointer-events-none opacity-50'
+                liveText = 'Under maintenance...'
+              } else {
+                liveUrl = '#'
+                liveClass = 'pointer-events-none opacity-50'
+                liveText = 'Preparing...'
+              }
               
               var rendered = template.replace(/{{name}}/g, name)
               .replace(/{{age}}/g, ageLabel)
@@ -67,9 +82,9 @@
               .replace(/{{type}}/g, "role1")
               .replace(/{{photo}}/g, t.photo || '')
               .replace(/{{status}}/g, statusText)
-              .replace(/{{liveUrl}}/g, hasLiveRoom ? '/home/live?roomId=' + t.room.id : '#')
-              .replace(/{{liveClass}}/g, hasLiveRoom ? '' : 'pointer-events-none opacity-50')
-              .replace(/{{liveText}}/g, hasLiveRoom ? 'View Live Stream' : 'Preparing...')
+              .replace(/{{liveUrl}}/g, liveUrl)
+              .replace(/{{liveClass}}/g, liveClass)
+              .replace(/{{liveText}}/g, liveText)
               
               $('#all_characters').append(rendered)
             });

@@ -36,8 +36,8 @@ const baTable = new baTableClass(
                 prop: 'status',
                 align: 'center',
                 render: 'tag',
-                custom: { '0': 'danger', '1': 'warning', '2': 'success' },
-                replaceValue: { '0': '禁用', '1': '准备中', '2': '启用' },
+                custom: { '0': 'danger', '1': 'info', '2': 'success' },
+                replaceValue: { '0': '禁用', '1': '未使用', '2': '正在使用' },
             },
             {
                 label: '操作',
