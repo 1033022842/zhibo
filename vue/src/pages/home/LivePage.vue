@@ -1,4 +1,4 @@
-﻿﻿﻿﻿<template>
+﻿﻿﻿<template>
   <div class="live-room-page">
     <video
       ref="videoEl"
@@ -120,7 +120,7 @@ import { _formatNumber, _notice } from '@/utils'
 import { liveRoomDetail, type LiveGiftInfo, type LiveRoom } from '@/api/live'
 import { createLivePlaybackController, type LivePlaybackMode } from '@/utils/livePlayer'
 import { useBaseStore } from '@/store/pinia'
-import { getAccessToken } from '@/utils/auth'
+import { getAccessToken, isLoggedIn } from '@/utils/auth'
 
 type WsState = 'idle' | 'connecting' | 'connected' | 'error'
 
@@ -713,6 +713,13 @@ watch(isMuted, (muted) => {
 })
 
 onMounted(() => {
+  // 未登录 → 跳转 AI 前端登录
+  if (!isLoggedIn()) {
+    var aiLoginUrl = 'http://127.0.0.1:8080/Login.html'
+    var backUrl = window.location.href
+    window.location.href = aiLoginUrl + '?redirect=' + encodeURIComponent(backUrl)
+    return
+  }
   if (videoEl.value) {
     videoEl.value.muted = isMuted.value
   }

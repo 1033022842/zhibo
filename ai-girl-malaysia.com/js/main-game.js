@@ -1,9 +1,9 @@
 (()=>{
     var cacheTemplate = ''
     var base = 'http://127.0.0.1:8049'
-    var token = localStorage.getItem('token')
+    var token = localStorage.getItem('live_access_token')
 	
-	var userJson = localStorage.getItem('userInfo')
+	var userJson = localStorage.getItem('live_user_info')
 	var usercode = localStorage.getItem('code')
 	var user = JSON.parse(userJson)
     var isSubmittingValue = false;
@@ -36,13 +36,13 @@
             isSubmittingValue = false;
         })
         $('.logout').on('click', function () {
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
+          localStorage.removeItem('live_access_token')
+          localStorage.removeItem('live_user_info')
           location.reload()
         })
          $('#logout').on('click', function () {
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
+          localStorage.removeItem('live_access_token')
+          localStorage.removeItem('live_user_info')
           location.reload()
         })
         getInfoList()

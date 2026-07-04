@@ -1145,7 +1145,7 @@ body, html {
       // 发送消息
       function sendMessage() {
 		// 检查用户的VIP是否过期 如果过期则提示用户充值
-		var userInfo = localStorage.getItem('userInfo')
+		var userInfo = localStorage.getItem('live_user_info')
 		if(userInfo){
 			var userInfoObj = JSON.parse(userInfo)
 			if(userInfoObj.vip == 'Trail_Expired'){

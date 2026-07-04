@@ -2,7 +2,7 @@
     var base = 'http://127.0.0.1:8049'
        // 缓存对话模板
        var cacheTemplate = $('#messages-list').html()
-       var token = localStorage.getItem('token')
+       var token = localStorage.getItem('live_access_token')
      /** 
      * 获取指定的URL参数值 
      * URL:http://www.xxx.com/index?name=123

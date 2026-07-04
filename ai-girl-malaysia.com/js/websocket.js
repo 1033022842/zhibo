@@ -197,7 +197,7 @@
     // 初始化WebSocket连接
     function initWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'))
+        const userInfo = JSON.parse(localStorage.getItem('live_user_info'))
         const characterInfo = JSON.parse(localStorage.getItem('characterInfo'))
         const clientId = `browser_${userInfo.id}_${characterInfo.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         currentClientId = clientId; // 保存clientId

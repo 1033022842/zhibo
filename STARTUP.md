@@ -2,7 +2,7 @@
 
 ## 概述
 
-本项目包含 4 个运行时进程 + 2 个外部依赖，需要按顺序启动：
+本项目包含 5 个运行时进程 + 2 个外部依赖，需要按顺序启动：
 
 | 序号 | 进程 | 路径 | 端口 | 命令 | 必需 |
 |------|------|------|------|------|------|
@@ -11,8 +11,9 @@
 | 3 | ThinkPHP 后端 | `php/` | 8000 | `php think run` | ✅ |
 | 4 | WebSocket | `apps/ws-webman/` | 8788 | `php windows.php` | ✅ |
 | 5 | Vue 前端 | `vue/` | 3000 | `pnpm dev` | ✅ |
-| 6 | 管理后台前端 | `php/web/` | 动态 | `pnpm dev` | 按需 |
-| 7 | channel-worker | `services/channel-worker/` | CLI | `php bin/channel-worker.php` | HLS直播需要 |
+| 6 | AI 女友前端 | `ai-girl-malaysia.com/` | 8080 | `npx serve` | ✅ |
+| 7 | 管理后台前端 | `php/web/` | 动态 | `pnpm dev` | 按需 |
+| 8 | channel-worker | `services/channel-worker/` | CLI | `php bin/channel-worker.php` | HLS直播需要 |
 
 ---
 
@@ -54,7 +55,7 @@ source php/sql/upgrade_persona_ai.sql
 
 ---
 
-## 日常启动（开 4 个终端）
+## 日常启动（开 5 个终端）
 
 ### 终端 1 — ThinkPHP 后端 API
 ```bash
@@ -79,7 +80,16 @@ pnpm dev
 > 访问：http://localhost:3000
 > Vite 已配置代理：`/api` → `127.0.0.1:8000`，`/hls` → `127.0.0.1:8000`
 
-### 终端 4（可选）— 管理后台前端
+### 终端 4 — AI 女友前端
+```bash
+cd d:\ever\douyin\douyin\ai-girl-malaysia.com
+npx serve -p 8080
+```
+> 访问：http://127.0.0.1:8080/Login.html
+> **为什么不用 PHP built-in server？** PHP 单线程会死锁，AI 前端只是静态文件，用 `npx serve` 最合适。
+> AI 前端 JS 直接跨域调用 8000 端口的 ThinkPHP API，不经过代理。
+
+### 终端 5（可选）— 管理后台前端
 ```bash
 cd d:\ever\douyin\douyin\php\web
 pnpm dev
@@ -91,7 +101,8 @@ pnpm dev
 
 ### 基础功能验证
 - [ ] `http://localhost:3000` — 抖音前端首页能打开
-- [ ] `http://localhost:3000/home/live?roomId=2` — 直播页能加载
+- [ ] `http://localhost:3000/home/live?roomId=2` — 直播页能加载，未登录会跳转到 AI 登录页
+- [ ] `http://127.0.0.1:8080/Login.html` — AI 前端能打开
 - [ ] `http://127.0.0.1:8000/api/live/login` — 后端 API 可达（POST 测试）
 
 ### AI 对接功能验证
@@ -107,9 +118,14 @@ pnpm dev
 - [ ] 管理员创建 Room 时可选择 Persona
 
 ### AI 前端验证
-- [ ] `Login.html` — 能注册/登录，JWT 存入 localStorage
-- [ ] 角色创建流程 → `charactersIndex.html` 看到"准备中…"
-- [ ] 管理后台给角色创建 Room 并启用 → 前端显示"进入直播间"可点击
+- [ ] `http://127.0.0.1:8080/Login.html` — 能注册/登录，JWT 存入 localStorage（key: `live_access_token`）
+- [ ] 角色创建流程（Girls.html → 选择属性 → summary.html）— 提交后 charactersIndex.html 看到"准备中"
+- [ ] charactersIndex.html — 角色卡片显示"📹 历史切片"按钮（有切片数据时弹窗播放）
+- [ ] 管理后台给角色创建 Room 并启用 → AI 前端显示"进入直播间"可点击
+
+### 跨项目登录验证
+- [ ] AI 前端登录后 → 打开 `http://localhost:3000/home/live?roomId=2` → 自动识别登录态，不需重新登录
+- [ ] Vue 前端未登录时访问直播间 → 自动跳转到 AI 前端 Login.html → 登录成功后回跳直播间
 
 ---
 

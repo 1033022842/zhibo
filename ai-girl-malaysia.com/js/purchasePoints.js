@@ -1,8 +1,8 @@
 (()=>{
     const base = 'https://api.kisss.ai'
     // const base = 'http://45.194.18.126:39200'
-    const token = localStorage.getItem('token')
-    const userJson = localStorage.getItem('userInfo')
+    const token = localStorage.getItem('live_access_token')
+    const userJson = localStorage.getItem('live_user_info')
     const user = JSON.parse(userJson)
     let cacheTemplate = ''
     let cacheMoneyTemplate = ''

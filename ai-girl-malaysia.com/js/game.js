@@ -1,7 +1,7 @@
 (()=>{
     var base = 'https://websocket.trd.lat'
     var slideshowItems = [];
-    var token = localStorage.getItem('token')
+    var token = localStorage.getItem('live_access_token')
     var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫秒
     var currentIndex = -1; // 初始索引为 -1，因为点击按钮后会先增加到 0
     var bgMusic = document.getElementById("bgMusic");
@@ -50,8 +50,8 @@
             var now = new Date().getTime()
             if(now > tokenExpire) {
                 // 如果token过期，则重新登录
-                localStorage.removeItem('token')
-                localStorage.removeItem('userInfo')
+                localStorage.removeItem('live_access_token')
+                localStorage.removeItem('live_user_info')
                 location.reload()
             }
         }
@@ -64,7 +64,7 @@
     function loadData(id, retry = false){
         showLoading('Get video information...'); // 显示loading
         
-        var token = localStorage.getItem('token')
+        var token = localStorage.getItem('live_access_token')
         var headers = {}
         if(token) {
             headers = {
@@ -143,7 +143,7 @@
     function getCharacterInfo(id){
         showLoading('Get role information...'); // 显示loading
         
-        var token = localStorage.getItem('token')
+        var token = localStorage.getItem('live_access_token')
         var headers = {}
         if(token) {
             headers = {
@@ -207,7 +207,7 @@
           }
           var res = response
            if(res.code === 1) {
-            localStorage.setItem('userInfo', JSON.stringify(res.data))
+            localStorage.setItem('live_user_info', JSON.stringify(res.data))
             
             // location.reload()
           } else {

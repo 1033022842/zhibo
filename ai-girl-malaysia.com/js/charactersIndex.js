@@ -1,6 +1,6 @@
 (()=>{
     var base = 'http://127.0.0.1:8000/api/live'
-    var token = localStorage.getItem('token')
+    var token = localStorage.getItem('live_access_token')
     var typeArr = ['Realistic', 'Anime']
     var ageArr = ['18+', '20s', '30s', '40-55']
     var eyeArr = ['Brown', 'Blue', 'Green']
@@ -76,8 +76,8 @@
           } else {
             if (res.code === "10003" || res.code === "10004") {
               layer.msg('Session expired, please log in again')
-              localStorage.removeItem('token')
-              localStorage.removeItem('userInfo')
+              localStorage.removeItem('live_access_token')
+              localStorage.removeItem('live_user_info')
               setTimeout(() => { location.href = './Login.html' }, 800)
             } else {
               layer.msg(res.msg || 'Failed to load characters')
@@ -93,7 +93,7 @@
 // Global function for replay clips modal (called from onclick in HTML template)
 function showReplayClips(personaId, personaName) {
     var base = 'http://127.0.0.1:8000/api/live';
-    var token = localStorage.getItem('token');
+    var token = localStorage.getItem('live_access_token');
     if (!token) {
         layer.msg('Please log in first');
         return;

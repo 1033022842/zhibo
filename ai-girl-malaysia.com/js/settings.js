@@ -1,7 +1,7 @@
 (()=>{
     var base = 'https://api.kisss.ai'
-     var token = localStorage.getItem('token')
-    var userJson = localStorage.getItem('userInfo')
+     var token = localStorage.getItem('live_access_token')
+    var userJson = localStorage.getItem('live_user_info')
 	
     var user = JSON.parse(userJson)
    

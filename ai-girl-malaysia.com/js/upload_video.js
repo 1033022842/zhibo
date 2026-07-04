@@ -1,6 +1,6 @@
 (()=>{
     var base = 'https://api.kisss.ai'
-    var token = localStorage.getItem('token')
+    var token = localStorage.getItem('live_access_token')
     var giftList = []
 
     var id = new URLSearchParams(window.location.search).get('id')
