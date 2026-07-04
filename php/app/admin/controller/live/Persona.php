@@ -26,22 +26,22 @@ final class Persona extends Backend
     /**
      * @throws Throwable
      */
-    public function select(): void
+    public function index(): void
     {
         list($where, $alias, $limit, $order) = $this->queryBuilder();
+
         // status: 0=禁用, 1=未使用, 2=正在使用
-        // select=1 时（下拉选择）只展示未使用的且未被房间绑定的
-        if ($this->request->param('select')) {
+        $isSelect = $this->request->param('select');
+        $initValue = $this->request->get('initValue');
+
+        if ($isSelect && $initValue) {
+            // 编辑时往回查当前绑定的人设（可能已是正在使用状态），允许 status 1+2
+            $where[] = ['persona.status', 'in', [1, 2]];
+        } elseif ($isSelect) {
+            // 下拉列表：只展示未使用
             $where[] = ['persona.status', '=', 1];
-            // 排除已有房间的人设
-            $boundIds = \think\facade\Db::connect('live_mysql')
-                ->table('lp_room')
-                ->where('persona_id', '>', 0)
-                ->column('persona_id');
-            if ($boundIds) {
-                $where[] = ['persona.id', 'NOT IN', $boundIds];
-            }
         } else {
+            // 列表页：展示所有非禁用
             $where[] = ['persona.status', '>', 0];
         }
 
