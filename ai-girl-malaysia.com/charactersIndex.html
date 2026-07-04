@@ -908,9 +908,14 @@
           {{describe}}
         </p>
       </div>
-	  <div class="absolute bottom-0 right-0 bg-gray-900 rounded-lg rounded-bl-lg px-2 py-3 w-full z-10" id="live-btn-container">
-		<p class="text-white text-md font-medium text-center">{{liveText}}</p>
-	  </div>
+	  <div class="absolute bottom-0 right-0 w-full z-10 flex flex-col" id="bottom-btn-group">
+        <div class="bg-gray-900 rounded-lg rounded-bl-lg px-2 py-2 w-full" id="live-btn-container">
+          <p class="text-white text-sm font-medium text-center">{{liveText}}</p>
+        </div>
+        <div class="bg-gray-800 px-2 py-1.5 w-full cursor-pointer hover:bg-gray-700" id="replay-btn-container" onclick="event.stopPropagation(); event.preventDefault(); showReplayClips('{{id}}', '{{name}}')">
+          <p class="text-gray-300 text-xs font-medium text-center">📹 历史切片</p>
+        </div>
+      </div>
     </div>
   </li>
   </a>

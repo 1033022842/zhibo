@@ -88,4 +88,63 @@
           layer.msg('Network error, please try again later')
         })
       }
-})()
+})();
+
+// Global function for replay clips modal (called from onclick in HTML template)
+function showReplayClips(personaId, personaName) {
+    var base = 'http://127.0.0.1:8000/api/live';
+    var token = localStorage.getItem('token');
+    if (!token) {
+        layer.msg('Please log in first');
+        return;
+    }
+
+    // Show loading
+    var loadIdx = layer.load(1);
+
+    $.ajax({
+        url: base + '/replayClips',
+        method: 'GET',
+        data: { persona_id: personaId },
+        headers: { 'Authorization': 'Bearer ' + token },
+        success: function(response) {
+            layer.close(loadIdx);
+            if (typeof response === 'string') response = JSON.parse(response);
+            if (response.code !== '00000') {
+                layer.msg(response.msg || 'Failed to load clips');
+                return;
+            }
+            var clips = response.data || [];
+            if (clips.length === 0) {
+                layer.msg('No replay clips yet');
+                return;
+            }
+
+            // Build modal HTML
+            var html = '<div style="max-height:400px;overflow-y:auto;padding:10px 0;">';
+            clips.forEach(function(c) {
+                var d = c.live_date || '';
+                var dur = c.duration ? Math.floor(c.duration / 60) + 'm ' + (c.duration % 60) + 's' : '';
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #333;cursor:pointer;" onclick="window.open(\'' + c.video_url + '\', \'_blank\')">';
+                html += '<div><div style="color:#fff;font-size:14px;font-weight:500;">' + c.title + '</div>';
+                html += '<div style="color:#888;font-size:12px;margin-top:4px;">' + d + (dur ? ' · ' + dur : '') + '</div></div>';
+                html += '<div style="color:#E75275;font-size:20px;">▶</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+
+            layer.open({
+                type: 1,
+                title: '📹 ' + personaName + ' - 历史切片',
+                content: html,
+                area: ['500px', 'auto'],
+                skin: 'layui-layer-demo',
+                shadeClose: true,
+            });
+        },
+        error: function() {
+            layer.close(loadIdx);
+            layer.msg('Network error');
+        }
+    });
+}
