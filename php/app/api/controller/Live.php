@@ -13,7 +13,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'customRoleOne', 'customOneList', 'upload']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'customRoleOne', 'customOneList', 'upload', 'replayClips']],
     ];
 
     private UserService $userService;
@@ -186,6 +186,28 @@ final class Live extends BaseController
             'customtwoyp2'   => '',
             'customtwoyp3'   => '',
         ]);
+    }
+
+    /**
+     * AI 前端：获取角色历史切片列表
+     */
+    public function replayClips()
+    {
+        $personaId = $this->request->param('persona_id/d', 0);
+        if ($personaId <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'persona_id 无效');
+        }
+
+        $clips = \think\facade\Db::connect('live_mysql')
+            ->table('lp_replay_clip')
+            ->where('persona_id', $personaId)
+            ->where('status', 1)
+            ->field(['id', 'title', 'video_url', 'cover_url', 'duration', 'live_date'])
+            ->order('live_date', 'desc')
+            ->select()
+            ->toArray();
+
+        return $this->jsonSuccess($clips);
     }
 
     /**
