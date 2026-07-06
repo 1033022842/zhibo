@@ -43,6 +43,23 @@ const baTable = new baTableClass(
             },
             { label: '手机号', prop: 'auth_account', align: 'center', operator: 'LIKE', render: 'tag' },
             {
+                label: '商家认证',
+                prop: 'cert_status',
+                align: 'center',
+                width: 100,
+                render: 'tag',
+                replaceValue: { '-1': '未认证', '0': '审核中', '1': '已通过', '2': '已拒绝' },
+                custom: { '-1': 'info', '0': 'warning', '1': 'success', '2': 'danger' },
+            },
+            {
+                label: '审核认证',
+                prop: 'cert_review_url',
+                align: 'center',
+                width: 100,
+                render: 'tag',
+                replaceValue: { '': '-' },
+            },
+            {
                 label: '状态',
                 prop: 'status',
                 align: 'center',
@@ -74,7 +91,7 @@ const baTable = new baTableClass(
             {
                 label: '操作',
                 align: 'center',
-                width: 100,
+                width: 160,
                 render: 'buttons',
                 buttons: defaultOptButtons(['delete']),
                 operator: false,

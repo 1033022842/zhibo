@@ -14,3 +14,5 @@ Route::group('user', function () {
     Route::get('profile', 'live.controller.UserController/profile');
     Route::put('profile', 'live.controller.UserController/updateProfile');
 })->middleware(\app\live\middleware\Auth::class);
+
+

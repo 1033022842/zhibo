@@ -15,8 +15,9 @@ const viteConfig = ({ mode }: ConfigEnv): UserConfig => {
 
     const alias: Record<string, string> = {
         '/@': pathResolve('./src/'),
-        assets: pathResolve('./src/assets'),
+        'assets': pathResolve('./src/assets'),
         'vue-i18n': isProd(mode) ? 'vue-i18n/dist/vue-i18n.cjs.prod.js' : 'vue-i18n/dist/vue-i18n.cjs.js',
+        '@vue/shared': pathResolve('./node_modules/@vue/shared/dist/shared.esm-bundler.js'),
     }
 
     return {
