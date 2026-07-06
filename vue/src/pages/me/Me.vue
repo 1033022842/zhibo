@@ -3,7 +3,7 @@
     <div class="bg-glow bg-glow--top"></div>
     <div class="bg-glow bg-glow--bottom"></div>
 
-    <div class="hero" v-anim>
+    <div class="hero" v-if="loggedIn" v-anim>
       <div class="avatar-stage">
         <div class="avatar-ring"></div>
         <div class="avatar-inner">
@@ -30,14 +30,14 @@
       <p class="bio-text bio-text--empty" v-else v-anim>写一句签名，让大家认识你</p>
     </div>
 
-    <div class="actions" v-anim>
+    <div v-if="loggedIn" class="actions" v-anim>
       <button class="btn-edit" @click="goEdit">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
         <span>编辑资料</span>
       </button>
     </div>
 
-    <nav class="menu" v-anim>
+    <nav v-if="loggedIn" class="menu" v-anim>
       <div class="menu-group">
         <button v-if="loggedIn" class="menu-row" @click="goCertification">
           <span class="menu-icon menu-icon--amber">
@@ -74,6 +74,15 @@
       </button>
     </div>
 
+    <!-- 未登录状态 -->
+    <div v-if="!loggedIn" class="login-prompt">
+      <div class="login-prompt-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2"/></svg>
+      </div>
+      <p class="login-prompt-text">登录后查看个人主页</p>
+      <button class="btn-login" @click="goLogin">登 录</button>
+    </div>
+
     <BaseFooter />
   </div>
 </template>
@@ -90,6 +99,7 @@ defineOptions({ name: 'Me' })
 
 const router = useRouter()
 const store = useBaseStore()
+const loggedIn = computed(() => store.authUserId > 0)
 
 const defaultAvatar = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="%231f2534" width="100" height="100" rx="50"/><circle cx="50" cy="38" r="16" fill="%23555"/><ellipse cx="50" cy="82" rx="28" ry="18" fill="%23555"/></svg>')
 
@@ -537,6 +547,49 @@ async function handleLogout() {
   }
 }
 
+.login-prompt {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rem 0 60rem;
+
+  .login-prompt-icon {
+    color: rgba(255, 255, 255, 0.15);
+    margin-bottom: 20rem;
+  }
+
+  .login-prompt-text {
+    font-size: 15rem;
+    color: rgba(255, 255, 255, 0.35);
+    margin: 0 0 32rem;
+  }
+}
+
+.btn-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 200rem;
+  padding: 14rem 48rem;
+  border: none;
+  border-radius: 30rem;
+  font-size: 16rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  letter-spacing: 4rem;
+  background: linear-gradient(135deg, @accent, #d42148);
+  box-shadow: 0 4px 24px rgba(255, 45, 85, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 12px rgba(255, 45, 85, 0.2);
+  }
+}
+
 /* entrance animations — applied via v-anim directive */
 .hero {
   .avatar-stage { .fade-slide(0ms); }
@@ -552,4 +605,5 @@ async function handleLogout() {
 .actions { .fade-slide(300ms); }
 .menu { .fade-slide(400ms); }
 .logout-zone { .fade-slide(500ms); }
+.login-prompt { .fade-slide(100ms); }
 </style>
