@@ -11,7 +11,7 @@
  Target Server Version : 80012 (8.0.12)
  File Encoding         : 65001
 
- Date: 28/05/2026 16:02:48
+ Date: 05/07/2026 14:34:18
 */
 
 SET NAMES utf8mb4;
@@ -44,7 +44,7 @@ CREATE TABLE `ba_admin`  (
 -- ----------------------------
 -- Records of ba_admin
 -- ----------------------------
-INSERT INTO `ba_admin` VALUES (1, 'admin', 'Admin', '', 'admin@buildadmin.com', '18888888888', 0, 1779856576, '127.0.0.1', '$2y$10$b/w7wjNIymPfjY62LTInBuelicvFAjdMLXNUJhrd7ZvI/ckt3FQDm', '', '', 'enable', 1779856576, 1778942775);
+INSERT INTO `ba_admin` VALUES (1, 'admin', 'Admin', '', 'admin@buildadmin.com', '18888888888', 0, 1783157976, '127.0.0.1', '$2y$10$b/w7wjNIymPfjY62LTInBuelicvFAjdMLXNUJhrd7ZvI/ckt3FQDm', '', '', 'enable', 1783157976, 1778942775);
 
 -- ----------------------------
 -- Table structure for ba_admin_group
@@ -100,7 +100,7 @@ CREATE TABLE `ba_admin_log`  (
   `useragent` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'User-Agent',
   `create_time` bigint(16) UNSIGNED NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 35 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '管理员日志表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 46 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '管理员日志表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of ba_admin_log
@@ -139,6 +139,17 @@ INSERT INTO `ba_admin_log` VALUES (31, 1, 'admin', '/admin/auth.Rule/edit', '菜
 INSERT INTO `ba_admin_log` VALUES (32, 1, 'admin', '/admin/auth.Rule/edit', '菜单规则管理-编辑', '{\"id\":\"55\",\"status\":\"0\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', 1779856429);
 INSERT INTO `ba_admin_log` VALUES (33, 1, 'admin', '/admin/auth.Rule/edit', '菜单规则管理-编辑', '{\"id\":\"78\",\"status\":\"0\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', 1779856430);
 INSERT INTO `ba_admin_log` VALUES (34, 1, 'admin', '/admin/auth.Rule/edit', '菜单规则管理-编辑', '{\"id\":\"21\",\"status\":\"0\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', 1779856431);
+INSERT INTO `ba_admin_log` VALUES (35, 1, 'admin', '/admin/Index/login', '登录', '{\"username\":\"admin\",\"password\":\"***\",\"keep\":\"\",\"captchaId\":\"e691c0e2-8e8a-46b6-b9b9-a4d518e42ced\",\"captchaInfo\":\"232,123-201,54;350;200\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0', 1780032146);
+INSERT INTO `ba_admin_log` VALUES (36, 1, 'admin', '/admin/Index/login', '登录', '{\"username\":\"admin\",\"password\":\"***\",\"keep\":\"\",\"captchaId\":\"1920fd6f-fc45-45cc-a2e1-2e5d4cea2951\",\"captchaInfo\":\"321,56-144,141;350;200\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1782877234);
+INSERT INTO `ba_admin_log` VALUES (37, 1, 'admin', '/admin/Index/login', '登录', '{\"username\":\"admin\",\"password\":\"***\",\"keep\":\"\",\"captchaId\":\"bf4bf79d-0c28-4b2e-b2be-25519668eea6\",\"captchaInfo\":\"312,126-38,169;350;200\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1782892520);
+INSERT INTO `ba_admin_log` VALUES (38, 1, 'admin', '/admin/Index/login', '登录', '{\"username\":\"admin\",\"password\":\"***\",\"keep\":\"\",\"captchaId\":\"b06fb783-d9f5-4f90-938c-68db96c9472a\",\"captchaInfo\":\"145,136-311,125;350;200\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783154705);
+INSERT INTO `ba_admin_log` VALUES (39, 1, 'admin', '/admin/live.Room/edit', '房间管理-编辑', '{\"tag_names\":\"\\u6d4b\\u8bd5,\\u8054\\u8c03\",\"asset_ids\":[\"5\"],\"playlist_name\":\"E2E\\u8054\\u8c03\\u6d4b\\u8bd5\\u623f\\u95f4\\u64ad\\u5355\",\"id\":\"4\",\"room_no\":\"E2E1001\",\"title\":\"E2E\\u8054\\u8c03\\u6d4b\\u8bd5\\u623f\\u95f4\",\"subtitle\":\"\\u540e\\u53f0\\u4e0a\\u4f20\\u7d20\\u6750\\u540e\\u7684\\u771f\\u5b9e\\u8054\\u8c03\\u623f\\u95f4\",\"persona_id\":\"1\",\"room_type\":\"live\",\"status\":\"2\",\"cover_url\":\"\",\"sort\":\"50\",\"created_at\":\"2026-05-18 17:29:54\",\"updated_at\":\"2026-05-18 17:29:54\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783154903);
+INSERT INTO `ba_admin_log` VALUES (40, 1, 'admin', '/admin/Index/login', '登录', '{\"username\":\"admin\",\"password\":\"***\",\"keep\":\"\",\"captchaId\":\"a5eb3629-1c8d-498a-88b8-027ddde904b8\",\"captchaInfo\":\"335,34-117,102;350;200\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783155956);
+INSERT INTO `ba_admin_log` VALUES (41, 1, 'admin', '/admin/live.Persona/edit', '人设管理-编辑', '{\"id\":\"3\",\"user_id\":\"0\",\"code\":\"persona_light_music\",\"name\":\"\\u8f7b\\u97f3\\u966a\\u4f34\",\"tags\":\"\\u8f7b\\u97f3\\u4e50,\\u653e\\u677e,\\u966a\\u4f34\",\"source_fields\":{\"age\":\"1\",\"eye\":\"0\",\"hair\":\"2\",\"type\":\"1\",\"hobby\":\"1,5\",\"profession\":\"1\",\"personality\":\"3\"},\"cover_url\":\"https:\\/\\/picsum.photos\\/seed\\/persona-music\\/320\\/320\",\"status\":\"2\",\"created_at\":\"2026-05-18 09:49:16\",\"updated_at\":\"2026-07-04 16:57:01\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783157111);
+INSERT INTO `ba_admin_log` VALUES (42, 1, 'admin', '/admin/live.Persona/edit', '人设管理-编辑', '{\"id\":\"2\",\"user_id\":\"0\",\"code\":\"persona_night_radio\",\"name\":\"\\u591c\\u804a\\u966a\\u4f34\",\"tags\":\"\\u6e29\\u67d4,\\u966a\\u4f34,\\u591c\\u95f4\",\"source_fields\":{\"age\":\"1\",\"eye\":\"0\",\"hair\":\"2\",\"type\":\"1\",\"hobby\":\"1,5\",\"profession\":\"1\",\"personality\":\"3\"},\"cover_url\":\"https:\\/\\/picsum.photos\\/seed\\/persona-night\\/320\\/320\",\"status\":\"2\",\"created_at\":\"2026-05-18 09:49:16\",\"updated_at\":\"2026-07-04 16:57:00\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783157133);
+INSERT INTO `ba_admin_log` VALUES (43, 1, 'admin', '/admin/live.Room/edit', '房间管理-编辑', '{\"tag_names\":\"\\u4e13\\u6ce8,\\u5b66\\u4e60\",\"asset_ids\":[\"4\"],\"playlist_name\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\\u64ad\\u5355\",\"id\":\"3\",\"room_no\":\"R1003\",\"title\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\",\"subtitle\":\"\\u9002\\u5408\\u5207\\u540e\\u53f0\\u6302\\u673a\\u7684\\u4e13\\u6ce8\\u966a\\u4f34\\u6d41\",\"persona_id\":\"7\",\"room_type\":\"live\",\"status\":\"1\",\"cover_url\":\"https:\\/\\/picsum.photos\\/seed\\/live-room-3\\/720\\/1280\",\"sort\":\"100\",\"created_at\":\"2026-05-18 09:49:16\",\"updated_at\":\"2026-05-19 17:30:12\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783157227);
+INSERT INTO `ba_admin_log` VALUES (44, 1, 'admin', '/admin/live.Room/edit', '房间管理-编辑', '{\"tag_names\":\"\\u4e13\\u6ce8,\\u5b66\\u4e60\",\"asset_ids\":[\"4\"],\"playlist_name\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\\u64ad\\u5355\",\"id\":\"3\",\"room_no\":\"R1003\",\"title\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\",\"subtitle\":\"\\u9002\\u5408\\u5207\\u540e\\u53f0\\u6302\\u673a\\u7684\\u4e13\\u6ce8\\u966a\\u4f34\\u6d41\",\"persona_id\":\"6\",\"room_type\":\"live\",\"status\":\"1\",\"cover_url\":\"https:\\/\\/picsum.photos\\/seed\\/live-room-3\\/720\\/1280\",\"sort\":\"100\",\"created_at\":\"2026-05-18 09:49:16\",\"updated_at\":\"2026-07-04 17:27:07\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783157274);
+INSERT INTO `ba_admin_log` VALUES (45, 1, 'admin', '/admin/live.Room/edit', '房间管理-编辑', '{\"tag_names\":\"\\u4e13\\u6ce8,\\u5b66\\u4e60\",\"asset_ids\":[\"4\"],\"playlist_name\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\\u64ad\\u5355\",\"id\":\"3\",\"room_no\":\"R1003\",\"title\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\",\"subtitle\":\"\\u9002\\u5408\\u5207\\u540e\\u53f0\\u6302\\u673a\\u7684\\u4e13\\u6ce8\\u966a\\u4f34\\u6d41\",\"persona_id\":\"7\",\"room_type\":\"live\",\"status\":\"1\",\"cover_url\":\"https:\\/\\/picsum.photos\\/seed\\/live-room-3\\/720\\/1280\",\"sort\":\"100\",\"created_at\":\"2026-05-18 09:49:16\",\"updated_at\":\"2026-07-04 17:27:54\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783157682);
 
 -- ----------------------------
 -- Table structure for ba_admin_rule
@@ -164,7 +175,7 @@ CREATE TABLE `ba_admin_rule`  (
   `create_time` bigint(16) UNSIGNED NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `pid`(`pid` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 122 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '菜单和权限规则表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 126 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '菜单和权限规则表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of ba_admin_rule
@@ -285,6 +296,10 @@ INSERT INTO `ba_admin_rule` VALUES (113, 109, 'button', '删除', 'live/gift/del
 INSERT INTO `ba_admin_rule` VALUES (114, 109, 'button', '选择', 'live/gift/select', '', '', 'tab', '', '', 0, 'none', '', 6, 1, 1779248396, 1779248396);
 INSERT INTO `ba_admin_rule` VALUES (115, 90, 'menu', '直播平台用户', 'user/liveUser', 'live/liveUser', 'fa fa-users', 'tab', '', '/src/views/backend/user/liveUser/index.vue', 0, 'none', '', 115, 1, NULL, NULL);
 INSERT INTO `ba_admin_rule` VALUES (121, 44, 'menu', '短信服务配置', 'routine/smsConfig', 'routine/smsConfig', 'fa fa-message', 'tab', '', '/src/views/backend/routine/smsConfig/index.vue', 0, 'none', '', 4, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (122, 0, 'menu_dir', '直播数据', 'liveData', '/admin/liveData', 'fa fa-bar-chart', '', '', '', 0, 'none', '', 50, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (123, 122, 'menu', '收益明细', 'live/revenue', '/admin/live/revenue', 'fa fa-list-alt', '', '', 'live/revenue/index', 0, 'none', '', 1, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (124, 122, 'menu', '收入排行榜', 'live/leaderboard', '/admin/live/leaderboard', 'fa fa-trophy', '', '', 'live/leaderboard/index', 0, 'none', '', 2, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (125, 122, 'menu', '历史切片', 'live/replayClip', '/admin/live/replayClip', 'fa fa-video-camera', '', '', 'live/replayClip/index', 0, 'none', '', 3, 1, NULL, NULL);
 
 -- ----------------------------
 -- Table structure for ba_area
@@ -332,12 +347,15 @@ CREATE TABLE `ba_attachment`  (
   `create_time` bigint(16) UNSIGNED NULL DEFAULT NULL COMMENT '创建时间',
   `last_upload_time` bigint(16) UNSIGNED NULL DEFAULT NULL COMMENT '最后上传时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '附件表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '附件表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of ba_attachment
 -- ----------------------------
 INSERT INTO `ba_attachment` VALUES (1, 'live', 1, 0, '/storage/live/20260518/demo_live_asset0e2b8da6ffb71124ee7e28e25094fd6fcfda45ec.mp4', 0, 0, 'demo_live_asset_room_2.mp4', 5485935, 'video/mp4', 1, 'local', '0e2b8da6ffb71124ee7e28e25094fd6fcfda45ec', 1779096312, 1779096312);
+INSERT INTO `ba_attachment` VALUES (2, 'ai', 0, 9, '/storage/ai/20260702/aiimageedit-1774431bc69c712377d1cb9d5b9d78f263e19afc039.png', 1302, 1208, 'aiimageedit-1778840506202.png', 2146360, 'image/png', 3, 'local', '4431bc69c712377d1cb9d5b9d78f263e19afc039', 1782928658, 1783154460);
+INSERT INTO `ba_attachment` VALUES (3, 'ai', 0, 11, '/storage/ai/20260704/idlefish-msg-170fa9ab807607a1423118b4663652b447b4279af7.jpg', 316, 307, 'idlefish-msg-1781663477531.png.jpg', 14488, 'image/jpeg', 1, 'local', '0fa9ab807607a1423118b4663652b447b4279af7', 1783154491, 1783154491);
+INSERT INTO `ba_attachment` VALUES (4, 'ai', 0, 11, '/storage/ai/20260704/idlefish-msg-177e42ed9da5222e1b3dabbdf033acdbc19495c749.jpg', 336, 300, 'idlefish-msg-1781663596861.png.jpg', 15418, 'image/jpeg', 1, 'local', '7e42ed9da5222e1b3dabbdf033acdbc19495c749', 1783154594, 1783154594);
 
 -- ----------------------------
 -- Table structure for ba_captcha
@@ -591,10 +609,8 @@ CREATE TABLE `ba_token`  (
 -- ----------------------------
 -- Records of ba_token
 -- ----------------------------
-INSERT INTO `ba_token` VALUES ('161f11cdc89a811af32f47dd8e63cba9f434afec', 'admin', 1, 1779691808, 1779951008);
-INSERT INTO `ba_token` VALUES ('686df6c4ca2aa33111415fe6a3ab13d809bd138b', 'admin', 1, 1779855258, 1780114458);
-INSERT INTO `ba_token` VALUES ('a5c5ce4da8e4b8061850c3f9cc3187296104179b', 'admin', 1, 1779854987, 1780114187);
-INSERT INTO `ba_token` VALUES ('dd43b3bad19a11e73ce773b079ea2d7e849ae5eb', 'admin', 1, 1779854559, 1780113759);
+INSERT INTO `ba_token` VALUES ('2e674dd580b2cc7981f6e0b08ee9e25160024cc3', 'admin', 1, 1783155956, 1783415156);
+INSERT INTO `ba_token` VALUES ('a8d81df5dc00df0a5a3bfa1358694b9c6f71c307', 'admin', 1, 1783154705, 1783413905);
 
 -- ----------------------------
 -- Table structure for ba_user
@@ -816,7 +832,7 @@ CREATE TABLE `lp_chat_message`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_room_created`(`room_id` ASC, `created_at` ASC) USING BTREE,
   INDEX `idx_user_created`(`user_id` ASC, `created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 24 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '聊天消息' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 29 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '聊天消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of lp_chat_message
@@ -844,6 +860,11 @@ INSERT INTO `lp_chat_message` VALUES (20, 1, 0, 'text', '24', 1, '2026-05-28 11:
 INSERT INTO `lp_chat_message` VALUES (21, 1, 0, 'text', '36363', 1, '2026-05-28 11:14:28');
 INSERT INTO `lp_chat_message` VALUES (22, 2, 0, 'text', '43242', 1, '2026-05-28 11:14:34');
 INSERT INTO `lp_chat_message` VALUES (23, 3, 0, 'text', '3213', 1, '2026-05-28 11:16:00');
+INSERT INTO `lp_chat_message` VALUES (24, 2, 0, 'text', '213', 1, '2026-05-28 18:24:28');
+INSERT INTO `lp_chat_message` VALUES (25, 2, 0, 'text', '123', 1, '2026-05-28 18:24:40');
+INSERT INTO `lp_chat_message` VALUES (26, 1, 0, 'text', '321', 1, '2026-05-28 18:40:57');
+INSERT INTO `lp_chat_message` VALUES (27, 2, 0, 'text', 'we', 1, '2026-07-01 11:10:29');
+INSERT INTO `lp_chat_message` VALUES (28, 2, 0, 'text', '123', 1, '2026-07-02 01:25:40');
 
 -- ----------------------------
 -- Table structure for lp_control_command_log
@@ -910,7 +931,7 @@ CREATE TABLE `lp_gift_order`  (
   UNIQUE INDEX `uk_gift_order_no`(`order_no` ASC) USING BTREE,
   INDEX `idx_room_created`(`room_id` ASC, `created_at` ASC) USING BTREE,
   INDEX `idx_user_created`(`user_id` ASC, `created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '礼物订单' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '礼物订单' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of lp_gift_order
@@ -933,6 +954,8 @@ INSERT INTO `lp_gift_order` VALUES (15, 'G20260521125142E8E364E2', 0, 3, 2, 1, 1
 INSERT INTO `lp_gift_order` VALUES (16, 'G202605211251443039A359', 0, 3, 2, 1, 199.00, NULL, 1, '2026-05-21 12:51:44');
 INSERT INTO `lp_gift_order` VALUES (17, 'G20260521125150A04488E4', 0, 3, 2, 1, 199.00, NULL, 1, '2026-05-21 12:51:50');
 INSERT INTO `lp_gift_order` VALUES (18, 'G20260521125200ED133E3A', 0, 1, 2, 1, 199.00, NULL, 1, '2026-05-21 12:52:00');
+INSERT INTO `lp_gift_order` VALUES (19, 'G20260701110936B628C60B', 0, 2, 2, 1, 199.00, NULL, 1, '2026-07-01 11:09:36');
+INSERT INTO `lp_gift_order` VALUES (20, 'G20260702012541B5CA929B', 0, 2, 1, 1, 10.00, NULL, 1, '2026-07-02 01:25:41');
 
 -- ----------------------------
 -- Table structure for lp_like_action_log
@@ -1008,24 +1031,30 @@ CREATE TABLE `lp_payment_callback_log`  (
 DROP TABLE IF EXISTS `lp_persona`;
 CREATE TABLE `lp_persona`  (
   `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT '所属用户ID(关联lp_user.id)',
   `code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '人设编码',
   `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '人设名称',
   `tags` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '标签,逗号分隔',
+  `source_fields` json NULL COMMENT 'AI角色原始属性(type/age/eye/hair/body/breast/hip/personality/profession/hobby/relation/clothing)',
   `cover_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '封面',
   `status` tinyint(4) NOT NULL DEFAULT 1 COMMENT '状态',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_persona_code`(`code` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '数字人人设' ROW_FORMAT = Dynamic;
+  UNIQUE INDEX `uk_persona_code`(`code` ASC) USING BTREE,
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '数字人人设' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of lp_persona
 -- ----------------------------
-INSERT INTO `lp_persona` VALUES (1, 'persona_demo', '夜聊陪伴', '温柔,陪伴,夜间', 'https://cdn.example.com/persona/night.jpg', 1, '2026-05-17 09:41:46', '2026-05-17 09:41:46');
-INSERT INTO `lp_persona` VALUES (2, 'persona_night_radio', '夜聊陪伴', '温柔,陪伴,夜间', 'https://picsum.photos/seed/persona-night/320/320', 1, '2026-05-18 09:49:16', '2026-05-18 09:49:16');
-INSERT INTO `lp_persona` VALUES (3, 'persona_light_music', '轻音陪伴', '轻音乐,放松,陪伴', 'https://picsum.photos/seed/persona-music/320/320', 1, '2026-05-18 09:49:16', '2026-05-18 09:49:16');
-INSERT INTO `lp_persona` VALUES (4, 'persona_focus_study', '专注搭子', '学习,专注,清晨', 'https://picsum.photos/seed/persona-study/320/320', 1, '2026-05-18 09:49:16', '2026-05-18 09:49:16');
+INSERT INTO `lp_persona` VALUES (1, 11, 'persona_demo', '夜聊陪伴', '温柔,陪伴,夜间', '{\"age\": \"1\", \"eye\": \"0\", \"hair\": \"2\", \"type\": \"1\", \"hobby\": \"1,5\", \"profession\": \"1\", \"personality\": \"3\"}', 'https://cdn.example.com/persona/night.jpg', 2, '2026-05-17 09:41:46', '2026-07-04 17:39:09');
+INSERT INTO `lp_persona` VALUES (2, 11, 'persona_night_radio', '夜聊陪伴', '温柔,陪伴,夜间', '{\"age\": \"1\", \"eye\": \"0\", \"hair\": \"2\", \"type\": \"1\", \"hobby\": \"1,5\", \"profession\": \"1\", \"personality\": \"3\"}', 'https://picsum.photos/seed/persona-night/320/320', 2, '2026-05-18 09:49:16', '2026-07-04 17:39:07');
+INSERT INTO `lp_persona` VALUES (3, 11, 'persona_light_music', '轻音陪伴', '轻音乐,放松,陪伴', '{\"age\": \"1\", \"eye\": \"0\", \"hair\": \"2\", \"type\": \"1\", \"hobby\": \"1,5\", \"profession\": \"1\", \"personality\": \"3\"}', 'https://picsum.photos/seed/persona-music/320/320', 2, '2026-05-18 09:49:16', '2026-07-04 17:39:06');
+INSERT INTO `lp_persona` VALUES (4, 11, 'persona_focus_study', '专注搭子', '学习,专注,清晨', '{\"age\": \"1\", \"eye\": \"0\", \"hair\": \"2\", \"type\": \"1\", \"hobby\": \"1,5\", \"profession\": \"1\", \"personality\": \"3\"}', 'https://picsum.photos/seed/persona-study/320/320', 1, '2026-05-18 09:49:16', '2026-07-04 17:39:05');
+INSERT INTO `lp_persona` VALUES (5, 8, 'P202607020129318550', 'Test AI Girl', '', '{\"age\": \"1\", \"eye\": \"0\", \"hair\": \"2\", \"type\": \"1\", \"hobby\": \"1,5\", \"profession\": \"1\", \"personality\": \"3\"}', 'https://example.com/avatar.jpg', 1, '2026-07-02 01:29:31', '2026-07-02 01:29:31');
+INSERT INTO `lp_persona` VALUES (6, 9, 'P202607020158464287', 'eva', '', '{\"age\": \"1\", \"eye\": \"3\", \"hip\": \"3\", \"body\": \"1\", \"hair\": \"1\", \"race\": \"2\", \"type\": \"1\", \"hobby\": \"6,7\", \"breast\": \"5\", \"clothing\": \"5\", \"relation\": \"6\", \"hairstyle\": \"7\", \"profession\": \"26\", \"personality\": \"1\"}', '/storage/ai/20260702/aiimageedit-1774431bc69c712377d1cb9d5b9d78f263e19afc039.png', 1, '2026-07-02 01:58:46', '2026-07-04 17:34:42');
+INSERT INTO `lp_persona` VALUES (7, 11, 'P202607041643171411', 'eeemmmm', '', '{\"age\": \"1\", \"eye\": \"2\", \"hip\": \"3\", \"body\": \"2\", \"hair\": \"4\", \"race\": \"1\", \"type\": \"1\", \"hobby\": \"10\", \"breast\": \"2\", \"clothing\": \"19\", \"relation\": \"2\", \"hairstyle\": \"3\", \"profession\": \"1\", \"personality\": \"1\"}', 'http://127.0.0.1:8000/storage/ai/20260704/idlefish-msg-177e42ed9da5222e1b3dabbdf033acdbc19495c749.jpg', 2, '2026-07-04 16:43:17', '2026-07-04 17:34:42');
 
 -- ----------------------------
 -- Table structure for lp_playlist_template
@@ -1065,16 +1094,16 @@ CREATE TABLE `lp_playlist_template_item`  (
   `start_offset_ms` int(11) NOT NULL DEFAULT 0 COMMENT '起始偏移ms',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_template_seq`(`template_id` ASC, `seq` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '播单模板项' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 17 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '播单模板项' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of lp_playlist_template_item
 -- ----------------------------
 INSERT INTO `lp_playlist_template_item` VALUES (1, 1, 1, 1, 1, 1, 0);
-INSERT INTO `lp_playlist_template_item` VALUES (5, 5, 5, 1, 1, 1, 0);
 INSERT INTO `lp_playlist_template_item` VALUES (10, 2, 2, 1, 1, 1, 0);
 INSERT INTO `lp_playlist_template_item` VALUES (11, 3, 3, 1, 1, 1, 0);
-INSERT INTO `lp_playlist_template_item` VALUES (12, 4, 4, 1, 1, 1, 0);
+INSERT INTO `lp_playlist_template_item` VALUES (13, 5, 5, 1, 1, 1, 0);
+INSERT INTO `lp_playlist_template_item` VALUES (16, 4, 4, 1, 1, 1, 0);
 
 -- ----------------------------
 -- Table structure for lp_recharge_order
@@ -1100,6 +1129,32 @@ CREATE TABLE `lp_recharge_order`  (
 
 -- ----------------------------
 -- Records of lp_recharge_order
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for lp_replay_clip
+-- ----------------------------
+DROP TABLE IF EXISTS `lp_replay_clip`;
+CREATE TABLE `lp_replay_clip`  (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `persona_id` bigint(20) UNSIGNED NOT NULL COMMENT '关联角色ID',
+  `room_id` bigint(20) UNSIGNED NOT NULL COMMENT '关联房间ID',
+  `title` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标题',
+  `video_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '视频路径',
+  `cover_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '封面图',
+  `duration` int(11) NOT NULL DEFAULT 0 COMMENT '时长(秒)',
+  `live_date` date NOT NULL COMMENT '直播日期',
+  `status` tinyint(4) NOT NULL DEFAULT 1 COMMENT '状态:0下架 1上架',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_persona_id`(`persona_id` ASC) USING BTREE,
+  INDEX `idx_room_id`(`room_id` ASC) USING BTREE,
+  INDEX `idx_live_date`(`live_date` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '历史切片' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of lp_replay_clip
 -- ----------------------------
 
 -- ----------------------------
@@ -1129,8 +1184,8 @@ CREATE TABLE `lp_room`  (
 -- ----------------------------
 INSERT INTO `lp_room` VALUES (1, 'R1001', '深夜情感电台2', '陪你聊天到天亮', 2, 'live', 1, 'https://picsum.photos/seed/live-room-1/720/1280', 120, '2026-05-17 09:41:46', '2026-05-19 17:30:04');
 INSERT INTO `lp_room` VALUES (2, 'R1002', '午后轻音乐直播间3', '循环播放舒缓歌单和聊天互动', 3, 'live', 1, 'https://picsum.photos/seed/live-room-2/720/1280', 110, '2026-05-18 09:49:16', '2026-05-19 17:30:09');
-INSERT INTO `lp_room` VALUES (3, 'R1003', '清晨自习直播间4', '适合切后台挂机的专注陪伴流', 4, 'live', 1, 'https://picsum.photos/seed/live-room-3/720/1280', 100, '2026-05-18 09:49:16', '2026-05-19 17:30:12');
-INSERT INTO `lp_room` VALUES (4, 'E2E1001', 'E2E联调测试房间', '后台上传素材后的真实联调房间', 1, 'live', 1, '', 50, '2026-05-18 17:29:54', '2026-05-18 17:29:54');
+INSERT INTO `lp_room` VALUES (3, 'R1003', '清晨自习直播间4', '适合切后台挂机的专注陪伴流', 7, 'live', 1, 'https://picsum.photos/seed/live-room-3/720/1280', 100, '2026-05-18 09:49:16', '2026-07-04 17:34:42');
+INSERT INTO `lp_room` VALUES (4, 'E2E1001', 'E2E联调测试房间', '后台上传素材后的真实联调房间', 1, 'live', 2, '', 50, '2026-05-18 17:29:54', '2026-07-04 16:48:23');
 
 -- ----------------------------
 -- Table structure for lp_room_binding
@@ -1204,7 +1259,7 @@ CREATE TABLE `lp_room_online_minute`  (
   `gift_amount` decimal(18, 2) NOT NULL DEFAULT 0.00 COMMENT '礼物金额',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_room_minute`(`room_id` ASC, `minute_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1177 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间分钟聚合数据' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1238 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间分钟聚合数据' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of lp_room_online_minute
@@ -2385,6 +2440,67 @@ INSERT INTO `lp_room_online_minute` VALUES (1173, 1, '2026-05-28 11:15:00', 0, 0
 INSERT INTO `lp_room_online_minute` VALUES (1174, 2, '2026-05-28 11:15:00', 1, 0, 0.00);
 INSERT INTO `lp_room_online_minute` VALUES (1175, 2, '2026-05-28 11:16:00', 0, 0, 0.00);
 INSERT INTO `lp_room_online_minute` VALUES (1176, 3, '2026-05-28 11:16:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1177, 2, '2026-05-28 18:25:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1178, 2, '2026-05-28 18:26:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1179, 2, '2026-05-28 18:27:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1180, 2, '2026-05-28 18:28:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1181, 2, '2026-05-28 18:29:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1182, 2, '2026-05-28 18:30:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1183, 2, '2026-05-28 18:31:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1184, 2, '2026-05-28 18:32:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1185, 2, '2026-05-28 18:33:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1186, 1, '2026-05-28 18:34:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1187, 2, '2026-05-28 18:34:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1188, 1, '2026-05-28 18:35:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1189, 1, '2026-05-28 18:36:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1190, 1, '2026-05-28 18:37:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1191, 1, '2026-05-28 18:38:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1192, 1, '2026-05-28 18:39:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1193, 1, '2026-05-28 18:40:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1194, 1, '2026-05-28 18:41:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1195, 3, '2026-05-28 18:41:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1196, 1, '2026-05-28 18:42:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1197, 1, '2026-05-28 18:43:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1198, 1, '2026-05-28 18:44:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1199, 1, '2026-05-28 18:45:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1200, 1, '2026-05-28 18:46:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1201, 1, '2026-05-28 18:47:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1202, 1, '2026-05-28 18:48:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1203, 1, '2026-05-28 18:49:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1204, 2, '2026-05-28 18:50:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1205, 2, '2026-07-01 11:10:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1206, 2, '2026-07-01 11:11:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1207, 3, '2026-07-01 11:11:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1208, 3, '2026-07-01 11:12:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1209, 3, '2026-07-01 11:13:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1210, 3, '2026-07-01 11:14:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1211, 3, '2026-07-01 11:15:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1212, 3, '2026-07-01 11:16:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1213, 3, '2026-07-01 11:17:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1214, 3, '2026-07-01 11:18:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1215, 2, '2026-07-01 11:19:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1216, 3, '2026-07-01 11:19:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1217, 2, '2026-07-01 11:20:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1218, 2, '2026-07-01 11:21:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1219, 2, '2026-07-01 11:22:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1220, 2, '2026-07-01 11:23:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1221, 2, '2026-07-01 11:24:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1222, 2, '2026-07-01 11:25:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1223, 2, '2026-07-01 11:26:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1224, 2, '2026-07-01 11:27:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1225, 2, '2026-07-01 11:28:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1226, 2, '2026-07-01 11:29:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1227, 2, '2026-07-01 11:30:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1228, 2, '2026-07-01 11:31:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1229, 2, '2026-07-01 11:32:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1230, 4, '2026-07-01 11:32:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1231, 2, '2026-07-01 11:33:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1232, 4, '2026-07-01 11:33:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1233, 2, '2026-07-01 11:34:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1234, 2, '2026-07-01 11:35:00', 1, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1235, 2, '2026-07-01 11:36:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1236, 2, '2026-07-02 01:22:00', 0, 0, 0.00);
+INSERT INTO `lp_room_online_minute` VALUES (1237, 4, '2026-07-02 01:22:00', 0, 0, 0.00);
 
 -- ----------------------------
 -- Table structure for lp_room_play_task
@@ -2466,7 +2582,7 @@ CREATE TABLE `lp_room_tag`  (
   `tag_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标签名',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_room_tag`(`room_id` ASC, `tag_name` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 27 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间标签' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 35 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '房间标签' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of lp_room_tag
@@ -2475,10 +2591,10 @@ INSERT INTO `lp_room_tag` VALUES (21, 1, '情感');
 INSERT INTO `lp_room_tag` VALUES (22, 1, '热门');
 INSERT INTO `lp_room_tag` VALUES (23, 2, '放松');
 INSERT INTO `lp_room_tag` VALUES (24, 2, '轻音乐');
-INSERT INTO `lp_room_tag` VALUES (25, 3, '专注');
-INSERT INTO `lp_room_tag` VALUES (26, 3, '学习');
-INSERT INTO `lp_room_tag` VALUES (16, 4, '测试');
-INSERT INTO `lp_room_tag` VALUES (15, 4, '联调');
+INSERT INTO `lp_room_tag` VALUES (33, 3, '专注');
+INSERT INTO `lp_room_tag` VALUES (34, 3, '学习');
+INSERT INTO `lp_room_tag` VALUES (27, 4, '测试');
+INSERT INTO `lp_room_tag` VALUES (28, 4, '联调');
 
 -- ----------------------------
 -- Table structure for lp_stream_template
@@ -2518,7 +2634,7 @@ CREATE TABLE `lp_user`  (
   UNIQUE INDEX `uk_user_no`(`user_no` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_email`(`email` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户主表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 12 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户主表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of lp_user
@@ -2530,6 +2646,10 @@ INSERT INTO `lp_user` VALUES (4, 'U202605170929394765', 'User092939', '', '', 1,
 INSERT INTO `lp_user` VALUES (5, 'U202605170931033603', 'User093103', '', '', 1, 1, '2026-05-17 09:31:03', '2026-05-17 09:31:03');
 INSERT INTO `lp_user` VALUES (6, 'U202605170932304243', 'User093230_new', '', '', 1, 1, '2026-05-17 09:32:30', '2026-05-17 09:32:31');
 INSERT INTO `lp_user` VALUES (7, 'U202605170932573978', 'User093257_new', '', '', 1, 1, '2026-05-17 09:32:57', '2026-05-17 09:32:58');
+INSERT INTO `lp_user` VALUES (8, 'U202607020129306435', 'testuser1', 'test1@test.com', '', 1, 1, '2026-07-02 01:29:30', '2026-07-02 01:29:30');
+INSERT INTO `lp_user` VALUES (9, 'U202607020132151682', 'ever2', '1033022842@qq.com', '', 1, 1, '2026-07-02 01:32:15', '2026-07-02 01:32:15');
+INSERT INTO `lp_user` VALUES (10, 'U202607020136098144', 'testerquick', 'tq@test.com', '', 1, 1, '2026-07-02 01:36:09', '2026-07-02 01:36:09');
+INSERT INTO `lp_user` VALUES (11, 'U202607041639195142', 'ever', '1033022843@qq.com', '', 1, 1, '2026-07-04 16:39:19', '2026-07-04 16:39:19');
 
 -- ----------------------------
 -- Table structure for lp_user_auth
@@ -2545,7 +2665,7 @@ CREATE TABLE `lp_user_auth`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_auth_type_key`(`auth_type` ASC, `auth_key` ASC) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户认证表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 12 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户认证表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of lp_user_auth
@@ -2557,6 +2677,10 @@ INSERT INTO `lp_user_auth` VALUES (4, 4, 'username', 'test092939', '$2y$10$LlojA
 INSERT INTO `lp_user_auth` VALUES (5, 5, 'username', 'test093103', '$2y$10$PNuAzLN3ychQa5NJXmyAneba13phnHIrmUb/XXXdnXuVbapuEwraC', '2026-05-17 09:31:03');
 INSERT INTO `lp_user_auth` VALUES (6, 6, 'username', 'test093230', '$2y$10$XZpGhGqMrVj5ZTTW7gbYZukbzNqo4F3zT/O5MEyfca9tj4jZ1vYRi', '2026-05-17 09:32:31');
 INSERT INTO `lp_user_auth` VALUES (7, 7, 'username', 'test093257', '$2y$10$coBv3QNnnS5OM5G86wtrc.AtiOChKsYjSYypcP./CLuR2og/x5VbS', '2026-05-17 09:32:58');
+INSERT INTO `lp_user_auth` VALUES (8, 8, 'email', 'test1@test.com', '$2y$10$n7KK5dgwv1Eukz8R2Nt9Q.0B0NOV8jAochI.zVtm8xBO3YS/OfoKC', '2026-07-02 01:29:31');
+INSERT INTO `lp_user_auth` VALUES (9, 9, 'email', '1033022842@qq.com', '$2y$10$qVzGGEYwubV28SwHgJACgetFQTQPIeCfovjaSqVBL5NXrl7bMS4T2', '2026-07-02 01:32:15');
+INSERT INTO `lp_user_auth` VALUES (10, 10, 'email', 'tq@test.com', '$2y$10$jZPUQfIzQy6w.h/xB5ZccuGW8gi82NTi8RcM2LX3cWGAukxSzdXDe', '2026-07-02 01:36:09');
+INSERT INTO `lp_user_auth` VALUES (11, 11, 'email', '1033022843@qq.com', '$2y$10$XylGrCqNibNj6k96rJAqYuaqQXm/C/8uFFTv1Yc3r78GiDbFGZS/.', '2026-07-04 16:39:19');
 
 -- ----------------------------
 -- Table structure for lp_user_device
@@ -2602,6 +2726,10 @@ INSERT INTO `lp_user_profile` VALUES (4, 0, '', '', '127.0.0.1', '2026-05-17 09:
 INSERT INTO `lp_user_profile` VALUES (5, 0, '', '', '127.0.0.1', '2026-05-17 09:31:03');
 INSERT INTO `lp_user_profile` VALUES (6, 1, 'hello', '', '127.0.0.1', '2026-05-17 09:32:31');
 INSERT INTO `lp_user_profile` VALUES (7, 1, 'hello', '', '127.0.0.1', '2026-05-17 09:32:58');
+INSERT INTO `lp_user_profile` VALUES (8, 0, '', '', '127.0.0.1', '2026-07-02 01:29:31');
+INSERT INTO `lp_user_profile` VALUES (9, 0, '', '', '127.0.0.1', '2026-07-02 01:51:27');
+INSERT INTO `lp_user_profile` VALUES (10, 0, '', '', '127.0.0.1', '2026-07-02 01:36:09');
+INSERT INTO `lp_user_profile` VALUES (11, 0, '', '', '127.0.0.1', '2026-07-04 16:39:34');
 
 -- ----------------------------
 -- Table structure for lp_wallet_account

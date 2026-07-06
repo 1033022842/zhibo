@@ -1,125 +1,113 @@
 <template>
   <div class="login">
-    <BaseHeader mode="light" backMode="dark" backImg="close">
-      <template v-slot:right>
-        <span class="f14" @click="nav('/login/help')">帮助与设置</span>
-      </template>
-    </BaseHeader>
-    <Loading v-if="data.loading.getPhone" />
-    <div v-else class="content">
-      <div class="desc">
-        <div class="title">登录看朋友内容</div>
-        <div class="phone-number">138****8000</div>
-        <div class="sub-title">认证服务由中国移动提供</div>
+    <BaseHeader mode="light" backMode="dark" backImg="close" title="登录" />
+
+    <div class="content">
+      <div class="welcome">
+        <div class="welcome-title">欢迎来到 AI Live</div>
+        <div class="welcome-sub">使用 AI 女友账号登录</div>
       </div>
 
-      <dy-button
-        type="primary"
-        :loading="data.loading.login"
-        :active="false"
-        :loadingWithText="true"
-        @click="login"
-      >
-        {{ data.loading.login ? '登录中' : '一键登录' }}
-      </dy-button>
-      <dy-button :active="false" type="white" @click="nav('/login/other')"
-        >其他手机号码登录
-      </dy-button>
-
-      <div class="protocol" :class="data.showAnim ? 'anim-bounce' : ''">
-        <Tooltip style="top: -100%; left: -10rem" v-model="data.showTooltip" />
-        <div class="left">
-          <Check v-model="data.isAgree" />
+      <div class="form">
+        <div class="input-group">
+          <div class="input-label">用户名 / 邮箱</div>
+          <input
+            v-model="data.username"
+            class="input-field"
+            placeholder="请输入用户名或邮箱"
+            @keyup.enter="handleLogin"
+          />
         </div>
-        <div class="right">
-          我已阅读并同意
-          <span class="link" @click="nav('/service-protocol', { type: '“抖音”用户服务协议' })"
-            >用户协议</span
-          >
-          和
-          <span class="link" @click="nav('/service-protocol', { type: '“抖音”隐私政策' })"
-            >隐私政策</span
-          >
-          <div>
-            以及
-            <span class="link" @click="nav('/service-protocol', { type: '中国移动认证服务协议' })"
-              >《中国移动认证服务条款》</span
-            >
-            ，同时登录并使用抖音火山版（原“火山小视频”）和抖音
-          </div>
-        </div>
-      </div>
 
-      <div class="other-login">
-        <transition name="fade">
-          <div v-if="data.isOtherLogin" class="icons">
-            <img @click="_no" src="../../assets/img/icon/login/toutiao-round.png" alt="" />
-            <img @click="_no" src="../../assets/img/icon/login/qq-round.webp" alt="" />
-            <img @click="_no" src="../../assets/img/icon/login/wechat-round.png" alt="" />
-            <img @click="_no" src="../../assets/img/icon/login/weibo-round.webp" alt="" />
-          </div>
-        </transition>
-      </div>
-      <transition name="fade">
-        <span
-          v-if="!data.isOtherLogin"
-          class="other-login-text link"
-          @click="data.isOtherLogin = !data.isOtherLogin"
-          >其他方式登录</span
+        <div class="input-group">
+          <div class="input-label">密码</div>
+          <input
+            v-model="data.password"
+            class="input-field"
+            type="password"
+            placeholder="请输入密码"
+            @keyup.enter="handleLogin"
+          />
+        </div>
+
+        <div v-if="data.errorMsg" class="error-msg">{{ data.errorMsg }}</div>
+
+        <dy-button
+          type="primary"
+          :loading="data.loading"
+          :active="data.username !== '' && data.password !== ''"
+          :loadingWithText="true"
+          @click="handleLogin"
         >
-      </transition>
+          {{ data.loading ? '登录中...' : '登 录' }}
+        </dy-button>
+      </div>
+
+      <div class="extra">
+        <span class="link" @click="goRegister">还没有账号？去注册</span>
+      </div>
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
-import Check from '../../components/Check.vue'
-import Tooltip from './components/Tooltip.vue'
-import Loading from '../../components/Loading.vue'
 import { onMounted, reactive } from 'vue'
-import { useNav } from '@/utils/hooks/useNav'
-import { _no, _sleep } from '@/utils'
+import { useRouter } from 'vue-router'
+import { useBaseStore } from '@/store/pinia'
+import { isLoggedIn } from '@/utils/auth'
+
+const router = useRouter()
 
 defineOptions({
   name: 'login'
 })
 
-const nav = useNav()
+const baseStore = useBaseStore()
+
 const data = reactive({
-  isAgree: false,
-  isOtherLogin: false,
-  showAnim: false,
-  showTooltip: false,
-  loading: {
-    login: false,
-    getPhone: false
-  }
+  username: '',
+  password: '',
+  loading: false,
+  errorMsg: ''
 })
 
 onMounted(() => {
-  getPhone()
+  // 已登录直接跳首页
+  if (isLoggedIn()) {
+    router.push('/')
+  }
 })
 
-async function getPhone() {
-  data.loading.getPhone = true
-  await _sleep(1000)
-  data.loading.getPhone = false
+async function handleLogin() {
+  data.errorMsg = ''
+
+  if (!data.username.trim()) {
+    data.errorMsg = '请输入用户名或邮箱'
+    return
+  }
+  if (!data.password) {
+    data.errorMsg = '请输入密码'
+    return
+  }
+
+  data.loading = true
+  try {
+    const result = await baseStore.doLogin(data.username.trim(), data.password)
+    if (result.ok) {
+      const redirect = router.currentRoute.value.query.redirect as string
+      router.push(redirect || '/')
+    } else {
+      data.errorMsg = result.msg || '登录失败'
+    }
+  } catch {
+    data.errorMsg = '网络错误，请稍后重试'
+  } finally {
+    data.loading = false
+  }
 }
 
-function login() {
-  if (data.isAgree) {
-    data.loading.login = true
-  } else {
-    if (!data.showAnim && !data.showTooltip) {
-      data.showAnim = true
-      setTimeout(() => {
-        data.showAnim = false
-        data.showTooltip = true
-      }, 500)
-      setTimeout(() => {
-        data.showTooltip = false
-      }, 3000)
-    }
-  }
+function goRegister() {
+  window.location.href = 'http://127.0.0.1:8080/Login.html'
 }
 </script>
 
@@ -133,82 +121,80 @@ function login() {
   bottom: 0;
   top: 0;
   overflow: auto;
-  color: black;
-  font-size: 14rem;
-  background: white;
+  background: #0f0f0f;
+  color: #fff;
 
   .content {
-    padding: 60rem 30rem;
+    padding: 30rem 28rem;
 
-    .desc {
-      margin-bottom: 60rem;
-      margin-top: 120rem;
-      display: flex;
-      align-items: center;
-      flex-direction: column;
+    .welcome {
+      margin-top: 40rem;
+      margin-bottom: 50rem;
+      text-align: center;
 
-      .title {
-        margin-bottom: 20rem;
-      }
-
-      .phone-number {
-        letter-spacing: 3rem;
-        font-size: 30rem;
+      .welcome-title {
+        font-size: 24rem;
+        font-weight: 600;
         margin-bottom: 10rem;
       }
 
-      .sub-title {
-        font-size: 12rem;
-        color: var(--second-text-color);
+      .welcome-sub {
+        font-size: 14rem;
+        color: #888;
       }
     }
 
-    .button {
-      width: 100%;
-      margin-bottom: 5rem;
-    }
+    .form {
+      .input-group {
+        margin-bottom: 20rem;
 
-    .protocol {
-      position: relative;
-      color: gray;
-      margin-top: 20rem;
-      font-size: 12rem;
-      display: flex;
+        .input-label {
+          font-size: 14rem;
+          color: #ccc;
+          margin-bottom: 8rem;
+        }
 
-      .left {
-        padding-top: 1rem;
-        margin-right: 5rem;
-      }
-    }
+        .input-field {
+          width: 100%;
+          height: 48rem;
+          background: #1a1a1a;
+          border: 1px solid #333;
+          border-radius: 8rem;
+          padding: 0 14rem;
+          font-size: 15rem;
+          color: #fff;
+          outline: none;
+          box-sizing: border-box;
 
-    .other-login {
-      position: absolute;
-      bottom: 40rem;
-      font-size: 12rem;
-      display: flex;
-      justify-content: center;
-      width: calc(100vw - 60rem);
-      transform: translateX(-50%);
-      left: 50%;
+          &:focus {
+            border-color: #e75275;
+          }
 
-      .icons {
-        img {
-          width: 40rem;
-          margin-right: 15rem;
-
-          &:nth-last-child(1) {
-            margin-right: 0;
+          &::placeholder {
+            color: #555;
           }
         }
       }
+
+      .error-msg {
+        color: #ff4d4f;
+        font-size: 13rem;
+        margin-bottom: 12rem;
+        padding: 8rem 12rem;
+        background: rgba(255, 77, 79, 0.1);
+        border-radius: 6rem;
+      }
     }
 
-    .other-login-text {
-      position: absolute;
-      bottom: 55rem;
-      font-size: 12rem;
-      transform: translateX(-50%);
-      left: 50%;
+    .extra {
+      margin-top: 30rem;
+      text-align: center;
+
+      .link {
+        color: #e75275;
+        font-size: 14rem;
+        cursor: pointer;
+      }
     }
   }
 }
