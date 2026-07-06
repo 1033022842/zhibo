@@ -18,19 +18,16 @@ CREATE TABLE IF NOT EXISTS `lp_replay_clip` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='历史切片';
 
 -- 直播数据管理菜单目录
-INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `weigh`, `status`) VALUES
-(0, 'menu_dir', 'liveData', '直播数据', 'fa fa-bar-chart', '/admin/liveData', '', 0, 50, 1);
+INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `keepalive`, `weigh`, `status`) VALUES
+(0, 'menu_dir', 'liveData', '直播数据', 'fa fa-bar-chart', 'liveData', '', NULL, 0, 50, 1);
 
 SET @live_data_pid = (SELECT `id` FROM `ba_admin_rule` WHERE `name` = 'liveData' AND `type` = 'menu_dir' LIMIT 1);
 
--- 收益明细
-INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `weigh`, `status`) VALUES
-(@live_data_pid, 'menu', 'live/revenue', '收益明细', 'fa fa-list-alt', '/admin/live/revenue', 'live/revenue/index', 0, 1, 1);
+INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `keepalive`, `weigh`, `status`) VALUES
+(@live_data_pid, 'menu', 'live/revenue', '收益明细', 'fa fa-list-alt', 'live/revenue', '/src/views/backend/live/revenue/index.vue', 'tab', 1, 1, 1);
 
--- 收入排行榜
-INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `weigh`, `status`) VALUES
-(@live_data_pid, 'menu', 'live/leaderboard', '收入排行榜', 'fa fa-trophy', '/admin/live/leaderboard', 'live/leaderboard/index', 0, 2, 1);
+INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `keepalive`, `weigh`, `status`) VALUES
+(@live_data_pid, 'menu', 'live/leaderboard', '收入排行榜', 'fa fa-trophy', 'live/leaderboard', '/src/views/backend/live/leaderboard/index.vue', 'tab', 1, 2, 1);
 
--- 历史切片管理
-INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `weigh`, `status`) VALUES
-(@live_data_pid, 'menu', 'live/replayClip', '历史切片', 'fa fa-video-camera', '/admin/live/replayClip', 'live/replayClip/index', 0, 3, 1);
+INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `keepalive`, `weigh`, `status`) VALUES
+(@live_data_pid, 'menu', 'live/replayClip', '历史切片', 'fa fa-video-camera', 'live/replayClip', '/src/views/backend/live/replayClip/index.vue', 'tab', 1, 3, 1);
