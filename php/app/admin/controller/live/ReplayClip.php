@@ -15,7 +15,7 @@ final class ReplayClip extends Backend
     protected bool $modelValidate = false;
     protected string|array $defaultSortField = 'live_date,desc';
     protected array $withJoinTable = ['persona', 'room'];
-    protected array $preExcludeFields = [];
+    protected string|array $preExcludeFields = [];
 
     public function initialize(): void
     {

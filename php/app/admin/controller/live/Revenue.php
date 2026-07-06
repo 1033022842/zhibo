@@ -24,7 +24,7 @@ final class Revenue extends Backend
      * 收益明细列表：按 persona 聚合礼物收入
      * @throws Throwable
      */
-    public function select(): void
+    public function index(): void
     {
         $page  = (int) $this->request->get('page/d', 1);
         $limit = (int) $this->request->get('limit/d', 10);
@@ -36,18 +36,19 @@ final class Revenue extends Backend
                 'SUM(go.total_price) AS total_gift',
                 'COUNT(DISTINCT go.user_id) AS donor_count',
             ])
-            ->group('go.room_id');
+            ->group('go.room_id')
+            ->buildSql();
 
         $total = Db::connect($this->connection)
             ->table('lp_room r')
             ->join('lp_persona p', 'r.persona_id = p.id')
-            ->join([$subQuery => 's'], 's.room_id = r.id', 'LEFT')
+            ->join($subQuery . ' s', 's.room_id = r.id', 'LEFT')
             ->count();
 
         $list = Db::connect($this->connection)
             ->table('lp_room r')
             ->join('lp_persona p', 'r.persona_id = p.id')
-            ->join([$subQuery => 's'], 's.room_id = r.id', 'LEFT')
+            ->join($subQuery . ' s', 's.room_id = r.id', 'LEFT')
             ->field([
                 'p.id AS persona_id',
                 'p.name AS persona_name',

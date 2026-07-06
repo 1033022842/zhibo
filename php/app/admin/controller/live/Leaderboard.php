@@ -21,7 +21,7 @@ final class Leaderboard extends Backend
      * 收入排行榜：全部角色按累计礼物收入降序
      * @throws Throwable
      */
-    public function select(): void
+    public function index(): void
     {
         $page  = (int) $this->request->get('page/d', 1);
         $limit = (int) $this->request->get('limit/d', 20);
@@ -33,18 +33,19 @@ final class Leaderboard extends Backend
                 'SUM(go.total_price) AS total_gift',
                 'COUNT(DISTINCT go.user_id) AS donor_count',
             ])
-            ->group('go.room_id');
+            ->group('go.room_id')
+            ->buildSql();
 
         $total = Db::connect($this->connection)
             ->table('lp_room r')
             ->join('lp_persona p', 'r.persona_id = p.id')
-            ->join([$subQuery => 's'], 's.room_id = r.id', 'LEFT')
+            ->join($subQuery . ' s', 's.room_id = r.id', 'LEFT')
             ->count();
 
         $list = Db::connect($this->connection)
             ->table('lp_room r')
             ->join('lp_persona p', 'r.persona_id = p.id')
-            ->join([$subQuery => 's'], 's.room_id = r.id', 'LEFT')
+            ->join($subQuery . ' s', 's.room_id = r.id', 'LEFT')
             ->field([
                 'p.id AS persona_id',
                 'p.name AS persona_name',

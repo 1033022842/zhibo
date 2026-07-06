@@ -23,13 +23,13 @@ INSERT IGNORE INTO `ba_config` (`name`, `group`, `title`, `tip`, `type`, `value`
 -- ============================================
 SET @routine_pid = (SELECT `id` FROM `ba_admin_rule` WHERE `name` = 'routine' AND `type` = 'menu_dir' LIMIT 1);
 
-INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `weigh`, `status`) VALUES
-(@routine_pid, 'menu', 'routine/smsConfig', '短信服务配置', 'fa fa-message', '/admin/routine/smsConfig', 'routine/smsConfig/index', 0, 4, 1);
+INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `keepalive`, `weigh`, `status`) VALUES
+(@routine_pid, 'menu', 'routine/smsConfig', '短信服务配置', 'fa fa-message', 'routine/smsConfig', '/src/views/backend/routine/smsConfig/index.vue', 'tab', 1, 4, 1);
 
 -- ============================================
 -- 4. 直播平台注册用户管理 菜单
 -- ============================================
 SET @user_pid = (SELECT `id` FROM `ba_admin_rule` WHERE `name` = 'user' AND `type` = 'menu_dir' LIMIT 1);
 
-INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `weigh`, `status`) VALUES
-(@user_pid, 'menu', 'user/liveUser', '直播平台用户', 'fa fa-users', '/admin/user/liveUser', 'user/liveUser/index', 0, 5, 1);
+INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `keepalive`, `weigh`, `status`) VALUES
+(@user_pid, 'menu', 'user/liveUser', '直播平台用户', 'fa fa-users', 'user/liveUser', '/src/views/backend/user/liveUser/index.vue', 'tab', 1, 5, 1);
