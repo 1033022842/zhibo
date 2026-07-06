@@ -11,6 +11,129 @@
     </head>
     <body>
         <div id="app"></div>
+        <div id="certModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+            <div style="background:#fff;border-radius:16px;width:780px;max-width:96vw;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;animation:modalIn .25s ease-out">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid #f0f0f0;position:sticky;top:0;background:#fff;z-index:1;border-radius:16px 16px 0 0">
+                    <h3 style="margin:0;font-size:18px;font-weight:700;color:#1a1a2e">商家认证审核</h3>
+                    <button onclick="closeCertModal()" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;background:#f5f5f5;border-radius:8px;cursor:pointer;color:#666;font-size:18px;transition:all .2s" onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#f5f5f5'">&times;</button>
+                </div>
+                <div id="certModalBody" style="padding:28px"></div>
+            </div>
+        </div>
+        <style id="certModalStyle">
+            @keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(-10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+            @keyframes spin8{to{transform:rotate(360deg)}}
+            @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+            .cert-info-grid{display:grid;grid-template-columns:90px 1fr;gap:0;font-size:14px;animation:fadeIn .3s ease}
+            .cert-info-grid>*{padding:12px 16px;border-bottom:1px solid #f5f5f5}
+            .cert-info-grid>*:nth-child(odd){color:#8c8c9a;font-weight:500;background:#fafbfc}
+            .cert-info-grid .cert-img-cell{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:16px;padding-top:16px;padding-bottom:16px;background:#fff;border-bottom:1px solid #f0f0f0}
+            .cert-info-grid .cert-img-label{grid-column:1/-1;display:block;color:#8c8c9a;font-weight:500;font-size:13px;margin-bottom:-8px;background:transparent;border:none;padding:0 16px}
+            .cert-img-box{width:48%;min-width:280px;flex:1}
+            .cert-img-box label{display:block;font-size:13px;color:#8c8c9a;margin-bottom:8px;font-weight:500}
+            .cert-img-box img{width:100%;max-height:220px;object-fit:contain;border-radius:8px;border:1px solid #eee;background:#fafafa;cursor:pointer;transition:transform .2s}
+            .cert-img-box img:hover{transform:scale(1.02)}
+            .cert-action-bar{display:flex;align-items:center;gap:12px;padding:20px 0 0;border-top:2px solid #f0f0f0;margin-top:4px}
+            .cert-btn{padding:10px 28px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+            .cert-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+            .cert-btn-approve{background:#10b981;color:#fff}
+            .cert-btn-approve:hover{background:#059669}
+            .cert-btn-reject{background:#ef4444;color:#fff}
+            .cert-btn-reject:hover{background:#dc2626}
+            .cert-btn-cancel{background:#fff;color:#666;border:1px solid #ddd}
+            .cert-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.3px}
+            .cert-badge-pending{background:#fef3c7;color:#d97706}
+            .cert-badge-passed{background:#d1fae5;color:#059669}
+            .cert-badge-rejected{background:#fee2e2;color:#dc2626}
+            .cert-reject-form{margin-top:16px;padding:16px 20px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca;animation:fadeIn .25s ease}
+            .cert-reject-form textarea{width:100%;height:72px;padding:10px 14px;border:1px solid #fca5a5;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;outline:none}
+            .cert-reject-form textarea:focus{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.1)}
+            .cert-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;color:#999}
+            .cert-loading .spinner{width:36px;height:36px;border:3px solid #f0f0f0;border-top-color:#6366f1;border-radius:50%;animation:spin8 .7s linear infinite;margin-bottom:16px}
+            #certImgLightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:99999;align-items:center;justify-content:center;cursor:pointer}
+            #certImgLightbox img{max-width:90vw;max-height:90vh;border-radius:8px}
+        </style>
+        <div id="certImgLightbox" onclick="this.style.display='none'"><img id="certImgLightboxImg" src=""></div>
+        <script>
+        (function(){
+            var m=document.getElementById('certModal'),b=document.getElementById('certModalBody'),lb=document.getElementById('certImgLightbox'),li=document.getElementById('certImgLightboxImg');
+            window.closeCertModal=function(){m.style.display='none'};
+            window._openCert=function(uid){
+                m.style.display='flex';b.innerHTML='<div class="cert-loading"><div class="spinner"></div><p>正在加载认证信息...</p></div>';
+                // 读取admin token
+                var adminToken = '';
+                try {
+                     var stored = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                     adminToken = stored.token || '';
+                 } catch(e) {}
+                var headers = {'Accept':'application/json'};
+                 if (adminToken) headers['batoken'] = adminToken;
+                fetch('/admin/live.MerchantCertification/detailJson?user_id='+uid, {headers:headers}).then(function(r){return r.json()}).then(function(d){
+                    if(!d.data){b.innerHTML='<div class="cert-loading"><p>'+ (d.msg||'未找到认证记录') +'</p></div>';return}
+                    var c=d.data,
+                    st=['待审核','已通过','已拒绝'][c.status]||'未知',
+                    bc=['cert-badge-pending','cert-badge-passed','cert-badge-rejected'][c.status]||'',
+                    actions='';
+                    if(c.status===0) actions='<div class="cert-action-bar"><button class="cert-btn cert-btn-approve" onclick="doApproveCert('+c.id+')">&#10003; 审核通过</button><button class="cert-btn cert-btn-reject" onclick="showRejectCert('+c.id+')">&#10007; 拒绝</button></div>';
+                    else actions='<div class="cert-action-bar"><span style="color:#999;font-size:13px">该认证已处理，无法再次操作</span></div>';
+                    var rejectHtml=c.status===2&&c.reject_reason?'<span style="font-weight:500">拒绝原因：</span><span style="color:#dc2626">'+e(c.reject_reason)+'</span>':'<span style="color:#ccc">-</span>';
+                    b.innerHTML=
+                    '<div class="cert-info-grid">'+
+                    '<span>状态</span><span><span class="cert-badge '+bc+'">'+st+'</span></span>'+
+                    '<span>用户昵称</span><span style="font-weight:500">'+e(c.nickname||'-')+'</span>'+
+                    '<span>认证邮箱</span><span style="font-weight:500">'+e(c.email||'-')+'</span>'+
+                    '<span>提交时间</span><span>'+e(c.created_at||'-')+'</span>'+
+                    '<span>拒绝原因</span>'+rejectHtml+
+                    '<div class="cert-img-label">证件照片</div>'+
+                    '<div class="cert-img-cell">'+
+                    '<div class="cert-img-box"><label>身份证正面</label><img src="'+e(c.id_card_front)+'" onclick="showLightbox(this.src)" title="点击放大"></div>'+
+                    '<div class="cert-img-box"><label>身份证反面</label><img src="'+e(c.id_card_back)+'" onclick="showLightbox(this.src)" title="点击放大"></div>'+
+                    '</div>'+
+                    '</div>'+actions+
+                    '<div id="rejectForm" style="display:none"><div class="cert-reject-form"><div style="font-size:14px;font-weight:600;color:#dc2626;margin-bottom:10px">请填写拒绝原因</div><textarea id="rejectReasonInput" placeholder="描述拒绝的具体原因..."></textarea><input type="hidden" id="rejectCertId"><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px"><button class="cert-btn cert-btn-cancel" onclick="cancelRejectCert()">取消</button><button class="cert-btn cert-btn-reject" onclick="doRejectCert()">确认拒绝</button></div></div></div>';
+                }).catch(function(){b.innerHTML='<div class="cert-loading"><p>加载失败，请重试</p></div>'});
+            };
+            function e(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+            window.showLightbox=function(src){lb.style.display='flex';li.src=src};
+            window.showRejectCert=function(id){document.getElementById('rejectCertId').value=id;document.getElementById('rejectReasonInput').value='';document.getElementById('rejectForm').style.display='block'};
+            window.cancelRejectCert=function(){document.getElementById('rejectForm').style.display='none'};
+            window.doApproveCert=function(id){if(!confirm('确定审核通过该认证申请？'))return;var h={'Accept':'application/json'};var t='';try{t=JSON.parse(localStorage.getItem('adminInfo')||'{}').token||''}catch(e){}if(t)h['batoken']=t;fetch('/admin/live.MerchantCertification/approve?id='+id,{method:'POST',headers:h}).then(function(r){return r.json()}).then(function(d){if(d.code===1){alert('审核通过');m.style.display='none';location.reload()}else alert(d.msg||'操作失败')})};
+            window.doRejectCert=function(){var id=document.getElementById('rejectCertId').value,r=document.getElementById('rejectReasonInput').value.trim();if(!r){alert('请填写拒绝原因');return}var h={'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'};var t='';try{t=JSON.parse(localStorage.getItem('adminInfo')||'{}').token||''}catch(e){}if(t)h['batoken']=t;fetch('/admin/live.MerchantCertification/reject',{method:'POST',headers:h,body:'id='+id+'&reason='+encodeURIComponent(r)}).then(function(x){return x.json()}).then(function(d){if(d.code===1){alert('已拒绝');m.style.display='none';location.reload()}else alert(d.msg||'操作失败')})};
+            m.addEventListener('click',function(ev){if(ev.target===m)m.style.display='none'});
+            document.addEventListener('click',function(ev){
+                var td=ev.target.closest('td');if(!td)return;
+                var a=td.querySelector('a[href*="detail?id="]');
+                if(!a&&td.textContent.indexOf('detail?id=')>-1) a={href:td.textContent.trim()};
+                if(!a)return;
+                var h=typeof a.href==='string'?a.href:(a.getAttribute?a.getAttribute('href'):'');
+                if(h.indexOf('detail?id=')>-1){ev.preventDefault();ev.stopPropagation();window._openCert(h.split('id=')[1].split('&')[0])}
+            },true);
+            function decorate(){
+                document.querySelectorAll('td').forEach(function(td){
+                    if(td.querySelector('.cert-review-btn'))return;
+                    var spans=td.querySelectorAll('span');
+                    for(var i=0;i<spans.length;i++){
+                        var txt=spans[i].textContent||'',m2=txt.match(/detail\?id=(\d+)/);
+                        if(m2){
+                            var btn=document.createElement('button');
+                            btn.className='cert-review-btn';
+                            btn.textContent='审核';
+                            btn.style.cssText='padding:5px 14px;background:#f59e0b;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600;transition:all .2s';
+                            btn.onmouseover=function(){this.style.background='#d97706'};
+                            btn.onmouseout=function(){this.style.background='#f59e0b'};
+                            btn.onclick=function(){window._openCert(m2[1]);return false};
+                            spans[i].style.display='none';
+                            spans[i].parentNode.insertBefore(btn,spans[i].nextSibling||spans[i]);
+                            return;
+                        }
+                    }
+                });
+            }
+            setInterval(decorate,1000);
+            var obs=new MutationObserver(function(){decorate()});
+            obs.observe(document.body,{childList:true,subtree:true});
+        })();
+        </script>
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>

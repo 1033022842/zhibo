@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>商家认证</title>
+<style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0c0e18;color:#fff;min-height:100vh}
+        .container{max-width:480px;margin:0 auto;padding:20px}
+        .top-bar{display:flex;align-items:center;gap:12px;padding:16px 0;margin-bottom:24px}
+        .back-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+        h1{font-size:20px;font-weight:700}
+        .status-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px}
+        .status-icon{font-size:48px;margin-bottom:16px}
+        .status-title{font-size:18px;font-weight:700;margin-bottom:8px}
+        .status-desc{font-size:14px;color:rgba(255,255,255,.5);line-height:1.6}
+        .passed .status-title{color:#00d4aa}
+        .pending .status-title{color:#f59e0b}
+        .rejected .status-title{color:#ff2d55}
+        .form-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px}
+        .form-title{font-size:16px;font-weight:600;margin-bottom:20px;text-align:center}
+        .field{margin-bottom:18px}
+        .field label{display:block;font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px}
+        .field input[type=email]{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#fff;font-size:15px;outline:none}
+        .field input[type=email]:focus{border-color:#f59e0b}
+        .upload-zone{width:100%;min-height:100px;border:2px dashed rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color .2s}
+        .upload-zone:hover{border-color:rgba(255,255,255,.3)}
+        .upload-zone img{width:100%;max-height:200px;object-fit:contain;background:rgba(0,0,0,.3)}
+        .upload-placeholder{display:flex;flex-direction:column;align-items:center;color:rgba(255,255,255,.3);gap:6px;font-size:13px;padding:16px}
+        .btn-submit{width:100%;padding:14px;border:none;border-radius:24px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(135deg,#f59e0b,#d97706);cursor:pointer;margin-top:12px;transition:opacity .2s}
+        .btn-submit:disabled{opacity:.5;cursor:not-allowed}
+        .btn-retry{width:100%;padding:12px;border-radius:24px;font-size:15px;font-weight:600;color:#fff;background:#ff2d55;border:none;cursor:pointer;margin-top:12px}
+        .loading{display:flex;justify-content:center;padding:60px 0}
+        .spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#f59e0b;border-radius:50%;animation:spin .8s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        /* Toast & Modal */
+        .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);padding:14px 28px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;animation:toastIn .3s ease;box-shadow:0 8px 30px rgba(0,0,0,.4);display:none}
+        .toast-success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+        .toast-error{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+        .toast-warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+        @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:998;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+        .modal-overlay.show{display:flex}
+        .modal-box{background:#1a1d2e;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px 24px 24px;width:360px;max-width:92vw;text-align:center;animation:modalPop .3s ease}
+        @keyframes modalPop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .modal-icon{font-size:52px;margin-bottom:16px;line-height:1}
+        .modal-title{font-size:17px;font-weight:700;margin-bottom:8px;color:#fff}
+        .modal-desc{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
+        .modal-btn{display:inline-block;padding:10px 36px;border-radius:24px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff;background:linear-gradient(135deg,#f59e0b,#d97706);transition:opacity .2s}
+        .modal-btn:hover{opacity:.85}
+        .modal-btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626)}
+        .modal-btn-success{background:linear-gradient(135deg,#10b981,#059669)}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="top-bar">
+        <button class="back-btn" onclick="history.back()">&#8592;</button>
+        <h1>商家认证</h1>
+    </div>
+    <div id="content">
+        <div class="loading"><div class="spinner"></div></div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="modal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('show')">
+    <div class="modal-box">
+        <div class="modal-icon" id="modalIcon"></div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-desc" id="modalDesc"></div>
+        <button class="modal-btn" id="modalBtn" onclick="document.getElementById('modal').classList.remove('show')"></button>
+    </div>
+</div>
+
+<script>
+(function(){
+    var token = localStorage.getItem('live_access_token')
+    var base = 'http://127.0.0.1:8000/api/v1/merchant'
+
+    // Toast 通知
+    var toastTimer
+    function showToast(msg, type) {
+        var t = document.getElementById('toast')
+        t.textContent = msg
+        t.className = 'toast toast-' + (type || 'success')
+        t.style.display = 'block'
+        clearTimeout(toastTimer)
+        toastTimer = setTimeout(function(){ t.style.display = 'none' }, 2000)
+    }
+    // Modal 弹窗
+    function showModal(icon, title, desc, btnText, btnClass, callback) {
+        document.getElementById('modalIcon').innerHTML = icon
+        document.getElementById('modalTitle').innerHTML = title
+        document.getElementById('modalDesc').innerHTML = desc || ''
+        var btn = document.getElementById('modalBtn')
+        btn.textContent = btnText || '确定'
+        btn.className = 'modal-btn ' + (btnClass || '')
+        btn.onclick = function(){
+            document.getElementById('modal').classList.remove('show')
+            if (callback) callback()
+        }
+        document.getElementById('modal').classList.add('show')
+    }
+
+    if (!token) {
+        location.href = './Login.html'
+        return
+    }
+
+    // 加载认证状态
+    function loadStatus() {
+        fetch(base + '/status', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r){ return r.json() }).then(function(d){
+            if (d.code && d.code !== '00000') {
+                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">登录已过期</p><button class="btn-submit" onclick="location.href=\'./Login.html\'">去登录</button></div>'
+                return
+            }
+            var status = d.data ? d.data.cert_status : -1
+            if (status === 1) {
+                renderPassed()
+            } else if (status === 0) {
+                renderPending()
+            } else if (status === 2) {
+                renderRejected()
+            } else {
+                renderForm()
+            }
+        }).catch(function(){
+            document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">网络错误</p><button class="btn-submit" onclick="loadStatus()">重试</button></div>'
+        })
+    }
+
+    function renderPassed() {
+        document.getElementById('content').innerHTML =
+            '<div class="status-card passed"><div class="status-icon">&#10003;</div><div class="status-title">认证已通过</div><div class="status-desc">您现在可以创建AI角色了</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
+    }
+
+    function renderPending() {
+        document.getElementById('content').innerHTML =
+            '<div class="status-card pending"><div class="status-icon">&#9201;</div><div class="status-title">审核中</div><div class="status-desc">您的认证申请正在审核，请耐心等待</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
+    }
+
+    function renderRejected() {
+        document.getElementById('content').innerHTML =
+            '<div class="status-card rejected"><div class="status-icon">&#10007;</div><div class="status-title">认证未通过</div><div class="status-desc">您可以修改信息后重新提交</div><button class="btn-retry" onclick="renderForm()">重新提交</button></div>'
+    }
+
+    function renderForm() {
+        document.getElementById('content').innerHTML =
+            '<div class="form-card">' +
+            '<div class="form-title">提交认证资料</div>' +
+            '<div class="field"><label>认证邮箱</label><input type="email" id="certEmail" placeholder="请输入认证邮箱" maxlength="255"></div>' +
+            '<div class="field"><label>身份证正面</label><div class="upload-zone" id="frontUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="frontInput" accept="image/*" style="display:none"></div>' +
+            '<div class="field"><label>身份证背面</label><div class="upload-zone" id="backUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="backInput" accept="image/*" style="display:none"></div>' +
+            '<button class="btn-submit" id="btnSubmit" onclick="doSubmit()">提交认证</button>' +
+            '</div>'
+
+        var front = document.getElementById('frontUpload')
+        var back = document.getElementById('backUpload')
+        var frontInput = document.getElementById('frontInput')
+        var backInput = document.getElementById('backInput')
+        var frontUrl = '', backUrl = ''
+
+        front.onclick = function(){ frontInput.click() }
+        back.onclick = function(){ backInput.click() }
+
+        frontInput.onchange = function(e){
+            uploadFile(e.target.files[0], front, function(url){ frontUrl = url })
+        }
+        backInput.onchange = function(e){
+            uploadFile(e.target.files[0], back, function(url){ backUrl = url })
+        }
+
+        window.doSubmit = function(){
+            var email = document.getElementById('certEmail').value.trim()
+            var btn = document.getElementById('btnSubmit')
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('请输入正确的邮箱', 'error'); return }
+            if (!frontUrl) { showToast('请上传身份证正面', 'error'); return }
+            if (!backUrl) { showToast('请上传身份证背面', 'error'); return }
+            btn.disabled = true
+            btn.textContent = '提交中...'
+            var r = new XMLHttpRequest()
+            r.open('POST', base + '/submit')
+            r.setRequestHeader('Authorization', 'Bearer ' + token)
+            r.setRequestHeader('Content-Type', 'application/json')
+            r.onload = function(){
+                btn.disabled = false
+                btn.textContent = '提交认证'
+                try {
+                    var d = JSON.parse(r.responseText)
+                    if (d.code === '00000' || d.code === 0) {
+                        showModal('&#10003;', '提交成功', '您的认证申请已提交，请等待审核', '我知道了', 'modal-btn-success', function(){ loadStatus() })
+                    } else {
+                        showToast(d.msg || '提交失败', 'error')
+                    }
+                } catch(e) {
+                    showToast('提交失败', 'error')
+                }
+            }
+            r.onerror = function(){
+                btn.disabled = false
+                btn.textContent = '提交认证'
+                showToast('网络错误，请重试', 'error')
+            }
+            r.send(JSON.stringify({ email: email, id_card_front: frontUrl, id_card_back: backUrl }))
+        }
+    }
+
+    function uploadFile(file, zone, cb) {
+        var fd = new FormData()
+        fd.append('file', file)
+        var r = new XMLHttpRequest()
+        r.open('POST', base + '/upload')
+        r.setRequestHeader('Authorization', 'Bearer ' + token)
+        r.onload = function(){
+            if (r.status === 200) {
+                var d = JSON.parse(r.responseText)
+                if (d.code === '00000' && d.data && d.data.url) {
+                    zone.innerHTML = '<img src="' + d.data.url + '">'
+                    cb(d.data.url)
+                } else {
+                    showToast('上传失败', 'error')
+                }
+            }
+        }
+        r.send(fd)
+    }
+
+    loadStatus()
+})()
+</script>
+</body>
+</html>

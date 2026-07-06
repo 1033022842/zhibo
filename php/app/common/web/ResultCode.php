@@ -36,6 +36,9 @@ enum ResultCode: string
     case VERIFY_CODE_EXPIRED     = 'G0200';
     case VERIFY_CODE_ERROR       = 'G0201';
     case EMAIL_ALREADY_REGISTERED = 'G0300';
+    case CERTIFICATION_NOT_FOUND = 'G0400';
+    case CERTIFICATION_ALREADY_SUBMITTED = 'G0401';
+    case CERTIFICATION_ALREADY_PASSED = 'G0402';
     case SERVER_ERROR     = 'H0001';
 
     public function getMsg(): string
@@ -72,6 +75,9 @@ enum ResultCode: string
             self::VERIFY_CODE_EXPIRED => '验证码已过期',
             self::VERIFY_CODE_ERROR => '验证码错误',
             self::EMAIL_ALREADY_REGISTERED => '该邮箱已注册',
+            self::CERTIFICATION_NOT_FOUND => '认证记录不存在',
+            self::CERTIFICATION_ALREADY_SUBMITTED => '已提交认证申请，请勿重复提交',
+            self::CERTIFICATION_ALREADY_PASSED => '认证已通过，无需重复提交',
             self::SERVER_ERROR => '服务器内部错误',
         };
     }

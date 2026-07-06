@@ -181,6 +181,13 @@ final class UserService
 
         $profile = UserProfile::find($userId);
 
+        // 查询商家认证状态
+        $certStatus = -1;
+        $cert = \app\live\model\MerchantCertification::where('user_id', $userId)->find();
+        if ($cert) {
+            $certStatus = (int)$cert->status;
+        }
+
         return [
             'id'            => (int)$user->id,
             'user_no'       => $user->user_no,
@@ -190,6 +197,7 @@ final class UserService
             'status'        => $user->status,
             'gender'        => $profile->gender ?? 0,
             'bio'           => $profile->bio ?? '',
+            'cert_status'   => $certStatus,
             'last_login_at' => $profile->last_login_at ?? null,
         ];
     }

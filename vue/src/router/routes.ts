@@ -158,6 +158,11 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/home/search',
     component: () => import('@/pages/home/SearchPage.vue')
+  },
+
+  {
+    path: '/me/certification',
+    component: () => import('@/pages/me/MerchantCertification.vue')
   }
 ]
 

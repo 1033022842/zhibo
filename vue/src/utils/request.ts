@@ -165,7 +165,7 @@ axiosInstance.interceptors.response.use(
     if (reqConfig._retry) return Promise.reject(error)
 
     const url = reqConfig.url || ''
-    if (url.includes('/login') || url.includes('/register') || url.includes('/refresh_token')) {
+    if (url.includes('/login') || url.includes('/register') || url.includes('/refresh_token') || url.includes('/logout')) {
       return Promise.reject(error)
     }
 

@@ -8,6 +8,7 @@ import {
   clearTokens,
   setStoredUserInfo,
   getStoredUserInfo,
+  getRefreshToken,
   isLoggedIn,
   type UserInfo
 } from '@/utils/auth'
@@ -82,7 +83,8 @@ export const useBaseStore = defineStore('base', {
       authAvatar: '',
       authLevel: 1,
       authGender: 0,
-      authBio: ''
+      authBio: '',
+      authCertStatus: -1  // -1:未认证 0:审核中 1:已通过 2:已拒绝
     }
   },
   getters: {
@@ -108,19 +110,11 @@ export const useBaseStore = defineStore('base', {
         this.isAuthReady = true
         return
       }
-      const stored = getStoredUserInfo()
-      if (stored) {
-        this.authUserId = stored.id
-        this.authUserNo = stored.user_no
-        this.authNickname = stored.nickname
-        this.authAvatar = stored.avatar
-        this.userinfo.nickname = stored.nickname
+      // 始终先通过 API 验证 token 有效性再恢复用户状态
+      // 不直接使用 localStorage 中的旧数据，避免过期 token 造成"假登录"
+      this.fetchProfile().finally(() => {
         this.isAuthReady = true
-      } else {
-        this.fetchProfile().finally(() => {
-          this.isAuthReady = true
-        })
-      }
+      })
     },
 
     async doLogin(username: string, password: string): Promise<{ ok: boolean; msg: string }> {
@@ -176,15 +170,14 @@ export const useBaseStore = defineStore('base', {
       }
     },
 
-    async doLogout(): Promise<void> {
-      try {
-        await request({
-          url: '/api/live/logout',
-          method: 'POST'
-        })
-      } catch {
-        // 即使请求失败也要清除本地状态
-      }
+    doLogout(): void {
+      // 即使 API 调用失败也要清除本地状态
+      const rt = getRefreshToken()
+      fetch('/api/live/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: rt || '' })
+      }).catch(() => {})
       clearTokens()
       this.resetAuthState()
     },
@@ -206,6 +199,7 @@ export const useBaseStore = defineStore('base', {
           this.authLevel = user.level || 1
           this.authGender = user.gender || 0
           this.authBio = user.bio || ''
+          this.authCertStatus = (user as any).cert_status ?? -1
           this.userinfo.nickname = user.nickname
         }
       } catch {
@@ -221,6 +215,7 @@ export const useBaseStore = defineStore('base', {
       this.authLevel = 1
       this.authGender = 0
       this.authBio = ''
+      this.authCertStatus = -1
       this.userinfo.nickname = ''
       this.isAuthReady = true
     },
