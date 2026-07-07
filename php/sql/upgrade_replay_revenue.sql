@@ -31,3 +31,11 @@ INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `pat
 
 INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `keepalive`, `weigh`, `status`) VALUES
 (@live_data_pid, 'menu', 'live/replayClip', '历史切片', 'fa fa-video-camera', 'live/replayClip', '/src/views/backend/live/replayClip/index.vue', 'tab', 1, 3, 1);
+
+-- 历史切片按钮权限
+SET @replay_pid = (SELECT `id` FROM `ba_admin_rule` WHERE `name` = 'live/replayClip' AND `type` = 'menu' LIMIT 1);
+INSERT IGNORE INTO `ba_admin_rule` (`pid`, `type`, `name`, `title`, `icon`, `path`, `component`, `menu_type`, `keepalive`, `weigh`, `status`) VALUES
+(@replay_pid, 'button', 'live/replayClip/index', '查看', '', '', '', NULL, 0, 10, 1),
+(@replay_pid, 'button', 'live/replayClip/add', '新增', '', '', '', NULL, 0, 9, 1),
+(@replay_pid, 'button', 'live/replayClip/edit', '编辑', '', '', '', NULL, 0, 8, 1),
+(@replay_pid, 'button', 'live/replayClip/del', '删除', '', '', '', NULL, 0, 7, 1);

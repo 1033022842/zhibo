@@ -14,6 +14,7 @@
 | 6 | AI 女友前端 | `ai-girl-malaysia.com/` | 8080 | `npx serve` | ✅ |
 | 7 | 管理后台前端 | `php/web/` | 动态 | `pnpm dev` | 按需 |
 | 8 | channel-worker | `services/channel-worker/` | CLI | `php bin/channel-worker.php` | HLS直播需要 |
+| 9 | 维护定时检查 | `php/` | CLI | `php think maintenance:check` | 维护通知需要 |
 
 ---
 
@@ -94,6 +95,27 @@ npx serve -p 8080
 cd d:\ever\douyin\douyin\php\web
 pnpm dev
 ```
+
+---
+
+## 定时任务 (Crontab) — 部署到云服务器后配置
+
+### 维护到期自动通知
+
+每分钟检查是否有到期的维护任务，通过 Telegram Bot 发送通知。
+
+```bash
+# 编辑 crontab
+crontab -e
+
+# 添加以下行（替换 /path/to/php 为实际路径）
+* * * * * cd /path/to/php && php think maintenance:check >> runtime/log/maintenance.log 2>&1
+```
+
+> 配置方式：
+> 1. 管理后台 → 直播运营 → 定时维护 → **TG通知配置**：填写 Bot Token 和 Chat ID
+> 2. 管理后台 → 直播运营 → 定时维护 → **维护任务**：添加任务名称和到期日期
+> 3. 手动测试：`php think maintenance:check`
 
 ---
 
