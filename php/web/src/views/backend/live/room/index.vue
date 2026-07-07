@@ -8,13 +8,15 @@
 </template>
 
 <script setup lang="ts">
-import { provide } from 'vue'
+import { provide, h, defineComponent } from 'vue'
 import baTableClass from '/@/utils/baTable'
 import PopupForm from './popupForm.vue'
 import Table from '/@/components/table/index.vue'
 import TableHeader from '/@/components/table/header/index.vue'
 import { defaultOptButtons } from '/@/components/table'
 import { baTableApi } from '/@/api/common'
+import { ElButton, ElMessage } from 'element-plus'
+import createAxios from '/@/utils/axios'
 
 defineOptions({
     name: 'live/room',
@@ -41,6 +43,58 @@ const baTable = new baTableClass(
                 render: 'tag',
                 custom: { '0': 'danger', '1': 'success', '2': 'warning' },
                 replaceValue: { '0': '关闭', '1': '启用', '2': '维护' },
+            },
+            {
+                label: '推流',
+                prop: 'stream_running',
+                align: 'center',
+                width: 90,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: {
+                        renderRow: Object,
+                        renderField: Object,
+                        renderValue: [Boolean, String],
+                        renderColumn: Object,
+                        renderIndex: Number,
+                    },
+                    emits: [],
+                    setup(props) {
+                        const row = props.renderRow as any
+                        const running = row?.stream_running === true
+
+                        const toggleStream = async () => {
+                            const action = running ? 'stopStream' : 'startStream'
+                            try {
+                                const res = await createAxios({
+                                    url: '/admin/live.Room/' + action,
+                                    method: 'POST',
+                                    data: { id: row.id },
+                                })
+                                if (res.data.code === 1) {
+                                    ElMessage.success(res.data.msg)
+                                    baTable.getData()
+                                } else {
+                                    ElMessage.error(res.data.msg)
+                                }
+                            } catch {
+                                ElMessage.error('请求失败')
+                            }
+                        }
+
+                        return () =>
+                            h(
+                                ElButton,
+                                {
+                                    type: running ? 'danger' : 'success',
+                                    size: 'small',
+                                    onClick: toggleStream,
+                                },
+                                () => (running ? '关播' : '开播')
+                            )
+                    },
+                }) as any,
+                operator: false,
             },
             {
                 label: '操作',
