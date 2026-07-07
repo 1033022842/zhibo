@@ -13,6 +13,7 @@ use app\admin\model\live\RoomTag;
 use app\admin\model\live\RoomBinding;
 use app\admin\model\live\PlaylistTemplate;
 use app\admin\model\live\PlaylistTemplateItem;
+use app\admin\service\ChannelWorkerManager;
 
 final class Room extends Backend
 {
@@ -22,6 +23,7 @@ final class Room extends Backend
     protected string|array $preExcludeFields = ['tag_names', 'asset_ids', 'playlist_name'];
     protected bool $modelValidate = false;
     protected string|array $defaultSortField = 'sort,desc';
+    protected array $noNeedPermission = ['streamStatus'];
 
     public function initialize(): void
     {
@@ -129,6 +131,106 @@ final class Room extends Backend
             'total' => $res->total(),
             'remark' => get_route_remark(),
         ]);
+    }
+
+    public function index(): void
+    {
+        list($where, $alias, $limit, $order) = $this->queryBuilder();
+        $res = $this->model
+            ->withJoin($this->withJoinTable, $this->withJoinType)
+            ->alias($alias)
+            ->where($where)
+            ->order($order)
+            ->paginate($limit);
+
+        // 批量查询每个房间的推流状态
+        $items = $res->items();
+        if ($items) {
+            $roomIds = array_column($items, 'id');
+            $states = Db::connect('live_mysql')
+                ->table('lp_room_state_snapshot')
+                ->whereIn('room_id', $roomIds)
+                ->column('current_state', 'room_id');
+
+            $manager = new ChannelWorkerManager();
+            foreach ($items as &$item) {
+                $item['stream_state'] = $states[$item['id']] ?? 'offline';
+                $item['stream_running'] = $item['stream_state'] === 'public_live';
+            }
+            unset($item);
+        }
+
+        $this->success('', [
+            'list' => $items,
+            'total' => $res->total(),
+            'remark' => get_route_remark(),
+        ]);
+    }
+
+    /**
+     * 启动推流
+     */
+    public function startStream(): void
+    {
+        $id = (int) $this->request->param('id');
+        if ($id <= 0) {
+            $this->error('房间ID无效');
+        }
+
+        $room = $this->model->find($id);
+        if (!$room) {
+            $this->error('房间不存在');
+        }
+
+        // 检查房间是否有绑定（播单）
+        $binding = \app\admin\model\live\RoomBinding::where('room_id', $id)->find();
+        if (!$binding || !$binding->playlist_template_id) {
+            $this->error('房间未配置播单，请先编辑房间并选择素材');
+        }
+
+        $manager = new ChannelWorkerManager();
+        $result = $manager->start($id);
+
+        if ($result['ok']) {
+            $this->success($result['message']);
+        } else {
+            $this->error($result['message']);
+        }
+    }
+
+    /**
+     * 停止推流
+     */
+    public function stopStream(): void
+    {
+        $id = (int) $this->request->param('id');
+        if ($id <= 0) {
+            $this->error('房间ID无效');
+        }
+
+        $manager = new ChannelWorkerManager();
+        $result = $manager->stop($id);
+
+        if ($result['ok']) {
+            $this->success($result['message']);
+        } else {
+            $this->error($result['message']);
+        }
+    }
+
+    /**
+     * 查询推流状态
+     */
+    public function streamStatus(): void
+    {
+        $id = (int) $this->request->param('id');
+        if ($id <= 0) {
+            $this->error('房间ID无效');
+        }
+
+        $manager = new ChannelWorkerManager();
+        $result = $manager->status($id);
+        $this->success('', $result);
     }
 
     private function persistRoom(array $payload, ?int $roomId = null): void
