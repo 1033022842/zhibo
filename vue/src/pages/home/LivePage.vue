@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿<template>
   <div class="live-room-page">
     <video
       ref="videoEl"
@@ -155,6 +155,7 @@ const privilegeGiftName = ref('')
 const privilegeToast = ref('')
 const interactionActive = ref(false)
 const interactionHlsUrl = ref('')
+const isTokenInvalid = ref(false)
 
 let livePlaybackController: ReturnType<typeof createLivePlaybackController> | null = null
 let ws: WebSocket | null = null
@@ -230,6 +231,9 @@ const playModeTitle = computed(() => {
   }
 })
 const wsStatusText = computed(() => {
+  if (isTokenInvalid.value) {
+    return '登录已过期，请刷新页面重新登录'
+  }
   switch (wsState.value) {
     case 'connecting':
       return '弹幕连接中...'
@@ -312,6 +316,7 @@ function resetRealtimeState() {
   chatDraft.value = ''
   sendingChat.value = false
   sendingGiftId.value = null
+  isTokenInvalid.value = false
   resetPrivilegeState()
 }
 
@@ -549,6 +554,18 @@ function connectRoomSocket(currentRoom: LiveRoom) {
     if (type === 'error') {
       sendingChat.value = false
       sendingGiftId.value = null
+      // token 无效时停止重连，避免反复弹窗
+      if (payload.code === 'WS0401') {
+        isTokenInvalid.value = true
+        socketManuallyClosed = true
+        if (ws) {
+          ws.close()
+          ws = null
+        }
+        wsState.value = 'idle'
+        _notice('登录已过期，请刷新页面重新登录')
+        return
+      }
       if (payload.msg) {
         _notice(String(payload.msg))
       }

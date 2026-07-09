@@ -53,6 +53,7 @@ services/channel-worker/runtime/
 
 # Archive / large binary files
 *.zip
+*.tar.gz
 php/composer.zip
 tools.zip
 vue/dist.zip
