@@ -11,7 +11,7 @@
  Target Server Version : 80012 (8.0.12)
  File Encoding         : 65001
 
- Date: 05/07/2026 14:34:18
+ Date: 24/07/2026 15:23:29
 */
 
 SET NAMES utf8mb4;
@@ -44,7 +44,7 @@ CREATE TABLE `ba_admin`  (
 -- ----------------------------
 -- Records of ba_admin
 -- ----------------------------
-INSERT INTO `ba_admin` VALUES (1, 'admin', 'Admin', '', 'admin@buildadmin.com', '18888888888', 0, 1783157976, '127.0.0.1', '$2y$10$b/w7wjNIymPfjY62LTInBuelicvFAjdMLXNUJhrd7ZvI/ckt3FQDm', '', '', 'enable', 1783157976, 1778942775);
+INSERT INTO `ba_admin` VALUES (1, 'admin', 'Admin', '', 'admin@buildadmin.com', '18888888888', 0, 1783351404, '127.0.0.1', '$2y$10$b/w7wjNIymPfjY62LTInBuelicvFAjdMLXNUJhrd7ZvI/ckt3FQDm', '', '', 'enable', 1783351404, 1778942775);
 
 -- ----------------------------
 -- Table structure for ba_admin_group
@@ -100,7 +100,7 @@ CREATE TABLE `ba_admin_log`  (
   `useragent` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'User-Agent',
   `create_time` bigint(16) UNSIGNED NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 46 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '管理员日志表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 48 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '管理员日志表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of ba_admin_log
@@ -150,6 +150,8 @@ INSERT INTO `ba_admin_log` VALUES (42, 1, 'admin', '/admin/live.Persona/edit', '
 INSERT INTO `ba_admin_log` VALUES (43, 1, 'admin', '/admin/live.Room/edit', '房间管理-编辑', '{\"tag_names\":\"\\u4e13\\u6ce8,\\u5b66\\u4e60\",\"asset_ids\":[\"4\"],\"playlist_name\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\\u64ad\\u5355\",\"id\":\"3\",\"room_no\":\"R1003\",\"title\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\",\"subtitle\":\"\\u9002\\u5408\\u5207\\u540e\\u53f0\\u6302\\u673a\\u7684\\u4e13\\u6ce8\\u966a\\u4f34\\u6d41\",\"persona_id\":\"7\",\"room_type\":\"live\",\"status\":\"1\",\"cover_url\":\"https:\\/\\/picsum.photos\\/seed\\/live-room-3\\/720\\/1280\",\"sort\":\"100\",\"created_at\":\"2026-05-18 09:49:16\",\"updated_at\":\"2026-05-19 17:30:12\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783157227);
 INSERT INTO `ba_admin_log` VALUES (44, 1, 'admin', '/admin/live.Room/edit', '房间管理-编辑', '{\"tag_names\":\"\\u4e13\\u6ce8,\\u5b66\\u4e60\",\"asset_ids\":[\"4\"],\"playlist_name\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\\u64ad\\u5355\",\"id\":\"3\",\"room_no\":\"R1003\",\"title\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\",\"subtitle\":\"\\u9002\\u5408\\u5207\\u540e\\u53f0\\u6302\\u673a\\u7684\\u4e13\\u6ce8\\u966a\\u4f34\\u6d41\",\"persona_id\":\"6\",\"room_type\":\"live\",\"status\":\"1\",\"cover_url\":\"https:\\/\\/picsum.photos\\/seed\\/live-room-3\\/720\\/1280\",\"sort\":\"100\",\"created_at\":\"2026-05-18 09:49:16\",\"updated_at\":\"2026-07-04 17:27:07\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783157274);
 INSERT INTO `ba_admin_log` VALUES (45, 1, 'admin', '/admin/live.Room/edit', '房间管理-编辑', '{\"tag_names\":\"\\u4e13\\u6ce8,\\u5b66\\u4e60\",\"asset_ids\":[\"4\"],\"playlist_name\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\\u64ad\\u5355\",\"id\":\"3\",\"room_no\":\"R1003\",\"title\":\"\\u6e05\\u6668\\u81ea\\u4e60\\u76f4\\u64ad\\u95f44\",\"subtitle\":\"\\u9002\\u5408\\u5207\\u540e\\u53f0\\u6302\\u673a\\u7684\\u4e13\\u6ce8\\u966a\\u4f34\\u6d41\",\"persona_id\":\"7\",\"room_type\":\"live\",\"status\":\"1\",\"cover_url\":\"https:\\/\\/picsum.photos\\/seed\\/live-room-3\\/720\\/1280\",\"sort\":\"100\",\"created_at\":\"2026-05-18 09:49:16\",\"updated_at\":\"2026-07-04 17:27:54\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', 1783157682);
+INSERT INTO `ba_admin_log` VALUES (46, 1, 'admin', '/admin/Index/login', '登录', '{\"username\":\"admin\",\"password\":\"***\",\"keep\":\"\",\"captchaId\":\"9d1ba6cd-40f6-453a-b153-27cd3df6f9df\",\"captchaInfo\":\"149,25-335,77;350;200\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0', 1783348640);
+INSERT INTO `ba_admin_log` VALUES (47, 1, 'admin', '/admin/Index/login', '登录', '{\"username\":\"admin\",\"password\":\"***\",\"keep\":\"\",\"captchaId\":\"34112bc2-91ce-4821-9844-d855d78ff130\",\"captchaInfo\":\"337,11-105,156;350;200\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0', 1783350720);
 
 -- ----------------------------
 -- Table structure for ba_admin_rule
@@ -175,7 +177,7 @@ CREATE TABLE `ba_admin_rule`  (
   `create_time` bigint(16) UNSIGNED NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `pid`(`pid` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 126 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '菜单和权限规则表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 159 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '菜单和权限规则表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of ba_admin_rule
@@ -255,7 +257,7 @@ INSERT INTO `ba_admin_rule` VALUES (72, 71, 'button', '查看', 'security/sensit
 INSERT INTO `ba_admin_rule` VALUES (73, 71, 'button', '添加', 'security/sensitiveData/add', '', '', NULL, '', '', 0, 'none', '', 0, 1, 1778942775, 1778942775);
 INSERT INTO `ba_admin_rule` VALUES (74, 71, 'button', '编辑', 'security/sensitiveData/edit', '', '', NULL, '', '', 0, 'none', '', 0, 1, 1778942775, 1778942775);
 INSERT INTO `ba_admin_rule` VALUES (75, 71, 'button', '删除', 'security/sensitiveData/del', '', '', NULL, '', '', 0, 'none', '', 0, 1, 1778942775, 1778942775);
-INSERT INTO `ba_admin_rule` VALUES (76, 0, 'menu', 'BuildAdmin', 'buildadmin', 'buildadmin', 'local-logo', 'link', 'https://doc.buildadmin.com', '', 0, 'none', '', 0, 0, 1778942775, 1778942775);
+INSERT INTO `ba_admin_rule` VALUES (76, 0, 'menu', 'BuildAdmin', 'buildadmin', 'buildadmin', 'local-logo', 'link', 'https://doc.buildadmin.com', '', 1, 'none', '', 0, 0, 1778942775, 1778942775);
 INSERT INTO `ba_admin_rule` VALUES (77, 45, 'button', '添加', 'routine/config/add', '', '', NULL, '', '', 0, 'none', '', 0, 1, 1778942775, 1778942775);
 INSERT INTO `ba_admin_rule` VALUES (78, 0, 'menu', '模块市场', 'moduleStore/moduleStore', 'moduleStore', 'el-icon-GoodsFilled', 'tab', '', '/src/views/backend/module/index.vue', 1, 'none', '', 86, 0, 1779856430, 1778942775);
 INSERT INTO `ba_admin_rule` VALUES (79, 78, 'button', '查看', 'moduleStore/moduleStore/index', '', '', NULL, '', '', 0, 'none', '', 0, 1, 1778942775, 1778942775);
@@ -269,37 +271,53 @@ INSERT INTO `ba_admin_rule` VALUES (86, 84, 'button', '生成', 'crud/crud/gener
 INSERT INTO `ba_admin_rule` VALUES (87, 84, 'button', '删除', 'crud/crud/delete', '', '', NULL, '', '', 0, 'none', '', 0, 1, 1778942775, 1778942775);
 INSERT INTO `ba_admin_rule` VALUES (88, 45, 'button', '删除', 'routine/config/del', '', '', NULL, '', '', 0, 'none', '', 0, 1, 1778942775, 1778942775);
 INSERT INTO `ba_admin_rule` VALUES (89, 1, 'button', '查看', 'dashboard/index', '', '', NULL, '', '', 0, 'none', '', 0, 1, 1778942777, 1778942777);
-INSERT INTO `ba_admin_rule` VALUES (90, 0, 'menu_dir', '直播运营', 'live', 'live', 'fa fa-video-camera', 'tab', '', 'Layout', 1, 'none', '直播后台运营菜单', 120, 1, 1779248396, 1779085601);
-INSERT INTO `ba_admin_rule` VALUES (91, 90, 'menu', '人设管理', 'live/persona', 'live/persona', 'fa fa-user-circle', 'tab', '', '/src/views/backend/live/persona/index.vue', 1, 'none', '直播人设配置', 119, 1, 1779248396, 1779085601);
+INSERT INTO `ba_admin_rule` VALUES (91, 122, 'menu', '人设管理', 'live/persona', 'live/persona', 'fa fa-user-circle', 'tab', '', '/src/views/backend/live/persona/index.vue', 1, 'none', '直播人设配置', 119, 1, 1779248396, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (92, 91, 'button', '查看', 'live/persona/index', '', '', 'tab', '', '', 0, 'none', '', 10, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (93, 91, 'button', '新增', 'live/persona/add', '', '', 'tab', '', '', 0, 'none', '', 9, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (94, 91, 'button', '编辑', 'live/persona/edit', '', '', 'tab', '', '', 0, 'none', '', 8, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (95, 91, 'button', '删除', 'live/persona/del', '', '', 'tab', '', '', 0, 'none', '', 7, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (96, 91, 'button', '选择', 'live/persona/select', '', '', 'tab', '', '', 0, 'none', '', 6, 1, 1779085601, 1779085601);
-INSERT INTO `ba_admin_rule` VALUES (97, 90, 'menu', '素材管理', 'live/mediaAsset', 'live/mediaAsset', 'fa fa-film', 'tab', '', '/src/views/backend/live/mediaAsset/index.vue', 1, 'none', '直播素材池管理', 118, 1, 1779248396, 1779085601);
+INSERT INTO `ba_admin_rule` VALUES (97, 122, 'menu', '素材管理', 'live/mediaAsset', 'live/mediaAsset', 'fa fa-film', 'tab', '', '/src/views/backend/live/mediaAsset/index.vue', 1, 'none', '直播素材池管理', 118, 1, 1779248396, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (98, 97, 'button', '查看', 'live/mediaAsset/index', '', '', 'tab', '', '', 0, 'none', '', 10, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (99, 97, 'button', '新增', 'live/mediaAsset/add', '', '', 'tab', '', '', 0, 'none', '', 9, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (100, 97, 'button', '编辑', 'live/mediaAsset/edit', '', '', 'tab', '', '', 0, 'none', '', 8, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (101, 97, 'button', '删除', 'live/mediaAsset/del', '', '', 'tab', '', '', 0, 'none', '', 7, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (102, 97, 'button', '选择', 'live/mediaAsset/select', '', '', 'tab', '', '', 0, 'none', '', 6, 1, 1779085601, 1779085601);
-INSERT INTO `ba_admin_rule` VALUES (103, 90, 'menu', '房间管理', 'live/room', 'live/room', 'fa fa-television', 'tab', '', '/src/views/backend/live/room/index.vue', 1, 'none', '直播房间与播单绑定', 117, 1, 1779248396, 1779085601);
+INSERT INTO `ba_admin_rule` VALUES (103, 122, 'menu', '房间管理', 'live/room', 'live/room', 'fa fa-television', 'tab', '', '/src/views/backend/live/room/index.vue', 1, 'none', '直播房间与播单绑定', 117, 1, 1779248396, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (104, 103, 'button', '查看', 'live/room/index', '', '', 'tab', '', '', 0, 'none', '', 10, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (105, 103, 'button', '新增', 'live/room/add', '', '', 'tab', '', '', 0, 'none', '', 9, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (106, 103, 'button', '编辑', 'live/room/edit', '', '', 'tab', '', '', 0, 'none', '', 8, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (107, 103, 'button', '删除', 'live/room/del', '', '', 'tab', '', '', 0, 'none', '', 7, 1, 1779085601, 1779085601);
 INSERT INTO `ba_admin_rule` VALUES (108, 103, 'button', '选择', 'live/room/select', '', '', 'tab', '', '', 0, 'none', '', 6, 1, 1779085601, 1779085601);
-INSERT INTO `ba_admin_rule` VALUES (109, 90, 'menu', '礼物管理', 'live/gift', 'live/gift', 'fa fa-gift', 'tab', '', '/src/views/backend/live/gift/index.vue', 0, 'none', '直播礼物配置', 116, 1, 1779248396, 1779248396);
+INSERT INTO `ba_admin_rule` VALUES (109, 122, 'menu', '礼物管理', 'live/gift', 'live/gift', 'fa fa-gift', 'tab', '', '/src/views/backend/live/gift/index.vue', 1, 'none', '直播礼物配置', 116, 1, 1779248396, 1779248396);
 INSERT INTO `ba_admin_rule` VALUES (110, 109, 'button', '查看', 'live/gift/index', '', '', 'tab', '', '', 0, 'none', '', 10, 1, 1779248396, 1779248396);
 INSERT INTO `ba_admin_rule` VALUES (111, 109, 'button', '新增', 'live/gift/add', '', '', 'tab', '', '', 0, 'none', '', 9, 1, 1779248396, 1779248396);
 INSERT INTO `ba_admin_rule` VALUES (112, 109, 'button', '编辑', 'live/gift/edit', '', '', 'tab', '', '', 0, 'none', '', 8, 1, 1779248396, 1779248396);
 INSERT INTO `ba_admin_rule` VALUES (113, 109, 'button', '删除', 'live/gift/del', '', '', 'tab', '', '', 0, 'none', '', 7, 1, 1779248396, 1779248396);
 INSERT INTO `ba_admin_rule` VALUES (114, 109, 'button', '选择', 'live/gift/select', '', '', 'tab', '', '', 0, 'none', '', 6, 1, 1779248396, 1779248396);
-INSERT INTO `ba_admin_rule` VALUES (115, 90, 'menu', '直播平台用户', 'user/liveUser', 'live/liveUser', 'fa fa-users', 'tab', '', '/src/views/backend/user/liveUser/index.vue', 0, 'none', '', 115, 1, NULL, NULL);
-INSERT INTO `ba_admin_rule` VALUES (121, 44, 'menu', '短信服务配置', 'routine/smsConfig', 'routine/smsConfig', 'fa fa-message', 'tab', '', '/src/views/backend/routine/smsConfig/index.vue', 0, 'none', '', 4, 1, NULL, NULL);
-INSERT INTO `ba_admin_rule` VALUES (122, 0, 'menu_dir', '直播数据', 'liveData', '/admin/liveData', 'fa fa-bar-chart', '', '', '', 0, 'none', '', 50, 1, NULL, NULL);
-INSERT INTO `ba_admin_rule` VALUES (123, 122, 'menu', '收益明细', 'live/revenue', '/admin/live/revenue', 'fa fa-list-alt', '', '', 'live/revenue/index', 0, 'none', '', 1, 1, NULL, NULL);
-INSERT INTO `ba_admin_rule` VALUES (124, 122, 'menu', '收入排行榜', 'live/leaderboard', '/admin/live/leaderboard', 'fa fa-trophy', '', '', 'live/leaderboard/index', 0, 'none', '', 2, 1, NULL, NULL);
-INSERT INTO `ba_admin_rule` VALUES (125, 122, 'menu', '历史切片', 'live/replayClip', '/admin/live/replayClip', 'fa fa-video-camera', '', '', 'live/replayClip/index', 0, 'none', '', 3, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (115, 122, 'menu', '直播平台用户', 'user/liveUser', 'live/liveUser', 'fa fa-users', 'tab', '', '/src/views/backend/user/liveUser/index.vue', 1, 'none', '', 115, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (121, 44, 'menu', '短信服务配置', 'routine/smsConfig', 'routine/smsConfig', 'fa fa-message', 'tab', '', '/src/views/backend/routine/smsConfig/index.vue', 1, 'none', '', 4, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (122, 0, 'menu_dir', '直播运营', 'live', 'live', 'fa fa-youtube-play', NULL, '', '', 0, 'none', '', 200, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (123, 122, 'menu', '收益明细', 'live/revenue', 'live/revenue', 'fa fa-list-alt', 'tab', '', '/src/views/backend/live/revenue/index.vue', 1, 'none', '', 1, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (124, 122, 'menu', '收入排行榜', 'live/leaderboard', 'live/leaderboard', 'fa fa-trophy', 'tab', '', '/src/views/backend/live/leaderboard/index.vue', 1, 'none', '', 2, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (125, 122, 'menu', '历史切片', 'live/replayClip', 'live/replayClip', 'fa fa-video-camera', 'tab', '', '/src/views/backend/live/replayClip/index.vue', 1, 'none', '', 3, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (126, 122, 'menu_dir', '定时维护', 'live/maintenance', 'live/maintenance', 'fa fa-clock-o', NULL, '', '', 0, 'none', '', 4, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (127, 126, 'menu', '维护任务', 'live/maintenanceTask', 'live/maintenanceTask', 'fa fa-list', 'tab', '', '/src/views/backend/live/maintenanceTask/index.vue', 1, 'none', '', 1, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (128, 126, 'menu', 'TG通知配置', 'live/maintenanceConfig', 'live/maintenanceConfig', 'fa fa-telegram', 'tab', '', '/src/views/backend/live/maintenanceConfig/index.vue', 1, 'none', '', 2, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (129, 125, 'button', '查看', 'live/replayClip/index', '', '', NULL, '', '', 0, 'none', '', 10, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (130, 125, 'button', '新增', 'live/replayClip/add', '', '', NULL, '', '', 0, 'none', '', 9, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (131, 125, 'button', '编辑', 'live/replayClip/edit', '', '', NULL, '', '', 0, 'none', '', 8, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (132, 125, 'button', '删除', 'live/replayClip/del', '', '', NULL, '', '', 0, 'none', '', 7, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (133, 127, 'button', '查看', 'live/maintenanceTask/index', '', '', NULL, '', '', 0, 'none', '', 10, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (134, 127, 'button', '新增', 'live/maintenanceTask/add', '', '', NULL, '', '', 0, 'none', '', 9, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (135, 127, 'button', '编辑', 'live/maintenanceTask/edit', '', '', NULL, '', '', 0, 'none', '', 8, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (136, 127, 'button', '删除', 'live/maintenanceTask/del', '', '', NULL, '', '', 0, 'none', '', 7, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (153, 103, 'button', '开播', 'live/room/startStream', '', '', NULL, '', '', 0, 'none', '', 0, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (154, 103, 'button', '关播', 'live/room/stopStream', '', '', NULL, '', '', 0, 'none', '', 0, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (155, 103, 'button', '推流状态', 'live/room/streamStatus', '', '', NULL, '', '', 0, 'none', '', 0, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (156, 103, 'button', '开播', 'live/room/startStream', '', '', NULL, '', '', 0, 'none', '', 0, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (157, 103, 'button', '关播', 'live/room/stopStream', '', '', NULL, '', '', 0, 'none', '', 0, 1, NULL, NULL);
+INSERT INTO `ba_admin_rule` VALUES (158, 103, 'button', '推流状态', 'live/room/streamStatus', '', '', NULL, '', '', 0, 'none', '', 0, 1, NULL, NULL);
 
 -- ----------------------------
 -- Table structure for ba_area
@@ -610,6 +628,8 @@ CREATE TABLE `ba_token`  (
 -- Records of ba_token
 -- ----------------------------
 INSERT INTO `ba_token` VALUES ('2e674dd580b2cc7981f6e0b08ee9e25160024cc3', 'admin', 1, 1783155956, 1783415156);
+INSERT INTO `ba_token` VALUES ('4fb066e9f87f84e7a94f37cd98b78ab75d684650', 'admin', 1, 1783350720, 1783609920);
+INSERT INTO `ba_token` VALUES ('6e8dcb0be42442e3dba426ab1d30f61864cef79f', 'admin', 1, 1783348639, 1783607839);
 INSERT INTO `ba_token` VALUES ('a8d81df5dc00df0a5a3bfa1358694b9c6f71c307', 'admin', 1, 1783154705, 1783413905);
 
 -- ----------------------------
@@ -976,6 +996,47 @@ CREATE TABLE `lp_like_action_log`  (
 -- ----------------------------
 
 -- ----------------------------
+-- Table structure for lp_maintenance_config
+-- ----------------------------
+DROP TABLE IF EXISTS `lp_maintenance_config`;
+CREATE TABLE `lp_maintenance_config`  (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `bot_token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Telegram Bot Token',
+  `chat_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Telegram Chat ID (多个用逗号分隔)',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'TG通知配置' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of lp_maintenance_config
+-- ----------------------------
+INSERT INTO `lp_maintenance_config` VALUES (1, '', '', '2026-07-06 22:16:25', '2026-07-06 22:16:25');
+
+-- ----------------------------
+-- Table structure for lp_maintenance_task
+-- ----------------------------
+DROP TABLE IF EXISTS `lp_maintenance_task`;
+CREATE TABLE `lp_maintenance_task`  (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '维护任务名称',
+  `due_date` date NOT NULL COMMENT '到期日期',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '备注',
+  `repeat_remind` tinyint(4) NOT NULL DEFAULT 0 COMMENT '重复提醒:0关闭 1开启',
+  `status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '状态:0待通知 1已通知 2已关闭',
+  `last_notify_at` datetime NULL DEFAULT NULL COMMENT '上次通知时间',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_due_date`(`due_date` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '定时维护任务' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of lp_maintenance_task
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for lp_media_asset
 -- ----------------------------
 DROP TABLE IF EXISTS `lp_media_asset`;
@@ -1003,6 +1064,29 @@ INSERT INTO `lp_media_asset` VALUES (2, 'demo_live_asset_room_1', 'video', 'publ
 INSERT INTO `lp_media_asset` VALUES (3, 'demo_live_asset_room_2', 'video', 'public', '午后轻音乐直播间演示素材', 'D:\\ever\\douyin\\douyin\\services\\channel-worker/runtime/assets/demo_live_asset_room_2.mp4', 10000, '', 1, '2026-05-18 09:56:39');
 INSERT INTO `lp_media_asset` VALUES (4, 'demo_live_asset_room_3', 'video', 'public', '清晨自习直播间演示素材', 'D:\\ever\\douyin\\douyin\\services\\channel-worker/runtime/assets/demo_live_asset_room_3.mp4', 15000, '', 1, '2026-05-18 09:56:39');
 INSERT INTO `lp_media_asset` VALUES (5, 'e2e_asset_20260518_1', 'video', 'public', 'E2E联调素材1', '/storage/live/20260518/demo_live_asset0e2b8da6ffb71124ee7e28e25094fd6fcfda45ec.mp4', 10000, '0e2b8da6ffb71124ee7e28e25094fd6fcfda45ec', 1, '2026-05-18 17:27:17');
+
+-- ----------------------------
+-- Table structure for lp_merchant_certification
+-- ----------------------------
+DROP TABLE IF EXISTS `lp_merchant_certification`;
+CREATE TABLE `lp_merchant_certification`  (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id` bigint(20) UNSIGNED NOT NULL COMMENT '用户ID',
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '认证邮箱',
+  `id_card_front` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '身份证正面',
+  `id_card_back` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '身份证反面',
+  `status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '认证状态:0待审核 1已通过 2已拒绝',
+  `reject_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '拒绝原因',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_id`(`user_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商家认证记录' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of lp_merchant_certification
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for lp_payment_callback_log
@@ -2727,7 +2811,7 @@ INSERT INTO `lp_user_profile` VALUES (5, 0, '', '', '127.0.0.1', '2026-05-17 09:
 INSERT INTO `lp_user_profile` VALUES (6, 1, 'hello', '', '127.0.0.1', '2026-05-17 09:32:31');
 INSERT INTO `lp_user_profile` VALUES (7, 1, 'hello', '', '127.0.0.1', '2026-05-17 09:32:58');
 INSERT INTO `lp_user_profile` VALUES (8, 0, '', '', '127.0.0.1', '2026-07-02 01:29:31');
-INSERT INTO `lp_user_profile` VALUES (9, 0, '', '', '127.0.0.1', '2026-07-02 01:51:27');
+INSERT INTO `lp_user_profile` VALUES (9, 0, '', '', '127.0.0.1', '2026-07-07 16:45:11');
 INSERT INTO `lp_user_profile` VALUES (10, 0, '', '', '127.0.0.1', '2026-07-02 01:36:09');
 INSERT INTO `lp_user_profile` VALUES (11, 0, '', '', '127.0.0.1', '2026-07-04 16:39:34');
 
