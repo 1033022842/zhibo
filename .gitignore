@@ -58,6 +58,9 @@ php/composer.zip
 tools.zip
 vue/dist.zip
 
+# 视频素材（通过CDN/文件存储管理，不纳入版本控制）
+视频成品/
+
 # Nested package managers
 **/node_modules/
 **/vendor/

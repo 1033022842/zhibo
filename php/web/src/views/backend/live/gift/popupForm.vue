@@ -5,6 +5,7 @@
         :model-value="['Add', 'Edit'].includes(baTable.form.operate!)"
         @close="baTable.toggleForm"
         :destroy-on-close="true"
+        width="680px"
     >
         <template #header>
             <div class="title" v-drag="['.ba-operate-dialog', '.el-dialog__header']" v-zoom="'.ba-operate-dialog'">
@@ -16,20 +17,34 @@
                 <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-if="!baTable.form.loading">
                     <FormItem label="礼物编码" v-model="baTable.form.items!.gift_code" prop="gift_code" type="string" />
                     <FormItem label="礼物名称" v-model="baTable.form.items!.name" prop="name" type="string" />
-                    <FormItem label="钻石价格" v-model="baTable.form.items!.price_diamond" prop="price_diamond" type="number" />
+                    <FormItem label="钻石价格" v-model="baTable.form.items!.price_diamond" prop="price_diamond" type="number" :input-attr="{ precision: 2 }" />
                     <FormItem
                         label="触发模式"
                         v-model="baTable.form.items!.trigger_mode"
-                        type="select"
-                        :input-attr="{ content: { none: '普通礼物', privilege: '特权触发', interaction: '互动触发' } }"
+                        type="radio"
+                        :input-attr="{
+                            border: true,
+                            content: { 'none': '无触发', 'keyword': '关键词触发', 'privilege': '特权模式', 'interaction': '互动模式' },
+                        }"
+                    />
+                    <FormItem
+                        label="触发关键词"
+                        v-model="baTable.form.items!.keyword"
+                        type="remoteSelect"
+                        :input-attr="{
+                            field: 'keyword',
+                            remoteUrl: '/admin/live.Gift/keywords',
+                            placeholder: '选择触发关键词（留空则不触发）',
+                            clearable: true,
+                        }"
                     />
                     <FormItem label="触发时长(秒)" v-model="baTable.form.items!.trigger_duration_sec" type="number" />
-                    <FormItem label="特效编码" v-model="baTable.form.items!.effect_code" type="string" :input-attr="{ placeholder: '可选，用于前端/切流特效映射' }" />
+                    <FormItem label="特效编码" v-model="baTable.form.items!.effect_code" type="string" />
                     <FormItem
                         label="状态"
                         v-model="baTable.form.items!.status"
                         type="radio"
-                        :input-attr="{ border: true, content: { '1': '启用', '0': '禁用' } }"
+                        :input-attr="{ border: true, content: { '0': '禁用', '1': '启用' } }"
                     />
                 </el-form>
             </div>

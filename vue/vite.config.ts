@@ -171,11 +171,11 @@ export default defineConfig((): Promise<UserConfig> => {
           host: '0.0.0.0',
           proxy: {
             '/api': {
-              target: 'http://127.0.0.1:8000',
+              target: 'http://127.0.0.1:8001',
               changeOrigin: false
             },
             '/hls': {
-              target: 'http://127.0.0.1:8000',
+              target: 'http://127.0.0.1:8001',
               changeOrigin: false
             }
           },

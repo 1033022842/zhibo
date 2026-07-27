@@ -8,19 +8,22 @@
 </template>
 
 <script setup lang="ts">
-import { provide, h, defineComponent } from 'vue'
+import { provide, h, defineComponent, reactive } from 'vue'
 import baTableClass from '/@/utils/baTable'
 import PopupForm from './popupForm.vue'
 import Table from '/@/components/table/index.vue'
 import TableHeader from '/@/components/table/header/index.vue'
 import { defaultOptButtons } from '/@/components/table'
 import { baTableApi } from '/@/api/common'
-import { ElButton, ElMessage } from 'element-plus'
+import { ElButton, ElMessage, ElTooltip } from 'element-plus'
 import createAxios from '/@/utils/axios'
 
 defineOptions({
     name: 'live/room',
 })
+
+// 追踪各房间推流操作的 loading 状态
+const streamLoading = reactive(new Map<number, boolean>())
 
 const baTable = new baTableClass(
     new baTableApi('/admin/live.Room/'),
@@ -61,37 +64,56 @@ const baTable = new baTableClass(
                     emits: [],
                     setup(props) {
                         const row = props.renderRow as any
-                        const running = row?.stream_running === true
+                        const running = () => row?.stream_running === true
+                        const loading = () => streamLoading.get(row?.id) || false
+                        const hasPlaylist = () => row?.has_playlist !== false
 
                         const toggleStream = async () => {
-                            const action = running ? 'stopStream' : 'startStream'
+                            if (streamLoading.get(row?.id)) return
+                            const action = running() ? 'stopStream' : 'startStream'
+                            streamLoading.set(row?.id, true)
                             try {
                                 const res = await createAxios({
                                     url: '/admin/live.Room/' + action,
                                     method: 'POST',
                                     data: { id: row.id },
                                 })
-                                if (res.data.code === 1) {
-                                    ElMessage.success(res.data.msg)
+                                // BA 的 reductDataFormat 已解包，res 即 response.data
+                                if (res.code === 1) {
+                                    ElMessage.success(res.msg)
                                     baTable.getData()
                                 } else {
-                                    ElMessage.error(res.data.msg)
+                                    ElMessage.error(res.msg || '操作失败')
                                 }
                             } catch {
                                 ElMessage.error('请求失败')
+                            } finally {
+                                streamLoading.set(row?.id, false)
                             }
                         }
 
-                        return () =>
-                            h(
+                        return () => {
+                            const btn = h(
                                 ElButton,
                                 {
-                                    type: running ? 'danger' : 'success',
+                                    type: running() ? 'danger' : 'success',
                                     size: 'small',
+                                    loading: loading(),
+                                    disabled: loading() || !hasPlaylist(),
                                     onClick: toggleStream,
                                 },
-                                () => (running ? '关播' : '开播')
+                                () => (running() ? '关播' : '开播')
                             )
+
+                            if (!hasPlaylist()) {
+                                return h(
+                                    ElTooltip,
+                                    { content: '未配置人设，无法推流', placement: 'top' },
+                                    () => btn
+                                )
+                            }
+                            return btn
+                        }
                     },
                 }) as any,
                 operator: false,

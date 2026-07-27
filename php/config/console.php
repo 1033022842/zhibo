@@ -8,5 +8,6 @@ return [
         \app\command\RoomSwitchCron::class,
         \app\command\AiTaskCron::class,
         \app\command\MaintenanceCheck::class,
+        \app\command\ResetStreams::class,
     ],
 ];

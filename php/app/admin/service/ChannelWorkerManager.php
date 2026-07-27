@@ -37,12 +37,10 @@ final class ChannelWorkerManager
         // 获取当前进程的 DB 环境变量，传递给子进程（channel-worker 用 getenv 读取）
         $envVars = $this->getEnvForChild();
 
-        // 打开日志文件用于重定向 stdout/stderr
-        $logHandle = @fopen($logFile, 'a');
         $descriptorSpec = [
-            0 => ['pipe', 'r'],  // stdin
-            1 => $logHandle ?: ['pipe', 'w'],  // stdout → 日志文件
-            2 => $logHandle ?: ['pipe', 'w'],  // stderr → 日志文件
+            0 => ['pipe', 'r'],   // stdin
+            1 => ['file', $logFile, 'a'],  // stdout → 日志文件
+            2 => ['file', $logFile, 'a'],  // stderr → 日志文件
         ];
 
         $process = proc_open(
@@ -54,9 +52,6 @@ final class ChannelWorkerManager
         );
 
         if (!is_resource($process)) {
-            if ($logHandle) {
-                fclose($logHandle);
-            }
             return ['ok' => false, 'message' => '无法启动推流进程'];
         }
 
@@ -68,13 +63,10 @@ final class ChannelWorkerManager
         $status = proc_get_status($process);
         $pid = $status['pid'] ?? 0;
 
-        // 释放 proc_open 资源（进程继续在后台运行）
-        // 不调用 proc_close，否则会等待进程结束
-        proc_close($process);
-
-        if ($logHandle) {
-            fclose($logHandle);
-        }
+        // 关键：不能调 proc_close()，它会阻塞等待子进程退出
+        // channel-worker 是无限循环的 ffmpeg 推流进程，永远不退出
+        // 释放 PHP 侧的句柄引用，子进程会脱离继续运行
+        unset($pipes, $process, $status);
 
         if ($pid > 0) {
             file_put_contents($pidFile, (string) $pid);
@@ -106,14 +98,16 @@ final class ChannelWorkerManager
 
         $killed = false;
         if ($this->isWindows()) {
-            exec("taskkill /F /PID {$pid} 2>&1", $output, $code);
+            // /T = 杀整个进程树（包括 ffmpeg 子进程）
+            exec("taskkill /F /T /PID {$pid} 2>&1", $output, $code);
             $killed = ($code === 0);
         } else {
-            // Linux: 先尝试正常终止，再强制
-            exec("kill {$pid} 2>&1", $output, $code);
+            // Linux: 杀死整个进程组（负 PID = process group）
+            // channel-worker 和它的 ffmpeg 子进程都在同一个进程组内
+            exec("kill -TERM -- -{$pid} 2>&1", $output, $code);
             $killed = ($code === 0);
             if (!$killed) {
-                exec("kill -9 {$pid} 2>&1", $output, $code);
+                exec("kill -9 -- -{$pid} 2>&1", $output, $code);
                 $killed = ($code === 0);
             }
         }
@@ -292,6 +286,53 @@ final class ChannelWorkerManager
             return $state ?: 'offline';
         } catch (\Throwable $e) {
             return 'offline';
+        }
+    }
+
+    /**
+     * 服务器重启后清空所有推流状态
+     * 通过 PID 哨兵文件判断是否重启：写入的 PID 与当前进程不同 = 服务器重启过
+     */
+    public static function resetStreamStatesIfBooted(): void
+    {
+        // PHP-FPM 模式下每请求 PID 都不同，不做自动检测
+        // 生产环境通过部署脚本执行：php think reset:streams
+        if (\PHP_SAPI === 'fpm-fcgi') {
+            return;
+        }
+
+        $sentinelFile = root_path() . 'runtime' . DIRECTORY_SEPARATOR . 'channel-worker' . DIRECTORY_SEPARATOR . '.server_pid';
+
+        $currentPid = getmypid();
+        $previousPid = 0;
+        if (file_exists($sentinelFile)) {
+            $previousPid = (int) @file_get_contents($sentinelFile);
+        }
+
+        // PID 不同 = 新服务器进程，需要重置
+        if ($previousPid !== $currentPid) {
+            try {
+                \think\facade\Db::connect('live_mysql')
+                    ->table('lp_room_state_snapshot')
+                    ->where('current_state', 'public_live')
+                    ->update(['current_state' => 'offline', 'current_mode' => 'public', 'version' => \think\facade\Db::raw('version + 1')]);
+            } catch (\Throwable $e) {
+                // 数据库操作失败不影响主流程
+            }
+
+            // 清理残留 PID 文件
+            $pidDir = root_path() . 'runtime' . DIRECTORY_SEPARATOR . 'channel-worker';
+            if (is_dir($pidDir)) {
+                foreach (glob($pidDir . DIRECTORY_SEPARATOR . 'room-*.pid') as $pidFile) {
+                    @unlink($pidFile);
+                }
+            }
+
+            // 记录当前 PID 作为哨兵
+            if (!is_dir(dirname($sentinelFile))) {
+                mkdir(dirname($sentinelFile), 0755, true);
+            }
+            @file_put_contents($sentinelFile, (string) $currentPid);
         }
     }
 }
