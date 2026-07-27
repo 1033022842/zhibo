@@ -40,7 +40,9 @@ final class GiftService
         $triggerDurationSec = (int) ($gift['trigger_duration_sec'] ?? 0);
 
         $switchTask = null;
-        if ($triggerMode === 'privilege' && $triggerDurationSec > 0) {
+        if ($triggerMode === 'keyword') {
+            $this->pushKeywordCommand($roomId, $giftId);
+        } elseif ($triggerMode === 'privilege' && $triggerDurationSec > 0) {
             $switchTask = $this->requestPrivilegeSwitch($roomId, $giftId, $triggerDurationSec, $giftName);
         }
 
@@ -153,6 +155,61 @@ final class GiftService
         ]);
 
         return (int) $this->pdo()->lastInsertId();
+    }
+
+    private function pushKeywordCommand(int $roomId, int $giftId): void
+    {
+        try {
+            // 查询礼物对应的关键词
+            $stmt = $this->pdo()->prepare(
+                'SELECT keyword FROM lp_gift_keyword WHERE gift_id = :gid ORDER BY priority LIMIT 1'
+            );
+            $stmt->execute(['gid' => $giftId]);
+            $row = $stmt->fetch();
+            if (!$row) {
+                return;
+            }
+
+            $keyword = (string) $row['keyword'];
+            if ($keyword === '') {
+                return;
+            }
+
+            // 写入 Redis Stream
+            $redis = $this->redis();
+            $payload = json_encode([
+                'room_id' => $roomId,
+                'command_type' => 'keyword',
+                'params' => ['keyword' => $keyword],
+                'created_at' => date('Y-m-d H:i:s'),
+            ], JSON_UNESCAPED_UNICODE);
+
+            $redis->xAdd('stream:room:switch', '*', ['data' => $payload]);
+        } catch (\Throwable) {
+            // 关键词触发失败不影响送礼主流程
+        }
+    }
+
+    private function redis(): \Redis
+    {
+        static $redis = null;
+        if ($redis instanceof \Redis) {
+            return $redis;
+        }
+
+        $redis = new \Redis();
+        $host = (string) config('redis.host', '127.0.0.1');
+        $port = (int) config('redis.port', 6379);
+        $auth = (string) config('redis.auth', '');
+        $db = (int) config('redis.db', 0);
+
+        $redis->connect($host, $port);
+        if ($auth !== '') {
+            $redis->auth($auth);
+        }
+        $redis->select($db);
+
+        return $redis;
     }
 
     private function isConnectionLost(\PDOException $exception): bool

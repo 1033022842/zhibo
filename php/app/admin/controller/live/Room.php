@@ -135,6 +135,8 @@ final class Room extends Backend
 
     public function index(): void
     {
+        ChannelWorkerManager::resetStreamStatesIfBooted();
+
         list($where, $alias, $limit, $order) = $this->queryBuilder();
         $res = $this->model
             ->withJoin($this->withJoinTable, $this->withJoinType)
@@ -143,19 +145,29 @@ final class Room extends Backend
             ->order($order)
             ->paginate($limit);
 
-        // 批量查询每个房间的推流状态
+        // 批量查询每个房间的推流状态和播单配置
         $items = $res->items();
         if ($items) {
             $roomIds = array_column($items, 'id');
+
+            // 推流状态
             $states = Db::connect('live_mysql')
                 ->table('lp_room_state_snapshot')
                 ->whereIn('room_id', $roomIds)
                 ->column('current_state', 'room_id');
 
-            $manager = new ChannelWorkerManager();
+            // 是否配置了 persona（有人设才能推流）
+            $bindings = Db::connect('live_mysql')
+                ->table('lp_room_binding')
+                ->whereIn('room_id', $roomIds)
+                ->whereNotNull('persona')
+                ->where('persona', '<>', '')
+                ->column('persona', 'room_id');
+
             foreach ($items as &$item) {
                 $item['stream_state'] = $states[$item['id']] ?? 'offline';
                 $item['stream_running'] = $item['stream_state'] === 'public_live';
+                $item['has_playlist'] = isset($bindings[$item['id']]);
             }
             unset($item);
         }
@@ -182,10 +194,10 @@ final class Room extends Backend
             $this->error('房间不存在');
         }
 
-        // 检查房间是否有绑定（播单）
+        // 检查房间是否绑定了 persona（人设）
         $binding = \app\admin\model\live\RoomBinding::where('room_id', $id)->find();
-        if (!$binding || !$binding->playlist_template_id) {
-            $this->error('房间未配置播单，请先编辑房间并选择素材');
+        if (!$binding || empty($binding->persona)) {
+            $this->error('房间未配置人设(persona)，请在直播房间编辑中设置');
         }
 
         $manager = new ChannelWorkerManager();

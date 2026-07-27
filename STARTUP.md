@@ -8,11 +8,11 @@
 |------|------|------|------|------|------|
 | 1 | MySQL | 系统服务 | 3306 | 确保服务运行 | ✅ |
 | 2 | Redis | 系统服务 | 6379 | 确保服务运行 | ✅ |
-| 3 | ThinkPHP 后端 | `php/` | 8000 | `php think run` | ✅ |
+| 3 | ThinkPHP 后端 | `php/` | 8001 | `php think run` | ✅ |
 | 4 | WebSocket | `apps/ws-webman/` | 8788 | `php windows.php` | ✅ |
 | 5 | Vue 前端 | `vue/` | 3000 | `pnpm dev` | ✅ |
 | 6 | AI 女友前端 | `ai-girl-malaysia.com/` | 8080 | `npx serve` | ✅ |
-| 7 | 管理后台前端 | `php/web/` | 动态 | `pnpm dev` | 按需 |
+| 7 | 管理后台前端 | `php/web/` | 1818 | `pnpm dev` | 按需 |
 | 8 | channel-worker | `services/channel-worker/` | CLI | `php bin/channel-worker.php` | HLS直播需要 |
 | 9 | 维护定时检查 | `php/` | CLI | `php think maintenance:check` | 维护通知需要 |
 
@@ -61,7 +61,7 @@ source php/sql/upgrade_persona_ai.sql
 ### 终端 1 — ThinkPHP 后端 API
 ```bash
 cd d:\ever\douyin\douyin\php
-php think run -H 127.0.0.1 -p 8000
+php think run -H 127.0.0.1 -p 8001
 ```
 > 验证：浏览器打开 http://127.0.0.1:8000
 
@@ -99,6 +99,14 @@ pnpm dev
 ---
 
 ## 定时任务 (Crontab) — 部署到云服务器后配置
+
+### 部署后重置推流状态
+
+每次部署/重启后，清空残留的推流状态（避免显示虚假的"推流中"）。
+
+```bash
+php think reset:streams
+```
 
 ### 维护到期自动通知
 
