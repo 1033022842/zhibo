@@ -4,11 +4,11 @@
        var cacheTemplate = $('#messages-list').html()
        var token = localStorage.getItem('live_access_token')
      /** 
-     * 获取指定的URL参数值 
+     * 获取指定的URL参数�?
      * URL:http://www.xxx.com/index?name=123
      * 参数：param URL参数 
      * 调用方法:getParam("name") 
-     * 返回值:123
+     * 返回�?123
      * alert(getParam('date'));
      */ 
      function getParam(name) {  

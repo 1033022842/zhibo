@@ -140,7 +140,34 @@ final class MediaAsset extends Backend
             (string) ($existing['checksum'] ?? '')
         );
 
+        // 新字段：keywords / persona / weight
+        $data['keywords'] = $this->normalizeKeywords((string) ($data['keywords'] ?? $existing['keywords'] ?? ''));
+        $data['persona'] = trim((string) ($data['persona'] ?? $existing['persona'] ?? ''));
+        $data['weight'] = (int) ($data['weight'] ?? $existing['weight'] ?? 1);
+
         return $data;
+    }
+
+    /**
+     * keywords 多选数组 -> 逗号分隔字符串
+     */
+    private function normalizeKeywords(string $keywords): string
+    {
+        if ($keywords === '') {
+            return '';
+        }
+        // 如果已是逗号分隔字符串
+        if (!str_contains($keywords, '[')) {
+            $parts = array_map('trim', explode(',', $keywords));
+        } else {
+            // JSON 数组格式
+            $parts = json_decode($keywords, true) ?: [];
+            if (!is_array($parts)) {
+                $parts = [$keywords];
+            }
+        }
+        $parts = array_filter($parts, fn($s) => is_string($s) && trim($s) !== '');
+        return implode(',', array_unique(array_map('trim', $parts)));
     }
 
     private function normalizeFileUrl(string $fileUrl): string

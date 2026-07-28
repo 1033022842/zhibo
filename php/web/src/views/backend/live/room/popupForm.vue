@@ -14,7 +14,7 @@
         </template>
         <el-scrollbar v-loading="baTable.form.loading" class="ba-table-form-scrollbar">
             <div class="ba-operate-form" :class="'ba-' + baTable.form.operate + '-form'">
-                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-if="!baTable.form.loading">
+                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-show="!baTable.form.loading">
                     <FormItem label="房间号" v-model="baTable.form.items!.room_no" prop="room_no" type="string" />
                     <FormItem label="房间标题" v-model="baTable.form.items!.title" prop="title" type="string" />
                     <FormItem label="房间副标题" v-model="baTable.form.items!.subtitle" type="string" />

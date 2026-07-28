@@ -13,7 +13,7 @@
         </template>
         <el-scrollbar v-loading="baTable.form.loading" class="ba-table-form-scrollbar">
             <div class="ba-operate-form" :class="'ba-' + baTable.form.operate + '-form'">
-                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-if="!baTable.form.loading">
+                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-show="!baTable.form.loading">
                     <FormItem label="标题" v-model="baTable.form.items!.title" prop="title" type="string" />
                     <FormItem label="视频URL" v-model="baTable.form.items!.video_url" prop="video_url" type="string" :input-attr="{ placeholder: '上传后的视频文件路径' }" />
                     <FormItem label="封面图" v-model="baTable.form.items!.cover_url" type="string" :input-attr="{ placeholder: '可选' }" />

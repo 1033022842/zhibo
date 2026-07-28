@@ -205,7 +205,8 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
       const attemptPlayWebrtc = async () => {
         if (!webrtcUrl || !canUseRtcPlayer()) return null
         if (shouldSkipRtcPlayer(webrtcUrl)) {
-          throw new Error('Skip WebRTC on local dev server')
+          console.warn('Skip WebRTC on local dev server, fallback to next source')
+          return null
         }
 
         try {

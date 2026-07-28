@@ -24,6 +24,26 @@ final class Merchant extends BaseController
     }
 
     /**
+     * 经营类目选项
+     */
+    public function shopTypes()
+    {
+        $types = [
+            ['value' => 'food', 'label' => '美食'],
+            ['value' => 'clothing', 'label' => '服饰'],
+            ['value' => 'digital', 'label' => '数码'],
+            ['value' => 'beauty', 'label' => '美妆'],
+            ['value' => 'home', 'label' => '家居'],
+            ['value' => 'sports', 'label' => '运动'],
+            ['value' => 'baby', 'label' => '母婴'],
+            ['value' => 'pet', 'label' => '宠物'],
+            ['value' => 'book', 'label' => '图书'],
+            ['value' => 'other', 'label' => '其他'],
+        ];
+        return $this->jsonSuccess($types);
+    }
+
+    /**
      * 提交商家认证
      */
     public function submit()
@@ -62,6 +82,7 @@ final class Merchant extends BaseController
             'has_cert'      => true,
             'cert_status'   => (int)$cert['status'],
             'status_text'   => $statusMap[$cert['status']] ?? '未知',
+            'shop_name'     => $cert['shop_name'],
             'email'         => $cert['email'],
             'reject_reason' => $cert['reject_reason'],
             'created_at'    => $cert['created_at'],

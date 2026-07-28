@@ -40,35 +40,35 @@ body, html {
     width: 70%;
     position: absolute;
     bottom: 100px; /* 对话框距离底部的距离 */
-    left: 50%; /* 水平居中，需要配合 transform */
+    left: 50%; /* 水平居中，需要配�?transform */
     transform: translateX(-50%); /* 水平居中 */
     background-color: rgba(255, 255, 255, 0.7); /* 半透明白色背景 */
-    padding: 15px; /* 内边距 */
+    padding: 15px; /* 内边�?*/
     border-radius: 10px; /* 圆角 */
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); /* 阴影效果 */
 }
 
 #dialogue-box p {
-    margin: 0; /* 去除段落默认的上下边距 */
+    margin: 0; /* 去除段落默认的上下边�?*/
 }
 #button-container {
     position: absolute;
     bottom: 20px;
     right: 20px;
-    text-align: center; /* 使按钮水平居中 */
+    text-align: center; /* 使按钮水平居�?*/
     max-width:700px;
 }
 .dialogue-button {
-    display: inline-block; /* 使按钮可以并排显示 */
-    margin: 0 5px; /* 设置按钮之间的间距 */
+    display: inline-block; /* 使按钮可以并排显�?*/
+    margin: 0 5px; /* 设置按钮之间的间�?*/
     padding: 10px 20px; /* 设置按钮的内边距 */
     font-size: 16px; /* 设置字体大小 */
     border-radius: 5px; /* 设置圆角 */
     border: none; /* 去除边框 */
-    background: linear-gradient(87.94deg, #4346E6 -0.38%, #F77389 100%); /* 设置背景色 */
+    background: linear-gradient(87.94deg, #4346E6 -0.38%, #F77389 100%); /* 设置背景�?*/
     color: #fff; /* 设置文字颜色 */
-    cursor: pointer; /* 鼠标悬停时显示小手图标 */
-    transition: background-color 0.3s ease; /* 添加背景色过渡效果 */
+    cursor: pointer; /* 鼠标悬停时显示小手图�?*/
+    transition: background-color 0.3s ease; /* 添加背景色过渡效�?*/
 }
 
 /*.dialogue-button:hover {
@@ -80,7 +80,7 @@ body, html {
 .bg {
   background: #131313; /* 设置图片路径 */
   background-size: cover; /* 背景图片覆盖整个元素 */
-  background-repeat: no-repeat; /* 背景图片不重复 */
+  background-repeat: no-repeat; /* 背景图片不重�?*/
   background-position: center; /* 背景图片居中 */
   width: 100%; /* 元素宽度 */
   height: 100% /* 元素高度 */
@@ -121,7 +121,7 @@ body, html {
          background: #1a1a1a;
      }
      
-     /* 连接状态样式 */
+     /* 连接状态样�?*/
      .status {
          padding: 4px 8px;
          border-radius: 4px;
@@ -952,7 +952,7 @@ body, html {
 			   style="object-fit:cover;opacity:0;transition:opacity 0.5s;display:none;"></video>
 	</div>
 	
-	<!-- 浮动对话框 -->
+	<!-- 浮动对话�?-->
 	<div class="fixed bottom-4 left-4 right-4 z-50">
 		<div class="bg-black bg-opacity-30 backdrop-blur-sm rounded-lg p-3 md:p-4 border border-gray-600 max-w-[600px] mx-auto" style="max-width: 600px;">
 			<!-- 对话历史区域 -->
@@ -980,7 +980,7 @@ body, html {
 	</div>
   </div>
 
-  <!-- 连接状态显示 -->
+  <!-- 连接状态显�?-->
   <div class="fixed top-4 right-4 z-50" style="top:3rem !important;">
     <div class="bg-black bg-opacity-80 backdrop-blur-sm rounded-lg p-3 border border-gray-600">
       <div class="flex items-center gap-2">
@@ -1018,7 +1018,7 @@ body, html {
     <!-- 可以添加其他格式的音频源 -->
   </audio>
 <!--  <div id="dialogue-box">-->
-<!--    <p>这里是一些文字...</p>-->
+<!--    <p>这里是一些文�?..</p>-->
 <!--</div>-->
 <div id="button-container" class="form-navigation mx-5 lg:mx-10 mb-5 lg:mb-10  lg:mt-12 flex md:flex-row  md:justify-end justify-center gap-4 text-white text-[14px] font-semibold lg:mx-0 lg:max-w-none lg:grid-cols-4">
     <ul>
@@ -1035,14 +1035,13 @@ body, html {
 <input type="hidden" id="defaultVideo" value="">
 <input type="hidden" id="currentVideo" value="A">
   <script>
-    // 连接状态监控
-    function updateConnectionInfo() {
+    // 连接状态监�?    function updateConnectionInfo() {
       const connectionInfo = document.getElementById('connectionInfo');
       const reconnectBtn = document.getElementById('reconnectBtn');
       const statusEl = document.getElementById('status');
       
       if (window.isConnected) {
-        connectionInfo.textContent = '✅ WebSocket connected';
+        connectionInfo.textContent = '�?WebSocket connected';
         reconnectBtn.style.display = 'none';
         statusEl.parentElement.classList.remove('reconnecting');
       } else if (window.isReconnecting) {
@@ -1050,14 +1049,13 @@ body, html {
         reconnectBtn.style.display = 'none';
         statusEl.parentElement.classList.add('reconnecting');
       } else {
-        connectionInfo.textContent = '❌ WebSocket disconnected';
+        connectionInfo.textContent = '�?WebSocket disconnected';
         reconnectBtn.style.display = 'inline-block';
         statusEl.parentElement.classList.remove('reconnecting');
       }
     }
     
-    // 定期检查连接状态
-    setInterval(updateConnectionInfo, 1000);
+    // 定期检查连接状�?    setInterval(updateConnectionInfo, 1000);
     
       // 确保视频自动播放
       document.addEventListener('DOMContentLoaded', function() {
@@ -1098,7 +1096,7 @@ body, html {
         if (video) {
           video.muted = true; // 确保静音
           video.play().then(function() {
-            console.log('视频开始自动播放');
+            console.log('视频开始自动播�?);
           }).catch(function(error) {
             console.log('自动播放失败:', error);
             // 如果自动播放失败，添加点击事件来播放
@@ -1109,8 +1107,7 @@ body, html {
         }
       }
       
-      // 页面加载后尝试播放
-      playVideo();
+      // 页面加载后尝试播�?      playVideo();
       
       // 监听视频加载完成事件
       video.addEventListener('loadeddata', function() {
@@ -1138,14 +1135,11 @@ body, html {
         messageDiv.appendChild(messageBubble);
         chatHistory.appendChild(messageDiv);
         
-        // 滚动到底部
-        chatHistory.scrollTop = chatHistory.scrollHeight;
+        // 滚动到底�?        chatHistory.scrollTop = chatHistory.scrollHeight;
       }
       
-      // 发送消息
-      function sendMessage() {
-		// 检查用户的VIP是否过期 如果过期则提示用户充值
-		var userInfo = localStorage.getItem('live_user_info')
+      // 发送消�?      function sendMessage() {
+		// 检查用户的VIP是否过期 如果过期则提示用户充�?		var userInfo = localStorage.getItem('live_user_info')
 		if(userInfo){
 			var userInfoObj = JSON.parse(userInfo)
 			if(userInfoObj.vip == 'Trail_Expired'){
@@ -1182,8 +1176,7 @@ body, html {
       function handleVideoInteraction(message) {
         const lowerMessage = message.toLowerCase();
         
-        // 简单的关键词检测示例
-        if (lowerMessage.includes('暂停') || lowerMessage.includes('pause')) {
+        // 简单的关键词检测示�?        if (lowerMessage.includes('暂停') || lowerMessage.includes('pause')) {
           video.pause();
           addMessage('Video Paused', false);
         } else if (lowerMessage.includes('播放') || lowerMessage.includes('play')) {
@@ -1212,11 +1205,9 @@ body, html {
         }
       }
       
-      // 绑定发送按钮事件
-      sendBtn.addEventListener('click', sendMessage);
+      // 绑定发送按钮事�?      sendBtn.addEventListener('click', sendMessage);
       
-      // 绑定回车键事件
-      userInput.addEventListener('keypress', function(e) {
+      // 绑定回车键事�?      userInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
           sendMessage();
         }
@@ -1229,8 +1220,7 @@ body, html {
     // 原有的轮播代码（已注释）
     /*
      var slideshowItems = [];
-      var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫秒
-      var currentIndex = -1; // 初始索引为 -1，因为点击按钮后会先增加到 0
+      var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫�?      var currentIndex = -1; // 初始索引�?-1，因为点击按钮后会先增加�?0
     function getParam(name) {  
 		var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");  
 		var r = location.search.substring(1).match(reg);  
@@ -1244,21 +1234,18 @@ var carouselData = getParam('data')
       bgMusic.play();
       var startSlideshowBtn = document.getElementById("startSlideshowBtn");
 
-      // 隐藏所有项目
-      slideshowItems.forEach(function(item) {
+      // 隐藏所有项�?      slideshowItems.forEach(function(item) {
         item.style.display = "none";
       });
       startSlideshowBtn.style.display = "none";
       document.getElementById("dialogue-box").classList.remove('hidden')
       document.getElementById('button-container').classList.remove('hidden')
-      // 点击按钮开始轮播
-      startSlideshowBtn.addEventListener("click", function() {
+      // 点击按钮开始轮�?      startSlideshowBtn.addEventListener("click", function() {
         startSlideshowBtn.style.display = "none"; // 隐藏按钮
         document.getElementById("dialogue-box").classList.remove('hidden')
         document.getElementById('button-container').classList.remove('hidden')
         bgMusic.play(); // 播放背景音乐
-        showNextItem(); // 开始轮播
-      });
+        showNextItem(); // 开始轮�?      });
      function btnChange(id){
         var dom = document.getElementById('slideshow')
         var list = [{
@@ -1278,33 +1265,28 @@ var carouselData = getParam('data')
         //dom.innerHTML = html
         bgMusic.play(); // 播放背景音乐
         currentIndex = -1;
-        showNextItem(); // 开始轮播
-      }
+        showNextItem(); // 开始轮�?      }
       function showNextItem() {
         // 显示下一个项目之前先隐藏当前项目
         if (currentIndex >= 0) {
           slideshowItems[currentIndex].style.display = "none";
 
-          // 如果当前项目是视频，则停止视频播放
-          if (slideshowItems[currentIndex].tagName === "VIDEO") {
+          // 如果当前项目是视频，则停止视频播�?          if (slideshowItems[currentIndex].tagName === "VIDEO") {
             slideshowItems[currentIndex].pause();
             slideshowItems[currentIndex].currentTime = 0;
           }
         }
 
-        // 更新索引以显示下一个项目
-        currentIndex = (currentIndex + 1) % slideshowItems.length;
+        // 更新索引以显示下一个项�?        currentIndex = (currentIndex + 1) % slideshowItems.length;
 
-        // 显示下一个项目
-        slideshowItems[currentIndex].style.display = "block";
+        // 显示下一个项�?        slideshowItems[currentIndex].style.display = "block";
 
         // 如果下一个项目是视频，则自动播放视频
         if (slideshowItems[currentIndex].tagName === "VIDEO") {
           bgMusic.pause(); // 暂停背景音乐
           slideshowItems[currentIndex].play(); // 播放视频
           slideshowItems[currentIndex].addEventListener('ended', function() {
-            bgMusic.play(); // 视频播放结束后恢复背景音乐
-          });
+            bgMusic.play(); // 视频播放结束后恢复背景音�?          });
         } else {
           // 否则继续播放背景音乐
           bgMusic.play();
@@ -1313,8 +1295,7 @@ var carouselData = getParam('data')
         // 计算下一个项目的显示时间
         var nextDuration = durations[currentIndex];
 
-        // 设置定时器，等待显示下一个项目
-        setTimeout(showNextItem, nextDuration);
+        // 设置定时器，等待显示下一个项�?        setTimeout(showNextItem, nextDuration);
       }
       // function audioAutoPlay(audio){
       //   play = function(){
@@ -1335,14 +1316,13 @@ var carouselData = getParam('data')
       // }
     document.addEventListener("DOMContentLoaded", function() {
       startSlideshowBtn.click()
-      //每隔2秒检测是否播放音乐,播放则停止定时器
+      //每隔2秒检测是否播放音�?播放则停止定时器
       // let t = setInterval(() => {
       //   if(bgMusic.paused === false){
-      //     console.log('停止定时器');
+      //     console.log('停止定时�?);
       //     clearInterval(t);
-      //     showNextItem(); // 开始轮播
-      //   }else{
-      //     console.log('执行定时器');
+      //     showNextItem(); // 开始轮�?      //   }else{
+      //     console.log('执行定时�?);
       //     audioAutoPlay(bgMusic);
       //   }
       // },500);

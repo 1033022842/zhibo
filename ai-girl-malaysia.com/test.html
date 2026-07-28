@@ -46,7 +46,7 @@
             var image = document.getElementById('imagePreview');
             var submitButton = document.getElementById('submitButton');
             
-            // 使用 fetch API 上传图片到单独接口
+            // 使用 fetch API 上传图片到单独接�?
             var headers = {}
             if(token) {
                 headers = {
@@ -78,7 +78,7 @@
                     image.src = data.fullurl;
                     image.style.display = 'block';  // 显示预览图片
 
-                    // 将上传后的图片 URL 填入隐藏字段中
+                    // 将上传后的图�?URL 填入隐藏字段�?
                     document.getElementById('uploadedImageUrl').value = data.imageUrl;
 
                     // 启用提交按钮

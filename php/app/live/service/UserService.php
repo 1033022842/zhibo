@@ -65,6 +65,16 @@ final class UserService
             $auth->password_hash = hash_password($password);
             $auth->save();
 
+            // registerFromAi 同时创建用户名认证，支持用户名登录
+            if ($authType === 'username') {
+                $usernameAuth = new UserAuth();
+                $usernameAuth->user_id       = (int)$user->id;
+                $usernameAuth->auth_type     = 'username';
+                $usernameAuth->auth_key      = $nickname;
+                $usernameAuth->password_hash = hash_password($password);
+                $usernameAuth->save();
+            }
+
             $profile = new UserProfile();
             $profile->user_id       = (int)$user->id;
             $profile->last_login_ip = $ip;

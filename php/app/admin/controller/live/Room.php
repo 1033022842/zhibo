@@ -314,6 +314,14 @@ final class Room extends Backend
                 $this->error('未找到可用流模板，请先初始化默认流模板');
             }
 
+            // 从 lp_persona 获取人设名称，写入 lp_room_binding.persona
+            $personaName = '';
+            if ((int) ($data['persona_id'] ?? 0) > 0) {
+                $persona = Db::connect('live_mysql')->table('lp_persona')
+                    ->where('id', (int) $data['persona_id'])->find();
+                $personaName = $persona['name'] ?? '';
+            }
+
             $playlist = $binding && $binding->playlist_template_id
                 ? PlaylistTemplate::find((int) $binding->playlist_template_id)
                 : null;
@@ -351,6 +359,7 @@ final class Room extends Backend
                 $binding->save([
                     'stream_template_id' => $streamTemplateId,
                     'playlist_template_id' => (int) $playlist->id,
+                    'persona' => $personaName,
                 ]);
             } else {
                 $binding = new RoomBinding();
@@ -359,6 +368,7 @@ final class Room extends Backend
                     'room_group_id' => null,
                     'stream_template_id' => $streamTemplateId,
                     'playlist_template_id' => (int) $playlist->id,
+                    'persona' => $personaName,
                 ]);
             }
         });

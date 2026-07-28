@@ -1,6 +1,6 @@
 (()=>{
     var cacheTemplate = ''
-    var base = 'http://127.0.0.1:8000/api/live'
+    var base = 'http://127.0.0.1:8001/api/live'
     var token = localStorage.getItem('live_access_token')
 	
 	var userJson = localStorage.getItem('live_user_info')
@@ -50,13 +50,11 @@
          
            // 触发表单验证
            if (this.checkValidity()) {
-             // 表单验证通过，可以执行提交操作
-             console.log('Form is valid, submitting...');
+             // 表单验证通过，可以执行提交操�?             console.log('Form is valid, submitting...');
              // this.submit();
              register()
            } else {
-             // 表单验证失败，可以处理错误
-             console.error('Form is invalid. Fix errors before submitting.');
+             // 表单验证失败，可以处理错�?             console.error('Form is invalid. Fix errors before submitting.');
            }
        })
 
@@ -66,13 +64,11 @@
          
         // 触发表单验证
         if (this.checkValidity()) {
-          // 表单验证通过，可以执行提交操作
-          console.log('Form is valid, submitting...');
+          // 表单验证通过，可以执行提交操�?          console.log('Form is valid, submitting...');
           login()
           // this.submit();
         } else {
-          // 表单验证失败，可以处理错误
-          console.error('Form is invalid. Fix errors before submitting.');
+          // 表单验证失败，可以处理错�?          console.error('Form is invalid. Fix errors before submitting.');
         }
        })
       }, 100);
@@ -199,7 +195,11 @@
            layer.msg(res.msg || '登录成功')
             setTimeout(function() {
               var redirect = getUrlParam(window.location.href, 'redirect')
-              window.location.href = redirect && redirect !== 'null' ? decodeURIComponent(redirect) : './Girls.html'
+              if (redirect && redirect !== 'null') {
+                window.location.href = decodeURIComponent(redirect)
+              } else {
+                window.location.href = './charactersIndex.html'
+              }
             }, 800);
           } else {
             layer.msg(res.msg)

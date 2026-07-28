@@ -9,8 +9,10 @@ namespace ChannelWorker;
  */
 final class PlaylistRepository
 {
-    public function __construct(private readonly Database $database)
-    {
+    public function __construct(
+        private readonly Database $database,
+        private readonly string $mediaBaseDir = ''
+    ) {
     }
 
     /**
@@ -117,6 +119,10 @@ final class PlaylistRepository
                     return dirname(__DIR__, 3) . '/php/public' . $normalized;
                 }
             }
+        }
+        // 相对路径：拼接 media_base_dir 前缀
+        if ($this->mediaBaseDir !== '') {
+            return $this->mediaBaseDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fileUrl);
         }
         return $fileUrl;
     }

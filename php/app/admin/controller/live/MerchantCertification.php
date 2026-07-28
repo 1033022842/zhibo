@@ -37,6 +37,8 @@ final class MerchantCertification extends Backend
         if ($keyword !== '') {
             $query->where(function ($q) use ($keyword) {
                 $q->where('u.nickname', 'like', "%{$keyword}%")
+                  ->whereOr('c.real_name', 'like', "%{$keyword}%")
+                  ->whereOr('c.shop_name', 'like', "%{$keyword}%")
                   ->whereOr('c.email', 'like', "%{$keyword}%");
             });
         }
@@ -47,7 +49,13 @@ final class MerchantCertification extends Backend
         $list = $query->order('c.id', 'desc')->paginate(15);
         $statusMap = [0 => '待审核', 1 => '已通过', 2 => '已拒绝'];
 
-        $html = $this->renderPage($list, $statusMap);
+        $shopTypeMap = [
+            'food' => '美食', 'clothing' => '服饰', 'digital' => '数码',
+            'beauty' => '美妆', 'home' => '家居', 'sports' => '运动',
+            'baby' => '母婴', 'pet' => '宠物', 'book' => '图书', 'other' => '其他',
+        ];
+
+        $html = $this->renderPage($list, $statusMap, $shopTypeMap);
         response($html)->send();
         exit;
     }
@@ -102,29 +110,40 @@ final class MerchantCertification extends Backend
             ->find();
 
         $this->success('', [
-            'id'            => (int)$cert->id,
-            'user_id'       => (int)$cert->user_id,
-            'email'         => $cert->email,
-            'id_card_front' => $cert->id_card_front,
-            'id_card_back'  => $cert->id_card_back,
-            'status'        => (int)$cert->status,
-            'reject_reason' => $cert->reject_reason,
-            'created_at'    => $cert->created_at,
-            'nickname'      => $user['nickname'] ?? '',
+            'id'               => (int)$cert->id,
+            'user_id'          => (int)$cert->user_id,
+            'real_name'        => $cert->real_name,
+            'id_card_no'       => $cert->id_card_no,
+            'phone'            => $cert->phone,
+            'email'            => $cert->email,
+            'shop_name'        => $cert->shop_name,
+            'shop_type'        => $cert->shop_type,
+            'shop_description' => $cert->shop_description,
+            'id_card_front'    => $cert->id_card_front,
+            'id_card_back'     => $cert->id_card_back,
+            'business_license' => $cert->business_license,
+            'status'           => (int)$cert->status,
+            'reject_reason'    => $cert->reject_reason,
+            'created_at'       => $cert->created_at,
+            'nickname'         => $user['nickname'] ?? '',
         ]);
     }
 
-    private function renderPage($list, $statusMap): string
+    private function renderPage($list, $statusMap, $shopTypeMap): string
     {
         $rows = '';
         foreach ($list->items() as $row) {
-            $st   = $statusMap[$row['status']] ?? '未知';
-            $stCls = match((int)$row['status']) { 0 => 'pending', 1 => 'passed', 2 => 'rejected', default => '' };
-            $email = htmlspecialchars($row['email']);
-            $name  = htmlspecialchars($row['nickname'] ?: '-');
-            $no    = htmlspecialchars($row['user_no']);
+            $st     = $statusMap[$row['status']] ?? '未知';
+            $stCls  = match((int)$row['status']) { 0 => 'pending', 1 => 'passed', 2 => 'rejected', default => '' };
+            $name   = htmlspecialchars($row['nickname'] ?: '-');
+            $no     = htmlspecialchars($row['user_no']);
+            $rname  = htmlspecialchars($row['real_name']);
+            $shop   = htmlspecialchars($row['shop_name']);
+            $stype  = $shopTypeMap[$row['shop_type']] ?? $row['shop_type'];
+            $email  = htmlspecialchars($row['email']);
+            $phone  = htmlspecialchars($row['phone']);
             $reason = htmlspecialchars($row['reject_reason']);
-            $time  = $row['created_at'];
+            $time   = $row['created_at'];
 
             $actions = '';
             if ((int)$row['status'] === 0) {
@@ -134,17 +153,22 @@ final class MerchantCertification extends Backend
                 ACT;
             }
 
-            $front = htmlspecialchars($row['id_card_front']);
-            $back  = htmlspecialchars($row['id_card_back']);
+            $front  = htmlspecialchars($row['id_card_front']);
+            $back   = htmlspecialchars($row['id_card_back']);
+            $bizLic = htmlspecialchars($row['business_license']);
 
             $rows .= <<<ROW
             <tr>
                 <td>{$row['id']}</td>
                 <td>{$name}<br><small style="color:#999">{$no}</small></td>
+                <td>{$rname}</td>
+                <td>{$phone}</td>
                 <td>{$email}</td>
+                <td>{$shop}<br><small style="color:#888">{$stype}</small></td>
                 <td>
-                    <a href="{$front}" target="_blank"><img src="{$front}" style="width:60px;height:40px;object-fit:cover;border-radius:4px" /></a>
-                    <a href="{$back}" target="_blank"><img src="{$back}" style="width:60px;height:40px;object-fit:cover;border-radius:4px;margin-left:4px" /></a>
+                    <a href="{$front}" target="_blank"><img src="{$front}" style="width:50px;height:35px;object-fit:cover;border-radius:4px" title="身份证正面" /></a>
+                    <a href="{$back}" target="_blank"><img src="{$back}" style="width:50px;height:35px;object-fit:cover;border-radius:4px;margin-left:4px" title="身份证背面" /></a>
+                    <a href="{$bizLic}" target="_blank"><img src="{$bizLic}" style="width:50px;height:35px;object-fit:cover;border-radius:4px;margin-left:4px" title="营业执照" /></a>
                 </td>
                 <td><span class="status-badge {$stCls}">{$st}</span></td>
                 <td><span style="font-size:12px;color:#999">{$reason}</span></td>
@@ -156,6 +180,13 @@ final class MerchantCertification extends Backend
 
         $pager = $list->render();
 
+        // 保留搜索条件
+        $keywordVal = htmlspecialchars($this->request->param('search', ''));
+        $statusVal  = (int)$this->request->param('status', '');
+        $status0 = $statusVal === 0 ? 'selected' : '';
+        $status1 = $statusVal === 1 ? 'selected' : '';
+        $status2 = $statusVal === 2 ? 'selected' : '';
+
         return <<<HTML
         <!DOCTYPE html>
         <html lang="zh-CN">
@@ -166,15 +197,17 @@ final class MerchantCertification extends Backend
             <style>
                 *{margin:0;padding:0;box-sizing:border-box}
                 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fa;color:#333;font-size:14px}
-                .container{max-width:1400px;margin:0 auto;padding:20px}
+                .container{max-width:1600px;margin:0 auto;padding:20px}
                 h1{font-size:22px;margin-bottom:20px;color:#1a1a2e}
                 .toolbar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
                 .toolbar input,.toolbar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
                 .toolbar input{width:260px}
-                table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-                th,td{padding:12px 16px;text-align:left;border-bottom:1px solid #eee}
-                th{background:#f8f9fc;font-weight:600;white-space:nowrap}
+                .table-wrap{overflow-x:auto}
+                table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);min-width:1200px}
+                th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #eee;white-space:nowrap}
+                th{background:#f8f9fc;font-weight:600;font-size:13px}
                 tr:hover{background:#f9fafb}
+                td{font-size:13px}
                 .btn{padding:6px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin:0 2px}
                 .btn-success{background:#00d4aa;color:#fff}
                 .btn-danger{background:#ff2d55;color:#fff}
@@ -202,7 +235,7 @@ final class MerchantCertification extends Backend
             <div class="container">
                 <h1>商家认证审核</h1>
                 <form class="toolbar" method="get">
-                    <input name="search" placeholder="搜索用户昵称/邮箱" value="{$keywordVal}">
+                    <input name="search" placeholder="搜索昵称/姓名/店铺/邮箱" value="{$keywordVal}">
                     <select name="status">
                         <option value="">全部状态</option>
                         <option value="0" {$status0}>待审核</option>
@@ -211,12 +244,14 @@ final class MerchantCertification extends Backend
                     </select>
                     <button class="btn btn-success" type="submit">搜索</button>
                 </form>
+                <div class="table-wrap">
                 <table>
                     <thead><tr>
-                        <th>ID</th><th>用户</th><th>认证邮箱</th><th>证件图片</th><th>状态</th><th>拒绝原因</th><th>提交时间</th><th>操作</th>
+                        <th>ID</th><th>用户</th><th>姓名</th><th>手机</th><th>邮箱</th><th>店铺/类目</th><th>证件图片</th><th>状态</th><th>拒绝原因</th><th>提交时间</th><th>操作</th>
                     </tr></thead>
                     <tbody>{$rows}</tbody>
                 </table>
+                </div>
                 <div class="pager">{$pager}</div>
             </div>
 

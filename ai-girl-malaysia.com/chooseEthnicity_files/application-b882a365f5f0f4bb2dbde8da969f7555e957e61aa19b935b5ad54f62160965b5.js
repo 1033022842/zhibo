@@ -15735,8 +15735,7 @@ Url: ${un(e7)}`), true);
 
         For more information, see: https://turbo.hotwired.dev/handbook/building#working-with-script-elements
 
-        â€”â€”
-        Suppress this warning by adding a "data-turbo-suppress-warning" attribute to: %s
+        â€”â€?        Suppress this warning by adding a "data-turbo-suppress-warning" attribute to: %s
       `, element.outerHTML);
       }
       element = element.parentElement;
@@ -20862,7 +20861,7 @@ Url: ${un(e7)}`), true);
     }
     return list;
   };
-  var reflexNameToControllerIdentifier = (reflexName) => reflexName.replace(/([a-z0â€“9])([A-Z])/g, "$1-$2").replace(/(::)/g, "--").replace(/-reflex$/gi, "").toLowerCase();
+  var reflexNameToControllerIdentifier = (reflexName) => reflexName.replace(/([a-z0â€?])([A-Z])/g, "$1-$2").replace(/(::)/g, "--").replace(/-reflex$/gi, "").toLowerCase();
   var stages = ["created", "before", "delivered", "queued", "after", "finalized", "success", "error", "halted", "forbidden"];
   var lastReflex;
   var reflexes = new Proxy({}, {
@@ -50557,7 +50556,7 @@ Please set ${Schema.reflexSerializeForm}="true" on your Reflex Controller Elemen
           runModifierEffects();
           return instance.update();
         },
-        // Sync update â€“ it will always be executed, even if not necessary. This
+        // Sync update â€?it will always be executed, even if not necessary. This
         // is useful for low frequency updates where sync behavior simplifies the
         // logic.
         // For high frequency updates (e.g. `resize` and `scroll` events), always
@@ -50596,7 +50595,7 @@ Please set ${Schema.reflexSerializeForm}="true" on your Reflex Controller Elemen
             }
           }
         },
-        // Async and optimistically optimized update â€“ it will not be executed if
+        // Async and optimistically optimized update â€?it will not be executed if
         // not necessary (debounced to run at most once-per-tick)
         update: debounce4(function() {
           return new Promise(function(resolve2) {

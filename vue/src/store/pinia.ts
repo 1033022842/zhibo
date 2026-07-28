@@ -138,10 +138,51 @@ export const useBaseStore = defineStore('base', {
           this.userinfo.nickname = user.nickname
           this.isAuthReady = true
 
+          // 登录成功后拉取完整 profile（gender、bio、certStatus 等）
+          this.fetchProfile()
+
           return { ok: true, msg: '登录成功' }
         }
 
         return { ok: false, msg: (res.data as any)?.message || '登录失败' }
+      } catch (e: any) {
+        return { ok: false, msg: e?.message || '网络错误' }
+      }
+    },
+
+    async doRegisterFromAi(
+      account: string,
+      password: string
+    ): Promise<{ ok: boolean; msg: string }> {
+      try {
+        // 根据账号格式自动推导 username 和 email
+        const isEmail = account.includes('@')
+        const username = isEmail ? account.split('@')[0] : account
+        const email = isEmail ? account : `${account}@user.ai-live`
+
+        const res = await request<LoginResult>({
+          url: '/api/live/registerFromAi',
+          method: 'POST',
+          data: { username, email, password }
+        })
+
+        if (res.success && res.data) {
+          const { access_token, refresh_token, user } = res.data
+          setTokens(access_token, refresh_token)
+          if (user) setStoredUserInfo(user)
+
+          this.authUserId = user?.id || 0
+          this.authUserNo = user?.user_no || ''
+          this.authNickname = user?.nickname || ''
+          this.authAvatar = user?.avatar || ''
+          this.authLevel = (user as any)?.level || 1
+          this.isAuthReady = true
+
+          this.fetchProfile()
+          return { ok: true, msg: '注册成功' }
+        }
+
+        return { ok: false, msg: (res.data as any)?.message || '注册失败' }
       } catch (e: any) {
         return { ok: false, msg: e?.message || '网络错误' }
       }

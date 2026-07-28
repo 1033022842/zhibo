@@ -14,7 +14,8 @@
         </template>
         <el-scrollbar v-loading="baTable.form.loading" class="ba-table-form-scrollbar">
             <div class="ba-operate-form" :class="'ba-' + baTable.form.operate + '-form'">
-                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-if="!baTable.form.loading">
+                <el-form ref="formRef" :model="baTable.form.items" :rules="rules"
+                         label-width="120px" v-show="!baTable.form.loading">
                     <FormItem label="礼物编码" v-model="baTable.form.items!.gift_code" prop="gift_code" type="string" />
                     <FormItem label="礼物名称" v-model="baTable.form.items!.name" prop="name" type="string" />
                     <FormItem label="钻石价格" v-model="baTable.form.items!.price_diamond" prop="price_diamond" type="number" :input-attr="{ precision: 2 }" />
@@ -32,6 +33,7 @@
                         v-model="baTable.form.items!.keyword"
                         type="remoteSelect"
                         :input-attr="{
+                            pk: 'keyword',
                             field: 'keyword',
                             remoteUrl: '/admin/live.Gift/keywords',
                             placeholder: '选择触发关键词（留空则不触发）',

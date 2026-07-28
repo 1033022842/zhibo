@@ -2,13 +2,11 @@
     var base = 'https://websocket.trd.lat'
     var slideshowItems = [];
     var token = localStorage.getItem('live_access_token')
-    var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫秒
-    var currentIndex = -1; // 初始索引为 -1，因为点击按钮后会先增加到 0
+    var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫�?    var currentIndex = -1; // 初始索引�?-1，因为点击按钮后会先增加�?0
     var bgMusic = document.getElementById("bgMusic");
     var pageList = []
     var audio = null
-    var loadingCount = 0; // 用于跟踪正在进行的请求数量
-    
+    var loadingCount = 0; // 用于跟踪正在进行的请求数�?    
     function getParam(name) {  
 		var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");  
 		var r = location.search.substring(1).match(reg);  
@@ -90,8 +88,7 @@
             if(res.code === 1) {
                 var video = document.getElementById('videoA')
                 if (video) {
-                    // 更新loading文字为视频加载状态
-                    const loadingText = document.getElementById('loading-text');
+                    // 更新loading文字为视频加载状�?                    const loadingText = document.getElementById('loading-text');
                     if (loadingText) {
                         loadingText.textContent = 'Loading video...';
                     }
@@ -104,29 +101,25 @@
                         console.log('视频加载完成');
                         video.play();
                         hideLoading(); // 视频加载完成后再隐藏loading
-                    }, { once: true }); // 只监听一次
-                    
+                    }, { once: true }); // 只监听一�?                    
                     // 监听video错误事件
                     video.addEventListener('error', function(e) {
                         console.error('视频加载失败:', e);
                         hideLoading(); // 视频加载失败也要隐藏loading
                     }, { once: true });
                     
-                    // 设置超时，防止视频加载时间过长
-                    setTimeout(function() {
+                    // 设置超时，防止视频加载时间过�?                    setTimeout(function() {
                         if (video.readyState < 2) { // HAVE_CURRENT_DATA
                             console.log('视频加载超时，强制隐藏loading');
                             hideLoading();
                         }
-                    }, 10000); // 10秒超时
-                    
+                    }, 10000); // 10秒超�?                    
                 } else {
-                    console.error('找不到 video 元素')
+                    console.error('找不�?video 元素')
                     hideLoading(); // 找不到video元素时隐藏loading
                 }
             } else if(res.code === 0 && res.msg === "Role does not exist" && !retry) {
-                // 失败且未重试过，延迟300ms后重试一次
-                setTimeout(function() {
+                // 失败且未重试过，延迟300ms后重试一�?                setTimeout(function() {
                     loadData(id, true)
                 }, 300)
             } else {

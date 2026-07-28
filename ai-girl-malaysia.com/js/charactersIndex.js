@@ -1,5 +1,5 @@
 (()=>{
-    var base = 'http://127.0.0.1:8000/api/live'
+    var base = 'http://127.0.0.1:8001/api/live'
     var token = localStorage.getItem('live_access_token')
     var typeArr = ['Realistic', 'Anime']
     var ageArr = ['18+', '20s', '30s', '40-55']
@@ -9,7 +9,7 @@
       'Parties', 'Series', 'Anime', 'Cosplay', 'Self-Development', 'Writing', 'Diy Crafting',
     'Veganism', 'Photography', 'Volunteering', 'Cars', 'Art', 'Watching Netflix', 'Manga And Anime', 'Martial Arts']
 
-    // 拦截 Create Character 链接，检查商家认证
+    // Intercept Create Character link, check merchant certification
     document.addEventListener('click', function(e) {
         var link = e.target.closest('a[href*="characters.html"]')
         if (!link) return
@@ -19,16 +19,16 @@
             setTimeout(function(){ location.href = './Login.html' }, 800)
             return
         }
-        // 检查商家认证状态
+        // Check merchant certification status
         e.preventDefault()
         layer.load(1)
-        fetch('http://127.0.0.1:8000/api/v1/merchant/status', {
+        fetch('http://127.0.0.1:8001/api/v1/merchant/status', {
                 headers: { 'Authorization': 'Bearer ' + token }
             }).then(function(r){ return r.json() }).then(function(d){
                 layer.closeAll('loading')
-                // token 无效 → 去登录
+                // Token invalid, go to login
                 if (d.code && d.code !== '00000') {
-                    layer.msg('登录已过期，请重新登录')
+                    layer.msg('Login expired, please log in again')
                     setTimeout(function(){ location.href = './Login.html' }, 800)
                     return
                 }
@@ -40,7 +40,7 @@
                     type: 1,
                     title: '商家认证提示',
                     area: ['420px', '240px'],
-                    content: '<div style="padding:20px;text-align:center;line-height:1.8"><p style="font-size:15px;color:#f59e0b">&#9888; 创建AI角色需要先通过商家认证</p><p style="color:#999;margin-top:8px;font-size:13px">请先完成商家认证后再创建AI角色</p><button onclick="location.href=\'./certification.html\'" style="margin-top:16px;padding:10px 32px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">去认证</button></div>',
+                    content: '<div style="padding:20px;text-align:center;line-height:1.8"><p style="font-size:15px;color:#f59e0b">&#9888; 创建AI角色需要先通过商家认证</p><p style="color:#999;margin-top:8px;font-size:13px">请先完成商家认证后再创建AI角色</p><button onclick="location.href=\'./certification.html\'" style="margin-top:16px;padding:10px 32px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">去认�?/button></div>',
                     btn: []
                 })
             }
@@ -121,8 +121,7 @@
               .replace(/{{id}}/g, t.id)
               .replace(/{{archive_id}}/g, '')
               .replace(/{{type}}/g, "role1")
-              .replace(/{{photo}}/g, t.photo || '')
-              .replace(/{{status}}/g, statusText)
+              .replace(/{{photo}}/g, (t.photo || '').replace(':8000/', ':8001/'))
               .replace(/{{liveUrl}}/g, liveUrl)
               .replace(/{{liveClass}}/g, liveClass)
               .replace(/{{liveText}}/g, liveText)
@@ -148,7 +147,7 @@
 
 // Global function for replay clips modal (called from onclick in HTML template)
 function showReplayClips(personaId, personaName) {
-    var base = 'http://127.0.0.1:8000/api/live';
+    var base = 'http://127.0.0.1:8001/api/live';
     var token = localStorage.getItem('live_access_token');
     if (!token) {
         layer.msg('Please log in first');
@@ -184,7 +183,7 @@ function showReplayClips(personaId, personaName) {
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #333;cursor:pointer;" onclick="window.open(\'' + c.video_url + '\', \'_blank\')">';
                 html += '<div><div style="color:#fff;font-size:14px;font-weight:500;">' + c.title + '</div>';
                 html += '<div style="color:#888;font-size:12px;margin-top:4px;">' + d + (dur ? ' · ' + dur : '') + '</div></div>';
-                html += '<div style="color:#E75275;font-size:20px;">▶</div>';
+                html += '<div style="color:#E75275;font-size:20px;">�?/div>';
                 html += '</div>';
             });
             html += '</div>';

@@ -143,8 +143,7 @@
             $(this).addClass('sub-gradient-active')
         })
         
-        //手机端
-        
+        //手机�?        
                 cacheTemplate = $('#vip-Layout-yd').html();
         $('#vip-Layout-yd').html(cacheTemplate)
         
@@ -221,8 +220,7 @@
         })
     }
 
-    // 将事件绑定包装在document ready中
-    $(document).ready(function() {
+    // 将事件绑定包装在document ready�?    $(document).ready(function() {
         
         // 尝试多种事件绑定方式
         $('.btnBuyPoint').on('click', function(e) {

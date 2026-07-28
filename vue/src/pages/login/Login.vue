@@ -54,7 +54,6 @@
 import { onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBaseStore } from '@/store/pinia'
-import { isLoggedIn } from '@/utils/auth'
 
 const router = useRouter()
 
@@ -72,8 +71,8 @@ const data = reactive({
 })
 
 onMounted(() => {
-  // 已登录直接跳首页
-  if (isLoggedIn()) {
+  // 已登录直接跳首页（用 store 的已验证状态，避免过期 token 误判）
+  if (baseStore.isAuthReady && baseStore.authUserId > 0) {
     router.push('/')
   }
 })
@@ -107,7 +106,7 @@ async function handleLogin() {
 }
 
 function goRegister() {
-  window.location.href = 'http://127.0.0.1:8080/Login.html'
+  router.push('/login/password?mode=register')
 }
 </script>
 

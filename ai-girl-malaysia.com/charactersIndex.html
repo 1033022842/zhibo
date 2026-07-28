@@ -855,10 +855,10 @@
 									</a>
 									<script type="text/template" id="role-template">
 										<div class="h-full">
-  <div x-show="confirmModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true" style="display: none;">
+  <div style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-end justify-center min-h-screen px-4 text-center md:items-center sm:block sm:p-0">
       <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-40" aria-hidden="true" style="display: none;"></div>
-      <div x-show="confirmModal" class="bg-gray-900 text-white inline-block w-full max-w-xl p-8 my-auto overflow-hidden text-left transition-all transform rounded-lg shadow-xl 2xl:max-w-2xl" style="display: none;">
+      <div style="display: none;" class="bg-gray-900 text-white inline-block w-full max-w-xl p-8 my-auto overflow-hidden text-left transition-all transform rounded-lg shadow-xl 2xl:max-w-2xl">
         <div class="flex items-center justify-between space-x-4">
           <button class="text-gray-600 focus:outline-none hover:text-gray-700">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -883,7 +883,7 @@
               <div>Delete</div>
   </button><input type="hidden" name="authenticity_token" value="tDVqISg0WHjxYx_1ltV7mTbFRPPgEC_89tQo-jeOEpver8yOlTWPuOgGmyx0odPbRjfJ1NKHsQ0D_o5mozRxEQ" autocomplete="off"></form>        </div>
           <div>
-            <button @click.prevent.stop="confirmModal = false" class="h-11 px-4 py-3 inline-flex w-full justify-center rounded-md border-2 border-rose-400 rounded-[10px] justify-center items-center gap-2 inline-flex text-rose-400 text-sm font-semibold leading-tight">
+            <button class="h-11 px-4 py-3 inline-flex w-full justify-center rounded-md border-2 border-rose-400 rounded-[10px] justify-center items-center gap-2 inline-flex text-rose-400 text-sm font-semibold leading-tight">
               Cancel
             </button>
           </div>
