@@ -30,6 +30,9 @@ const baTable = new baTableClass(
             { label: '标题', prop: 'title', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
             { label: '素材类型', prop: 'asset_type', align: 'center', render: 'tag', operator: '=' },
             { label: '场景', prop: 'scene_type', align: 'center', render: 'tag', operator: '=' },
+            { label: '人设', prop: 'persona', align: 'center', operator: 'LIKE' },
+            { label: '关键词', prop: 'keywords', align: 'center', render: 'tags', operator: 'LIKE' },
+            { label: '权重', prop: 'weight', align: 'center', width: 80, operator: '=' },
             { label: '文件路径', prop: 'file_url', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
             { label: '时长(ms)', prop: 'duration_ms', align: 'center', operator: 'RANGE' },
             {
@@ -58,6 +61,9 @@ const baTable = new baTableClass(
             duration_ms: 0,
             status: 1,
             checksum: '',
+            persona: '',
+            keywords: '',
+            weight: 1,
         },
     }
 )

@@ -15,7 +15,7 @@
                 ws = new WebSocket(wsUrl);
                 
                 ws.onopen = function() {
-                    console.log('WebSocket连接已建立');
+                    console.log('WebSocket连接已建�?);
                     isConnected = true;
                     window.isConnected = true; // 更新全局变量
                     // switchCharacter(document.getElementById('characterName').value)
@@ -30,7 +30,7 @@
                 };
                 
                 ws.onclose = function() {
-                    console.log('WebSocket连接已关闭');
+                    console.log('WebSocket连接已关�?);
                     isConnected = false;
                     window.isConnected = false; // 更新全局变量
                     updateStatus('disconnected', 'Disconnected');
@@ -51,8 +51,7 @@
                 
                 currentCharacter = character;
                 
-                // 发送角色切换消息
-                const message = {
+                // 发送角色切换消�?                const message = {
                     type: 'switch_character',
                     character: character
                 };
@@ -60,8 +59,7 @@
                 ws.send(JSON.stringify(message));
             }
     
-            // 更新状态显示
-            function updateStatus(type, message) {
+            // 更新状态显�?            function updateStatus(type, message) {
                 const statusEl = document.getElementById('status');
                 statusEl.className = `status ${type}`;
                 statusEl.textContent = message;
@@ -84,22 +82,19 @@
                 console.log('收到消息:', data);
                 
                 if (data.type === 'status') {
-                    // 显示状态消息
-                    showNotification(data.msg);
+                    // 显示状态消�?                    showNotification(data.msg);
                 } else if (data.type === 'response') {
                     // 显示识别结果
                     displayResult(data);
                     // 播放视频
                     playVideoSmooth(data.video);
-                    // 添加AI回复到聊天历史
-                    if (window.addChatMessage) {
+                    // 添加AI回复到聊天历�?                    if (window.addChatMessage) {
                         window.addChatMessage(data.reply || 'Receive a reply', false);
                     }
                 } else if (data.type === 'error') {
                     // 显示错误消息
                     showNotification(data.msg);
-                    // 添加错误消息到聊天历史
-                    if (window.addChatMessage) {
+                    // 添加错误消息到聊天历�?                    if (window.addChatMessage) {
                         window.addChatMessage('Error: ' + data.msg, false);
                     }
                 }
@@ -157,15 +152,13 @@
                     videoPath = document.getElementById('defaultVideo').value;
                 }
                 
-                isTransitioning = true; // 开始切换
-                
+                isTransitioning = true; // 开始切�?                
                 // 清除之前的事件监听器
                 showVideo.onloadeddata = null;
                 showVideo.onerror = null;
                 
-                // --- Canvas兜底帧 ---
-                // 先移除旧canvas（如果有）
-                const oldCanvas = document.getElementById('videoTransitionCanvas');
+                // --- Canvas兜底�?---
+                // 先移除旧canvas（如果有�?                const oldCanvas = document.getElementById('videoTransitionCanvas');
                 if (oldCanvas) oldCanvas.remove();
                 // 只在hideVideo有内容时绘制canvas
                 if (hideVideo.readyState >= 2) { // HAVE_CURRENT_DATA
@@ -189,7 +182,7 @@
                         console.warn('canvas绘制失败', e);
                     }
                 }
-                // --- End Canvas兜底帧 ---
+                // --- End Canvas兜底�?---
                 
                 showVideo.src = videoPath;
                 showVideo.load();
@@ -201,7 +194,7 @@
                         return;
                     }
                     
-                    console.log('视频数据加载完成，开始切换');
+                    console.log('视频数据加载完成，开始切�?);
                     
                     showVideo.style.opacity = 0;
                     showVideo.style.display = 'block';
@@ -229,8 +222,7 @@
                 };
                 
                 showVideo.onerror = function () {
-                    isTransitioning = false; // 出错时也要重置标志
-                    showVideo.style.display = 'none';
+                    isTransitioning = false; // 出错时也要重置标�?                    showVideo.style.display = 'none';
                     hideVideo.style.opacity = 1;
                     hideVideo.style.display = 'block';
                     // 移除canvas
@@ -240,8 +232,7 @@
                 };
             }
     
-            // 发送消息
-            function sendMessage(text) {
+            // 发送消�?            function sendMessage(text) {
                 if (!isConnected || !text.trim() || !currentCharacter) return;
                 
                 const message = {
@@ -273,8 +264,7 @@
                 messageDiv.appendChild(messageBubble);
                 chatHistory.appendChild(messageDiv);
                 
-                // 滚动到底部
-                chatHistory.scrollTop = chatHistory.scrollHeight;
+                // 滚动到底�?                chatHistory.scrollTop = chatHistory.scrollHeight;
             };
 
             // 暴露sendMessage函数为全局函数

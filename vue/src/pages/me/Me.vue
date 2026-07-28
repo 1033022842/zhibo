@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseFooter from '@/components/BaseFooter.vue'
 import { useBaseStore } from '@/store/pinia'
@@ -136,11 +136,18 @@ onMounted(async () => {
   await store.fetchProfile()
 })
 
+// keep-alive 缓存组件重新激活时刷新 profile（用户从登录页返回时）
+onActivated(() => {
+  if (store.authUserId > 0) {
+    store.fetchProfile()
+  }
+})
+
 function goEdit() { router.push('/me/edit') }
 function goSetting() { router.push('/me/setting') }
 function goAbout() { router.push('/me/setting?tab=about') }
 function goCertification() { router.push('/me/certification') }
-function goLogin() { router.push('/login') }
+function goLogin() { router.push('/login?redirect=/me') }
 
 async function handleLogout() {
   if (!confirm('确定要退出登录吗？')) return

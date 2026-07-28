@@ -1,5 +1,5 @@
 (()=>{
-    var base = 'https://api.kisss.ai'
+    var base = 'http://127.0.0.1:8001/api/live'
     var token = localStorage.getItem('live_access_token')
     var giftList = []
 
@@ -43,8 +43,7 @@
         $('#video-is-sensitive-input').on('change', function() {
             if ($(this).is(':checked')) {
                 $('#gift-select-container').removeClass('hidden')
-                // 如果礼物列表还未加载，等待加载完成
-                if (giftList.length === 0) {
+                // 如果礼物列表还未加载，等待加载完�?                if (giftList.length === 0) {
                     loadGiftList()
                 } else {
                     renderGiftSelect(giftList)
@@ -78,21 +77,18 @@
             return
         }
 
-        // 检查文件大小（例如限制为 10MB）
-        var maxSize = 10 * 1024 * 1024 // 10MB
+        // 检查文件大小（例如限制�?10MB�?        var maxSize = 10 * 1024 * 1024 // 10MB
         if (file.size > maxSize) {
             layer.msg('Video file is too large. Maximum size is 10MB')
             return
         }
 
-        // 检查文件类型
-        if (!file.type.startsWith('video/')) {
+        // 检查文件类�?        if (!file.type.startsWith('video/')) {
             layer.msg('Please select a valid video file')
             return
         }
 
-        // 验证 Intimacy 值
-        var intimacy = parseInt($('#video-intimacy-input').val())
+        // 验证 Intimacy �?        var intimacy = parseInt($('#video-intimacy-input').val())
         if (isNaN(intimacy) || intimacy < 1 || intimacy > 100) {
             layer.msg('Intimacy must be a number between 1 and 100')
             return
@@ -247,15 +243,13 @@
         }
 
         videos.forEach(function(video) {
-            // 处理 is_sensitive 和 is_default 的显示
-            var isSensitive = video.is_sensitive === 1 || video.is_sensitive === true || video.is_sensitive === '1'
+            // 处理 is_sensitive �?is_default 的显�?            var isSensitive = video.is_sensitive === 1 || video.is_sensitive === true || video.is_sensitive === '1'
             var isDefault = video.is_default === 1 || video.is_default === true || video.is_default === '1'
             
             var sensitiveBadge = isSensitive ? '<span class="px-2 py-1 bg-red-600 text-white text-xs rounded">Sensitive</span>' : ''
             var defaultBadge = isDefault ? '<span class="px-2 py-1 bg-[#E75275] text-white text-xs rounded">Default</span>' : ''
             
-            // 处理 keywords 的显示
-            var keywordsDisplay = ''
+            // 处理 keywords 的显�?            var keywordsDisplay = ''
             if (video.action_keyword && video.action_keyword.trim()) {
                 keywordsDisplay = '<p class="text-gray-400 text-xs mb-2"><span class="text-gray-500">Keywords:</span> ' + (video.action_keyword || '') + '</p>'
             }
@@ -416,8 +410,7 @@
         })
     }
 
-    // 渲染礼物下拉选择框
-    function renderGiftSelect(gifts) {
+    // 渲染礼物下拉选择�?    function renderGiftSelect(gifts) {
         var $select = $('#gift-select-input')
         $select.empty()
         

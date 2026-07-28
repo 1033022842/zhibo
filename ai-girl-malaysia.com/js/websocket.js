@@ -6,69 +6,60 @@
     var pendingVideoData = null // 存储待处理的视频数据
     var currentClientId = null // 存储当前的clientId
     
-    // intimacy points 定时器
-    var intimacyPointsInterval = null
-    var intimacyPointsIntervalMs = 5000 // 5秒获取一次
-    
+    // intimacy points 定时�?    var intimacyPointsInterval = null
+    var intimacyPointsIntervalMs = 5000 // 5秒获取一�?    
     // 重连相关变量
     var reconnectAttempts = 0
     var maxReconnectAttempts = 10
     var reconnectInterval = null
     var isReconnecting = false
     
-    // 心跳检测相关变量
-    var heartbeatInterval = null
+    // 心跳检测相关变�?    var heartbeatInterval = null
     var heartbeatTimeout = null
     var lastHeartbeatTime = 0
-    var heartbeatIntervalMs = 30000 // 30秒发送一次心跳
-    var heartbeatTimeoutMs = 10000  // 10秒内没收到响应则认为连接断开
+    var heartbeatIntervalMs = 30000 // 30秒发送一次心�?    var heartbeatTimeoutMs = 10000  // 10秒内没收到响应则认为连接断开
     
     // 暴露连接状态为全局变量
     window.isConnected = isConnected;
     window.isReconnecting = isReconnecting;
     
-    // 检查WebSocket连接状态
-    function checkConnection() {
+    // 检查WebSocket连接状�?    function checkConnection() {
         if (ws && ws.readyState === WebSocket.OPEN) {
             return true;
         }
         return false;
     }
     
-    // 开始心跳检测
-    function startHeartbeat() {
+    // 开始心跳检�?    function startHeartbeat() {
         // 清除之前的心跳定时器
         stopHeartbeat();
         
         heartbeatInterval = setInterval(() => {
             if (isConnected && ws && ws.readyState === WebSocket.OPEN) {
                 try {
-                    // 发送心跳消息
-                    const heartbeatMsg = {
+                    // 发送心跳消�?                    const heartbeatMsg = {
                         type: 'heartbeat',
                         timestamp: Date.now()
                     };
                     ws.send(JSON.stringify(heartbeatMsg));
                     lastHeartbeatTime = Date.now();
                     
-                    // 设置超时检测
-                    heartbeatTimeout = setTimeout(() => {
+                    // 设置超时检�?                    heartbeatTimeout = setTimeout(() => {
                         console.log('心跳超时，连接可能断开');
                         if (window.addChatMessage) {
-                            window.addChatMessage('⚠️ 连接超时，正在重连...', false);
+                            window.addChatMessage('⚠️ 连接超时，正在重�?..', false);
                         }
                         // 强制重连
                         ws.close();
                     }, heartbeatTimeoutMs);
                 } catch (error) {
-                    console.error('发送心跳失败:', error);
+                    console.error('发送心跳失�?', error);
                 }
             }
         }, heartbeatIntervalMs);
     }
     
-    // 停止心跳检测
-    function stopHeartbeat() {
+    // 停止心跳检�?    function stopHeartbeat() {
         if (heartbeatInterval) {
             clearInterval(heartbeatInterval);
             heartbeatInterval = null;
@@ -80,8 +71,7 @@
     }
 
     function stopIntimacyPointsSubscription() {
-        // 清除定时器
-        if (intimacyPointsInterval) {
+        // 清除定时�?        if (intimacyPointsInterval) {
             clearInterval(intimacyPointsInterval);
             intimacyPointsInterval = null;
             console.log('停止定时获取intimacy points');
@@ -97,7 +87,7 @@
             try {
                 ws.send(JSON.stringify(message));
             } catch (error) {
-                console.error('发送停止订阅消息失败:', error);
+                console.error('发送停止订阅消息失�?', error);
             }
         }
     }
@@ -112,17 +102,15 @@
             return;
         }
         
-        // 立即获取一次
-        getIntimacyPoints();
+        // 立即获取一�?        getIntimacyPoints();
         
-        // 设置定时器，每5秒获取一次
-        intimacyPointsInterval = setInterval(() => {
+        // 设置定时器，�?秒获取一�?        intimacyPointsInterval = setInterval(() => {
             if (isConnected && ws && ws.readyState === WebSocket.OPEN) {
                 getIntimacyPoints();
             }
         }, intimacyPointsIntervalMs);
         
-        console.log('开始定时获取intimacy points，间隔:', intimacyPointsIntervalMs, 'ms');
+        console.log('开始定时获取intimacy points，间�?', intimacyPointsIntervalMs, 'ms');
     }
     
     // 获取intimacy points
@@ -146,7 +134,7 @@
     // 手动重连函数
     function manualReconnect() {
         if (isReconnecting) {
-            console.log('正在重连中，请稍候...');
+            console.log('正在重连中，请稍�?..');
             return;
         }
         
@@ -169,8 +157,7 @@
         initWebSocket();
     }
     
-    // 指数退避重连
-    function scheduleReconnect() {
+    // 指数退避重�?    function scheduleReconnect() {
         if (reconnectAttempts >= maxReconnectAttempts) {
             console.log('达到最大重连次数，停止重连');
             updateStatus('disconnected', 'Connection failed - Max retries reached');
@@ -185,7 +172,7 @@
         // 指数退避：1s, 2s, 4s, 8s, 16s...
         const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
         
-        console.log(`第${reconnectAttempts + 1}次重连尝试，${delay/1000}秒后重试...`);
+        console.log(`�?{reconnectAttempts + 1}次重连尝试，${delay/1000}秒后重试...`);
         updateStatus('reconnecting', `Reconnecting... (${reconnectAttempts + 1}/${maxReconnectAttempts})`);
         
         reconnectInterval = setTimeout(() => {
@@ -209,31 +196,29 @@
         ws = new WebSocket(wsUrl);
         
         ws.onopen = function() {
-            console.log('WebSocket连接已建立');
+            console.log('WebSocket连接已建�?);
             isConnected = true;
             isReconnecting = false;
             reconnectAttempts = 0;
             window.isConnected = true;
             window.isReconnecting = false;
             
-            // 清除重连定时器
-            if (reconnectInterval) {
+            // 清除重连定时�?            if (reconnectInterval) {
                 clearTimeout(reconnectInterval);
                 reconnectInterval = null;
             }
             
-            // 开始心跳检测
-            startHeartbeat();
+            // 开始心跳检�?            startHeartbeat();
 
             // 订阅获取用户的intimacy points
             startIntimacyPointsSubscription();
             
-            // 检查 characterName 是否为空，如果为空则等待
+            // 检�?characterName 是否为空，如果为空则等待
             const characterName = document.getElementById('characterName').value;
             if (characterName && characterName.trim()) {
                 switchCharacter(characterName);
             } else {
-                console.log('characterName 为空，等待获取角色信息...');
+                console.log('characterName 为空，等待获取角色信�?..');
                 // 等待角色信息加载完成后再切换角色
                 waitForCharacterName();
             }
@@ -248,16 +233,14 @@
         };
         
         ws.onclose = function(event) {
-            console.log('WebSocket连接已关闭', event.code, event.reason);
+            console.log('WebSocket连接已关�?, event.code, event.reason);
             isConnected = false;
             window.isConnected = false;
             
-            // 停止心跳检测
-            stopHeartbeat();
+            // 停止心跳检�?            stopHeartbeat();
             stopIntimacyPointsSubscription();
             // 如果不是手动关闭，则尝试重连
-            if (event.code !== 1000) { // 1000是正常关闭
-                scheduleReconnect();
+            if (event.code !== 1000) { // 1000是正常关�?                scheduleReconnect();
             } else {
                 isReconnecting = false;
                 window.isReconnecting = false;
@@ -279,17 +262,14 @@
             const characterName = document.getElementById('characterName').value;
             if (characterName && characterName.trim()) {
                 clearInterval(checkInterval);
-                console.log('角色信息已加载，切换到角色:', characterName);
+                console.log('角色信息已加载，切换到角�?', characterName);
                 switchCharacter(characterName);
             }
-        }, 100); // 每100ms检查一次
-        
-        // 设置超时，避免无限等待
-        setTimeout(() => {
+        }, 100); // �?00ms检查一�?        
+        // 设置超时，避免无限等�?        setTimeout(() => {
             clearInterval(checkInterval);
             console.warn('等待角色信息超时');
-        }, 10000); // 10秒超时
-    }
+        }, 10000); // 10秒超�?    }
 
     // 切换角色
     function switchCharacter(character) {
@@ -297,8 +277,7 @@
         
         currentCharacter = character;
         
-        // 发送角色切换消息
-        const message = {
+        // 发送角色切换消�?        const message = {
             type: 'switch_character',
             character: character
         };
@@ -306,21 +285,19 @@
         ws.send(JSON.stringify(message));
     }
 
-    // 更新状态显示
-    function updateStatus(type, message) {
+    // 更新状态显�?    function updateStatus(type, message) {
         const statusEl = document.getElementById('status');
         if (statusEl) {
             statusEl.className = `status ${type}`;
             statusEl.textContent = message;
         }
         
-        // 更新聊天历史中的连接状态
-        // if (window.addChatMessage) {
+        // 更新聊天历史中的连接状�?        // if (window.addChatMessage) {
         //     const statusMessages = {
-        //         'connecting': '🔄 正在连接服务器...',
-        //         'connected': '✅ 连接成功',
+        //         'connecting': '🔄 正在连接服务�?..',
+        //         'connected': '�?连接成功',
         //         'reconnecting': '🔄 正在重新连接...',
-        //         'disconnected': '❌ 连接断开',
+        //         'disconnected': '�?连接断开',
         //         'error': '⚠️ 连接错误'
         //     };
             
@@ -352,8 +329,7 @@
         
         // 处理心跳响应
         if (data.type === 'heartbeat_response') {
-            // 清除心跳超时定时器
-            if (heartbeatTimeout) {
+            // 清除心跳超时定时�?            if (heartbeatTimeout) {
                 clearTimeout(heartbeatTimeout);
                 heartbeatTimeout = null;
             }
@@ -368,8 +344,7 @@
         }
         
         if (data.type === 'status') {
-            // 显示状态消息
-            showNotification(data.msg);
+            // 显示状态消�?            showNotification(data.msg);
         } else if (data.type === 'response') {
             if(data.need_purchase_points) {
                 document.getElementById('need-purchase-points-modal').style.display = 'block';
@@ -389,15 +364,13 @@
             displayResult(data);
             // 播放视频
             playVideoSmooth(data.video);
-            // 添加AI回复到聊天历史
-            if (window.addChatMessage) {
+            // 添加AI回复到聊天历�?            if (window.addChatMessage) {
                 window.addChatMessage(data.reply || 'Receive a reply', false);
             }
         } else if (data.type === 'error') {
             // 显示错误消息
             showNotification(data.msg);
-            // 添加错误消息到聊天历史
-            if (window.addChatMessage) {
+            // 添加错误消息到聊天历�?            if (window.addChatMessage) {
                 window.addChatMessage('Error: ' + data.msg, false);
             }
         }
@@ -457,15 +430,13 @@
             videoPath = document.getElementById('defaultVideo').value;
         }
         
-        isTransitioning = true; // 开始切换
-        
+        isTransitioning = true; // 开始切�?        
         // 清除之前的事件监听器
         showVideo.onloadeddata = null;
         showVideo.onerror = null;
         
-        // --- Canvas兜底帧 ---
-        // 先移除旧canvas（如果有）
-        const oldCanvas = document.getElementById('videoTransitionCanvas');
+        // --- Canvas兜底�?---
+        // 先移除旧canvas（如果有�?        const oldCanvas = document.getElementById('videoTransitionCanvas');
         if (oldCanvas) oldCanvas.remove();
         // 只在hideVideo有内容时绘制canvas
         if (hideVideo.readyState >= 2) { // HAVE_CURRENT_DATA
@@ -489,7 +460,7 @@
                 console.warn('canvas绘制失败', e);
             }
         }
-        // --- End Canvas兜底帧 ---
+        // --- End Canvas兜底�?---
         
         showVideo.src = videoPath;
         showVideo.load();
@@ -501,7 +472,7 @@
                 return;
             }
             
-            console.log('视频数据加载完成，开始切换');
+            console.log('视频数据加载完成，开始切�?);
             
             showVideo.style.opacity = 0;
             showVideo.style.display = 'block';
@@ -529,8 +500,7 @@
         };
         
         showVideo.onerror = function () {
-            isTransitioning = false; // 出错时也要重置标志
-            showVideo.style.display = 'none';
+            isTransitioning = false; // 出错时也要重置标�?            showVideo.style.display = 'none';
             hideVideo.style.opacity = 1;
             hideVideo.style.display = 'block';
             // 移除canvas
@@ -540,13 +510,12 @@
         };
     }
 
-    // 发送消息
-    function sendMessage(text) {
+    // 发送消�?    function sendMessage(text) {
         if (!isConnected || !text.trim() || !currentCharacter) {
             if (!isConnected) {
-                console.log('WebSocket未连接，无法发送消息');
+                console.log('WebSocket未连接，无法发送消�?);
                 if (window.addChatMessage) {
-                    window.addChatMessage('⚠️ 连接断开，无法发送消息', false);
+                    window.addChatMessage('⚠️ 连接断开，无法发送消�?, false);
                 }
             }
             return;
@@ -560,9 +529,9 @@
         try {
             ws.send(JSON.stringify(message));
         } catch (error) {
-            console.error('发送消息失败:', error);
+            console.error('发送消息失�?', error);
             if (window.addChatMessage) {
-                window.addChatMessage('❌ 发送消息失败', false);
+                window.addChatMessage('�?发送消息失�?, false);
             }
         }
         
@@ -588,24 +557,21 @@
         messageDiv.appendChild(messageBubble);
         chatHistory.appendChild(messageDiv);
         
-        // 滚动到底部
-        chatHistory.scrollTop = chatHistory.scrollHeight;
+        // 滚动到底�?        chatHistory.scrollTop = chatHistory.scrollHeight;
     };
 
     // 处理购买成功后的视频播放
     function handlePurchaseSuccess() {
         if (pendingVideoData) {
-            console.log('购买成功，开始播放视频');
+            console.log('购买成功，开始播放视�?);
             // 显示识别结果
             displayResult(pendingVideoData);
             // 播放视频
             playVideoSmooth(pendingVideoData.video);
-            // 添加AI回复到聊天历史
-            if (window.addChatMessage) {
+            // 添加AI回复到聊天历�?            if (window.addChatMessage) {
                 window.addChatMessage(pendingVideoData.reply || 'Receive a reply', false);
             }
-            // 清空待处理数据
-            pendingVideoData = null;
+            // 清空待处理数�?            pendingVideoData = null;
         }
     }
 

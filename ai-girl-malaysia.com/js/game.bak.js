@@ -2,8 +2,7 @@
      var base = 'http://127.0.0.1:8049'
      var slideshowItems = [];
      var token = localStorage.getItem('token')
-     var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫秒
-     var currentIndex = -1; // 初始索引为 -1，因为点击按钮后会先增加到 0
+     var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫�?     var currentIndex = -1; // 初始索引�?-1，因为点击按钮后会先增加�?0
      var bgMusic = document.getElementById("bgMusic");
      var pageList = []
      var audio = null
@@ -163,8 +162,7 @@
       }).catch(error => console.error(error))
     }
 
-    //初始化按钮
-    function initBtn(data, id){
+    //初始化按�?    function initBtn(data, id){
         var html = ''
         data.forEach((item, index) => {
             html += '<li class="mx-auto mt-6 md:mb-0 mb-10 grid max-w-2xl grid-cols-2 gap-5 sm:grid-cols-2 lg:mx-0 lg:max-w-none "><button class="dialogue-button" data-id="'+item.id+'">'+ item.description +'</button></li>'
@@ -212,7 +210,7 @@
            if(res.code === 1) {
             if(res.data.group_id === 2) {
                 
-                layer.confirm('Are you sure you want to buy？', {
+                layer.confirm('Are you sure you want to buy�?, {
                     title:"information",
                     btn : [ 'Sure', 'Cancel' ]//按钮
                 }, function(index) {
@@ -234,7 +232,7 @@
              
                 //var money = parseFloat(res.data.money)
                 // if(money < item.amount) {
-                //     alert('当前积分不足，请前往充值')
+                //     alert('当前积分不足，请前往充�?)
                 // }
                 // else{
                 //     initializeCarousel(item.images)
@@ -315,12 +313,11 @@
             // 循环播放
             audio.loop = true;
             
-            // 为了兼容不同浏览器，可能需要监听一些事件
-            audio.addEventListener('play', function() {
-            // console.log('音乐播放中');
+            // 为了兼容不同浏览器，可能需要监听一些事�?            audio.addEventListener('play', function() {
+            // console.log('音乐播放�?);
             }, false);
             audio.addEventListener('error', function() {
-            // console.log('播放出错！');
+            // console.log('播放出错�?);
             }, false);
           return null
         }
@@ -403,26 +400,22 @@
     if (currentIndex >= 0) {
         slideshowItems[currentIndex].style.display = "none";
 
-        // 如果当前项目是视频，则停止视频播放
-        // if (slideshowItems[currentIndex].tagName === "VIDEO") {
+        // 如果当前项目是视频，则停止视频播�?        // if (slideshowItems[currentIndex].tagName === "VIDEO") {
         // slideshowItems[currentIndex].pause();
         // slideshowItems[currentIndex].currentTime = 0;
         // }
     }
 
-    // 更新索引以显示下一个项目
-    currentIndex = (currentIndex + 1) % slideshowItems.length;
+    // 更新索引以显示下一个项�?    currentIndex = (currentIndex + 1) % slideshowItems.length;
 
-    // 显示下一个项目
-    slideshowItems[currentIndex].style.display = "block";
+    // 显示下一个项�?    slideshowItems[currentIndex].style.display = "block";
 
     // 如果下一个项目是视频，则自动播放视频
     // if (slideshowItems[currentIndex].tagName === "VIDEO") {
     //     bgMusic.pause(); // 暂停背景音乐
     //     slideshowItems[currentIndex].play(); // 播放视频
     //     slideshowItems[currentIndex].addEventListener('ended', function() {
-    //     bgMusic.play(); // 视频播放结束后恢复背景音乐
-    //     });
+    //     bgMusic.play(); // 视频播放结束后恢复背景音�?    //     });
     // } else {
     //     // 否则继续播放背景音乐
     //     //bgMusic.play();
@@ -431,8 +424,7 @@
     // 计算下一个项目的显示时间
     var nextDuration = durations[currentIndex];
 
-    // 设置定时器，等待显示下一个项目
-    setTimeout(showNextItem, nextDuration);
+    // 设置定时器，等待显示下一个项�?    setTimeout(showNextItem, nextDuration);
     }
     function audioAutoPlay(audio){
       play = function(){
@@ -452,8 +444,7 @@
       document.addEventListener("touchstart",play, false);
     }
     function start() {
-        // 隐藏所有项目
-      slideshowItems.forEach(function(item) {
+        // 隐藏所有项�?      slideshowItems.forEach(function(item) {
         item.style.display = "none";
       });
       showNextItem()

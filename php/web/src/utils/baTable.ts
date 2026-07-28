@@ -16,6 +16,9 @@ export default class baTable {
     /** baTableApi 类的实例，开发者可重写该类 */
     public api: baTableApi
 
+    /** 编辑请求ID，用于防止竞态条件 */
+    private editRequestId: number = 0
+
     /** 表格状态，属性对应含义请查阅 BaTable 的类型定义 */
     public table: BaTable = reactive({
         ref: undefined,
@@ -147,21 +150,28 @@ export default class baTable {
         if (this.runBefore('requestEdit', { id }) === false) return
         this.form.loading = true
         this.form.items = {}
+        const requestId = ++this.editRequestId
         return this.api
             .edit({
                 [this.table.pk!]: id,
             })
             .then((res) => {
+                // 防止竞态条件：只处理最新请求的响应
+                if (requestId !== this.editRequestId) return
                 this.form.items = res.data.row
                 this.runAfter('getEditData', { res })
                 this.runAfter('requestEdit', { res })
             })
             .catch((err) => {
+                // 防止竞态条件：只处理最新请求的错误
+                if (requestId !== this.editRequestId) return
                 this.toggleForm()
                 this.runAfter('getEditData', { err })
                 this.runAfter('requestEdit', { err })
             })
             .finally(() => {
+                // 防止竞态条件：只处理最新请求的完成
+                if (requestId !== this.editRequestId) return
                 this.form.loading = false
             })
     }

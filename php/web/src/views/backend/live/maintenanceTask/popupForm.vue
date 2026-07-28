@@ -13,7 +13,7 @@
         </template>
         <el-scrollbar v-loading="baTable.form.loading" class="ba-table-form-scrollbar">
             <div class="ba-operate-form" :class="'ba-' + baTable.form.operate + '-form'">
-                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-if="!baTable.form.loading">
+                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-show="!baTable.form.loading">
                     <FormItem label="任务名称" v-model="baTable.form.items!.name" prop="name" type="string" :input-attr="{ placeholder: '如: 服务器续费、甜心人设维护' }" />
                     <FormItem label="到期日期" v-model="baTable.form.items!.due_date" prop="due_date" type="date" />
                     <FormItem label="备注" v-model="baTable.form.items!.remark" type="textarea" :input-attr="{ placeholder: '可选，如维护内容说明', rows: 3 }" />

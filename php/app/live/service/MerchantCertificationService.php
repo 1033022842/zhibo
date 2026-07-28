@@ -33,12 +33,19 @@ final class MerchantCertificationService
             } else {
                 $cert = new MerchantCertification();
             }
-            $cert->user_id       = $userId;
-            $cert->email         = $data['email'];
-            $cert->id_card_front = $data['id_card_front'];
-            $cert->id_card_back  = $data['id_card_back'];
-            $cert->status        = 0;
-            $cert->reject_reason = '';
+            $cert->user_id          = $userId;
+            $cert->real_name        = $data['real_name'];
+            $cert->id_card_no       = $data['id_card_no'];
+            $cert->phone            = $data['phone'];
+            $cert->email            = $data['email'];
+            $cert->shop_name        = $data['shop_name'];
+            $cert->shop_type        = $data['shop_type'];
+            $cert->shop_description = $data['shop_description'] ?? '';
+            $cert->id_card_front    = $data['id_card_front'];
+            $cert->id_card_back     = $data['id_card_back'];
+            $cert->business_license = $data['business_license'];
+            $cert->status           = 0;
+            $cert->reject_reason    = '';
             $cert->save();
 
             Db::commit();
@@ -74,6 +81,26 @@ final class MerchantCertificationService
             return null;
         }
         $arr = $cert->toArray();
+
+        // 身份证号脱敏：保留前3后4
+        if (!empty($arr['id_card_no'])) {
+            $len = strlen($arr['id_card_no']);
+            if ($len > 7) {
+                $arr['id_card_no'] = substr($arr['id_card_no'], 0, 3)
+                    . str_repeat('*', $len - 7)
+                    . substr($arr['id_card_no'], -4);
+            }
+        }
+
+        // 手机号脱敏：保留前3后4
+        if (!empty($arr['phone'])) {
+            $len = strlen($arr['phone']);
+            if ($len > 7) {
+                $arr['phone'] = substr($arr['phone'], 0, 3)
+                    . str_repeat('*', $len - 7)
+                    . substr($arr['phone'], -4);
+            }
+        }
 
         // 邮箱脱敏
         if (!empty($arr['email'])) {

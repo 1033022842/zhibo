@@ -20,6 +20,7 @@ return [
         'enabled' => false,
         'rtmp_publish_base' => getenv('SRS_RTMP_PUBLISH_BASE') ?: 'rtmp://127.0.0.1/live',
     ],
+    'media_base_dir' => dirname(__DIR__, 2),  // 项目根目录，相对路径视频文件拼接此前缀
     'redis' => [
         'host' => getenv('REDIS_HOST') ?: '127.0.0.1',
         'port' => (int)(getenv('REDIS_PORT') ?: 6379),

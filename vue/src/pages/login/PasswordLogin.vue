@@ -11,36 +11,24 @@
       </div>
 
       <LoginInput
+        v-if="!isRegister"
         autofocus
         type="email"
         v-model="email"
         placeholder="请输入邮箱"
       />
-      <template v-if="isRegister">
-        <div class="code-row mt1r">
-          <LoginInput
-            type="text"
-            v-model="code"
-            placeholder="请输入验证码"
-            class="code-input"
-          />
-          <span class="send-code-btn" :class="{ disabled: codeSending }" @click="sendCode">
-            {{ codeBtnText }}
-          </span>
-        </div>
-      </template>
+      <LoginInput
+        v-if="isRegister"
+        autofocus
+        type="text"
+        v-model="account"
+        placeholder="请输入用户名或邮箱"
+      />
       <LoginInput
         class="mt1r"
         type="password"
         v-model="password"
         placeholder="请输入密码"
-      />
-      <LoginInput
-        v-if="isRegister"
-        class="mt1r"
-        type="text"
-        v-model="nickname"
-        placeholder="请输入昵称"
       />
 
       <div class="protocol" :class="showAnim ? 'anim-bounce' : ''">
@@ -86,7 +74,7 @@
             class="link"
             @click="$router.push('/login/retrieve-password')"
           >找回密码</span>
-          <span class="link" style="margin-left: 12rem" @click="toggleMode">
+          <span class="link" style="margin-left: 12rem" @click="goToLogin">
             {{ isRegister ? '已有账号？去登录' : '没有账号？去注册' }}
           </span>
         </span>
@@ -100,8 +88,6 @@ import LoginInput from './components/LoginInput'
 import Tooltip from './components/Tooltip'
 import Base from './Base'
 import { useBaseStore } from '@/store/pinia'
-import { _notice } from '@/utils'
-import { request } from '@/utils/request'
 
 export default {
   name: 'PasswordLogin',
@@ -114,31 +100,24 @@ export default {
   data() {
     return {
       email: '',
+      account: '',
       password: '',
-      nickname: '',
-      code: '',
       notice: '',
-      isRegister: false,
-      codeSending: false,
-      countdown: 0,
-      countdownTimer: null
+      isRegister: false
     }
   },
   computed: {
     disabled() {
       if (this.isRegister) {
-        return !(this.email && this.code && this.password && this.nickname)
+        return !(this.account && this.password)
       }
       return !(this.email && this.password)
-    },
-    codeBtnText() {
-      if (this.codeSending) return '发送中...'
-      if (this.countdown > 0) return `${this.countdown}s`
-      return '发送验证码'
     }
   },
-  beforeDestroy() {
-    if (this.countdownTimer) clearInterval(this.countdownTimer)
+  created() {
+    if (this.$route.query.mode === 'register') {
+      this.isRegister = true
+    }
   },
   methods: {
     goUserAgreement() {
@@ -147,50 +126,16 @@ export default {
     goPrivacyPolicy() {
       this.$router.push('/service-protocol', { type: '\u201c抖音\u201d隐私政策' })
     },
+    goToLogin() {
+      if (this.isRegister) {
+        this.$router.push('/login?redirect=/me')
+      } else {
+        this.toggleMode()
+      }
+    },
     toggleMode() {
       this.isRegister = !this.isRegister
       this.notice = ''
-      this.code = ''
-    },
-    async sendCode() {
-      if (this.codeSending || this.countdown > 0) return
-
-      const email = this.email.trim()
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        this.notice = '请输入正确的邮箱地址'
-        return
-      }
-
-      this.notice = ''
-      this.codeSending = true
-
-      try {
-        const res = await request({
-          url: '/api/live/user/send-code',
-          method: 'POST',
-          data: { email }
-        })
-        if (res.success) {
-          this.notice = ''
-          this.startCountdown()
-        } else {
-          this.notice = (res.data && res.data.message) || '发送失败'
-        }
-      } catch (e) {
-        this.notice = e?.message || '发送失败'
-      }
-
-      this.codeSending = false
-    },
-    startCountdown() {
-      this.countdown = 60
-      this.countdownTimer = setInterval(() => {
-        this.countdown--
-        if (this.countdown <= 0) {
-          clearInterval(this.countdownTimer)
-          this.countdownTimer = null
-        }
-      }, 1000)
     },
     async submit() {
       const ok = await this.check()
@@ -202,21 +147,13 @@ export default {
       const store = useBaseStore()
 
       if (this.isRegister) {
-        const res = await store.doRegister(
-          this.email.trim(),
-          this.password,
-          this.nickname.trim(),
-          this.code
+        const res = await store.doRegisterFromAi(
+          this.account.trim(),
+          this.password
         )
         this.loading = false
         if (res.ok) {
-          _notice('注册成功，正在登录...')
-          const loginRes = await store.doLogin(this.email.trim(), this.password)
-          if (loginRes.ok) {
-            this.$router.replace('/home')
-          } else {
-            this.notice = loginRes.msg || '自动登录失败'
-          }
+          this.$router.replace('/home')
         } else {
           this.notice = res.msg || '注册失败'
         }

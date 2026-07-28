@@ -13,7 +13,7 @@
         </template>
         <el-scrollbar v-loading="baTable.form.loading" class="ba-table-form-scrollbar">
             <div class="ba-operate-form" :class="'ba-' + baTable.form.operate + '-form'">
-                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-if="!baTable.form.loading">
+                <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-show="!baTable.form.loading">
                     <FormItem label="素材编码" v-model="baTable.form.items!.asset_code" type="string" :input-attr="{ placeholder: '留空自动生成' }" />
                     <FormItem label="标题" v-model="baTable.form.items!.title" prop="title" type="string" />
                     <FormItem label="上传视频" v-model="baTable.form.items!.file_url" prop="file_url" type="file" :input-attr="{ limit: 1 }" />
@@ -30,6 +30,28 @@
                         :input-attr="{ content: { public: '公共', privilege: '特权', interaction: '互动', cover: '封面' } }"
                     />
                     <FormItem label="时长(ms)" v-model="baTable.form.items!.duration_ms" type="number" />
+                    <FormItem
+                        label="人设"
+                        v-model="baTable.form.items!.persona"
+                        type="remoteSelect"
+                        :input-attr="{
+                            field: 'name',
+                            remoteUrl: '/admin/live.Persona/index',
+                            params: { select: true },
+                            placeholder: '选择人设',
+                        }"
+                    />
+                    <FormItem
+                        label="关键词"
+                        v-model="baTable.form.items!.keywords"
+                        type="select"
+                        :input-attr="{
+                            multiple: true,
+                            content: keywordOptions,
+                            placeholder: '选择关键词（可多选）',
+                        }"
+                    />
+                    <FormItem label="权重" v-model="baTable.form.items!.weight" type="number" :input-attr="{ min: 1, max: 100 }" />
                     <FormItem label="校验值" v-model="baTable.form.items!.checksum" type="string" :input-attr="{ placeholder: '留空自动计算' }" />
                     <FormItem
                         label="状态"
@@ -60,4 +82,28 @@ const rules: Partial<Record<string, FormItemRule[]>> = reactive({
     title: [{ required: true, message: '请输入素材标题', trigger: 'blur' }],
     file_url: [{ required: true, message: '请上传视频文件', trigger: 'change' }],
 })
+
+// 20 大类关键词选项
+const keywordOptions = {
+    比心: '比心',
+    飞吻: '飞吻',
+    摸头杀: '摸头杀',
+    撩发: '撩发',
+    害羞: '害羞',
+    傲娇: '傲娇',
+    变脸: '变脸',
+    开心: '开心',
+    待机: '待机',
+    专注: '专注',
+    日常: '日常',
+    投喂: '投喂',
+    拥抱: '拥抱',
+    安慰: '安慰',
+    拉扯: '拉扯',
+    诱惑: '诱惑',
+    侧颜: '侧颜',
+    感谢: '感谢',
+    话术: '话术',
+    出入场: '出入场',
+}
 </script>

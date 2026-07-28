@@ -52,13 +52,11 @@
          
            // 触发表单验证
            if (this.checkValidity()) {
-             // 表单验证通过，可以执行提交操作
-             console.log('Form is valid, submitting...');
+             // 表单验证通过，可以执行提交操�?             console.log('Form is valid, submitting...');
              // this.submit();
              register()
            } else {
-             // 表单验证失败，可以处理错误
-             console.error('Form is invalid. Fix errors before submitting.');
+             // 表单验证失败，可以处理错�?             console.error('Form is invalid. Fix errors before submitting.');
            }
        })
 
@@ -68,13 +66,11 @@
          
         // 触发表单验证
         if (this.checkValidity()) {
-          // 表单验证通过，可以执行提交操作
-          console.log('Form is valid, submitting...');
+          // 表单验证通过，可以执行提交操�?          console.log('Form is valid, submitting...');
           login()
           // this.submit();
         } else {
-          // 表单验证失败，可以处理错误
-          console.error('Form is invalid. Fix errors before submitting.');
+          // 表单验证失败，可以处理错�?          console.error('Form is invalid. Fix errors before submitting.');
         }
        })
       }, 100);

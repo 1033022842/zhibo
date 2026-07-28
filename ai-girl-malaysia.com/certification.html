@@ -78,7 +78,7 @@
 <script>
 (function(){
     var token = localStorage.getItem('live_access_token')
-    var base = 'http://127.0.0.1:8000/api/v1/merchant'
+    var base = 'http://127.0.0.1:8001/api/v1/merchant'
 
     // Toast 通知
     var toastTimer
@@ -110,13 +110,12 @@
         return
     }
 
-    // 加载认证状态
-    function loadStatus() {
+    // 加载认证状�?    function loadStatus() {
         fetch(base + '/status', {
             headers: { 'Authorization': 'Bearer ' + token }
         }).then(function(r){ return r.json() }).then(function(d){
             if (d.code && d.code !== '00000') {
-                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">登录已过期</p><button class="btn-submit" onclick="location.href=\'./Login.html\'">去登录</button></div>'
+                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">登录已过�?/p><button class="btn-submit" onclick="location.href=\'./Login.html\'">去登�?/button></div>'
                 return
             }
             var status = d.data ? d.data.cert_status : -1
@@ -136,12 +135,12 @@
 
     function renderPassed() {
         document.getElementById('content').innerHTML =
-            '<div class="status-card passed"><div class="status-icon">&#10003;</div><div class="status-title">认证已通过</div><div class="status-desc">您现在可以创建AI角色了</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
+            '<div class="status-card passed"><div class="status-icon">&#10003;</div><div class="status-title">认证已通过</div><div class="status-desc">您现在可以创建AI角色�?/div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
     }
 
     function renderPending() {
         document.getElementById('content').innerHTML =
-            '<div class="status-card pending"><div class="status-icon">&#9201;</div><div class="status-title">审核中</div><div class="status-desc">您的认证申请正在审核，请耐心等待</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
+            '<div class="status-card pending"><div class="status-icon">&#9201;</div><div class="status-title">审核�?/div><div class="status-desc">您的认证申请正在审核，请耐心等待</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
     }
 
     function renderRejected() {
@@ -153,9 +152,9 @@
         document.getElementById('content').innerHTML =
             '<div class="form-card">' +
             '<div class="form-title">提交认证资料</div>' +
-            '<div class="field"><label>认证邮箱</label><input type="email" id="certEmail" placeholder="请输入认证邮箱" maxlength="255"></div>' +
-            '<div class="field"><label>身份证正面</label><div class="upload-zone" id="frontUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="frontInput" accept="image/*" style="display:none"></div>' +
-            '<div class="field"><label>身份证背面</label><div class="upload-zone" id="backUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="backInput" accept="image/*" style="display:none"></div>' +
+            '<div class="field"><label>认证邮箱</label><input type="email" id="certEmail" placeholder="请输入认证邮�? maxlength="255"></div>' +
+            '<div class="field"><label>身份证正�?/label><div class="upload-zone" id="frontUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="frontInput" accept="image/*" style="display:none"></div>' +
+            '<div class="field"><label>身份证背�?/label><div class="upload-zone" id="backUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="backInput" accept="image/*" style="display:none"></div>' +
             '<button class="btn-submit" id="btnSubmit" onclick="doSubmit()">提交认证</button>' +
             '</div>'
 
@@ -182,7 +181,7 @@
             if (!frontUrl) { showToast('请上传身份证正面', 'error'); return }
             if (!backUrl) { showToast('请上传身份证背面', 'error'); return }
             btn.disabled = true
-            btn.textContent = '提交中...'
+            btn.textContent = '提交�?..'
             var r = new XMLHttpRequest()
             r.open('POST', base + '/submit')
             r.setRequestHeader('Authorization', 'Bearer ' + token)
@@ -193,7 +192,7 @@
                 try {
                     var d = JSON.parse(r.responseText)
                     if (d.code === '00000' || d.code === 0) {
-                        showModal('&#10003;', '提交成功', '您的认证申请已提交，请等待审核', '我知道了', 'modal-btn-success', function(){ loadStatus() })
+                        showModal('&#10003;', '提交成功', '您的认证申请已提交，请等待审�?, '我知道了', 'modal-btn-success', function(){ loadStatus() })
                     } else {
                         showToast(d.msg || '提交失败', 'error')
                     }

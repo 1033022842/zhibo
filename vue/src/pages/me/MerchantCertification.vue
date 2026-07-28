@@ -24,7 +24,8 @@
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
         <h2 class="result-title">商家认证已通过</h2>
-        <p class="result-desc">认证邮箱：{{ certEmail }}</p>
+        <p class="result-desc">店铺名称：{{ shopName }}</p>
+        <p class="result-sub">认证邮箱：{{ certEmail }}</p>
         <button class="btn-detail" @click="viewDetail">查看认证详情</button>
       </div>
     </template>
@@ -58,35 +59,92 @@
     <template v-if="showSubmitForm">
       <form class="cert-form" @submit.prevent="handleSubmit" v-anim>
         <h2 class="form-title">{{ certStatus === 2 ? '重新提交认证' : '商家认证' }}</h2>
-        <p class="form-desc">请上传有效身份证件并填写认证邮箱，提交后将进入审核流程</p>
+        <p class="form-desc">请填写真实信息并上传有效证件，提交后将进入审核流程</p>
+
+        <!-- 身份信息 -->
+        <div class="section-title">身份信息</div>
 
         <div class="field">
-          <label>认证邮箱</label>
-          <input v-model="form.email" type="email" placeholder="请输入认证邮箱" maxlength="255" />
+          <label>真实姓名 <span class="required">*</span></label>
+          <input v-model="form.real_name" placeholder="请输入真实姓名" maxlength="50" />
         </div>
 
         <div class="field">
-          <label>身份证正面</label>
+          <label>身份证号 <span class="required">*</span></label>
+          <input v-model="form.id_card_no" placeholder="请输入18位身份证号" maxlength="18" />
+        </div>
+
+        <div class="field">
+          <label>手机号 <span class="required">*</span></label>
+          <input v-model="form.phone" type="tel" placeholder="请输入手机号" maxlength="11" />
+        </div>
+
+        <div class="field">
+          <label>认证邮箱 <span class="required">*</span></label>
+          <input v-model="form.email" type="email" placeholder="请输入认证邮箱" maxlength="255" />
+        </div>
+
+        <!-- 店铺信息 -->
+        <div class="section-title">店铺信息</div>
+
+        <div class="field">
+          <label>店铺名称 <span class="required">*</span></label>
+          <input v-model="form.shop_name" placeholder="请输入店铺名称" maxlength="100" />
+        </div>
+
+        <div class="field">
+          <label>经营类目 <span class="required">*</span></label>
+          <div class="select-wrap">
+            <select v-model="form.shop_type">
+              <option value="" disabled>请选择经营类目</option>
+              <option v-for="t in shopTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+            </select>
+            <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>店铺简介</label>
+          <textarea v-model="form.shop_description" placeholder="请输入店铺简介（选填）" maxlength="500" rows="3"></textarea>
+        </div>
+
+        <!-- 证件上传 -->
+        <div class="section-title">证件上传</div>
+
+        <div class="field">
+          <label>身份证正面 <span class="required">*</span></label>
           <div class="upload-zone" @click="triggerUpload('id_card_front')">
             <img v-if="form.id_card_front" :src="form.id_card_front" class="upload-preview" />
             <div v-else class="upload-placeholder">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span>点击上传</span>
+              <span>点击上传身份证正面</span>
             </div>
           </div>
           <input ref="inputFront" type="file" accept="image/*" style="display:none" @change="onFileChange('id_card_front', $event)" />
         </div>
 
         <div class="field">
-          <label>身份证背面</label>
+          <label>身份证背面 <span class="required">*</span></label>
           <div class="upload-zone" @click="triggerUpload('id_card_back')">
             <img v-if="form.id_card_back" :src="form.id_card_back" class="upload-preview" />
             <div v-else class="upload-placeholder">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span>点击上传</span>
+              <span>点击上传身份证背面</span>
             </div>
           </div>
           <input ref="inputBack" type="file" accept="image/*" style="display:none" @change="onFileChange('id_card_back', $event)" />
+        </div>
+
+        <div class="field">
+          <label>营业执照 <span class="required">*</span></label>
+          <div class="upload-zone" @click="triggerUpload('business_license')">
+            <img v-if="form.business_license" :src="form.business_license" class="upload-preview" />
+            <div v-else class="upload-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>点击上传营业执照</span>
+            </div>
+          </div>
+          <input ref="inputBizLic" type="file" accept="image/*" style="display:none" @change="onFileChange('business_license', $event)" />
         </div>
 
         <button class="btn-submit" type="submit" :disabled="submitting">
@@ -100,7 +158,25 @@
       <div class="detail-card">
         <h3>认证详情</h3>
         <div class="detail-item" v-if="detailData">
+          <span>真实姓名</span><span>{{ detailData.real_name }}</span>
+        </div>
+        <div class="detail-item" v-if="detailData">
+          <span>身份证号</span><span>{{ detailData.id_card_no }}</span>
+        </div>
+        <div class="detail-item" v-if="detailData">
+          <span>手机号</span><span>{{ detailData.phone }}</span>
+        </div>
+        <div class="detail-item" v-if="detailData">
           <span>认证邮箱</span><span>{{ detailData.email }}</span>
+        </div>
+        <div class="detail-item" v-if="detailData">
+          <span>店铺名称</span><span>{{ detailData.shop_name }}</span>
+        </div>
+        <div class="detail-item" v-if="detailData">
+          <span>经营类目</span><span>{{ detailData.shop_type }}</span>
+        </div>
+        <div class="detail-item" v-if="detailData && detailData.shop_description">
+          <span>店铺简介</span><span>{{ detailData.shop_description }}</span>
         </div>
         <div class="detail-item" v-if="detailData">
           <span>身份证正面</span>
@@ -111,7 +187,14 @@
           <img class="detail-img" :src="detailData.id_card_back" />
         </div>
         <div class="detail-item" v-if="detailData">
+          <span>营业执照</span>
+          <img class="detail-img" :src="detailData.business_license" />
+        </div>
+        <div class="detail-item" v-if="detailData">
           <span>状态</span><span class="status-tag" :class="'status-' + detailData.status">{{ detailData.status_text }}</span>
+        </div>
+        <div class="detail-item" v-if="detailData && detailData.reject_reason">
+          <span>拒绝原因</span><span class="reject-reason-text">{{ detailData.reject_reason }}</span>
         </div>
         <button class="btn-close" @click="showDetail = false">关闭</button>
       </div>
@@ -125,9 +208,11 @@ import { useRouter } from 'vue-router'
 import {
   getCertificationStatus,
   getCertificationDetail,
+  getShopTypes,
   submitCertification,
   uploadCertificationImage,
-  type CertificationDetail
+  type CertificationDetail,
+  type ShopTypeOption
 } from '@/api/merchant'
 
 defineOptions({ name: 'MerchantCertification' })
@@ -140,24 +225,43 @@ const loading = ref(true)
 const submitting = ref(false)
 const certStatus = ref(-1)
 const certEmail = ref('')
+const shopName = ref('')
 const rejectReason = ref('')
 const createdAt = ref('')
 const showSubmitForm = ref(false)
 const showDetail = ref(false)
 const detailData = ref<CertificationDetail | null>(null)
+const shopTypes = ref<ShopTypeOption[]>([])
 
 const form = ref({
+  real_name: '',
+  id_card_no: '',
+  phone: '',
   email: '',
+  shop_name: '',
+  shop_type: '',
+  shop_description: '',
   id_card_front: '',
-  id_card_back: ''
+  id_card_back: '',
+  business_license: ''
 })
 
 const inputFront = ref<HTMLInputElement | null>(null)
 const inputBack = ref<HTMLInputElement | null>(null)
+const inputBizLic = ref<HTMLInputElement | null>(null)
 
 onMounted(async () => {
-  await loadStatus()
+  await Promise.all([loadStatus(), loadShopTypes()])
 })
+
+async function loadShopTypes() {
+  try {
+    const res = await getShopTypes()
+    if (res.success && res.data) {
+      shopTypes.value = res.data
+    }
+  } catch { /* ignore */ }
+}
 
 async function loadStatus() {
   loading.value = true
@@ -166,6 +270,7 @@ async function loadStatus() {
     if (res.success && res.data) {
       certStatus.value = res.data.cert_status
       certEmail.value = res.data.email || ''
+      shopName.value = res.data.shop_name || ''
       rejectReason.value = res.data.reject_reason || ''
       createdAt.value = res.data.created_at || ''
       if (certStatus.value === -1 || certStatus.value === 2) {
@@ -196,6 +301,7 @@ async function viewDetail() {
 function triggerUpload(field: string) {
   if (field === 'id_card_front') inputFront.value?.click()
   if (field === 'id_card_back') inputBack.value?.click()
+  if (field === 'business_license') inputBizLic.value?.click()
 }
 
 async function onFileChange(field: string, e: Event) {
@@ -212,18 +318,29 @@ async function onFileChange(field: string, e: Event) {
 async function handleSubmit() {
   if (submitting.value) return
 
-  if (!form.value.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
-    return alert('请输入正确的邮箱地址')
-  }
+  if (!form.value.real_name.trim()) return alert('请输入真实姓名')
+  if (!/^\d{17}[\dXx]$/.test(form.value.id_card_no.trim())) return alert('请输入正确的18位身份证号')
+  if (!/^1[3-9]\d{9}$/.test(form.value.phone.trim())) return alert('请输入正确的手机号')
+  if (!form.value.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) return alert('请输入正确的邮箱地址')
+  if (!form.value.shop_name.trim()) return alert('请输入店铺名称')
+  if (!form.value.shop_type) return alert('请选择经营类目')
   if (!form.value.id_card_front) return alert('请上传身份证正面')
   if (!form.value.id_card_back) return alert('请上传身份证背面')
+  if (!form.value.business_license) return alert('请上传营业执照')
 
   submitting.value = true
   try {
     const res = await submitCertification({
+      real_name: form.value.real_name.trim(),
+      id_card_no: form.value.id_card_no.trim(),
+      phone: form.value.phone.trim(),
       email: form.value.email.trim(),
+      shop_name: form.value.shop_name.trim(),
+      shop_type: form.value.shop_type,
+      shop_description: form.value.shop_description.trim(),
       id_card_front: form.value.id_card_front,
-      id_card_back: form.value.id_card_back
+      id_card_back: form.value.id_card_back,
+      business_license: form.value.business_license
     })
     if (res.success) {
       alert('提交成功')
@@ -449,6 +566,16 @@ async function handleSubmit() {
   }
 }
 
+.section-title {
+  font-size: 14rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.8);
+  margin: 24rem 0 16rem;
+  padding-bottom: 8rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  letter-spacing: 0.3rem;
+}
+
 .field {
   margin-bottom: 20rem;
 
@@ -461,7 +588,13 @@ async function handleSubmit() {
     letter-spacing: 0.3rem;
   }
 
-  input[type="email"] {
+  .required {
+    color: @accent;
+  }
+
+  input[type="email"],
+  input[type="tel"],
+  input:not([type]) {
     width: 100%;
     padding: 13rem 16rem;
     border: 1px solid @border;
@@ -475,6 +608,60 @@ async function handleSubmit() {
 
     &:focus { border-color: rgba(255, 45, 85, 0.5); }
     &::placeholder { color: rgba(255,255,255,0.2); }
+  }
+
+  textarea {
+    width: 100%;
+    padding: 13rem 16rem;
+    border: 1px solid @border;
+    border-radius: 12rem;
+    background: @surface;
+    color: #fff;
+    font-size: 15rem;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 80rem;
+    font-family: inherit;
+
+    &:focus { border-color: rgba(255, 45, 85, 0.5); }
+    &::placeholder { color: rgba(255,255,255,0.2); }
+  }
+}
+
+.select-wrap {
+  position: relative;
+
+  select {
+    width: 100%;
+    padding: 13rem 36rem 13rem 16rem;
+    border: 1px solid @border;
+    border-radius: 12rem;
+    background: @surface;
+    color: #fff;
+    font-size: 15rem;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+
+    &:focus { border-color: rgba(255, 45, 85, 0.5); }
+
+    option {
+      background: #1a1d2e;
+      color: #fff;
+    }
+  }
+
+  .select-arrow {
+    position: absolute;
+    right: 12rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: rgba(255,255,255,0.3);
   }
 }
 
@@ -523,7 +710,7 @@ async function handleSubmit() {
   background: linear-gradient(135deg, @accent, #d42148);
   box-shadow: 0 4px 20px rgba(255, 45, 85, 0.3);
   transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-  margin-top: 10rem;
+  margin-top: 16rem;
 
   &:active:not(:disabled) { transform: scale(0.98); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -547,7 +734,7 @@ async function handleSubmit() {
   border-radius: 20rem;
   padding: 30rem 24rem 24rem;
   width: 100%;
-  max-width: 340rem;
+  max-width: 360rem;
   max-height: 80vh;
   overflow-y: auto;
 
@@ -574,6 +761,10 @@ async function handleSubmit() {
   span:last-child {
     color: rgba(255,255,255,0.85);
     word-break: break-all;
+  }
+
+  .reject-reason-text {
+    color: @accent !important;
   }
 
   .status-tag {

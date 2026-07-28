@@ -15,7 +15,7 @@ use ChannelWorker\PlaylistRepository;
 use ChannelWorker\RedisStream;
 
 $config = require dirname(__DIR__) . '/config/channel_worker.php';
-$repository = new PlaylistRepository(new Database());
+$repository = new PlaylistRepository(new Database(), $config['media_base_dir'] ?? '');
 $builder = new FfmpegCommandBuilder($config);
 $redis = new RedisStream($config['redis'] ?? []);
 $worker = new ChannelWorker($repository, $builder, $redis, $config);

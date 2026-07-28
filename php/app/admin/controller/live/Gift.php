@@ -59,6 +59,8 @@ final class Gift extends Backend
      */
     public function keywords(): void
     {
+        $quickSearch = $this->request->get('quickSearch/s', '');
+
         $list = Db::connect('live_mysql')
             ->table('lp_media_asset')
             ->where('persona', '<>', '')
@@ -66,6 +68,12 @@ final class Gift extends Backend
             ->column('keywords');
 
         $list = array_values(array_unique(array_filter($list)));
+
+        // 支持前端远程搜索过滤
+        if ($quickSearch !== '') {
+            $list = array_values(array_filter($list, fn($kw) => stripos($kw, $quickSearch) !== false));
+        }
+
         sort($list);
 
         $data = array_map(fn($kw) => ['keyword' => $kw], $list);
