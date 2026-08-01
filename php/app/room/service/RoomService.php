@@ -20,17 +20,21 @@ final class RoomService
     public function feedLive(?string $cursor, int $limit, string $domain): array
     {
         $limit = max(1, min($limit, self::MAX_LIMIT));
-        $query = Room::where('status', 1)
-            ->order('sort', 'desc')
-            ->order('id', 'desc');
+        $query = Room::alias('r')
+            ->join('lp_room_state_snapshot s', 's.room_id = r.id', 'INNER')
+            ->where('r.status', 1)
+            ->where('s.current_state', 'public_live')
+            ->field('r.*')
+            ->order('r.sort', 'desc')
+            ->order('r.id', 'desc');
 
         $cursorData = $this->decodeCursor($cursor);
         if ($cursorData) {
             $query->where(function ($query) use ($cursorData) {
-                $query->where('sort', '<', $cursorData['sort'])
+                $query->where('r.sort', '<', $cursorData['sort'])
                     ->whereOr(function ($query) use ($cursorData) {
-                        $query->where('sort', '=', $cursorData['sort'])
-                            ->where('id', '<', $cursorData['id']);
+                        $query->where('r.sort', '=', $cursorData['sort'])
+                            ->where('r.id', '<', $cursorData['id']);
                     });
             });
         }
@@ -47,7 +51,7 @@ final class RoomService
         $personas = $this->loadPersonas($personaIds);
         $tags = $this->loadRoomTags($roomIds);
         [$bindings, $groups, $streamTemplates, $previewVideos] = $this->loadBindingContext($roomIds, $domain);
-        $giftPanel = $this->loadGiftPanel();
+        $giftPanel = $this->loadGiftPanel($domain);
 
         $list = [];
         foreach ($rows as $row) {
@@ -88,7 +92,7 @@ final class RoomService
         $personas = $this->loadPersonas([(int) $roomData['persona_id']]);
         $tags = $this->loadRoomTags([$roomId]);
         [$bindings, $groups, $streamTemplates, $previewVideos] = $this->loadBindingContext([$roomId], $domain);
-        $giftPanel = $this->loadGiftPanel();
+        $giftPanel = $this->loadGiftPanel($domain);
 
         $result = $this->formatRoom(
             $roomData,
@@ -233,7 +237,7 @@ final class RoomService
             ],
             'play'              => [
                 'stream_alias' => $streamAlias,
-                'webrtc_url'   => 'webrtc://' . $authority . '/' . $webrtcApp . '/' . $streamAlias,
+                'webrtc_url'   => $httpBase . '/api/v1/whep/' . $streamAlias,
                 'hls_url'      => $httpBase . '/hls/' . $streamAlias . '.m3u8',
                 'play_token'   => sha1($streamAlias . '|' . $expireAt . '|' . config('jwt.secret')),
                 'expire_at'    => $expireAt,
@@ -248,7 +252,7 @@ final class RoomService
         ];
     }
 
-    private function loadGiftPanel(): array
+    private function loadGiftPanel(string $domain): array
     {
         $rows = Db::connect('live_mysql')
             ->table('lp_gift')
@@ -259,6 +263,32 @@ final class RoomService
             ->limit(8)
             ->select()
             ->toArray();
+
+        // 批量查询特效视频URL
+        $effectCodes = [];
+        foreach ($rows as $row) {
+            $ec = trim((string) ($row['effect_code'] ?? ''));
+            if ($ec !== '') {
+                $effectCodes[] = $ec;
+            }
+        }
+        $effectVideoMap = [];
+        if (!empty($effectCodes)) {
+            $assets = Db::connect('live_mysql')
+                ->table('lp_media_asset')
+                ->whereIn('asset_code', array_unique($effectCodes))
+                ->where('asset_type', 'video')
+                ->where('status', 1)
+                ->field(['asset_code', 'file_url'])
+                ->select()
+                ->toArray();
+            foreach ($assets as $asset) {
+                $effectVideoMap[$asset['asset_code']] = $this->normalizePreviewVideoUrl(
+                    $asset['file_url'] ?? '',
+                    $domain
+                );
+            }
+        }
 
         $quickGifts = [];
         foreach ($rows as $row) {
@@ -281,6 +311,11 @@ final class RoomService
             $effectCode = trim((string) ($row['effect_code'] ?? ''));
             if ($effectCode !== '') {
                 $gift['effect_code'] = $effectCode;
+            }
+
+            // 附加特效视频URL
+            if ($effectCode !== '' && isset($effectVideoMap[$effectCode]) && $effectVideoMap[$effectCode] !== '') {
+                $gift['effect_video_url'] = $effectVideoMap[$effectCode];
             }
 
             $quickGifts[] = $gift;

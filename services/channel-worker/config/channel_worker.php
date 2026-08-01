@@ -1,26 +1,36 @@
 <?php
 
 $ffmpegBin = getenv('FFMPEG_BIN') ?: 'ffmpeg';
-$localAppData = getenv('LOCALAPPDATA') ?: '';
-if ($localAppData !== '') {
-    $matches = glob(str_replace('\\', '/', rtrim($localAppData, '\\/')) . '/Microsoft/WinGet/Packages/Gyan.FFmpeg.Essentials_*/ffmpeg-*/bin/ffmpeg.exe');
-    if (!empty($matches)) {
-        $ffmpegBin = str_replace('/', DIRECTORY_SEPARATOR, $matches[0]);
+
+// 自动查找项目自带或 winget 安装的 ffmpeg
+$binDir = dirname(__DIR__) . '/bin';
+$localFfmpeg = null;
+$rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($binDir, RecursiveDirectoryIterator::SKIP_DOTS));
+foreach ($rii as $file) {
+    if ($file->getFilename() === 'ffmpeg.exe') {
+        $localFfmpeg = $file->getPathname();
+        break;
+    }
+}
+if ($localFfmpeg !== null) {
+    $ffmpegBin = str_replace('/', DIRECTORY_SEPARATOR, $localFfmpeg);
+} else {
+    $localAppData = getenv('LOCALAPPDATA') ?: '';
+    if ($localAppData !== '') {
+        $matches = glob(str_replace('\\', '/', rtrim($localAppData, '\\/')) . '/Microsoft/WinGet/Packages/Gyan.FFmpeg.Essentials_*/ffmpeg-*/bin/ffmpeg.exe');
+        if (!empty($matches)) {
+            $ffmpegBin = str_replace('/', DIRECTORY_SEPARATOR, $matches[0]);
+        }
     }
 }
 
 return [
     'ffmpeg_bin' => $ffmpegBin,
-    'public_hls_dir' => dirname(__DIR__, 3) . '/php/public/hls',
     'runtime_dir' => dirname(__DIR__) . '/runtime',
-    'segment_time' => 4,
-    'list_size' => 6,
-    'restart_delay_sec' => 3,
-    'srs' => [
-        'enabled' => false,
-        'rtmp_publish_base' => getenv('SRS_RTMP_PUBLISH_BASE') ?: 'rtmp://127.0.0.1/live',
+    'mediamtx' => [
+        'rtmp_base' => getenv('MEDIAMTX_RTMP_BASE') ?: 'rtmp://127.0.0.1:1936',
     ],
-    'media_base_dir' => dirname(__DIR__, 2),  // 项目根目录，相对路径视频文件拼接此前缀
+    'media_base_dir' => dirname(__DIR__, 3),  // 项目根目录 (douyin/)，相对路径视频文件拼接此前缀
     'redis' => [
         'host' => getenv('REDIS_HOST') ?: '127.0.0.1',
         'port' => (int)(getenv('REDIS_PORT') ?: 6379),

@@ -4,146 +4,198 @@ declare(strict_types=1);
 namespace ChannelWorker;
 
 /**
- * 关键词驱动推流 Worker
- *
- * 架构变更：
- * - 静态播单 → stdin 管道动态控制
- * - 固定顺序 → 按 persona 随机取视频
- * - 新增：Redis Stream 消费关键词插播指令
+ * Relay 架构 Worker
+ * 默认直通（不 overlay），送礼时切换到 overlay 模式，播完自动恢复。
  */
 final class ChannelWorker
 {
+    private int $lastGiftTime = 0;
+    private const GIFT_DURATION = 8;
+    private const GIFT_COOLDOWN = 3;
+    private mixed $relayProcess = null;
+
     public function __construct(
         private readonly PlaylistRepository $repository,
-        private readonly FfmpegCommandBuilder $commandBuilder,
+        private readonly FfmpegCommandBuilder $builder,
         private readonly RedisStream $redisStream,
         private readonly array $config
-    ) {
-    }
+    ) {}
 
     public function run(int $roomId): never
     {
-        // 获取房间信息
         $info = $this->repository->roomStreamInfo($roomId);
         $persona = $info['persona'];
         $streamAlias = $info['stream_alias'];
 
-        // 连接 Redis（非致命：Redis 不可用时也能正常轮播）
-        try {
-            $this->redisStream->connect();
-        } catch (\Throwable $e) {
-            fwrite(STDERR, "[channel-worker] Redis 连接失败，将不处理礼物触发: {$e->getMessage()}\n");
+        try { $this->redisStream->connect(); } catch (\Throwable $e) {
+            $this->log("Redis fail: {$e->getMessage()}");
         }
 
-        // 构建 ffmpeg 命令
-        $build = $this->commandBuilder->build($roomId, $streamAlias);
+        $relayCmd = $this->builder->buildRelay($roomId, $streamAlias)['command'];
+        $passthroughCmd = $this->builder->buildPassthrough($roomId, $streamAlias)['command'];
+        $playlistFile = $this->builder->playlistFile($streamAlias);
 
-        fwrite(STDOUT, '[channel-worker] room=' . $roomId . PHP_EOL);
-        fwrite(STDOUT, '[channel-worker] persona=' . $persona . PHP_EOL);
-        fwrite(STDOUT, '[channel-worker] alias=' . $streamAlias . PHP_EOL);
-        fwrite(STDOUT, '[channel-worker] manifest=' . $build['manifest'] . PHP_EOL);
-        fwrite(STDOUT, '[channel-worker] mode=stdin-pipe' . PHP_EOL);
+        $this->log("room={$roomId} persona={$persona}");
+        $this->refreshPlaylist($roomId, $persona, $playlistFile);
+
+        $relayPid = $this->startRelay($relayCmd);
 
         while (true) {
-            $this->runFfmpegLoop($roomId, $persona, $build['command']);
-            fwrite(STDERR, '[channel-worker] ffmpeg 已退出，' . $this->config['restart_delay_sec'] . 's 后重试' . PHP_EOL);
-            sleep((int) $this->config['restart_delay_sec']);
+            // 保持 relay 活着
+            if ($relayPid <= 0 || !$this->isAlive($relayPid)) {
+                $this->log("relay down, restart...");
+                $relayPid = $this->startRelay($relayCmd);
+            }
+
+            // 礼物超时 → 恢复直通
+            if ($this->lastGiftTime > 0 && time() - $this->lastGiftTime >= self::GIFT_DURATION) {
+                $this->lastGiftTime = 0;
+                $this->log("gift ended, back to passthrough");
+            }
+
+            $this->refreshPlaylist($roomId, $persona, $playlistFile);
+
+            // 选择命令：有礼物用 overlay，无礼物用直通
+            $activeCmd = $this->lastGiftTime > 0
+                ? $this->builder->buildOverlay($streamAlias, $this->currentOverlayVideo($streamAlias))['command']
+                : $passthroughCmd;
+
+            try {
+                $this->runOutput($roomId, $persona, $activeCmd, $streamAlias);
+            } catch (\Throwable $e) {
+                $this->log("output crash: {$e->getMessage()}");
+            }
+
+            sleep(1);
         }
     }
 
-    private function runFfmpegLoop(int $roomId, string $persona, string $commandLine): void
+    private function currentOverlayVideo(string $streamAlias): string
     {
-        $descriptors = [
-            0 => ['pipe', 'r'],  // stdin — 我们写 concat 指令
-            1 => STDOUT,
-            2 => STDERR,
-        ];
+        $f = $this->builder->overlayFile($streamAlias);
+        if (file_exists($f)) {
+            $lines = file($f, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $l) {
+                if (preg_match("/file '(.*)'/", $l, $m)) return $m[1];
+            }
+        }
+        return ''; // 不应该走到这里
+    }
 
-        $process = proc_open($commandLine, $descriptors, $pipes, dirname(__DIR__, 2));
+    private function startRelay(string $command): int
+    {
+        if ($this->relayProcess !== null && is_resource($this->relayProcess)) {
+            @proc_close($this->relayProcess);
+        }
+        $this->relayProcess = null;
+
+        $process = @proc_open($command, [1 => STDOUT, 2 => STDERR], $pipes, dirname(__DIR__, 2));
         if (!is_resource($process)) {
-            throw new \RuntimeException('无法启动 ffmpeg 进程');
+            $this->log("relay start failed");
+            return 0;
+        }
+        $this->relayProcess = $process;
+        $pid = proc_get_status($process)['pid'] ?? 0;
+        $this->log("relay PID={$pid}");
+
+        sleep(3);
+
+        if (!$this->isAlive($pid)) {
+            $this->log("relay died immediately");
+            $this->relayProcess = null;
+            return 0;
+        }
+        return $pid;
+    }
+
+    private function runOutput(int $roomId, string $persona, string $command, string $streamAlias): void
+    {
+        $process = @proc_open($command, [1 => STDOUT, 2 => STDERR], $pipes, dirname(__DIR__, 2));
+        if (!is_resource($process)) { $this->log("output start failed"); return; }
+
+        $pid = proc_get_status($process)['pid'] ?? 0;
+        $this->log("output PID={$pid} " . ($this->lastGiftTime > 0 ? '(overlay)' : '(passthrough)'));
+
+        sleep(1);
+        if (!(proc_get_status($process)['running'] ?? false)) {
+            $this->log("output crashed on start");
+            @proc_close($process);
+            return;
         }
 
-        $stdin = $pipes[0];
-
-        // 先写入第一个视频，让 ffmpeg 开始工作
-        $firstVideo = $this->pickVideo($roomId, $persona);
-        if ($firstVideo) {
-            fwrite($stdin, FfmpegCommandBuilder::concatLine($firstVideo['file_url']));
-            fwrite(STDOUT, "[channel-worker] START: {$firstVideo['title']} ({$firstVideo['duration_ms']}ms)\n");
-        }
-
-        // 主循环：等待 → 选择 → 写入
+        $loop = 0;
         while (true) {
-            // 检查 ffmpeg 是否还活着
-            $status = proc_get_status($process);
-            if (!$status['running']) {
-                fwrite(STDERR, "[channel-worker] ffmpeg 进程已退出\n");
-                break;
+            if (!(proc_get_status($process)['running'] ?? false)) break;
+
+            // 礼物到期检测
+            if ($this->lastGiftTime > 0 && time() - $this->lastGiftTime >= self::GIFT_DURATION) {
+                $this->log("gift timeout, kill output");
+                @proc_close($process);
+                return;
             }
 
-            // 决定下一个视频的来源
-            $nextVideo = $this->pickNextVideo($roomId, $persona);
+            // 消费礼物
+            while ($cmd = $this->redisStream->consumeKeyword($roomId)) {
+                try {
+                    $video = $this->repository->randomVideoByKeyword($persona, $cmd['keyword']);
+                    if (!$video || !file_exists($video['file_url'])) continue;
+                    if ($this->lastGiftTime > 0 && time() - $this->lastGiftTime < self::GIFT_COOLDOWN) continue;
 
-            if (!$nextVideo) {
-                fwrite(STDERR, "[channel-worker] 无可用视频，1s 后重试\n");
-                sleep(1);
-                continue;
+                    $this->log("GIFT {$cmd['keyword']} -> {$video['title']}");
+                    // 写入 overlay 文件
+                    file_put_contents(
+                        $this->builder->overlayFile($streamAlias),
+                        FfmpegCommandBuilder::concatLine($video['file_url'])
+                    );
+                    $this->lastGiftTime = time();
+                    @proc_close($process);
+                    return;
+                } catch (\Throwable $e) {
+                    $this->log("GIFT err: {$e->getMessage()}");
+                }
             }
 
-            // 计算等待时间：当前视频的时长 - 200ms 缓冲
-            $waitMs = max(200, $nextVideo['duration_ms'] - 200);
-            $waitSec = $waitMs / 1000;
-
-            // 写入下一行（ffmpeg 会在当前视频播完后才开始读下一行）
-            usleep((int)($waitMs * 1000));
-
-            // 再次确认进程存活
-            $status = proc_get_status($process);
-            if (!$status['running']) break;
-
-            fwrite($stdin, FfmpegCommandBuilder::concatLine($nextVideo['file_url']));
-            fwrite(STDOUT, "[channel-worker] NEXT: {$nextVideo['title']} ({$nextVideo['duration_ms']}ms) kw={$nextVideo['keywords']}\n");
-
-            // 更新"当前视频"为刚写入的
-            $currentDuration = $nextVideo['duration_ms'];
+            $loop++;
+            if ($loop % 50 === 0) {
+                $g = $this->lastGiftTime > 0 ? ' gift:' . max(0, self::GIFT_DURATION - (time() - $this->lastGiftTime)) . 's' : '';
+                $this->log("hb {$loop}{$g}");
+            }
+            usleep(200000);
         }
 
-        // 清理
-        if (isset($pipes[0]) && is_resource($pipes[0])) {
-            fclose($pipes[0]);
-        }
-        proc_close($process);
+        @proc_close($process);
     }
 
-    /**
-     * 选择下一个要播放的视频
-     * 优先检查 Redis Stream 中的关键词指令
-     * 否则从 persona 池随机选取
-     */
-    private function pickNextVideo(int $roomId, string $persona): ?array
+    private function isAlive(int $pid): bool
     {
-        // 1. 检查 Redis 关键词指令
-        $cmd = $this->redisStream->consumeKeyword($roomId);
-        if ($cmd) {
-            $video = $this->repository->randomVideoByKeyword($persona, $cmd['keyword']);
-            if ($video) {
-                fwrite(STDOUT, "[channel-worker] GIFT-TRIGGER keyword={$cmd['keyword']} → {$video['title']}\n");
-                return $video;
-            }
-            fwrite(STDERR, "[channel-worker] 关键词 '{$cmd['keyword']}' 无匹配视频\n");
-        }
-
-        // 2. 正常轮播
-        return $this->pickVideo($roomId, $persona);
+        if ($pid <= 0) return false;
+        @exec("tasklist /FI \"PID eq {$pid}\" 2>&1", $out);
+        foreach ($out as $l) { if (str_contains($l, (string) $pid)) return true; }
+        return false;
     }
 
-    private function pickVideo(int $roomId, string $persona): ?array
+    private function refreshPlaylist(int $roomId, string $persona, string $playlistFile): void
     {
-        $video = $this->repository->randomVideo($persona);
-        if (!$video) {
-            fwrite(STDERR, "[channel-worker] persona '{$persona}' 无可用视频\n");
+        $roomVideos = $this->repository->roomPlaylistVideos($roomId);
+        if (!empty($roomVideos)) {
+            $videos = [];
+            for ($r = 0; $r < 3; $r++) {
+                foreach ($roomVideos as $v) $videos[] = FfmpegCommandBuilder::concatLine($v['file_url']);
+            }
+            file_put_contents($playlistFile, implode('', $videos));
+            return;
         }
-        return $video;
+        $base = [];
+        for ($i = 0; $i < 20; $i++) {
+            $v = $this->repository->randomVideo($persona);
+            if ($v) $base[] = FfmpegCommandBuilder::concatLine($v['file_url']);
+        }
+        if (empty($base)) throw new \RuntimeException("{$persona} no videos");
+        file_put_contents($playlistFile, implode('', array_merge($base, $base, $base)));
+    }
+
+    private function log(string $msg): void
+    {
+        @fwrite(STDERR, '[' . date('H:i:s') . '] ' . $msg . PHP_EOL);
     }
 }

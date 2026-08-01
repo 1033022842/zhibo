@@ -3,68 +3,122 @@ declare(strict_types=1);
 
 namespace ChannelWorker;
 
-/**
- * 构建 ffmpeg HLS 推流命令（stdin 管道模式）
- * 不再生成静态播放列表文件，而是通过 -i pipe:0 接收动态指令
- */
 final class FfmpegCommandBuilder
 {
-    public function __construct(private readonly array $config)
-    {
-    }
+    public function __construct(private readonly array $config) {}
 
-    /**
-     * 构建 ffmpeg 命令数组
-     * 关键变更：-i pipe:0 替代 -i playlist.txt，-stream_loop 去掉
-     */
-    public function build(int $roomId, string $streamAlias): array
+    public function buildRelay(int $roomId, string $streamAlias): array
     {
-        $output = $this->outputFiles($streamAlias);
+        $relayAlias = $streamAlias . '_src';
+        $rtmpUrl = rtrim((string) ($this->config['mediamtx']['rtmp_base'] ?? 'rtmp://127.0.0.1:1936'), '/') . '/' . $relayAlias;
 
         $command = sprintf(
-            '%s -hide_banner -y -re '
-            . '-protocol_whitelist file,http,https,tcp,tls '
-            . '-f concat -safe 0 -i pipe:0 '
-            . '-c:v libx264 -preset veryfast -c:a aac -ar 44100 '
-            . '-f hls -hls_time %s -hls_list_size %s '
-            . '-hls_flags delete_segments+append_list+omit_endlist '
-            . '-hls_segment_filename "%s" "%s"',
+            '%s -hide_banner -y -re -stream_loop -1 '
+            . '-fflags +genpts+discardcorrupt -err_detect ignore_err '
+            . '-f concat -safe 0 -i "%s" '
+            . '-c copy '
+            . '-f flv -flvflags no_duration_filesize '
+            . '-rtmp_live live '
+            . '"%s"',
             $this->config['ffmpeg_bin'],
-            $this->config['segment_time'],
-            $this->config['list_size'],
-            $output['segment_pattern'],
-            $output['manifest']
+            $this->playlistFile($streamAlias),
+            $rtmpUrl
         );
 
-        return [
-            'command' => $command,
-            'manifest' => $output['manifest'],
-            'publish_url' => rtrim((string)($this->config['srs']['rtmp_publish_base'] ?? ''), '/') . '/' . $streamAlias,
-        ];
+        return ['command' => $command, 'publish_url' => $rtmpUrl];
     }
 
     /**
-     * 生成 concat 指令行（写入 stdin 管道）
+     * 直通模式：读取 relay，重新编码推送到 final（不加任何 overlay）
      */
+    public function buildPassthrough(int $roomId, string $streamAlias): array
+    {
+        $relayAlias = $streamAlias . '_src';
+        $relayUrl = rtrim((string) ($this->config['mediamtx']['rtmp_base'] ?? 'rtmp://127.0.0.1:1936'), '/') . '/' . $relayAlias;
+        $rtmpUrl = rtrim((string) ($this->config['mediamtx']['rtmp_base'] ?? 'rtmp://127.0.0.1:1936'), '/') . '/' . $streamAlias;
+
+        $command = sprintf(
+            '%s -hide_banner -y '
+            . '-analyzeduration 10M -probesize 10M '
+            . '-fflags +genpts+discardcorrupt -err_detect ignore_err '
+            . '-i "%s" '
+            . '-max_muxing_queue_size 4096 '
+            . '-c:v libx264 -preset ultrafast -tune zerolatency -crf 23 '
+            . '-maxrate 8000k -bufsize 16000k '
+            . '-g 15 -keyint_min 15 -sc_threshold 0 '
+            . '-pix_fmt yuv420p -vf "scale=720:1280,fps=30" '
+            . '-c:a aac -b:a 128k -ar 44100 '
+            . '-f flv -flvflags no_duration_filesize '
+            . '-rtmp_live live '
+            . '"%s"',
+            $this->config['ffmpeg_bin'],
+            $relayUrl,
+            $rtmpUrl
+        );
+
+        return ['command' => $command, 'publish_url' => $rtmpUrl];
+    }
+
+    /**
+     * 叠加模式：读取 relay + overlay，叠加后推送到 final
+     */
+    public function buildOverlay(string $streamAlias, string $giftVideoPath): array
+    {
+        $relayAlias = $streamAlias . '_src';
+        $relayUrl = rtrim((string) ($this->config['mediamtx']['rtmp_base'] ?? 'rtmp://127.0.0.1:1936'), '/') . '/' . $relayAlias;
+        $rtmpUrl = rtrim((string) ($this->config['mediamtx']['rtmp_base'] ?? 'rtmp://127.0.0.1:1936'), '/') . '/' . $streamAlias;
+
+        // 临时写入 overlay concat 文件（只含一个视频）
+        $tmpOverlay = $this->overlayFile($streamAlias);
+        file_put_contents($tmpOverlay, self::concatLine($giftVideoPath));
+
+        $command = sprintf(
+            '%s -hide_banner -y '
+            . '-analyzeduration 10M -probesize 10M '
+            . '-fflags +genpts+discardcorrupt -err_detect ignore_err '
+            . '-i "%s" '
+            . '-re -stream_loop -1 -f concat -safe 0 -i "%s" '
+            . '-max_muxing_queue_size 4096 '
+            . '-filter_complex '
+            . '"[0:v]scale=720:1280,fps=30,setpts=PTS-STARTPTS[main];'
+            . '[1:v]scale=720:1280,fps=30,setpts=PTS-STARTPTS[over];'
+            . '[main][over]overlay=0:0[out]" '
+            . '-map "[out]" -map 0:a '
+            . '-c:v libx264 -preset ultrafast -tune zerolatency -crf 23 '
+            . '-maxrate 8000k -bufsize 16000k '
+            . '-g 15 -keyint_min 15 -sc_threshold 0 '
+            . '-pix_fmt yuv420p '
+            . '-c:a aac -b:a 128k -ar 44100 '
+            . '-f flv -flvflags no_duration_filesize '
+            . '-rtmp_live live '
+            . '"%s"',
+            $this->config['ffmpeg_bin'],
+            $relayUrl,
+            $tmpOverlay,
+            $rtmpUrl
+        );
+
+        return ['command' => $command, 'publish_url' => $rtmpUrl];
+    }
+
     public static function concatLine(string $filePath): string
     {
         return "file '" . str_replace("'", "\\'", str_replace('\\', '/', $filePath)) . "'" . PHP_EOL;
     }
 
-    private function outputFiles(string $streamAlias): array
+    public function overlayFile(string $streamAlias): string
     {
-        $publicHlsDir = rtrim((string) $this->config['public_hls_dir'], '/\\');
-        $segments = explode('/', $streamAlias);
-        $basename = array_pop($segments);
-        $subDir = implode(DIRECTORY_SEPARATOR, $segments);
-        $targetDir = $publicHlsDir . DIRECTORY_SEPARATOR . $subDir;
-        if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0777, true);
-        }
+        $parts = explode('/', $streamAlias);
+        $basename = end($parts);
+        $runtimeDir = rtrim((string) ($this->config['runtime_dir'] ?? sys_get_temp_dir()), '/\\');
+        return $runtimeDir . DIRECTORY_SEPARATOR . 'overlay_' . $basename . '.txt';
+    }
 
-        return [
-            'manifest' => $targetDir . DIRECTORY_SEPARATOR . $basename . '.m3u8',
-            'segment_pattern' => $targetDir . DIRECTORY_SEPARATOR . $basename . '_%06d.ts',
-        ];
+    public function playlistFile(string $streamAlias): string
+    {
+        $parts = explode('/', $streamAlias);
+        $basename = end($parts);
+        $runtimeDir = rtrim((string) ($this->config['runtime_dir'] ?? sys_get_temp_dir()), '/\\');
+        return $runtimeDir . DIRECTORY_SEPARATOR . 'playlist_' . $basename . '.txt';
     }
 }

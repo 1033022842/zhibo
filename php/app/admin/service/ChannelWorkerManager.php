@@ -44,7 +44,7 @@ final class ChannelWorkerManager
         ];
 
         $process = proc_open(
-            sprintf('php "%s" --room=%d', $scriptPath, $roomId),
+            sprintf('"%s" "%s" --room=%d', $this->phpBinary(), $scriptPath, $roomId),
             $descriptorSpec,
             $pipes,
             $workerDir,
@@ -242,6 +242,24 @@ final class ChannelWorkerManager
     private function isWindows(): bool
     {
         return DIRECTORY_SEPARATOR === '\\';
+    }
+
+    private function phpBinary(): string
+    {
+        // 使用当前 ThinkPHP 进程的 PHP 路径
+        if (defined('PHP_BINARY') && PHP_BINARY !== '') {
+            return PHP_BINARY;
+        }
+        // 回退：从 PHP_BINDIR 推断
+        if (defined('PHP_BINDIR') && PHP_BINDIR !== '') {
+            $bindir = rtrim(PHP_BINDIR, '/\\');
+            $exe = $this->isWindows() ? 'php.exe' : 'php';
+            $candidate = $bindir . DIRECTORY_SEPARATOR . $exe;
+            if (file_exists($candidate)) {
+                return $candidate;
+            }
+        }
+        return 'php';
     }
 
     private function updateRoomState(int $roomId, string $state): void

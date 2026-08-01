@@ -1,0 +1,59 @@
+=== 1. PHP processes ===
+  "php.exe","39620","Console","3","28,200 K"
+  "php.exe","14096","Console","3","20,628 K"
+  "php.exe","12492","Console","3","20,240 K"
+  "php.exe","34488","Console","3","20,972 K"
+  "php.exe","39020","Console","3","23,568 K"
+  "php.exe","30860","Console","3","20,420 K"
+  "php.exe","19860","Console","3","21,924 K"
+  "php.exe","39824","Console","3","15,036 K"
+  "php.exe","35988","Console","3","18,272 K"
+  "php.exe","39536","Console","3","15,016 K"
+  "php.exe","33260","Console","3","19,768 K"
+  "php.exe","2572","Console","3","19,780 K"
+  "php.exe","29584","Console","3","19,760 K"
+  "php.exe","26556","Console","3","19,812 K"
+  "php.exe","39136","Console","3","18,096 K"
+  "php.exe","15996","Console","3","19,252 K"
+  "php.exe","40396","Console","3","21,452 K"
+  "php.exe","23440","Console","3","18,676 K"
+  "php.exe","34228","Console","3","17,484 K"
+
+=== 2. ffmpeg processes ===
+  "ffmpeg.exe","32988","Console","3","18,608 K"
+  "ffmpeg.exe","19680","Console","3","19,308 K"
+  "ffmpeg.exe","23108","Console","3","19,548 K"
+  "ffmpeg.exe","11308","Console","3","19,432 K"
+  "ffmpeg.exe","27908","Console","3","143,636 K"
+  "ffmpeg.exe","17844","Console","3","140,612 K"
+  "ffmpeg.exe","39796","Console","3","191,696 K"
+  "ffmpeg.exe","5080","Console","3","150,056 K"
+  "ffmpeg.exe","37484","Console","3","119,336 K"
+
+=== 3. Netstat ws-webman ===
+    TCP    0.0.0.0:8788           0.0.0.0:0              LISTENING       39020
+    TCP    0.0.0.0:8788           0.0.0.0:0              LISTENING       40396
+    TCP    127.0.0.1:8788         127.0.0.1:55570        ESTABLISHED     39020
+    TCP    127.0.0.1:55570        127.0.0.1:8788         ESTABLISHED     32552
+
+=== 4. Redis queue ===
+  room-5: 0
+  room-6: 0
+  room-7: 0
+  room-8: 0
+
+=== 5. Push test keyword ===
+  rpush room-6: 1
+  time: 19:29:39
+  queue after 5s: 0
+
+=== 6. room-6.log tail (worker/GIFT/overlay lines) ===
+  elapsed=0:15:05.19    frame=27180 fps= 30 q=20.0 size=  657538KiB time=00:15:06.00 bitrate=5945.4kbits/s speed=   1x elapsed=0:15:05.70    frame=27196 fps= 30 q=17.0 size=  657929KiB time=00:15:06.53 bitrate=5945.5kbits/s speed=   1x elapsed=0:15:06.22    frame=27211 fps= 30 q=18.0 size=  658247KiB time=00:15:07.03 bitrate=5945.0kbits/s speed=   1x elapsed=0:15:06.73    frame=27227 fps= 30 q=24.0 size=  658640KiB time=00:15:07.56 bitrate=5945.1kbits/s speed=   1x elapsed=0:15:07.26    frame=27242 fps= 30 q=24.0 size=  659032KiB time=00:15:08.06 bitrate=5945.4kbits/s speed=   1x elapsed=0:15:07.76    frame=27258 fps= 30 q=24.0 size=  659475KiB time=00:15:08.60 bitrate=5945.9kbits/s speed=   1x elapsed=0:15:08.30    frame=27274 fps= 30 q=23.0 size=  659894KiB time=00:15:09.13 bitrate=5946.2kbits/s speed=   1x elapsed=0:15:08.81    frame=27290 fps= 30 q=23.0 size=  660291KiB time=00:15:09.66 bitrate=5946.2kbits/s speed=   1x elapsed=0:15:09.33    frame=27305 fps= 30 q=23.0 size=  660661KiB time=00:15:10.16 bitrate=5946.3kbits/s speed=   1x elapsed=0:15:09.84    frame=27321 fps= 30 q=22.0 size=  661082KiB time=00:15:10.70 bitrate=5946.6kbits/s speed=   1x elapsed=0:15:10.37    frame=27336 fps= 30 q=23.0 size=  661472KiB time=00:15:11.20 bitrate=5946.9kbits/s speed=   1x elapsed=0:15:10.87    frame=27351 fps= 30 q=22.0 size=  661889KiB time=00:15:11.70 bitrate=5947.3kbits/s speed=   1x elapsed=0:15:11.40    [worker] heartbeat 4350
+  frame=27367 fps= 30 q=23.0 size=  662273KiB time=00:15:12.23 bitrate=5947.3kbits/s speed=   1x elapsed=0:15:11.91    frame=27382 fps= 30 q=23.0 size=  662690KiB time=00:15:12.73 bitrate=5947.8kbits/s speed=   1x elapsed=0:15:12.43    frame=27398 fps= 30 q=22.0 size=  663099KiB time=00:15:13.26 bitrate=5948.0kbits/s speed=   1x elapsed=0:15:12.94    frame=27413 fps= 30 q=22.0 size=  663460KiB time=00:15:13.76 bitrate=5948.0kbits/s speed=   1x elapsed=0:15:13.45    frame=27429 fps= 30 q=23.0 size=  663841KiB time=00:15:14.30 bitrate=5947.9kbits/s speed=   1x elapsed=0:15:13.97    frame=27444 fps= 30 q=22.0 size=  664203KiB time=00:15:14.80 bitrate=5947.9kbits/s speed=   1x elapsed=0:15:14.48    frame=27460 fps= 30 q=23.0 size=  664627KiB time=00:15:15.33 bitrate=5948.2kbits/s speed=   1x elapsed=0:15:15.00    frame=27475 fps= 30 q=22.0 size=  665016KiB time=00:15:15.83 bitrate=5948.5kbits/s speed=   1x elapsed=0:15:15.52    frame=27491 fps= 30 q=21.0 size=  665369KiB time=00:15:16.36 bitrate=5948.2kbits/s speed=   1x elapsed=0:15:16.03    frame=27505 fps= 30 q=19.0 size=  665675KiB time=00:15:16.83 bitrate=5947.9kbits/s speed=   1x elapsed=0:15:16.54    frame=27522 fps= 30 q=20.0 size=  666031KiB time=00:15:17.40 bitrate=5947.4kbits/s speed=   1x elapsed=0:15:17.07    frame=27537 fps= 30 q=20.0 size=  666312KiB time=00:15:17.90 bitrate=5946.6kbits/s speed=   1x elapsed=0:15:17.58    frame=27552 fps= 30 q=19.0 size=  666612KiB time=00:15:18.40 bitrate=5946.1kbits/s speed=   1x elapsed=0:15:18.10    frame=27568 fps= 30 q=20.0 size=  666932KiB time=00:15:18.93 bitrate=5945.5kbits/s speed=   1x elapsed=0:15:18.61    frame=27583 fps= 30 q=22.0 size=  667313KiB time=00:15:19.43 bitrate=5945.7kbits/s speed=   1x elapsed=0:15:19.12    frame=27599 fps= 30 q=22.0 size=  667715KiB time=00:15:19.96 bitrate=5945.8kbits/s speed=   1x elapsed=0:15:19.65    frame=27614 fps= 30 q=23.0 size=  668168KiB time=00:15:20.46 bitrate=5946.6kbits/s speed=   1x elapsed=0:15:20.15    frame=27628 fps= 30 q=23.0 size=  668500KiB time=00:15:20.93 bitrate=5946.5kbits/s speed=   1x elapsed=0:15:20.67    frame=27645 fps= 30 q=23.0 size=  668970KiB time=00:15:21.50 bitrate=5947.0kbits/s speed=   1x elapsed=0:15:21.19    frame=27661 fps= 30 q=20.0 size=  669396KiB time=00:15:22.03 bitrate=5947.4kbits/s speed=   1x elapsed=0:15:21.71    [worker] heartbeat 4400
+  frame=27677 fps= 30 q=24.0 size=  669794KiB time=00:15:22.56 bitrate=5947.5kbits/s speed=   1x elapsed=0:15:22.24    frame=27692 fps= 30 q=24.0 size=  670203KiB time=00:15:23.03 bitrate=5948.1kbits/s speed=   1x elapsed=0:15:22.75    frame=27708 fps= 30 q=23.0 size=  670602KiB time=00:15:23.60 bitrate=5948.0kbits/s speed=   1x elapsed=0:15:23.27    frame=27729 fps= 30 q=23.0 size=  671117KiB time=00:15:24.16 bitrate=5948.9kbits/s speed=   1x elapsed=0:15:23.86    frame=27745 fps= 30 q=22.0 size=  671553KiB time=00:15:24.83 bitrate=5948.5kbits/s speed=   1x elapsed=0:15:24.50    frame=27760 fps= 30 q=22.0 size=  671930KiB time=00:15:25.33 bitrate=5948.6kbits/s speed=   1x elapsed=0:15:25.01    frame=27775 fps= 30 q=22.0 size=  672302KiB time=00:15:25.83 bitrate=5948.7kbits/s speed=   1x elapsed=0:15:25.54    frame=27791 fps= 30 q=23.0 size=  672690KiB time=00:15:26.36 bitrate=5948.7kbits/s speed=   1x elapsed=0:15:26.04    frame=27807 fps= 30 q=22.0 size=  673106KiB time=00:15:26.90 bitrate=5949.0kbits/s speed=   1x elapsed=0:15:26.57    frame=27822 fps= 30 q=23.0 size=  673480KiB time=00:15:27.40 bitrate=5949.0kbits/s speed=   1x elapsed=0:15:27.08    frame=27837 fps= 30 q=21.0 size=  673880KiB time=00:15:27.90 bitrate=5949.4kbits/s speed=   1x elapsed=0:15:27.60    frame=27853 fps= 30 q=21.0 size=  674237KiB time=00:15:28.43 bitrate=5949.1kbits/s speed=   1x elapsed=0:15:28.10    frame=27868 fps= 30 q=19.0 size=  674537KiB time=00:15:28.93 bitrate=5948.5kbits/s speed=   1x elapsed=0:15:28.63    frame=27884 fps= 30 q=20.0 size=  674868KiB time=00:15:29.46 bitrate=5948.1kbits/s speed=   1x elapsed=0:15:29.14    frame=27899 fps= 30 q=20.0 size=  675174KiB time=00:15:29.96 bitrate=5947.6kbits/s speed=   1x elapsed=0:15:29.66    frame=27915 fps= 30 q=19.0 size=  675469KiB time=00:15:30.50 bitrate=5946.7kbits/s speed=   1x elapsed=0:15:30.17    frame=27930 fps= 30 q=20.0 size=  675776KiB time=00:15:31.00 bitrate=5946.2kbits/s speed=   1x elapsed=0:15:30.69    frame=27945 fps= 30 q=22.0 size=  676161KiB time=00:15:31.50 bitrate=5946.4kbits/s speed=   1x elapsed=0:15:31.20    frame=27961 fps= 30 q=19.0 size=  676545KiB time=00:15:32.03 bitrate=5946.4kbits/s speed=   1x elapsed=0:15:31.72    frame=27976 fps= 30 q=20.0 size=  676991KiB time=00:15:32.53 bitrate=5947.1kbits/s speed=   1x elapsed=0:15:32.24    [worker] heartbeat 4450
+  [worker] GIFT 投喂 → 清冷奖励投喂
+  [worker] 重启加载礼物视频...
+  frame=28158 fps= 30 q=23.0 size=  681712KiB time=00:15:38.60 bitrate=5949.9kbits/s speed=   1x elapsed=0:15:38.29    [worker] ffmpeg 退出，1s 后重试
+
+=== 7. overlay_6.txt ===
+  file 'D:/phpstudy_pro/WWW/douyin/视频成品/双手比关注手势疯批美人.mp4'
