@@ -65,7 +65,21 @@ final class Room extends Backend
             $this->success(__('Update successful'));
         }
 
-        $this->success('', ['row' => $row]);
+        // 预填已选素材 ID，让编辑表单回显
+        $rowData = $row->toArray();
+        $binding = \app\admin\model\live\RoomBinding::where('room_id', $id)->find();
+        if ($binding && !empty($binding->playlist_template_id)) {
+            $assetIds = \think\facade\Db::connect('live_mysql')
+                ->table('lp_playlist_template_item')
+                ->where('template_id', (int) $binding->playlist_template_id)
+                ->order('seq', 'asc')
+                ->column('asset_id');
+            $rowData['asset_ids'] = $assetIds ?: [];
+        } else {
+            $rowData['asset_ids'] = [];
+        }
+
+        $this->success('', ['row' => $rowData]);
     }
 
     /**
@@ -198,6 +212,18 @@ final class Room extends Backend
         $binding = \app\admin\model\live\RoomBinding::where('room_id', $id)->find();
         if (!$binding || empty($binding->persona)) {
             $this->error('房间未配置人设(persona)，请在直播房间编辑中设置');
+        }
+
+        // 检查是否配置了播单素材
+        if (empty($binding->playlist_template_id)) {
+            $this->error('房间未配置播单素材，请编辑房间并选择视频素材后保存');
+        }
+        $itemCount = \think\facade\Db::connect('live_mysql')
+            ->table('lp_playlist_template_item')
+            ->where('template_id', (int) $binding->playlist_template_id)
+            ->count();
+        if ($itemCount === 0) {
+            $this->error('房间播单素材为空，请编辑房间并选择视频素材后保存');
         }
 
         $manager = new ChannelWorkerManager();

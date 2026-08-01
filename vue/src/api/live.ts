@@ -39,6 +39,8 @@ export interface LiveGiftInfo {
   price: number
   trigger_mode?: string
   trigger_duration_sec?: number
+  effect_code?: string
+  effect_video_url?: string
 }
 
 export interface LiveGiftPanel {

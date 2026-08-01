@@ -198,8 +198,14 @@ final class ChatService
             $pdo = null;
         }
 
+        // 验证连接是否存活，如果断开则重建
         if ($pdo instanceof \PDO) {
-            return $pdo;
+            try {
+                $pdo->query('SELECT 1');
+                return $pdo;
+            } catch (\PDOException) {
+                $pdo = null;
+            }
         }
 
         $host = (string) config('database.host', '127.0.0.1');

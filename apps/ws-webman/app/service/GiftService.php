@@ -10,6 +10,7 @@ final class GiftService
         $roomId = (int) ($payload['room_id'] ?? 0);
         $giftId = (int) ($payload['gift_id'] ?? 0);
         $quantity = max(1, min(99, (int) ($payload['quantity'] ?? 1)));
+
         if ($roomId <= 0 || $giftId <= 0) {
             return ['ok' => false, 'code' => 'WS3001', 'msg' => '礼物参数错误'];
         }
@@ -61,6 +62,7 @@ final class GiftService
                     'trigger_mode' => $triggerMode,
                     'trigger_duration_sec' => $triggerDurationSec,
                     'effect_code' => (string) ($gift['effect_code'] ?? ''),
+                    'effect_video_url' => (string) ($gift['effect_video_url'] ?? ''),
                 ],
                 'quantity' => $quantity,
                 'total_price' => $totalPrice,
@@ -122,7 +124,48 @@ final class GiftService
         );
         $statement->execute(['id' => $giftId]);
         $gift = $statement->fetch();
-        return is_array($gift) ? $gift : null;
+        if (!is_array($gift)) {
+            return null;
+        }
+
+        // 查找礼物特效视频
+        $effectCode = trim((string) ($gift['effect_code'] ?? ''));
+        if ($effectCode !== '') {
+            $videoUrl = $this->findEffectVideoUrl($effectCode);
+            if ($videoUrl !== null) {
+                $gift['effect_video_url'] = $videoUrl;
+            }
+        }
+
+        return $gift;
+    }
+
+    private function findEffectVideoUrl(string $effectCode): ?string
+    {
+        try {
+            $stmt = $this->pdo()->prepare(
+                'SELECT file_url FROM lp_media_asset
+                 WHERE asset_code = :code AND asset_type = \'video\' AND status = 1
+                 LIMIT 1'
+            );
+            $stmt->execute(['code' => $effectCode]);
+            $row = $stmt->fetch();
+            if (!$row || empty($row['file_url'])) {
+                return null;
+            }
+
+            $fileUrl = (string) $row['file_url'];
+            // 如果已是完整URL直接返回
+            if (preg_match('/^https?:\/\//i', $fileUrl)) {
+                return $fileUrl;
+            }
+
+            // 返回相对路径，前端通过 Vite proxy 或同域访问
+            $normalizedPath = '/' . ltrim(str_replace('\\', '/', $fileUrl), '/');
+            return $normalizedPath;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function insertOrder(string $orderNo, int $userId, int $roomId, int $giftId, int $quantity, float $totalPrice): int
@@ -167,15 +210,17 @@ final class GiftService
             $stmt->execute(['gid' => $giftId]);
             $row = $stmt->fetch();
             if (!$row) {
+                $this->logKeyword('roomId=' . $roomId . ' giftId=' . $giftId . ' NO_KEYWORD_FOUND');
                 return;
             }
 
             $keyword = (string) $row['keyword'];
             if ($keyword === '') {
+                $this->logKeyword('roomId=' . $roomId . ' giftId=' . $giftId . ' EMPTY_KEYWORD');
                 return;
             }
 
-            // 写入 Redis Stream
+            // 写入 Redis List（兼容 Redis 3.x，不支持 Stream）
             $redis = $this->redis();
             $payload = json_encode([
                 'room_id' => $roomId,
@@ -184,30 +229,50 @@ final class GiftService
                 'created_at' => date('Y-m-d H:i:s'),
             ], JSON_UNESCAPED_UNICODE);
 
-            $redis->xAdd('stream:room:switch', '*', ['data' => $payload]);
-        } catch (\Throwable) {
-            // 关键词触发失败不影响送礼主流程
+            $len = $redis->rpush('list:keyword:room:' . $roomId, $payload);
+            $this->logKeyword('OK roomId=' . $roomId . ' keyword=' . $keyword . ' rPush=' . $len);
+        } catch (\Throwable $e) {
+            // Redis 连接断开则重试一次
+            $this->logKeyword('RETRY roomId=' . $roomId . ' giftId=' . $giftId . ' ' . $e->getMessage());
+            try {
+                $redis2 = $this->redis(true);
+                $payload = json_encode([
+                    'room_id' => $roomId,
+                    'command_type' => 'keyword',
+                    'params' => ['keyword' => $keyword],
+                    'created_at' => date('Y-m-d H:i:s'),
+                ], JSON_UNESCAPED_UNICODE);
+                $len = $redis2->rpush('list:keyword:room:' . $roomId, $payload);
+                $this->logKeyword('OK roomId=' . $roomId . ' keyword=' . $keyword . ' rPush=' . $len . ' (retried)');
+            } catch (\Throwable $e2) {
+                $this->logKeyword('ERROR roomId=' . $roomId . ' giftId=' . $giftId . ' retry also failed: ' . $e2->getMessage());
+            }
         }
     }
 
-    private function redis(): \Redis
+    private function logKeyword(string $msg): void
+    {
+        $line = date('Y-m-d H:i:s') . ' ' . $msg . PHP_EOL;
+        @file_put_contents(runtime_path('logs') . '/gift_push.log', $line, FILE_APPEND);
+    }
+
+    private function redis(bool $forceReconnect = false): \Predis\Client
     {
         static $redis = null;
-        if ($redis instanceof \Redis) {
+        if ($forceReconnect) {
+            $redis = null;
+        }
+        if ($redis instanceof \Predis\Client) {
             return $redis;
         }
 
-        $redis = new \Redis();
-        $host = (string) config('redis.host', '127.0.0.1');
-        $port = (int) config('redis.port', 6379);
-        $auth = (string) config('redis.auth', '');
-        $db = (int) config('redis.db', 0);
-
-        $redis->connect($host, $port);
-        if ($auth !== '') {
-            $redis->auth($auth);
-        }
-        $redis->select($db);
+        $redis = new \Predis\Client([
+            'scheme'   => 'tcp',
+            'host'     => (string) config('redis.default.host', '127.0.0.1'),
+            'port'     => (int) config('redis.default.port', 6379),
+            'password' => config('redis.default.password') ?: null,
+            'database' => (int) config('redis.default.database', 0),
+        ]);
 
         return $redis;
     }
@@ -229,8 +294,14 @@ final class GiftService
             $pdo = null;
         }
 
+        // 验证连接是否存活，如果断开则重建
         if ($pdo instanceof \PDO) {
-            return $pdo;
+            try {
+                $pdo->query('SELECT 1');
+                return $pdo;
+            } catch (\PDOException) {
+                $pdo = null;
+            }
         }
 
         $host = (string) config('database.host', '127.0.0.1');

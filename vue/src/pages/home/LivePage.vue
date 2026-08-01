@@ -17,6 +17,20 @@
       <p>您的浏览器不支持 video 标签。</p>
     </video>
 
+    <video
+      v-if="effectVideo.show"
+      ref="effectVideoEl"
+      class="effect-video"
+      :src="effectVideo.url"
+      muted
+      :playsinline="true"
+      :webkit-playsinline="true"
+      :x5-playsinline="true"
+      autoplay
+      @ended="onEffectVideoEnded"
+      @error="onEffectVideoEnded"
+    ></video>
+
     <div class="overlay">
       <div class="top-bar">
         <div class="badges">
@@ -136,6 +150,7 @@ const router = useRouter()
 const baseStore = useBaseStore()
 
 const videoEl = ref<HTMLVideoElement | null>(null)
+const effectVideoEl = ref<HTMLVideoElement | null>(null)
 const room = ref<LiveRoom | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -153,15 +168,16 @@ const privilegeExpireAt = ref(0)
 const privilegeCountdown = ref(0)
 const privilegeGiftName = ref('')
 const privilegeToast = ref('')
-const interactionActive = ref(false)
-const interactionHlsUrl = ref('')
 const isTokenInvalid = ref(false)
+const effectVideo = ref<{ show: boolean; url: string; timer: number | null }>({ show: false, url: '', timer: null })
 
 let livePlaybackController: ReturnType<typeof createLivePlaybackController> | null = null
 let ws: WebSocket | null = null
 let heartbeatTimer: number | null = null
 let reconnectTimer: number | null = null
 let privilegeTimer: number | null = null
+let playbackWatchdogTimer: number | null = null
+let lastPausedTime = 0
 let socketRoomId = 0
 let socketManuallyClosed = false
 
@@ -208,9 +224,6 @@ const playModeText = computed(() => {
   switch (playbackMode.value) {
     case 'webrtc':
       return 'WebRTC'
-    case 'hls':
-    case 'native-hls':
-      return 'HLS'
     case 'preview':
       return '预览'
     default:
@@ -221,9 +234,6 @@ const playModeTitle = computed(() => {
   switch (playbackMode.value) {
     case 'webrtc':
       return '当前播放: WebRTC'
-    case 'hls':
-    case 'native-hls':
-      return '当前播放: HLS'
     case 'preview':
       return '当前播放: 预览视频'
     default:
@@ -259,10 +269,7 @@ const chatPlaceholder = computed(() => {
 const playModeDescription = computed(() => {
   switch (playbackMode.value) {
     case 'webrtc':
-      return '实时流播放，延迟最低'
-    case 'hls':
-    case 'native-hls':
-      return '直播切片流，依赖 channel-worker 持续产出'
+      return 'WebRTC 实时流，全端同步'
     case 'preview':
       return '未连上直播流，已回退到预览视频'
     default:
@@ -273,9 +280,6 @@ const playModeBannerClass = computed(() => {
   switch (playbackMode.value) {
     case 'webrtc':
       return 'is-webrtc'
-    case 'hls':
-    case 'native-hls':
-      return 'is-hls'
     case 'preview':
       return 'is-preview'
     default:
@@ -318,6 +322,7 @@ function resetRealtimeState() {
   sendingGiftId.value = null
   isTokenInvalid.value = false
   resetPrivilegeState()
+  destroyEffectVideo()
 }
 
 function clearHeartbeat() {
@@ -365,6 +370,40 @@ function resetPrivilegeState() {
   privilegeCountdown.value = 0
   privilegeGiftName.value = ''
   privilegeToast.value = ''
+}
+
+function clearEffectVideoTimer() {
+  if (effectVideo.value.timer !== null) {
+    window.clearTimeout(effectVideo.value.timer)
+    effectVideo.value.timer = null
+  }
+}
+
+function onEffectVideoEnded() {
+  effectVideo.value.show = false
+  effectVideo.value.url = ''
+  clearEffectVideoTimer()
+}
+
+function playGiftEffectVideo(videoUrl: string, durationMs?: number) {
+  if (!videoUrl) return
+
+  // 清理之前的特效视频
+  clearEffectVideoTimer()
+  effectVideo.value.show = false
+
+  // 使用 nextTick 确保 DOM 更新后播放
+  setTimeout(() => {
+    effectVideo.value.url = videoUrl
+    effectVideo.value.show = true
+
+    // 设置超时兜底
+    if (durationMs && durationMs > 0) {
+      effectVideo.value.timer = window.setTimeout(() => {
+        onEffectVideoEnded()
+      }, durationMs + 1000)
+    }
+  }, 50)
 }
 
 function destroyRoomSocket() {
@@ -482,6 +521,7 @@ function connectRoomSocket(currentRoom: LiveRoom) {
       const quantity = Math.max(1, Number(data.quantity || 1))
       const nickname = String(data.user?.nickname || '观众')
       const triggerMode = String(data.gift?.trigger_mode || 'none')
+      const effectVideoUrl = String(data.gift?.effect_video_url || '')
       appendChatMessage({
         id: String(data.order_no || createTraceId('gift')),
         kind: 'gift',
@@ -495,6 +535,11 @@ function connectRoomSocket(currentRoom: LiveRoom) {
         const durationSec = Number(data.gift?.trigger_duration_sec || 0)
         privilegeToast.value = `${nickname} 送出 ${giftName}，触发特权`
         window.setTimeout(() => { privilegeToast.value = '' }, 3000)
+      }
+
+      // 播放礼物特效视频
+      if (effectVideoUrl) {
+        playGiftEffectVideo(effectVideoUrl)
       }
       return
     }
@@ -519,35 +564,21 @@ function connectRoomSocket(currentRoom: LiveRoom) {
 
     if (type === 'stream_reload') {
       if (videoEl.value && room.value) {
-        const hlsUrl = interactionActive.value ? interactionHlsUrl.value : undefined
-        startLivePlayback(hlsUrl)
+        startLivePlayback()
       }
       return
     }
 
     if (type === 'interaction_ready') {
       const durationSec = Number(data.duration_sec || 0)
-      const taskNo = String(data.task_no || '')
-      const baseHls = room.value?.play?.hls_url || ''
-      const interactionUrl = baseHls.replace(/\.m3u8$/, '/interaction.m3u8')
-      interactionActive.value = true
-      interactionHlsUrl.value = interactionUrl
       privilegeToast.value = `AI 互动已就绪，持续 ${durationSec} 秒`
       window.setTimeout(() => { privilegeToast.value = '' }, 4000)
-      if (videoEl.value && interactionUrl) {
-        startLivePlayback(interactionUrl)
-      }
       return
     }
 
     if (type === 'interaction_ended') {
-      interactionActive.value = false
-      interactionHlsUrl.value = ''
       privilegeToast.value = 'AI 互动已结束'
       window.setTimeout(() => { privilegeToast.value = '' }, 4000)
-      if (videoEl.value) {
-        startLivePlayback()
-      }
       return
     }
 
@@ -595,19 +626,70 @@ function connectRoomSocket(currentRoom: LiveRoom) {
 }
 
 function destroyLivePlayback() {
+  clearPlaybackWatchdog()
   livePlaybackController?.destroy()
   livePlaybackController = null
   playbackMode.value = ''
 }
 
-async function startLivePlayback(hlsUrlOverride?: string) {
+function clearPlaybackWatchdog() {
+  if (playbackWatchdogTimer !== null) {
+    window.clearInterval(playbackWatchdogTimer)
+    playbackWatchdogTimer = null
+  }
+}
+
+function startPlaybackWatchdog() {
+  clearPlaybackWatchdog()
+  lastPausedTime = 0
+  playbackWatchdogTimer = window.setInterval(() => {
+    const v = videoEl.value
+    if (!v || !livePlaybackController) {
+      clearPlaybackWatchdog()
+      return
+    }
+
+    // 检测 poster 状态：视频无媒体源
+    if (v.networkState === 3) {
+      console.warn('Playback watchdog: no media source, restarting')
+      const currentRoomId = routeRoomId.value
+      if (currentRoomId > 0) {
+        loadRoom(currentRoomId)
+      }
+      return
+    }
+
+    // 跟踪暂停时长，超过 10 秒才干预（短暂暂停是正常缓冲）
+    if (v.paused && !v.ended) {
+      if (lastPausedTime === 0) {
+        lastPausedTime = Date.now()
+        return
+      }
+      const elapsed = Date.now() - lastPausedTime
+      if (elapsed >= 10000) {
+        console.warn('Playback watchdog: paused 10s+, resuming')
+        v.play().catch(() => {})
+        lastPausedTime = 0
+      }
+    } else {
+      lastPausedTime = 0
+    }
+  }, 8000)
+}
+
+function destroyEffectVideo() {
+  clearEffectVideoTimer()
+  effectVideo.value.show = false
+  effectVideo.value.url = ''
+}
+
+async function startLivePlayback() {
   if (!videoEl.value || !room.value) return
 
   destroyLivePlayback()
   livePlaybackController = createLivePlaybackController({
     videoEl: videoEl.value,
     webrtcUrl: room.value.play?.webrtc_url,
-    hlsUrl: hlsUrlOverride || room.value.play?.hls_url,
     previewUrl: room.value.preview_video_url,
     muted: isMuted.value,
     onModeChange: (mode) => {
@@ -617,15 +699,9 @@ async function startLivePlayback(hlsUrlOverride?: string) {
 
   try {
     await livePlaybackController.play()
+    startPlaybackWatchdog()
   } catch (playError) {
     console.warn('live room play failed', playError)
-  }
-}
-
-function syncRouteDataDraft(roomId: number) {
-  const draft = baseStore.routeData as LiveRoom | null
-  if (draft && Number(draft.room_id) === roomId) {
-    room.value = draft
   }
 }
 
@@ -634,14 +710,13 @@ async function loadRoom(roomId: number) {
   destroyRoomSocket()
   resetRealtimeState()
   error.value = ''
+  room.value = null
 
   if (roomId <= 0) {
-    room.value = null
     error.value = '房间不存在'
     return
   }
 
-  syncRouteDataDraft(roomId)
   loading.value = true
   const res = await liveRoomDetail(roomId)
   loading.value = false
@@ -653,6 +728,7 @@ async function loadRoom(roomId: number) {
 
   room.value = res.data
   baseStore.routeData = res.data
+
   appendChatMessage({
     id: createTraceId('welcome'),
     kind: 'system',
@@ -740,14 +816,12 @@ onMounted(() => {
   if (videoEl.value) {
     videoEl.value.muted = isMuted.value
   }
-  if (room.value) {
-    startLivePlayback()
-  }
 })
 
 onUnmounted(() => {
   destroyLivePlayback()
   destroyRoomSocket()
+  destroyEffectVideo()
 })
 </script>
 
@@ -757,10 +831,7 @@ onUnmounted(() => {
   width: 100%;
   height: calc(var(--vh, 1vh) * 100);
   overflow: hidden;
-  background:
-    radial-gradient(circle at top, rgba(255, 123, 84, 0.24), transparent 32%),
-    radial-gradient(circle at bottom, rgba(113, 88, 255, 0.22), transparent 36%),
-    #050505;
+  background: #000;
   color: white;
 
   .player {
@@ -771,10 +842,32 @@ onUnmounted(() => {
     background: #000;
   }
 
+  .effect-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
+    background: transparent;
+    animation: effectFadeIn 0.3s ease-out;
+  }
+
+  @keyframes effectFadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
   .overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.08) 42%, rgba(0, 0, 0, 0.32));
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .overlay > * {
+    pointer-events: auto;
   }
 
   .top-bar {
@@ -939,13 +1032,6 @@ onUnmounted(() => {
       .mode-chip {
         background: rgba(79, 209, 140, 0.22);
         color: #8df0b7;
-      }
-    }
-
-    &.is-hls {
-      .mode-chip {
-        background: rgba(83, 160, 255, 0.22);
-        color: #98c8ff;
       }
     }
 
