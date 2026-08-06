@@ -29,19 +29,20 @@
                         }"
                     />
                     <FormItem
-                        label="触发关键词"
+                        v-if="baTable.form.items!.trigger_mode === 'keyword'"
+                        label="触发大类"
                         v-model="baTable.form.items!.keyword"
                         type="remoteSelect"
                         :input-attr="{
                             pk: 'keyword',
                             field: 'keyword',
                             remoteUrl: '/admin/live.Gift/keywords',
-                            placeholder: '选择触发关键词（留空则不触发）',
+                            placeholder: '选择触发大类（留空则不触发）',
                             clearable: true,
                         }"
                     />
-                    <FormItem label="触发时长(秒)" v-model="baTable.form.items!.trigger_duration_sec" type="number" />
-                    <FormItem label="特效编码" v-model="baTable.form.items!.effect_code" type="string" />
+                    <FormItem v-if="false" label="触发时长(秒)" v-model="baTable.form.items!.trigger_duration_sec" type="number" />
+                    <FormItem v-if="false" label="特效编码" v-model="baTable.form.items!.effect_code" type="string" />
                     <FormItem
                         label="状态"
                         v-model="baTable.form.items!.status"

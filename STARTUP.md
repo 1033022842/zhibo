@@ -79,7 +79,7 @@ cd d:\ever\douyin\douyin\vue
 pnpm dev
 ```
 > 访问：http://localhost:3000
-> Vite 已配置代理：`/api` → `127.0.0.1:8000`，`/hls` → `127.0.0.1:8000`
+> Vite 已配置代理：`/api` → `127.0.0.1:8001`，`/hls` → `127.0.0.1:8001`
 
 ### 终端 4 — AI 女友前端
 ```bash

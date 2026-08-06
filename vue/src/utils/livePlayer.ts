@@ -1,8 +1,11 @@
-export type LivePlaybackMode = 'webrtc' | 'preview'
+import Hls from 'hls.js'
+
+export type LivePlaybackMode = 'webrtc' | 'hls' | 'preview'
 
 interface LivePlaybackOptions {
   videoEl: HTMLVideoElement
   webrtcUrl?: string
+  hlsUrl?: string
   previewUrl?: string
   muted?: boolean
   onModeChange?: (mode: LivePlaybackMode) => void
@@ -73,21 +76,119 @@ function resetVideoElement(videoEl: HTMLVideoElement) {
   videoEl.pause()
   videoEl.loop = false
   videoEl.removeAttribute('src')
-  videoEl.srcObject = null
-  videoEl.load()
+  // 不要清除 srcObject，hls.js attachMedia 会自行替换
+  // 不要调用 load()，让 hls.js 完全接管 video 元素
+  delete videoEl.dataset.hlsReady
 }
 
 async function playPreview(videoEl: HTMLVideoElement, previewUrl: string) {
   resetVideoElement(videoEl)
   videoEl.loop = true
   videoEl.src = previewUrl
+  videoEl.autoplay = true
   videoEl.load()
   await videoEl.play()
   return 'preview' as const
 }
 
+function playHls(videoEl: HTMLVideoElement, hlsUrl: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    // 本地开发时 API 返回的域名可能和 dev server 不一致，统一用当前页面域名
+    try {
+      const u = new URL(hlsUrl)
+      if (u.host !== window.location.host) {
+        hlsUrl = window.location.origin + u.pathname + u.search
+      }
+    } catch (_) { /* keep original */ }
+    console.warn('[HLS] playHls, url:', hlsUrl)
+
+    if (!Hls.isSupported()) {
+      console.warn('[HLS] Hls.isSupported=false, giving up')
+      resolve(false)
+      return
+    }
+
+    resetVideoElement(videoEl)
+    const hls = new Hls({
+      enableWorker: false,
+      debug: false,
+      maxBufferLength: 60,
+      maxMaxBufferLength: 120,
+      // 不要太激进地追直播边缘，给 buffer 留足空间
+      liveSyncDurationCount: 5,
+      maxBufferSize: 120 * 1000 * 1000, // 120MB
+      maxBufferHole: 0.5,
+    })
+    let resolved = false
+    let firstFragLoading = false
+
+    hls.attachMedia(videoEl)
+
+    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+      videoEl.dataset.hlsReady = '1'
+      hls.loadSource(hlsUrl)
+    })
+
+    hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+      const levels = data.levels?.length ?? 'media'
+      const duration = data.firstLevel?.details?.totalduration
+      console.warn('[HLS] manifest parsed, levels:', levels, 'duration:', Math.round(duration || 0))
+    })
+
+    // Log all fragment loading events
+    hls.on(Hls.Events.FRAG_LOADING, (_event, data) => {
+      firstFragLoading = true
+      const fullUrl = data.frag?.url || ''
+      console.warn('[HLS] loading frag:', data.frag?.sn, 'url:', fullUrl)
+    })
+
+    hls.on(Hls.Events.FRAG_LOADED, (_event, data) => {
+      console.warn('[HLS] frag loaded:', data.frag?.sn, 'size:', data.payload?.byteLength, 'loadTime:', Math.round(data.stats?.loading?.ms || 0), 'ms')
+    })
+
+    hls.on(Hls.Events.FRAG_LOAD_PROGRESS, (_event, data) => {
+      // 每收到进度事件都打印（大文件下载时帮助判断是否在进行中）
+      if (data.stats?.loaded && data.stats?.total) {
+        const pct = Math.round(data.stats.loaded / data.stats.total * 100)
+        console.warn('[HLS] frag progress:', data.frag?.sn, Math.round(data.stats.loaded/1024), '/', Math.round(data.stats.total/1024), 'KB (', pct, '%)')
+      }
+    })
+
+    hls.on(Hls.Events.FRAG_PARSED, (_event, data) => {
+      console.warn('[HLS] frag parsed:', data.frag?.sn)
+    })
+
+    hls.on(Hls.Events.FRAG_BUFFERED, () => {
+      if (!resolved) {
+        resolved = true
+        console.warn('[HLS] playback ready (first frag buffered)')
+        videoEl.play().catch((e) => console.warn('[HLS] play rejected:', e.name))
+        resolve(true)
+      }
+    })
+
+    // Log ALL errors, not just fatal
+    hls.on(Hls.Events.ERROR, (_event, data) => {
+      console.error('[HLS] error:', data.type, data.details, data.fatal ? 'FATAL' : 'non-fatal')
+      if (data.fatal) {
+        hls.destroy()
+        if (!resolved) { resolved = true; resolve(false) }
+      }
+    })
+
+    setTimeout(() => {
+      if (!resolved) {
+        console.warn('[HLS] timeout (120s), firstFragLoading:', firstFragLoading)
+        hls.destroy()
+        resolved = true
+        resolve(false)
+      }
+    }, 120000)
+  })
+}
+
 export function createLivePlaybackController(options: LivePlaybackOptions): LivePlaybackController {
-  const { videoEl, webrtcUrl, previewUrl, muted = true, onModeChange } = options
+  const { videoEl, webrtcUrl, hlsUrl, previewUrl, muted = true, onModeChange } = options
   const teardownList: Array<() => void> = []
   let rtcPlayer: SrsRtcPlayer | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -136,8 +237,15 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
         console.warn(`WebRTC reconnect attempt ${retries}/${maxRetries}, retrying in 1.5s...`)
         reconnectTimer = setTimeout(tryReconnect, 1500)
       } else {
-        console.warn('WebRTC reconnect exhausted, falling back to preview')
-        if (previewUrl && !destroyed) {
+        console.warn('WebRTC reconnect exhausted, falling back')
+        if (hlsUrl && !destroyed) {
+          playHls(videoEl, hlsUrl).then((ok) => {
+            if (ok) onModeChange?.('hls')
+            else if (previewUrl) {
+              playPreview(videoEl, previewUrl).then((mode) => onModeChange?.(mode))
+            }
+          })
+        } else if (previewUrl && !destroyed) {
           playPreview(videoEl, previewUrl).then((mode) => {
             onModeChange?.(mode)
           })
@@ -168,13 +276,23 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
 
   return {
     async play() {
-      const ok = await attemptWebrtc()
-      if (ok) {
+      // HLS 优先（更稳定，兼容性好）
+      if (hlsUrl) {
+        const ok = await playHls(videoEl, hlsUrl)
+        if (ok) {
+          onModeChange?.('hls')
+          return 'hls'
+        }
+      }
+
+      // WebRTC 备选
+      const ok2 = await attemptWebrtc()
+      if (ok2) {
         watchConnection()
         return 'webrtc'
       }
 
-      // 兜底：预览视频
+      // 最后兜底：预览视频
       if (previewUrl) {
         const mode = await playPreview(videoEl, previewUrl)
         onModeChange?.(mode)

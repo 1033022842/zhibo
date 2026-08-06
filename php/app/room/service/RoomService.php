@@ -45,6 +45,18 @@ final class RoomService
             array_pop($rows);
         }
 
+        // 过滤：只保留 MediaMTX 中实际有推流的房间
+        $activeRoomIds = $this->getActiveStreamRoomIds();
+        if (!empty($activeRoomIds)) {
+            $rows = array_values(array_filter($rows, function ($row) use ($activeRoomIds) {
+                return in_array((int) $row['id'], $activeRoomIds, true);
+            }));
+        }
+
+        if (empty($rows)) {
+            return ['list' => [], 'cursor' => null, 'has_more' => false];
+        }
+
         $roomIds = array_column($rows, 'id');
         $personaIds = array_values(array_unique(array_column($rows, 'persona_id')));
 
@@ -79,6 +91,36 @@ final class RoomService
             'cursor'   => $nextCursor,
             'has_more' => $hasMore,
         ];
+    }
+
+    /**
+     * 从 MediaMTX API 获取当前有活跃推流的房间 ID 列表
+     * @return int[]
+     */
+    private function getActiveStreamRoomIds(): array
+    {
+        try {
+            $ctx = stream_context_create(['http' => ['timeout' => 1]]);
+            $json = @file_get_contents('http://127.0.0.1:9997/v3/paths/list', false, $ctx);
+            if (!$json) {
+                return [];
+            }
+            $data = json_decode($json, true);
+            if (!is_array($data) || empty($data['items'])) {
+                return [];
+            }
+            $roomIds = [];
+            foreach ($data['items'] as $item) {
+                $name = $item['name'] ?? '';
+                // 路径格式: room/{id} 或 {prefix}/{id}
+                if (preg_match('#^room/(\d+)$#', $name, $m)) {
+                    $roomIds[] = (int) $m[1];
+                }
+            }
+            return $roomIds;
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     public function detail(int $roomId, string $domain): array
@@ -238,7 +280,7 @@ final class RoomService
             'play'              => [
                 'stream_alias' => $streamAlias,
                 'webrtc_url'   => $httpBase . '/api/v1/whep/' . $streamAlias,
-                'hls_url'      => $httpBase . '/hls/' . $streamAlias . '.m3u8',
+                'hls_url'      => $httpBase . '/hls/room/' . $room['id'] . '/index.m3u8',
                 'play_token'   => sha1($streamAlias . '|' . $expireAt . '|' . config('jwt.secret')),
                 'expire_at'    => $expireAt,
             ],

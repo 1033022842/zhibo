@@ -82,29 +82,46 @@ ALTER TABLE `lp_gift`
   ffmpeg -f concat -i room_X_playlist.txt -stream_loop -1
   └── playlist.txt 是启动时一次性生成的静态文件，无法动态改
 
-【新】stdin 管道控制
-  ffmpeg -f concat -i pipe:0 ...
-  └── channel-worker 逐行写入 stdin，写完一个视频等下一个
-  └── 通过 Redis Stream 接收关键词指令，随时插入
+【新】双槽位无缝切换（current）
+  目录结构：
+    /hls/{alias}_a/     ← slot A (ffmpeg 写入)
+    /hls/{alias}_b/     ← slot B (ffmpeg 写入)
+    /hls/{alias}/       ← symlink → _a 或 _b (Nginx/播放器访问)
+  
+  切换流程：
+    1. 检测到关键词 → 在非活跃槽位启动新 ffmpeg
+    2. 等待第一个 .ts 分片就绪（~2s）
+    3. 原子替换 symlink（ln -sfn）→ 播放器下次请求 m3u8 自然切到新流
+    4. 杀旧 ffmpeg，清理旧槽位
+  效果：仅一个 HLS 分片的 gap（~2s），无黑屏
+  
+  注：stdin 管道模式不可行 — concat demuxer 一次性读完整个列表到 EOF，
+      不会等待后续追加，无法实现逐行动态控制
 ```
 
 ### 数据流
 
 ```
 观众送礼物 → GiftService → 查 lp_gift_keyword 获取关键词
-  → 写 Redis Stream {room_id, action:'keyword', keyword:'比心'}
-  → channel-worker 消费 → 从 lp_media_asset 随机取关键词视频
-  → 写入 ffmpeg stdin → 无缝播放 → 播完回正常轮播
+  → 写 Redis List `stream:room:switch:{roomId}` → channel-worker 消费
+  → 从 lp_media_asset 随机取关键词视频 → 生成 playlist
+  → 非活跃槽位启新 ffmpeg → 等首分片 → 原子 symlink → 杀旧 ffmpeg
+  → 播放器自动跟随新 m3u8，无缝切换
 ```
 
 ### ChannelWorker 新主循环
 
 ```
 while(true):
-  1. 检查 Redis Stream 有无关键词插播指令
-     └── 有 → 从 DB 随机取关键词视频 → 写入 stdin
-  2. 没有 → 从 DB 随机取一个正常轮播视频 → 写入 stdin
-  3. 等 ffmpeg 播完当前视频（stdin 写入下一行即触发切换）
+  1. 【监控】检查活跃槽位 ffmpeg 是否存活，挂了就同槽位重启
+  2. 【轮询】消费 Redis 关键词指令（取最后一个有效值）
+  3. 【空闲】无指令 → usleep(500ms) → 回到 1
+  4. 【切换】有指令 →
+     a. 在非活跃槽位启动新 ffmpeg（关键词视频放首位）
+     b. 等待首分片就绪（poll seg_*.ts，最长 10s）
+     c. 原子替换 symlink → 播放器自然跟随
+     d. proc_terminate 旧 ffmpeg → 清理旧槽位
+     e. 活跃槽位标记翻转
 ```
 
 ---
@@ -123,11 +140,18 @@ while(true):
 - 写入 `lp_media_asset`（persona=白毛女, keywords=提取的关键词）
 - 输出无法自动识别的文件清单，人工标注
 
-### 步骤 3 — ChannelWorker 重写
-- 改为 stdin 管道模式（ffmpeg -f concat -i pipe:0）
-- 实现 Redis Stream 消费（消费关键词插播指令）
-- 实现关键词随机取视频逻辑
+### 步骤 3 — ChannelWorker 重写（双槽位无缝切换）
+- 双槽位架构：slot_a / slot_b 交替写入，symlink 原子切换
+- 等待首分片逻辑：poll 新槽位 seg_*.ts，超时 10s 回退
+- 实现 Redis List 消费（`stream:room:switch:{roomId}`）
+- 关键词触发时生成关键词 playlist，在非活跃槽位启动新 ffmpeg
 - 实现正常轮播随机取视频逻辑
+
+> 部署注意事项：
+> - HLS 输出目录结构：`{output_dir}/{stream_alias}_a`, `_b`（槽位） + `{stream_alias}`（symlink）
+> - 首次运行会自动将旧版普通目录转换为 symlink 模式
+> - 若 Nginx 直接 serve 静态文件，需 `disable_symlinks off;`；若 proxy_pass 到 PHP 则无需额外配置
+> - 服务器 `ln -sfn` 为原子操作，Windows 本地不支持 symlink（仅服务器部署生效）
 
 ### 步骤 4 — 礼物触发链路
 - GiftService 增加关键词查询（lp_gift_keyword）

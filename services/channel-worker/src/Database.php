@@ -14,11 +14,11 @@ final class Database
                 'mysql:host=%s;port=%d;dbname=%s;charset=%s',
                 getenv('DB_HOST') ?: '127.0.0.1',
                 (int) (getenv('DB_PORT') ?: 3306),
-                getenv('DB_NAME') ?: 'live_platform',
+                getenv('DB_NAME') ?: 'zhibo',
                 getenv('DB_CHARSET') ?: 'utf8mb4'
             ),
-            getenv('DB_USER') ?: 'root',
-            getenv('DB_PASSWORD') ?: 'root',
+            getenv('DB_USER') ?: 'zhibo',
+            getenv('DB_PASSWORD') ?: '12345678',
             [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,

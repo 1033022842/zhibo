@@ -224,6 +224,8 @@ const playModeText = computed(() => {
   switch (playbackMode.value) {
     case 'webrtc':
       return 'WebRTC'
+    case 'hls':
+      return 'HLS'
     case 'preview':
       return '预览'
     default:
@@ -234,6 +236,8 @@ const playModeTitle = computed(() => {
   switch (playbackMode.value) {
     case 'webrtc':
       return '当前播放: WebRTC'
+    case 'hls':
+      return '当前播放: HLS'
     case 'preview':
       return '当前播放: 预览视频'
     default:
@@ -270,6 +274,8 @@ const playModeDescription = computed(() => {
   switch (playbackMode.value) {
     case 'webrtc':
       return 'WebRTC 实时流，全端同步'
+    case 'hls':
+      return 'HLS 直播流，兼容性好'
     case 'preview':
       return '未连上直播流，已回退到预览视频'
     default:
@@ -280,6 +286,8 @@ const playModeBannerClass = computed(() => {
   switch (playbackMode.value) {
     case 'webrtc':
       return 'is-webrtc'
+    case 'hls':
+      return 'is-hls'
     case 'preview':
       return 'is-preview'
     default:
@@ -642,6 +650,7 @@ function clearPlaybackWatchdog() {
 function startPlaybackWatchdog() {
   clearPlaybackWatchdog()
   lastPausedTime = 0
+  const startTime = Date.now()
   playbackWatchdogTimer = window.setInterval(() => {
     const v = videoEl.value
     if (!v || !livePlaybackController) {
@@ -649,8 +658,14 @@ function startPlaybackWatchdog() {
       return
     }
 
-    // 检测 poster 状态：视频无媒体源
-    if (v.networkState === 3) {
+    // 前 15 秒是 HLS 初始化宽限期，不检测网络状态
+    const elapsed = Date.now() - startTime
+    if (elapsed < 15000) {
+      return
+    }
+
+    // 检测 poster 状态：视频无媒体源（改用 dataset 标记判断）
+    if (v.dataset.hlsReady !== '1' && v.networkState === 3) {
       console.warn('Playback watchdog: no media source, restarting')
       const currentRoomId = routeRoomId.value
       if (currentRoomId > 0) {
@@ -659,14 +674,14 @@ function startPlaybackWatchdog() {
       return
     }
 
-    // 跟踪暂停时长，超过 10 秒才干预（短暂暂停是正常缓冲）
+    // 跟踪暂停时长，超过 10 秒才干预
     if (v.paused && !v.ended) {
       if (lastPausedTime === 0) {
         lastPausedTime = Date.now()
         return
       }
-      const elapsed = Date.now() - lastPausedTime
-      if (elapsed >= 10000) {
+      const pausedFor = Date.now() - lastPausedTime
+      if (pausedFor >= 10000) {
         console.warn('Playback watchdog: paused 10s+, resuming')
         v.play().catch(() => {})
         lastPausedTime = 0
@@ -690,6 +705,7 @@ async function startLivePlayback() {
   livePlaybackController = createLivePlaybackController({
     videoEl: videoEl.value,
     webrtcUrl: room.value.play?.webrtc_url,
+    hlsUrl: room.value.play?.hls_url,
     previewUrl: room.value.preview_video_url,
     muted: isMuted.value,
     onModeChange: (mode) => {
@@ -806,12 +822,13 @@ watch(isMuted, (muted) => {
 })
 
 onMounted(() => {
-  // 未登录 → 跳转 AI 前端登录
+  // 未登录 → 跳转 AI 前端登录（暂跳过登录检查，直连测试）
   if (!isLoggedIn()) {
-    var aiLoginUrl = 'http://127.0.0.1:8080/Login.html'
+    var aiLoginUrl = 'http://38.181.44.164/Login.html'
     var backUrl = window.location.href
-    window.location.href = aiLoginUrl + '?redirect=' + encodeURIComponent(backUrl)
-    return
+    // 开发测试阶段：无登录页时直接放行，不跳转
+    // window.location.href = aiLoginUrl + '?redirect=' + encodeURIComponent(backUrl)
+    // return
   }
   if (videoEl.value) {
     videoEl.value.muted = isMuted.value
@@ -835,8 +852,9 @@ onUnmounted(() => {
   color: white;
 
   .player {
-    max-width: 100%;
+    width: 100%;
     height: 100%;
+    object-fit: cover;
     display: block;
     margin: 0 auto;
     background: #000;

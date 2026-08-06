@@ -37,9 +37,9 @@ const baTable = new baTableClass(
                 custom: { none: 'info', privilege: 'warning', interaction: 'success', keyword: '' },
                 replaceValue: { none: '普通礼物', privilege: '特权触发', interaction: '互动触发', keyword: '关键词触发' },
             },
-            { label: '触发关键词', prop: 'keyword', align: 'center', operator: 'LIKE' },
-            { label: '触发时长(秒)', prop: 'trigger_duration_sec', align: 'center', operator: 'RANGE' },
-            { label: '特效编码', prop: 'effect_code', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
+            { label: '触发大类', prop: 'keyword', align: 'center', operator: 'LIKE' },
+            { label: '触发时长(秒)', prop: 'trigger_duration_sec', align: 'center', operator: 'RANGE', show: false },
+            { label: '特效编码', prop: 'effect_code', align: 'center', operator: 'LIKE', showOverflowTooltip: true, show: false },
             {
                 label: '状态',
                 prop: 'status',
