@@ -27,9 +27,8 @@ if ($localFfmpeg !== null) {
 return [
     'ffmpeg_bin' => $ffmpegBin,
     'runtime_dir' => dirname(__DIR__) . '/runtime',
-    'hls' => [
-        // HLS 输出根目录，Nginx alias 指向这里
-        'output_dir' => getenv('HLS_OUTPUT_DIR') ?: '/www/wwwroot/douyin/hls',
+    'mediamtx' => [
+        'rtmp_base' => getenv('MEDIAMTX_RTMP_BASE') ?: 'rtmp://127.0.0.1:1936',
     ],
     'media_base_dir' => dirname(__DIR__, 3),  // 项目根目录 (douyin/)，相对路径视频文件拼接此前缀
     'redis' => [

@@ -4,6 +4,8 @@ import VueJsx from '@vitejs/plugin-vue-jsx'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { Plugin as importToCDN } from 'vite-plugin-cdn-import'
 import { fileURLToPath, URL } from 'node:url'
+import path from 'node:path'
+import fs from 'node:fs'
 import { getLastCommit } from 'git-last-commit'
 import VueMacros from 'unplugin-vue-macros/vite'
 
@@ -97,6 +99,32 @@ export default defineConfig((): Promise<UserConfig> => {
           //     ],
           //   },
           // }),
+          ,{
+            name: 'serve-hls',
+            configureServer(server) {
+              const hlsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'services', 'channel-worker', 'test_hls')
+              console.log('[serve-hls] root:', hlsRoot)
+              server.middlewares.use('/hls', (req, res, next) => {
+                const p = (req as any).originalUrl || req.url || '/'
+                const filePath = path.join(hlsRoot, p.replace(/^\/hls\/?/, ''))
+                try {
+                  const stat = fs.statSync(filePath)
+                  if (stat.isFile()) {
+                    const ext = path.extname(filePath)
+                    const mime: Record<string, string> = { '.m3u8': 'application/vnd.apple.mpegurl', '.ts': 'video/mp2t' }
+                    res.writeHead(200, {
+                      'Content-Type': mime[ext] || 'application/octet-stream',
+                      'Cache-Control': 'no-cache',
+                      'Content-Length': stat.size,
+                    })
+                    fs.createReadStream(filePath).pipe(res)
+                    return
+                  }
+                } catch (_) { /* 404 -> next */ }
+                next()
+              })
+            },
+          } as PluginOption,
         ],
         resolve: {
           alias: {
@@ -170,24 +198,20 @@ export default defineConfig((): Promise<UserConfig> => {
           open: true,
           host: '0.0.0.0',
           proxy: {
-            '/api/v1/whep': {
-              target: 'http://127.0.0.1:8889',
-              changeOrigin: true,
-              rewrite: (path) => path.replace(/^\/api\/v1\/whep/, '') + '/whep'
-            },
-            '/api': {
-              target: 'http://127.0.0.1:8001',
-              changeOrigin: false
-            },
-            '/hls': {
-              target: 'http://127.0.0.1:8001',
-              changeOrigin: false
-            },
-            '/storage': {
-              target: 'http://127.0.0.1:8001',
-              changeOrigin: false
-            }
+          '/api/v1/whep': {
+            target: 'http://127.0.0.1:8889',
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/api\/v1\/whep/, '') + '/whep'
           },
+          '/api': {
+            target: 'http://127.0.0.1:8000',
+            changeOrigin: false
+          },
+          '/storage': {
+            target: 'http://127.0.0.1:8000',
+            changeOrigin: false
+          }
+        },
           fs: {
             strict: false
           }

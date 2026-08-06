@@ -3,6 +3,7 @@ use think\facade\Route;
 
 Route::get('v1/feed/live', '\app\api\controller\Room@feedLive');
 Route::get('v1/rooms/:id', '\app\api\controller\Room@detail');
+Route::get('v1/hls-master/:id', '\app\api\controller\HlsMaster@master');
 
 Route::group('v1/rooms/switch', function () {
     Route::post('privilege', '\app\api\controller\RoomSwitch@triggerPrivilege');

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { friends, panel } from '@/api/user'
 import enums from '@/utils/enums'
-import resource from '@/assets/data/resource'
 import { request } from '@/utils/request'
 import {
   setTokens,
@@ -73,7 +72,7 @@ export const useBaseStore = defineStore('base', {
           }
         ]
       },
-      friends: resource.users,
+      friends: [] as any[],
       message: '',
       // 认证状态
       isAuthReady: false,

@@ -229,8 +229,11 @@ final class GiftService
                 'created_at' => date('Y-m-d H:i:s'),
             ], JSON_UNESCAPED_UNICODE);
 
-            $len = $redis->rpush('list:keyword:room:' . $roomId, $payload);
-            $this->logKeyword('OK roomId=' . $roomId . ' keyword=' . $keyword . ' rPush=' . $len);
+            $listKey = 'stream:room:switch:' . $roomId;
+            $len = $redis->rpush($listKey, $payload);
+            // 记录完整 payload 用于调试 Predis vs phpredis 兼容性
+            $this->logKeyword('OK roomId=' . $roomId . ' keyword=' . $keyword . ' rPush=' . $len . ' listKey=' . $listKey);
+            $this->logKeyword('PAYLOAD roomId=' . $roomId . ' json=' . $payload);
         } catch (\Throwable $e) {
             // Redis 连接断开则重试一次
             $this->logKeyword('RETRY roomId=' . $roomId . ' giftId=' . $giftId . ' ' . $e->getMessage());
@@ -242,8 +245,10 @@ final class GiftService
                     'params' => ['keyword' => $keyword],
                     'created_at' => date('Y-m-d H:i:s'),
                 ], JSON_UNESCAPED_UNICODE);
-                $len = $redis2->rpush('list:keyword:room:' . $roomId, $payload);
+                $listKey = 'stream:room:switch:' . $roomId;
+                $len = $redis2->rpush($listKey, $payload);
                 $this->logKeyword('OK roomId=' . $roomId . ' keyword=' . $keyword . ' rPush=' . $len . ' (retried)');
+                $this->logKeyword('PAYLOAD roomId=' . $roomId . ' json=' . $payload . ' (retried)');
             } catch (\Throwable $e2) {
                 $this->logKeyword('ERROR roomId=' . $roomId . ' giftId=' . $giftId . ' retry also failed: ' . $e2->getMessage());
             }

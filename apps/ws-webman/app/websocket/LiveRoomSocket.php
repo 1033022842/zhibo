@@ -255,7 +255,8 @@ final class LiveRoomSocket
     {
         try {
             $result = $this->giftService->create(WsSessionManager::session($connection), $message);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logError('send_gift failed: ' . $e->getMessage() . ' | trace: ' . $e->getTraceAsString());
             $connection->send(MessageBuilder::error($traceId, '送礼失败', 'WS5001'));
             return;
         }
@@ -338,5 +339,11 @@ final class LiveRoomSocket
             ),
             default => null,
         };
+    }
+
+    private function logError(string $msg): void
+    {
+        $line = date('Y-m-d H:i:s') . ' ' . $msg . PHP_EOL;
+        @file_put_contents(runtime_path('logs') . '/error.log', $line, FILE_APPEND);
     }
 }

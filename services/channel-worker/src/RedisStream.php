@@ -16,9 +16,16 @@ final class RedisStream
     {
     }
 
+    /**
+     * 连接 Redis（带异常）
+     * @throws \RuntimeException
+     */
     public function connect(): void
     {
         $this->connectInternal();
+        if ($this->redis === null) {
+            throw new \RuntimeException('Redis connection failed');
+        }
     }
 
     private function connectInternal(): void
@@ -67,6 +74,7 @@ final class RedisStream
         if (!$this->redis) {
             $this->connectInternal();
             if (!$this->redis) {
+                $this->debugLog('kw_redis_null', 'redis is NULL');
                 return null;
             }
         }
@@ -81,7 +89,7 @@ final class RedisStream
             }
         }
 
-        $listKey = 'list:keyword:room:' . $roomId;
+        $listKey = 'stream:room:switch:' . $roomId;
         $payload = @$this->redis->lPop($listKey);
 
         // lPop 返回 false 可能是空队列或连接断开
@@ -89,27 +97,41 @@ final class RedisStream
             $err = @$this->redis->getLastError();
             if ($err !== null && $err !== false) {
                 fwrite(STDERR, "[RedisStream] lPop error: {$err}, reconnecting\n");
+                $this->debugLog('kw_lpop_err', $err);
                 $this->redis = null;
             }
             return null;
         }
 
+        $this->debugLog('kw_lpop_raw', 'type=' . gettype($payload) . ' len=' . strlen((string)$payload) . ' raw=' . substr(var_export($payload, true), 0, 300));
+
         if (!is_string($payload)) {
+            $this->debugLog('kw_lpop_notstr', 'type=' . gettype($payload));
             return null;
         }
 
         $data = json_decode($payload, true);
+        $jsonErr = json_last_error_msg();
         if (!is_array($data)) {
+            $this->debugLog('kw_json_fail', 'json_error=' . $jsonErr . ' payload=' . substr($payload, 0, 300));
             return null;
         }
 
         $params = $data['params'] ?? [];
         $keyword = $params['keyword'] ?? '';
         if ($keyword === '') {
+            $this->debugLog('kw_no_keyword', 'params=' . json_encode($params, JSON_UNESCAPED_UNICODE) . ' data_keys=' . implode(',', array_keys($data)));
             return null;
         }
 
+        $this->debugLog('kw_consume_ok', 'keyword=' . $keyword);
         return ['keyword' => $keyword];
+    }
+
+    private function debugLog(string $tag, string $msg): void
+    {
+        $line = date('Y-m-d H:i:s') . " [redis_{$tag}] $msg" . PHP_EOL;
+        @file_put_contents(dirname(__DIR__) . '/runtime/debug.log', $line, FILE_APPEND);
     }
 
     private function isAlive(): bool

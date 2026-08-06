@@ -64,6 +64,8 @@ final class Gift extends Backend
         $list = Db::connect('live_mysql')
             ->table('lp_media_asset')
             ->where('persona', '<>', '')
+            ->where('asset_type', 'video')
+            ->where('status', 1)
             ->distinct(true)
             ->column('keywords');
 
