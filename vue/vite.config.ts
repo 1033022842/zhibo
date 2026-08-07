@@ -204,12 +204,16 @@ export default defineConfig((): Promise<UserConfig> => {
             rewrite: (path) => path.replace(/^\/api\/v1\/whep/, '') + '/whep'
           },
           '/api': {
-            target: 'http://127.0.0.1:8000',
-            changeOrigin: false
+            target: 'http://127.0.0.1:8001',
+            changeOrigin: true
           },
           '/storage': {
-            target: 'http://127.0.0.1:8000',
-            changeOrigin: false
+            target: 'http://127.0.0.1:8001',
+            changeOrigin: true
+          },
+          '/uploads': {
+            target: 'http://127.0.0.1:8001',
+            changeOrigin: true
           }
         },
           fs: {

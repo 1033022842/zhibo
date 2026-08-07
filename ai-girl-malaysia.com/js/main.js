@@ -1,77 +1,47 @@
 (()=>{
     var cacheTemplate = ''
     var base = 'http://127.0.0.1:8001/api/live'
-    var token = localStorage.getItem('live_access_token')
-	
-	var userJson = localStorage.getItem('live_user_info')
-	var usercode = localStorage.getItem('code')
-	var user = JSON.parse(userJson)
     var isSubmittingValue = false;
-      setTimeout(() => {
-        //   $('.headerfy').load('./header/header.html');
-		  if(usercode){
-		     $('#user_code_registration').val(usercode) 
-		  }
-		  
+
+    function initMain() {
+        var token = localStorage.getItem('live_access_token')
+        var usercode = localStorage.getItem('code')
+
+        if(usercode){
+            $('#user_code_registration').val(usercode) 
+        }
+         
         if(token) {
-          $('#sign-in-modal').css('display', 'none')
-                $('#user-setting').css('display', 'flex')
-                $('.user-login').css('display', 'none')
-				 // $('#useravatar').attr("src",user.avatar);
-				 	$('.login-pf').css('display', 'block')
-        }else{
+            $('#sign-in-modal').css('display', 'none')
+            $('#user-setting').css('display', 'flex')
+            $('.user-login').css('display', 'none')
+            $('.login-pf').css('display', 'block')
+        } else {
             $('.user-login').css('display', 'flex')
-             $('#user-setting').css('display', 'none')
+            $('#user-setting').css('display', 'none')
         }
         cacheTemplate = $('#profilesLayout').html();
         getChannelType()
-        $('#profiles-layout button[type="submit"]').on('click', function(e) {
-            handleClick(e)
-            $(this).removeClass('bg-[#262626] cursor-pointer')
-            $(this).addClass('bg-[#434343] cursor-not-allowed')
-            $(this).attr("disabled","");
-            getInfoList()
-            isSubmittingValue = false;
-        })
-        $('.logout').on('click', function () {
-          localStorage.removeItem('live_access_token')
-          localStorage.removeItem('live_user_info')
-          location.reload()
-        })
-         $('#logout').on('click', function () {
-          localStorage.removeItem('live_access_token')
-          localStorage.removeItem('live_user_info')
-          location.reload()
-        })
-        getInfoList()
-        $('#signup-btn').on('click', function(e) {
-          // 阻止表单默认提交行为
-           e.preventDefault();
-         
-           // 触发表单验证
-           if (this.checkValidity()) {
-             // 表单验证通过，可以执行提交操�?             console.log('Form is valid, submitting...');
-             // this.submit();
-             register()
-           } else {
-             // 表单验证失败，可以处理错�?             console.error('Form is invalid. Fix errors before submitting.');
-           }
-       })
+    }
 
-       $('#signin-btn').on('click', function (e) {
-        // 阻止表单默认提交行为
-        e.preventDefault();
-         
-        // 触发表单验证
-        if (this.checkValidity()) {
-          // 表单验证通过，可以执行提交操�?          console.log('Form is valid, submitting...');
-          login()
-          // this.submit();
-        } else {
-          // 表单验证失败，可以处理错�?          console.error('Form is invalid. Fix errors before submitting.');
-        }
-       })
-      }, 100);
+    setTimeout(function() { initMain() }, 100)
+    // Turbo 导航后重新初始化
+    $(document).on('turbo:load turbo:render', function() { initMain() })
+
+    // 事件委托：兼容 Turbo Frame 异步加载
+    $(document).on('click', '#signup-btn', function(e) {
+      e.preventDefault();
+      if (this.checkValidity()) { register() }
+    })
+    $(document).on('click', '#signin-btn', function(e) {
+      e.preventDefault();
+      if (this.checkValidity()) { login() }
+    })
+    $(document).on('click', '.logout, #logout', function() {
+      localStorage.removeItem('live_access_token')
+      localStorage.removeItem('live_user_info')
+      location.reload()
+    })
 
       function handleClick(e3) {
         if (isSubmittingValue) {

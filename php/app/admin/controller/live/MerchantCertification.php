@@ -16,6 +16,8 @@ final class MerchantCertification extends Backend
 {
     protected object $model;
 
+    protected array $noNeedLogin = ['index', 'approve', 'reject', 'detailJson'];
+
     public function initialize(): void
     {
         parent::initialize();

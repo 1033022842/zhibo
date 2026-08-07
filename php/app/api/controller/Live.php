@@ -114,12 +114,20 @@ final class Live extends BaseController
             }
         }
 
+        // 获取钻石余额（直播端和AI女友端共用 lp_wallet_account）
+        $wallet = \think\facade\Db::connect('live_mysql')
+            ->table('lp_wallet_account')
+            ->where('user_id', $userId)
+            ->find();
+        $diamondBalance = $wallet ? (float)$wallet['diamond_balance'] : 0.00;
+
         return $this->jsonSuccess([
             'id'       => $profile['id'],
             'username' => $profile['nickname'],
             'email'    => $email,
             'avatar'   => $profile['avatar'],
             'token'    => $this->request->header('Authorization'),
+            'money'    => $diamondBalance,
         ]);
     }
 

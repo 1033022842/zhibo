@@ -31,6 +31,14 @@
     </div>
 
     <div v-if="loggedIn" class="actions" v-anim>
+      <div class="diamond-card" @click="goRecharge">
+        <div class="diamond-icon">💎</div>
+        <div class="diamond-info">
+          <div class="diamond-label">钻石余额</div>
+          <div class="diamond-amount">{{ diamondBalance }}</div>
+        </div>
+        <div class="diamond-action">充值<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
       <button class="btn-edit" @click="goEdit">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
         <span>编辑资料</span>
@@ -45,6 +53,20 @@
           </span>
           <span class="menu-label">商家认证</span>
           <span class="menu-badge" :class="certBadgeClass">{{ certStatusLabel }}</span>
+          <svg class="menu-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="menu-row" @click="goCrowdfunding">
+          <span class="menu-icon menu-icon--purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </span>
+          <span class="menu-label">角色众筹</span>
+          <svg class="menu-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="menu-row" @click="goRecharge">
+          <span class="menu-icon menu-icon--amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </span>
+          <span class="menu-label">钻石充值</span>
           <svg class="menu-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <button class="menu-row" @click="goSetting">
@@ -85,11 +107,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onActivated } from 'vue'
+import { computed, ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
-import BaseFooter from '@/components/BaseFooter.vue'
+import BaseFooter from '@/components/BaseFooter'
 import { useBaseStore } from '@/store/pinia'
 import { getProfile } from '@/api/live'
+import { getCrowdfundingBalance } from '@/api/crowdfunding'
 
 defineOptions({ name: 'Me' })
 
@@ -121,6 +144,17 @@ const certBadgeClass = computed(() => {
   return map[certStatus.value] ?? ''
 })
 
+const diamondBalance = ref(0)
+
+async function fetchBalance() {
+  if (!loggedIn.value) return
+  try {
+    const res: any = await getCrowdfundingBalance()
+    const data = res?.data?.data || res?.data
+    diamondBalance.value = data?.balance ?? 0
+  } catch {}
+}
+
 const genderIcon = computed(() => {
   if (gender.value === 1) return '♂'
   if (gender.value === 2) return '♀'
@@ -134,6 +168,7 @@ const genderLabel = computed(() => {
 
 onMounted(async () => {
   await store.fetchProfile()
+  fetchBalance()
 })
 
 // keep-alive 缓存组件重新激活时刷新 profile（用户从登录页返回时）
@@ -141,12 +176,15 @@ onActivated(() => {
   if (store.authUserId > 0) {
     store.fetchProfile()
   }
+  fetchBalance()
 })
 
 function goEdit() { router.push('/me/edit') }
 function goSetting() { router.push('/me/setting') }
 function goAbout() { router.push('/me/setting?tab=about') }
 function goCertification() { router.push('/me/certification') }
+function goCrowdfunding() { router.push('/crowdfunding/list') }
+function goRecharge() { router.push('/me/recharge') }
 function goLogin() { router.push('/login?redirect=/me') }
 
 async function handleLogout() {
@@ -376,8 +414,34 @@ async function handleLogout() {
   position: relative;
   z-index: 1;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: 0 0 30rem;
+}
+
+.diamond-card {
+  display: flex;
+  align-items: center;
+  width: calc(100% - 40rem);
+  max-width: 340rem;
+  padding: 16rem 20rem;
+  margin-bottom: 16rem;
+  background: linear-gradient(135deg, rgba(245,158,11,.12), rgba(217,119,6,.06));
+  border: 1px solid rgba(245,158,11,.25);
+  border-radius: 16rem;
+  cursor: pointer;
+  transition: all .2s;
+  &:hover { background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(217,119,6,.1)); }
+  .diamond-icon { font-size: 28rem; margin-right: 14rem; }
+  .diamond-info { flex: 1; }
+  .diamond-label { font-size: 12rem; color: rgba(255,255,255,.4); margin-bottom: 2rem; }
+  .diamond-amount { font-size: 22rem; font-weight: 700; color: #f59e0b; }
+  .diamond-action {
+    display: flex; align-items: center; gap: 4rem;
+    padding: 8rem 16rem; border-radius: 20rem;
+    background: rgba(245,158,11,.15); color: #f59e0b;
+    font-size: 13rem; font-weight: 600;
+  }
 }
 
 .btn-edit {
@@ -479,6 +543,11 @@ async function handleLogout() {
   &--amber {
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
     color: #f59e0b;
+  }
+
+  &--purple {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05));
+    color: #a855f7;
   }
 }
 
