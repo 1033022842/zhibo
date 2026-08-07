@@ -9,5 +9,6 @@ return [
         \app\command\AiTaskCron::class,
         \app\command\MaintenanceCheck::class,
         \app\command\ResetStreams::class,
+        \app\command\CrowdfundingCron::class,
     ],
 ];

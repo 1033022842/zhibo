@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>角色众筹</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0c0e18;color:#fff;min-height:100vh}
+    .container{max-width:480px;margin:0 auto;padding:20px}
+    .top-bar{display:flex;align-items:center;gap:12px;padding:16px 0;margin-bottom:24px}
+    .back-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    h1{font-size:20px;font-weight:700}
+    .status-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px}
+    .status-icon{font-size:48px;margin-bottom:16px}
+    .status-title{font-size:18px;font-weight:700;margin-bottom:8px}
+    .status-desc{font-size:14px;color:rgba(255,255,255,.5);line-height:1.6}
+    .passed .status-title{color:#a855f7}
+    .warning .status-title{color:#f59e0b}
+    .form-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px}
+    .form-title{font-size:16px;font-weight:600;margin-bottom:20px;text-align:center}
+    .field{margin-bottom:18px}
+    .field label{display:block;font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px}
+    .field label .required{color:#ff2d55}
+    .field input[type=text],
+    .field input[type=number],
+    .field input[type=datetime-local],
+    .field input[type=url],
+    .field textarea{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#fff;font-size:15px;outline:none;font-family:inherit}
+    .field textarea{resize:vertical;min-height:80px}
+    .field input:focus,.field textarea:focus{border-color:#a855f7}
+    .field .hint{font-size:11px;color:rgba(255,255,255,.3);margin-top:4px}
+    .amount-row{display:flex;align-items:center;gap:8px}
+    .amount-row input{flex:1}
+    .amount-unit{font-size:15px;color:rgba(255,255,255,.4)}
+    .upload-zone{width:100%;aspect-ratio:16/9;border:2px dashed rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color .2s}
+    .upload-zone:hover{border-color:rgba(255,255,255,.3)}
+    .upload-zone img{width:100%;height:100%;object-fit:cover}
+    .upload-placeholder{display:flex;flex-direction:column;align-items:center;color:rgba(255,255,255,.3);gap:6px;font-size:13px;padding:16px}
+    .btn-submit{width:100%;padding:14px;border:none;border-radius:24px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(135deg,#a855f7,#7c3aed);cursor:pointer;margin-top:12px;transition:opacity .2s}
+    .btn-submit:disabled{opacity:.5;cursor:not-allowed}
+    .btn-secondary{width:100%;padding:12px;border-radius:24px;font-size:15px;font-weight:600;color:#a855f7;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);cursor:pointer;margin-top:8px}
+    .agreement{padding:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:16px;font-size:12px;color:rgba(255,255,255,.4);line-height:1.8}
+    .agreement ul{padding-left:16px}
+    .loading{display:flex;justify-content:center;padding:60px 0}
+    .spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#a855f7;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);padding:14px 28px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;animation:toastIn .3s ease;box-shadow:0 8px 30px rgba(0,0,0,.4);display:none}
+    .toast-success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+    .toast-error{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+    .toast-warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+    @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:998;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+    .modal-overlay.show{display:flex}
+    .modal-box{background:#1a1d2e;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px 24px 24px;width:360px;max-width:92vw;text-align:center;animation:modalPop .3s ease}
+    @keyframes modalPop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .modal-icon{font-size:52px;margin-bottom:16px;line-height:1}
+    .modal-title{font-size:17px;font-weight:700;margin-bottom:8px;color:#fff}
+    .modal-desc{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
+    .modal-btn{display:inline-block;padding:10px 36px;border-radius:24px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff;background:linear-gradient(135deg,#a855f7,#7c3aed);transition:opacity .2s}
+    .modal-btn:hover{opacity:.85}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="top-bar">
+        <button class="back-btn" onclick="history.back()">&#8592;</button>
+        <h1>角色众筹</h1>
+    </div>
+    <div id="content">
+        <div class="loading"><div class="spinner"></div></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modal">
+    <div class="modal-box">
+        <div class="modal-icon" id="modalIcon"></div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-desc" id="modalDesc"></div>
+        <button class="modal-btn" id="modalBtn">确定</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    var token = localStorage.getItem('live_access_token')
+    var base = 'http://127.0.0.1:8001/api/v1'
+
+    function showToast(msg, type) {
+        var el = document.getElementById('toast')
+        el.textContent = msg
+        el.className = 'toast toast-' + (type || 'success')
+        el.style.display = 'block'
+        setTimeout(function(){ el.style.display = 'none' }, 2500)
+    }
+
+    function showModal(icon, title, desc, btnText, btnClass, callback) {
+        document.getElementById('modalIcon').textContent = icon
+        document.getElementById('modalTitle').textContent = title
+        document.getElementById('modalDesc').textContent = desc
+        var btn = document.getElementById('modalBtn')
+        btn.textContent = btnText || '确定'
+        btn.className = 'modal-btn ' + (btnClass || '')
+        btn.onclick = function(){
+            document.getElementById('modal').classList.remove('show')
+            if (callback) callback()
+        }
+        document.getElementById('modal').classList.add('show')
+    }
+
+    if (!token) {
+        location.href = './Login.html'
+        return
+    }
+
+    // 检查商家认证后才能发起
+    function loadStatus() {
+        fetch(base + '/merchant/status', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r){ return r.json() }).then(function(d){
+            if (d.code && d.code !== '00000') {
+                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">登录已过期</p><button class="btn-submit" onclick="location.href=\'./Login.html\'">去登录</button></div>'
+                return
+            }
+            var status = d.data ? d.data.cert_status : -1
+            if (status === 1) {
+                renderForm()
+            } else {
+                renderNeedCert()
+            }
+        }).catch(function(){
+            document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">网络错误</p><button class="btn-submit" onclick="loadStatus()">重试</button></div>'
+        })
+    }
+
+    function renderNeedCert() {
+        document.getElementById('content').innerHTML =
+            '<div class="status-card warning"><div class="status-icon">&#9888;</div><div class="status-title">需要商家认证</div><div class="status-desc">发起角色众筹需要先通过商家认证</div><button class="btn-submit" onclick="location.href=\'./certification.html\'">去认证</button><button class="btn-secondary" onclick="history.back()">返回</button></div>'
+    }
+
+    function renderForm() {
+        document.getElementById('content').innerHTML =
+            '<div class="form-card">' +
+            '<div class="form-title">发起角色众筹</div>' +
+            '<div class="field"><label>封面图</label>' +
+            '<div class="upload-zone" id="coverUpload" onclick="document.getElementById(\'coverInput\').click()">' +
+            '<div class="upload-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>点击上传封面</span></div>' +
+            '</div><input type="file" id="coverInput" accept="image/*" style="display:none" onchange="uploadCover(this)" /></div>' +
+            '<input type="hidden" id="coverUrl" />' +
+            '<div class="field"><label>角色名称 <span class="required">*</span></label><input type="text" id="personaName" placeholder="给你的角色起个名字" maxlength="50" /></div>' +
+            '<div class="field"><label>项目标题 <span class="required">*</span></label><input type="text" id="title" placeholder="一句话描述你的角色创意" maxlength="100" /></div>' +
+            '<div class="field"><label>详细描述</label><textarea id="description" placeholder="描述你的角色人设、风格、创意理念…" rows="4"></textarea></div>' +
+            '<div class="field"><label>目标金额（钻石）<span class="required">*</span></label><div class="amount-row"><input type="number" id="targetAmount" placeholder="例如：10000" min="1" /><span class="amount-unit">钻</span></div><div class="hint">设置合理的目标金额，达标的角色才能创建</div></div>' +
+            '<div class="field"><label>截止时间 <span class="required">*</span></label><input type="datetime-local" id="deadline" /></div>' +
+            '<div class="agreement"><p>发起即表示同意：</p><ul><li>无法达标将全额退还支持者</li><li>达标后需手动创建角色并关联</li><li>每个商家同时只能有一个进行中的众筹</li></ul></div>' +
+            '<button class="btn-submit" id="submitBtn" onclick="doSubmit()">发起众筹</button>' +
+            '</div>'
+
+        // 设置截止时间最小值为当前时间
+        var now = new Date()
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+        document.getElementById('deadline').min = now.toISOString().slice(0, 16)
+    }
+
+    window.uploadCover = function(input) {
+        var file = input.files[0]
+        if (!file) return
+        var fd = new FormData()
+        fd.append('file', file)
+        var btn = document.getElementById('submitBtn')
+        btn.disabled = true
+        btn.textContent = '上传封面中...'
+
+        fetch(base + '/merchant/upload', {
+            method: 'POST',
+            body: fd,
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r){ return r.json() }).then(function(d){
+            btn.disabled = false
+            btn.textContent = '发起众筹'
+            if (d.data && d.data.url) {
+                document.getElementById('coverUrl').value = d.data.url
+                var zone = document.getElementById('coverUpload')
+                zone.innerHTML = '<img src="' + d.data.url + '" alt="封面" />'
+            } else {
+                showToast('上传失败', 'error')
+            }
+        }).catch(function(){
+            btn.disabled = false
+            btn.textContent = '发起众筹'
+            showToast('网络错误', 'error')
+        })
+    }
+
+    window.doSubmit = function() {
+        var title = document.getElementById('title').value.trim()
+        var personaName = document.getElementById('personaName').value.trim()
+        var description = document.getElementById('description').value.trim()
+        var targetAmount = parseFloat(document.getElementById('targetAmount').value)
+        var deadline = document.getElementById('deadline').value
+        var coverUrl = document.getElementById('coverUrl').value
+
+        if (!title) { showToast('请输入项目标题', 'warn'); return }
+        if (!personaName) { showToast('请输入角色名称', 'warn'); return }
+        if (!targetAmount || targetAmount <= 0) { showToast('请输入有效的目标金额', 'warn'); return }
+        if (!deadline) { showToast('请选择截止时间', 'warn'); return }
+        if (new Date(deadline).getTime() <= Date.now()) { showToast('截止时间必须在当前时间之后', 'warn'); return }
+
+        var btn = document.getElementById('submitBtn')
+        btn.disabled = true
+        btn.textContent = '提交中...'
+
+        fetch(base + '/crowdfunding/initiate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                title: title,
+                persona_name: personaName,
+                description: description,
+                cover_url: coverUrl,
+                target_amount: targetAmount,
+                deadline: deadline + ':00'
+            })
+        }).then(function(r){ return r.json() }).then(function(d){
+            btn.disabled = false
+            btn.textContent = '发起众筹'
+            if (d.code === '00000') {
+                showModal('\u2728', '众筹项目已发起！', '你的角色众筹项目已成功发起，现在可以在「我的AI」中查看。', '返回', '', function(){
+                    location.href = './charactersIndex.html'
+                })
+            } else {
+                showToast(d.msg || '发起失败', 'error')
+            }
+        }).catch(function(){
+            btn.disabled = false
+            btn.textContent = '发起众筹'
+            showToast('网络错误，请稍后重试', 'error')
+        })
+    }
+
+    loadStatus()
+})();
+</script>
+</body>
+</html>

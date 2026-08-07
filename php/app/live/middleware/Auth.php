@@ -17,6 +17,11 @@ final class Auth
         $token = $request->header('Authorization', '');
         $token = str_replace('Bearer ', '', $token);
 
+        // 兼容 AI 女友端发来的 token header（非标准 Bearer 格式）
+        if (empty($token)) {
+            $token = $request->header('token', '');
+        }
+
         if (empty($token)) {
             throw new BusinessException(ResultCode::ACCESS_TOKEN_INVALID);
         }

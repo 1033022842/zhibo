@@ -160,10 +160,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/home/SearchPage.vue')
   },
 
-  {
-    path: '/me/certification',
-    component: () => import('@/pages/me/MerchantCertification.vue')
-  }
+  { path: '/me/certification', component: () => import('@/pages/me/MerchantCertification.vue') },
+  { path: '/me/recharge', component: () => import('@/pages/me/Recharge.vue') },
+
+  // 众筹
+  { path: '/crowdfunding/list', component: () => import('@/pages/crowdfunding/CrowdfundingList.vue') },
+  { path: '/crowdfunding/detail/:id', component: () => import('@/pages/crowdfunding/CrowdfundingDetail.vue') },
+  { path: '/crowdfunding/create', component: () => import('@/pages/crowdfunding/CrowdfundingCreate.vue') }
 ]
 
 export default routes

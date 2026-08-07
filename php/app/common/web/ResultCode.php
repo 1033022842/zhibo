@@ -39,6 +39,14 @@ enum ResultCode: string
     case CERTIFICATION_NOT_FOUND = 'G0400';
     case CERTIFICATION_ALREADY_SUBMITTED = 'G0401';
     case CERTIFICATION_ALREADY_PASSED = 'G0402';
+    case CROWDFUNDING_PROJECT_EXISTS  = 'G0500';
+    case CROWDFUNDING_NOT_FOUND       = 'G0501';
+    case CROWDFUNDING_NOT_ACTIVE      = 'G0502';
+    case CROWDFUNDING_EXPIRED         = 'G0503';
+    case CROWDFUNDING_NOT_OWNER       = 'G0504';
+    case CROWDFUNDING_NOT_SUCCESS     = 'G0505';
+    case CROWDFUNDING_ALREADY_LINKED  = 'G0506';
+    case CROWDFUNDING_CANNOT_PLEDGE_SELF = 'G0507';
     case SERVER_ERROR     = 'H0001';
 
     public function getMsg(): string
@@ -78,6 +86,14 @@ enum ResultCode: string
             self::CERTIFICATION_NOT_FOUND => '认证记录不存在',
             self::CERTIFICATION_ALREADY_SUBMITTED => '已提交认证申请，请勿重复提交',
             self::CERTIFICATION_ALREADY_PASSED => '认证已通过，无需重复提交',
+            self::CROWDFUNDING_PROJECT_EXISTS => '已有进行中的众筹项目，请等待结束后再发起',
+            self::CROWDFUNDING_NOT_FOUND => '众筹项目不存在',
+            self::CROWDFUNDING_NOT_ACTIVE => '众筹项目不在进行中',
+            self::CROWDFUNDING_EXPIRED => '众筹项目已截止',
+            self::CROWDFUNDING_NOT_OWNER => '您不是该项目的发起者',
+            self::CROWDFUNDING_NOT_SUCCESS => '众筹项目尚未成功',
+            self::CROWDFUNDING_ALREADY_LINKED => '众筹项目已关联角色',
+            self::CROWDFUNDING_CANNOT_PLEDGE_SELF => '不能支持自己发起的项目',
             self::SERVER_ERROR => '服务器内部错误',
         };
     }

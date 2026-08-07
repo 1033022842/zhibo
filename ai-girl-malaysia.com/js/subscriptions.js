@@ -10,16 +10,20 @@
         getVipList()
         getMoneyList()
         $('#payment').on('click', function() {
-            buyGroup()
+            var tk = localStorage.getItem('live_access_token') || ''
+            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
         })
         $('#payment-yd').on('click', function() {
-            buyGroup_yd()
+            var tk = localStorage.getItem('live_access_token') || ''
+            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
         })
         $('#buyPoint').on('click', function() {
-            checkVip(1)
+            var tk = localStorage.getItem('live_access_token') || ''
+            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
         })
          $('#buyPoint-yd').on('click', function() {
-            checkVip(2)
+            var tk = localStorage.getItem('live_access_token') || ''
+            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
         })
         
         $('.usdt-group').on('click', function() {
@@ -163,7 +167,7 @@
             $(this).addClass('sub-gradient-active')
         })
         
-        //手机�?        
+        //手机�?        
                 cacheTemplate = $('#vip-Layout-yd').html();
         $('#vip-Layout-yd').html(cacheTemplate)
         
@@ -334,17 +338,17 @@
                 // layer.open({
                 //     type: 1
                     
-                //     ,title: "Payment Address" //不显示标�?                //      ,area: ['420px', '']
+                //     ,title: "Payment Address" //不显示标�?                //      ,area: ['420px', '']
                 //     ,offset: "auto" //具体配置参考：https://www.layui1.com/doc/modules/layer.html#offset
                 //     ,id: 'layerDemo' //防止重复弹出
                 //     ,content: '<div style="padding: 8px 130px;"><img src="https://api.qrserver.com/v1/create-qr-code/?data='+res.data.payment_url+'" width="150px">'+""+'</div><p style="text-align:center;font-size:28px;">$ '+res.data.money+'</p><p style="text-align:center;font-size:12px;" id="usdt_url">'+res.data.payment_url+'</p><div style="padding: 3px 180px;"><div id="copybutton" class="px-4 py-2 bg-neutral-700 rounded-[10px] md:flex block w-fit mt-5 md:mt-0"><div class="text-white text-sm font-semibold" id="copyhtmlbutton">copy</div></div></div><p style="margin-top:10px;margin-bottom:30px;color:#FC768A;text-align:center;">Please pay the same amount as the order, otherwise the money will not be credited to your account</>'
                 //     // ,btn: 'close'
                 //     ,btnAlign: 'c' //按钮居中
-                //     ,shade: 0 //不显示遮�?                //     ,yes: function(){
+                //     ,shade: 0 //不显示遮�?                //     ,yes: function(){
                 //       layer.closeAll();
                 //     }
                 //     ,success: function(){
-                //             // 获取按钮，绑定点击事�?                //             document.getElementById('copybutton').onclick = function(){
+                //             // 获取按钮，绑定点击事�?                //             document.getElementById('copybutton').onclick = function(){
                 //                 copy()
                 //             };
                 //         }

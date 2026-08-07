@@ -324,6 +324,8 @@ class Upload
         $pattern  = "/[\s:@#?&\/=',+]+/u";
         $fileName = str_replace(".$suffix", '', $fileName);
         $fileName = preg_replace($pattern, '', $fileName);
+        // 移除中文等非ASCII字符，避免PHP内置服务器路由问题
+        $fileName = preg_replace('/[^\x20-\x7e]/u', '', $fileName);
         return mb_substr(htmlspecialchars(strip_tags($fileName)), 0, $length);
     }
 
