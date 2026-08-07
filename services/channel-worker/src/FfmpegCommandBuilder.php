@@ -11,21 +11,25 @@ final class FfmpegCommandBuilder
     public function __construct(public readonly array $config) {}
 
     /**
-     * 构建 HLS 480p@15fps concat demuxer 命令
-     * 低 CPU 配置：480p 分辨率 + 15fps + CRF 32，适合低配服务器
+     * 构建 HLS 命令
+     *
+     * 注意：不使用 delete_segments，由 PHP 侧统一清理旧分片，避免双 ffmpeg 共存时互相误删。
+     *
+     * @param bool   $loop         是否循环播放列表
+     * @param int    $startNumber  起始分片号，0=从头开始，>0=接续已有分片
+     * @param string $m3u8Basename m3u8 文件名（不含路径），默认 'index'，双播单场景用 'default'/'keyword'
      */
-    /**
-     * @param bool $loop 是否循环播放列表。默认视频应循环(true)，关键词触发的一次性播单不应循环(false)
-     * @param int  $startNumber 起始分片号，0=从头开始，>0=接续已有分片避免编号跳变
-     */
-    public function buildHlsToDir(string $hlsDir, string $playlistFile, bool $loop = true, int $startNumber = 0): string
-    {
-        $m3u8 = $hlsDir . '/index.m3u8';
+    public function buildHlsToDir(
+        string $hlsDir,
+        string $playlistFile,
+        bool $loop = true,
+        int $startNumber = 0,
+        string $m3u8Basename = 'index'
+    ): string {
+        $m3u8 = $hlsDir . '/' . $m3u8Basename . '.m3u8';
         $segPat = $hlsDir . '/seg_%05d.ts';
         $loopFlag = $loop ? '-stream_loop -1 ' : '';
         $startOpt = $startNumber > 0 ? "-start_number {$startNumber} " : '';
-        // 非循环播单（关键词视频）：加 omit_endlist 防止 ffmpeg 退出时写 #EXT-X-ENDLIST，
-        // 避免 hls.js 认为流结束停止轮询，从而无法发现后续重启的默认播单。
         $endlistOpt = $loop ? '' : '+omit_endlist';
 
         return sprintf(
@@ -37,7 +41,7 @@ final class FfmpegCommandBuilder
             . '-g 30 -keyint_min 30 -sc_threshold 0 -pix_fmt yuv420p '
             . '-c:a aac -b:a 48k -ar 44100 '
             . '-max_muxing_queue_size 4096 '
-            . '-f hls -hls_time 2 -hls_list_size 30 -hls_flags delete_segments+program_date_time+discont_start'
+            . '-f hls -hls_time 2 -hls_list_size 30 -hls_flags program_date_time+discont_start'
             . $endlistOpt . ' '
             . $startOpt
             . '-hls_segment_filename "%s" "%s"',

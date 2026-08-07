@@ -11,8 +11,26 @@ final class PlaylistRepository
 {
     public function __construct(
         private readonly Database $database,
-        private readonly string $mediaBaseDir = ''
+        private readonly string $mediaBaseDir = '',
+        private readonly string $ffprobeBin = 'ffprobe'
     ) {
+    }
+
+    /**
+     * 用 ffprobe 获取视频真实时长（秒），失败时回退到 duration_ms
+     */
+    public function probeDuration(string $filePath): float
+    {
+        $cmd = sprintf(
+            '%s -v error -show_entries format=duration -of csv=p=0 "%s" 2>/dev/null',
+            escapeshellarg($this->ffprobeBin),
+            str_replace('"', '\"', $filePath)
+        );
+        $out = @shell_exec($cmd);
+        if ($out !== null && is_numeric(trim($out))) {
+            return (float) trim($out);
+        }
+        return 0.0;
     }
 
     /**
