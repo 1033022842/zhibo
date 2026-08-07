@@ -15,7 +15,17 @@ use ChannelWorker\PlaylistRepository;
 use ChannelWorker\RedisStream;
 
 $config = require dirname(__DIR__) . '/config/channel_worker.php';
-$repository = new PlaylistRepository(new Database(), $config['media_base_dir'] ?? '');
+
+// 从 ffmpeg_bin 推导 ffprobe 路径（同目录）
+$ffprobeBin = 'ffprobe';
+if (!empty($config['ffmpeg_bin'])) {
+    $probe = preg_replace('/ffmpeg(\.exe)?$/', 'ffprobe$1', $config['ffmpeg_bin']);
+    if ($probe !== $config['ffmpeg_bin']) {
+        $ffprobeBin = $probe;
+    }
+}
+
+$repository = new PlaylistRepository(new Database(), $config['media_base_dir'] ?? '', $ffprobeBin);
 $builder = new FfmpegCommandBuilder($config);
 $redis = new RedisStream($config['redis'] ?? []);
 $worker = new ChannelWorker($repository, $builder, $redis, $config);
