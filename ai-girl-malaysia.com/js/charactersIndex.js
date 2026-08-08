@@ -40,7 +40,7 @@
                     type: 1,
                     title: '商家认证提示',
                     area: ['420px', '240px'],
-                    content: '<div style="padding:20px;text-align:center;line-height:1.8"><p style="font-size:15px;color:#f59e0b">&#9888; 创建AI角色需要先通过商家认证</p><p style="color:#999;margin-top:8px;font-size:13px">请先完成商家认证后再创建AI角色</p><button onclick="location.href=\'./certification.html\'" style="margin-top:16px;padding:10px 32px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">去认�?/button></div>',
+                    content: '<div style="padding:20px;text-align:center;line-height:1.8"><p style="font-size:15px;color:#f59e0b">&#9888; 创建AI角色需要先通过商家认证</p><p style="color:#999;margin-top:8px;font-size:13px">请先完成商家认证后再创建AI角色</p><button onclick="location.href=\'./certification.html\'" style="margin-top:16px;padding:10px 32px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">去认证</button></div>',
                     btn: []
                 })
             }
@@ -183,7 +183,7 @@ function showReplayClips(personaId, personaName) {
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #333;cursor:pointer;" onclick="window.open(\'' + c.video_url + '\', \'_blank\')">';
                 html += '<div><div style="color:#fff;font-size:14px;font-weight:500;">' + c.title + '</div>';
                 html += '<div style="color:#888;font-size:12px;margin-top:4px;">' + d + (dur ? ' · ' + dur : '') + '</div></div>';
-                html += '<div style="color:#E75275;font-size:20px;">�?/div>';
+                html += '<div style="color:#E75275;font-size:20px;">&#9654;</div>';
                 html += '</div>';
             });
             html += '</div>';

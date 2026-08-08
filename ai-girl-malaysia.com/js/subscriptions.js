@@ -11,19 +11,19 @@
         getMoneyList()
         $('#payment').on('click', function() {
             var tk = localStorage.getItem('live_access_token') || ''
-            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
         $('#payment-yd').on('click', function() {
             var tk = localStorage.getItem('live_access_token') || ''
-            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
         $('#buyPoint').on('click', function() {
             var tk = localStorage.getItem('live_access_token') || ''
-            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
          $('#buyPoint-yd').on('click', function() {
             var tk = localStorage.getItem('live_access_token') || ''
-            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
         
         $('.usdt-group').on('click', function() {
