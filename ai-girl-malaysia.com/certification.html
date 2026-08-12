@@ -22,8 +22,11 @@
         .form-title{font-size:16px;font-weight:600;margin-bottom:20px;text-align:center}
         .field{margin-bottom:18px}
         .field label{display:block;font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px}
-        .field input[type=email]{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#fff;font-size:15px;outline:none}
-        .field input[type=email]:focus{border-color:#f59e0b}
+        .field input[type=text],.field input[type=email],.field input[type=tel],.field select,.field textarea{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#fff;font-size:15px;outline:none}
+        .field input:focus,.field select:focus,.field textarea:focus{border-color:#f59e0b}
+        .field select{appearance:none;-webkit-appearance:none;cursor:pointer}
+        .field select option{background:#1a1d2e;color:#fff}
+        .field textarea{resize:vertical;min-height:80px}
         .upload-zone{width:100%;min-height:100px;border:2px dashed rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color .2s}
         .upload-zone:hover{border-color:rgba(255,255,255,.3)}
         .upload-zone img{width:100%;max-height:200px;object-fit:contain;background:rgba(0,0,0,.3)}
@@ -78,7 +81,7 @@
 <script>
 (function(){
     var token = localStorage.getItem('live_access_token')
-    var base = 'http://38.181.44.164/api/v1/merchant'
+    var base = '/api/v1/merchant'
 
     // Toast 通知
     var toastTimer
@@ -110,12 +113,13 @@
         return
     }
 
-    // 加载认证状�?    function loadStatus() {
+    // 加载认证状态
+    function loadStatus() {
         fetch(base + '/status', {
             headers: { 'Authorization': 'Bearer ' + token }
         }).then(function(r){ return r.json() }).then(function(d){
             if (d.code && d.code !== '00000') {
-                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">登录已过�?/p><button class="btn-submit" onclick="location.href=\'./Login.html\'">去登�?/button></div>'
+                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">登录已过期</p><button class="btn-submit" onclick="location.href=\'./Login.html\'">去登录</button></div>'
                 return
             }
             var status = d.data ? d.data.cert_status : -1
@@ -135,12 +139,12 @@
 
     function renderPassed() {
         document.getElementById('content').innerHTML =
-            '<div class="status-card passed"><div class="status-icon">&#10003;</div><div class="status-title">认证已通过</div><div class="status-desc">您现在可以创建AI角色�?/div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
+            '<div class="status-card passed"><div class="status-icon">&#10003;</div><div class="status-title">认证已通过</div><div class="status-desc">您现在可以创建AI角色</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
     }
 
     function renderPending() {
         document.getElementById('content').innerHTML =
-            '<div class="status-card pending"><div class="status-icon">&#9201;</div><div class="status-title">审核�?/div><div class="status-desc">您的认证申请正在审核，请耐心等待</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
+            '<div class="status-card pending"><div class="status-icon">&#9201;</div><div class="status-title">审核中</div><div class="status-desc">您的认证申请正在审核，请耐心等待</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
     }
 
     function renderRejected() {
@@ -149,39 +153,87 @@
     }
 
     function renderForm() {
-        document.getElementById('content').innerHTML =
-            '<div class="form-card">' +
-            '<div class="form-title">提交认证资料</div>' +
-            '<div class="field"><label>认证邮箱</label><input type="email" id="certEmail" placeholder="请输入认证邮�? maxlength="255"></div>' +
-            '<div class="field"><label>身份证正�?/label><div class="upload-zone" id="frontUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="frontInput" accept="image/*" style="display:none"></div>' +
-            '<div class="field"><label>身份证背�?/label><div class="upload-zone" id="backUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="backInput" accept="image/*" style="display:none"></div>' +
-            '<button class="btn-submit" id="btnSubmit" onclick="doSubmit()">提交认证</button>' +
-            '</div>'
+        // 先获取经营类目
+        var shopTypesLoaded = false
+        var shopTypeOptions = ''
+        fetch(base + '/shop-types', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r){ return r.json() }).then(function(d){
+            if (d.code === '00000' && d.data) {
+                shopTypeOptions = d.data.map(function(t){ return '<option value="'+t.value+'">'+t.label+'</option>' }).join('')
+            }
+            shopTypesLoaded = true
+            buildForm()
+        }).catch(function(){
+            shopTypesLoaded = true
+            buildForm()
+        })
 
+        function buildForm() {
+            document.getElementById('content').innerHTML =
+                '<div class="form-card">' +
+                '<div class="form-title">提交认证资料</div>' +
+                '<div class="field"><label>真实姓名 *</label><input type="text" id="realName" placeholder="请输入真实姓名" maxlength="50"></div>' +
+                '<div class="field"><label>身份证号 *</label><input type="text" id="idCardNo" placeholder="请输入身份证号" maxlength="18"></div>' +
+                '<div class="field"><label>手机号 *</label><input type="tel" id="phone" placeholder="请输入手机号" maxlength="20"></div>' +
+                '<div class="field"><label>认证邮箱 *</label><input type="email" id="certEmail" placeholder="请输入认证邮箱" maxlength="255"></div>' +
+                '<div class="field"><label>店铺名称 *</label><input type="text" id="shopName" placeholder="请输入店铺名称" maxlength="100"></div>' +
+                '<div class="field"><label>经营类目 *</label><select id="shopType">' +
+                '<option value="">'+ (shopTypesLoaded ? '加载失败，请刷新重试' : '加载中...') +'</option>' +
+                shopTypeOptions +
+                '</select></div>' +
+                '<div class="field"><label>店铺简介</label><textarea id="shopDesc" placeholder="请简要描述您的店铺（选填）" maxlength="500"></textarea></div>' +
+                '<div class="field"><label>身份证正面 *</label><div class="upload-zone" id="frontUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="frontInput" accept="image/*" style="display:none"></div>' +
+                '<div class="field"><label>身份证背面 *</label><div class="upload-zone" id="backUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="backInput" accept="image/*" style="display:none"></div>' +
+                '<div class="field"><label>营业执照 *</label><div class="upload-zone" id="licenseUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128196;</span><span>点击上传</span></div></div><input type="file" id="licenseInput" accept="image/*" style="display:none"></div>' +
+                '<button class="btn-submit" id="btnSubmit" onclick="doSubmit()">提交认证</button>' +
+                '</div>'
+
+            bindUploads()
+        }
+    }
+
+    function bindUploads() {
+        var frontUrl = '', backUrl = '', licenseUrl = ''
         var front = document.getElementById('frontUpload')
         var back = document.getElementById('backUpload')
+        var license = document.getElementById('licenseUpload')
         var frontInput = document.getElementById('frontInput')
         var backInput = document.getElementById('backInput')
-        var frontUrl = '', backUrl = ''
+        var licenseInput = document.getElementById('licenseInput')
 
-        front.onclick = function(){ frontInput.click() }
-        back.onclick = function(){ backInput.click() }
+        if (front) { front.onclick = function(){ frontInput.click() } }
+        if (back) { back.onclick = function(){ backInput.click() } }
+        if (license) { license.onclick = function(){ licenseInput.click() } }
 
-        frontInput.onchange = function(e){
-            uploadFile(e.target.files[0], front, function(url){ frontUrl = url })
-        }
-        backInput.onchange = function(e){
-            uploadFile(e.target.files[0], back, function(url){ backUrl = url })
-        }
+        if (frontInput) { frontInput.onchange = function(e){ uploadFile(e.target.files[0], front, function(url){ frontUrl = url }) } }
+        if (backInput) { backInput.onchange = function(e){ uploadFile(e.target.files[0], back, function(url){ backUrl = url }) } }
+        if (licenseInput) { licenseInput.onchange = function(e){ uploadFile(e.target.files[0], license, function(url){ licenseUrl = url }) } }
 
         window.doSubmit = function(){
+            var realName = document.getElementById('realName').value.trim()
+            var idCardNo = document.getElementById('idCardNo').value.trim()
+            var phone = document.getElementById('phone').value.trim()
             var email = document.getElementById('certEmail').value.trim()
+            var shopName = document.getElementById('shopName').value.trim()
+            var shopType = document.getElementById('shopType').value
+            var shopDesc = document.getElementById('shopDesc').value.trim()
             var btn = document.getElementById('btnSubmit')
+
+            if (!realName) { showToast('请输入真实姓名', 'error'); return }
+            if (!idCardNo) { showToast('请输入身份证号', 'error'); return }
+            if (!/^[a-zA-Z0-9]{15,18}$/.test(idCardNo)) { showToast('身份证号格式不正确', 'error'); return }
+            if (!phone) { showToast('请输入手机号', 'error'); return }
+            if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('手机号格式不正确', 'error'); return }
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('请输入正确的邮箱', 'error'); return }
+            if (!shopName) { showToast('请输入店铺名称', 'error'); return }
+            if (!shopType) { showToast('请选择经营类目', 'error'); return }
             if (!frontUrl) { showToast('请上传身份证正面', 'error'); return }
             if (!backUrl) { showToast('请上传身份证背面', 'error'); return }
+            if (!licenseUrl) { showToast('请上传营业执照', 'error'); return }
+
             btn.disabled = true
-            btn.textContent = '提交�?..'
+            btn.textContent = '提交中...'
             var r = new XMLHttpRequest()
             r.open('POST', base + '/submit')
             r.setRequestHeader('Authorization', 'Bearer ' + token)
@@ -192,7 +244,7 @@
                 try {
                     var d = JSON.parse(r.responseText)
                     if (d.code === '00000' || d.code === 0) {
-                        showModal('&#10003;', '提交成功', '您的认证申请已提交，请等待审�?, '我知道了', 'modal-btn-success', function(){ loadStatus() })
+                        showModal('&#10003;', '提交成功', '您的认证申请已提交，请等待审核', '我知道了', 'modal-btn-success', function(){ loadStatus() })
                     } else {
                         showToast(d.msg || '提交失败', 'error')
                     }
@@ -205,7 +257,18 @@
                 btn.textContent = '提交认证'
                 showToast('网络错误，请重试', 'error')
             }
-            r.send(JSON.stringify({ email: email, id_card_front: frontUrl, id_card_back: backUrl }))
+            r.send(JSON.stringify({
+                real_name: realName,
+                id_card_no: idCardNo,
+                phone: phone,
+                email: email,
+                shop_name: shopName,
+                shop_type: shopType,
+                shop_description: shopDesc,
+                id_card_front: frontUrl,
+                id_card_back: backUrl,
+                business_license: licenseUrl
+            }))
         }
     }
 
