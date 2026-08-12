@@ -82,10 +82,10 @@ final class Merchant extends BaseController
             'has_cert'      => true,
             'cert_status'   => (int)$cert['status'],
             'status_text'   => $statusMap[$cert['status']] ?? '未知',
-            'shop_name'     => $cert['shop_name'],
-            'email'         => $cert['email'],
-            'reject_reason' => $cert['reject_reason'],
-            'created_at'    => $cert['created_at'],
+            'shop_name'     => $cert['shop_name'] ?? '',
+            'email'         => $cert['email'] ?? '',
+            'reject_reason' => $cert['reject_reason'] ?? '',
+            'created_at'    => $cert['created_at'] ?? '',
         ]);
     }
 

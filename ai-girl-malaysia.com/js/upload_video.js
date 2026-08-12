@@ -1,5 +1,5 @@
 (()=>{
-    var base = 'http://127.0.0.1:8001/api/live'
+    var base = '/api/live'
     var token = localStorage.getItem('live_access_token')
     var giftList = []
 

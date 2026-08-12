@@ -514,7 +514,7 @@ body, html {
 
 	<script>
 	(()=>{
-		var base = 'http://127.0.0.1:8049'
+		var base = ''
 		var token = localStorage.getItem('token')
 		var giftList = []
 		
@@ -577,7 +577,7 @@ body, html {
 			const settings = {
 				"async": true,
 				"crossDomain": true,
-				"url": "http://127.0.0.1:8001" + "/api/characters/" + id + "/default_video",
+				"url": "" + "/api/characters/" + id + "/default_video",
 				"method": "get",
 				"headers": headers,
 				"processData": false,

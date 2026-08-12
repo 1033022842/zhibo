@@ -1,5 +1,5 @@
 (()=>{
-    var base = 'http://127.0.0.1:8001/api/live'
+    var base = '/api/live'
     var token = localStorage.getItem('live_access_token')
     var typeArr = ['Realistic', 'Anime']
     var ageArr = ['18+', '20s', '30s', '40-55']
@@ -22,7 +22,7 @@
         // Check merchant certification status
         e.preventDefault()
         layer.load(1)
-        fetch('http://127.0.0.1:8001/api/v1/merchant/status', {
+        fetch('/api/v1/merchant/status', {
                 headers: { 'Authorization': 'Bearer ' + token }
             }).then(function(r){ return r.json() }).then(function(d){
                 layer.closeAll('loading')
@@ -147,7 +147,7 @@
 
 // Global function for replay clips modal (called from onclick in HTML template)
 function showReplayClips(personaId, personaName) {
-    var base = 'http://127.0.0.1:8001/api/live';
+    var base = '/api/live';
     var token = localStorage.getItem('live_access_token');
     if (!token) {
         layer.msg('Please log in first');
