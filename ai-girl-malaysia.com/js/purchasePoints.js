@@ -1,5 +1,5 @@
 (()=>{
-    const base = 'http://38.181.44.164/api'
+    const base = '/api'
 
     function initPurchasePoints() {
         const token = localStorage.getItem('live_access_token')
@@ -66,7 +66,7 @@
                 window.location.href = './login.html'
                 return
             }
-            window.location.href = 'http://localhost:3000/me/recharge#token=' + encodeURIComponent(tk)
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
     }
 })()

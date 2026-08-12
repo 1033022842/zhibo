@@ -1,6 +1,6 @@
 (()=>{
     var cacheTemplate = ''
-    var base = 'http://127.0.0.1:8049'
+    var base = ''
     var token = localStorage.getItem('live_access_token')
 	
 	var userJson = localStorage.getItem('live_user_info')
@@ -95,7 +95,7 @@
       }
        
       function makeAjaxRequest(method, url, data) {
-        var base = 'http://127.0.0.1:8049/'
+        var base = '/'
         url = base + url
         headers = headers || {};
         const xhr = new XMLHttpRequest();

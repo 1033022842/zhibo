@@ -160,7 +160,8 @@ async function doSubmit() {
   color: #fff;
   padding-bottom: 40px;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .bg-glow {
   position: fixed;

@@ -1,5 +1,5 @@
 (()=>{
-    var base = 'http://127.0.0.1:8049'
+    var base = ''
        // 缓存对话模板
        var cacheTemplate = $('#messages-list').html()
        var token = localStorage.getItem('live_access_token')

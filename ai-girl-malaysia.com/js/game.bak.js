@@ -1,5 +1,5 @@
 (()=>{
-     var base = 'http://127.0.0.1:8049'
+     var base = ''
      var slideshowItems = [];
      var token = localStorage.getItem('token')
      var durations = [3000, 7000, 13000]; // 每个项目的播放时间，单位为毫�?     var currentIndex = -1; // 初始索引�?-1，因为点击按钮后会先增加�?0

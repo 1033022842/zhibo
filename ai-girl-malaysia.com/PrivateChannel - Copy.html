@@ -13,9 +13,9 @@
   <script src="./assets/layer/3.1.1/layer.js"></script>
 	<!-- PAG Web SDK - 使用 type="module" 加载 -->
 	<!-- 官方文档: https://pag.io/docs/zh-CN/web-play-pagfile.html -->
-	<!-- 尝试使用 unpkg CDN 或其他方式加�?PAG -->
+	<!-- 尝试使用 unpkg CDN 或其他方式加�?PAG -->
 	<script type="module">
-		// 尝试多个 CDN 源和不同的文件路�?		var PAG_CDN_SOURCES = [
+		// 尝试多个 CDN 源和不同的文件路�?		var PAG_CDN_SOURCES = [
 			// 尝试 ESM 版本
 			'https://unpkg.com/libpag@latest/lib/libpag.esm.js',
 			'https://cdn.jsdelivr.net/npm/libpag@latest/lib/libpag.esm.js',
@@ -31,8 +31,8 @@
 		
 		function tryLoadPAG(sourceIndex) {
 			if (sourceIndex >= PAG_CDN_SOURCES.length) {
-				// 所�?CDN 都失败，尝试本地文件
-				console.warn('所�?PAG CDN 加载失败，尝试本地文�?);
+				// 所�?CDN 都失败，尝试本地文件
+				console.warn('所�?PAG CDN 加载失败，尝试本地文�?);
 				import('./assets/libpag/libpag.min.js').then(function(module) {
 					handlePAGModule(module, '本地文件');
 				}).catch(function(localError) {
@@ -45,7 +45,7 @@
 			}
 			
 			var url = PAG_CDN_SOURCES[sourceIndex];
-			console.log('尝试加载 PAG �?', url);
+			console.log('尝试加载 PAG �?', url);
 			
 			import(url).then(function(module) {
 				handlePAGModule(module, url);
@@ -57,7 +57,7 @@
 		}
 		
 		function handlePAGModule(module, source) {
-			console.log('PAG 模块加载成功，来�?', source);
+			console.log('PAG 模块加载成功，来�?', source);
 			console.log('原始模块:', module);
 			console.log('模块类型:', typeof module);
 			console.log('模块 keys:', Object.keys(module));
@@ -77,7 +77,7 @@
 				console.log('使用 module 本身');
 			}
 			
-			// 方式3: 查找 PAG �?libpag 属�?			if (!libpag && module.PAG) {
+			// 方式3: 查找 PAG �?libpag 属�?			if (!libpag && module.PAG) {
 				libpag = module.PAG;
 				console.log('使用 module.PAG');
 			}
@@ -95,39 +95,39 @@
 			
 			if (libpag) {
 				window.libpag = libpag;
-				console.log('PAG 库已设置�?window.libpag');
+				console.log('PAG 库已设置�?window.libpag');
 				console.log('libpag 类型:', typeof libpag);
 				console.log('libpag keys:', Object.keys(libpag));
 				
-				// 检查关�?API（按照官方文档，应该�?PAGInit 方法�?				var apiCheck = {
+				// 检查关�?API（按照官方文档，应该�?PAGInit 方法�?				var apiCheck = {
 					hasPAGInit: typeof libpag.PAGInit === 'function',
 					hasPAGFile: !!(libpag.PAGFile),
 					hasPAGView: !!(libpag.PAGView),
 					hasTypes: !!(libpag.types)
 				};
-				console.log('API 检�?', apiCheck);
+				console.log('API 检�?', apiCheck);
 				
-				// 按照官方文档，libpag 应该�?PAGInit 方法
+				// 按照官方文档，libpag 应该�?PAGInit 方法
 				if (!apiCheck.hasPAGInit) {
-					console.warn('PAGInit 方法未找到，PAG 可能无法正常初始�?);
+					console.warn('PAGInit 方法未找到，PAG 可能无法正常初始�?);
 				} else {
-					console.log('�?PAGInit 方法可用，可以正常初始化 PAG');
+					console.log('�?PAGInit 方法可用，可以正常初始化 PAG');
 				}
 				
 				if (window.onPAGLoaded) {
 					window.onPAGLoaded(window.libpag);
 				}
 			} else {
-				console.error('无法从模块中提取 PAG �?);
+				console.error('无法从模块中提取 PAG �?);
 				console.error('建议：请下载 PAG 库到本地 ./assets/libpag/libpag.min.js');
 				console.error('下载地址：https://github.com/Tencent/libpag/releases');
 				if (window.onPAGError) {
-					window.onPAGError(new Error('PAG 模块结构不正确，请使用本地文�?));
+					window.onPAGError(new Error('PAG 模块结构不正确，请使用本地文�?));
 				}
 			}
 		}
 		
-		// 开始加�?		tryLoadPAG(0);
+		// 开始加�?		tryLoadPAG(0);
 	</script>
 	<script src="./js/main.js"></script>
 	<script src="./js/event.js"></script>
@@ -176,7 +176,7 @@ body, html {
     border-radius: 10px;
 }
 
-/* 礼物栏样�?*/
+/* 礼物栏样�?*/
 #gift-container {
     position: fixed;
     bottom: 0;
@@ -277,7 +277,7 @@ body, html {
     }
 }
 
-/* PAG 动画层样�?*/
+/* PAG 动画层样�?*/
 #gift-animation-layer {
     position: absolute;
     top: 0;
@@ -497,15 +497,15 @@ body, html {
 			<video id="videoA" 
 				   controls autoplay loop muted playsinline preload="auto"
 				   style="object-fit:cover;opacity:1;transition:opacity 0.5s;display:block;"></video>
-			<!-- PAG 动画效果�?-->
+			<!-- PAG 动画效果�?-->
 			<div id="gift-animation-layer"></div>
 		</div>
 	</div>
 
-	<!-- 礼物�?-->
+	<!-- 礼物�?-->
 	<div id="gift-container">
 		<div id="gift-list">
-			<!-- 礼物列表将通过 JavaScript 动态加�?-->
+			<!-- 礼物列表将通过 JavaScript 动态加�?-->
 		</div>
 	</div>
 
@@ -514,7 +514,7 @@ body, html {
 
 	<script>
 	(()=>{
-		var base = 'http://127.0.0.1:8049'
+		var base = ''
 		var token = localStorage.getItem('token')
 		var giftList = []
 		
@@ -577,7 +577,7 @@ body, html {
 			const settings = {
 				"async": true,
 				"crossDomain": true,
-				"url": "http://38.181.44.164" + "/api/characters/" + id + "/default_video",
+				"url": "" + "/api/characters/" + id + "/default_video",
 				"method": "get",
 				"headers": headers,
 				"processData": false,
@@ -614,7 +614,7 @@ body, html {
 							}
 						}, 10000);
 					} else {
-						console.error('找不�?video 元素')
+						console.error('找不�?video 元素')
 						hideLoading();
 					}
 				} else {
@@ -707,14 +707,14 @@ body, html {
 		var isPlayingPAG = false
 		var PAG = null // PAG 模块引用
 		
-		// 初始�?PAG 模块（按照官方文档：先加�?libpag，再调用 PAGInit�?		async function initPAG() {
+		// 初始�?PAG 模块（按照官方文档：先加�?libpag，再调用 PAGInit�?		async function initPAG() {
 			if (PAG) return PAG
 			
 			// 等待 libpag 加载完成
 			if (typeof window.libpag === 'undefined') {
 				await new Promise(function(resolve, reject) {
 					var checkCount = 0
-					var maxChecks = 150 // 15秒，�?00ms检查一�?					
+					var maxChecks = 150 // 15秒，�?00ms检查一�?					
 					// 设置加载完成回调
 					window.onPAGLoaded = function() {
 						window.onPAGLoaded = null
@@ -727,7 +727,7 @@ body, html {
 						reject(error)
 					}
 					
-					// 轮询检查（备用方案�?					var checkInterval = setInterval(function() {
+					// 轮询检查（备用方案�?					var checkInterval = setInterval(function() {
 						if (typeof window.libpag !== 'undefined') {
 							clearInterval(checkInterval)
 							if (window.onPAGLoaded) {
@@ -745,15 +745,15 @@ body, html {
 				})
 			}
 			
-			// 检�?libpag 是否�?PAGInit 方法
+			// 检�?libpag 是否�?PAGInit 方法
 			if (!window.libpag || typeof window.libpag.PAGInit !== 'function') {
-				throw new Error('PAGInit 方法不可�?)
+				throw new Error('PAGInit 方法不可�?)
 			}
 			
-			// 按照官方文档调用 PAGInit 初始�?PAG
+			// 按照官方文档调用 PAGInit 初始�?PAG
 			try {
 				PAG = await window.libpag.PAGInit()
-				console.log('PAG 初始化成�?', {
+				console.log('PAG 初始化成�?', {
 					hasPAGFile: !!(PAG && PAG.PAGFile),
 					hasPAGView: !!(PAG && PAG.PAGView),
 					keys: PAG ? Object.keys(PAG).slice(0, 10) : []
@@ -765,20 +765,20 @@ body, html {
 			}
 		}
 		
-		// 检�?PAG 是否可用
+		// 检�?PAG 是否可用
 		async function isPAGAvailable() {
 			try {
 				var pag = await initPAG()
 				if (!pag) {
-					console.log('PAG 模块未加�?)
+					console.log('PAG 模块未加�?)
 					return false
 				}
 				
-				// 检�?PAG API 结构（按照官方文档：应该�?PAGFile �?PAGView�?				var hasPAGFile = !!(pag.PAGFile)
+				// 检�?PAG API 结构（按照官方文档：应该�?PAGFile �?PAGView�?				var hasPAGFile = !!(pag.PAGFile)
 				var hasPAGView = !!(pag.PAGView)
 				
 				if (!hasPAGFile || !hasPAGView) {
-					console.log('PAG API 结构不匹�?', {
+					console.log('PAG API 结构不匹�?', {
 						hasPAGFile: hasPAGFile,
 						hasPAGView: hasPAGView,
 						pagKeys: Object.keys(pag || {})
@@ -787,7 +787,7 @@ body, html {
 				
 				return hasPAGFile && hasPAGView
 			} catch (error) {
-				console.error('检�?PAG 可用性时出错:', error)
+				console.error('检�?PAG 可用性时出错:', error)
 				return false
 			}
 		}
@@ -820,12 +820,12 @@ body, html {
 			var pagView = null
 			
 			try {
-				// 确保 PAG 已初始化（会调用 PAGInit�?				if (!PAG) {
+				// 确保 PAG 已初始化（会调用 PAGInit�?				if (!PAG) {
 					PAG = await initPAG()
 				}
 				
 				if (!PAG || !PAG.PAGFile || !PAG.PAGView) {
-					console.error('PAG API 不完�?', {
+					console.error('PAG API 不完�?', {
 						hasPAG: !!PAG,
 						hasPAGFile: !!(PAG && PAG.PAGFile),
 						hasPAGView: !!(PAG && PAG.PAGView),
@@ -846,15 +846,15 @@ body, html {
 				canvas = document.createElement('canvas')
 				canvas.className = 'gift-pag-canvas'
 				
-				// 先添加到 DOM，再设置尺寸（PAG 需�?canvas �?DOM 中）
+				// 先添加到 DOM，再设置尺寸（PAG 需�?canvas �?DOM 中）
 				container.appendChild(canvas)
 				animationLayer.appendChild(container)
 				
-				// 加载 PAG 文件（处�?CORS 问题�?				var pagUrl = animation.url
+				// 加载 PAG 文件（处�?CORS 问题�?				var pagUrl = animation.url
 				var response = null
 				var arrayBuffer = null
 				
-				// 检�?URL 是否是跨域的
+				// 检�?URL 是否是跨域的
 				var isCrossOrigin = false
 				var targetOrigin = null
 				try {
@@ -862,15 +862,15 @@ body, html {
 					targetOrigin = urlObj.origin
 					isCrossOrigin = targetOrigin !== window.location.origin
 				} catch (e) {
-					// URL 解析失败，可能是相对路径，视为同�?					isCrossOrigin = false
+					// URL 解析失败，可能是相对路径，视为同�?					isCrossOrigin = false
 				}
 				
-				// 如果 URL �?localhost:8049（后端服务器），且当前页面是 localhost:8080，需要处�?CORS
+				// 如果 URL �?localhost:8049（后端服务器），且当前页面是 localhost:8080，需要处�?CORS
 				if (isCrossOrigin && targetOrigin && targetOrigin.includes('localhost:8049')) {
-					// 方案1: 尝试通过后端 API 代理（如果后端有代理接口�?					// 方案2: 直接使用 fetch，但需要后端配�?CORS �?					console.log('检测到跨域 PAG 文件，尝试加�?', pagUrl)
+					// 方案1: 尝试通过后端 API 代理（如果后端有代理接口�?					// 方案2: 直接使用 fetch，但需要后端配�?CORS �?					console.log('检测到跨域 PAG 文件，尝试加�?', pagUrl)
 					
 					try {
-						// 先尝试直�?fetch（如果后端已配置 CORS�?						response = await fetch(pagUrl, {
+						// 先尝试直�?fetch（如果后端已配置 CORS�?						response = await fetch(pagUrl, {
 							mode: 'cors',
 							credentials: 'omit'
 						})
@@ -881,16 +881,16 @@ body, html {
 						
 						arrayBuffer = await response.arrayBuffer()
 					} catch (corsError) {
-						// CORS 失败，尝试通过后端代理或使用相对路�?						console.warn('CORS 错误，尝试其他方式加�?', corsError.message)
+						// CORS 失败，尝试通过后端代理或使用相对路�?						console.warn('CORS 错误，尝试其他方式加�?', corsError.message)
 						
 						// 如果 URL 是完整路径，尝试提取相对路径
 						try {
 							var fullUrl = new URL(pagUrl)
 							var relativePath = fullUrl.pathname
 							
-							// 如果路径�?/assets/ 开头，直接使用（假设后端支持）
+							// 如果路径�?/assets/ 开头，直接使用（假设后端支持）
 							if (relativePath.startsWith('/assets/')) {
-								// 尝试使用当前页面�?origin + 路径（如果后端在同一域名下）
+								// 尝试使用当前页面�?origin + 路径（如果后端在同一域名下）
 								var sameOriginUrl = window.location.origin + relativePath
 								console.log('尝试同源 URL:', sameOriginUrl)
 								
@@ -902,8 +902,8 @@ body, html {
 										throw new Error('Same origin fetch failed')
 									}
 								} catch (e) {
-									// 如果还是失败，抛出原�?CORS 错误
-									throw new Error('CORS 错误：后端服务器 ' + targetOrigin + ' 需要配�?Access-Control-Allow-Origin 头。\n' +
+									// 如果还是失败，抛出原�?CORS 错误
+									throw new Error('CORS 错误：后端服务器 ' + targetOrigin + ' 需要配�?Access-Control-Allow-Origin 头。\n' +
 										'或者将 PAG 文件放到前端服务器的同源路径下。\n' +
 										'原始错误: ' + corsError.message)
 								}
@@ -911,12 +911,12 @@ body, html {
 								throw corsError
 							}
 						} catch (e) {
-							throw new Error('无法加载 PAG 文件。CORS 错误�? + corsError.message + 
-								'\n请确保后端服务器配置�?CORS 头，或者将 PAG 文件放到前端可访问的位置�?)
+							throw new Error('无法加载 PAG 文件。CORS 错误�? + corsError.message + 
+								'\n请确保后端服务器配置�?CORS 头，或者将 PAG 文件放到前端可访问的位置�?)
 						}
 					}
 				} else {
-					// 同源请求或官�?CDN（通常已配�?CORS�?					response = await fetch(pagUrl, {
+					// 同源请求或官�?CDN（通常已配�?CORS�?					response = await fetch(pagUrl, {
 						mode: isCrossOrigin ? 'cors' : 'same-origin',
 						credentials: 'omit'
 					})
@@ -931,14 +931,14 @@ body, html {
 				// 按照官方文档使用 PAG.PAGFile.load()
 				var pagFile = await PAG.PAGFile.load(arrayBuffer)
 				
-				// 设置 canvas 尺寸（使�?PAG 文件的原始尺寸或配置的尺寸）
+				// 设置 canvas 尺寸（使�?PAG 文件的原始尺寸或配置的尺寸）
 				if (animation.size) {
 					canvas.width = animation.size.width || pagFile.width()
 					canvas.height = animation.size.height || pagFile.height()
 					canvas.style.width = canvas.width + 'px'
 					canvas.style.height = canvas.height + 'px'
 				} else {
-					// 使用 PAG 文件的原始尺�?					canvas.width = pagFile.width()
+					// 使用 PAG 文件的原始尺�?					canvas.width = pagFile.width()
 					canvas.height = pagFile.height()
 					canvas.style.width = canvas.width + 'px'
 					canvas.style.height = canvas.height + 'px'
@@ -947,28 +947,28 @@ body, html {
 				// 按照官方文档使用 PAG.PAGView.init()
 				pagView = await PAG.PAGView.init(pagFile, canvas)
 				
-				// 设置缩放模式（可选，如果 API 支持�?				if (pagView && pagView.setScaleMode) {
-					// 尝试�?PAG 对象获取 ScaleMode，或者使用数字常�?					// 0=LetterBox, 1=Stretch, 2=Zoom, 3=ZoomOut
+				// 设置缩放模式（可选，如果 API 支持�?				if (pagView && pagView.setScaleMode) {
+					// 尝试�?PAG 对象获取 ScaleMode，或者使用数字常�?					// 0=LetterBox, 1=Stretch, 2=Zoom, 3=ZoomOut
 					try {
 						if (PAG.ScaleMode && PAG.ScaleMode.LetterBox !== undefined) {
 							pagView.setScaleMode(PAG.ScaleMode.LetterBox)
 						} else {
-							// 使用数字常量�? = LetterBox
+							// 使用数字常量�? = LetterBox
 							pagView.setScaleMode(0)
 						}
 					} catch (e) {
 						// 忽略错误，这个设置是可选的
-						console.log('setScaleMode 失败，继续播�?', e)
+						console.log('setScaleMode 失败，继续播�?', e)
 					}
 				}
 				
 				// 设置播放参数
 				if (pagView.setRepeatCount) {
-					pagView.setRepeatCount(1) // 播放1�?				}
+					pagView.setRepeatCount(1) // 播放1�?				}
 				if (pagView.setProgress) {
-					pagView.setProgress(0) // 从开始播�?				}
+					pagView.setProgress(0) // 从开始播�?				}
 				
-				// 设置超时保护，防止动画卡�?				var duration = animation.duration || 3000
+				// 设置超时保护，防止动画卡�?				var duration = animation.duration || 3000
 				var timeoutId = null
 				var isCleanedUp = false
 				
@@ -994,7 +994,7 @@ body, html {
 						container.parentNode.removeChild(container)
 					}
 					
-					// 播放队列中的下一个动�?					isPlayingPAG = false
+					// 播放队列中的下一个动�?					isPlayingPAG = false
 					if (pagAnimationQueue.length > 0) {
 						var nextGift = pagAnimationQueue.shift()
 						playPAGAnimation(nextGift)
@@ -1015,8 +1015,8 @@ body, html {
 						console.warn('PAG animation timeout, cleaning up')
 						cleanup()
 					}
-				}, duration + 2000) // 比预期时长多2�?				
-				// 开始播�?				if (pagView.play) {
+				}, duration + 2000) // 比预期时长多2�?				
+				// 开始播�?				if (pagView.play) {
 					await pagView.play()
 				} else if (pagView.start) {
 					await pagView.start()
@@ -1026,10 +1026,10 @@ body, html {
 				
 			} catch (error) {
 				console.error('PAG animation error:', error)
-				// 清理可能创建的元�?				if (container && container.parentNode) {
+				// 清理可能创建的元�?				if (container && container.parentNode) {
 					container.parentNode.removeChild(container)
 				}
-				// 降级到静态动�?				createStaticGiftEffect(gift)
+				// 降级到静态动�?				createStaticGiftEffect(gift)
 				isPlayingPAG = false
 				// 继续播放队列
 				if (pagAnimationQueue.length > 0) {
@@ -1039,7 +1039,7 @@ body, html {
 			}
 		}
 		
-		// 创建静态礼物效果（降级方案�?		function createStaticGiftEffect(gift) {
+		// 创建静态礼物效果（降级方案�?		function createStaticGiftEffect(gift) {
 			var videoContainer = document.getElementById('video-container')
 			if (!videoContainer) return
 			
@@ -1066,7 +1066,7 @@ body, html {
 			effect.appendChild(img)
 			effect.appendChild(nameDiv)
 			
-			// 随机位置，从视频容器底部向上�?			var containerRect = videoContainer.getBoundingClientRect()
+			// 随机位置，从视频容器底部向上�?			var containerRect = videoContainer.getBoundingClientRect()
 			var randomX = Math.random() * (containerRect.width - 100)
 			effect.style.left = (containerRect.left + randomX) + 'px'
 			effect.style.top = (containerRect.bottom - 50) + 'px'
@@ -1081,17 +1081,17 @@ body, html {
 			}, 3000)
 		}
 		
-		// 创建礼物效果动画（主函数�?		function createGiftEffect(gift) {
+		// 创建礼物效果动画（主函数�?		function createGiftEffect(gift) {
 			// 检查是否有 PAG 动画配置
 			if (gift.animation && gift.animation.type === 'pag' && gift.animation.url) {
-				// 如果正在播放动画，加入队�?				if (isPlayingPAG) {
+				// 如果正在播放动画，加入队�?				if (isPlayingPAG) {
 					pagAnimationQueue.push(gift)
 					console.log('Animation queued, current queue length:', pagAnimationQueue.length)
 				} else {
 					playPAGAnimation(gift)
 				}
 			} else {
-				// 没有动画配置，使用静态效�?				createStaticGiftEffect(gift)
+				// 没有动画配置，使用静态效�?				createStaticGiftEffect(gift)
 			}
 		}
 
@@ -1126,13 +1126,13 @@ body, html {
 				}
 				var res = response
 				if(res.code === 1) {
-					console.log('礼物发送成�?)
+					console.log('礼物发送成�?)
 				} else {
-					console.error('礼物发送失�?', res.msg)
+					console.error('礼物发送失�?', res.msg)
 					layer.msg(res.msg)
 				}
 			}).catch(error => {
-				console.error('发送礼物错�?', error)
+				console.error('发送礼物错�?', error)
 			})
 		}
 
@@ -1144,7 +1144,7 @@ body, html {
 				if (video) {
 					video.muted = true;
 					video.play().then(function() {
-						console.log('视频开始自动播�?);
+						console.log('视频开始自动播�?);
 					}).catch(function(error) {
 						console.log('自动播放失败:', error);
 						document.addEventListener('click', function() {
@@ -1167,7 +1167,7 @@ body, html {
 			}
 		});
 
-		// 初始�?		if (document.readyState === 'loading') {
+		// 初始�?		if (document.readyState === 'loading') {
 			document.addEventListener('DOMContentLoaded', function() {
 				if (id) {
 					loadVideo(id)
