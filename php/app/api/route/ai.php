@@ -10,3 +10,5 @@ Route::post('v1/ai/tasks/stream-end', '\app\api\controller\AiTask@streamEnd');
 Route::get('v1/ai/tasks/stream-token', '\app\api\controller\AiTask@streamToken');
 Route::post('v1/srs/unpublish', '\app\api\controller\AiTask@streamEndByRoom');
 Route::get('v1/srs/unpublish', '\app\api\controller\AiTask@streamEndByRoom');
+Route::post('v1/srs/publish', '\app\api\controller\AiTask@streamStartByRoom');
+Route::get('v1/srs/publish', '\app\api\controller\AiTask@streamStartByRoom');

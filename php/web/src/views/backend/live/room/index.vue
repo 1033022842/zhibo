@@ -8,22 +8,23 @@
 </template>
 
 <script setup lang="ts">
-import { provide, h, defineComponent, reactive } from 'vue'
+import { provide, h, defineComponent, onMounted, onUnmounted } from 'vue'
 import baTableClass from '/@/utils/baTable'
 import PopupForm from './popupForm.vue'
 import Table from '/@/components/table/index.vue'
 import TableHeader from '/@/components/table/header/index.vue'
 import { defaultOptButtons } from '/@/components/table'
 import { baTableApi } from '/@/api/common'
-import { ElButton, ElMessage, ElTooltip } from 'element-plus'
-import createAxios from '/@/utils/axios'
+import { ElTag } from 'element-plus'
 
 defineOptions({
     name: 'live/room',
 })
 
-// 追踪各房间推流操作的 loading 状态
-const streamLoading = reactive(new Map<number, boolean>())
+// 状态灯自动刷新间隔（秒）。推流由 AI 电脑负责，后台只做监控，
+// 定时刷新让状态灯实时反映 AI 电脑的推流情况（上线/断开自动更新）。
+const STREAM_REFRESH_INTERVAL = 20
+let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 const baTable = new baTableClass(
     new baTableApi('/admin/live.Room/'),
@@ -49,9 +50,9 @@ const baTable = new baTableClass(
             },
             {
                 label: '推流',
-                prop: 'stream_running',
+                prop: 'stream_state',
                 align: 'center',
-                width: 90,
+                width: 130,
                 render: 'customRender',
                 customRender: defineComponent({
                     props: {
@@ -64,55 +65,22 @@ const baTable = new baTableClass(
                     emits: [],
                     setup(props) {
                         const row = props.renderRow as any
-                        const running = () => row?.stream_running === true
-                        const loading = () => streamLoading.get(row?.id) || false
-                        const hasPlaylist = () => row?.has_playlist !== false
-
-                        const toggleStream = async () => {
-                            if (streamLoading.get(row?.id)) return
-                            const action = running() ? 'stopStream' : 'startStream'
-                            streamLoading.set(row?.id, true)
-                            try {
-                                const res = await createAxios({
-                                    url: '/admin/live.Room/' + action,
-                                    method: 'POST',
-                                    data: { id: row.id },
-                                })
-                                // BA 的 reductDataFormat 已解包，res 即 response.data
-                                if (res.code === 1) {
-                                    ElMessage.success(res.msg)
-                                    baTable.getData()
-                                } else {
-                                    ElMessage.error(res.msg || '操作失败')
-                                }
-                            } catch {
-                                ElMessage.error('请求失败')
-                            } finally {
-                                streamLoading.set(row?.id, false)
-                            }
-                        }
-
                         return () => {
-                            const btn = h(
-                                ElButton,
-                                {
-                                    type: running() ? 'danger' : 'success',
-                                    size: 'small',
-                                    loading: loading(),
-                                    disabled: loading() || !hasPlaylist(),
-                                    onClick: toggleStream,
-                                },
-                                () => (running() ? '关播' : '开播')
-                            )
-
-                            if (!hasPlaylist()) {
-                                return h(
-                                    ElTooltip,
-                                    { content: '未配置人设，无法推流', placement: 'top' },
-                                    () => btn
-                                )
+                            // 状态灯（只读监控）：
+                            //   public_live → 绿「推流中」（SRS 有流）
+                            //   abnormal    → 黄「异常」（DB 标记推流但 SRS 无流，AI 电脑未推流）
+                            //   其他        → 灰「未推流」
+                            const state = row?.stream_state
+                            let type: 'success' | 'warning' | 'info' = 'info'
+                            let text = '未推流'
+                            if (state === 'public_live') {
+                                type = 'success'
+                                text = '推流中'
+                            } else if (state === 'abnormal') {
+                                type = 'warning'
+                                text = '异常'
                             }
-                            return btn
+                            return h(ElTag, { type, size: 'small', effect: 'light' }, () => text)
                         }
                     },
                 }) as any,
@@ -144,4 +112,17 @@ const baTable = new baTableClass(
 baTable.mount()
 baTable.getData()
 provide('baTable', baTable)
+
+// 定时刷新推流状态灯（只读监控 AI 电脑推流情况）
+onMounted(() => {
+    refreshTimer = setInterval(() => {
+        baTable.getData()
+    }, STREAM_REFRESH_INTERVAL * 1000)
+})
+onUnmounted(() => {
+    if (refreshTimer) {
+        clearInterval(refreshTimer)
+        refreshTimer = null
+    }
+})
 </script>

@@ -11,13 +11,11 @@ final class FfmpegCommandBuilder
     public function __construct(public readonly array $config) {}
 
     /**
-     * 构建 HLS 命令
-     *
-     * 注意：不使用 delete_segments，由 PHP 侧统一清理旧分片，避免双 ffmpeg 共存时互相误删。
+     * 构建 HLS 命令（单视频文件输入）
      *
      * @param bool   $loop         是否循环播放列表
-     * @param int    $startNumber  起始分片号，0=从头开始，>0=接续已有分片
-     * @param string $m3u8Basename m3u8 文件名（不含路径），默认 'index'，双播单场景用 'default'/'keyword'
+     * @param int    $startNumber  起始分片号
+     * @param string $m3u8Basename m3u8 文件名（不含扩展名）
      */
     public function buildHlsToDir(
         string $hlsDir,
@@ -47,18 +45,6 @@ final class FfmpegCommandBuilder
             . '-hls_segment_filename "%s" "%s"',
             $this->config['ffmpeg_bin'], $playlistFile, $segPat, $m3u8
         );
-    }
-
-    /**
-     * 便捷方法：根据 streamAlias 推导目录，清理后构建命令
-     */
-    public function buildHlsPlaylist(string $streamAlias, string $playlistFile): string
-    {
-        $hlsDir = $this->hlsDir($streamAlias);
-        @mkdir($hlsDir, 0755, true);
-        array_map('unlink', glob($hlsDir . '/*.ts') ?: []);
-        @unlink($hlsDir . '/index.m3u8');
-        return $this->buildHlsToDir($hlsDir, $playlistFile);
     }
 
     public static function concatLine(string $fp): string

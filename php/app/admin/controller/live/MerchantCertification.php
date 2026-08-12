@@ -138,13 +138,13 @@ final class MerchantCertification extends Backend
             $st     = $statusMap[$row['status']] ?? '未知';
             $stCls  = match((int)$row['status']) { 0 => 'pending', 1 => 'passed', 2 => 'rejected', default => '' };
             $name   = htmlspecialchars($row['nickname'] ?: '-');
-            $no     = htmlspecialchars($row['user_no']);
-            $rname  = htmlspecialchars($row['real_name']);
-            $shop   = htmlspecialchars($row['shop_name']);
-            $stype  = $shopTypeMap[$row['shop_type']] ?? $row['shop_type'];
-            $email  = htmlspecialchars($row['email']);
-            $phone  = htmlspecialchars($row['phone']);
-            $reason = htmlspecialchars($row['reject_reason']);
+            $no     = htmlspecialchars($row['user_no'] ?? '');
+            $rname  = htmlspecialchars($row['real_name'] ?? '');
+            $shop   = htmlspecialchars($row['shop_name'] ?? '');
+            $stype  = $shopTypeMap[$row['shop_type']] ?? $row['shop_type'] ?? '';
+            $email  = htmlspecialchars($row['email'] ?? '');
+            $phone  = htmlspecialchars($row['phone'] ?? '');
+            $reason = htmlspecialchars($row['reject_reason'] ?? '');
             $time   = $row['created_at'];
 
             $actions = '';
@@ -155,9 +155,9 @@ final class MerchantCertification extends Backend
                 ACT;
             }
 
-            $front  = htmlspecialchars($row['id_card_front']);
-            $back   = htmlspecialchars($row['id_card_back']);
-            $bizLic = htmlspecialchars($row['business_license']);
+            $front  = htmlspecialchars($row['id_card_front'] ?? '');
+            $back   = htmlspecialchars($row['id_card_back'] ?? '');
+            $bizLic = htmlspecialchars($row['business_license'] ?? '');
 
             $rows .= <<<ROW
             <tr>

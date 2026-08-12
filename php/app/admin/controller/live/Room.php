@@ -178,9 +178,23 @@ final class Room extends Backend
                 ->where('persona', '<>', '')
                 ->column('persona', 'room_id');
 
+            // SRS 实时探活：查服务器上真实有推流的房间（AI 电脑 ffmpeg → RTMP → SRS）
+            // 用于交叉校验数据库状态：DB 标记推流但 SRS 无流 → abnormal（AI 电脑未推流）
+            $srsOnlineIds = (new \app\common\service\SrsService())->getActiveRoomIds('room');
+            $srsOnlineMap = array_flip($srsOnlineIds);
+
             foreach ($items as &$item) {
-                $item['stream_state'] = $states[$item['id']] ?? 'offline';
-                $item['stream_running'] = $item['stream_state'] === 'public_live';
+                $dbState = $states[$item['id']] ?? 'offline';
+                $onSrs = isset($srsOnlineMap[(int) $item['id']]);
+
+                if ($dbState === 'public_live' && !$onSrs) {
+                    // 数据库标记推流，但 SRS 上没流 → AI 电脑未推流/已断开
+                    $item['stream_state'] = 'abnormal';
+                    $item['stream_running'] = false;
+                } else {
+                    $item['stream_state'] = $dbState;
+                    $item['stream_running'] = $dbState === 'public_live';
+                }
                 $item['has_playlist'] = isset($bindings[$item['id']]);
             }
             unset($item);

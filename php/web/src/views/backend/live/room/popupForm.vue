@@ -30,19 +30,12 @@
                             placeholder: '选择人设',
                         }"
                     />
-                    <FormItem
-                        label="视频素材"
-                        v-model="baTable.form.items!.asset_ids"
-                        prop="asset_ids"
-                        type="remoteSelect"
-                        :input-attr="{
-                            multiple: true,
-                            field: 'title',
-                            remoteUrl: '/admin/live.MediaAsset/index',
-                            params: { select: true, status: 1, asset_type: 'video', scene_type: 'public' },
-                            placeholder: '选择一个或多个视频素材',
-                        }"
-                    />
+                    <el-form-item label="视频素材" prop="asset_ids" :rules="rules.asset_ids">
+                        <AssetTreeSelect
+                            v-model="baTable.form.items!.asset_ids"
+                            :persona="currentPersonaName"
+                        />
+                    </el-form-item>
                     <FormItem label="标签" v-model="baTable.form.items!.tag_names" type="string" :input-attr="{ placeholder: '逗号分隔，例如：情感,陪伴' }" />
                     <FormItem label="封面" v-model="baTable.form.items!.cover_url" type="image" />
                     <FormItem label="排序" v-model="baTable.form.items!.sort" type="number" />
@@ -63,13 +56,42 @@
 </template>
 
 <script setup lang="ts">
-import { inject, reactive, useTemplateRef } from 'vue'
+import { inject, reactive, ref, watch, useTemplateRef } from 'vue'
 import type baTableClass from '/@/utils/baTable'
 import type { FormItemRule } from 'element-plus'
 import FormItem from '/@/components/formItem/index.vue'
+import AssetTreeSelect from './assetTreeSelect.vue'
+import createAxios from '/@/utils/axios'
 
 const formRef = useTemplateRef('formRef')
 const baTable = inject('baTable') as baTableClass
+
+// 当前选中人设的名称（persona_id → name），用于树形选择过滤
+const currentPersonaName = ref<string>('')
+
+// 监听 persona_id 变化，查 persona name
+watch(
+    () => baTable.form.items?.persona_id,
+    async (pid) => {
+        if (!pid) {
+            currentPersonaName.value = ''
+            return
+        }
+        try {
+            const res = await createAxios({
+                url: '/admin/live.Persona/index',
+                method: 'GET',
+                params: { select: true, initValue: pid },
+            })
+            const list = res?.data?.list ?? res?.list ?? []
+            const found = list.find((p: any) => p.id === pid)
+            currentPersonaName.value = found?.name ?? ''
+        } catch {
+            currentPersonaName.value = ''
+        }
+    },
+    { immediate: true }
+)
 
 const rules: Partial<Record<string, FormItemRule[]>> = reactive({
     room_no: [{ required: true, message: '请输入房间号', trigger: 'blur' }],

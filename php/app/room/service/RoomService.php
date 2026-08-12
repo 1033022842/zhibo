@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\room\service;
 
 use app\common\exception\BusinessException;
+use app\common\service\SrsService;
 use app\common\web\ResultCode;
 use app\room\model\Persona;
 use app\room\model\Room;
@@ -94,33 +95,17 @@ final class RoomService
     }
 
     /**
-     * 从 MediaMTX API 获取当前有活跃推流的房间 ID 列表
+     * 从 SRS API 获取当前有活跃推流的房间 ID 列表
+     *
+     * 架构变更：推流由 AI 电脑 ffmpeg → RTMP → 服务器 SRS（端口 1935），
+     * SRS HTTP API 在端口 1985。stream name = 房间 id，app = 'room'。
+     * 部署见 docs/srs-deploy.md
+     *
      * @return int[]
      */
     private function getActiveStreamRoomIds(): array
     {
-        try {
-            $ctx = stream_context_create(['http' => ['timeout' => 1]]);
-            $json = @file_get_contents('http://127.0.0.1:9997/v3/paths/list', false, $ctx);
-            if (!$json) {
-                return [];
-            }
-            $data = json_decode($json, true);
-            if (!is_array($data) || empty($data['items'])) {
-                return [];
-            }
-            $roomIds = [];
-            foreach ($data['items'] as $item) {
-                $name = $item['name'] ?? '';
-                // 路径格式: room/{id} 或 {prefix}/{id}
-                if (preg_match('#^room/(\d+)$#', $name, $m)) {
-                    $roomIds[] = (int) $m[1];
-                }
-            }
-            return $roomIds;
-        } catch (\Throwable $e) {
-            return [];
-        }
+        return (new SrsService())->getActiveRoomIds('room');
     }
 
     public function detail(int $roomId, string $domain): array

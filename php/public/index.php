@@ -35,12 +35,18 @@ if (!$server) {
     // 检测是否已编译前端-e
 }
 
+$debugStart = microtime(true);
+error_log(sprintf('[DEBUG %s] %s %s - START', date('H:i:s'), $_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'] ?? '/'), 3, __DIR__ . '/debug.log');
+
 require __DIR__ . '/../vendor/autoload.php';
+error_log(sprintf('[DEBUG] autoload loaded (%.3fs)', microtime(true) - $debugStart), 3, __DIR__ . '/debug.log');
 
 // 执行HTTP应用并响应
 $http = (new App())->http;
+error_log(sprintf('[DEBUG] App created (%.3fs)', microtime(true) - $debugStart), 3, __DIR__ . '/debug.log');
 
 $response = $http->run();
+error_log(sprintf('[DEBUG] Response generated (%.3fs)', microtime(true) - $debugStart), 3, __DIR__ . '/debug.log');
 
 $response->send();
 

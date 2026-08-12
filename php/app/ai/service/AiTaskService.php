@@ -385,31 +385,77 @@ final class AiTaskService
     public function handleStreamEndByRoom(int $roomId, string $reason = 'srs_unpublish'): array
     {
         $snap = $this->stateMachine->getSnapshot($roomId);
-        if (!$snap || $snap['current_state'] !== RoomState::INTERACTION_LIVE->value) {
-            return ['room_id' => $roomId, 'ended' => false, 'reason' => 'not_interaction_state'];
+        if (!$snap) {
+            return ['room_id' => $roomId, 'ended' => false, 'reason' => 'no_snapshot'];
         }
 
-        $taskId = $snap['current_task_id'] ?? null;
+        $currentState = $snap['current_state'];
 
-        $this->endInteractionInRoom($roomId, $taskId);
-
-        if ($taskId) {
-            $switchTask = RoomSwitchTask::find($taskId);
-            if ($switchTask) {
-                $switchTask->status = 'completed';
-                $switchTask->ended_at = date('Y-m-d H:i:s');
-                $switchTask->save();
+        // 互动直播中的断流 → 走原有互动结束逻辑
+        if ($currentState === RoomState::INTERACTION_LIVE->value) {
+            $taskId = $snap['current_task_id'] ?? null;
+            $this->endInteractionInRoom($roomId, $taskId);
+            if ($taskId) {
+                $switchTask = RoomSwitchTask::find($taskId);
+                if ($switchTask) {
+                    $switchTask->status = 'completed';
+                    $switchTask->ended_at = date('Y-m-d H:i:s');
+                    $switchTask->save();
+                }
             }
+            Log::info("AiTaskService: room {$roomId} interaction stream ended by {$reason}");
+            return ['room_id' => $roomId, 'ended' => true, 'reason' => $reason, 'task_id' => $taskId];
         }
 
-        Log::info("AiTaskService: room {$roomId} stream ended by {$reason}");
+        // 普通直播中断流 → 房间置回 offline（有推流才算开播，断流自动关播）
+        // 注意：public_live → offline 不在状态机迁移表里，SRS 断流是物理事实，直接 upsert
+        if ($currentState === RoomState::PUBLIC_LIVE->value) {
+            $this->forceOffline($roomId);
+            Log::info("AiTaskService: room {$roomId} public_live stream ended by {$reason}, set offline");
+            return ['room_id' => $roomId, 'ended' => true, 'reason' => $reason];
+        }
 
-        return [
-            'room_id'   => $roomId,
-            'ended'     => true,
-            'reason'    => $reason,
-            'task_id'   => $taskId,
-        ];
+        return ['room_id' => $roomId, 'ended' => false, 'reason' => 'not_live_state', 'state' => $currentState];
+    }
+
+    /**
+     * SRS on_publish 回调处理：AI 电脑推流成功 → 自动把房间设为 public_live
+     * 利用 RoomStateMachine::markPublicLive()（自动处理 offline→public_ready→public_live 两步迁移）
+     * 不踩 interaction_live/privilege_live/switching（这些状态会抛异常，捕获后跳过）
+     */
+    public function handleStreamStartByRoom(int $roomId): array
+    {
+        try {
+            // markPublicLive 会处理 offline→public_ready，但可能停在 public_ready
+            $snap = $this->stateMachine->markPublicLive($roomId);
+            // 如果停在 public_ready，继续推进到 public_live
+            if (($snap['current_state'] ?? '') === RoomState::PUBLIC_READY->value) {
+                $snap = $this->stateMachine->transition($roomId, RoomState::PUBLIC_READY, RoomState::PUBLIC_LIVE);
+            }
+            $finalState = $snap['current_state'] ?? RoomState::PUBLIC_LIVE->value;
+            Log::info("AiTaskService: room {$roomId} stream started, state={$finalState}");
+            return ['room_id' => $roomId, 'started' => true, 'reason' => 'mark_public_live', 'state' => $finalState];
+        } catch (\Throwable $e) {
+            // 互动/特权/切换中状态 → markPublicLive 会抛异常，正常跳过
+            Log::info("AiTaskService: room {$roomId} stream started but markPublicLive skipped: {$e->getMessage()}");
+            return ['room_id' => $roomId, 'started' => false, 'reason' => 'skipped', 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * 直接把房间状态置为 offline（绕过状态机迁移校验，用于 SRS 物理断流）
+     */
+    private function forceOffline(int $roomId): void
+    {
+        $conn = Db::connect('live_mysql');
+        $conn->table('lp_room_state_snapshot')
+            ->where('room_id', $roomId)
+            ->update([
+                'current_state' => RoomState::OFFLINE->value,
+                'current_mode'  => BizCode::ROOM_MODE_PUBLIC,
+                'version'       => Db::raw('version + 1'),
+                'updated_at'    => date('Y-m-d H:i:s'),
+            ]);
     }
 
     public function expireOverdueTasks(): array

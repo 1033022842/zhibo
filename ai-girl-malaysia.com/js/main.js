@@ -1,6 +1,6 @@
 (()=>{
     var cacheTemplate = ''
-    var base = 'http://127.0.0.1:8001/api/live'
+    var base = 'http://38.181.44.164/api/live'
     var isSubmittingValue = false;
 
     function initMain() {

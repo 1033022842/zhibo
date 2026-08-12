@@ -214,6 +214,10 @@ export default defineConfig((): Promise<UserConfig> => {
           '/uploads': {
             target: 'http://127.0.0.1:8001',
             changeOrigin: true
+          },
+          '/hls': {
+            target: 'http://127.0.0.1:8001',
+            changeOrigin: true
           }
         },
           fs: {
