@@ -1336,7 +1336,7 @@ var carouselData = getParam('data')
 			var userId = document.getElementById('confirm-purchase-btn').dataset.userId;
 			var videoId = document.getElementById('confirm-purchase-btn').dataset.videoId;
 			console.log(characterId, points, userId, videoId);
-			const base = 'http://127.0.0.1:8049'
+			const base = ''
 			// 调用后端接口确认购买
 			$.ajax({
 				url: `${base}/api/user/confirm_purchase`,

@@ -392,8 +392,9 @@ async function handleSubmit() {
   min-height: 100vh;
   background: linear-gradient(180deg, #0c0e18 0%, #11131f 40%, #0d0f1a 100%);
   color: #fff;
-  overflow: hidden;
-  padding: 0 0 40rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 0 60rem;
 }
 
 .top-bar {

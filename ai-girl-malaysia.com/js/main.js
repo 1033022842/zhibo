@@ -1,6 +1,6 @@
 (()=>{
     var cacheTemplate = ''
-    var base = 'http://127.0.0.1:8001/api/live'
+    var base = '/api/live'
     var isSubmittingValue = false;
 
     function initMain() {
@@ -63,7 +63,7 @@
       }
        
       function makeAjaxRequest(method, url, data) {
-        var base = 'http://127.0.0.1:8049/'
+        var base = '/'
         url = base + url
         headers = headers || {};
         const xhr = new XMLHttpRequest();

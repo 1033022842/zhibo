@@ -1,5 +1,5 @@
 (()=>{
-    var base = 'http://127.0.0.1:8001/api/live'
+    var base = '/api/live'
     // var base = 'http://45.194.18.126:39200'
     var token = localStorage.getItem('live_access_token')
     var userJson = localStorage.getItem('live_user_info')
