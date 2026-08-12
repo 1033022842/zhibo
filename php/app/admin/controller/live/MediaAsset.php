@@ -21,6 +21,91 @@ final class MediaAsset extends Backend
         $this->model = new MediaAssetModel();
     }
 
+    /**
+     * 获取所有 AI 电脑上报来源的 machine_id 列表（供前端 tab 切换）
+     * 返回 [{machine_id, persona, cnt}]
+     */
+    public function machines(): void
+    {
+        $rows = \think\facade\Db::connect('live_mysql')
+            ->table('lp_media_asset')
+            ->where('source', 'machine')
+            ->where('machine_id', '<>', '')
+            ->field('machine_id, persona, COUNT(*) AS cnt')
+            ->group('machine_id', 'persona')
+            ->order('machine_id', 'asc')
+            ->select()
+            ->toArray();
+
+        $this->success('', ['list' => $rows]);
+    }
+
+    /**
+     * 按人设 + 关键词分组返回素材树（供编辑房间时多级菜单选择视频）
+     * GET /admin/live.MediaAsset/tree?persona=白毛女
+     * 返回 [{keyword, children: [{id, title, ...}]}]
+     * 空关键词归到"待分类"
+     */
+    public function tree(): void
+    {
+        $persona = trim((string) $this->request->get('persona', ''));
+        $assetIds = $this->request->get('asset_ids/a', []);
+
+        if ($persona === '') {
+            $this->success('', ['tree' => [], 'selected' => []]);
+            return;
+        }
+
+        // 查该人设的所有启用视频
+        $query = \think\facade\Db::connect('live_mysql')
+            ->table('lp_media_asset')
+            ->where('persona', $persona)
+            ->where('asset_type', 'video')
+            ->where('status', 1)
+            ->field('id, title, keywords, file_url, duration_ms');
+        $rows = $query->order('id', 'asc')->select()->toArray();
+
+        // 按关键词分组（空关键词归"待分类"）
+        $groups = [];
+        foreach ($rows as $row) {
+            $kws = trim((string) ($row['keywords'] ?? ''));
+            $kwList = $kws === '' ? [''] : array_map('trim', explode(',', $kws));
+            foreach ($kwList as $kw) {
+                $key = $kw === '' ? '待分类' : $kw;
+                if (!isset($groups[$key])) {
+                    $groups[$key] = [];
+                }
+                $groups[$key][] = [
+                    'id'    => (int) $row['id'],
+                    'title' => $row['title'],
+                    'duration_ms' => (int) ($row['duration_ms'] ?? 0),
+                ];
+            }
+        }
+
+        // 组装成树形结构
+        $tree = [];
+        foreach ($groups as $keyword => $children) {
+            $tree[] = [
+                'keyword'  => $keyword,
+                'label'    => $keyword . ' (' . count($children) . ')',
+                'children' => $children,
+            ];
+        }
+
+        // 选中的 asset_ids 对应的视频详情（编辑回显用）
+        $selected = [];
+        if (!empty($assetIds)) {
+            $selected = \think\facade\Db::connect('live_mysql')
+                ->table('lp_media_asset')
+                ->whereIn('id', $assetIds)
+                ->where('status', 1)
+                ->column('id', 'id');
+        }
+
+        $this->success('', ['tree' => $tree, 'selected' => $selected]);
+    }
+
     public function add(): void
     {
         if (!$this->request->isPost()) {

@@ -1140,16 +1140,12 @@ onUnmounted(() => {
 
   .gift-row {
     display: flex;
+    flex-wrap: nowrap;
     gap: 8rem;
     overflow-x: auto;
-    padding-bottom: 8rem;
+    padding-bottom: 6rem;
     margin: 0 84rem 10rem 0;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
+    -webkit-overflow-scrolling: touch;
   }
 
   .gift-chip {

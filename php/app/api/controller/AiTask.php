@@ -12,7 +12,7 @@ use think\App;
 final class AiTask extends BaseController
 {
     protected array $middleware = [
-        \app\ai\middleware\AiAuth::class => ['except' => ['streamEndByRoom']],
+        \app\ai\middleware\AiAuth::class => ['except' => ['streamEndByRoom', 'streamStartByRoom']],
     ];
 
     private AiTaskService $aiTaskService;
@@ -136,12 +136,55 @@ final class AiTask extends BaseController
         }
 
         $result = $this->aiTaskService->handleStreamEndByRoom($roomId, 'srs_unpublish');
-        return $this->jsonSuccess($result, $result['ended'] ? '推流已结束' : '无需处理');
+        // SRS 回调要求 code 为数值，ThinkPHP jsonSuccess 返回字符串 code，这里直接返回 SRS 格式
+        return json(['code' => 0] + $result);
+    }
+
+    /**
+     * SRS on_publish 回调：AI 电脑推流成功时触发
+     * 自动把房间状态设为 public_live（有推流 = 开播，无需后台手动点开播）
+     * POST/GET /api/v1/srs/publish
+     */
+    public function streamStartByRoom()
+    {
+        $secret = $this->request->post('secret', $this->request->get('secret', ''));
+        $expectedSecret = config('ai.srs_secret', 'srs-callback-secret-2026');
+
+        if ($secret !== '') {
+            if (!hash_equals($expectedSecret, $secret)) {
+                return $this->jsonFail(ResultCode::NO_PERMISSION, 'secret 无效');
+            }
+        }
+
+        $stream = $this->request->post('stream', $this->request->post('Stream', ''));
+        $action = $this->request->post('action', $this->request->post('Action', ''));
+
+        if ($action && $action !== 'on_publish') {
+            return $this->jsonSuccess(['ignored' => true, 'action' => $action]);
+        }
+
+        $roomId = $this->parseRoomIdFromStream($stream);
+        if ($roomId <= 0) {
+            return $this->jsonSuccess(['ignored' => true, 'reason' => 'stream_not_parsed', 'stream' => $stream]);
+        }
+
+        $result = $this->aiTaskService->handleStreamStartByRoom($roomId);
+        // SRS 回调要求 code 为数值，ThinkPHP jsonSuccess 返回字符串 code，这里直接返回 SRS 格式
+        return json(['code' => 0] + $result);
     }
 
     private function parseRoomIdFromStream(string $stream): int
     {
-        if (preg_match('#^room/(\d+)/(\w+)#', $stream, $m)) {
+        $stream = trim($stream);
+        if ($stream === '') {
+            return 0;
+        }
+        // 纯数字 stream 名（SRS 回调 stream=1）
+        if (preg_match('#^\d+$#', $stream)) {
+            return (int) $stream;
+        }
+        // room/1 或 room/1/xxx 格式
+        if (preg_match('#^room/(\d+)(/|$)#', $stream, $m)) {
             return (int) $m[1];
         }
         if (preg_match('#/(\d+)/#', $stream, $m)) {

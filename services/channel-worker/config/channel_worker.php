@@ -28,8 +28,8 @@ return [
     'ffmpeg_bin' => $ffmpegBin,
     'runtime_dir' => dirname(__DIR__) . '/runtime',
     'hls' => [
-        // HLS 输出根目录，Nginx alias 指向这里
-        'output_dir' => getenv('HLS_OUTPUT_DIR') ?: '/www/wwwroot/douyin/hls',
+        // HLS 输出根目录，本地映射到项目根的 hls/ 目录
+        'output_dir' => getenv('HLS_OUTPUT_DIR') ?: dirname(__DIR__, 3) . '/hls',
     ],
     'media_base_dir' => dirname(__DIR__, 3),  // 项目根目录 (douyin/)，相对路径视频文件拼接此前缀
     'redis' => [
