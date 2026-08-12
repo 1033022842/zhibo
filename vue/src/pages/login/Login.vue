@@ -106,7 +106,9 @@ async function handleLogin() {
 }
 
 function goRegister() {
-  router.push('/login/password?mode=register')
+  // 跳转到 AI 女友项目的注册页（两个项目账号通用，不同端口需整页跳转）
+  // 用当前 hostname 动态拼接，避免硬编码服务器 IP，换域名/IP 自适应
+  window.location.href = `http://${window.location.hostname}:8082/`
 }
 </script>
 
