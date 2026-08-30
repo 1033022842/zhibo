@@ -7,6 +7,7 @@ namespace app\admin\controller\live;
 use Throwable;
 use app\common\controller\Backend;
 use app\admin\model\live\Persona as PersonaModel;
+use app\common\util\StrHelper;
 
 final class Persona extends Backend
 {
@@ -21,6 +22,38 @@ final class Persona extends Backend
     {
         parent::initialize();
         $this->model = new PersonaModel();
+    }
+
+    /**
+     * 新增：人设编码留空自动生成；重复编码给友好提示
+     */
+    public function add(): void
+    {
+        if ($this->request->isPost()) {
+            $code = trim((string) $this->request->post('code', ''));
+            if ($code === '') {
+                $this->request->withPost(['code' => StrHelper::orderNo('P')]);
+            } elseif (PersonaModel::where('code', $code)->find()) {
+                $this->error("人设编码「{$code}」已存在，请更换或留空自动生成");
+            }
+        }
+        parent::add();
+    }
+
+    /**
+     * 编辑：编码重复校验（排除自身）
+     */
+    public function edit(): void
+    {
+        if ($this->request->isPost()) {
+            $ids = $this->request->param('ids', $this->request->param('id', 0));
+            $id  = is_array($ids) ? (int)reset($ids) : (int)$ids;
+            $code = trim((string) $this->request->post('code', ''));
+            if ($code !== '' && PersonaModel::where('code', $code)->where('id', '<>', $id)->find()) {
+                $this->error("人设编码「{$code}」已被其他人设使用");
+            }
+        }
+        parent::edit();
     }
 
     /**
@@ -47,7 +80,7 @@ final class Persona extends Backend
 
         $res = $this->model
             ->alias($alias)
-            ->withJoin(['user'])
+            ->withJoin(['user'], 'LEFT')
             ->where($where)
             ->order($order)
             ->paginate($limit);

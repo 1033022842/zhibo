@@ -36,7 +36,17 @@ final class RechargeService
         }
 
         $orderNo = StrHelper::orderNo('RC');
-        $diamondAmount = bcmul((string)$amount, (string)$channel->diamond_rate, 2);
+        // 钻石按用户输入的整数基数计算（随机尾数仅作链上匹配标识）
+        $diamondAmount = bcmul((string)floor($amount), (string)$channel->diamond_rate, 2);
+
+        $confirmMode = (string)($channel->confirm_mode ?? 'auto');
+        if ($confirmMode === 'auto') {
+            $payAmount = $this->uniquePayAmount(floor($amount), $channelId);
+            $expireAt = date('Y-m-d H:i:s', time() + 7200);
+        } else {
+            $payAmount = number_format($amount, 2, '.', '');
+            $expireAt = date('Y-m-d H:i:s', time() + 86400);
+        }
 
         $order = [
             'order_no'       => $orderNo,
@@ -44,10 +54,11 @@ final class RechargeService
             'pay_channel'    => $channel->type,
             'channel_id'     => $channelId,
             'chain_type'     => 'TRC20',
-            'pay_amount'     => $amount,
+            'pay_amount'     => $payAmount,
             'diamond_amount' => $diamondAmount,
             'proof_image'    => $proofImage,
             'status'         => 0,
+            'expire_at'      => $expireAt,
             'created_at'     => date('Y-m-d H:i:s'),
             'updated_at'     => date('Y-m-d H:i:s'),
         ];
@@ -130,7 +141,74 @@ final class RechargeService
         return ['list' => $list, 'total' => $total];
     }
 
-    private function creditDiamond($db, int $userId, float $amount, int $bizId): void
+    /**
+     * 生成链上唯一应付金额：整数部分 + 随机 0.01~0.99 尾数（多用户并发充值区分标识）
+     */
+    private function uniquePayAmount(float $base, int $channelId): string
+    {
+        $db = Db::connect('live_mysql');
+        for ($i = 0; $i < 30; $i++) {
+            $cents = random_int(1, 99);
+            $amt = bcadd((string)(int)$base, sprintf('0.%02d', $cents), 2);
+            $exists = $db->table('lp_recharge_order')
+                ->where('channel_id', $channelId)
+                ->where('pay_amount', $amt)
+                ->where('status', 0)
+                ->where('expire_at', '>', date('Y-m-d H:i:s'))
+                ->count();
+            if (!$exists) {
+                return $amt;
+            }
+        }
+        throw new BusinessException(ResultCode::SERVER_ERROR, '下单繁忙请稍后再试');
+    }
+
+    /**
+     * 链上自动确认入账（由 recharge:scan 扫描任务调用，幂等）
+     */
+    public function confirmByChain(int $orderId, array $tx): void
+    {
+        $db = Db::connect('live_mysql');
+        $txId = (string)($tx['transaction_id'] ?? '');
+
+        $db->startTrans();
+        try {
+            $order = $db->table('lp_recharge_order')->where('id', $orderId)->lock(true)->find();
+            if (!$order || (int)$order['status'] !== 0) {
+                $db->commit();
+                return; // 已处理或不存在，幂等返回
+            }
+
+            $now = date('Y-m-d H:i:s');
+            $db->table('lp_recharge_order')->where('id', $orderId)->update([
+                'status'       => 1,
+                'paid_at'      => $now,
+                'reviewed_at'  => $now,
+                'admin_remark' => '链上自动确认 tx=' . $txId,
+                'updated_at'   => $now,
+            ]);
+
+            $this->creditDiamond($db, (int)$order['user_id'], (float)$order['diamond_amount'], (int)$order['id'], 'USDT链上自动充值');
+
+            $db->commit();
+        } catch (\Exception $e) {
+            $db->rollback();
+            throw $e;
+        }
+    }
+
+    /**
+     * 过期未支付订单关闭（status 0 -> 3）
+     */
+    public function expireOrders(): int
+    {
+        return Db::connect('live_mysql')->table('lp_recharge_order')
+            ->where('status', 0)
+            ->where('expire_at', '<', date('Y-m-d H:i:s'))
+            ->update(['status' => 3, 'updated_at' => date('Y-m-d H:i:s')]);
+    }
+
+    private function creditDiamond($db, int $userId, float $amount, int $bizId, string $remark = '管理员审核充值'): void
     {
         $wallet = $db->table('lp_wallet_account')
             ->where('user_id', $userId)->lock(true)->find();
@@ -155,7 +233,7 @@ final class RechargeService
             'user_id' => $userId, 'biz_type' => 'recharge', 'direction' => 1,
             'asset_type' => 'diamond', 'amount' => $amount,
             'balance_before' => $balanceBefore, 'balance_after' => $balanceAfter,
-            'biz_id' => $bizId, 'remark' => '管理员审核充值', 'created_at' => date('Y-m-d H:i:s'),
+            'biz_id' => $bizId, 'remark' => $remark, 'created_at' => date('Y-m-d H:i:s'),
         ]);
     }
 }

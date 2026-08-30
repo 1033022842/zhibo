@@ -146,6 +146,15 @@ final class CrowdfundingService
      */
     private function settleSuccess(CrowdfundingProject $project): void
     {
+        // 平台抽成比例（后台可配，默认 5%）
+        $rate = 0.05;
+        try {
+            $cfg = WalletService::config('crowdfunding_commission_rate', '0.05');
+            if (is_numeric($cfg)) {
+                $rate = max(0.0, min(0.5, (float)$cfg));
+            }
+        } catch (\Throwable) {}
+
         Db::startTrans();
         try {
             $pledges = CrowdfundingPledge::where('project_id', $project->id)
@@ -153,8 +162,16 @@ final class CrowdfundingService
                 ->select();
 
             foreach ($pledges as $pledge) {
-                // 资金划转：从托管池转入商家钱包
-                $this->creditDiamond((int)$project->user_id, (float)$pledge->amount, 'crowdfunding_unlock', (int)$pledge->id);
+                // 分账：商家得 (1-抽成)，平台虚拟账户得抽成
+                $amount = (float)$pledge->amount;
+                $platformShare = round($amount * $rate, 2);
+                $ownerShare = round($amount - $platformShare, 2);
+                if ($ownerShare > 0) {
+                    $this->creditDiamond((int)$project->user_id, $ownerShare, 'crowdfunding_unlock', (int)$pledge->id);
+                }
+                if ($platformShare > 0) {
+                    $this->creditDiamond(0, $platformShare, 'crowdfunding_commission', (int)$pledge->id);
+                }
 
                 $pledge->status = CrowdfundingPledge::STATUS_UNLOCKED;
                 $pledge->updated_at = date('Y-m-d H:i:s');
@@ -282,6 +299,23 @@ final class CrowdfundingService
     {
         $query = CrowdfundingProject::where('status', CrowdfundingProject::STATUS_ACTIVE)
             ->where('deadline', '>', date('Y-m-d H:i:s'))
+            ->order('id', 'desc');
+
+        $total = $query->count();
+        $list  = $query->page($page, $pageSize)->select()->toArray();
+
+        return [
+            'list'  => array_map([$this, 'formatProject'], $list),
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * 众筹项目列表（全部状态：进行中在前，其次已成功、已失败，无需登录）
+     */
+    public function listAll(int $page = 1, int $pageSize = 15): array
+    {
+        $query = CrowdfundingProject::order('status', 'asc')
             ->order('id', 'desc');
 
         $total = $query->count();

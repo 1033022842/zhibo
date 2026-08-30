@@ -1,0 +1,34 @@
+-- 提现模块
+-- 2026-08-23
+
+CREATE TABLE IF NOT EXISTS lp_payout_account (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    network VARCHAR(32) NOT NULL DEFAULT 'TRC20',
+    address VARCHAR(128) NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='提现收款账户';
+
+CREATE TABLE IF NOT EXISTS lp_withdrawal (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    order_no VARCHAR(64) NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    diamond_amount DECIMAL(18,2) NOT NULL,
+    usdt_amount DECIMAL(18,6) NOT NULL COMMENT '折算USDT(扣费前)',
+    fee_usdt DECIMAL(18,6) NOT NULL DEFAULT 0,
+    actual_usdt DECIMAL(18,6) NOT NULL DEFAULT 0 COMMENT '实际到账',
+    network VARCHAR(32) NOT NULL DEFAULT 'TRC20',
+    address VARCHAR(128) NOT NULL,
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '0待审核 1已打款 2已拒绝(退钻)',
+    tx_hash VARCHAR(128) NOT NULL DEFAULT '' COMMENT '人工打款链上哈希',
+    reject_reason VARCHAR(255) NOT NULL DEFAULT '',
+    paid_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_order_no (order_no),
+    KEY idx_user (user_id),
+    KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='提现申请';

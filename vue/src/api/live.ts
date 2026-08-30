@@ -41,6 +41,7 @@ export interface LiveGiftInfo {
   trigger_duration_sec?: number
   effect_code?: string
   effect_video_url?: string
+  icon_url?: string
 }
 
 export interface LiveGiftPanel {

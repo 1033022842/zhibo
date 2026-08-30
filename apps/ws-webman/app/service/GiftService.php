@@ -27,15 +27,33 @@ final class GiftService
 
         $giftName = (string) $gift['name'];
         $totalPrice = round(((float) $gift['price_diamond']) * $quantity, 2);
+        $senderUserId = (int) ($session['user_id'] ?? 0);
+
+        // 送礼扣钻（余额不足直接拒绝）
+        try {
+            $this->walletDebit($senderUserId, $totalPrice, $giftName);
+        } catch (\RuntimeException $e) {
+            return ['ok' => false, 'code' => 'WS3004', 'msg' => $e->getMessage()];
+        }
+
         $orderNo = 'G' . date('YmdHis') . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
-        $orderId = $this->insertOrder(
+        try {
+            $orderId = $this->insertOrder(
             $orderNo,
             (int) ($session['user_id'] ?? 0),
-            $roomId,
-            $giftId,
-            $quantity,
-            $totalPrice
-        );
+                $roomId,
+                $giftId,
+                $quantity,
+                $totalPrice
+            );
+        } catch (\Throwable $e) {
+            // 订单写入失败 → 退还已扣钻石
+            $this->walletCredit($senderUserId, $totalPrice, 'gift_refund', '礼物下单失败退款');
+            throw $e;
+        }
+
+        // 礼物收入分账：商家（角色主人）得 (1-抽成)，平台得抽成
+        $this->settleGiftPayment($roomId, $senderUserId, $orderId, $giftName, $totalPrice);
 
         $triggerMode = (string) ($gift['trigger_mode'] ?? 'none');
         $triggerDurationSec = (int) ($gift['trigger_duration_sec'] ?? 0);
@@ -63,6 +81,7 @@ final class GiftService
                     'trigger_duration_sec' => $triggerDurationSec,
                     'effect_code' => (string) ($gift['effect_code'] ?? ''),
                     'effect_video_url' => (string) ($gift['effect_video_url'] ?? ''),
+                    'icon_url' => (string) ($gift['icon_url'] ?? ''),
                 ],
                 'quantity' => $quantity,
                 'total_price' => $totalPrice,
@@ -114,10 +133,123 @@ final class GiftService
         }
     }
 
+    /**
+     * 送礼扣钻（事务 + 行锁 + 流水）
+     */
+    private function walletDebit(int $userId, float $amount, string $giftName): void
+    {
+        if ($amount <= 0) return;
+        $pdo = $this->pdo();
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare('SELECT diamond_balance, status FROM lp_wallet_account WHERE user_id = :uid FOR UPDATE');
+            $stmt->execute(['uid' => $userId]);
+            $wallet = $stmt->fetch();
+
+            if (!$wallet) {
+                $ins = $pdo->prepare('INSERT INTO lp_wallet_account (user_id, diamond_balance, status, updated_at) VALUES (:uid, 0, 1, NOW())');
+                $ins->execute(['uid' => $userId]);
+                $before = 0.0;
+            } else {
+                if ((int) $wallet['status'] !== 1) {
+                    throw new \RuntimeException('钱包已冻结');
+                }
+                $before = (float) $wallet['diamond_balance'];
+            }
+
+            if (round($before, 2) < round($amount, 2)) {
+                throw new \RuntimeException('钻石余额不足，请先充值');
+            }
+            $after = round($before - $amount, 2);
+
+            $upd = $pdo->prepare('UPDATE lp_wallet_account SET diamond_balance = :bal, updated_at = NOW() WHERE user_id = :uid');
+            $upd->execute(['bal' => $after, 'uid' => $userId]);
+
+            $led = $pdo->prepare(
+                'INSERT INTO lp_wallet_ledger (user_id, biz_type, direction, asset_type, amount, balance_before, balance_after, biz_id, remark, created_at) VALUES (:uid, \'gift\', 2, \'diamond\', :amt, :b1, :b2, 0, :remark, NOW())'
+            );
+            $led->execute(['uid' => $userId, 'amt' => $amount, 'b1' => $before, 'b2' => $after, 'remark' => '送礼消费：' . $giftName]);
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * 钻石入账（失败退款/礼物收入/平台抽成）
+     */
+    private function walletCredit(int $userId, float $amount, string $bizType, string $remark): void
+    {
+        if ($userId <= 0 || $amount <= 0) return;
+        try {
+            $pdo = $this->pdo();
+            $stmt = $pdo->prepare('SELECT diamond_balance FROM lp_wallet_account WHERE user_id = :uid');
+            $stmt->execute(['uid' => $userId]);
+            $wallet = $stmt->fetch();
+            $before = $wallet ? (float) $wallet['diamond_balance'] : 0.0;
+            if (!$wallet) {
+                $ins = $pdo->prepare('INSERT INTO lp_wallet_account (user_id, diamond_balance, status, updated_at) VALUES (:uid, 0, 1, NOW())');
+                $ins->execute(['uid' => $userId]);
+            }
+            $after = round($before + $amount, 2);
+            $upd = $pdo->prepare('UPDATE lp_wallet_account SET diamond_balance = :bal, updated_at = NOW() WHERE user_id = :uid');
+            $upd->execute(['bal' => $after, 'uid' => $userId]);
+            $led = $pdo->prepare(
+                'INSERT INTO lp_wallet_ledger (user_id, biz_type, direction, asset_type, amount, balance_before, balance_after, biz_id, remark, created_at) VALUES (:uid, :bt, 1, \'diamond\', :amt, :b1, :b2, 0, :remark, NOW())'
+            );
+            $led->execute(['uid' => $userId, 'bt' => $bizType, 'amt' => $amount, 'b1' => $before, 'b2' => $after, 'remark' => $remark]);
+        } catch (\Throwable $e) {
+            $this->logKeyword('walletCredit failed uid=' . $userId . ' ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 礼物收入分账：商家(角色主人) + 平台抽成
+     */
+    private function settleGiftPayment(int $roomId, int $senderUserId, int $orderId, string $giftName, float $totalPrice): void
+    {
+        try {
+            $stmt = $this->pdo()->prepare(
+                'SELECT p.user_id FROM lp_room r JOIN lp_persona p ON p.id = r.persona_id WHERE r.id = :rid LIMIT 1'
+            );
+            $stmt->execute(['rid' => $roomId]);
+            $row = $stmt->fetch();
+            $ownerId = $row ? (int) $row['user_id'] : 0;
+
+            $rate = 0.30;
+            try {
+                $c = $this->pdo()->prepare("SELECT `value` FROM lp_platform_config WHERE `key` = 'gift_commission_rate' LIMIT 1");
+                $c->execute();
+                $r = $c->fetch();
+                if ($r && is_numeric($r['value'])) {
+                    $rate = max(0.0, min(0.9, (float) $r['value']));
+                }
+            } catch (\Throwable) {}
+
+            $platformShare = round($totalPrice * $rate, 2);
+            $ownerShare = round($totalPrice - $platformShare, 2);
+
+            if ($ownerId <= 0 || $ownerId === $senderUserId) {
+                $ownerShare = 0;
+                $platformShare = $totalPrice;
+            }
+
+            if ($ownerShare > 0) {
+                $this->walletCredit($ownerId, $ownerShare, 'gift_income', '礼物收入：' . $giftName . ' #' . $orderId);
+            }
+            if ($platformShare > 0) {
+                $this->walletCredit(0, $platformShare, 'gift_commission', '平台礼物抽成：' . $giftName . ' #' . $orderId);
+            }
+        } catch (\Throwable $e) {
+            $this->logKeyword('settleGiftPayment failed room=' . $roomId . ' ' . $e->getMessage());
+        }
+    }
     private function findGift(int $giftId): ?array
     {
         $statement = $this->pdo()->prepare(
-            'SELECT id, name, price_diamond, trigger_mode, trigger_duration_sec, effect_code
+            'SELECT id, name, price_diamond, trigger_mode, trigger_duration_sec, effect_code, icon_url
              FROM lp_gift
              WHERE id = :id AND status = 1
              LIMIT 1'
@@ -229,7 +361,7 @@ final class GiftService
                 'created_at' => date('Y-m-d H:i:s'),
             ], JSON_UNESCAPED_UNICODE);
 
-            $listKey = 'stream:room:switch:' . $roomId;
+            $listKey = 'list:keyword:room:' . $roomId;
             $len = $redis->rpush($listKey, $payload);
             // 记录完整 payload 用于调试 Predis vs phpredis 兼容性
             $this->logKeyword('OK roomId=' . $roomId . ' keyword=' . $keyword . ' rPush=' . $len . ' listKey=' . $listKey);
@@ -245,7 +377,7 @@ final class GiftService
                     'params' => ['keyword' => $keyword],
                     'created_at' => date('Y-m-d H:i:s'),
                 ], JSON_UNESCAPED_UNICODE);
-                $listKey = 'stream:room:switch:' . $roomId;
+                $listKey = 'list:keyword:room:' . $roomId;
                 $len = $redis2->rpush($listKey, $payload);
                 $this->logKeyword('OK roomId=' . $roomId . ' keyword=' . $keyword . ' rPush=' . $len . ' (retried)');
                 $this->logKeyword('PAYLOAD roomId=' . $roomId . ' json=' . $payload . ' (retried)');

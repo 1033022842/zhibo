@@ -108,7 +108,10 @@ async function handleLogout() {
 }
 
 .Setting {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(180deg, #0c0e18, #11131f);
   color: #fff;
   padding-top: var(--common-header-height);

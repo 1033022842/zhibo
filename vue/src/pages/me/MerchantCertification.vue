@@ -389,11 +389,12 @@ async function handleSubmit() {
 
 .CertPage {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(180deg, #0c0e18 0%, #11131f 40%, #0d0f1a 100%);
   color: #fff;
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 0 0 60rem;
 }
 

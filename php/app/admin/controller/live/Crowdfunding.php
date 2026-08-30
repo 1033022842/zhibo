@@ -18,6 +18,11 @@ final class Crowdfunding extends Backend
 
     protected array $noNeedLogin = ['index', 'detailJson'];
 
+    // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
+    protected array $middleware = [
+        \app\admin\middleware\FloatAuth::class,
+    ];
+
     public function initialize(): void
     {
         parent::initialize();

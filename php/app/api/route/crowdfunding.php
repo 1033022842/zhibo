@@ -18,5 +18,4 @@ Route::group('v1/crowdfunding', function () {
     Route::post('link-persona', '\app\api\controller\Crowdfunding@linkPersona');
     Route::get('check-active', '\app\api\controller\Crowdfunding@checkActive');
     Route::get('balance', '\app\api\controller\Crowdfunding@balance');
-    Route::post('topup', '\app\api\controller\Crowdfunding@topup');
-})->middleware(\app\live\middleware\Auth::class);
+    })->middleware(\app\live\middleware\Auth::class);
