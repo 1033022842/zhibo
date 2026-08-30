@@ -10,5 +10,6 @@ return [
         \app\command\MaintenanceCheck::class,
         \app\command\ResetStreams::class,
         \app\command\CrowdfundingCron::class,
+        \app\command\RechargeScanCron::class,
     ],
 ];

@@ -1,0 +1,91 @@
+-- v2: 旧 v1 素材下架
+UPDATE lp_media_asset SET status=0 WHERE source='machine' AND machine_id='room1' AND status=1 AND asset_code LIKE 'm_room1_bmn%';
+
+-- v2 礼物素材 43 条
+INSERT INTO lp_media_asset (asset_code,asset_type,scene_type,keywords,persona,weight,title,file_url,duration_ms,checksum,status,source,machine_id,remote_path,created_at) VALUES
+('m_room1_bm2001','video','public','出入场','白毛女',1,'出入场循环1','出入场/出入场循环1.mp4',0,'','1','machine','room1','出入场/出入场循环1.mp4',NOW()),
+('m_room1_bm2002','video','public','出入场','白毛女',1,'出入场循环2','出入场/出入场循环2.mp4',0,'','1','machine','room1','出入场/出入场循环2.mp4',NOW()),
+('m_room1_bm2003','video','public','出入场','白毛女',1,'出入场循环3','出入场/出入场循环3.mp4',0,'','1','machine','room1','出入场/出入场循环3.mp4',NOW()),
+('m_room1_bm2004','video','public','出入场','白毛女',1,'出入场循环4','出入场/出入场循环4.mp4',0,'','1','machine','room1','出入场/出入场循环4.mp4',NOW()),
+('m_room1_bm2005','video','public','出入场','白毛女',1,'出入场循环5','出入场/出入场循环5.mp4',0,'','1','machine','room1','出入场/出入场循环5.mp4',NOW()),
+('m_room1_bm2006','video','public','出入场','白毛女',1,'出入场循环6','出入场/出入场循环6.mp4',0,'','1','machine','room1','出入场/出入场循环6.mp4',NOW()),
+('m_room1_bm2007','video','public','出入场','白毛女',1,'出入场循环7','出入场/出入场循环7.mp4',0,'','1','machine','room1','出入场/出入场循环7.mp4',NOW()),
+('m_room1_bm2008','video','public','待机','白毛女',1,'待机循环1','待机/待机循环1.mp4',0,'','1','machine','room1','待机/待机循环1.mp4',NOW()),
+('m_room1_bm2009','video','public','待机','白毛女',1,'待机循环2','待机/待机循环2.mp4',0,'','1','machine','room1','待机/待机循环2.mp4',NOW()),
+('m_room1_bm2010','video','public','待机','白毛女',1,'待机循环3','待机/待机循环3.mp4',0,'','1','machine','room1','待机/待机循环3.mp4',NOW()),
+('m_room1_bm2011','video','public','待机','白毛女',1,'待机循环4','待机/待机循环4.mp4',0,'','1','machine','room1','待机/待机循环4.mp4',NOW()),
+('m_room1_bm2012','video','public','待机','白毛女',1,'待机循环5','待机/待机循环5.mp4',0,'','1','machine','room1','待机/待机循环5.mp4',NOW()),
+('m_room1_bm2013','video','public','待机','白毛女',1,'待机循环6','待机/待机循环6.mp4',0,'','1','machine','room1','待机/待机循环6.mp4',NOW()),
+('m_room1_bm2014','video','public','待机','白毛女',1,'待机循环7','待机/待机循环7.mp4',0,'','1','machine','room1','待机/待机循环7.mp4',NOW()),
+('m_room1_bm2015','video','public','待机','白毛女',1,'待机循环8','待机/待机循环8.mp4',0,'','1','machine','room1','待机/待机循环8.mp4',NOW()),
+('m_room1_bm2016','video','public','待机','白毛女',1,'待机循环9','待机/待机循环9.mp4',0,'','1','machine','room1','待机/待机循环9.mp4',NOW()),
+('m_room1_bm2017','video','public','撩发','白毛女',1,'撩发循环1','撩发/撩发循环1.mp4',0,'','1','machine','room1','撩发/撩发循环1.mp4',NOW()),
+('m_room1_bm2018','video','public','撩发','白毛女',1,'撩发循环2','撩发/撩发循环2.mp4',0,'','1','machine','room1','撩发/撩发循环2.mp4',NOW()),
+('m_room1_bm2019','video','public','撩发','白毛女',1,'撩发循环3','撩发/撩发循环3.mp4',0,'','1','machine','room1','撩发/撩发循环3.mp4',NOW()),
+('m_room1_bm2020','video','public','撩发','白毛女',1,'撩发循环4','撩发/撩发循环4.mp4',0,'','1','machine','room1','撩发/撩发循环4.mp4',NOW()),
+('m_room1_bm2021','video','public','撩发','白毛女',1,'撩发循环5','撩发/撩发循环5.mp4',0,'','1','machine','room1','撩发/撩发循环5.mp4',NOW()),
+('m_room1_bm2022','video','public','撩发','白毛女',1,'撩发循环6','撩发/撩发循环6.mp4',0,'','1','machine','room1','撩发/撩发循环6.mp4',NOW()),
+('m_room1_bm2023','video','public','撩发','白毛女',1,'撩发循环7','撩发/撩发循环7.mp4',0,'','1','machine','room1','撩发/撩发循环7.mp4',NOW()),
+('m_room1_bm2024','video','public','撩发','白毛女',1,'撩发循环8','撩发/撩发循环8.mp4',0,'','1','machine','room1','撩发/撩发循环8.mp4',NOW()),
+('m_room1_bm2025','video','public','撩发','白毛女',1,'撩发循环9','撩发/撩发循环9.mp4',0,'','1','machine','room1','撩发/撩发循环9.mp4',NOW()),
+('m_room1_bm2026','video','public','摸头杀','白毛女',1,'玫瑰循环1','玫瑰/玫瑰循环1.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环1.mp4',NOW()),
+('m_room1_bm2027','video','public','摸头杀','白毛女',1,'玫瑰循环2','玫瑰/玫瑰循环2.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环2.mp4',NOW()),
+('m_room1_bm2028','video','public','摸头杀','白毛女',1,'玫瑰循环3','玫瑰/玫瑰循环3.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环3.mp4',NOW()),
+('m_room1_bm2029','video','public','摸头杀','白毛女',1,'玫瑰循环4','玫瑰/玫瑰循环4.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环4.mp4',NOW()),
+('m_room1_bm2030','video','public','摸头杀','白毛女',1,'玫瑰循环5','玫瑰/玫瑰循环5.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环5.mp4',NOW()),
+('m_room1_bm2031','video','public','摸头杀','白毛女',1,'玫瑰循环6','玫瑰/玫瑰循环6.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环6.mp4',NOW()),
+('m_room1_bm2032','video','public','摸头杀','白毛女',1,'玫瑰循环7','玫瑰/玫瑰循环7.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环7.mp4',NOW()),
+('m_room1_bm2033','video','public','摸头杀','白毛女',1,'玫瑰循环8','玫瑰/玫瑰循环8.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环8.mp4',NOW()),
+('m_room1_bm2034','video','public','摸头杀','白毛女',1,'玫瑰循环9','玫瑰/玫瑰循环9.mp4',0,'','1','machine','room1','玫瑰/玫瑰循环9.mp4',NOW()),
+('m_room1_bm2035','video','public','飞吻','白毛女',1,'飞吻循环1','飞吻/飞吻循环1.mp4',0,'','1','machine','room1','飞吻/飞吻循环1.mp4',NOW()),
+('m_room1_bm2036','video','public','飞吻','白毛女',1,'飞吻循环2','飞吻/飞吻循环2.mp4',0,'','1','machine','room1','飞吻/飞吻循环2.mp4',NOW()),
+('m_room1_bm2037','video','public','飞吻','白毛女',1,'飞吻循环3','飞吻/飞吻循环3.mp4',0,'','1','machine','room1','飞吻/飞吻循环3.mp4',NOW()),
+('m_room1_bm2038','video','public','飞吻','白毛女',1,'飞吻循环4','飞吻/飞吻循环4.mp4',0,'','1','machine','room1','飞吻/飞吻循环4.mp4',NOW()),
+('m_room1_bm2039','video','public','飞吻','白毛女',1,'飞吻循环5','飞吻/飞吻循环5.mp4',0,'','1','machine','room1','飞吻/飞吻循环5.mp4',NOW()),
+('m_room1_bm2040','video','public','飞吻','白毛女',1,'飞吻循环6','飞吻/飞吻循环6.mp4',0,'','1','machine','room1','飞吻/飞吻循环6.mp4',NOW()),
+('m_room1_bm2041','video','public','飞吻','白毛女',1,'飞吻循环7','飞吻/飞吻循环7.mp4',0,'','1','machine','room1','飞吻/飞吻循环7.mp4',NOW()),
+('m_room1_bm2042','video','public','飞吻','白毛女',1,'飞吻循环8','飞吻/飞吻循环8.mp4',0,'','1','machine','room1','飞吻/飞吻循环8.mp4',NOW()),
+('m_room1_bm2043','video','public','飞吻','白毛女',1,'飞吻循环9','飞吻/飞吻循环9.mp4',0,'','1','machine','room1','飞吻/飞吻循环9.mp4',NOW());
+
+-- v2 播单素材 17 条（keywords 空，仅作播单）
+INSERT INTO lp_media_asset (asset_code,asset_type,scene_type,keywords,persona,weight,title,file_url,duration_ms,checksum,status,source,machine_id,remote_path,created_at) VALUES
+('m_room1_bm2044','video','public','','白毛女',1,'8月18日','播单/8月18日.mp4',0,'','1','machine','room1','播单/8月18日.mp4',NOW()),
+('m_room1_bm2045','video','public','','白毛女',1,'8月18日(1)','播单/8月18日(1).mp4',0,'','1','machine','room1','播单/8月18日(1).mp4',NOW()),
+('m_room1_bm2046','video','public','','白毛女',1,'8月18日(2)','播单/8月18日(2).mp4',0,'','1','machine','room1','播单/8月18日(2).mp4',NOW()),
+('m_room1_bm2047','video','public','','白毛女',1,'8月18日(3)','播单/8月18日(3).mp4',0,'','1','machine','room1','播单/8月18日(3).mp4',NOW()),
+('m_room1_bm2048','video','public','','白毛女',1,'8月18日(4)','播单/8月18日(4).mp4',0,'','1','machine','room1','播单/8月18日(4).mp4',NOW()),
+('m_room1_bm2049','video','public','','白毛女',1,'8月18日(5)','播单/8月18日(5).mp4',0,'','1','machine','room1','播单/8月18日(5).mp4',NOW()),
+('m_room1_bm2050','video','public','','白毛女',1,'8月18日(6)','播单/8月18日(6).mp4',0,'','1','machine','room1','播单/8月18日(6).mp4',NOW()),
+('m_room1_bm2051','video','public','','白毛女',1,'8月18日(7)','播单/8月18日(7).mp4',0,'','1','machine','room1','播单/8月18日(7).mp4',NOW()),
+('m_room1_bm2052','video','public','','白毛女',1,'8月18日(8)','播单/8月18日(8).mp4',0,'','1','machine','room1','播单/8月18日(8).mp4',NOW()),
+('m_room1_bm2053','video','public','','白毛女',1,'8月18日(9)','播单/8月18日(9).mp4',0,'','1','machine','room1','播单/8月18日(9).mp4',NOW()),
+('m_room1_bm2054','video','public','','白毛女',1,'8月18日(10)','播单/8月18日(10).mp4',0,'','1','machine','room1','播单/8月18日(10).mp4',NOW()),
+('m_room1_bm2055','video','public','','白毛女',1,'8月18日(11)','播单/8月18日(11).mp4',0,'','1','machine','room1','播单/8月18日(11).mp4',NOW()),
+('m_room1_bm2056','video','public','','白毛女',1,'8月18日(12)','播单/8月18日(12).mp4',0,'','1','machine','room1','播单/8月18日(12).mp4',NOW()),
+('m_room1_bm2057','video','public','','白毛女',1,'8月18日(13)','播单/8月18日(13).mp4',0,'','1','machine','room1','播单/8月18日(13).mp4',NOW()),
+('m_room1_bm2058','video','public','','白毛女',1,'8月18日(14)','播单/8月18日(14).mp4',0,'','1','machine','room1','播单/8月18日(14).mp4',NOW()),
+('m_room1_bm2059','video','public','','白毛女',1,'8月18日(15)','播单/8月18日(15).mp4',0,'','1','machine','room1','播单/8月18日(15).mp4',NOW()),
+('m_room1_bm2060','video','public','','白毛女',1,'8月18日(16)','播单/8月18日(16).mp4',0,'','1','machine','room1','播单/8月18日(16).mp4',NOW());
+
+-- 新播单模板
+INSERT INTO lp_playlist_template (template_code,name,mode,status,created_at) VALUES ('room_playlist_1_bm2','白毛女播单v2(8月18日)','public',1,NOW());
+SET @tpl = LAST_INSERT_ID();
+INSERT INTO lp_playlist_template_item (template_id,asset_id,seq,loop_count,weight,start_offset_ms) VALUES
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2044'),1,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2045'),2,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2046'),3,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2047'),4,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2048'),5,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2049'),6,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2050'),7,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2051'),8,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2052'),9,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2053'),10,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2054'),11,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2055'),12,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2056'),13,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2057'),14,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2058'),15,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2059'),16,1,1,0),
+(@tpl,(SELECT id FROM lp_media_asset WHERE asset_code='m_room1_bm2060'),17,1,1,0);
+UPDATE lp_room_binding SET playlist_template_id=@tpl WHERE room_id=1;

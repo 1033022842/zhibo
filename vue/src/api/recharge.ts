@@ -46,6 +46,13 @@ export function submitRecharge(channelId: number, amount: number, proofImage?: s
 }
 
 // 充值记录
+export function getRechargeStatus(orderNo: string) {
+  return request({
+    url: `/api/v1/recharge/status?order_no=${encodeURIComponent(orderNo)}`,
+    method: 'get'
+  })
+}
+
 export function getRechargeOrders(page = 1) {
   return request<{ list: RechargeOrder[]; total: number }>({
     url: '/api/v1/recharge/orders',

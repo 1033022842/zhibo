@@ -64,8 +64,8 @@
           <div class="amount-estimate">预计到账 <strong>{{ estimatedDiamonds }}</strong> 钻</div>
         </div>
 
-        <!-- 上传凭证 -->
-        <div class="proof-section">
+        <!-- 上传凭证（仅人工审核渠道） -->
+        <div class="proof-section" v-if="!isAutoChannel">
           <div class="proof-label">上传支付截图（可选）</div>
           <div class="proof-upload" @click="triggerUpload">
             <img v-if="proofUrl" :src="proofUrl" class="proof-preview" />
@@ -79,9 +79,63 @@
 
         <button class="btn-switch" @click="step = 'channel'">切换渠道</button>
         <button class="btn-submit" @click="doSubmit" :disabled="submitting || amount <= 0">
-          {{ submitting ? '提交中...' : '我已支付，提交审核' }}
+          {{ submitting ? '提交中...' : (isAutoChannel ? '生成付款订单' : '我已支付，提交审核') }}
         </button>
-        <p class="submit-hint">提交后需等待管理员审核，审核通过后钻石自动到账</p>
+        <p class="submit-hint" v-if="!isAutoChannel">提交后需等待管理员审核，审核通过后钻石自动到账</p>
+        <p class="submit-hint" v-else>生成订单后按精确金额转账，链上确认后自动到账</p>
+      </div>
+    </template>
+
+    <!-- 等待链上确认（自动模式） -->
+    <template v-else-if="step === 'waiting'">
+      <div class="section waiting-section" v-anim>
+        <div class="wait-head">
+          <div class="wait-spinner"></div>
+          <h3 class="section-title-wait">等待链上确认</h3>
+          <p class="wait-tip">请向以下地址转入 <strong>精确金额</strong>，确认后自动到账（约1-3分钟）</p>
+        </div>
+
+        <div class="qr-zone">
+          <img v-if="qrDataUrl" :src="qrDataUrl" class="qr-img" alt="收款二维码" />
+          <div v-else class="qr-loading"></div>
+        </div>
+
+        <div class="pay-amount-zone">
+          <div class="pay-amount-label">应付金额（请务必精确转账，含小数尾号）</div>
+          <div class="pay-amount-value" @click="copyText(lastOrder?.pay_amount)">
+            {{ lastOrder?.pay_amount }} USDT
+            <span class="copy-mini">复制</span>
+          </div>
+        </div>
+
+        <div class="address-zone">
+          <div class="address-label">收款地址 (TRC20)</div>
+          <div class="address-box">
+            <span class="address-text">{{ selectedChannel?.address }}</span>
+            <button class="btn-copy" @click="copyAddress">复制</button>
+          </div>
+        </div>
+
+        <div class="wait-meta">
+          <span>订单号 {{ lastOrder?.order_no }}</span>
+          <span>预计到账 <strong>{{ lastOrder?.diamond_amount }}</strong> 钻</span>
+          <span>剩余时间 <strong :class="{ warn: countdownSec <= 300 }">{{ countdownText }}</strong></span>
+        </div>
+
+        <button class="btn-done" @click="goOrders">查看充值记录</button>
+        <button class="btn-back-channel" @click="cancelWaiting">返回重新下单</button>
+      </div>
+    </template>
+
+    <!-- 到账成功（自动确认） -->
+    <template v-else-if="step === 'success'">
+      <div class="result-card result-card--success" v-anim>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <h2>充值成功</h2>
+        <p>{{ lastOrder?.pay_amount }} USDT → <strong class="hl">{{ lastOrder?.diamond_amount }} 钻</strong></p>
+        <p class="result-sub">链上已确认，钻石已到账</p>
+        <button class="btn-done" @click="goOrders">查看充值记录</button>
+        <button class="btn-back-channel" @click="step = 'channel'">继续充值</button>
       </div>
     </template>
 
@@ -122,10 +176,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import QRCode from 'qrcode'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  getRechargeChannels, submitRecharge, getRechargeOrders, uploadProofImage,
+  getRechargeChannels, submitRecharge, getRechargeOrders, uploadProofImage, getRechargeStatus,
   type RechargeChannel, type RechargeOrder
 } from '@/api/recharge'
 import { setTokens, getAccessToken } from '@/utils/auth'
@@ -142,7 +197,19 @@ const amount = ref(0)
 const proofUrl = ref('')
 const fileInput = ref<HTMLInputElement>()
 const orders = ref<RechargeOrder[]>([])
-const lastOrder = ref<RechargeOrder | null>(null)
+const lastOrder = ref<any>(null)
+const qrDataUrl = ref('')
+const pollTimer = ref<number | null>(null)
+const countdownTimer = ref<number | null>(null)
+const countdownSec = ref(0)
+
+const isAutoChannel = computed(() => (selectedChannel.value as any)?.confirm_mode !== 'manual')
+
+const countdownText = computed(() => {
+  const m = Math.floor(countdownSec.value / 60)
+  const s = countdownSec.value % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+})
 
 const estimatedDiamonds = computed(() => {
   if (!selectedChannel.value || amount.value <= 0) return 0
@@ -183,9 +250,69 @@ async function doSubmit() {
     const res: any = await submitRecharge(selectedChannel.value.id, amount.value, proofUrl.value)
     const resp = res?.data
     lastOrder.value = (resp?.data || resp)
-    step.value = 'done'
+    if (isAutoChannel.value) {
+      startWaiting()
+    } else {
+      step.value = 'done'
+    }
   } catch (e: any) { alert(e?.message || e?.msg || '提交失败') }
   submitting.value = false
+}
+
+function startWaiting() {
+  step.value = 'waiting'
+  // 生成收款地址二维码
+  const addr = selectedChannel.value?.address || ''
+  if (addr) {
+    QRCode.toDataURL(addr, { width: 360, margin: 2, color: { dark: '#111111', light: '#ffffff' } })
+      .then((url: string) => { qrDataUrl.value = url })
+      .catch(() => { qrDataUrl.value = '' })
+  }
+  // 倒计时（expire_at）
+  const expire = new Date(String(lastOrder.value?.expire_at || '').replace(/-/g, '/')).getTime()
+  countdownSec.value = Math.max(0, Math.floor((expire - Date.now()) / 1000))
+  if (countdownTimer.value) clearInterval(countdownTimer.value)
+  countdownTimer.value = window.setInterval(() => {
+    countdownSec.value = Math.max(0, countdownSec.value - 1)
+    if (countdownSec.value === 0) stopPoll()
+  }, 1000)
+  // 轮询订单状态
+  if (pollTimer.value) clearInterval(pollTimer.value)
+  pollTimer.value = window.setInterval(pollStatus, 5000)
+}
+
+async function pollStatus() {
+  const orderNo = lastOrder.value?.order_no
+  if (!orderNo) return
+  try {
+    const res: any = await getRechargeStatus(orderNo)
+    const resp = res?.data?.data || res?.data
+    const st = Number(resp?.status ?? -1)
+    if (st === 1) {
+      lastOrder.value = { ...lastOrder.value, ...resp }
+      stopPoll()
+      step.value = 'success'
+    } else if (st === 3) {
+      stopPoll()
+      alert('订单已过期，请重新下单')
+      step.value = 'channel'
+    }
+  } catch { /* 网络抖动继续轮询 */ }
+}
+
+function stopPoll() {
+  if (pollTimer.value) { clearInterval(pollTimer.value); pollTimer.value = null }
+  if (countdownTimer.value) { clearInterval(countdownTimer.value); countdownTimer.value = null }
+}
+
+function cancelWaiting() {
+  stopPoll()
+  step.value = 'channel'
+}
+
+function copyText(t?: string | number) {
+  if (t === undefined || t === null || t === '') return
+  navigator.clipboard.writeText(String(t))
 }
 
 async function goOrders() {
@@ -198,6 +325,8 @@ async function goOrders() {
   } catch {}
   loading.value = false
 }
+
+onUnmounted(() => { stopPoll() })
 
 onMounted(async () => {
   // 处理从 AI 女友端跳转过来的 token（跨域 localhost:8003 → localhost:3000）
@@ -217,7 +346,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.RechargePage { min-height:100vh; background:#0a0a14; color:#fff; padding-bottom:40px; position:relative; overflow:hidden }
+.RechargePage { height:100vh; background:#0a0a14; color:#fff; padding-bottom:40px; position:relative; overflow-x:hidden; overflow-y:auto; -webkit-overflow-scrolling:touch }
 .bg-glow{position:fixed;border-radius:50%;filter:blur(120px);opacity:.1;pointer-events:none;z-index:0}
 .bg-glow--top{top:-120px;left:-80px;width:320px;height:320px;background:radial-gradient(circle,#f59e0b,transparent)}
 .bg-glow--bottom{bottom:-120px;right:-80px;width:320px;height:320px;background:radial-gradient(circle,#d97706,transparent)}
@@ -286,6 +415,22 @@ onMounted(async () => {
 .order-amount{font-size:12px;color:rgba(255,255,255,.55)}
 .status-tag{padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600}
 .status-tag.pending{background:rgba(245,158,11,.15);color:#f59e0b}
+
+.waiting-section{padding:24px 16px;background:rgba(255,255,255,.03);border:1px solid rgba(245,158,11,.2);border-radius:16px}
+.wait-head{text-align:center;margin-bottom:16px}
+.wait-spinner{width:36px;height:36px;margin:0 auto 10px;border:3px solid rgba(245,158,11,.15);border-top-color:#f59e0b;border-radius:50%;animation:spin .9s linear infinite}
+.section-title-wait{font-size:16px;font-weight:700;margin-bottom:6px}
+.wait-tip{font-size:12px;color:rgba(255,255,255,.4)}
+.wait-tip strong{color:#f59e0b}
+.qr-loading{width:180px;height:180px;margin:0 auto;border-radius:12px;background:rgba(255,255,255,.05)}
+.pay-amount-zone{margin-bottom:16px;padding:14px;background:rgba(245,158,11,.08);border:1px dashed rgba(245,158,11,.4);border-radius:12px;text-align:center}
+.pay-amount-label{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:6px}
+.pay-amount-value{font-size:22px;font-weight:800;color:#f59e0b;cursor:pointer}
+.copy-mini{font-size:11px;font-weight:400;color:rgba(255,255,255,.4);margin-left:8px}
+.wait-meta{display:flex;flex-direction:column;gap:6px;font-size:12px;color:rgba(255,255,255,.4);margin-bottom:16px;padding:0 4px}
+.wait-meta strong{color:rgba(255,255,255,.75)}
+.wait-meta strong.warn{color:#ff6b4a}
+.hl{color:#00d4aa}
 .status-tag.passed{background:rgba(0,212,170,.15);color:#00d4aa}
 .status-tag.rejected{background:rgba(255,45,85,.15);color:#ff2d55}
 </style>

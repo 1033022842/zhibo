@@ -51,21 +51,6 @@
           <span class="mode-copy">{{ playModeDescription }}</span>
         </div>
 
-        <div class="right-panel">
-          <div class="metric">
-            <span>在线</span>
-            <strong>{{ onlineText }}</strong>
-          </div>
-          <div class="metric">
-            <span>点赞</span>
-            <strong>{{ likeText }}</strong>
-          </div>
-          <div class="metric">
-            <span>模式</span>
-            <strong>{{ modeText }}</strong>
-          </div>
-        </div>
-
         <div class="bottom-panel">
           <div class="comments">
             <div class="comment notice">欢迎来到 {{ room.title }}</div>
@@ -90,7 +75,7 @@
 
           <div v-if="giftList.length > 0" class="gift-row">
             <button
-              v-for="gift in giftList"
+              v-for="gift in giftList.slice(0, 4)"
               :key="gift.gift_id"
               class="gift-chip"
               type="button"
@@ -98,8 +83,12 @@
               :disabled="!canSendGift || sendingGiftId !== null"
               @click="sendGift(gift)"
             >
+              <img v-if="gift.icon_url" class="gift-icon" :src="gift.icon_url" alt="" loading="lazy" />
               <span class="gift-name">{{ gift.name }}</span>
-              <span class="gift-price">{{ gift.price }}{{ giftCurrencyName }}</span>
+            </button>
+            <button class="gift-chip gift-more" type="button" @click="showGiftPicker = true">
+              <svg class="gift-icon" viewBox="0 0 24 24" fill="none" stroke="#ff9a44" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
+              <span class="gift-name">全部礼物</span>
             </button>
           </div>
 
@@ -124,6 +113,53 @@
         </div>
       </template>
     </div>
+
+    <!-- 礼物选择弹窗 -->
+    <Teleport to="body">
+      <Transition name="gift-sheet">
+        <div v-if="showGiftPicker" class="gift-modal-mask" @click.self="showGiftPicker = false">
+          <div class="gift-modal">
+            <div class="gift-modal-head">
+              <span class="gift-modal-title">选择礼物</span>
+              <button class="gift-modal-close" type="button" @click="showGiftPicker = false">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div class="gift-grid">
+              <button
+                v-for="gift in giftList"
+                :key="gift.gift_id"
+                class="gift-cell"
+                type="button"
+                :class="{ selected: selectedGiftId === gift.gift_id }"
+                @click="selectGift(gift)"
+              >
+                <div class="gift-cell-icon-wrap">
+                  <img v-if="gift.icon_url" class="gift-cell-icon" :src="gift.icon_url" alt="" loading="lazy" />
+                  <span v-else class="gift-cell-emoji">🎁</span>
+                  <span v-if="selectedGiftId === gift.gift_id" class="gift-cell-check">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                </div>
+                <span class="gift-name" :class="{ 'price-on': selectedGiftId === gift.gift_id }">
+                  {{ selectedGiftId === gift.gift_id ? `${gift.price}${giftCurrencyName}` : gift.name }}
+                </span>
+              </button>
+            </div>
+            <div class="gift-modal-foot">
+              <button
+                class="feed-btn"
+                type="button"
+                :disabled="!selectedGift || !canSendGift || sendingGiftId !== null"
+                @click="sendSelectedGift"
+              >
+                {{ selectedGift ? `投喂 ${selectedGift.name}` : '投喂' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -160,6 +196,8 @@ const wsState = ref<WsState>('idle')
 const chatDraft = ref('')
 const sendingChat = ref(false)
 const sendingGiftId = ref<number | null>(null)
+const showGiftPicker = ref(false)
+const selectedGiftId = ref<number | null>(null)
 const chatMessages = ref<ChatMessageItem[]>([])
 const realtimeOnlineCount = ref<number | null>(null)
 const realtimeLikeCount = ref<number | null>(null)
@@ -195,6 +233,7 @@ const currentNickname = computed(() => baseStore.userinfo.nickname || '现场观
 const badgeText = computed(() => room.value?.display?.badge_text || '直播中')
 const giftList = computed(() => room.value?.gift_panel?.quick_gifts || [])
 const giftCurrencyName = computed(() => room.value?.gift_panel?.currency_name || '钻石')
+const selectedGift = computed(() => giftList.value.find((g) => g.gift_id === selectedGiftId.value) || null)
 const onlineText = computed(() =>
   realtimeOnlineCount.value !== null
     ? normalizeCountText(realtimeOnlineCount.value, '实时在线')
@@ -798,6 +837,17 @@ function sendGift(gift: LiveGiftInfo) {
   }))
 }
 
+function selectGift(gift: LiveGiftInfo) {
+  selectedGiftId.value = selectedGiftId.value === gift.gift_id ? null : gift.gift_id
+}
+
+function sendSelectedGift() {
+  const gift = giftList.value.find((g) => g.gift_id === selectedGiftId.value)
+  if (!gift) return
+  showGiftPicker.value = false
+  sendGift(gift)
+}
+
 function goBack() {
   clearPrivilegeTimer()
   if (window.history.length > 1) {
@@ -865,10 +915,11 @@ onUnmounted(() => {
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    z-index: 5;
+    object-fit: cover; /* 铺满全屏（含宽度），竖屏特效天然匹配 */
+    z-index: 900; /* 特效置顶：盖过弹幕/礼物栏等 overlay(10)，仅低于礼物弹窗(1000) */
     pointer-events: none;
     background: transparent;
+    /* 特效已转为带 alpha 通道的 webm：主体完全不透明，背景真透明，无需混合模式 */
     animation: effectFadeIn 0.3s ease-out;
   }
 
@@ -1151,13 +1202,11 @@ onUnmounted(() => {
   .gift-chip {
     flex: 0 0 auto;
     display: inline-flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4rem;
-    min-width: 74rem;
-    padding: 8rem 10rem;
+    align-items: center;
+    gap: 5rem;
+    padding: 5rem 10rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14rem;
+    border-radius: 999rem;
     color: white;
     background: rgba(18, 18, 24, 0.6);
     backdrop-filter: blur(12rem);
@@ -1172,14 +1221,24 @@ onUnmounted(() => {
     }
   }
 
+  .gift-icon {
+    width: 22rem;
+    height: 22rem;
+    object-fit: contain;
+    border-radius: 6rem;
+    flex-shrink: 0;
+  }
+
   .gift-name {
     font-size: 12rem;
     font-weight: 600;
+    white-space: nowrap;
   }
 
-  .gift-price {
-    font-size: 10rem;
-    color: rgba(255, 255, 255, 0.7);
+  .gift-more {
+    border-color: rgba(255, 154, 68, 0.45);
+
+    .gift-name { color: #ff9a44; }
   }
 
   .room-meta {
@@ -1253,5 +1312,174 @@ onUnmounted(() => {
       opacity: 0.5;
     }
   }
+}
+
+// ===== 礼物选择弹窗（Teleport 到 body，仍属本组件 scoped） =====
+.gift-modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.gift-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 68vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #1c1c26, #12121a);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 16px calc(18px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.gift-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.gift-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.gift-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.gift-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 380px) {
+  .gift-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.gift-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 4px 7px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+
+  &:active { transform: scale(0.94); }
+
+  &.selected {
+    border-color: #ff5c8a;
+    background: rgba(255, 92, 138, 0.14);
+  }
+
+  .gift-name {
+    font-size: 12px;
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.price-on {
+      color: #ff9ab8;
+      font-size: 11px;
+    }
+  }
+}
+
+.gift-cell-icon-wrap {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 154, 68, 0.16), rgba(255, 255, 255, 0.03));
+  overflow: visible;
+}
+
+.gift-cell-icon {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.gift-cell-check {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #ff5c8a;
+  box-shadow: 0 2px 6px rgba(255, 92, 138, 0.5);
+}
+
+.gift-cell-emoji {
+  font-size: 30px;
+}
+
+.gift-modal-foot {
+  position: sticky;
+  bottom: 0;
+  margin-top: 12px;
+  padding-top: 10px;
+  background: linear-gradient(180deg, rgba(18, 18, 26, 0), #12121a 40%);
+}
+
+.feed-btn {
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ff5c8a, #e75275);
+  box-shadow: 0 4px 16px rgba(231, 82, 117, 0.35);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+
+  &:active:not(:disabled) { transform: scale(0.97); }
+  &:disabled { opacity: 0.45; }
+}
+
+.gift-sheet-enter-active,
+.gift-sheet-leave-active {
+  transition: opacity 0.22s ease;
+  .gift-modal { transition: transform 0.26s cubic-bezier(0.32, 0.72, 0.35, 1); }
+}
+
+.gift-sheet-enter-from,
+.gift-sheet-leave-to {
+  opacity: 0;
+  .gift-modal { transform: translateY(100%); }
 }
 </style>

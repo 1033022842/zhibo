@@ -77,14 +77,14 @@ final class Crowdfunding extends BaseController
     }
 
     /**
-     * 众筹列表（进行中的，无需登录）
+     * 众筹列表（进行中+已完成，无需登录）
      */
     public function list()
     {
         $page = $this->request->param('page/d', 1);
         $pageSize = $this->request->param('page_size/d', 15);
 
-        $result = $this->service->listActive($page, $pageSize);
+        $result = $this->service->listAll($page, $pageSize);
         return $this->jsonSuccess($result);
     }
 
@@ -158,61 +158,6 @@ final class Crowdfunding extends BaseController
         return $this->jsonSuccess(['has_active' => $hasActive]);
     }
 
-    /**
-     * 测试：给当前用户加钻石
-     */
-    public function topup()
-    {
-        $userId = $this->getAuthUserId();
-        $amount = $this->request->post('amount/f', 1000);
-
-        if ($amount <= 0) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '金额必须大于0');
-        }
-
-        $wallet = Db::connect('live_mysql')
-            ->table('lp_wallet_account')
-            ->where('user_id', $userId)
-            ->find();
-
-        $balanceBefore = $wallet ? (float)$wallet['diamond_balance'] : 0.00;
-        $balanceAfter = bcadd((string)$balanceBefore, (string)$amount, 2);
-
-        if ($wallet) {
-            Db::connect('live_mysql')->table('lp_wallet_account')
-                ->where('user_id', $userId)
-                ->update([
-                    'diamond_balance' => $balanceAfter,
-                    'updated_at'      => date('Y-m-d H:i:s'),
-                ]);
-        } else {
-            Db::connect('live_mysql')->table('lp_wallet_account')->insert([
-                'user_id'         => $userId,
-                'diamond_balance' => $balanceAfter,
-                'status'          => 1,
-                'updated_at'      => date('Y-m-d H:i:s'),
-            ]);
-        }
-
-        // 记录流水
-        Db::connect('live_mysql')->table('lp_wallet_ledger')->insert([
-            'user_id'        => $userId,
-            'biz_type'       => 'adjust',
-            'direction'      => 1,
-            'asset_type'     => 'diamond',
-            'amount'         => $amount,
-            'balance_before' => $balanceBefore,
-            'balance_after'  => $balanceAfter,
-            'remark'         => '测试充值（众筹测试）',
-            'created_at'     => date('Y-m-d H:i:s'),
-        ]);
-
-        return $this->jsonSuccess([
-            'amount'         => $amount,
-            'balance_before' => $balanceBefore,
-            'balance_after'  => (float)$balanceAfter,
-        ], "已添加 {$amount} 钻石");
-    }
 
     /**
      * 查询当前用户钻石余额

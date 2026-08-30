@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>My Crowdfunding · 我的众筹</title>
+    <link rel="stylesheet" href="./assets/fy.css" data-turbo-track="reload">
+    <link rel="stylesheet" href="./Girls_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
+    <script src="./Girls_files/jquery-3.6.0.min.js"></script>
+    <script src="./assets/layer/3.1.1/layer.js"></script>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0c0e18;color:#fff;min-height:100vh}
+    .wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+    .top{display:flex;align-items:center;gap:12px;padding:14px 0 18px}
+    .back{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:18px;cursor:pointer}
+    h1{font-size:20px;font-weight:700}
+    .tabs{display:flex;gap:8px;margin-bottom:18px}
+    .tab{flex:1;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent}
+    .tab.on{background:rgba(168,85,247,.12);color:#c9a6f7;border-color:rgba(168,85,247,.35)}
+    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:14px}
+    .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+    .t{font-size:15px;font-weight:700}
+    .persona{font-size:12px;color:#c9a6f7;margin-top:2px}
+    .badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;flex-shrink:0}
+    .b0{background:rgba(168,85,247,.15);color:#c9a6f7}
+    .b1{background:rgba(16,185,129,.15);color:#34d399}
+    .b2{background:rgba(120,120,120,.2);color:#9a9a9a}
+    .track{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 6px}
+    .fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#a855f7,#E75275)}
+    .fill.ok{background:linear-gradient(90deg,#10b981,#059669)}
+    .meta{display:flex;gap:6px}
+    .ms{flex:1;background:rgba(0,0,0,.25);border-radius:8px;padding:6px;text-align:center}
+    .ms .v{font-size:13px;font-weight:700}
+    .ms .k{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
+    .row{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.45);margin-top:8px}
+    .empty{padding:70px 20px;text-align:center;color:rgba(255,255,255,.3);font-size:14px}
+    .load{display:flex;justify-content:center;padding:60px 0}
+    .spin{width:30px;height:30px;border:3px solid rgba(255,255,255,.1);border-top-color:#a855f7;border-radius:50%;animation:r .8s linear infinite}
+    @keyframes r{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="top">
+        <button class="back" onclick="location.href='./index.html'">&#8592;</button>
+        <h1>My Crowdfunding</h1>
+    </div>
+    <div class="tabs">
+        <button class="tab on" data-t="projects" onclick="switchTab('projects')">我发起的</button>
+        <button class="tab" data-t="pledges" onclick="switchTab('pledges')">我支持的</button>
+    </div>
+    <div id="list"><div class="load"><div class="spin"></div></div></div>
+</div>
+<script>
+(function() {
+    var base = '/api/v1'
+    var token = localStorage.getItem('live_access_token')
+
+    if (!token) { location.href = './Login.html'; return }
+
+    var stMap = { 0: '进行中', 1: '已达标', 2: '未达标·已退款' }
+
+    function pct(p) {
+        var t = parseFloat(p.target_amount) || 0, r = parseFloat(p.raised_amount) || 0
+        return t <= 0 ? 0 : Math.min(100, Math.round(r / t * 100))
+    }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] }) }
+
+    window.switchTab = function(t) {
+        $('.tab').removeClass('on')
+        $('.tab[data-t=' + t + ']').addClass('on')
+        load(t)
+    }
+
+    function load(t) {
+        $('#list').html('<div class="load"><div class="spin"></div></div>')
+        $.ajax({
+            url: base + '/crowdfunding/' + (t === 'projects' ? 'my-projects' : 'my-pledges'),
+            headers: { 'Authorization': 'Bearer ' + token },
+        }).done(function(r) {
+            if (r.code !== '00000') { $('#list').html('<div class="empty">' + esc(r.msg || '加载失败') + '</div>'); return }
+            var data = r.data || []
+            if (!data.length) { $('#list').html('<div class="empty">暂无记录</div>'); return }
+            var html = ''
+            if (t === 'projects') {
+                data.forEach(function(p) {
+                    var c = pct(p), done = p.status == 1 || c >= 100
+                    html += '<div class="card">' +
+                        '<div class="card-top"><div><div class="t">' + esc(p.title) + '</div><div class="persona">&#10024; ' + esc(p.persona_name) + '</div></div>' +
+                        '<span class="badge b' + p.status + '">' + (stMap[p.status] || '未知') + '</span></div>' +
+                        '<div class="track"><div class="fill' + (done ? ' ok' : '') + '" style="width:' + c + '%"></div></div>' +
+                        '<div class="meta"><div class="ms"><div class="v">' + p.raised_amount + '</div><div class="k">Raised</div></div>' +
+                        '<div class="ms"><div class="v">' + p.supporter_count + '</div><div class="k">Backers</div></div>' +
+                        '<div class="ms"><div class="v">' + c + '%</div><div class="k">Progress</div></div></div>' +
+                        '<div class="row"><span>目标 ' + p.target_amount + ' 钻</span><span>截止 ' + (p.deadline || '').slice(0, 10) + '</span></div>' +
+                        '</div>'
+                })
+            } else {
+                data.forEach(function(w) {
+                    var p = w.project || {}
+                    var st = w.status
+                    var stTxt = st == 0 ? '冻结中' : (st == 1 ? '已划转' : '已退款')
+                    var stCls = st == 1 ? 'b1' : (st == 2 ? 'b2' : 'b0')
+                    var c = p.target_amount ? Math.min(100, Math.round((p.raised_amount || 0) / p.target_amount * 100)) : 0
+                    html += '<div class="card">' +
+                        '<div class="card-top"><div><div class="t">' + esc(p.title || ('项目 #' + w.project_id)) + '</div><div class="persona">支持 ' + w.amount + ' 钻 · ' + (w.created_at || '').slice(0, 10) + '</div></div>' +
+                        '<span class="badge ' + stCls + '">' + stTxt + '</span></div>' +
+                        '<div class="track"><div class="fill" style="width:' + c + '%"></div></div>' +
+                        '<div class="row"><span>项目进度 ' + c + '%</span><span>' + (stMap[p.status] != null ? '项目' + stMap[p.status] : '') + '</span></div>' +
+                        '</div>'
+                })
+            }
+            $('#list').html(html)
+        }).fail(function(){ $('#list').html('<div class="empty">网络错误</div>') })
+    }
+
+    load('projects')
+})()
+</script>
+</body>
+</html>

@@ -65,7 +65,15 @@ const baTable = new baTableClass(
             { label: '素材编码', prop: 'asset_code', align: 'center', operator: 'LIKE' },
             { label: '标题', prop: 'title', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
             { label: '素材类型', prop: 'asset_type', align: 'center', render: 'tag', operator: '=' },
-            { label: '场景', prop: 'scene_type', align: 'center', render: 'tag', operator: '=' },
+            {
+                label: '场景',
+                prop: 'scene_type',
+                align: 'center',
+                render: 'tag',
+                operator: '=',
+                custom: { public: '', privilege: 'warning', interaction: 'success', cover: 'info', gift_effect: 'danger' },
+                replaceValue: { public: '公共', privilege: '特权', interaction: '互动', cover: '封面', gift_effect: '礼物特效' },
+            },
             { label: '人设', prop: 'persona', align: 'center', operator: 'LIKE' },
             {
                 label: '来源',

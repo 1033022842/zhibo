@@ -5,7 +5,7 @@
 
 return [
     // 最大上传
-    'max_size'           => '10mb',
+    'max_size'           => '50mb',
     // 文件保存格式化方法:topic=存储子目录,fileName=文件名前15个字符
     'save_name'          => '/storage/{topic}/{year}{mon}{day}/{fileName}{fileSha1}{.suffix}',
 

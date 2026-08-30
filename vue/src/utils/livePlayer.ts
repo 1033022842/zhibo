@@ -93,10 +93,12 @@ async function playPreview(videoEl: HTMLVideoElement, previewUrl: string) {
 
 function playHls(videoEl: HTMLVideoElement, hlsUrl: string): Promise<boolean> {
   return new Promise((resolve) => {
-    // 本地开发时 API 返回的域名可能和 dev server 不一致，统一用当前页面域名
+    // HTTPS 页面加载 HTTP 的 CDN 资源会被浏览器拦截（mixed content）
+    // 此时回退到页面同域路径（源站直连），牺牲 CDN 加速但保证能播
     try {
       const u = new URL(hlsUrl)
-      if (u.host !== window.location.host) {
+      if (window.location.protocol === 'https:' && u.protocol === 'http:') {
+        console.warn('[HLS] https page + http cdn url, fallback to same-origin:', u.pathname)
         hlsUrl = window.location.origin + u.pathname + u.search
       }
     } catch (_) { /* keep original */ }
@@ -112,11 +114,11 @@ function playHls(videoEl: HTMLVideoElement, hlsUrl: string): Promise<boolean> {
     const hls = new Hls({
       enableWorker: false,
       debug: false,
-      maxBufferLength: 60,
-      maxMaxBufferLength: 120,
-      // 不要太激进地追直播边缘，给 buffer 留足空间
-      liveSyncDurationCount: 5,
-      maxBufferSize: 120 * 1000 * 1000, // 120MB
+      maxBufferLength: 12,
+      maxMaxBufferLength: 30,
+      // 贴近直播边缘（2 个分片 ≈ 6.4s），降低送礼视频的可见延迟
+      liveSyncDurationCount: 2,
+      maxBufferSize: 30 * 1000 * 1000, // 30MB
       maxBufferHole: 0.5,
     })
     let resolved = false

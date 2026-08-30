@@ -16,7 +16,7 @@ final class Gift extends Backend
     protected bool $modelValidate = false;
     protected string|array $defaultSortField = 'id,desc';
     protected string|array $preExcludeFields = ['keyword'];
-    protected array $noNeedPermission = ['keywords'];
+    protected array $noNeedPermission = ['keywords', 'effects'];
 
     public function initialize(): void
     {
@@ -82,6 +82,63 @@ final class Gift extends Backend
         $this->success('', ['list' => $data, 'total' => count($data)]);
     }
 
+    /**
+     * 返回可选礼物特效素材列表（scene_type=gift_effect 的视频素材）
+     * 供礼物表单远程下拉选择，选中值为 asset_code
+     */
+    public function effects(): void
+    {
+        $quickSearch = trim((string) $this->request->get('quickSearch/s', ''));
+        $initValue = trim((string) $this->request->get('initValue/s', ''));
+        $page = max(1, (int) $this->request->get('page/d', 1));
+        $limit = 20;
+
+        $query = Db::connect('live_mysql')
+            ->table('lp_media_asset')
+            ->where('asset_type', 'video')
+            ->where('scene_type', 'gift_effect')
+            ->where('status', 1);
+
+        if ($quickSearch !== '') {
+            $query->where(function ($q) use ($quickSearch) {
+                $q->whereOr('title', 'like', "%{$quickSearch}%")
+                  ->whereOr('asset_code', 'like', "%{$quickSearch}%");
+            });
+        }
+
+        $total = (int) (clone $query)->count();
+        $rows = (clone $query)
+            ->field(['asset_code', 'title', 'file_url'])
+            ->order('id', 'desc')
+            ->page($page, $limit)
+            ->select()
+            ->toArray();
+
+        // 编辑回显：当前选中的特效不在首页列表时，置顶补入
+        if ($page === 1 && $initValue !== '') {
+            $exists = false;
+            foreach ($rows as $row) {
+                if (($row['asset_code'] ?? '') === $initValue) {
+                    $exists = true;
+                    break;
+                }
+            }
+            if (!$exists) {
+                $current = Db::connect('live_mysql')
+                    ->table('lp_media_asset')
+                    ->where('asset_code', $initValue)
+                    ->where('status', 1)
+                    ->field(['asset_code', 'title', 'file_url'])
+                    ->find();
+                if (is_array($current)) {
+                    array_unshift($rows, $current);
+                }
+            }
+        }
+
+        $this->success('', ['list' => $rows, 'total' => $total]);
+    }
+
     public function add(): void
     {
         if (!$this->request->isPost()) {
@@ -94,6 +151,11 @@ final class Gift extends Backend
         }
 
         $keyword = $payload['keyword'] ?? '';
+
+        // remoteSelect 清空后提交 null，归一化为空串（icon_url 列为 NOT NULL）
+        foreach (['effect_code', 'icon_url'] as $field) {
+            $payload[$field] = trim((string) ($payload[$field] ?? ''));
+        }
 
         // 保存礼物
         $data = $this->excludeFields($payload);
@@ -122,6 +184,9 @@ final class Gift extends Backend
             }
 
             $keyword = $payload['keyword'] ?? '';
+            foreach (['effect_code', 'icon_url'] as $field) {
+                $payload[$field] = trim((string) ($payload[$field] ?? ''));
+            }
             $data = $this->excludeFields($payload);
             $row->save($data);
 

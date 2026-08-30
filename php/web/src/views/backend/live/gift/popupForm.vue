@@ -41,8 +41,20 @@
                             clearable: true,
                         }"
                     />
+                    <FormItem label="礼物图标" v-model="baTable.form.items!.icon_url" type="image" />
+                    <FormItem
+                        label="礼物特效"
+                        v-model="baTable.form.items!.effect_code"
+                        type="remoteSelect"
+                        :input-attr="{
+                            pk: 'asset_code',
+                            field: 'title',
+                            remoteUrl: '/admin/live.Gift/effects',
+                            placeholder: '选择特效素材（送礼时全屏播放，留空则无特效）',
+                            clearable: true,
+                        }"
+                    />
                     <FormItem v-if="false" label="触发时长(秒)" v-model="baTable.form.items!.trigger_duration_sec" type="number" />
-                    <FormItem v-if="false" label="特效编码" v-model="baTable.form.items!.effect_code" type="string" />
                     <FormItem
                         label="状态"
                         v-model="baTable.form.items!.status"

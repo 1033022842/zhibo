@@ -14,7 +14,7 @@
         <el-scrollbar v-loading="baTable.form.loading" class="ba-table-form-scrollbar">
             <div class="ba-operate-form" :class="'ba-' + baTable.form.operate + '-form'">
                 <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-show="!baTable.form.loading">
-                    <FormItem label="人设编码" v-model="baTable.form.items!.code" prop="code" type="string" />
+                    <FormItem label="人设编码" v-model="baTable.form.items!.code" type="string" :input-attr="{ placeholder: '留空自动生成' }" />
                     <FormItem label="人设名称" v-model="baTable.form.items!.name" prop="name" type="string" />
                     <FormItem label="标签" v-model="baTable.form.items!.tags" type="string" :input-attr="{ placeholder: '逗号分隔，例如：情感,夜聊' }" />
                     <FormItem label="封面" v-model="baTable.form.items!.cover_url" type="image" />
@@ -44,7 +44,8 @@ const formRef = useTemplateRef('formRef')
 const baTable = inject('baTable') as baTableClass
 
 const rules: Partial<Record<string, FormItemRule[]>> = reactive({
-    code: [{ required: true, message: '请输入人设编码', trigger: 'blur' }],
+    // 编码留空自动生成
+    // code: [{ required: true, message: '请输入人设编码', trigger: 'blur' }],
     name: [{ required: true, message: '请输入人设名称', trigger: 'blur' }],
 })
 </script>

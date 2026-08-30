@@ -26,6 +26,14 @@ const baTable = new baTableClass(
         column: [
             { type: 'selection', align: 'center', operator: false },
             { label: 'ID', prop: 'id', align: 'center', width: 70, operator: '=' },
+            {
+                label: '图标',
+                prop: 'icon_url',
+                align: 'center',
+                width: 80,
+                render: 'image',
+                operator: false,
+            },
             { label: '礼物编码', prop: 'gift_code', align: 'center', operator: 'LIKE' },
             { label: '礼物名称', prop: 'name', align: 'center', operator: 'LIKE' },
             { label: '钻石价格', prop: 'price_diamond', align: 'center', operator: 'RANGE' },
@@ -39,7 +47,7 @@ const baTable = new baTableClass(
             },
             { label: '触发大类', prop: 'keyword', align: 'center', operator: 'LIKE' },
             { label: '触发时长(秒)', prop: 'trigger_duration_sec', align: 'center', operator: 'RANGE', show: false },
-            { label: '特效编码', prop: 'effect_code', align: 'center', operator: 'LIKE', showOverflowTooltip: true, show: false },
+            { label: '礼物特效', prop: 'effect_code', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
             {
                 label: '状态',
                 prop: 'status',
@@ -64,6 +72,7 @@ const baTable = new baTableClass(
             trigger_mode: 'none',
             trigger_duration_sec: 0,
             effect_code: '',
+            icon_url: '',
             status: 1,
         },
     }

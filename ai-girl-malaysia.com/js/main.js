@@ -164,12 +164,12 @@
             token = res.data.access_token
            layer.msg(res.msg || '登录成功')
             setTimeout(function() {
-              var redirect = getUrlParam(window.location.href, 'redirect')
-              if (redirect && redirect !== 'null') {
-                window.location.href = decodeURIComponent(redirect)
-              } else {
-                window.location.href = './charactersIndex.html'
-              }
+            var redirect = getUrlParam(window.location.href, 'redirect')
+            if (redirect && redirect !== 'null') {
+              window.location.href = decodeURIComponent(redirect)
+            } else {
+              window.location.href = './index.html'
+            }
             }, 800);
           } else {
             layer.msg(res.msg)

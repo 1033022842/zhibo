@@ -29,7 +29,6 @@ const baTable = new baTableClass(
                 align: 'center',
                 operator: 'RANGE',
                 width: 160,
-                render: 'default',
             },
             {
                 label: '送礼人次',

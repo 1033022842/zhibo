@@ -27,7 +27,7 @@
                         label="场景"
                         v-model="baTable.form.items!.scene_type"
                         type="select"
-                        :input-attr="{ content: { public: '公共', privilege: '特权', interaction: '互动', cover: '封面' } }"
+                        :input-attr="{ content: { public: '公共', privilege: '特权', interaction: '互动', cover: '封面', gift_effect: '礼物特效' } }"
                     />
                     <FormItem label="时长(ms)" v-model="baTable.form.items!.duration_ms" type="number" />
                     <FormItem

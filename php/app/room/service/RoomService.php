@@ -265,7 +265,7 @@ final class RoomService
             'play'              => [
                 'stream_alias' => $streamAlias,
                 'webrtc_url'   => $httpBase . '/api/v1/whep/' . $streamAlias,
-                'hls_url'      => $httpBase . '/hls/room/' . $room['id'] . '/index.m3u8',
+                'hls_url'      => $this->hlsBase($domain) . '/hls/room/' . $room['id'] . '/index.m3u8',
                 'play_token'   => sha1($streamAlias . '|' . $expireAt . '|' . config('jwt.secret')),
                 'expire_at'    => $expireAt,
             ],
@@ -279,6 +279,13 @@ final class RoomService
         ];
     }
 
+    private function hlsBase(string $domain): string
+    {
+        // 配置了 HLS CDN（七牛等）则播放走 CDN，否则源站直连
+        $cdn = trim((string) env('HLS_CDN_DOMAIN', ''), '/');
+        return $cdn !== '' ? $cdn : rtrim($domain, '/');
+    }
+
     private function loadGiftPanel(string $domain): array
     {
         $rows = Db::connect('live_mysql')
@@ -286,8 +293,8 @@ final class RoomService
             ->where('status', 1)
             ->order('price_diamond', 'asc')
             ->order('id', 'asc')
-            ->field(['id', 'name', 'price_diamond', 'trigger_mode', 'trigger_duration_sec', 'effect_code'])
-            ->limit(8)
+                    ->field(['id', 'name', 'price_diamond', 'trigger_mode', 'trigger_duration_sec', 'effect_code', 'icon_url'])
+            ->limit(50)
             ->select()
             ->toArray();
 
@@ -310,7 +317,7 @@ final class RoomService
                 ->select()
                 ->toArray();
             foreach ($assets as $asset) {
-                $effectVideoMap[$asset['asset_code']] = $this->normalizePreviewVideoUrl(
+                $effectVideoMap[$asset['asset_code']] = $this->normalizeStorageAssetUrl(
                     $asset['file_url'] ?? '',
                     $domain
                 );
@@ -338,6 +345,11 @@ final class RoomService
             $effectCode = trim((string) ($row['effect_code'] ?? ''));
             if ($effectCode !== '') {
                 $gift['effect_code'] = $effectCode;
+            }
+
+            $iconUrl = $this->normalizeStorageAssetUrl((string) ($row['icon_url'] ?? ''), $domain);
+            if ($iconUrl !== '') {
+                $gift['icon_url'] = $iconUrl;
             }
 
             // 附加特效视频URL
@@ -389,7 +401,7 @@ final class RoomService
                 continue;
             }
 
-            $previewUrl = $this->normalizePreviewVideoUrl((string) ($row['file_url'] ?? ''), $domain);
+            $previewUrl = $this->normalizeStorageAssetUrl((string) ($row['file_url'] ?? ''), $domain);
             if ($previewUrl === '') {
                 continue;
             }
@@ -409,7 +421,7 @@ final class RoomService
         return $roomPreviewUrls;
     }
 
-    private function normalizePreviewVideoUrl(string $fileUrl, string $domain): string
+    private function normalizeStorageAssetUrl(string $fileUrl, string $domain): string
     {
         $fileUrl = trim($fileUrl);
         if ($fileUrl === '') {

@@ -15,6 +15,11 @@ final class RechargeOrder extends Backend
 {
     // 绕过登录检查（iframe 模式下 cookie 不共享）
     protected array $noNeedLogin = ['index', 'approve', 'reject'];
+
+    // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
+    protected array $middleware = [
+        \app\admin\middleware\FloatAuth::class,
+    ];
     public function index(): void
     {
         try {
@@ -104,7 +109,7 @@ final class RechargeOrder extends Backend
                     $imgUrl = $domain . '/' . ltrim($imgRaw, '/');
                 }
                 $imgEsc = htmlspecialchars($imgUrl, ENT_QUOTES);
-                $proof = "<a href='{$imgEsc}' target='_blank' style='color:#409eff'>查看凭证</a>";
+                $proof = "<a href=\"javascript:void(0)\" onclick=\"showProof('{$imgEsc}')\" style='color:#409eff'>查看凭证</a>";
             }
             $remark = htmlspecialchars((string)$r['admin_remark'], ENT_QUOTES);
             $rid = (int)$r['id'];
@@ -188,7 +193,25 @@ final class RechargeOrder extends Backend
         fetch('/admin/live.RechargeOrder/approve',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:'id='+id+'&remark='+encodeURIComponent(remark)}).then(r=>r.json()).then(d=>{if(d.code===1){toast('审核通过','success');closeApprove();setTimeout(function(){location.reload()},800)}else{toast(d.msg||'操作失败','error')}})}
         function doReject(){var id=document.getElementById('rejectId').value;var reason=document.getElementById('rejectReason').value.trim();if(!reason){toast('请填写拒绝原因','error');return}
         fetch('/admin/live.RechargeOrder/reject',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:'id='+id+'&reason='+encodeURIComponent(reason)}).then(r=>r.json()).then(d=>{if(d.code===1){toast('已拒绝','success');closeReject();setTimeout(function(){location.reload()},800)}else{toast(d.msg||'操作失败','error')}})}
-        </script></body></html>
+        </script>
+        <div class="modal" id="proofModal" onclick="closeProof(event)">
+          <div class="proof-box">
+            <img id="proofImg" src="" alt="支付凭证">
+            <div class="proof-tip">点击空白处关闭</div>
+          </div>
+        </div>
+        <style>
+        .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:999;align-items:center;justify-content:center}
+        .modal.show{display:flex}
+        .proof-box{max-width:86%;max-height:88%;display:flex;flex-direction:column;align-items:center;gap:10px}
+        .proof-box img{max-width:100%;max-height:82vh;border-radius:10px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+        .proof-tip{color:#aab;font-size:12px}
+        </style>
+        <script>
+        function showProof(url){var m=document.getElementById('proofModal');document.getElementById('proofImg').src=url;m.classList.add('show')}
+        function closeProof(e){if(e.target.id==='proofModal'||e.target.classList.contains('proof-box')){document.getElementById('proofModal').classList.remove('show');document.getElementById('proofImg').src=''}}
+        </script>
+        </body></html>
         HTML;
-    }
-}
+            }
+        }
