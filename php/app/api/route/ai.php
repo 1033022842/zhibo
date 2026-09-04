@@ -12,3 +12,5 @@ Route::post('v1/srs/unpublish', '\app\api\controller\AiTask@streamEndByRoom');
 Route::get('v1/srs/unpublish', '\app\api\controller\AiTask@streamEndByRoom');
 Route::post('v1/srs/publish', '\app\api\controller\AiTask@streamStartByRoom');
 Route::get('v1/srs/publish', '\app\api\controller\AiTask@streamStartByRoom');
+Route::get('v1/liveportrait/config', '\app\api\controller\LivePortrait@config');
+Route::get('v1/liveportrait/instructions', '\app\api\controller\LivePortrait@instructions');

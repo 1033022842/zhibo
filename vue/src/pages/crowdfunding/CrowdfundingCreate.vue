@@ -65,7 +65,6 @@
         <ul>
           <li>无法达标将全额退还支持者</li>
           <li>达标后需手动创建角色并关联</li>
-          <li>每个商家同时只能有一个进行中的众筹</li>
         </ul>
       </div>
 
@@ -155,13 +154,14 @@ async function doSubmit() {
 
 <style scoped>
 .CFCreatePage {
-  min-height: 100vh;
+  height: 100vh;
   background: #0a0a14;
   color: #fff;
   padding-bottom: 40px;
   position: relative;
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .bg-glow {
   position: fixed;

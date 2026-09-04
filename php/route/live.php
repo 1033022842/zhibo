@@ -14,6 +14,9 @@ Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/upload',           '\app\api\controller\Live@upload')->middleware(\app\live\middleware\Auth::class);
 Route::get('live/replayClips',       '\app\api\controller\Live@replayClips')->middleware(\app\live\middleware\Auth::class);
+Route::get('live/affection',         '\app\api\controller\Live@affection')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/buyAffection',     '\app\api\controller\Live@buyAffection')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/unlockVideo',      '\app\api\controller\Live@unlockVideo')->middleware(\app\live\middleware\Auth::class);
 
 // 公开接口 - 显式注册
 Route::post('live/registerFromAi',   '\app\api\controller\Live@registerFromAi');
@@ -21,6 +24,7 @@ Route::post('live/login',            '\app\api\controller\Live@login');
 Route::post('live/refresh_token',    '\app\api\controller\Live@refreshToken');
 Route::get('live/channelType',       '\app\api\controller\Live@channelType');
 Route::get('live/customPrice',       '\app\api\controller\Live@customPrice');
+Route::get('live/chatHistory',       '\app\api\controller\Live@chatHistory');
 
 // WHEP WebRTC 代理（透传到 MediaMTX）
 Route::post('v1/whep/<app>/<stream>', '\app\api\controller\Whep@index');

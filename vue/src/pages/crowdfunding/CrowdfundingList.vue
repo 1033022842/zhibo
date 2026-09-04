@@ -105,7 +105,7 @@
     <template v-if="activeTab === 'mine'">
       <div class="section-header" v-anim>
         <h2>我发起的众筹</h2>
-        <button class="btn-create" @click="goCreate" v-if="!hasActive">发起众筹</button>
+        <button class="btn-create" @click="goCreate">发起众筹</button>
       </div>
 
       <div class="loading-zone" v-if="loadingMine">
@@ -144,7 +144,6 @@ import {
   getCrowdfundingList,
   getMyProjects,
   getMyPledges,
-  checkActiveCrowdfunding,
   type CrowdfundingProject,
   type CrowdfundingPledge
 } from '@/api/crowdfunding'
@@ -165,7 +164,6 @@ const loadingPledges = ref(false)
 const projects = ref<CrowdfundingProject[]>([])
 const myProjects = ref<CrowdfundingProject[]>([])
 const myPledges = ref<CrowdfundingPledge[]>([])
-const hasActive = ref(false)
 
 function fmtNum(n: number): string {
   return Number(n).toLocaleString()
@@ -221,11 +219,9 @@ async function loadDiscover() {
 async function loadMine() {
   loadingMine.value = true
   try {
-    const [projRes, activeRes] = await Promise.all([getMyProjects(), checkActiveCrowdfunding()])
+    const projRes = await getMyProjects()
     const projData: any = (projRes.data as any)?.data || projRes.data
     myProjects.value = Array.isArray(projData) ? projData : []
-    const activeData: any = (activeRes.data as any)?.data || activeRes.data
-    hasActive.value = activeData?.has_active || false
   } catch { /* ignore */ }
   loadingMine.value = false
 }
@@ -252,12 +248,14 @@ onMounted(() => {
 
 <style scoped>
 .CFListPage {
-  min-height: 100vh;
+  height: 100vh;
   background: #0a0a14;
   color: #fff;
   padding-bottom: 40px;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .bg-glow {
   position: fixed;
@@ -405,7 +403,7 @@ onMounted(() => {
 }
 .card-cover img {
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .card-cover-placeholder {
   width: 100%; height: 100%;

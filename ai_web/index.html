@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>#1 AI VIDEO GENERATOR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --brand-red:#CC1432;
+  --brand-blue:#4743E1;
+  --cta-pink-1:#FA5797;
+  --cta-pink-2:#FF5979;
+  --cta-outline:#FF7CA5;
+  --cream:#F2EFE8;
+  --white-8:rgba(255,255,255,.8);
+  --white-5:rgba(255,255,255,.5);
+  --line-1:rgba(255,255,255,.1);
+  --line-2:rgba(255,255,255,.2);
+  --line-4:rgba(255,255,255,.4);
+  --fill-05:rgba(255,255,255,.05);
+  --fill-07:rgba(255,255,255,.07);
+  --fill-10:rgba(255,255,255,.1);
+  --radius-card:24px;
+  --container:1360px;
+  --pad-x:40px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%}
+body{
+  background-color:#000;
+  background-image:
+    radial-gradient(115% 90% at 88% 0%, rgba(122,31,62,.94) 0%, rgba(0,0,0,0) 55%),
+    linear-gradient(155deg, #211014 0%, #3A111F 48%, #14080B 100%);
+  background-repeat:no-repeat;
+  color:#fff;
+  font-family:'Inter','Inter Fallback','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  font-size:16px;
+  line-height:normal;
+  -webkit-font-smoothing:antialiased;
+}
+
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img{display:block}
+
+.container{max-width:var(--container);margin:0 auto;padding:0 var(--pad-x)}
+main > .container{padding-top:300px}
+
+/* ---------- Header ---------- */
+.site-header{
+  position:relative;z-index:200;
+  border-bottom:1px solid var(--line-1);
+}
+.header-inner{
+  min-height:87px;
+  padding:20px 0;
+  display:flex;align-items:center;gap:32px;
+}
+.brand{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.brand .logo{
+  font-size:24px;font-weight:800;line-height:1;letter-spacing:-.5px;
+  background:linear-gradient(90deg,#D6B180 0%, #CC1432 55%, #E34A6B 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.brand .tagline{font-size:16px;font-weight:600;line-height:16px;color:var(--white-8)}
+
+.main-nav{display:flex;align-items:center;gap:16px;margin-left:8px}
+.main-nav a{
+  font-size:16px;font-weight:700;letter-spacing:.64px;
+  padding:0 8px 12px;color:var(--white-5);
+  border-bottom:2px solid transparent;
+}
+.main-nav a.active{color:#fff;border-bottom-color:var(--brand-red)}
+.main-nav a:hover{color:#fff}
+
+.header-actions{margin-left:auto;display:flex;align-items:center;gap:12px}
+.btn-ghost{
+  height:46px;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--line-2);border-radius:99px;color:#fff;
+  font-size:16px;font-weight:600;padding:0 20px;white-space:nowrap;
+  transition:background .2s;
+}
+.btn-ghost:hover{background:var(--fill-10)}
+.btn-ghost.sm{font-size:13px;padding:0 16px;color:var(--white-8);gap:6px}
+
+/* ---------- 搜索 + 筛选 + 排序（单行） ---------- */
+.toolbar{
+  display:flex;align-items:center;gap:12px;
+  height:46px;padding:0 32px;margin:24px 0 20px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.toolbar::-webkit-scrollbar{display:none}
+.search{
+  display:flex;align-items:center;gap:10px;
+  height:46px;width:46px;min-width:46px;padding-left:10px;
+  border:1.2px solid var(--line-2);border-radius:23px;overflow:hidden;cursor:pointer;
+  transition:width .3s ease-out, min-width .3s ease-out, padding-left .3s ease-out, border-color .3s ease-out;
+}
+.search:hover{border-color:var(--line-4)}
+.search:focus-within{width:300px;padding-left:15px}
+.search-icon{flex-shrink:0;width:24px;height:24px;color:#fff}
+.search-icon svg{width:24px;height:24px;display:block}
+.search input{
+  flex:1;min-width:0;background:transparent;border:none;outline:none;color:#fff;
+  font-size:16px;font-weight:500;letter-spacing:.32px;caret-color:#fff;font-family:inherit;
+}
+.search input::placeholder{color:#757575}
+.filters-btn{
+  display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 18px;
+  border:1.2px solid var(--line-1);border-radius:23px;background:var(--fill-05);
+  color:#fff;font-size:16px;font-weight:600;letter-spacing:.32px;white-space:nowrap;cursor:pointer;
+  transition:border-color .3s ease-out, background-color .3s ease-out;
+}
+.filters-btn:hover{border-color:var(--line-4)}
+.filters-btn svg{width:20px;height:20px;stroke:#fff;flex-shrink:0}
+.filters-btn .arr{transform:rotate(180deg)}
+.sort-chip{
+  display:inline-flex;align-items:center;justify-content:center;height:46px;padding:0 20px;
+  border:1.2px solid var(--line-1);border-radius:23px;background:var(--fill-05);
+  color:#fff;font-size:16px;font-weight:600;letter-spacing:.32px;white-space:nowrap;cursor:pointer;
+  transition:border-color .3s ease-out, background-color .3s ease-out;
+}
+.sort-chip:hover{border-color:var(--line-4)}
+.sort-chip.active{border-color:var(--line-4);background:var(--fill-10);cursor:auto}
+
+/* ---------- Video grid ---------- */
+.grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+}
+.card{
+  position:relative;height:360px;border-radius:var(--radius-card);overflow:hidden;
+  background:#1a0c11;cursor:pointer;
+}
+.card .media{position:absolute;inset:0;overflow:hidden}
+.card .media .cover,
+.card .media video{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  transform:scale(1.03);
+}
+.card .media .cover{z-index:1}
+.card .media video{z-index:2;opacity:0;transition:opacity .2s ease-out}
+.card .media video.playing{opacity:1}
+.card .media::after{
+  content:"";position:absolute;inset:0;z-index:10;border-radius:inherit;
+  border:2px solid transparent;pointer-events:none;
+  transition:border-color .2s ease-out;
+}
+.card:hover .media::after{border-color:var(--brand-red)}
+.card .scrim{
+  position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:linear-gradient(rgba(0,0,0,0) 60%, rgba(0,0,0,.5) 100%);
+}
+.card .red-overlay{
+  position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:linear-gradient(to top, var(--brand-red), rgba(204,20,50,0) 40%);
+  opacity:.5;transform:translateY(40%);
+  transition:transform .3s ease-out;
+}
+.card:hover .red-overlay{transform:translateY(0)}
+.card .used{
+  position:absolute;top:10px;right:10px;z-index:5;
+  font-size:12px;font-weight:600;letter-spacing:.24px;color:var(--white-8);
+  background:rgba(0,0,0,.1);backdrop-filter:blur(2.5px);border-radius:50px;padding:5px 12px;
+}
+.card .preview{
+  position:absolute;top:12px;left:12px;z-index:6;
+  width:60px;height:80px;border-radius:10px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.3);transform:rotate(-10deg);
+}
+.card .preview img{width:100%;height:100%;object-fit:cover}
+.card .meta{
+  position:absolute;left:16px;right:16px;bottom:16px;z-index:6;
+  display:flex;align-items:center;gap:10px;
+  opacity:1;transition:opacity .3s ease-out;
+}
+.card:hover .meta{opacity:0}
+.card .title{font-size:16px;font-weight:700;color:#fff}
+.card .badge{
+  font-size:14px;font-weight:700;letter-spacing:.56px;color:#fff;
+  border-radius:20px;padding:8px 12px;white-space:nowrap;
+}
+.badge.free{background:var(--brand-red)}
+.badge.vip{background:var(--brand-blue);background-image:linear-gradient(to top, rgba(255,255,255,0), rgba(255,255,255,.2))}
+.badge.ad{background:var(--fill-07);border-radius:40px;font-size:12px;font-weight:600;letter-spacing:.2px}
+.card .gen-btn{
+  position:absolute;left:16px;right:16px;bottom:16px;z-index:7;
+  height:0;opacity:0;overflow:hidden;
+  display:flex;align-items:center;
+  transition:height .3s ease-out, opacity .3s ease-out;
+}
+.card:hover .gen-btn{height:60px;opacity:1}
+.gen-btn .btn{
+  display:inline-flex;align-items:center;gap:8px;
+  height:44px;padding:0 20px;border-radius:99px;background:#fff;color:var(--brand-red);
+  font-size:16px;font-weight:700;white-space:nowrap;
+  box-shadow:rgba(255,255,255,.3) 0 2px 23px 0;
+}
+
+/* ---------- 网格内静态促销块 ---------- */
+.promo-ad{
+  grid-column:1 / -1;
+  position:relative;
+  padding:14px 0;
+}
+.ad-tag{
+  display:inline-flex;align-items:center;height:25px;padding:0 12px;
+  font-size:14px;font-weight:600;letter-spacing:.28px;color:#fff;
+  background:var(--fill-07);border-radius:40px;margin-bottom:10px;
+}
+.promo-card{
+  display:flex;align-items:center;justify-content:space-between;gap:32px;
+  border-radius:32px;overflow:hidden;padding:36px 40px;cursor:pointer;
+  background:
+    radial-gradient(circle at 10% 100%, rgba(122,31,62,.94) 0%, transparent 30%),
+    radial-gradient(circle at 100% 0%, rgba(122,31,62,.94) 0%, transparent 60%),
+    linear-gradient(#000000 0%, #0A0405 100%);
+  box-shadow:
+    rgba(250,87,151,.28) 0 0 26px,
+    rgba(250,87,151,.2) 0 -10px 34px -26px,
+    rgba(250,87,151,.34) 0 18px 40px -24px,
+    rgba(250,87,151,.22) 0 36px 84px -38px;
+}
+.promo-card .body{flex:1;min-width:0}
+.promo-card h2{font-size:29px;font-weight:700;line-height:34.8px;color:#fff}
+.promo-card .desc{margin-top:10px;font-size:20px;font-weight:500;line-height:30px;color:var(--white-8)}
+.promo-card .desc b{color:#FA5797;font-weight:600}
+.promo-card .points{margin-top:8px;font-size:17px;font-weight:500;line-height:22.1px;color:var(--white-8)}
+.promo-card .media{width:230px;height:150px;flex-shrink:0;border-radius:16px;overflow:hidden}
+.promo-card .media img{width:100%;height:100%;object-fit:cover}
+.cta{
+  flex-shrink:0;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 32px;border-radius:999px;
+  background:linear-gradient(90deg,var(--cta-pink-1) 0%, var(--cta-pink-2) 100%);
+  border:3.55px solid var(--cta-outline);color:#fff;font-size:20px;font-weight:700;
+  white-space:nowrap;
+  box-shadow:rgba(250,87,151,.8) 0 0 11.5px;
+  transition:transform .15s ease-out, box-shadow .15s ease-out, filter .15s ease-out;
+}
+.cta:hover{transform:translateY(-2px);box-shadow:rgba(250,87,151,.95) 0 8px 24px}
+
+/* ---------- 顶部 fixed 浮动促销块 ---------- */
+.hero-ad{
+  position:fixed;top:127px;left:0;right:0;z-index:11;
+  padding:0 var(--pad-x);
+  pointer-events:none;
+}
+.hero-ad .hero-ad-inner{max-width:var(--container);margin:0 auto}
+.hero-ad .promo-card{pointer-events:auto}
+
+/* ---------- 右下角 PWA 安装提示（浮动） ---------- */
+.pwa{
+  position:fixed;right:24px;bottom:24px;width:400px;max-width:calc(100vw - 40px);z-index:90;
+  background:rgba(17,6,8,.92);border:1px solid rgba(255,255,255,.08);border-radius:24px;
+  box-shadow:rgba(0,0,0,.35) 0 16px 48px;padding:14px 20px;
+  display:flex;align-items:center;gap:14px;
+}
+.pwa .icon{width:46px;height:46px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,#FA5797,#FF5979);display:flex;align-items:center;justify-content:center}
+.pwa .t{font-size:16px;font-weight:700;color:#fff}
+.pwa .s{font-size:13px;color:rgba(255,255,255,.7);margin-top:3px}
+.pwa .get{margin-left:auto;flex-shrink:0;height:40px;padding:0 18px;border-radius:999px;background:#fff;color:var(--brand-red);font-size:14px;font-weight:700;white-space:nowrap}
+.pwa .close{position:absolute;top:8px;right:10px;width:22px;height:22px;border-radius:50%;color:rgba(255,255,255,.6);font-size:15px;line-height:1}
+
+/* ---------- 语言下拉浮层 ---------- */
+.dropdown{position:relative}
+.dropdown-menu{
+  position:absolute;top:calc(100% + 10px);right:0;width:240px;z-index:998;
+  background:rgba(17,6,8,.92);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:8px;
+  opacity:0;visibility:hidden;transform:translateY(8px);transition:.2s;
+}
+.dropdown-menu.open{opacity:1;visibility:visible;transform:translateY(0)}
+.dropdown-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;color:rgba(255,255,255,.7);text-align:left}
+.dropdown-menu button:hover{background:rgba(255,255,255,.06);color:#fff}
+.dropdown-menu button.active{color:#fff}
+
+/* ---------- Auth / 登录 ---------- */
+.auth-area{display:flex;align-items:center;gap:12px}
+.user-chip{display:flex;align-items:center;gap:12px}
+.user-name{font-size:15px;font-weight:700;color:#fff;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-diamond{
+  display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;
+  border-radius:99px;background:var(--fill-10);border:1px solid var(--line-2);
+  font-size:14px;font-weight:700;color:#fff;white-space:nowrap;
+}
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.72);
+  backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px;
+}
+.modal-overlay.open{display:flex}
+.auth-modal{
+  width:420px;max-width:100%;background:#1a0c11;border:1px solid var(--line-2);
+  border-radius:24px;padding:32px;position:relative;
+  box-shadow:rgba(250,87,151,.28) 0 16px 48px;
+}
+.auth-modal .close{position:absolute;top:14px;right:16px;width:32px;height:32px;border-radius:50%;color:var(--white-8);font-size:20px;line-height:1}
+.auth-modal .close:hover{background:var(--fill-10);color:#fff}
+.auth-modal h3{font-size:24px;font-weight:800;margin-bottom:24px;color:#fff}
+.auth-form .field{margin-bottom:16px}
+.auth-form .field label{display:block;font-size:13px;font-weight:600;color:var(--white-5);margin-bottom:8px}
+.auth-form .field input{
+  width:100%;height:48px;background:var(--fill-05);border:1px solid var(--line-2);border-radius:12px;
+  color:#fff;padding:0 16px;font-size:16px;font-family:inherit;outline:none;box-sizing:border-box;
+}
+.auth-form .field input:focus{border-color:var(--brand-red)}
+.auth-form .field input::placeholder{color:#757575}
+.auth-msg{display:none;font-size:13px;color:var(--cta-pink-1);margin-bottom:12px;padding:10px 12px;background:rgba(250,87,151,.12);border-radius:10px}
+.auth-submit{
+  width:100%;height:48px;border-radius:99px;margin-top:8px;
+  background:linear-gradient(90deg,var(--cta-pink-1) 0%, var(--cta-pink-2) 100%);
+  color:#fff;font-size:16px;font-weight:700;letter-spacing:.32px;
+  transition:transform .15s ease-out, box-shadow .15s ease-out;
+}
+.auth-submit:hover{transform:translateY(-1px);box-shadow:rgba(250,87,151,.5) 0 8px 24px}
+.auth-submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.auth-switch{margin-top:20px;text-align:center;font-size:14px;color:var(--white-5)}
+.auth-switch a{color:var(--cta-pink-1);font-weight:700;cursor:pointer;text-decoration:none}
+.auth-switch a:hover{text-decoration:underline}
+
+/* ---------- Pagination ---------- */
+.pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin:40px 0 56px}
+.page{
+  width:46px;height:46px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;color:#fff;border:1px solid var(--line-2);
+  transition:background .2s,color .2s;
+}
+.page:hover{background:var(--fill-10)}
+.page.current{background:#fff;color:var(--brand-red);border:2px solid transparent}
+.page.dots{border:none;color:var(--white-5)}
+.page.disabled{opacity:.4;pointer-events:none}
+
+/* ---------- Category filter (bottom) ---------- */
+.cat-section{border-top:1px solid var(--line-1);padding:32px 0 48px}
+.cat-section .cat-title{font-size:14px;font-weight:700;letter-spacing:1px;color:var(--white-5);text-transform:uppercase;margin-bottom:16px}
+.cat-list{display:flex;flex-wrap:wrap;gap:10px}
+.cat-chip{
+  height:40px;display:inline-flex;align-items:center;
+  background:var(--fill-05);border:1px solid var(--line-1);border-radius:23px;
+  padding:0 18px;font-size:14px;font-weight:600;color:var(--white-8);
+  transition:background .2s,color .2s,border-color .2s;
+}
+.cat-chip:hover{color:#fff}
+.cat-chip.active{background:var(--brand-red);border-color:var(--brand-red);color:#fff}
+
+footer{border-top:1px solid var(--line-1);padding:28px 0;text-align:center;font-size:13px;color:var(--white-5)}
+
+@media (max-width:1100px){ .grid{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:820px){ .grid{grid-template-columns:repeat(2,1fr)} .promo-card{flex-direction:column;align-items:flex-start} .promo-card .media{width:100%;height:160px} }
+@media (max-width:560px){ .grid{grid-template-columns:1fr} :root{--pad-x:20px} .main-nav{display:none} .card{height:260px;border-radius:16px} .card .gen-btn{display:none} .card:hover .meta{opacity:1} .card .preview{width:40px;height:60px} }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <div class="brand">
+      <span class="logo">MotionGen</span>
+      <span class="tagline" data-i18n="brand_tagline">#1 AI VIDEO GENERATOR</span>
+    </div>
+    <nav class="main-nav">
+      <a href="#" class="active" data-i18n="nav_explore">Explore</a>
+      <a href="#">🔥 AI-GENERATOR</a>
+      <a href="#" data-i18n="nav_collection">My collection</a>
+    </nav>
+    <div class="header-actions">
+      <div class="auth-area" id="authArea">
+        <button class="btn-ghost" id="loginBtn" data-i18n="login">Log in</button>
+        <div class="user-chip" id="userChip" style="display:none">
+          <span class="user-name" id="userName"></span>
+          <span class="user-diamond" id="userDiamond">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9l4-6z" fill="#8EDBFF"/><path d="M2 9h20M12 3L8 9l4 12 4-12-4-6" stroke="#fff" stroke-width="1" fill="none"/></svg>
+            <span id="userDiamondVal">0</span>
+          </span>
+          <button class="btn-ghost sm" id="logoutBtn" data-i18n="logout">退出</button>
+        </div>
+      </div>
+      <div class="dropdown" id="langDropdown">
+        <button class="btn-ghost sm" id="langBtn"><span id="langCode">ZH</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dropdown-menu" id="langMenu">
+          <button data-lang="zh" class="active">中文 (ZH)</button>
+          <button data-lang="en">English (EN)</button>
+          <button data-lang="ja">日本語 (JA)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- 顶部 fixed 浮动促销块 -->
+<div class="hero-ad" id="heroAd">
+  <div class="hero-ad-inner">
+    <span class="ad-tag">AD</span>
+    <div class="promo-card">
+      <div class="body">
+        <h2 data-i18n="hero_title">Turn Any Photo Into AI Videos</h2>
+        <p class="desc" data-i18n-html="hero_desc">Upload a photo and get a <b>cinematic AI video</b> in seconds.</p>
+        <p class="points" data-i18n-html="hero_points">Free to try &middot; No editing skills</p>
+      </div>
+      <div class="media"><img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?image_size=landscape_4_3&prompt=cinematic%20film%20production%20studio%20neon%20lights" alt="AI video" loading="lazy" /></div>
+      <a href="#" class="cta" data-i18n-html="cta">TRY IT FREE &rarr;</a>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="container">
+    <!-- 搜索 + 筛选 + 排序（单行） -->
+    <div class="toolbar">
+      <label class="search" id="searchBox">
+        <span class="search-icon" id="searchIcon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>
+        </span>
+        <input type="text" placeholder="标题、用户名或标签" id="searchInput" data-i18n-ph="search_ph" />
+      </label>
+      <button class="filters-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.25"><path d="M4 6h16M7 12h10M10 18h4" stroke-linecap="round"/></svg>
+        <span data-i18n="filters">Filters</span>
+        <svg class="arr" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.667"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="sort-chip active" data-i18n="sort_hot">热门</button>
+      <button class="sort-chip" data-i18n="sort_new">最新</button>
+      <button class="sort-chip" data-i18n="sort_collected">最多收藏</button>
+    </div>
+
+    <!-- video grid -->
+    <div class="grid" id="grid"></div>
+
+    <!-- pagination -->
+    <div class="pagination" id="pagination">
+      <a href="#" class="page current">1</a>
+      <a href="#" class="page">2</a>
+      <a href="#" class="page">3</a>
+      <a href="#" class="page">4</a>
+      <span class="page dots">…</span>
+      <a href="#" class="page">11</a>
+    </div>
+
+    <!-- category filter -->
+    <section class="cat-section">
+      <div class="cat-title" data-i18n="filter_by">Filter by</div>
+      <div class="cat-list" id="catList"></div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="container" data-i18n="footer">Demo UI replica — for style reference only.</div>
+</footer>
+
+<!-- 右下角 PWA 安装提示（浮动） -->
+<aside class="pwa" id="pwa">
+  <button class="close" id="pwaClose" aria-label="close">&times;</button>
+  <div class="icon">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v14h10V5H7zm4 11h2v2h-2z"/></svg>
+  </div>
+  <div>
+    <div class="t" data-i18n="pwa_t">获取 MotionGen App</div>
+    <div class="s" data-i18n="pwa_s">添加到主屏幕，随时创作 AI 视频</div>
+  </div>
+  <button class="get" data-i18n="pwa_get">获取应用</button>
+</aside>
+
+<!-- 登录 / 注册弹窗（使用直播端账户，共用钻石余额） -->
+<div class="modal-overlay" id="authModal">
+  <div class="auth-modal">
+    <button class="close" id="authClose" aria-label="close">&times;</button>
+    <h3 id="authTitle" data-i18n="auth_signin">Sign in</h3>
+    <div class="auth-msg" id="authMsg"></div>
+
+    <form id="loginForm" class="auth-form" autocomplete="on">
+      <div class="field">
+        <label data-i18n="auth_username_email">用户名 / 邮箱</label>
+        <input id="loginAccount" type="text" placeholder="用户名或邮箱" autocomplete="username" data-i18n-ph="auth_username_email_ph" />
+      </div>
+      <div class="field">
+        <label data-i18n="auth_password">密码</label>
+        <input id="loginPassword" type="password" placeholder="密码" autocomplete="current-password" data-i18n-ph="auth_password_ph" />
+      </div>
+      <button type="submit" class="auth-submit" id="loginSubmit" data-i18n="auth_signin">Sign in</button>
+      <div class="auth-switch"><span data-i18n="auth_no_account">还没有账号？</span><a id="toRegister" data-i18n="auth_signup">Sign up</a></div>
+    </form>
+
+    <form id="registerForm" class="auth-form" style="display:none" autocomplete="on">
+      <div class="field">
+        <label data-i18n="auth_username">用户名</label>
+        <input id="regUsername" type="text" placeholder="用户名（4-50位）" autocomplete="username" data-i18n-ph="auth_username_ph" />
+      </div>
+      <div class="field">
+        <label data-i18n="auth_email">邮箱</label>
+        <input id="regEmail" type="email" placeholder="邮箱" autocomplete="email" data-i18n-ph="auth_email_ph" />
+      </div>
+      <div class="field">
+        <label data-i18n="auth_password">密码</label>
+        <input id="regPassword" type="password" placeholder="密码（6-20位）" autocomplete="new-password" data-i18n-ph="auth_password_reg_ph" />
+      </div>
+      <button type="submit" class="auth-submit" id="registerSubmit" data-i18n="auth_create">Create Account</button>
+      <div class="auth-switch"><span data-i18n="auth_has_account">已有账号？</span><a id="toLogin" data-i18n="auth_signin">Sign in</a></div>
+    </form>
+  </div>
+</div>
+
+<script>
+const IMG = "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?image_size=portrait_4_3&prompt=";
+
+// ---------- 多语言 ----------
+const I18N = {
+  zh: {
+    brand_tagline: "头号 AI 视频生成器",
+    nav_explore: "探索",
+    nav_collection: "我的收藏",
+    login: "登录",
+    logout: "退出",
+    hero_title: "将任意照片变成 AI 视频",
+    hero_desc: "上传照片，几秒内生成<b>电影级 AI 视频</b>。",
+    hero_points: "免费试用 · 无需剪辑技能",
+    cta: "免费试用 →",
+    search_ph: "标题、用户名或标签",
+    filters: "筛选",
+    sort_hot: "热门",
+    sort_new: "最新",
+    sort_collected: "最多收藏",
+    filter_by: "按分类筛选",
+    cat_all: "全部",
+    generate: "生成",
+    badge_free: "免费试用",
+    badge_vip: "VIP",
+    badge_new: "新",
+    footer: "演示 UI 复刻 — 仅作风格参考。",
+    pwa_t: "获取 MotionGen App",
+    pwa_s: "添加到主屏幕，随时创作 AI 视频",
+    pwa_get: "获取应用",
+    auth_signin: "登录",
+    auth_signup: "注册",
+    auth_create: "创建账号",
+    auth_username_email: "用户名 / 邮箱",
+    auth_username_email_ph: "用户名或邮箱",
+    auth_password: "密码",
+    auth_password_ph: "密码",
+    auth_username: "用户名",
+    auth_username_ph: "用户名（4-50位）",
+    auth_email: "邮箱",
+    auth_email_ph: "邮箱",
+    auth_password_reg_ph: "密码（6-20位）",
+    auth_no_account: "还没有账号？",
+    auth_has_account: "已有账号？",
+    err_need_account: "请输入账号和密码",
+    err_need_reg: "请填写用户名、邮箱和密码",
+    err_password_short: "密码至少 6 位",
+    err_network: "网络错误，请稍后重试",
+    err_login: "登录失败",
+    err_register: "注册失败",
+    loading: "处理中..."
+  },
+  en: {
+    brand_tagline: "#1 AI VIDEO GENERATOR",
+    nav_explore: "Explore",
+    nav_collection: "My collection",
+    login: "Log in",
+    logout: "Log out",
+    hero_title: "Turn Any Photo Into AI Videos",
+    hero_desc: "Upload a photo and get a <b>cinematic AI video</b> in seconds.",
+    hero_points: "Free to try &middot; No editing skills",
+    cta: "TRY IT FREE &rarr;",
+    search_ph: "Title, user or tag",
+    filters: "Filters",
+    sort_hot: "Hot",
+    sort_new: "Newest",
+    sort_collected: "Most collected",
+    filter_by: "Filter by",
+    cat_all: "All",
+    generate: "Generate",
+    badge_free: "FREE TRIAL",
+    badge_vip: "VIP",
+    badge_new: "NEW",
+    footer: "Demo UI replica — for style reference only.",
+    pwa_t: "Get MotionGen App",
+    pwa_s: "Add to home screen to create AI videos",
+    pwa_get: "Get App",
+    auth_signin: "Sign in",
+    auth_signup: "Sign up",
+    auth_create: "Create Account",
+    auth_username_email: "Username / Email",
+    auth_username_email_ph: "Username or email",
+    auth_password: "Password",
+    auth_password_ph: "Password",
+    auth_username: "Username",
+    auth_username_ph: "Username (4-50 chars)",
+    auth_email: "Email",
+    auth_email_ph: "Email",
+    auth_password_reg_ph: "Password (6-20 chars)",
+    auth_no_account: "Don't have an account yet?",
+    auth_has_account: "Already have an account?",
+    err_need_account: "Please enter account and password",
+    err_need_reg: "Please fill in username, email and password",
+    err_password_short: "Password must be at least 6 characters",
+    err_network: "Network error, please try again later",
+    err_login: "Login failed",
+    err_register: "Registration failed",
+    loading: "Loading..."
+  },
+  ja: {
+    brand_tagline: "No.1 AI動画ジェネレーター",
+    nav_explore: "探索",
+    nav_collection: "マイコレクション",
+    login: "ログイン",
+    logout: "ログアウト",
+    hero_title: "任意の写真をAI動画に",
+    hero_desc: "写真をアップロードして、数秒で<b>映画のようなAI動画</b>を。",
+    hero_points: "無料で試せる · 編集スキル不要",
+    cta: "無料で試す →",
+    search_ph: "タイトル、ユーザー、タグ",
+    filters: "フィルター",
+    sort_hot: "人気",
+    sort_new: "最新",
+    sort_collected: "コレクション数",
+    filter_by: "カテゴリで絞り込む",
+    cat_all: "すべて",
+    generate: "生成",
+    badge_free: "無料トライアル",
+    badge_vip: "VIP",
+    badge_new: "新着",
+    footer: "デモUIレプリカ — スタイル参考用。",
+    pwa_t: "MotionGenアプリを入手",
+    pwa_s: "ホーム画面に追加してAI動画を作成",
+    pwa_get: "入手する",
+    auth_signin: "ログイン",
+    auth_signup: "サインアップ",
+    auth_create: "アカウント作成",
+    auth_username_email: "ユーザー名 / メール",
+    auth_username_email_ph: "ユーザー名またはメール",
+    auth_password: "パスワード",
+    auth_password_ph: "パスワード",
+    auth_username: "ユーザー名",
+    auth_username_ph: "ユーザー名（4〜50文字）",
+    auth_email: "メール",
+    auth_email_ph: "メール",
+    auth_password_reg_ph: "パスワード（6〜20文字）",
+    auth_no_account: "アカウントをお持ちでないですか？",
+    auth_has_account: "すでにアカウントをお持ちですか？",
+    err_need_account: "アカウントとパスワードを入力してください",
+    err_need_reg: "ユーザー名・メール・パスワードを入力してください",
+    err_password_short: "パスワードは6文字以上必要です",
+    err_network: "ネットワークエラー、後でもう一度お試しください",
+    err_login: "ログイン失敗",
+    err_register: "登録失敗",
+    loading: "処理中..."
+  }
+};
+
+let currentLang = localStorage.getItem("lang") || "zh";
+function t(key){
+  return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+}
+function applyStaticLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+  const langCode = document.getElementById("langCode");
+  if(langCode) langCode.textContent = currentLang.toUpperCase();
+  document.querySelectorAll("#langMenu button").forEach(b => {
+    b.classList.toggle("active", b.dataset.lang === currentLang);
+  });
+}
+function setLang(lang){
+  if(!I18N[lang]) return;
+  currentLang = lang;
+  localStorage.setItem("lang", lang);
+  applyStaticLang();
+  renderCats();
+  render();
+  syncAuthFormLang();
+}
+
+function syncAuthFormLang(){
+  var regForm = document.getElementById("registerForm");
+  var title = document.getElementById("authTitle");
+  if(!title) return;
+  var isRegister = regForm && regForm.style.display !== "none";
+  title.textContent = isRegister ? t("auth_create") : t("auth_signin");
+}
+
+let videos = [
+  { title:"Cyberpunk Night",  used:"12,5k used", badge:"free", cat:"Cyberpunk", img:"cyberpunk%20city%20street%20at%20night%20neon%20lights%20rain" },
+  { title:"Anime Sunset",     used:"28,9k used", badge:"new",  cat:"Anime",     img:"anime%20landscape%20cherry%20blossoms%20golden%20sunset" },
+  { title:"Ocean World",      used:"10,2k used", badge:null,   cat:"Ocean",     img:"underwater%20ocean%20coral%20reef%20sunlight" },
+  { title:"Floating Castle",  used:"26,4k used", badge:"vip",  cat:"Fantasy",   img:"fantasy%20castle%20floating%20island%20epic%20clouds" },
+  { title:"Neon Tokyo",       used:"26,8k used", badge:null,   cat:"Cyberpunk", img:"neon%20tokyo%20alley%20night%20glowing%20signs" },
+  { title:"Space Nebula",     used:"12,5k used", badge:null,   cat:"Sci-Fi",    img:"space%20nebula%20stars%20purple%20pink" },
+  { title:"Deep Sea Glow",    used:"10,9k used", badge:null,   cat:"Ocean",     img:"deep%20sea%20glowing%20creatures%20dark%20ocean" },
+  { title:"Desert Dunes",     used:"21k used",    badge:"new",  cat:"Nature",    img:"desert%20sand%20dunes%20sunset%20golden" },
+  { title:"Rainy Window",     used:"19,9k used", badge:null,   cat:"City",      img:"rainy%20window%20bokeh%20city%20lights%20night" },
+  { title:"Aurora Sky",       used:"28,6k used", badge:"vip",  cat:"Nature",    img:"aurora%20borealis%20snowy%20mountains%20night" },
+  { title:"Misty Forest",     used:"14,1k used", badge:null,   cat:"Nature",    img:"misty%20forest%20sunlight%20rays%20green" },
+  { title:"Neon Car",         used:"17,2k used", badge:"free", cat:"Sci-Fi",    img:"futuristic%20concept%20car%20neon%20garage" },
+  { title:"Snow Peak",        used:"26k used",    badge:null,   cat:"Nature",    img:"snowy%20mountain%20peak%20sunrise%20pink%20clouds" },
+  { title:"Retro Arcade",     used:"12,9k used", badge:"new",  cat:"City",      img:"retro%20arcade%20neon%20signs%2080s" },
+  { title:"City Dusk",        used:"22,5k used", badge:null,   cat:"City",      img:"city%20skyline%20dusk%20purple%20sky" },
+  { title:"Fluid Art",        used:"30k used",    badge:"vip",  cat:"Abstract",  img:"abstract%20colorful%20fluid%20art%20pink%20blue" },
+];
+
+const grid = document.getElementById("grid");
+const catList = document.getElementById("catList");
+let activeCat = "All";
+
+// 从后端加载内容（lp_ai_content）；失败或为空时保留内置演示数据
+async function loadContent(){
+  try {
+    const res = await fetch("/api/live/pagelist");
+    const data = await res.json();
+    if(data && data.code === "00000" && Array.isArray(data.data.list) && data.data.list.length > 0){
+      videos = data.data.list.map((c, i) => ({
+        title: c.title,
+        cat: c.category || "All",
+        used: "",
+        badge: i === 0 ? "free" : (i === 1 ? "vip" : "new"),
+        img: c.cover_url || "",
+        id: c.id
+      }));
+      const set = new Set(videos.map(v => v.cat).filter(Boolean));
+      cats = ["All", ...set];
+    }
+  } catch(e){}
+}
+
+function badgeHtml(b){
+  if(!b) return "";
+  const label = b === "free" ? t("badge_free") : b === "vip" ? t("badge_vip") : b === "new" ? t("badge_new") : "AD";
+  return `<span class="badge ${b}">${label}</span>`;
+}
+
+// 视频源：可替换成你自己的视频（本地相对路径或 URL）
+const VID = "videos/";
+const vids = ["bbb.mp4", "bear.mp4"];
+
+function cardHtml(v, i){
+  const isFull = v.img && (v.img.indexOf("http") === 0 || v.img.indexOf("/") === 0);
+  const poster = isFull ? v.img : (IMG + v.img);
+  const src = VID + vids[i % vids.length];
+  return `
+    <div class="card" data-cat="${v.cat}" data-title="${v.title}" data-img="${v.img}" data-id="${v.id || ''}">
+      <div class="media">
+        <img class="cover" src="${poster}" alt="${v.title}" loading="lazy" />
+        <video class="vid" loop muted playsinline preload="metadata" poster="${poster}" src="${src}"></video>
+      </div>
+      <div class="scrim"></div>
+      <div class="red-overlay"></div>
+      <span class="used">${v.used}</span>
+      <span class="preview"><img src="${poster}" alt="" loading="lazy" /></span>
+      <div class="meta">
+        <div class="title">${v.title}</div>
+        ${badgeHtml(v.badge)}
+      </div>
+      <div class="gen-btn"><button class="btn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#CC1432"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"/></svg>
+        ${t("generate")}
+      </button></div>
+    </div>`;
+}
+
+const PROMO_IMG = "cinematic%20film%20production%20studio%20neon%20lights";
+function promoAdHtml(){
+  return `
+  <div class="promo-ad">
+    <span class="ad-tag">AD</span>
+    <div class="promo-card">
+      <div class="body">
+        <h2>${t("hero_title")}</h2>
+        <p class="desc">${t("hero_desc")}</p>
+        <p class="points">${t("hero_points")}</p>
+      </div>
+      <div class="media"><img src="${IMG + PROMO_IMG}" alt="AI video" loading="lazy" /></div>
+      <a href="#" class="cta">${t("cta")}</a>
+    </div>
+  </div>`;
+}
+
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(en => {
+    const v = en.target.querySelector("video.vid");
+    if(!v) return;
+    if(en.isIntersecting){
+      const p = v.play();
+      if(p && p.then) p.catch(()=>{});
+    } else {
+      v.pause();
+    }
+  });
+}, { rootMargin: "200px", threshold: 0.25 });
+
+function setupVideos(){
+  document.querySelectorAll(".card").forEach(card => {
+    const v = card.querySelector("video.vid");
+    if(!v) return;
+    v.addEventListener("playing", () => v.classList.add("playing"));
+    io.observe(card);
+  });
+}
+
+// 点击卡片跳转聊天界面
+grid.addEventListener("click", e => {
+  const card = e.target.closest(".card");
+  if(!card) return;
+  const q = new URLSearchParams();
+  q.set("title", card.dataset.title || "");
+  q.set("cat", card.dataset.cat || "");
+  q.set("img", decodeURIComponent(card.dataset.img || ""));
+  q.set("id", card.dataset.id || "");
+  location.href = "chat.html?" + q.toString();
+});
+
+const PAGE_SIZE = 8;
+let currentPage = 1;
+let searchQuery = "";
+
+function getFiltered(){
+  const q = searchQuery.trim().toLowerCase();
+  return videos.filter(v => {
+    const okCat = activeCat === "All" || v.cat === activeCat;
+    const okSearch = !q || v.title.toLowerCase().includes(q) || v.cat.toLowerCase().includes(q);
+    return okCat && okSearch;
+  });
+}
+
+function render(){
+  const list = getFiltered();
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  if(currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+  const items = [];
+  pageItems.forEach((v, i) => {
+    items.push(cardHtml(v, i));
+    if(currentPage === 1 && i === 3) items.push(promoAdHtml()); // 第4张卡片后插入浮动促销块（仅第一页）
+  });
+  grid.innerHTML = items.join("");
+  setupVideos();
+  renderPagination(totalPages);
+}
+
+function getPageList(totalPages){
+  if(totalPages <= 7){
+    const arr = [];
+    for(let i = 1; i <= totalPages; i++) arr.push(i);
+    return arr;
+  }
+  const pages = [1];
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+  if(start > 2) pages.push("...");
+  for(let i = start; i <= end; i++) pages.push(i);
+  if(end < totalPages - 1) pages.push("...");
+  pages.push(totalPages);
+  return pages;
+}
+
+function renderPagination(totalPages){
+  const el = document.getElementById("pagination");
+  if(!el) return;
+  if(totalPages <= 1){
+    el.innerHTML = "";
+    return;
+  }
+  let html = `<a href="#" class="page ${currentPage<=1?'disabled':''}" data-page="${currentPage-1}">‹</a>`;
+  getPageList(totalPages).forEach(p => {
+    if(p === "..."){
+      html += `<span class="page dots">…</span>`;
+    } else {
+      html += `<a href="#" class="page ${p===currentPage?'current':''}" data-page="${p}">${p}</a>`;
+    }
+  });
+  html += `<a href="#" class="page ${currentPage>=totalPages?'disabled':''}" data-page="${currentPage+1}">›</a>`;
+  el.innerHTML = html;
+}
+
+let cats = ["All", "Cyberpunk", "Anime", "Nature", "City", "Fantasy", "Sci-Fi", "Ocean", "Abstract"];
+function renderCats(){
+  catList.innerHTML = cats.map(c => {
+    const label = c === "All" ? t("cat_all") : c;
+    return `<button class="cat-chip ${c===activeCat?'active':''}" data-cat="${c}">${label}</button>`;
+  }).join("");
+}
+
+catList.addEventListener("click", e => {
+  const btn = e.target.closest(".cat-chip");
+  if(!btn) return;
+  activeCat = btn.dataset.cat;
+  currentPage = 1;
+  renderCats();
+  render();
+});
+
+// 排序按钮（在工具栏内）
+document.querySelector(".toolbar").addEventListener("click", e => {
+  const chip = e.target.closest(".sort-chip");
+  if(!chip) return;
+  document.querySelectorAll(".sort-chip").forEach(c => c.classList.remove("active"));
+  chip.classList.add("active");
+});
+
+// 搜索框：有内容时图标切换为 X 并可点击清空
+const searchInput = document.getElementById("searchInput");
+const searchIcon = document.getElementById("searchIcon");
+const ICON_SEARCH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>`;
+const ICON_CLOSE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>`;
+function updateSearchIcon(){
+  searchIcon.innerHTML = searchInput.value.length > 0 ? ICON_CLOSE : ICON_SEARCH;
+}
+searchInput.addEventListener("input", () => {
+  searchQuery = searchInput.value;
+  currentPage = 1;
+  updateSearchIcon();
+  render();
+});
+searchIcon.addEventListener("click", () => {
+  if(searchInput.value.length > 0){
+    searchInput.value = "";
+    searchQuery = "";
+    currentPage = 1;
+    updateSearchIcon();
+    render();
+    searchInput.focus();
+  }
+});
+
+// 分页点击
+document.getElementById("pagination").addEventListener("click", e => {
+  const a = e.target.closest(".page");
+  if(!a) return;
+  const p = parseInt(a.dataset.page, 10);
+  if(isNaN(p)) return;
+  const totalPages = Math.max(1, Math.ceil(getFiltered().length / PAGE_SIZE));
+  if(p < 1 || p > totalPages) return;
+  currentPage = p;
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+applyStaticLang();
+renderCats();
+loadContent().then(() => {
+  renderCats();
+  render();
+});
+
+// 语言下拉浮层
+const langBtn = document.getElementById("langBtn");
+const langMenu = document.getElementById("langMenu");
+langBtn.addEventListener("click", e => {
+  e.stopPropagation();
+  langMenu.classList.toggle("open");
+});
+langMenu.addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if(!btn) return;
+  const lang = btn.dataset.lang;
+  if(lang) setLang(lang);
+  langMenu.classList.remove("open");
+});
+document.addEventListener("click", () => langMenu.classList.remove("open"));
+
+// 右下角 PWA 提示关闭
+document.getElementById("pwaClose").addEventListener("click", () => {
+  document.getElementById("pwa").style.display = "none";
+});
+
+// 顶部浮动促销块：滚动时逐像素收起钉顶
+const heroAd = document.getElementById("heroAd");
+window.addEventListener("scroll", () => {
+  const top = Math.max(16, 127 - window.scrollY);
+  heroAd.style.top = top + "px";
+  heroAd.style.zIndex = top <= 16 ? 997 : 11;
+}, { passive: true });
+</script>
+
+<script>
+// ---------- 登录 / 注册（直播端账户，共用钻石余额） ----------
+(function () {
+  var API_BASE = "/api/live"; // 后端接口前缀（生产环境由 Nginx 将 /api 代理到 ThinkPHP）
+  var LS_TOKEN = "live_access_token";
+  var LS_REFRESH = "live_refresh_token";
+  var LS_USER = "live_user_info";
+
+  function $(s) { return document.querySelector(s); }
+  function getToken() { return localStorage.getItem(LS_TOKEN); }
+  function getStoredUser() {
+    try { return JSON.parse(localStorage.getItem(LS_USER) || "null"); }
+    catch (e) { return null; }
+  }
+  function setStoredUser(u) { localStorage.setItem(LS_USER, JSON.stringify(u)); }
+
+  function showMsg(msg) {
+    var el = $("#authMsg");
+    el.textContent = msg || "";
+    el.style.display = msg ? "block" : "none";
+  }
+
+  function setLoading(formId, loading) {
+    var btn = document.querySelector("#" + formId + " .auth-submit");
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.textContent = loading ? t("loading") : (formId === "loginForm" ? t("auth_signin") : t("auth_create"));
+  }
+
+  function api(path, opts) {
+    opts = opts || {};
+    var headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+    var token = getToken();
+    if (token) headers["Authorization"] = "Bearer " + token;
+
+    return fetch(API_BASE + path, {
+      method: opts.method || "GET",
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function (res) {
+      return res.json().catch(function () { return null; });
+    }).then(function (data) {
+      return data || { code: "99999", msg: t("err_network") };
+    }).catch(function () {
+      return { code: "99999", msg: t("err_network") };
+    });
+  }
+
+  function fmtMoney(n) {
+    n = Number(n || 0);
+    return Number.isInteger(n) ? String(n) : n.toFixed(2);
+  }
+
+  function storeAuth(data) {
+    if (!data || !data.access_token) return;
+    localStorage.setItem(LS_TOKEN, data.access_token);
+    if (data.refresh_token) localStorage.setItem(LS_REFRESH, data.refresh_token);
+
+    var u = data.user || {};
+    setStoredUser({
+      id: u.id,
+      username: u.nickname || u.username || "",
+      nickname: u.nickname || "",
+      avatar: u.avatar || "",
+      email: u.email || "",
+      money: u.money || 0
+    });
+    renderAuth();
+  }
+
+  function renderAuth() {
+    var token = getToken();
+    var user = getStoredUser();
+    if (token && user) {
+      $("#loginBtn").style.display = "none";
+      $("#userChip").style.display = "flex";
+      $("#userName").textContent = user.username || user.nickname || "用户";
+      if (typeof user.money !== "undefined" && user.money !== null) {
+        $("#userDiamondVal").textContent = fmtMoney(user.money);
+      }
+      updateBalance();
+    } else {
+      $("#loginBtn").style.display = "";
+      $("#userChip").style.display = "none";
+    }
+  }
+
+  function updateBalance() {
+    if (!getToken()) return;
+    api("/userInfo").then(function (res) {
+      if (res.code === "00000" && res.data) {
+        var money = res.data.money;
+        $("#userDiamondVal").textContent = fmtMoney(money);
+        var u = getStoredUser() || {};
+        u.money = money;
+        setStoredUser(u);
+      }
+    });
+  }
+
+  function openModal(mode) {
+    showMsg("");
+    if (mode === "register") {
+      $("#authTitle").textContent = t("auth_create");
+      $("#loginForm").style.display = "none";
+      $("#registerForm").style.display = "";
+    } else {
+      $("#authTitle").textContent = t("auth_signin");
+      $("#loginForm").style.display = "";
+      $("#registerForm").style.display = "none";
+    }
+    $("#authModal").classList.add("open");
+  }
+
+  function closeModal() {
+    $("#authModal").classList.remove("open");
+  }
+
+  function doLogin() {
+    var account = $("#loginAccount").value.trim();
+    var password = $("#loginPassword").value;
+    if (!account || !password) { showMsg(t("err_need_account")); return; }
+
+    setLoading("loginForm", true);
+    showMsg("");
+    api("/login", { method: "POST", body: { account: account, password: password } })
+      .then(function (res) {
+        setLoading("loginForm", false);
+        if (res.code === "00000" && res.data) {
+          storeAuth(res.data);
+          closeModal();
+          $("#loginAccount").value = "";
+          $("#loginPassword").value = "";
+        } else {
+          showMsg(res.msg || t("err_login"));
+        }
+      });
+  }
+
+  function doRegister() {
+    var username = $("#regUsername").value.trim();
+    var email = $("#regEmail").value.trim();
+    var password = $("#regPassword").value;
+    if (!username || !email || !password) { showMsg(t("err_need_reg")); return; }
+    if (password.length < 6) { showMsg(t("err_password_short")); return; }
+
+    setLoading("registerForm", true);
+    showMsg("");
+    api("/registerFromAi", { method: "POST", body: { username: username, email: email, password: password } })
+      .then(function (res) {
+        setLoading("registerForm", false);
+        if (res.code === "00000" && res.data) {
+          storeAuth(res.data);
+          closeModal();
+          $("#regUsername").value = "";
+          $("#regEmail").value = "";
+          $("#regPassword").value = "";
+        } else {
+          showMsg(res.msg || t("err_register"));
+        }
+      });
+  }
+
+  function doLogout() {
+    var token = getToken();
+    var refresh = localStorage.getItem(LS_REFRESH) || "";
+    if (token) {
+      // 尽力通知后端使 token 失效，失败不阻塞本地登出
+      api("/logout", { method: "POST", body: { refresh_token: refresh } });
+    }
+    localStorage.removeItem(LS_TOKEN);
+    localStorage.removeItem(LS_REFRESH);
+    localStorage.removeItem(LS_USER);
+    renderAuth();
+  }
+
+  $("#loginBtn").addEventListener("click", function () { openModal("login"); });
+  $("#logoutBtn").addEventListener("click", doLogout);
+  $("#authClose").addEventListener("click", closeModal);
+  $("#toRegister").addEventListener("click", function () { openModal("register"); });
+  $("#toLogin").addEventListener("click", function () { openModal("login"); });
+  $("#loginForm").addEventListener("submit", function (e) { e.preventDefault(); doLogin(); });
+  $("#registerForm").addEventListener("submit", function (e) { e.preventDefault(); doRegister(); });
+
+  $("#authModal").addEventListener("click", function (e) {
+    if (e.target === $("#authModal")) closeModal();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeModal();
+  });
+
+  renderAuth();
+})();
+</script>
+</body>
+</html>
