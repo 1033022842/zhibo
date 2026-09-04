@@ -97,7 +97,7 @@
     //         response = JSON.parse(response)
     //       }
     //       var res = response
-    //       if(res.code === 1) {
+    //       if(res.code === "00000") {
     //         alert('注册成功')
     //         $('#registration-modal .w-auto').trigger('click')
     //         $('#user-login .text-sm').trigger('click')
@@ -130,7 +130,7 @@
     //         response = JSON.parse(response)
     //       }
     //       var res = response
-    //       if(res.code === 1) {
+    //       if(res.code === "00000") {
     //         $('#sign-in-modal').css('display', 'none')
     //         $('#user-setting').css('display', 'flex')
     //         $('#user-login').css('display', 'none')
@@ -166,7 +166,7 @@
             response = JSON.parse(response)
           }
           var res = response
-           if(res.code === 1) {
+           if(res.code === "00000") {
             localStorage.setItem('userInfo', JSON.stringify(res.data))
            
             setTimeout(() => {
@@ -530,7 +530,7 @@
               localStorage.setItem('characterStep', 8)
             }
         })
-        initSummary()
+        $(function() { initSummary() })
         function initSummary() {
           var template = $('#summary-template').html();
           if (!template) return
@@ -571,7 +571,8 @@
                 $('#summary-group').html(rendered)
           }
           
-          // 初始�?character name �?image 的存�?          initCharacterNameAndImage()
+          // 初始�?character name �?image 的存�?
+          initCharacterNameAndImage()
         }
         
         function initCharacterNameAndImage() {
@@ -715,7 +716,7 @@
           }
         }
 
-        $('#Previous').on('click', function () {
+        $(document).on('click', '#Previous', function () {
           var cacheData = localStorage.getItem('characterData')
           if(cacheData && cacheData != '{}') {
             var res = JSON.parse(cacheData)
@@ -728,7 +729,7 @@
           }
         })
 
-        $('#bring').on('click', function() {
+        $(document).on('click', '#bring', function() {
           var cacheData = localStorage.getItem('characterData')
             if(cacheData && cacheData != '{}') {
               var obj = JSON.parse(cacheData)
@@ -944,7 +945,7 @@
                       response = JSON.parse(response)
                   }
                   var res = response
-                  if(res.code === 1) {
+                  if(res.code === "00000") {
                       var data = res.data
                       image.src = data.fullurl;
                       image.style.display = 'block';  // 显示预览图片
@@ -1014,7 +1015,7 @@
                       response = JSON.parse(response)
                   }
                   var res = response
-                  if(res.code === 1) {
+                  if(res.code === "00000") {
                      layer.msg(res.msg)
                      setTimeout(() => {
                     location.reload()

@@ -91,7 +91,7 @@ async function playPreview(videoEl: HTMLVideoElement, previewUrl: string) {
   return 'preview' as const
 }
 
-function playHls(videoEl: HTMLVideoElement, hlsUrl: string): Promise<boolean> {
+function playHls(videoEl: HTMLVideoElement, hlsUrl: string, onInstance?: (hls: Hls) => void): Promise<boolean> {
   return new Promise((resolve) => {
     // HTTPS 页面加载 HTTP 的 CDN 资源会被浏览器拦截（mixed content）
     // 此时回退到页面同域路径（源站直连），牺牲 CDN 加速但保证能播
@@ -124,6 +124,7 @@ function playHls(videoEl: HTMLVideoElement, hlsUrl: string): Promise<boolean> {
     let resolved = false
     let firstFragLoading = false
 
+    onInstance?.(hls)
     hls.attachMedia(videoEl)
 
     hls.on(Hls.Events.MEDIA_ATTACHED, () => {
@@ -193,6 +194,7 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
   const { videoEl, webrtcUrl, hlsUrl, previewUrl, muted = true, onModeChange } = options
   const teardownList: Array<() => void> = []
   let rtcPlayer: SrsRtcPlayer | null = null
+  let hlsInstance: Hls | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
 
@@ -241,7 +243,7 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
       } else {
         console.warn('WebRTC reconnect exhausted, falling back')
         if (hlsUrl && !destroyed) {
-          playHls(videoEl, hlsUrl).then((ok) => {
+          playHls(videoEl, hlsUrl, (h) => { hlsInstance = h }).then((ok) => {
             if (ok) onModeChange?.('hls')
             else if (previewUrl) {
               playPreview(videoEl, previewUrl).then((mode) => onModeChange?.(mode))
@@ -280,7 +282,7 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
     async play() {
       // HLS 优先（更稳定，兼容性好）
       if (hlsUrl) {
-        const ok = await playHls(videoEl, hlsUrl)
+        const ok = await playHls(videoEl, hlsUrl, (h) => { hlsInstance = h })
         if (ok) {
           onModeChange?.('hls')
           return 'hls'
@@ -312,6 +314,10 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
       teardownList.splice(0).forEach((teardown) => teardown())
       rtcPlayer?.close()
       rtcPlayer = null
+      if (hlsInstance) {
+        hlsInstance.destroy()
+        hlsInstance = null
+      }
       resetVideoElement(videoEl)
     }
   }

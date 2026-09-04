@@ -38,6 +38,7 @@ final class MachineAsset extends BaseController
      *     - file_url    string  相对 MEDIA_BASE_DIR 的路径（如 "视频成品/OK手势.mp4"）
      *     - duration_ms int     时长毫秒（可为 0）
      *     - checksum    string  文件 sha1（用于去重，空则不去重按 file_url+machine 去重）
+     *     - role        string  驱动角色（可选）：portrait=立绘 / motion=动作模板 / 空=成品视频
      *
      * 返回：新增数、跳过数（已存在）、错误信息
      */
@@ -75,6 +76,18 @@ final class MachineAsset extends BaseController
             $checksum   = trim((string) ($v['checksum'] ?? ''));
             $durationMs = (int) ($v['duration_ms'] ?? 0);
 
+            // 驱动角色：portrait=立绘 / motion=动作模板 / 空=成品视频（旧策略）
+            $role      = trim((string) ($v['role'] ?? ''));
+            $assetType = 'video';
+            $assetRole = '';
+            if ($role === 'portrait') {
+                $assetType = 'image';
+                $assetRole = 'portrait';
+            } elseif ($role === 'motion') {
+                $assetType = 'video';
+                $assetRole = 'motion';
+            }
+
             // 2. 去重：checksum 优先，否则按 machine_id + remote_path
             if ($checksum !== '') {
                 $exists = Db::connect('live_mysql')->table('lp_media_asset')
@@ -95,7 +108,8 @@ final class MachineAsset extends BaseController
 
                 Db::connect('live_mysql')->table('lp_media_asset')->insert([
                     'asset_code'  => $assetCode,
-                    'asset_type'  => 'video',
+                    'asset_type'  => $assetType,
+                    'asset_role'  => $assetRole,
                     'scene_type'  => 'public',
                     'keywords'    => '',           // 关键词不在此接口处理，后台补充
                     'persona'     => $persona,

@@ -265,7 +265,7 @@ final class RoomService
             'play'              => [
                 'stream_alias' => $streamAlias,
                 'webrtc_url'   => $httpBase . '/api/v1/whep/' . $streamAlias,
-                'hls_url'      => $this->hlsBase($domain) . '/hls/room/' . $room['id'] . '/index.m3u8',
+                'hls_url'      => $this->hlsBase($domain) . '/hls/' . $webrtcApp . '/' . $streamAlias . '/index.m3u8',
                 'play_token'   => sha1($streamAlias . '|' . $expireAt . '|' . config('jwt.secret')),
                 'expire_at'    => $expireAt,
             ],

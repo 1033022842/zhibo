@@ -176,12 +176,14 @@ async function doTopup() {
 
 <style scoped>
 .CFDetailPage {
-  min-height: 100vh;
+  height: 100vh;
   background: #0a0a14;
   color: #fff;
   padding-bottom: 40px;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .bg-glow {
   position: fixed;
@@ -245,7 +247,7 @@ async function doTopup() {
   background: rgba(255,255,255,0.05);
 }
 .hero-cover img {
-  width: 100%; height: 100%; object-fit: cover;
+  width: 100%; height: 100%; object-fit: contain;
 }
 .hero-placeholder {
   width: 100%; height: 100%;

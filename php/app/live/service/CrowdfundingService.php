@@ -17,14 +17,6 @@ final class CrowdfundingService
      */
     public function initiate(int $userId, array $data): CrowdfundingProject
     {
-        // 校验是否已有进行中的项目
-        $existing = CrowdfundingProject::where('user_id', $userId)
-            ->where('status', CrowdfundingProject::STATUS_ACTIVE)
-            ->find();
-        if ($existing) {
-            throw new BusinessException(ResultCode::CROWDFUNDING_PROJECT_EXISTS);
-        }
-
         Db::startTrans();
         try {
             $project = new CrowdfundingProject();
@@ -246,6 +238,37 @@ final class CrowdfundingService
         $project->persona_id = $personaId;
         $project->updated_at = date('Y-m-d H:i:s');
         $project->save();
+    }
+
+    /**
+     * 后台删除众筹项目：冻结支持先退款，再删除支持记录与项目
+     */
+    public function deleteProject(int $projectId): void
+    {
+        $project = CrowdfundingProject::find($projectId);
+        if (!$project) {
+            throw new BusinessException(ResultCode::CROWDFUNDING_NOT_FOUND);
+        }
+
+        Db::startTrans();
+        try {
+            // 冻结中的支持原路退款给支持者
+            $frozen = CrowdfundingPledge::where('project_id', $projectId)
+                ->where('status', CrowdfundingPledge::STATUS_FROZEN)
+                ->select();
+            foreach ($frozen as $pledge) {
+                $this->creditDiamond((int)$pledge->user_id, (float)$pledge->amount, 'crowdfunding_refund', (int)$pledge->id);
+            }
+
+            // 删除全部支持记录与项目
+            CrowdfundingPledge::where('project_id', $projectId)->delete();
+            $project->delete();
+
+            Db::commit();
+        } catch (\Exception $e) {
+            Db::rollback();
+            throw new BusinessException(ResultCode::SERVER_ERROR, '删除失败: ' . $e->getMessage());
+        }
     }
 
     /**

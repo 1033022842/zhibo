@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#0e0e0e;
+  --panel:#171717;
+  --panel-2:#181818;
+  --pink:#E75275;
+  --green:#4FAB52;
+  --ai-bubble:#D98491;
+  --text:#fff;
+  --text-mid:#d4d4d8;
+  --text-dim:#a1a1a1;
+  --line:#363636;
+  --line-soft:rgba(255,255,255,.2);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%}
+body{
+  background-color:var(--bg);
+  color:var(--text);
+  font-family:'Inter','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img{display:block}
+
+/* ---------- 整体布局 ---------- */
+.layout{display:flex;height:100vh;width:100%}
+
+/* ---------- 左侧：聊天历史 ---------- */
+.sidebar{
+  width:260px;flex-shrink:0;background:var(--panel);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;overflow:hidden;
+  order:1;
+}
+.sidebar-head{
+  height:64px;flex-shrink:0;display:flex;align-items:center;gap:10px;
+  padding:0 16px;border-bottom:1px solid var(--line);
+}
+.sidebar-head .back{font-size:18px;line-height:1;font-weight:700}
+.sidebar-head .title{font-size:16px;font-weight:700}
+.sidebar-list{flex:1;overflow-y:auto;padding:10px;scrollbar-width:thin;scrollbar-color:#333 transparent}
+.sidebar-list::-webkit-scrollbar{width:6px}
+.sidebar-list::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+.conv-item{position:relative;display:flex;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;align-items:center}
+.conv-item:hover{background:var(--panel-2)}
+.conv-item.active{background:linear-gradient(90deg, rgba(231,82,117,.22), rgba(231,82,117,.05))}
+.conv-item.active::before{
+  content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:30px;border-radius:99px;background:var(--pink);
+}
+.conv-item.active .conv-name{color:#fff}
+.conv-item.active .conv-avatar{box-shadow:0 0 0 2px var(--pink)}
+.conv-avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;object-position:top;flex-shrink:0;background:#2a2a2a;transition:box-shadow .15s ease}
+.conv-main{min-width:0;flex:1}
+.conv-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-preview{font-size:12px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.conv-empty{padding:20px 12px;font-size:13px;color:var(--text-dim);text-align:center}
+
+/* ---------- 右侧：角色介绍 ---------- */
+.profile{
+  width:380px;flex-shrink:0;background:var(--panel);
+  border-left:1px solid var(--line);
+  overflow-y:auto;scrollbar-width:thin;scrollbar-color:#333 transparent;
+  display:flex;flex-direction:column;
+  transition:width .25s ease, border-color .25s ease;
+  order:3;
+}
+.profile.collapsed{width:0;min-width:0;overflow:hidden;border-left:none}
+.profile::-webkit-scrollbar{width:6px}
+.profile::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+.pfp{position:relative;width:100%;height:400px;overflow:hidden;flex-shrink:0}
+.pfp img{width:100%;height:100%;object-fit:cover;object-position:top}
+.pfp .back{
+  position:absolute;top:22px;left:22px;z-index:3;
+  display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(6px);border-radius:99px;
+  font-size:14px;font-weight:600;color:#fff;
+}
+.pfp .back:hover{background:rgba(0,0,0,.65)}
+.pfp .collapse-profile{
+  position:absolute;top:22px;left:22px;z-index:3;
+  display:inline-flex;align-items:center;justify-content:center;height:36px;width:36px;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(6px);border-radius:99px;
+  font-size:18px;font-weight:600;color:#fff;line-height:1;
+}
+.pfp .collapse-profile:hover{background:rgba(0,0,0,.65)}
+.pfp .diamond{
+  position:absolute;top:22px;right:22px;z-index:3;
+  display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(6px);border-radius:99px;
+  font-size:13px;font-weight:700;
+}
+
+.profile-body{padding:20px;display:flex;flex-direction:column;gap:18px}
+.p-name{font-size:22px;font-weight:700;line-height:1.3}
+.p-tag{font-size:12px;font-weight:600;color:var(--pink);letter-spacing:.3px;margin-top:-12px}
+.p-info{font-size:14px;line-height:1.6;color:var(--text-mid)}
+
+.p-actions{display:flex;gap:10px}
+.p-call{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  height:40px;border-radius:10px;background:var(--green);border:2px solid var(--green);
+  font-size:14px;font-weight:600;color:#fff;
+}
+.p-gen{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  height:40px;border-radius:10px;border:2px solid var(--pink);
+  font-size:12px;font-weight:600;color:var(--pink);
+}
+.p-gen:hover{background:rgba(231,82,117,.12)}
+
+.p-divider{height:1px;background:var(--line-soft);opacity:.5}
+
+.p-section{font-size:14px;font-weight:600;color:var(--text-dim)}
+.about-list{display:flex;flex-direction:column;gap:14px}
+.about-item{display:flex;gap:12px;align-items:flex-start}
+.about-item .ico{
+  width:34px;height:34px;flex-shrink:0;border-radius:10px;
+  border:1px solid var(--line-soft);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;line-height:1;color:var(--text-mid);
+}
+.about-item .k{font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.3px;color:var(--text-dim)}
+.about-item .v{font-size:13px;font-weight:500;color:#fff;padding-top:3px;line-height:1.45}
+
+/* ---------- 右侧：聊天 ---------- */
+.chat{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg);order:2}
+.chat-head{
+  height:72px;flex-shrink:0;display:flex;align-items:center;gap:12px;
+  padding:0 20px;border-bottom:1px solid var(--line);background:var(--bg);
+}
+.chat-head .open-profile{
+  height:36px;width:36px;border-radius:99px;background:var(--panel-2);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:var(--text-mid);flex-shrink:0;
+}
+.chat-head .open-profile:hover{color:#fff}
+.chat-head .avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0}
+.chat-head .avatar img{width:100%;height:100%;object-fit:cover;object-position:top}
+.chat-head .name{font-size:20px;font-weight:600;line-height:1.2}
+.chat-head .status{font-size:12px;color:var(--text-dim)}
+.chat-head .dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;margin-right:6px;display:inline-block}
+.chat-head .status.voice-calling .dot{background:var(--pink);animation:status-pulse 1s ease-in-out infinite}
+@keyframes status-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.messages::-webkit-scrollbar{width:6px}
+.messages::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+.msg{max-width:60%;padding:10px 14px;border-radius:10px;font-size:14px;line-height:1.5;word-break:break-word}
+.msg.ai{
+  align-self:flex-start;background:var(--ai-bubble);color:#fff;
+  border-top-left-radius:0;
+}
+.msg.me{
+  align-self:flex-end;background:#2a2a2a;color:#fff;
+  border-top-right-radius:0;
+}
+.msg .time{display:block;font-size:11px;color:rgba(255,255,255,.55);margin-top:4px}
+.msg.me .time{text-align:right}
+.msg .voice-tag{
+  display:inline-flex;align-items:center;height:18px;padding:0 7px;margin-right:7px;
+  border-radius:99px;background:rgba(0,0,0,.18);font-size:11px;font-weight:600;line-height:1;
+  color:rgba(255,255,255,.92);vertical-align:middle;white-space:nowrap;
+}
+/* ---------- 媒体消息（视频/语音） ---------- */
+.msg.msg-media{padding:0;background:transparent;max-width:72%}
+
+/* 视频卡片 */
+.media-card{position:relative;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 6px 22px rgba(0,0,0,.42)}
+.msg.ai .media-card{border-top-left-radius:4px}
+.media-card video{display:block;width:280px;max-width:100%;max-height:360px;background:#000}
+
+/* 语音卡片 */
+.voice-card{display:flex;align-items:center;gap:12px;background:var(--ai-bubble);border-radius:18px;border-top-left-radius:4px;padding:12px 16px;min-width:230px;max-width:300px;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.voice-play{width:42px;height:42px;border-radius:50%;background:#fff;color:var(--pink);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .12s ease}
+.voice-play:hover{transform:scale(1.05)}
+.voice-play:active{transform:scale(.95)}
+.voice-play svg{width:20px;height:20px;display:block}
+.voice-bars{display:flex;align-items:center;gap:3px;flex:1;height:34px;overflow:hidden}
+.voice-bars i{width:3px;border-radius:2px;background:rgba(255,255,255,.8);flex-shrink:0}
+.voice-card.playing .voice-bars i{animation:voice-wave .9s ease-in-out infinite}
+.voice-card.playing .voice-bars i:nth-child(2n){animation-delay:.12s}
+.voice-card.playing .voice-bars i:nth-child(3n){animation-delay:.24s}
+.voice-duration{font-size:12px;color:rgba(255,255,255,.92);font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+@keyframes voice-wave{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+
+.chat-input{
+  flex-shrink:0;display:flex;align-items:flex-end;gap:10px;
+  padding:14px 20px 18px;border-top:1px solid var(--line);background:var(--bg);
+}
+.chat-input textarea{
+  flex:1;resize:none;height:46px;max-height:140px;background:var(--panel-2);
+  border:1px solid #2f2f2f;border-radius:23px;color:#fff;
+  font-size:15px;font-family:inherit;padding:12px 20px;outline:none;line-height:1.4;
+  transition:border-color .15s ease, box-shadow .15s ease;
+  scrollbar-width:none;
+}
+.chat-input textarea::-webkit-scrollbar{display:none}
+.chat-input textarea:focus{border-color:var(--pink);box-shadow:0 0 0 3px rgba(231,82,117,.15)}
+.chat-input textarea::placeholder{color:#6b6b6b}
+.send-btn{
+  flex-shrink:0;width:46px;height:46px;border-radius:50%;
+  background:var(--pink);color:#fff;display:flex;align-items:center;justify-content:center;
+  transition:opacity .15s ease-out, transform .1s ease;
+}
+.send-btn:hover{opacity:.9}
+.send-btn:active{transform:scale(.94)}
+.send-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- 好感度 ---------- */
+.affection-box{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2)}
+.aff-top{display:flex;justify-content:space-between;align-items:center}
+.aff-label{font-size:13px;font-weight:600;color:#fff}
+.aff-val{font-size:13px;color:var(--text-dim);font-weight:600}
+.aff-bar{height:8px;border-radius:99px;background:#2a2a2a;overflow:hidden}
+.aff-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--pink),#ff7a9c);transition:width .3s ease}
+.aff-status{font-size:12px;color:var(--text-dim);line-height:1.4}
+.aff-status.unlocked{color:var(--green);font-weight:600}
+.aff-buy{display:flex;gap:8px}
+.aff-buy input{width:70px;height:34px;background:var(--panel);border:1px solid #2f2f2f;border-radius:8px;color:#fff;text-align:center;font-size:14px;outline:none}
+.aff-buy button{flex:1;height:34px;border-radius:8px;background:var(--pink);color:#fff;font-size:13px;font-weight:600}
+.aff-buy button:hover{opacity:.9}
+.aff-buy button:disabled{opacity:.5;cursor:not-allowed}
+.aff-hint{font-size:11px;color:var(--text-dim);line-height:1.4}
+
+/* ---------- 视频弹层 ---------- */
+.video-modal{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center}
+.video-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.82)}
+.video-box{position:relative;width:min(680px,92vw);z-index:1}
+.video-box video{width:100%;max-height:80vh;border-radius:14px;background:#000;display:block}
+.video-close{position:absolute;top:-12px;right:-12px;width:32px;height:32px;border-radius:50%;background:#fff;color:#000;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2}
+
+/* ---------- 追剧弹层 ---------- */
+.binge-modal{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center}
+.binge-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.85)}
+.binge-box{
+  position:relative;z-index:1;width:min(960px,94vw);max-height:92vh;
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.binge-top{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--line);
+}
+.binge-title{font-size:18px;font-weight:700}
+.binge-close{width:32px;height:32px;border-radius:50%;background:#2a2a2a;color:#fff;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.binge-close:hover{background:#333}
+.binge-body{display:flex;gap:20px;min-height:0;padding:20px;flex:1}
+.binge-left{flex:1;min-width:0;display:flex;flex-direction:column}
+.binge-player{background:#000;border-radius:12px;overflow:hidden;flex:1;display:flex;align-items:center;justify-content:center;min-height:52vh}
+.binge-player video{width:100%;height:100%;max-height:70vh;display:block;background:#000;object-fit:contain}
+.binge-controls{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.binge-nav{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:99px;background:var(--panel-2);border:1px solid var(--line);color:#fff;font-size:13px;font-weight:600}
+.binge-nav:hover{border-color:var(--text-dim)}
+.binge-nav:disabled{opacity:.4;cursor:not-allowed}
+.binge-pos{font-size:13px;color:var(--text-dim);font-weight:600}
+.binge-right{width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;overflow-y:auto;max-height:calc(92vh - 90px);scrollbar-width:thin}
+.binge-ep-title{font-size:16px;font-weight:700}
+.binge-desc{font-size:13px;color:var(--text-dim);line-height:1.5}
+.binge-choose{font-size:13px;font-weight:600;color:var(--text-mid)}
+.binge-episodes{display:flex;flex-direction:column;gap:8px}
+.ep-item{display:flex;gap:10px;align-items:center;padding:6px;border:1px solid var(--line);border-radius:10px;cursor:pointer;transition:border-color .15s ease, background .15s ease}
+.ep-item:hover{border-color:var(--text-dim)}
+.ep-item.active{border-color:var(--pink);background:rgba(231,82,117,.08)}
+.ep-no{width:26px;height:26px;flex-shrink:0;border-radius:6px;background:#2a2a2a;color:var(--text-dim);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ep-item.active .ep-no{background:var(--pink);color:#fff}
+.ep-cover{width:56px;height:34px;border-radius:6px;object-fit:cover;flex-shrink:0;background:#2a2a2a}
+.ep-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ep-lock{font-size:11px;color:var(--pink);font-weight:600}
+.ep-name{font-size:13px;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-item.active .ep-name{color:#fff}
+
+/* ---------- AI 语音通话（聊天头部内嵌） ---------- */
+.chat-head .head-info{flex:1;min-width:0}
+.chat-call-controls{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.head-call-btn{
+  height:34px;min-width:34px;padding:0 10px;border-radius:99px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--panel-2);border:1px solid var(--line);color:#fff;
+  font-size:13px;font-weight:600;transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.head-call-btn:hover{border-color:var(--text-dim)}
+.head-call-btn svg{width:18px;height:18px;display:block}
+.head-call-btn.muted{background:#fff;color:#000}
+.head-call-btn.hangup{background:#E7484F;border-color:#E7484F;color:#fff}
+.head-call-btn.hangup:hover{background:#ff5a63}
+.head-call-btn.hangup svg{transform:rotate(135deg)}
+
+/* ---------- 移动端 ---------- */
+@media (max-width:860px){
+  body{overflow:auto}
+  .layout{flex-direction:column;height:auto;min-height:100vh}
+  .sidebar{display:none}
+  .profile{width:100%;border-left:none;border-bottom:1px solid var(--line);order:3}
+  .profile.collapsed{display:none}
+  .pfp{height:320px}
+  .chat{min-height:70vh;order:2}
+  .messages{height:50vh}
+  .msg{max-width:80%}
+  .media-card video{width:220px}
+  .voice-card{min-width:0;max-width:82vw}
+  .binge-body{flex-direction:column}
+  .binge-right{width:100%;max-height:none;overflow:visible}
+  .binge-player video{max-height:50vh}
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- 左侧：聊天历史 -->
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <a class="back" href="./index.html">&larr;</a>
+      <span class="title" data-i18n="chats">Chats</span>
+    </div>
+    <div class="sidebar-list" id="convList"></div>
+  </aside>
+
+  <!-- 右侧：角色介绍（参考 candy.ai） -->
+  <aside class="profile" id="profilePanel">
+    <div class="pfp">
+      <img id="avatarImg" alt="" />
+      <button class="collapse-profile" id="collapseProfile" aria-label="Collapse">&rarr;</button>
+      <span class="diamond" id="diamondBadge" style="display:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9l4-6z" fill="#8EDBFF"/><path d="M2 9h20M12 3L8 9l4 12 4-12-4-6" stroke="#fff" stroke-width="1" fill="none"/></svg>
+        <span id="diamondVal">0</span>
+      </span>
+    </div>
+
+    <div class="profile-body">
+      <div class="p-name" id="profileName"></div>
+      <div class="p-tag" id="profileTag"></div>
+      <div class="p-info" id="bio"></div>
+
+      <div class="p-actions">
+        <button class="p-call" id="callBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>
+          <span data-i18n="call">Call Me</span>
+        </button>
+        <button class="p-gen" id="bingeBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.6"><path d="M5 3l14 9-14 9V3z"/></svg>
+          <span data-i18n="binge">Binge</span>
+        </button>
+      </div>
+
+      <div class="p-divider"></div>
+
+      <div class="p-section" data-i18n="affection_sec">Affection</div>
+      <div class="affection-box">
+        <div class="aff-top">
+          <span class="aff-label">♥ <span data-i18n="affection">Affection</span></span>
+          <span class="aff-val"><span id="affectionVal">0</span> / <span id="affectionMax">100</span></span>
+        </div>
+        <div class="aff-bar"><div class="aff-fill" id="affectionFill" style="width:0%"></div></div>
+        <div class="aff-status" id="affectionStatus" data-i18n="affection_locked">Special video locked</div>
+        <div class="aff-buy">
+          <input type="number" id="affectionAmount" min="1" max="100" value="10" />
+          <button id="buyAffectionBtn" data-i18n="buy_affection">Buy Affection</button>
+        </div>
+        <div class="aff-hint" data-i18n="affection_hint">+1 per day by chatting, unlock special video at 100</div>
+      </div>
+
+      <div class="p-divider"></div>
+
+      <div class="p-section" data-i18n="about_me">About me:</div>
+      <div class="about-list" id="aboutList"></div>
+    </div>
+  </aside>
+
+  <!-- 右侧：聊天窗口 -->
+  <section class="chat">
+    <div class="chat-head">
+      <button class="open-profile" id="openProfile" style="display:none" aria-label="Profile">&larr;</button>
+      <div class="avatar"><img id="chatAvatar" alt="" /></div>
+      <div class="head-info">
+        <div class="name" id="chatName">AI</div>
+        <div class="status" id="chatStatus"><span class="dot"></span><span id="chatStatusText" data-i18n="online">Online now</span></div>
+      </div>
+      <div class="chat-call-controls" id="chatCallControls" style="display:none">
+        <button class="head-call-btn" id="callMicBtn" type="button" aria-label="开麦">
+          <span id="callMicIcon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3h2a7 7 0 0 1-6 6.92V21h-2v-3.08A7 7 0 0 1 5 11h2a5 5 0 0 0 10 0z"/></svg></span>
+          <span id="callMicLabel">开麦</span>
+        </button>
+        <button class="head-call-btn hangup" id="callHangup" type="button" aria-label="挂断">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>
+          <span data-i18n="call_hangup">挂断</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="chat-input">
+      <textarea id="input" placeholder="Type a message..." rows="1" data-i18n-ph="type_ph"></textarea>
+      <button class="send-btn" id="sendBtn" aria-label="Send" title="Send">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="#fff"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- 视频播放弹层 -->
+<div class="video-modal" id="videoModal" style="display:none">
+  <div class="video-backdrop" id="videoBackdrop"></div>
+  <div class="video-box">
+    <button class="video-close" id="videoClose" aria-label="Close">&times;</button>
+    <video id="player" controls autoplay playsinline></video>
+  </div>
+</div>
+
+<!-- 追剧弹层 -->
+<div class="binge-modal" id="bingeModal" style="display:none">
+  <div class="binge-backdrop" id="bingeBackdrop"></div>
+  <div class="binge-box">
+    <div class="binge-top">
+      <div class="binge-title" id="bingeTitle"></div>
+      <button class="binge-close" id="bingeClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="binge-body">
+      <div class="binge-left">
+        <div class="binge-player">
+          <video id="bingePlayer" controls autoplay playsinline></video>
+        </div>
+        <div class="binge-controls">
+          <button class="binge-nav" id="bingePrev">&larr; <span data-i18n="prev_ep">Prev</span></button>
+          <div class="binge-pos" id="bingePos"></div>
+          <button class="binge-nav" id="bingeNext"><span data-i18n="next_ep">Next</span> &rarr;</button>
+        </div>
+      </div>
+      <div class="binge-right">
+        <div class="binge-ep-title" id="bingeEpTitle"></div>
+        <div class="binge-desc" id="bingeDesc"></div>
+        <div class="binge-choose" data-i18n="choose_ep">Choose an episode</div>
+        <div class="binge-episodes" id="bingeEpisodes"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var IMG = "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?image_size=portrait_4_3&prompt=";
+  var LANG = localStorage.getItem("lang") || "zh";
+  var I18N = {
+    zh: {
+      back: "返回", online: "在线", call: "语音通话", gen: "生成图片", binge: "追剧", chats: "聊天",
+      personality_sec: "性格属性：", physical_sec: "身体属性：", about_me: "关于我：",
+      personality: "性格", occupation: "职业", hobbies: "爱好", relationship: "关系",
+      body: "身材", age: "年龄", ethnicity: "种族", language: "语言",
+      personality_v: "温暖、有趣、好奇", occupation_v: "AI 伴侣",
+      hobbies_v: "聊天、创作", relationship_v: "伴侣", body_v: "苗条",
+      type_ph: "输入消息...", send: "发送",
+      greeting: "嗨，我是 {name}，有什么能帮你的吗？",
+      reply: "很高兴听到这些！再多说一点吧。",
+      bio: "与 {name} 聊天 — 独一无二的 AI 伴侣，随时陪你聊任何话题。",
+      affection_sec: "好感度", affection: "好感度",
+      affection_locked: "未解锁特殊视频", affection_unlocked: "已解锁特殊视频",
+      buy_affection: "购买好感度", affection_hint: "每天对话 +1，满 100 解锁特殊视频",
+      voice_calling: "语音中", voice_tag: "语音", call_hangup: "挂断", call_mute: "静音", call_unmute: "开麦",
+      need_login: "登录后查看好感度", no_media: "暂无视频素材", no_conversations: "暂无会话", episode: "第{n}集", episode_pos: "第 {cur} / {total} 集", episodes_title: "的剧集", prev_ep: "上一集", next_ep: "下一集", choose_ep: "选择剧集", unlock_price: "解锁 {n} 钻石", unlock_confirm: "确定花 {n} 钻石解锁该视频？", buy_ok: "购买成功", buy_fail: "购买失败"
+    },
+    en: {
+      back: "Back", online: "Online now", call: "Voice Call", gen: "Generate Image", binge: "Binge", chats: "Chats",
+      personality_sec: "Personality Attributes:", physical_sec: "Physical Attributes:", about_me: "About me:",
+      personality: "Personality", occupation: "Occupation", hobbies: "Hobbies", relationship: "Relationship",
+      body: "Body", age: "Age", ethnicity: "Ethnicity", language: "Language",
+      personality_v: "Warm, playful & curious", occupation_v: "AI Companion",
+      hobbies_v: "Chatting, creativity", relationship_v: "Companion", body_v: "Slim",
+      type_ph: "Type a message...", send: "Send",
+      greeting: "Hi! I'm {name}. How can I brighten your day?",
+      reply: "That's nice to hear! Tell me more.",
+      bio: "Chat with {name} — a one-of-a-kind AI companion, ready to talk about anything.",
+      affection_sec: "Affection", affection: "Affection",
+      affection_locked: "Special video locked", affection_unlocked: "Special video unlocked",
+      buy_affection: "Buy Affection", affection_hint: "+1 per day by chatting, unlock special video at 100",
+      voice_calling: "On voice call", voice_tag: "Voice", call_hangup: "Hang up", call_mute: "Mute", call_unmute: "Unmute",
+      need_login: "Login to view affection", no_media: "No video available", no_conversations: "No conversations yet", episode: "Episode {n}", episode_pos: "Episode {cur} of {total}", episodes_title: "'s Episodes", prev_ep: "Prev", next_ep: "Next", choose_ep: "Choose an episode", unlock_price: "Unlock · {n}", unlock_confirm: "Unlock this video for {n} diamonds?", buy_ok: "Purchased", buy_fail: "Purchase failed"
+    },
+    ja: {
+      back: "戻る", online: "オンライン", call: "音声通話", gen: "画像生成", binge: "連続再生", chats: "チャット",
+      personality_sec: "性格属性：", physical_sec: "身体属性：", about_me: "私について：",
+      personality: "性格", occupation: "職業", hobbies: "趣味", relationship: "関係",
+      body: "体型", age: "年齢", ethnicity: "民族", language: "言語",
+      personality_v: "温かく、遊び心があって好奇心旺盛", occupation_v: "AIコンパニオン",
+      hobbies_v: "チャット、創作", relationship_v: "コンパニオン", body_v: "スリム",
+      type_ph: "メッセージを入力...", send: "送信",
+      greeting: "こんにちは、私は{name}です。お手伝いできますか？",
+      reply: "それは嬉しいです！もっと教えてください。",
+      bio: "{name}とチャット — 唯一無二のAIコンパニオン、どんな話題でもお話ししましょう。",
+      affection_sec: "好意度", affection: "好意度",
+      affection_locked: "スペシャル動画ロック中", affection_unlocked: "スペシャル動画ロック解除",
+      buy_affection: "好意度を購入", affection_hint: "毎日チャットで+1、100でスペシャル動画解除",
+      voice_calling: "音声通話中", voice_tag: "音声", call_hangup: "切る", call_mute: "ミュート", call_unmute: "ミュート解除",
+      need_login: "ログインすると好意度を表示", no_media: "動画がありません", no_conversations: "会話がありません", episode: "第{n}話", episode_pos: "第 {cur} / {total} 話", episodes_title: "のエピソード", prev_ep: "前へ", next_ep: "次へ", choose_ep: "エピソードを選択", unlock_price: "解除 {n}ダイヤ", unlock_confirm: "この動画を{n}ダイヤで解除しますか？", buy_ok: "購入成功", buy_fail: "購入失敗"
+    }
+  };
+  function t(key){ return (I18N[LANG] && I18N[LANG][key]) || I18N.en[key] || key; }
+
+  var params = new URLSearchParams(location.search);
+  var title = params.get("title") || "AI Girlfriend";
+  var cat = params.get("cat") || "";
+  var contentId = parseInt(params.get("id") || "0", 10) || 0;
+  var imgPrompt = params.get("img") || "";
+  var isFullImg = imgPrompt && (imgPrompt.indexOf("http") === 0 || imgPrompt.indexOf("/") === 0);
+  var avatar = isFullImg ? imgPrompt : IMG + (imgPrompt ? encodeURIComponent(imgPrompt) : encodeURIComponent("beautiful woman portrait studio light"));
+
+  // 属性展示顺序与图标（candy.ai 风格 About me）
+  var ABOUT_KEYS = [
+    { key: "age",          ico: "◌" },
+    { key: "body",         ico: "◉" },
+    { key: "ethnicity",    ico: "◎" },
+    { key: "language",     ico: "◈" },
+    { key: "relationship", ico: "♥" },
+    { key: "occupation",   ico: "◇" },
+    { key: "hobbies",      ico: "✦" },
+    { key: "personality",  ico: "◐" }
+  ];
+
+  function renderAbout(personalityData) {
+    var html = "";
+    ABOUT_KEYS.forEach(function (item) {
+      var v = (personalityData && personalityData[item.key]) ? String(personalityData[item.key]).trim() : "";
+      if (!v) return;
+      html += '<div class="about-item"><span class="ico">' + item.ico + '</span><div><div class="k">' + t(item.key) + '</div><div class="v">' + v + '</div></div></div>';
+    });
+    document.getElementById("aboutList").innerHTML = html;
+  }
+
+  function applyLang(){
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach(function(el){
+      el.placeholder = t(el.dataset.i18nPh);
+    });
+  }
+
+  // 先用 URL 参数兜底
+  document.getElementById("profileName").textContent = title;
+  document.getElementById("chatName").textContent = title;
+  document.getElementById("profileTag").textContent = cat || "";
+  document.getElementById("bio").textContent = t("bio").replace("{name}", title);
+  document.getElementById("avatarImg").src = avatar;
+  document.getElementById("avatarImg").alt = title;
+  document.getElementById("chatAvatar").src = avatar;
+  document.getElementById("chatAvatar").alt = title;
+  renderAbout({});
+  applyLang();
+
+  // 加载角色详情，用后端真实数据覆盖
+  if (contentId > 0) {
+    fetch("/api/live/roleDetail?content_id=" + contentId)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!(d && d.code === "00000" && d.data)) return;
+        var data = d.data;
+        if (data.title) {
+          title = data.title;
+          document.getElementById("profileName").textContent = title;
+          document.getElementById("chatName").textContent = title;
+          document.getElementById("avatarImg").alt = title;
+          document.getElementById("chatAvatar").alt = title;
+        }
+        if (data.category) {
+          document.getElementById("profileTag").textContent = data.category;
+        }
+        if (data.description) {
+          document.getElementById("bio").textContent = data.description;
+        }
+        if (data.cover_url) {
+          document.getElementById("avatarImg").src = data.cover_url;
+          document.getElementById("chatAvatar").src = data.cover_url;
+        }
+        renderAbout(data.personality || {});
+      })
+      .catch(function () {});
+  }
+
+  // 钻石余额（复用直播端账户）
+  var token = localStorage.getItem("live_access_token");
+
+  // 设备标识：未登录时也用于保存/读取聊天记录
+  function getDeviceId() {
+    var id = localStorage.getItem("ai_device_id");
+    if (!id) {
+      id = "dev_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem("ai_device_id", id);
+    }
+    return id;
+  }
+  var deviceId = getDeviceId();
+
+  // ---------- 右侧介绍：收起 / 展开 ----------
+  var profilePanel = document.getElementById("profilePanel");
+  var collapseProfile = document.getElementById("collapseProfile");
+  var openProfile = document.getElementById("openProfile");
+  function toggleProfile(collapsed) {
+    if (collapsed) {
+      profilePanel.classList.add("collapsed");
+      openProfile.style.display = "flex";
+    } else {
+      profilePanel.classList.remove("collapsed");
+      openProfile.style.display = "none";
+    }
+  }
+  collapseProfile.addEventListener("click", function () { toggleProfile(true); });
+  openProfile.addEventListener("click", function () { toggleProfile(false); });
+
+  // ---------- 左侧聊天历史 ----------
+  function loadConversations() {
+    var convList = document.getElementById("convList");
+    var headers = {};
+    if (token) headers["Authorization"] = "Bearer " + token;
+    fetch("/api/live/chatConversations?device_id=" + encodeURIComponent(deviceId), {
+      headers: headers
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var list = (d && d.code === "00000" && Array.isArray(d.data)) ? d.data : [];
+      if (!list.length) {
+        convList.innerHTML = '<div class="conv-empty">' + t("no_conversations") + '</div>';
+        return;
+      }
+      convList.innerHTML = list.map(function (c) {
+        var active = c.content_id === contentId ? " active" : "";
+        return '<div class="conv-item' + active + '" data-id="' + c.content_id + '">'
+          + '<img class="conv-avatar" src="' + (c.cover_url || "") + '" alt="" />'
+          + '<div class="conv-main"><div class="conv-name">' + escapeHtml(c.title || "AI") + '</div>'
+          + '<div class="conv-preview">' + escapeHtml(c.last_message || "") + '</div></div></div>';
+      }).join("");
+    })
+    .catch(function () {});
+  }
+  document.getElementById("convList").addEventListener("click", function (e) {
+    var item = e.target.closest(".conv-item");
+    if (!item) return;
+    var id = item.getAttribute("data-id");
+    if (id && String(id) !== String(contentId)) {
+      location.href = "chat.html?id=" + id;
+    }
+  });
+  loadConversations();
+
+  function refreshDiamond() {
+    if (!token) return;
+    document.getElementById("diamondBadge").style.display = "inline-flex";
+    fetch("/api/live/userInfo", { headers: { "Authorization": "Bearer " + token } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.code === "00000" && d.data) {
+          var m = Number(d.data.money || 0);
+          document.getElementById("diamondVal").textContent = Number.isInteger(m) ? String(m) : m.toFixed(2);
+        }
+      }).catch(function () {});
+  }
+  refreshDiamond();
+
+  // ---------- 视频播放弹层 ----------
+  var videoModal = document.getElementById("videoModal");
+  var player = document.getElementById("player");
+
+  function playVideo(url, onEnded) {
+    if (!url) return;
+    player.onended = onEnded || null;
+    player.src = url;
+    videoModal.style.display = "flex";
+    player.play().catch(function () {});
+  }
+  function closeVideo() {
+    player.pause();
+    player.onended = null;
+    player.removeAttribute("src");
+    player.load();
+    videoModal.style.display = "none";
+  }
+  document.getElementById("videoClose").addEventListener("click", closeVideo);
+  document.getElementById("videoBackdrop").addEventListener("click", closeVideo);
+
+  // ---------- 好感度 ----------
+  var affectionVal = document.getElementById("affectionVal");
+  var affectionMax = document.getElementById("affectionMax");
+  var affectionFill = document.getElementById("affectionFill");
+  var affectionStatus = document.getElementById("affectionStatus");
+  var affectionAmount = document.getElementById("affectionAmount");
+  var buyAffectionBtn = document.getElementById("buyAffectionBtn");
+
+  function renderAffection(data) {
+    if (!data) return;
+    var max = Number(data.max || 100);
+    var a = Math.max(0, Math.min(max, Number(data.affection || 0)));
+    var unlocked = typeof data.unlocked !== "undefined" ? !!data.unlocked : (a >= max);
+    affectionVal.textContent = String(a);
+    affectionMax.textContent = String(max);
+    affectionFill.style.width = Math.round(a / max * 100) + "%";
+    if (unlocked) {
+      affectionStatus.textContent = t("affection_unlocked");
+      affectionStatus.classList.add("unlocked");
+    } else {
+      affectionStatus.textContent = t("affection_locked");
+      affectionStatus.classList.remove("unlocked");
+    }
+  }
+
+  function loadAffection() {
+    if (!token || contentId <= 0) {
+      affectionStatus.textContent = t("need_login");
+      buyAffectionBtn.disabled = true;
+      return;
+    }
+    fetch("/api/live/affection?content_id=" + contentId, {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.code === "00000" && d.data) {
+        renderAffection(d.data);
+      }
+    }).catch(function () {});
+  }
+  loadAffection();
+
+  buyAffectionBtn.addEventListener("click", function () {
+    if (!token) { alert(t("need_login")); return; }
+    var amount = parseInt(affectionAmount.value, 10);
+    if (!amount || amount <= 0) { amount = 10; }
+    buyAffectionBtn.disabled = true;
+    fetch("/api/live/buyAffection", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ content_id: contentId, amount: amount })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.code === "00000" && d.data) {
+        renderAffection(d.data);
+        if (typeof d.data.balance !== "undefined") {
+          var b = Number(d.data.balance || 0);
+          document.getElementById("diamondVal").textContent = Number.isInteger(b) ? String(b) : b.toFixed(2);
+        }
+        alert(t("buy_ok"));
+      } else {
+        alert((d && d.msg) || t("buy_fail"));
+      }
+    })
+    .catch(function () { alert(t("buy_fail")); })
+    .then(function () { buyAffectionBtn.disabled = false; });
+  });
+
+  // ---------- Call Me：AI 语音通话（内嵌聊天界面，不弹视频/弹层） ----------
+  var callBtn = document.getElementById("callBtn");
+  var chatCallControls = document.getElementById("chatCallControls");
+  var callMicBtn = document.getElementById("callMicBtn");
+  var callHangup = document.getElementById("callHangup");
+
+  var callActive = false;
+  var callMuted = false;
+  var callSpeaking = false;
+  var recognition = null;
+
+  var CALL_MIC_ON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3h2a7 7 0 0 1-6 6.92V21h-2v-3.08A7 7 0 0 1 5 11h2a5 5 0 0 0 10 0z"/></svg>';
+  var CALL_MIC_OFF = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3h2a7 7 0 0 1-6 6.92V21h-2v-3.08A7 7 0 0 1 5 11h2a5 5 0 0 0 10 0z"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2" fill="none"/></svg>';
+
+  function callLangText(map) { return map[LANG] || map.en; }
+  function callLocale() { return ({ zh: "zh-CN", en: "en-US", ja: "ja-JP" })[LANG] || "zh-CN"; }
+  function hashCode(str) {
+    var h = 0;
+    str = String(str || "");
+    for (var i = 0; i < str.length; i++) {
+      h = ((h << 5) - h) + str.charCodeAt(i);
+      h |= 0;
+    }
+    return Math.abs(h);
+  }
+  function roleVoiceSeed() {
+    return hashCode(contentId > 0 ? contentId : title);
+  }
+  function pickRoleVoice(seed, locale) {
+    if (!("speechSynthesis" in window) || !window.speechSynthesis) return null;
+    var voices = window.speechSynthesis.getVoices();
+    if (!voices || !voices.length) return null;
+    var prefix = locale.split("-")[0].toLowerCase();
+    var cands = [];
+    for (var i = 0; i < voices.length; i++) {
+      if (voices[i].lang && voices[i].lang.toLowerCase().indexOf(prefix) === 0) cands.push(voices[i]);
+    }
+    if (!cands.length) return null;
+    var preferred = [];
+    for (var j = 0; j < cands.length; j++) {
+      if (/google|natural|neural|premium|online|xiaoxiao|xiaoyi|yunxi|yunjian|libby|aria|jenny|aaron|guy/i.test(cands[j].name)) preferred.push(cands[j]);
+    }
+    var pool = preferred.length ? preferred : cands;
+    return pool[seed % pool.length];
+  }
+  function applyRoleVoice(u, seed) {
+    var locale = callLocale();
+    u.lang = locale;
+    var v = pickRoleVoice(seed, locale);
+    if (v) u.voice = v;
+    var s = seed || 1;
+    u.rate = 0.98 + (s % 9) * 0.01;
+    u.pitch = 0.95 + ((s >> 3) % 7) * 0.06;
+  }
+  function stopListening() {
+    if (recognition) { try { recognition.stop(); } catch (e) {} }
+  }
+  function speak(text) {
+    if (!("speechSynthesis" in window) || !window.speechSynthesis) return;
+    stopListening();
+    window.speechSynthesis.cancel();
+    callSpeaking = true;
+    var u = new SpeechSynthesisUtterance(text);
+    applyRoleVoice(u, roleVoiceSeed());
+    u.onend = function () { callSpeaking = false; if (callActive) startListening(); };
+    u.onerror = function () { callSpeaking = false; if (callActive) startListening(); };
+    window.speechSynthesis.speak(u);
+  }
+  function startListening() {
+    if (!callActive || callMuted || callSpeaking) return;
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (!recognition) {
+      recognition = new SR();
+      recognition.lang = callLocale();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onresult = function (e) {
+        var text = "";
+        for (var i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+        text = text.trim();
+        if (!text) return;
+        sendCallMessage(text);
+      };
+      recognition.onerror = function () {
+        if (callActive && !callMuted && !callSpeaking) setTimeout(startListening, 700);
+      };
+      recognition.onend = function () {
+        if (callActive && !callMuted && !callSpeaking) setTimeout(startListening, 300);
+      };
+    }
+    try { recognition.start(); } catch (e) {}
+  }
+  function sendCallMessage(text) {
+    addMsg(text, "me", true);
+    var headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = "Bearer " + token;
+    fetch("/api/live/chat", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({ content_id: contentId, message: text, history: history.slice(-12), lang: LANG, device_id: deviceId, voice: 1 })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var reply = "";
+      if (d && d.code === "00000" && d.data && typeof d.data.reply === "string") reply = d.data.reply;
+      history.push({ role: "user", content: text });
+      if (reply) {
+        history.push({ role: "assistant", content: reply });
+        if (history.length > 24) history = history.slice(-24);
+        addMsg(reply, "ai", true);
+        speak(reply);
+      } else {
+        speak(callLangText({ zh: "我在听哦，继续说～", en: "I'm listening, go on.", ja: "聞いてるよ、続けて。" }));
+      }
+    })
+    .catch(function () {
+      speak(callLangText({ zh: "信号不太好，稍等哦。", en: "Bad signal, one moment.", ja: "少し待ってね。" }));
+    });
+  }
+  function setChatVoiceStatus(active) {
+    var statusEl = document.getElementById("chatStatus");
+    var textEl = document.getElementById("chatStatusText");
+    if (!statusEl || !textEl) return;
+    if (active) {
+      statusEl.classList.add("voice-calling");
+      textEl.textContent = t("voice_calling");
+    } else {
+      statusEl.classList.remove("voice-calling");
+      textEl.textContent = t("online");
+    }
+  }
+  function openCall() {
+    callActive = true;
+    callMuted = false;
+    callSpeaking = false;
+    callMicBtn.classList.remove("muted");
+    document.getElementById("callMicIcon").innerHTML = CALL_MIC_ON;
+    document.getElementById("callMicLabel").textContent = t("call_unmute");
+    chatCallControls.style.display = "flex";
+    setChatVoiceStatus(true);
+
+    setTimeout(function () {
+      if (!callActive) return;
+      var greeting = callLangText({
+        zh: "你好呀，我是" + title + "，想和你聊聊天～",
+        en: "Hi, this is " + title + ". Let's have a chat!",
+        ja: "こんにちは、" + title + "です。お話ししましょう！"
+      });
+      addMsg(greeting, "ai", true);
+      speak(greeting);
+    }, 800);
+  }
+  function closeCall() {
+    callActive = false;
+    callSpeaking = false;
+    stopListening();
+    if ("speechSynthesis" in window && window.speechSynthesis) window.speechSynthesis.cancel();
+    chatCallControls.style.display = "none";
+    setChatVoiceStatus(false);
+  }
+
+  callBtn.addEventListener("click", openCall);
+  callHangup.addEventListener("click", closeCall);
+  callMicBtn.addEventListener("click", function () {
+    callMuted = !callMuted;
+    callMicBtn.classList.toggle("muted", callMuted);
+    document.getElementById("callMicIcon").innerHTML = callMuted ? CALL_MIC_OFF : CALL_MIC_ON;
+    document.getElementById("callMicLabel").textContent = callMuted ? t("call_mute") : t("call_unmute");
+    if (callMuted) {
+      stopListening();
+    } else if (!callSpeaking) {
+      startListening();
+    }
+  });
+
+  // 预加载语音合成音色（部分浏览器异步加载）
+  if ("speechSynthesis" in window && window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = function () { window.speechSynthesis.getVoices(); };
+    window.speechSynthesis.getVoices();
+  }
+
+  // ---------- 追剧：弹窗 + 选集切换 ----------
+  var bingeBtn = document.getElementById("bingeBtn");
+  var bingeModal = document.getElementById("bingeModal");
+  var bingePlayer = document.getElementById("bingePlayer");
+  var bingeEpisodes = document.getElementById("bingeEpisodes");
+  var bingeList = [];
+  var bingeIndex = -1;
+
+  function episodeName(i) {
+    var v = bingeList[i];
+    return v.title ? v.title : t("episode").replace("{n}", String(i + 1));
+  }
+
+  function renderBingeList() {
+    bingeEpisodes.innerHTML = bingeList.map(function (v, i) {
+      var num = (i + 1) < 10 ? "0" + (i + 1) : String(i + 1);
+      var cover = v.cover_url ? '<img class="ep-cover" src="' + v.cover_url + '" alt="" />' : '';
+      var locked = v._special && !v.unlocked;
+      var lockTag = locked ? '<div class="ep-lock">' + t("unlock_price").replace("{n}", v.unlock_price) + '</div>' : '';
+      return '<div class="ep-item' + (locked ? " locked" : "") + '" data-index="' + i + '">'
+        + '<span class="ep-no">' + num + '</span>'
+        + cover
+        + '<div class="ep-main"><div class="ep-name">' + escapeHtml(episodeName(i)) + '</div>' + lockTag + '</div></div>';
+    }).join("");
+  }
+
+  function tryUnlock(i) {
+    var v = bingeList[i];
+    if (!token) { alert(t("need_login")); return; }
+    if (!confirm(t("unlock_confirm").replace("{n}", v.unlock_price))) return;
+    fetch("/api/live/unlockVideo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ media_id: v.id })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.code === "00000" && d.data) {
+        v.unlocked = true;
+        v.video_url = d.data.video_url || v.video_url;
+        if (typeof d.data.balance !== "undefined") {
+          var b = Number(d.data.balance || 0);
+          document.getElementById("diamondVal").textContent = Number.isInteger(b) ? String(b) : b.toFixed(2);
+        }
+        renderBingeList();
+        playEpisode(i);
+      } else {
+        alert((d && d.msg) || t("buy_fail"));
+      }
+    })
+    .catch(function () { alert(t("buy_fail")); });
+  }
+
+  function playEpisode(i) {
+    if (i < 0 || i >= bingeList.length) return;
+    var v = bingeList[i];
+    if (v._special && !v.unlocked) {
+      tryUnlock(i);
+      return;
+    }
+    bingeIndex = i;
+    bingePlayer.src = v.video_url;
+    bingePlayer.play().catch(function () {});
+    var items = bingeEpisodes.querySelectorAll(".ep-item");
+    for (var k = 0; k < items.length; k++) {
+      if (k === i) items[k].classList.add("active");
+      else items[k].classList.remove("active");
+    }
+    document.getElementById("bingeEpTitle").textContent = episodeName(i);
+    document.getElementById("bingePos").textContent = t("episode_pos").replace("{cur}", String(i + 1)).replace("{total}", String(bingeList.length));
+    document.getElementById("bingePrev").disabled = (i === 0);
+    document.getElementById("bingeNext").disabled = (i === bingeList.length - 1);
+  }
+
+  function openBinge(list) {
+    bingeList = list || [];
+    bingeIndex = -1;
+    document.getElementById("bingeTitle").textContent = (document.getElementById("profileName").textContent || title) + t("episodes_title");
+    document.getElementById("bingeDesc").textContent = document.getElementById("bio").textContent || "";
+    renderBingeList();
+
+    bingeModal.style.display = "flex";
+    if (bingeList.length) playEpisode(0);
+  }
+
+  bingeEpisodes.addEventListener("click", function (e) {
+    var item = e.target.closest(".ep-item");
+    if (!item) return;
+    playEpisode(parseInt(item.getAttribute("data-index"), 10));
+  });
+
+  document.getElementById("bingePrev").addEventListener("click", function () {
+    if (bingeIndex > 0) playEpisode(bingeIndex - 1);
+  });
+  document.getElementById("bingeNext").addEventListener("click", function () {
+    if (bingeIndex >= 0 && bingeIndex < bingeList.length - 1) playEpisode(bingeIndex + 1);
+  });
+
+  bingeBtn.addEventListener("click", function () {
+    bingeBtn.disabled = true;
+    var headers = {};
+    if (token) headers["Authorization"] = "Bearer " + token;
+    Promise.all([
+      fetch("/api/live/roleMedia?content_id=" + contentId + "&type=normal").then(function (r) { return r.json(); }),
+      fetch("/api/live/roleMedia?content_id=" + contentId + "&type=special", { headers: headers }).then(function (r) { return r.json(); })
+    ]).then(function (results) {
+      var normal = (results[0] && results[0].code === "00000" && results[0].data) ? results[0].data : [];
+      var special = (results[1] && results[1].code === "00000" && results[1].data) ? results[1].data : [];
+      special.forEach(function (v) { v._special = true; });
+      var list = normal.concat(special);
+      if (!list.length) { alert(t("no_media")); return; }
+      openBinge(list);
+    }).catch(function () { alert(t("no_media")); })
+    .then(function () { bingeBtn.disabled = false; });
+  });
+
+  function closeBinge() {
+    bingePlayer.pause();
+    bingePlayer.removeAttribute("src");
+    bingePlayer.load();
+    bingeModal.style.display = "none";
+  }
+  document.getElementById("bingeClose").addEventListener("click", closeBinge);
+  document.getElementById("bingeBackdrop").addEventListener("click", closeBinge);
+
+  // 聊天
+  var messages = document.getElementById("messages");
+  var input = document.getElementById("input");
+  var sendBtn = document.getElementById("sendBtn");
+
+  function timeStr() {
+    var d = new Date();
+    return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }
+  function escapeHtml(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function addMsg(text, who, voice) {
+    var el = document.createElement("div");
+    el.className = "msg " + who + (voice ? " msg-voice" : "");
+    var tag = voice ? '<span class="voice-tag">' + t("voice_tag") + '</span>' : '';
+    el.innerHTML = tag + escapeHtml(text) + '<span class="time">' + timeStr() + '</span>';
+    messages.appendChild(el);
+    messages.scrollTop = messages.scrollHeight;
+  }
+  function formatDuration(s) {
+    s = Math.max(0, Math.round(s || 0));
+    var m = Math.floor(s / 60);
+    var sec = s % 60;
+    return m + ":" + ("0" + sec).slice(-2);
+  }
+  function voiceBarsHtml() {
+    var heights = [10, 16, 22, 28, 18, 26, 14, 20, 30, 24, 12, 18, 26, 16, 22, 14, 10, 8];
+    var html = "";
+    for (var i = 0; i < heights.length; i++) {
+      html += '<i style="height:' + heights[i] + 'px"></i>';
+    }
+    return html;
+  }
+  function addMediaMsg(media, who) {
+    var el = document.createElement("div");
+    el.className = "msg " + who + " msg-media";
+    if (media.kind === "voice") {
+      el.innerHTML =
+        '<div class="voice-card">' +
+          '<button class="voice-play" type="button" aria-label="播放">' +
+            '<svg class="ic-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>' +
+            '<svg class="ic-pause" viewBox="0 0 24 24" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor"/></svg>' +
+          '</button>' +
+          '<div class="voice-bars">' + voiceBarsHtml() + '</div>' +
+          '<span class="voice-duration">0:00</span>' +
+        '</div>' +
+        '<span class="time">' + timeStr() + '</span>';
+      messages.appendChild(el);
+      bindVoicePlayer(el, media.url);
+    } else {
+      el.innerHTML =
+        '<div class="media-card"><video controls playsinline preload="metadata" src="' + escapeHtml(media.url) + '"></video></div>' +
+        '<span class="time">' + timeStr() + '</span>';
+      messages.appendChild(el);
+    }
+    messages.scrollTop = messages.scrollHeight;
+  }
+  function bindVoicePlayer(root, url) {
+    var card = root.querySelector(".voice-card");
+    var btn = root.querySelector(".voice-play");
+    var icPlay = root.querySelector(".ic-play");
+    var icPause = root.querySelector(".ic-pause");
+    var durationEl = root.querySelector(".voice-duration");
+    var audio = new Audio(url);
+    audio.preload = "metadata";
+
+    function setPlaying(p) {
+      card.classList.toggle("playing", p);
+      icPlay.style.display = p ? "none" : "";
+      icPause.style.display = p ? "" : "none";
+    }
+    btn.addEventListener("click", function () {
+      if (audio.paused) {
+        audio.play().catch(function () {});
+      } else {
+        audio.pause();
+      }
+    });
+    audio.addEventListener("play", function () { setPlaying(true); });
+    audio.addEventListener("pause", function () { setPlaying(false); });
+    audio.addEventListener("ended", function () { setPlaying(false); });
+    audio.addEventListener("loadedmetadata", function () {
+      if (audio.duration && isFinite(audio.duration)) {
+        durationEl.textContent = formatDuration(audio.duration);
+      }
+    });
+  }
+
+  var history = [];
+
+  // 加载已保存的聊天历史（登录用户按 user_id，游客按 device_id）
+  function loadHistory() {
+    // 始终显示初始开场白
+    addMsg(t("greeting").replace("{name}", title), "ai");
+    if (contentId <= 0) return;
+
+    var headers = {};
+    if (token) headers["Authorization"] = "Bearer " + token;
+    fetch("/api/live/chatHistory?content_id=" + contentId + "&device_id=" + encodeURIComponent(deviceId) + "&limit=50", {
+      headers: headers
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var list = (d && d.code === "00000" && Array.isArray(d.data)) ? d.data : [];
+      list.forEach(function (m) {
+        if (!m) return;
+        var who = m.role === "assistant" ? "ai" : "me";
+        if (m.media && m.media.url) {
+          addMediaMsg(m.media, who);
+        } else if (m.content) {
+          addMsg(m.content, who, m.voice ? true : false);
+          history.push({ role: m.role, content: m.content });
+        }
+      });
+    })
+    .catch(function () {});
+  }
+  loadHistory();
+
+  function send() {
+    var val = input.value.trim();
+    if (!val) return;
+    addMsg(val, "me");
+    input.value = "";
+    input.style.height = "46px";
+    sendBtn.disabled = true;
+
+    var recent = history.slice(-12);
+
+    var headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = "Bearer " + token;
+
+    fetch("/api/live/chat", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({ content_id: contentId, message: val, history: recent, lang: LANG, device_id: deviceId })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.code === "00000" && d.data) {
+        var data = d.data;
+        var hasReply = typeof data.reply === "string" && data.reply !== "";
+        var hasMedia = data.media && data.media.url;
+
+        history.push({ role: "user", content: val });
+        if (hasReply) {
+          addMsg(data.reply, "ai");
+          history.push({ role: "assistant", content: data.reply });
+        }
+        if (hasMedia) {
+          // 关键词触发：内嵌输出语音/视频，不弹窗
+          addMediaMsg(data.media, "ai");
+        }
+        if (history.length > 24) history = history.slice(-24);
+
+        // 好感度实时刷新
+        if (data.affection) renderAffection(data.affection);
+
+        // 特殊视频：满 100 且命令词触发（保持弹窗播放）
+        if (data.special_video) playVideo(data.special_video);
+
+        // 无回复也无媒体时的兜底
+        if (!hasReply && !hasMedia) {
+          addMsg(t("reply"), "ai");
+        }
+      } else {
+        addMsg((d && d.msg) || t("reply"), "ai");
+      }
+    })
+    .catch(function () {
+      addMsg(t("reply"), "ai");
+    })
+    .then(function () {
+      sendBtn.disabled = false;
+    });
+  }
+
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+  input.addEventListener("input", function () {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 140) + "px";
+  });
+})();
+</script>
+</body>
+</html>

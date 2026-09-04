@@ -33,7 +33,7 @@ export const useBaseStore = defineStore('base', {
       maskDialog: false,
       maskDialogMode: 'dark',
       version: '17.1.0',
-      excludeNames: [],
+      excludeNames: ['LivePage'],
       judgeValue: 20,
       homeRefresh: 60,
       loading: false,

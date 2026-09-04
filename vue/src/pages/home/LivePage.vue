@@ -172,6 +172,9 @@ import { createLivePlaybackController, type LivePlaybackMode } from '@/utils/liv
 import { useBaseStore } from '@/store/pinia'
 import { getAccessToken, isLoggedIn } from '@/utils/auth'
 
+// 直播间不缓存：每次进入重新连接，返回时彻底销毁播放器/websocket，避免 hls 实例泄漏
+defineOptions({ name: 'LivePage' })
+
 type WsState = 'idle' | 'connecting' | 'connected' | 'error'
 
 interface ChatMessageItem {
