@@ -64,3 +64,6 @@ vue/dist.zip
 # Nested package managers
 **/node_modules/
 **/vendor/
+
+# backup files
+*.bak
