@@ -17,6 +17,13 @@
                     <FormItem label="角色名" v-model="baTable.form.items!.title" prop="title" type="string" :input-attr="{ placeholder: '角色名' }" />
                     <FormItem label="分类" v-model="baTable.form.items!.category" type="string" :input-attr="{ placeholder: '分类' }" />
                     <FormItem label="封面图" v-model="baTable.form.items!.cover_url" type="image" />
+                    <FormItem
+                        label="动效视频"
+                        v-model="baTable.form.items!.video_url"
+                        prop="video_url"
+                        type="file"
+                        :input-attr="{ limit: 1, placeholder: '上传列表卡片 hover 动效视频' }"
+                    />
                     <FormItem label="简介" v-model="baTable.form.items!.description" type="textarea" :input-attr="{ rows: 4, placeholder: '角色简介，用于聊天人设' }" />
                     <FormItem label="权重" v-model="baTable.form.items!.weigh" type="number" />
                     <FormItem

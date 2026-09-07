@@ -199,6 +199,19 @@ img{display:block}
 .voice-duration{font-size:12px;color:rgba(255,255,255,.92);font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;letter-spacing:.3px}
 @keyframes voice-wave{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
 
+/* 未解锁媒体卡片（视频/语音） */
+.media-card.lock-card{display:flex;align-items:center;justify-content:center;width:280px;height:180px;background:#0f0f1a}
+.lock-blur{position:absolute;inset:0;background:linear-gradient(135deg,#5b3a6e 0%,#2a1f45 45%,#10101f 100%);filter:blur(8px);transform:scale(1.15);opacity:.9}
+.lock-shade{position:absolute;inset:0;background:rgba(0,0,0,.42)}
+.lock-center{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px}
+.lock-kind{display:inline-flex;align-items:center;gap:7px;color:rgba(255,255,255,.9);font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+.lock-kind svg{width:24px;height:24px;display:block}
+.voice-card.lock-card{background:#14111f}
+.voice-card.lock-card .voice-bars i{background:rgba(255,255,255,.26)}
+.media-unlock{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;font-size:14px;font-weight:600;padding:10px 16px;border-radius:99px;cursor:pointer;transition:background .15s ease,transform .12s ease}
+.media-unlock:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}
+.media-unlock svg{width:18px;height:18px;display:block}
+
 .chat-input{
   flex-shrink:0;display:flex;align-items:flex-end;gap:10px;
   padding:14px 20px 18px;border-top:1px solid var(--line);background:var(--bg);
@@ -237,6 +250,9 @@ img{display:block}
 .aff-buy button:hover{opacity:.9}
 .aff-buy button:disabled{opacity:.5;cursor:not-allowed}
 .aff-hint{font-size:11px;color:var(--text-dim);line-height:1.4}
+.aff-view{margin-top:2px;height:36px;border-radius:8px;background:var(--pink);color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer}
+.aff-view:hover{opacity:.9}
+.aff-view:disabled{opacity:.5;cursor:not-allowed}
 
 /* ---------- 视频弹层 ---------- */
 .video-modal{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center}
@@ -374,6 +390,7 @@ img{display:block}
           <button id="buyAffectionBtn" data-i18n="buy_affection">Buy Affection</button>
         </div>
         <div class="aff-hint" data-i18n="affection_hint">+1 per day by chatting, unlock special video at 100</div>
+        <button id="affectionViewBtn" class="aff-view" style="display:none" data-i18n="affection_view">查看特殊视频</button>
       </div>
 
       <div class="p-divider"></div>
@@ -471,7 +488,7 @@ img{display:block}
       bio: "与 {name} 聊天 — 独一无二的 AI 伴侣，随时陪你聊任何话题。",
       affection_sec: "好感度", affection: "好感度",
       affection_locked: "未解锁特殊视频", affection_unlocked: "已解锁特殊视频",
-      buy_affection: "购买好感度", affection_hint: "每天对话 +1，满 100 解锁特殊视频",
+      buy_affection: "购买好感度", affection_hint: "每天对话 +1，满 100 解锁特殊视频", affection_view: "查看特殊视频",
       voice_calling: "语音中", voice_tag: "语音", call_hangup: "挂断", call_mute: "静音", call_unmute: "开麦",
       need_login: "登录后查看好感度", no_media: "暂无视频素材", no_conversations: "暂无会话", episode: "第{n}集", episode_pos: "第 {cur} / {total} 集", episodes_title: "的剧集", prev_ep: "上一集", next_ep: "下一集", choose_ep: "选择剧集", unlock_price: "解锁 {n} 钻石", unlock_confirm: "确定花 {n} 钻石解锁该视频？", buy_ok: "购买成功", buy_fail: "购买失败"
     },
@@ -488,7 +505,7 @@ img{display:block}
       bio: "Chat with {name} — a one-of-a-kind AI companion, ready to talk about anything.",
       affection_sec: "Affection", affection: "Affection",
       affection_locked: "Special video locked", affection_unlocked: "Special video unlocked",
-      buy_affection: "Buy Affection", affection_hint: "+1 per day by chatting, unlock special video at 100",
+      buy_affection: "Buy Affection", affection_hint: "+1 per day by chatting, unlock special video at 100", affection_view: "View special video",
       voice_calling: "On voice call", voice_tag: "Voice", call_hangup: "Hang up", call_mute: "Mute", call_unmute: "Unmute",
       need_login: "Login to view affection", no_media: "No video available", no_conversations: "No conversations yet", episode: "Episode {n}", episode_pos: "Episode {cur} of {total}", episodes_title: "'s Episodes", prev_ep: "Prev", next_ep: "Next", choose_ep: "Choose an episode", unlock_price: "Unlock · {n}", unlock_confirm: "Unlock this video for {n} diamonds?", buy_ok: "Purchased", buy_fail: "Purchase failed"
     },
@@ -505,7 +522,7 @@ img{display:block}
       bio: "{name}とチャット — 唯一無二のAIコンパニオン、どんな話題でもお話ししましょう。",
       affection_sec: "好意度", affection: "好意度",
       affection_locked: "スペシャル動画ロック中", affection_unlocked: "スペシャル動画ロック解除",
-      buy_affection: "好意度を購入", affection_hint: "毎日チャットで+1、100でスペシャル動画解除",
+      buy_affection: "好意度を購入", affection_hint: "毎日チャットで+1、100でスペシャル動画解除", affection_view: "スペシャル動画を見る",
       voice_calling: "音声通話中", voice_tag: "音声", call_hangup: "切る", call_mute: "ミュート", call_unmute: "ミュート解除",
       need_login: "ログインすると好意度を表示", no_media: "動画がありません", no_conversations: "会話がありません", episode: "第{n}話", episode_pos: "第 {cur} / {total} 話", episodes_title: "のエピソード", prev_ep: "前へ", next_ep: "次へ", choose_ep: "エピソードを選択", unlock_price: "解除 {n}ダイヤ", unlock_confirm: "この動画を{n}ダイヤで解除しますか？", buy_ok: "購入成功", buy_fail: "購入失敗"
     }
@@ -699,6 +716,7 @@ img{display:block}
   var affectionStatus = document.getElementById("affectionStatus");
   var affectionAmount = document.getElementById("affectionAmount");
   var buyAffectionBtn = document.getElementById("buyAffectionBtn");
+  var affectionViewBtn = document.getElementById("affectionViewBtn");
 
   function renderAffection(data) {
     if (!data) return;
@@ -714,6 +732,9 @@ img{display:block}
     } else {
       affectionStatus.textContent = t("affection_locked");
       affectionStatus.classList.remove("unlocked");
+    }
+    if (affectionViewBtn) {
+      affectionViewBtn.style.display = unlocked ? "block" : "none";
     }
   }
 
@@ -760,6 +781,29 @@ img{display:block}
     })
     .catch(function () { alert(t("buy_fail")); })
     .then(function () { buyAffectionBtn.disabled = false; });
+  });
+
+  affectionViewBtn.addEventListener("click", function () {
+    if (!token) { alert(t("need_login")); return; }
+    affectionViewBtn.disabled = true;
+    fetch("/api/live/roleMedia?content_id=" + contentId + "&type=special", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var list = (d && d.code === "00000" && Array.isArray(d.data)) ? d.data : [];
+      var v = null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].unlocked && list[i].video_url) { v = list[i]; break; }
+      }
+      if (v) {
+        playVideo(v.video_url);
+      } else {
+        alert(t("no_media"));
+      }
+    })
+    .catch(function () { alert(t("no_media")); })
+    .then(function () { affectionViewBtn.disabled = false; });
   });
 
   // ---------- Call Me：AI 语音通话（内嵌聊天界面，不弹视频/弹层） ----------
@@ -962,7 +1006,7 @@ img{display:block}
     bingeEpisodes.innerHTML = bingeList.map(function (v, i) {
       var num = (i + 1) < 10 ? "0" + (i + 1) : String(i + 1);
       var cover = v.cover_url ? '<img class="ep-cover" src="' + v.cover_url + '" alt="" />' : '';
-      var locked = v._special && !v.unlocked;
+      var locked = !v.unlocked;
       var lockTag = locked ? '<div class="ep-lock">' + t("unlock_price").replace("{n}", v.unlock_price) + '</div>' : '';
       return '<div class="ep-item' + (locked ? " locked" : "") + '" data-index="' + i + '">'
         + '<span class="ep-no">' + num + '</span>'
@@ -1001,7 +1045,7 @@ img{display:block}
   function playEpisode(i) {
     if (i < 0 || i >= bingeList.length) return;
     var v = bingeList[i];
-    if (v._special && !v.unlocked) {
+    if (!v.unlocked) {
       tryUnlock(i);
       return;
     }
@@ -1045,20 +1089,15 @@ img{display:block}
 
   bingeBtn.addEventListener("click", function () {
     bingeBtn.disabled = true;
-    var headers = {};
-    if (token) headers["Authorization"] = "Bearer " + token;
-    Promise.all([
-      fetch("/api/live/roleMedia?content_id=" + contentId + "&type=normal").then(function (r) { return r.json(); }),
-      fetch("/api/live/roleMedia?content_id=" + contentId + "&type=special", { headers: headers }).then(function (r) { return r.json(); })
-    ]).then(function (results) {
-      var normal = (results[0] && results[0].code === "00000" && results[0].data) ? results[0].data : [];
-      var special = (results[1] && results[1].code === "00000" && results[1].data) ? results[1].data : [];
-      special.forEach(function (v) { v._special = true; });
-      var list = normal.concat(special);
-      if (!list.length) { alert(t("no_media")); return; }
-      openBinge(list);
-    }).catch(function () { alert(t("no_media")); })
-    .then(function () { bingeBtn.disabled = false; });
+    fetch("/api/live/roleMedia?content_id=" + contentId + "&type=normal")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var list = (d && d.code === "00000" && Array.isArray(d.data)) ? d.data : [];
+        if (!list.length) { alert(t("no_media")); return; }
+        openBinge(list);
+      })
+      .catch(function () { alert(t("no_media")); })
+      .then(function () { bingeBtn.disabled = false; });
   });
 
   function closeBinge() {
@@ -1107,6 +1146,20 @@ img{display:block}
   function addMediaMsg(media, who) {
     var el = document.createElement("div");
     el.className = "msg " + who + " msg-media";
+    messages.appendChild(el);
+    renderMediaEl(el, media);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function mediaTimeHtml() {
+    return '<span class="time">' + timeStr() + '</span>';
+  }
+
+  function renderMediaEl(el, media) {
+    if (media && media.unlocked === false) {
+      renderLockedMedia(el, media);
+      return;
+    }
     if (media.kind === "voice") {
       el.innerHTML =
         '<div class="voice-card">' +
@@ -1116,17 +1169,71 @@ img{display:block}
           '</button>' +
           '<div class="voice-bars">' + voiceBarsHtml() + '</div>' +
           '<span class="voice-duration">0:00</span>' +
-        '</div>' +
-        '<span class="time">' + timeStr() + '</span>';
-      messages.appendChild(el);
+        '</div>' + mediaTimeHtml();
       bindVoicePlayer(el, media.url);
     } else {
       el.innerHTML =
-        '<div class="media-card"><video controls playsinline preload="metadata" src="' + escapeHtml(media.url) + '"></video></div>' +
-        '<span class="time">' + timeStr() + '</span>';
-      messages.appendChild(el);
+        '<div class="media-card"><video controls playsinline preload="metadata" src="' + escapeHtml(media.url) + '"></video></div>' + mediaTimeHtml();
     }
-    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function lockSvgHtml() {
+    return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3H9z"/></svg>';
+  }
+
+  function videoIconSvg() {
+    return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h11a2 2 0 0 1 2 2v2.5l4-2.3v7.6l-4-2.3V16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg>';
+  }
+
+  function renderLockedMedia(el, media) {
+    var price = media.unlock_price || 0;
+    var btn = '<button class="media-unlock" type="button">' + lockSvgHtml() + '<span>' + t("unlock_price").replace("{n}", price) + '</span></button>';
+    if (media.kind === "voice") {
+      el.innerHTML =
+        '<div class="voice-card lock-card">' +
+          btn +
+          '<div class="voice-bars">' + voiceBarsHtml() + '</div>' +
+        '</div>' + mediaTimeHtml();
+    } else {
+      el.innerHTML =
+        '<div class="media-card lock-card">' +
+          '<div class="lock-blur"></div><div class="lock-shade"></div>' +
+          '<div class="lock-center">' +
+            '<div class="lock-kind">' + videoIconSvg() + '<span>Video</span></div>' +
+            btn +
+          '</div>' +
+        '</div>' + mediaTimeHtml();
+    }
+    var unlockBtn = el.querySelector(".media-unlock");
+    if (unlockBtn) {
+      unlockBtn.addEventListener("click", function () {
+        unlockMedia(media, function (m) { renderMediaEl(el, m); });
+      });
+    }
+  }
+
+  function unlockMedia(media, cb) {
+    if (!token) { alert(t("need_login")); return; }
+    var price = media.unlock_price || 0;
+    if (!confirm(t("unlock_confirm").replace("{n}", price))) return;
+    fetch("/api/live/unlockChatMedia", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ message_id: media.message_id })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.code === "00000" && d.data) {
+        if (typeof d.data.balance !== "undefined") {
+          var b = Number(d.data.balance || 0);
+          document.getElementById("diamondVal").textContent = Number.isInteger(b) ? String(b) : b.toFixed(2);
+        }
+        cb({ kind: media.kind, url: d.data.video_url || "", unlocked: true, unlock_price: 0 });
+      } else {
+        alert((d && d.msg) || t("buy_fail"));
+      }
+    })
+    .catch(function () { alert(t("buy_fail")); });
   }
   function bindVoicePlayer(root, url) {
     var card = root.querySelector(".voice-card");
@@ -1178,7 +1285,7 @@ img{display:block}
       list.forEach(function (m) {
         if (!m) return;
         var who = m.role === "assistant" ? "ai" : "me";
-        if (m.media && m.media.url) {
+        if (m.media && (m.media.url || m.media.unlocked === false)) {
           addMediaMsg(m.media, who);
         } else if (m.content) {
           addMsg(m.content, who, m.voice ? true : false);
@@ -1213,7 +1320,7 @@ img{display:block}
       if (d && d.code === "00000" && d.data) {
         var data = d.data;
         var hasReply = typeof data.reply === "string" && data.reply !== "";
-        var hasMedia = data.media && data.media.url;
+        var hasMedia = !!data.media;
 
         history.push({ role: "user", content: val });
         if (hasReply) {

@@ -126,6 +126,13 @@ main > .container{padding-top:300px}
 }
 .sort-chip:hover{border-color:var(--line-4)}
 .sort-chip.active{border-color:var(--line-4);background:var(--fill-10);cursor:auto}
+.filters-wrap{position:relative;flex-shrink:0}
+.filters-panel{
+  position:fixed;z-index:300;width:280px;
+  background:rgba(17,6,8,.97);border:1px solid var(--line-2);border-radius:16px;padding:14px;
+}
+.filters-panel-title{font-size:13px;font-weight:700;color:var(--white-5);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+.filters-cats{display:flex;flex-wrap:wrap;gap:8px}
 
 /* ---------- Video grid ---------- */
 .grid{
@@ -162,12 +169,23 @@ main > .container{padding-top:300px}
 }
 .card:hover .red-overlay{transform:translateY(0)}
 .card .used{
-  position:absolute;top:10px;right:10px;z-index:5;
+  position:absolute;top:10px;left:10px;z-index:5;
   font-size:12px;font-weight:600;letter-spacing:.24px;color:var(--white-8);
   background:rgba(0,0,0,.1);backdrop-filter:blur(2.5px);border-radius:50px;padding:5px 12px;
 }
+.card .collect{
+  position:absolute;top:10px;right:10px;z-index:8;
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.35);backdrop-filter:blur(4px);
+  color:#fff;font-size:18px;line-height:1;
+  border:1px solid rgba(255,255,255,.25);cursor:pointer;
+  transition:transform .12s ease, color .12s ease, background .12s ease;
+}
+.card .collect:hover{transform:scale(1.08);background:rgba(0,0,0,.5)}
+.card .collect.collected{color:#FFC53D}
 .card .preview{
-  position:absolute;top:12px;left:12px;z-index:6;
+  position:absolute;top:44px;left:10px;z-index:6;
   width:60px;height:80px;border-radius:10px;overflow:hidden;
   border:1px solid rgba(255,255,255,.3);transform:rotate(-10deg);
 }
@@ -361,9 +379,9 @@ footer{border-top:1px solid var(--line-1);padding:28px 0;text-align:center;font-
       <span class="tagline" data-i18n="brand_tagline">#1 AI VIDEO GENERATOR</span>
     </div>
     <nav class="main-nav">
-      <a href="#" class="active" data-i18n="nav_explore">Explore</a>
+      <a href="#" class="active" data-i18n="nav_explore" id="navExplore">Explore</a>
       <a href="#">🔥 AI-GENERATOR</a>
-      <a href="#" data-i18n="nav_collection">My collection</a>
+      <a href="#" data-i18n="nav_collection" id="navCollection">My collection</a>
     </nav>
     <div class="header-actions">
       <div class="auth-area" id="authArea">
@@ -417,14 +435,20 @@ footer{border-top:1px solid var(--line-1);padding:28px 0;text-align:center;font-
         </span>
         <input type="text" placeholder="标题、用户名或标签" id="searchInput" data-i18n-ph="search_ph" />
       </label>
-      <button class="filters-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.25"><path d="M4 6h16M7 12h10M10 18h4" stroke-linecap="round"/></svg>
-        <span data-i18n="filters">Filters</span>
-        <svg class="arr" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.667"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button class="sort-chip active" data-i18n="sort_hot">热门</button>
-      <button class="sort-chip" data-i18n="sort_new">最新</button>
-      <button class="sort-chip" data-i18n="sort_collected">最多收藏</button>
+      <div class="filters-wrap" id="filtersWrap">
+        <button class="filters-btn" id="filtersBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.25"><path d="M4 6h16M7 12h10M10 18h4" stroke-linecap="round"/></svg>
+          <span data-i18n="filters">Filters</span>
+          <svg class="arr" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.667"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="filters-panel" id="filtersPanel" style="display:none">
+          <div class="filters-panel-title" data-i18n="filter_by">按分类筛选</div>
+          <div class="filters-cats" id="filtersCats"></div>
+        </div>
+      </div>
+      <button class="sort-chip active" data-sort="hot" data-i18n="sort_hot">热门</button>
+      <button class="sort-chip" data-sort="new" data-i18n="sort_new">最新</button>
+      <button class="sort-chip" data-sort="collected" data-i18n="sort_collected">最多收藏</button>
     </div>
 
     <!-- video grid -->
@@ -513,6 +537,8 @@ const I18N = {
     brand_tagline: "头号 AI 视频生成器",
     nav_explore: "探索",
     nav_collection: "我的收藏",
+    collect: "收藏",
+    collected: "已收藏",
     login: "登录",
     logout: "退出",
     hero_title: "将任意照片变成 AI 视频",
@@ -560,6 +586,8 @@ const I18N = {
     brand_tagline: "#1 AI VIDEO GENERATOR",
     nav_explore: "Explore",
     nav_collection: "My collection",
+    collect: "Collect",
+    collected: "Collected",
     login: "Log in",
     logout: "Log out",
     hero_title: "Turn Any Photo Into AI Videos",
@@ -607,6 +635,8 @@ const I18N = {
     brand_tagline: "No.1 AI動画ジェネレーター",
     nav_explore: "探索",
     nav_collection: "マイコレクション",
+    collect: "お気に入り",
+    collected: "お気に入り済み",
     login: "ログイン",
     logout: "ログアウト",
     hero_title: "任意の写真をAI動画に",
@@ -716,7 +746,10 @@ let activeCat = "All";
 // 从后端加载内容（lp_ai_content）；失败或为空时保留内置演示数据
 async function loadContent(){
   try {
-    const res = await fetch("/api/live/pagelist");
+    const token = localStorage.getItem("live_access_token");
+    const headers = {};
+    if(token) headers["Authorization"] = "Bearer " + token;
+    const res = await fetch("/api/live/pagelist", { headers });
     const data = await res.json();
     if(data && data.code === "00000" && Array.isArray(data.data.list) && data.data.list.length > 0){
       videos = data.data.list.map((c, i) => ({
@@ -725,7 +758,12 @@ async function loadContent(){
         used: "",
         badge: i === 0 ? "free" : (i === 1 ? "vip" : "new"),
         img: c.cover_url || "",
-        id: c.id
+        id: c.id,
+        collect: !!c.is_collect,
+        weigh: c.weigh || 0,
+        createdAt: c.created_at || "",
+        collectCount: c.collect_count || 0,
+        videoUrl: c.video_url || ""
       }));
       const set = new Set(videos.map(v => v.cat).filter(Boolean));
       cats = ["All", ...set];
@@ -746,7 +784,7 @@ const vids = ["bbb.mp4", "bear.mp4"];
 function cardHtml(v, i){
   const isFull = v.img && (v.img.indexOf("http") === 0 || v.img.indexOf("/") === 0);
   const poster = isFull ? v.img : (IMG + v.img);
-  const src = VID + vids[i % vids.length];
+  const src = v.videoUrl ? v.videoUrl : (VID + vids[i % vids.length]);
   return `
     <div class="card" data-cat="${v.cat}" data-title="${v.title}" data-img="${v.img}" data-id="${v.id || ''}">
       <div class="media">
@@ -755,6 +793,7 @@ function cardHtml(v, i){
       </div>
       <div class="scrim"></div>
       <div class="red-overlay"></div>
+      <button class="collect${v.collect ? ' collected' : ''}" type="button" data-id="${v.id || ''}" title="${v.collect ? t('collected') : t('collect')}">${v.collect ? '★' : '☆'}</button>
       <span class="used">${v.used}</span>
       <span class="preview"><img src="${poster}" alt="" loading="lazy" /></span>
       <div class="meta">
@@ -807,8 +846,80 @@ function setupVideos(){
   });
 }
 
-// 点击卡片跳转聊天界面
+let collectMode = false;
+let collectVideos = [];
+let sortMode = "hot";
+
+function getToken(){
+  return localStorage.getItem("live_access_token");
+}
+
+function findVideo(id){
+  const s = String(id);
+  return videos.find(v => String(v.id) === s) || collectVideos.find(v => String(v.id) === s);
+}
+
+async function toggleCollect(id){
+  const token = getToken();
+  if(!token){
+    const loginBtn = document.getElementById("loginBtn");
+    if(loginBtn) loginBtn.click();
+    return;
+  }
+  const vid = findVideo(id);
+  const willCollect = !(vid && vid.collect);
+  try {
+    const res = await fetch("/api/live/collect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ content_id: Number(id), action: willCollect ? "collect" : "cancel" })
+    });
+    const d = await res.json();
+    if(d && d.code === "00000"){
+      const collected = !!d.data.collected;
+      if(vid) vid.collect = collected;
+      if(collectMode && !collected){
+        collectVideos = collectVideos.filter(v => String(v.id) !== String(id));
+      }
+      render();
+    } else if(d && d.code === "B0102"){
+      const loginBtn = document.getElementById("loginBtn");
+      if(loginBtn) loginBtn.click();
+    }
+  } catch(e){}
+}
+
+async function loadCollectList(){
+  const token = getToken();
+  if(!token){ collectVideos = []; return; }
+  try {
+    const res = await fetch("/api/live/collectList", { headers: { "Authorization": "Bearer " + token } });
+    const d = await res.json();
+    if(d && d.code === "00000" && Array.isArray(d.data.list)){
+      collectVideos = d.data.list.map(c => ({
+        title: c.title,
+        cat: c.category || "All",
+        used: "",
+        badge: "new",
+        img: c.cover_url || "",
+        id: c.id,
+        collect: true
+      }));
+    } else {
+      collectVideos = [];
+    }
+  } catch(e){ collectVideos = []; }
+}
+
+// 点击卡片跳转聊天界面 / 点击收藏按钮
 grid.addEventListener("click", e => {
+  const collectBtn = e.target.closest(".collect");
+  if(collectBtn){
+    e.preventDefault();
+    e.stopPropagation();
+    toggleCollect(collectBtn.dataset.id);
+    return;
+  }
   const card = e.target.closest(".card");
   if(!card) return;
   const q = new URLSearchParams();
@@ -825,11 +936,26 @@ let searchQuery = "";
 
 function getFiltered(){
   const q = searchQuery.trim().toLowerCase();
-  return videos.filter(v => {
+  const src = collectMode ? collectVideos : videos;
+  const list = src.filter(v => {
     const okCat = activeCat === "All" || v.cat === activeCat;
     const okSearch = !q || v.title.toLowerCase().includes(q) || v.cat.toLowerCase().includes(q);
     return okCat && okSearch;
   });
+  if(sortMode === "new"){
+    list.sort((a, b) => {
+      const t = String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+      return t !== 0 ? t : ((b.id || 0) - (a.id || 0));
+    });
+  } else if(sortMode === "collected"){
+    list.sort((a, b) => {
+      const c = (b.collectCount || 0) - (a.collectCount || 0);
+      return c !== 0 ? c : ((b.weigh || 0) - (a.weigh || 0));
+    });
+  } else {
+    list.sort((a, b) => (b.weigh || 0) - (a.weigh || 0));
+  }
+  return list;
 }
 
 function render(){
@@ -841,7 +967,7 @@ function render(){
   const items = [];
   pageItems.forEach((v, i) => {
     items.push(cardHtml(v, i));
-    if(currentPage === 1 && i === 3) items.push(promoAdHtml()); // 第4张卡片后插入浮动促销块（仅第一页）
+    if(!collectMode && currentPage === 1 && i === 3) items.push(promoAdHtml()); // 第4张卡片后插入浮动促销块（仅第一页）
   });
   grid.innerHTML = items.join("");
   setupVideos();
@@ -883,9 +1009,45 @@ function renderPagination(totalPages){
   el.innerHTML = html;
 }
 
+// 导航：探索 / 我的收藏
+document.getElementById("navExplore").addEventListener("click", e => {
+  e.preventDefault();
+  collectMode = false;
+  currentPage = 1;
+  activeCat = "All";
+  renderCats();
+  document.getElementById("navExplore").classList.add("active");
+  document.getElementById("navCollection").classList.remove("active");
+  render();
+});
+document.getElementById("navCollection").addEventListener("click", async e => {
+  e.preventDefault();
+  if(!getToken()){
+    const loginBtn = document.getElementById("loginBtn");
+    if(loginBtn) loginBtn.click();
+    return;
+  }
+  collectMode = true;
+  currentPage = 1;
+  document.getElementById("navCollection").classList.add("active");
+  document.getElementById("navExplore").classList.remove("active");
+  await loadCollectList();
+  render();
+});
+
 let cats = ["All", "Cyberpunk", "Anime", "Nature", "City", "Fantasy", "Sci-Fi", "Ocean", "Abstract"];
 function renderCats(){
   catList.innerHTML = cats.map(c => {
+    const label = c === "All" ? t("cat_all") : c;
+    return `<button class="cat-chip ${c===activeCat?'active':''}" data-cat="${c}">${label}</button>`;
+  }).join("");
+  renderFiltersCats();
+}
+
+function renderFiltersCats(){
+  const el = document.getElementById("filtersCats");
+  if(!el) return;
+  el.innerHTML = cats.map(c => {
     const label = c === "All" ? t("cat_all") : c;
     return `<button class="cat-chip ${c===activeCat?'active':''}" data-cat="${c}">${label}</button>`;
   }).join("");
@@ -900,12 +1062,48 @@ catList.addEventListener("click", e => {
   render();
 });
 
+// 顶部筛选下拉
+const filtersBtn = document.getElementById("filtersBtn");
+const filtersPanel = document.getElementById("filtersPanel");
+const filtersCats = document.getElementById("filtersCats");
+
+filtersBtn.addEventListener("click", e => {
+  e.stopPropagation();
+  if(filtersPanel.style.display === "none"){
+    const rect = filtersBtn.getBoundingClientRect();
+    filtersPanel.style.top = (rect.bottom + 8) + "px";
+    filtersPanel.style.left = Math.max(8, rect.left) + "px";
+    filtersPanel.style.display = "block";
+  } else {
+    filtersPanel.style.display = "none";
+  }
+});
+
+filtersCats.addEventListener("click", e => {
+  const btn = e.target.closest(".cat-chip");
+  if(!btn) return;
+  activeCat = btn.dataset.cat;
+  currentPage = 1;
+  renderCats();
+  render();
+  filtersPanel.style.display = "none";
+});
+
+document.addEventListener("click", e => {
+  if(filtersPanel && !filtersPanel.contains(e.target) && !filtersBtn.contains(e.target)){
+    filtersPanel.style.display = "none";
+  }
+});
+
 // 排序按钮（在工具栏内）
 document.querySelector(".toolbar").addEventListener("click", e => {
   const chip = e.target.closest(".sort-chip");
   if(!chip) return;
   document.querySelectorAll(".sort-chip").forEach(c => c.classList.remove("active"));
   chip.classList.add("active");
+  sortMode = chip.dataset.sort || "hot";
+  currentPage = 1;
+  render();
 });
 
 // 搜索框：有内容时图标切换为 X 并可点击清空
@@ -949,6 +1147,13 @@ document.getElementById("pagination").addEventListener("click", e => {
 applyStaticLang();
 renderCats();
 loadContent().then(() => {
+  renderCats();
+  render();
+});
+
+// 登录/退出后刷新列表，回显收藏状态
+window.addEventListener("ai-auth", async () => {
+  await loadContent();
   renderCats();
   render();
 });
@@ -1051,6 +1256,7 @@ window.addEventListener("scroll", () => {
       money: u.money || 0
     });
     renderAuth();
+    window.dispatchEvent(new Event("ai-auth"));
   }
 
   function renderAuth() {
@@ -1157,6 +1363,7 @@ window.addEventListener("scroll", () => {
     localStorage.removeItem(LS_REFRESH);
     localStorage.removeItem(LS_USER);
     renderAuth();
+    window.dispatchEvent(new Event("ai-auth"));
   }
 
   $("#loginBtn").addEventListener("click", function () { openModal("login"); });

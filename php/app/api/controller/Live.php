@@ -17,7 +17,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'customRoleOne', 'customOneList', 'upload', 'replayClips', 'affection', 'buyAffection', 'unlockVideo']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
     ];
 
     private UserService $userService;
@@ -192,6 +192,277 @@ final class Live extends BaseController
     }
 
     /**
+     * AI 女友端：上传直播素材（写入 lp_media_asset 素材池）
+     */
+    public function uploadMediaAsset()
+    {
+        $userId = $this->getAuthUserId();
+        $file = $this->request->file('file');
+        if (!$file) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择要上传的素材文件');
+        }
+
+        $upload = new \app\common\library\Upload($file);
+        $upload->setTopic('media');
+        $attachment = $upload->upload(null, 0, $userId);
+        $fileUrl = trim((string) ($attachment['url'] ?? ''));
+        if ($fileUrl === '') {
+            return $this->jsonFail(ResultCode::FAIL, '文件上传失败');
+        }
+
+        // 标题为空时从文件名推导
+        $title = trim((string) $this->request->post('title', ''));
+        if ($title === '') {
+            $originName = (string) ($attachment['name'] ?? '素材');
+            $title = pathinfo($originName, PATHINFO_FILENAME) ?: '未命名素材';
+        }
+
+        $assetType = trim((string) $this->request->post('asset_type', 'video'));
+        if (!in_array($assetType, ['video', 'image', 'audio', 'subtitle'], true)) {
+            $assetType = 'video';
+        }
+
+        $sceneType = trim((string) $this->request->post('scene_type', 'public'));
+        if (!in_array($sceneType, ['public', 'privilege', 'interaction', 'cover', 'gift_effect'], true)) {
+            $sceneType = 'public';
+        }
+
+        $persona = $this->resolveMediaPersona($userId);
+        $keywords = $this->normalizeMediaKeywords((string) $this->request->post('keywords', ''));
+        $weight = max(1, (int) $this->request->post('weight/d', 1));
+        $durationMs = max(0, (int) $this->request->post('duration_ms/d', 0));
+        $checksum = (string) ($attachment['sha1'] ?? '');
+        $assetCode = 'u' . $userId . '_' . substr(md5($fileUrl . '|' . $checksum), 0, 10);
+
+        try {
+            $query = \think\facade\Db::connect('live_mysql')->table('lp_media_asset');
+            $query->insert([
+                'asset_code'  => $assetCode,
+                'asset_type'  => $assetType,
+                'asset_role'  => '',
+                'scene_type'  => $sceneType,
+                'keywords'    => $keywords,
+                'persona'     => $persona,
+                'weight'      => $weight,
+                'title'       => $title,
+                'file_url'    => $fileUrl,
+                'duration_ms' => $durationMs,
+                'checksum'    => $checksum,
+                'status'      => 1,
+                'source'      => 'admin',
+                'machine_id'  => '',
+                'remote_path' => '',
+                'created_at'  => date('Y-m-d H:i:s'),
+            ]);
+            $id = (int) $query->getLastInsID();
+        } catch (\Throwable $e) {
+            return $this->jsonFail(ResultCode::SERVER_ERROR, '素材保存失败：' . $e->getMessage());
+        }
+
+        return $this->jsonSuccess([
+            'id'         => $id,
+            'title'      => $title,
+            'file_url'   => $fileUrl,
+            'asset_type' => $assetType,
+            'scene_type' => $sceneType,
+            'persona'    => $persona,
+            'keywords'   => $keywords,
+        ], '素材上传成功');
+    }
+
+    /**
+     * AI 女友端：当前用户上传的直播素材列表
+     */
+    public function mediaAssetList()
+    {
+        $userId = $this->getAuthUserId();
+        $prefix = 'u' . $userId . '_';
+
+        $rows = \think\facade\Db::connect('live_mysql')
+            ->table('lp_media_asset')
+            ->where('asset_code', 'like', $prefix . '%')
+            ->order('id', 'desc')
+            ->limit(100)
+            ->select()
+            ->toArray();
+
+        $domain = rtrim($this->request->domain(), '/');
+        $list = array_map(function ($row) use ($domain): array {
+            $fileUrl = (string) ($row['file_url'] ?? '');
+            if ($fileUrl !== '' && !preg_match('/^https?:\/\//i', $fileUrl)) {
+                $fileUrl = $domain . '/' . ltrim($fileUrl, '/');
+            }
+            return [
+                'id'          => (int) $row['id'],
+                'title'       => (string) ($row['title'] ?? ''),
+                'file_url'    => $fileUrl,
+                'asset_type'  => (string) ($row['asset_type'] ?? ''),
+                'scene_type'  => (string) ($row['scene_type'] ?? ''),
+                'persona'     => (string) ($row['persona'] ?? ''),
+                'keywords'    => (string) ($row['keywords'] ?? ''),
+                'weight'      => (int) ($row['weight'] ?? 1),
+                'duration_ms' => (int) ($row['duration_ms'] ?? 0),
+                'created_at'  => (string) ($row['created_at'] ?? ''),
+            ];
+        }, $rows);
+
+        return $this->jsonSuccess(['list' => $list]);
+    }
+
+    /**
+     * AI 女友端：编辑当前用户上传的直播素材元数据
+     */
+    public function mediaAssetEdit()
+    {
+        $userId = $this->getAuthUserId();
+        $id = (int) $this->request->post('id/d', 0);
+        if ($id <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '素材ID无效');
+        }
+
+        $prefix = 'u' . $userId . '_';
+        $row = \think\facade\Db::connect('live_mysql')
+            ->table('lp_media_asset')
+            ->where('id', $id)
+            ->where('asset_code', 'like', $prefix . '%')
+            ->find();
+        if (!$row) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '素材不存在或无权限');
+        }
+
+        $assetType = trim((string) $this->request->post('asset_type', (string) ($row['asset_type'] ?? 'video')));
+        if (!in_array($assetType, ['video', 'image', 'audio', 'subtitle'], true)) {
+            $assetType = (string) ($row['asset_type'] ?? 'video');
+        }
+
+        $sceneType = trim((string) $this->request->post('scene_type', (string) ($row['scene_type'] ?? 'public')));
+        if (!in_array($sceneType, ['public', 'privilege', 'interaction', 'cover', 'gift_effect'], true)) {
+            $sceneType = (string) ($row['scene_type'] ?? 'public');
+        }
+
+        $title = trim((string) $this->request->post('title', ''));
+        if ($title === '') {
+            $title = (string) ($row['title'] ?? '未命名素材');
+        }
+
+        $persona = $this->resolveMediaPersona($userId);
+        if ($persona === '') {
+            $persona = (string) ($row['persona'] ?? '');
+        }
+
+        $keywords = $this->normalizeMediaKeywords((string) $this->request->post('keywords', (string) ($row['keywords'] ?? '')));
+        $weight = max(1, (int) $this->request->post('weight/d', (int) ($row['weight'] ?? 1)));
+        $durationMs = max(0, (int) $this->request->post('duration_ms/d', (int) ($row['duration_ms'] ?? 0)));
+
+        // 可选：替换素材文件（视频/图片/音频）
+        $fileUrl = (string) ($row['file_url'] ?? '');
+        $checksum = (string) ($row['checksum'] ?? '');
+        $file = $this->request->file('file');
+        if ($file) {
+            $upload = new \app\common\library\Upload($file);
+            $upload->setTopic('media');
+            $attachment = $upload->upload(null, 0, $userId);
+            $fileUrl = trim((string) ($attachment['url'] ?? ''));
+            if ($fileUrl === '') {
+                return $this->jsonFail(ResultCode::FAIL, '文件上传失败');
+            }
+            $checksum = (string) ($attachment['sha1'] ?? '');
+
+            // 根据文件类型自动更新素材类型
+            $mime = (string) ($attachment['mimetype'] ?? '');
+            if (str_starts_with($mime, 'image/')) {
+                $assetType = 'image';
+            } elseif (str_starts_with($mime, 'audio/')) {
+                $assetType = 'audio';
+            } elseif (str_starts_with($mime, 'video/')) {
+                $assetType = 'video';
+            }
+        }
+
+        $data = [
+            'title'       => $title,
+            'asset_type'  => $assetType,
+            'scene_type'  => $sceneType,
+            'persona'     => $persona,
+            'keywords'    => $keywords,
+            'weight'      => $weight,
+            'duration_ms' => $durationMs,
+            'file_url'    => $fileUrl,
+            'checksum'    => $checksum,
+        ];
+
+        \think\facade\Db::connect('live_mysql')->table('lp_media_asset')->where('id', $id)->update($data);
+
+        return $this->jsonSuccess($data, '更新成功');
+    }
+
+    /**
+     * AI 女友端：删除当前用户上传的直播素材
+     */
+    public function mediaAssetDelete()
+    {
+        $userId = $this->getAuthUserId();
+        $id = (int) $this->request->post('id/d', 0);
+        if ($id <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '素材ID无效');
+        }
+
+        $prefix = 'u' . $userId . '_';
+        $exists = \think\facade\Db::connect('live_mysql')
+            ->table('lp_media_asset')
+            ->where('id', $id)
+            ->where('asset_code', 'like', $prefix . '%')
+            ->find();
+        if (!$exists) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '素材不存在或无权限');
+        }
+
+        \think\facade\Db::connect('live_mysql')->table('lp_media_asset')->where('id', $id)->delete();
+
+        return $this->jsonSuccess(null, '删除成功');
+    }
+
+    /**
+     * 解析上传素材所属人设名称（优先 persona_id，其次自由文本 persona）
+     */
+    private function resolveMediaPersona(int $userId): string
+    {
+        $personaId = (int) $this->request->post('persona_id/d', 0);
+        if ($personaId > 0) {
+            $name = \think\facade\Db::connect('live_mysql')
+                ->table('lp_persona')
+                ->where('id', $personaId)
+                ->where('user_id', $userId)
+                ->value('name');
+            if ($name !== null && $name !== '') {
+                return (string) $name;
+            }
+        }
+        return trim((string) $this->request->post('persona', ''));
+    }
+
+    /**
+     * 关键词：逗号分隔或 JSON 数组 -> 逗号分隔字符串
+     */
+    private function normalizeMediaKeywords(string $keywords): string
+    {
+        $keywords = trim($keywords);
+        if ($keywords === '') {
+            return '';
+        }
+        if (str_contains($keywords, '[')) {
+            $parts = json_decode($keywords, true);
+            if (!is_array($parts)) {
+                $parts = [$keywords];
+            }
+        } else {
+            $parts = explode(',', $keywords);
+        }
+        $parts = array_filter(array_map('trim', $parts), static fn($s) => $s !== '');
+        return implode(',', array_unique($parts));
+    }
+
+    /**
      * AI 前端：角色创建价格查询（目前免费）
      */
     public function customPrice()
@@ -244,14 +515,28 @@ final class Live extends BaseController
             ->table('lp_ai_content')
             ->where('status', 1)
             ->where('is_public', 1)
-            ->field(['id', 'title', 'category', 'cover_url', 'description', 'personality'])
+            ->field(['id', 'title', 'category', 'cover_url', 'video_url', 'description', 'personality', 'weigh', 'created_at', '(SELECT COUNT(*) FROM lp_ai_collect c WHERE c.content_id = lp_ai_content.id) AS collect_count'])
             ->order('weigh', 'desc')
             ->order('id', 'desc')
             ->select()
             ->toArray();
 
+        // 登录用户返回收藏状态
+        $userId = $this->optionalAuthUserId();
+        $collectIds = [];
+        if ($userId > 0) {
+            $collectIds = \think\facade\Db::connect('live_mysql')
+                ->table('lp_ai_collect')
+                ->where('user_id', $userId)
+                ->column('content_id');
+        }
+
         foreach ($rows as &$row) {
             $row['id'] = (int) $row['id'];
+            $row['weigh'] = (int) ($row['weigh'] ?? 0);
+            $row['collect_count'] = (int) ($row['collect_count'] ?? 0);
+            $row['video_url'] = (string) ($row['video_url'] ?? '');
+            $row['is_collect'] = in_array((int) $row['id'], $collectIds, true);
             $row['personality'] = $row['personality'] ? json_decode($row['personality'], true) : [];
             if (!is_array($row['personality'])) {
                 $row['personality'] = [];
@@ -332,7 +617,7 @@ final class Live extends BaseController
         // 关键词触发素材（语音/视频，后台配置关键词）：命中则直接返回素材，不再调用 AI 文本回复
         $triggerMedia = null;
         if (!$voice && $contentId > 0) {
-            $triggerMedia = $this->matchTriggerMedia($contentId, $message);
+            $triggerMedia = $this->matchTriggerMedia($contentId, $message, $userId);
         }
 
         $reply = '';
@@ -380,11 +665,14 @@ final class Live extends BaseController
             if ($reply !== '') {
                 $this->saveChatMessage($userId, $deviceId, $contentId, 'assistant', $reply, [], $voice);
             } elseif ($triggerMedia !== null) {
-                $this->saveChatMessage($userId, $deviceId, $contentId, 'assistant', '', [
-                    'kind'  => $triggerMedia['kind'],
-                    'url'   => $triggerMedia['url'],
-                    'title' => $triggerMedia['title'],
+                $mediaMsgId = $this->saveChatMessage($userId, $deviceId, $contentId, 'assistant', '', [
+                    'kind'         => $triggerMedia['kind'],
+                    'url'          => $triggerMedia['url'],
+                    'title'        => $triggerMedia['title'],
+                    'id'           => (int) $triggerMedia['id'],
+                    'unlock_price' => (int) $triggerMedia['unlock_price'],
                 ], $voice);
+                $triggerMedia['message_id'] = $mediaMsgId;
             }
         }
 
@@ -508,24 +796,28 @@ final class Live extends BaseController
             $type = 'normal';
         }
 
+        $scene = $type === 'special' ? 'affection' : 'binge';
+
         $rows = \think\facade\Db::connect('live_mysql')
             ->table('lp_ai_media')
             ->where('content_id', $contentId)
-            ->where('media_type', $type)
-            ->where('keywords', '=', '')
+            ->where('scene_type', $scene)
             ->where('status', 1)
             ->field(['id', 'title', 'video_url', 'cover_url', 'media_type', 'media_kind', 'unlock_price'])
             ->order('weigh', 'desc')
+            ->order('unlock_price', 'asc')
             ->order('id', 'asc')
             ->select()
             ->toArray();
 
-        // 特殊视频：判断是否已解锁（好感度满 100 或已花钻石解锁）
+        // 付费剧集/特殊视频：判断是否已解锁（好感度满100仅对特殊视频生效，追剧只看是否已花钻石）
         $userId = $this->optionalAuthUserId();
         $affectionUnlocked = false;
         $unlockedMediaIds = [];
-        if ($type === 'special' && $userId > 0 && $contentId > 0) {
-            $affectionUnlocked = (new AffectionService())->get($userId, $contentId)['unlocked'] ?? false;
+        if ($userId > 0 && $contentId > 0) {
+            if ($type === 'special') {
+                $affectionUnlocked = (new AffectionService())->get($userId, $contentId)['unlocked'] ?? false;
+            }
             $unlockedMediaIds = \think\facade\Db::connect('live_mysql')->table('lp_ai_media_unlock')
                 ->where('user_id', $userId)
                 ->where('content_id', $contentId)
@@ -539,21 +831,95 @@ final class Live extends BaseController
             $row['video_url'] = $this->fullUrl($row['video_url']);
             $row['cover_url'] = $this->fullUrl($row['cover_url']);
 
+            $price = (int) $row['unlock_price'];
             if ($type === 'special') {
-                $price = (int) $row['unlock_price'];
                 $unlocked = $price <= 0 || $affectionUnlocked || in_array($row['id'], $unlockedMediaIds, true);
-                $row['unlocked'] = $unlocked;
-                if (!$unlocked) {
-                    $row['video_url'] = '';
-                }
             } else {
-                $row['unlocked'] = true;
-                $row['unlock_price'] = 0;
+                $unlocked = $price <= 0 || in_array($row['id'], $unlockedMediaIds, true);
+            }
+            $row['unlocked'] = $unlocked;
+            if (!$unlocked) {
+                $row['video_url'] = '';
             }
         }
         unset($row);
 
         return $this->jsonSuccess($rows);
+    }
+
+    /**
+     * AI 前端：收藏 / 取消收藏角色
+     * POST { content_id, action: collect|cancel }
+     */
+    public function collect()
+    {
+        $userId = $this->optionalAuthUserId();
+        if ($userId <= 0) {
+            return $this->jsonFail(ResultCode::AUTH_FAILED, '请先登录');
+        }
+
+        $contentId = (int) $this->request->post('content_id', 0);
+        $action    = (string) $this->request->post('action', 'collect');
+        if ($contentId <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'content_id 无效');
+        }
+
+        $db = \think\facade\Db::connect('live_mysql');
+        $exists = $db->table('lp_ai_content')->where('id', $contentId)->find();
+        if (!$exists) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '内容不存在');
+        }
+
+        $row = $db->table('lp_ai_collect')
+            ->where('user_id', $userId)
+            ->where('content_id', $contentId)
+            ->find();
+
+        if ($action === 'cancel') {
+            if ($row) {
+                $db->table('lp_ai_collect')->where('id', $row['id'])->delete();
+            }
+            return $this->jsonSuccess(['collected' => false]);
+        }
+
+        if (!$row) {
+            $db->table('lp_ai_collect')->insert([
+                'user_id'    => $userId,
+                'content_id' => $contentId,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+        return $this->jsonSuccess(['collected' => true]);
+    }
+
+    /**
+     * AI 前端：我的收藏列表
+     */
+    public function collectList()
+    {
+        $userId = $this->optionalAuthUserId();
+        if ($userId <= 0) {
+            return $this->jsonFail(ResultCode::AUTH_FAILED, '请先登录');
+        }
+
+        $rows = \think\facade\Db::connect('live_mysql')
+            ->table('lp_ai_collect')
+            ->alias('c')
+            ->join('lp_ai_content a', 'a.id = c.content_id')
+            ->where('c.user_id', $userId)
+            ->where('a.status', 1)
+            ->field(['a.id', 'a.title', 'a.category', 'a.cover_url', 'a.description', 'c.created_at'])
+            ->order('c.id', 'desc')
+            ->select()
+            ->toArray();
+
+        foreach ($rows as &$row) {
+            $row['id'] = (int) $row['id'];
+            $row['is_collect'] = true;
+        }
+        unset($row);
+
+        return $this->jsonSuccess(['list' => $rows]);
     }
 
     /**
@@ -609,27 +975,17 @@ final class Live extends BaseController
         if (!$media || (int) $media['status'] !== 1) {
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '视频不存在');
         }
-        if ((string) $media['media_type'] !== 'special') {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '该视频无需解锁');
-        }
-
         $contentId = (int) $media['content_id'];
         $price = (int) $media['unlock_price'];
         $videoUrl = $this->fullUrl((string) $media['video_url']);
         if ($price <= 0) {
-            return $this->jsonSuccess(['unlocked' => true, 'balance' => (new WalletService())->balance($userId), 'video_url' => $videoUrl]);
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '该视频无需解锁');
         }
 
-        // 已解锁
+        // 已花钻石解锁
         $exists = \think\facade\Db::connect('live_mysql')->table('lp_ai_media_unlock')
             ->where('user_id', $userId)->where('media_id', $mediaId)->find();
         if ($exists) {
-            return $this->jsonSuccess(['unlocked' => true, 'balance' => (new WalletService())->balance($userId), 'video_url' => $videoUrl]);
-        }
-
-        // 好感度满 100 视为已解锁
-        $affectionUnlocked = (new AffectionService())->get($userId, $contentId)['unlocked'] ?? false;
-        if ($affectionUnlocked) {
             return $this->jsonSuccess(['unlocked' => true, 'balance' => (new WalletService())->balance($userId), 'video_url' => $videoUrl]);
         }
 
@@ -645,6 +1001,64 @@ final class Live extends BaseController
             'media_id'   => $mediaId,
             'content_id' => $contentId,
             'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->jsonSuccess(['unlocked' => true, 'balance' => $debit['balance_after'], 'video_url' => $videoUrl]);
+    }
+
+    /**
+     * AI 前端：花钻石解锁单条聊天媒体消息（按消息，不按素材）
+     * POST { message_id }
+     */
+    public function unlockChatMedia()
+    {
+        $userId = $this->getAuthUserId();
+        $messageId = (int) $this->request->post('message_id', 0);
+        if ($messageId <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'message_id 无效');
+        }
+
+        $db = \think\facade\Db::connect('live_mysql');
+        $msg = $db->table('lp_ai_chat_message')->where('id', $messageId)->find();
+        if (!$msg) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '消息不存在');
+        }
+        if ((int) $msg['user_id'] !== $userId) {
+            return $this->jsonFail(ResultCode::AUTH_FAILED, '无权解锁该消息');
+        }
+
+        $mediaId = (int) $msg['media_id'];
+        if ($mediaId <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '该消息无需解锁');
+        }
+        if ((int) $msg['unlocked'] === 1 || (string) $msg['media_url'] !== '') {
+            return $this->jsonSuccess(['unlocked' => true, 'balance' => (new WalletService())->balance($userId), 'video_url' => $this->fullUrl((string) $msg['media_url'])]);
+        }
+
+        $media = $db->table('lp_ai_media')->where('id', $mediaId)->find();
+        if (!$media || (int) $media['status'] !== 1) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '视频不存在');
+        }
+
+        $price = (int) $msg['unlock_price'];
+        if ($price <= 0) {
+            $price = (int) $media['unlock_price'];
+        }
+        if ($price <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '该视频无需解锁');
+        }
+
+        $videoUrl = $this->fullUrl((string) $media['video_url']);
+
+        try {
+            $debit = (new WalletService())->debit($userId, (float) $price, 'media_unlock', $mediaId, '解锁AI视频');
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+
+        $db->table('lp_ai_chat_message')->where('id', $messageId)->update([
+            'unlocked'  => 1,
+            'media_url' => (string) $media['video_url'],
         ]);
 
         return $this->jsonSuccess(['unlocked' => true, 'balance' => $debit['balance_after'], 'video_url' => $videoUrl]);
@@ -676,7 +1090,7 @@ final class Live extends BaseController
 
         $query = $db->table('lp_ai_media')
             ->where('content_id', $contentId)
-            ->where('media_type', 'special')
+            ->where('scene_type', 'affection')
             ->where('status', 1);
 
         if (!$affectionUnlocked) {
@@ -702,7 +1116,7 @@ final class Live extends BaseController
      * 根据后台配置的关键词匹配该角色要触发的语音/视频素材
      * 返回第一个命中的素材信息，未命中返回 null
      */
-    private function matchTriggerMedia(int $contentId, string $message): ?array
+    private function matchTriggerMedia(int $contentId, string $message, int $userId = 0): ?array
     {
         if ($contentId <= 0 || $message === '') {
             return null;
@@ -712,8 +1126,9 @@ final class Live extends BaseController
             ->table('lp_ai_media')
             ->where('content_id', $contentId)
             ->where('status', 1)
+            ->where('scene_type', 'chat')
             ->where('keywords', '<>', '')
-            ->field(['id', 'title', 'media_kind', 'video_url', 'keywords'])
+            ->field(['id', 'title', 'media_kind', 'video_url', 'media_type', 'unlock_price', 'keywords'])
             ->order('weigh', 'desc')
             ->order('id', 'asc')
             ->select()
@@ -730,14 +1145,19 @@ final class Live extends BaseController
                     continue;
                 }
 
-                $kind = (string) ($row['media_kind'] ?? 'video') ?: 'video';
-                $url  = (string) ($row['video_url'] ?? '');
+                $kind  = (string) ($row['media_kind'] ?? 'video') ?: 'video';
+                $url   = (string) ($row['video_url'] ?? '');
+                $price = (int) ($row['unlock_price'] ?? 0);
+                $unlocked = $price <= 0;
 
                 return [
-                    'id'    => (int) $row['id'],
-                    'kind'  => $kind,
-                    'title' => (string) ($row['title'] ?? ''),
-                    'url'   => $this->fullUrl($url),
+                    'id'           => (int) $row['id'],
+                    'kind'         => $kind,
+                    'title'        => (string) ($row['title'] ?? ''),
+                    'url'          => $unlocked ? $this->fullUrl($url) : '',
+                    'unlock_price' => $price,
+                    'media_type'   => (string) ($row['media_type'] ?? 'normal'),
+                    'unlocked'     => $unlocked,
                 ];
             }
         }
@@ -814,7 +1234,7 @@ final class Live extends BaseController
             $query->where('device_id', $deviceId);
         }
 
-        $rows = $query->field(['role', 'content', 'media_kind', 'media_url', 'media_title'])
+        $rows = $query->field(['id', 'role', 'content', 'media_kind', 'media_url', 'media_title', 'media_id', 'unlock_price', 'unlocked'])
             ->order('id', 'desc')
             ->limit($limit)
             ->select()
@@ -828,17 +1248,42 @@ final class Live extends BaseController
                 'content' => (string) $row['content'],
             ];
 
-            $kind = (string) ($row['media_kind'] ?? '');
-            $url  = (string) ($row['media_url'] ?? '');
-            // 语音通话文本消息（无媒体地址）打语音标识，供前端展示
-            if ($kind === 'voice' && $url === '') {
+            $kind        = (string) ($row['media_kind'] ?? '');
+            $url         = (string) ($row['media_url'] ?? '');
+            $mediaId     = (int) ($row['media_id'] ?? 0);
+            $unlockPrice = (int) ($row['unlock_price'] ?? 0);
+            $messageId   = (int) ($row['id'] ?? 0);
+            $unlocked    = (int) ($row['unlocked'] ?? 0) === 1;
+
+            // 语音通话文本消息（无媒体地址、无素材ID）打语音标识，供前端展示
+            if ($kind === 'voice' && $url === '' && $mediaId <= 0) {
                 $item['voice'] = true;
             }
-            if ($kind !== '' && $url !== '') {
+
+            if ($kind !== '' && ($url !== '' || $unlocked)) {
+                $realUrl = $url;
+                if ($realUrl === '' && $mediaId > 0) {
+                    $realUrl = (string) \think\facade\Db::connect('live_mysql')->table('lp_ai_media')->where('id', $mediaId)->value('video_url');
+                }
                 $item['media'] = [
-                    'kind'  => $kind,
-                    'url'   => $this->fullUrl($url),
-                    'title' => (string) ($row['media_title'] ?? ''),
+                    'kind'         => $kind,
+                    'url'          => $this->fullUrl($realUrl),
+                    'title'        => (string) ($row['media_title'] ?? ''),
+                    'id'           => $mediaId,
+                    'message_id'   => $messageId,
+                    'unlock_price' => $unlockPrice,
+                    'unlocked'     => true,
+                ];
+            } elseif ($kind !== '' && $mediaId > 0) {
+                // 未解锁的媒体消息：按「消息」独立解锁
+                $item['media'] = [
+                    'kind'         => $kind,
+                    'url'          => '',
+                    'title'        => (string) ($row['media_title'] ?? ''),
+                    'id'           => $mediaId,
+                    'message_id'   => $messageId,
+                    'unlock_price' => $unlockPrice,
+                    'unlocked'     => false,
                 ];
             }
 
@@ -850,7 +1295,7 @@ final class Live extends BaseController
     /**
      * 保存一条聊天记录
      */
-    private function saveChatMessage(int $userId, string $deviceId, int $contentId, string $role, string $content, array $media = [], bool $voice = false): void
+    private function saveChatMessage(int $userId, string $deviceId, int $contentId, string $role, string $content, array $media = [], bool $voice = false): int
     {
         $data = [
             'user_id'    => $userId,
@@ -867,12 +1312,16 @@ final class Live extends BaseController
             $data['media_url']   = '';
             $data['media_title'] = '';
         } elseif ($media) {
-            $data['media_kind']  = (string) ($media['kind'] ?? '');
-            $data['media_url']   = (string) ($media['url'] ?? '');
-            $data['media_title'] = (string) ($media['title'] ?? '');
+            $data['media_kind']    = (string) ($media['kind'] ?? '');
+            $data['media_url']     = (string) ($media['url'] ?? '');
+            $data['media_title']   = (string) ($media['title'] ?? '');
+            $data['media_id']      = (int) ($media['id'] ?? 0);
+            $data['unlock_price']  = (int) ($media['unlock_price'] ?? 0);
         }
 
-        \think\facade\Db::connect('live_mysql')->table('lp_ai_chat_message')->insert($data);
+        $query = \think\facade\Db::connect('live_mysql')->table('lp_ai_chat_message');
+        $query->insert($data);
+        return (int) $query->getLastInsID();
     }
 
     /**

@@ -87,6 +87,7 @@ final class Content extends Backend
         $data['title']       = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
         $data['category']    = trim((string) ($data['category'] ?? $existing['category'] ?? ''));
         $data['cover_url']   = trim((string) ($data['cover_url'] ?? $existing['cover_url'] ?? ''));
+        $data['video_url']   = trim((string) ($data['video_url'] ?? $existing['video_url'] ?? ''));
         $data['description'] = (string) ($data['description'] ?? $existing['description'] ?? '');
         $data['weigh']       = (int) ($data['weigh'] ?? $existing['weigh'] ?? 0);
         $data['is_public']   = (int) ($data['is_public'] ?? $existing['is_public'] ?? 1);
