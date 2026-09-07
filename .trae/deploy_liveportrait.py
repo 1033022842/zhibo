@@ -69,7 +69,7 @@ def main():
     lines = env.splitlines()
     additions = []
     if "RTMP_PUSH_URL" not in env:
-        additions.append("RTMP_PUSH_URL = rtmp://38.181.44.164:1935/live/")
+        additions.append("RTMP_PUSH_URL = rtmp://38.181.44.164:1935/")
     if "API_KEY" not in env:
         additions.append("API_KEY = live-ai-api-key-2026")
 

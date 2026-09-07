@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `lp_ai_content` (
   `title` VARCHAR(120) NOT NULL DEFAULT '' COMMENT '标题/角色名',
   `category` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '分类',
   `cover_url` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '封面图URL',
+  `video_url` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '动效视频URL',
   `description` TEXT COMMENT '简介',
   `personality` JSON COMMENT '角色属性JSON',
   `weigh` INT NOT NULL DEFAULT 0 COMMENT '权重(越大越靠前)',

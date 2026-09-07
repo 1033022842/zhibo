@@ -16,6 +16,8 @@ final class Media extends Backend
     protected string|array $defaultSortField = 'weigh,desc';
     protected int|string $limit = 20;
 
+    protected array $noNeedPermission = ['contentOptions'];
+
     public function initialize(): void
     {
         parent::initialize();
@@ -109,6 +111,10 @@ final class Media extends Backend
         $data['media_kind'] = trim((string) ($data['media_kind'] ?? $existing['media_kind'] ?? 'video'));
         if (!in_array($data['media_kind'], ['video', 'voice'], true)) {
             $data['media_kind'] = 'video';
+        }
+        $data['scene_type'] = trim((string) ($data['scene_type'] ?? $existing['scene_type'] ?? 'chat'));
+        if (!in_array($data['scene_type'], ['chat', 'binge', 'affection'], true)) {
+            $data['scene_type'] = 'chat';
         }
         $data['unlock_price'] = (int) ($data['unlock_price'] ?? $existing['unlock_price'] ?? 0);
         $data['keywords']     = trim((string) ($data['keywords'] ?? $existing['keywords'] ?? ''));

@@ -215,7 +215,7 @@ final class LivePortraitService
         return [
             'stream_alias' => $streamAlias,
             'push_url'     => $pushUrl . '/' . $streamAlias,
-            'play_hls'     => '/hls/' . $streamAlias . '.m3u8',
+            'play_hls'     => '/hls/' . $streamAlias . '/index.m3u8?v=2',
             'token'        => $token,
             'expire_at'    => $expireAt,
         ];

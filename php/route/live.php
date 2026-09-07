@@ -13,6 +13,10 @@ Route::put('live/update-profile',    '\app\api\controller\Live@updateProfile')->
 Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/upload',           '\app\api\controller\Live@upload')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/uploadMediaAsset',  '\app\api\controller\Live@uploadMediaAsset')->middleware(\app\live\middleware\Auth::class);
+Route::get('live/mediaAssetList',    '\app\api\controller\Live@mediaAssetList')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/mediaAssetEdit',    '\app\api\controller\Live@mediaAssetEdit')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/mediaAssetDelete',  '\app\api\controller\Live@mediaAssetDelete')->middleware(\app\live\middleware\Auth::class);
 Route::get('live/replayClips',       '\app\api\controller\Live@replayClips')->middleware(\app\live\middleware\Auth::class);
 Route::get('live/affection',         '\app\api\controller\Live@affection')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/buyAffection',     '\app\api\controller\Live@buyAffection')->middleware(\app\live\middleware\Auth::class);
