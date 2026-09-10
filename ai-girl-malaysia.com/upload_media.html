@@ -338,8 +338,8 @@
 		</div>
 
 		<!-- Upload Media Modal -->
-		<div id="upload-modal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100">
-			<div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0 w-[90%] max-w-[520px]">
+		<div id="upload-modal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100" style="overflow-y:auto;padding:24px 0;">
+			<div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0 w-[90%]" style="max-width:640px;max-height:92vh;overflow-y:auto;align-items:flex-start;">
 				<button type="button" class="absolute w-5 h-5 right-3 top-3 z-10" id="close-upload-modal">
 					<img class="w-auto" src="./Girls_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
 				</button>
@@ -356,6 +356,21 @@
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Title</label>
 							<input type="text" id="media-title-input" placeholder="Leave blank to use file name" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+						</div>
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Cover <span class="text-gray-500">(optional)</span></label>
+							<div class="flex items-center gap-3">
+								<div id="media-cover-preview" class="w-[96px] h-[54px] rounded-[10px] border border-black-light bg-black-medium flex items-center justify-center overflow-hidden shrink-0 cursor-pointer" onclick="document.getElementById('media-cover-input').click()">
+									<span class="text-[11px] text-gray-500">点击上传</span>
+								</div>
+								<div class="text-xs text-gray-500">建议 16:9 图片，用于素材列表展示</div>
+							</div>
+							<input type="file" id="media-cover-input" accept="image/*" class="hidden" onchange="uploadMediaCover(this)">
+						</div>
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Description <span class="text-red-500">*</span></label>
+							<textarea id="media-desc-input" rows="4" maxlength="2000" placeholder="描述素材内容、动作、适用场景等（不少于20字）" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0] resize-y" oninput="onMediaDescInput()"></textarea>
+							<p class="text-xs text-gray-500 mt-1" id="media-desc-counter">0 / 20 字</p>
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
@@ -384,9 +399,59 @@
 							</select>
 						</div>
 						<div class="w-full">
-							<label class="block text-sm font-medium text-gray-300 mb-2">Keywords</label>
+							<label class="block text-sm font-medium text-gray-300 mb-2">Tags <span class="text-red-500">*</span></label>
+							<input type="text" id="media-tags-input" placeholder="逗号分隔，例如：比心,甜妹,竖屏（最多10个）" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							<p class="text-xs text-gray-500 mt-1">描述性标签，最多 10 个</p>
+						</div>
+						<div class="grid grid-cols-2 gap-3">
+							<div class="w-full">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Style <span class="text-red-500">*</span></label>
+								<select id="media-style-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="">请选择风格</option>
+									<option value="realistic">写实</option>
+									<option value="anime">二次元</option>
+									<option value="3d">3D</option>
+									<option value="cyberpunk">赛博朋克</option>
+									<option value="chinese">古风</option>
+									<option value="korean">韩系</option>
+									<option value="western">欧美</option>
+								</select>
+							</div>
+							<div class="w-full">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Mood</label>
+								<select id="media-mood-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="">不限</option>
+									<option value="happy">开心</option>
+									<option value="cute">撒娇</option>
+									<option value="shy">害羞</option>
+									<option value="cold">高冷</option>
+									<option value="sexy">性感</option>
+									<option value="healing">治愈</option>
+									<option value="funny">搞笑</option>
+									<option value="serious">认真</option>
+								</select>
+							</div>
+						</div>
+						<div class="grid grid-cols-2 gap-3">
+							<div class="w-full">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Resolution</label>
+								<select id="media-resolution-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="">未设置</option>
+									<option value="720P">720P</option>
+									<option value="1080P">1080P</option>
+									<option value="2K">2K</option>
+									<option value="4K">4K</option>
+								</select>
+							</div>
+							<div class="w-full">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Duration (ms)</label>
+								<input type="number" id="media-duration-input" min="0" placeholder="0" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							</div>
+						</div>
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Trigger Keywords</label>
 							<input type="text" id="media-keywords-input" placeholder="比心,飞吻,害羞 (comma separated)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
-							<p class="text-xs text-gray-500 mt-1">Separate multiple keywords with commas</p>
+							<p class="text-xs text-gray-500 mt-1">直播触发关键词，用于按关键词切换素材</p>
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
@@ -394,8 +459,11 @@
 								<input type="number" id="media-weight-input" min="1" max="100" value="1" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0]">
 							</div>
 							<div class="w-full">
-								<label class="block text-sm font-medium text-gray-300 mb-2">Duration (ms)</label>
-								<input type="number" id="media-duration-input" min="0" placeholder="0" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+								<label class="block text-sm font-medium text-gray-300 mb-2">18+ Content <span class="text-red-500">*</span></label>
+								<select id="media-adult-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="0">否 · 全年龄</option>
+									<option value="1">是 · 18+</option>
+								</select>
 							</div>
 						</div>
 						<div class="flex gap-4 mt-4">
@@ -414,8 +482,8 @@
 		</div>
 
 		<!-- Edit Media Modal -->
-		<div id="edit-modal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100">
-			<div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0 w-[90%] max-w-[520px]">
+		<div id="edit-modal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100" style="overflow-y:auto;padding:24px 0;">
+			<div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0 w-[90%]" style="max-width:640px;max-height:92vh;overflow-y:auto;align-items:flex-start;">
 				<button type="button" class="absolute w-5 h-5 right-3 top-3 z-10" id="close-edit-modal">
 					<img class="w-auto" src="./Girls_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
 				</button>
@@ -434,6 +502,21 @@
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Title</label>
 							<input type="text" id="edit-title-input" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0]">
+						</div>
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Cover <span class="text-gray-500">(optional)</span></label>
+							<div class="flex items-center gap-3">
+								<div id="edit-cover-preview" class="w-[96px] h-[54px] rounded-[10px] border border-black-light bg-black-medium flex items-center justify-center overflow-hidden shrink-0 cursor-pointer" onclick="document.getElementById('edit-cover-input').click()">
+									<span class="text-[11px] text-gray-500">点击上传</span>
+								</div>
+								<div class="text-xs text-gray-500">留空则保留当前封面</div>
+							</div>
+							<input type="file" id="edit-cover-input" accept="image/*" class="hidden">
+						</div>
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Description <span class="text-red-500">*</span></label>
+							<textarea id="edit-desc-input" rows="4" maxlength="2000" placeholder="描述素材内容、动作、适用场景等（不少于20字）" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0] resize-y" oninput="onEditDescInput()"></textarea>
+							<p class="text-xs text-gray-500 mt-1" id="edit-desc-counter">0 / 20 字</p>
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
@@ -462,7 +545,56 @@
 							</select>
 						</div>
 						<div class="w-full">
-							<label class="block text-sm font-medium text-gray-300 mb-2">Keywords</label>
+							<label class="block text-sm font-medium text-gray-300 mb-2">Tags <span class="text-red-500">*</span></label>
+							<input type="text" id="edit-tags-input" placeholder="逗号分隔，例如：比心,甜妹,竖屏（最多10个）" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+						</div>
+						<div class="grid grid-cols-2 gap-3">
+							<div class="w-full">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Style <span class="text-red-500">*</span></label>
+								<select id="edit-style-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="">请选择风格</option>
+									<option value="realistic">写实</option>
+									<option value="anime">二次元</option>
+									<option value="3d">3D</option>
+									<option value="cyberpunk">赛博朋克</option>
+									<option value="chinese">古风</option>
+									<option value="korean">韩系</option>
+									<option value="western">欧美</option>
+								</select>
+							</div>
+							<div class="w-full">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Mood</label>
+								<select id="edit-mood-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="">不限</option>
+									<option value="happy">开心</option>
+									<option value="cute">撒娇</option>
+									<option value="shy">害羞</option>
+									<option value="cold">高冷</option>
+									<option value="sexy">性感</option>
+									<option value="healing">治愈</option>
+									<option value="funny">搞笑</option>
+									<option value="serious">认真</option>
+								</select>
+							</div>
+						</div>
+						<div class="grid grid-cols-2 gap-3">
+							<div class="w-full">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Resolution</label>
+								<select id="edit-resolution-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="">未设置</option>
+									<option value="720P">720P</option>
+									<option value="1080P">1080P</option>
+									<option value="2K">2K</option>
+									<option value="4K">4K</option>
+								</select>
+							</div>
+							<div class="w-full">
+								<label class="block text-sm font-medium text-gray-300 mb-2">Duration (ms)</label>
+								<input type="number" id="edit-duration-input" min="0" placeholder="0" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							</div>
+						</div>
+						<div class="w-full">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Trigger Keywords</label>
 							<input type="text" id="edit-keywords-input" placeholder="比心,飞吻,害羞 (comma separated)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
 						</div>
 						<div class="grid grid-cols-2 gap-3">
@@ -471,8 +603,11 @@
 								<input type="number" id="edit-weight-input" min="1" max="100" value="1" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0]">
 							</div>
 							<div class="w-full">
-								<label class="block text-sm font-medium text-gray-300 mb-2">Duration (ms)</label>
-								<input type="number" id="edit-duration-input" min="0" placeholder="0" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+								<label class="block text-sm font-medium text-gray-300 mb-2">18+ Content <span class="text-red-500">*</span></label>
+								<select id="edit-adult-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
+									<option value="0">否 · 全年龄</option>
+									<option value="1">是 · 18+</option>
+								</select>
 							</div>
 						</div>
 						<div class="flex gap-4 mt-4">

@@ -49,11 +49,15 @@
             <div v-else class="card-cover-placeholder">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20v-1a8 8 0 0 1 8-8"/></svg>
             </div>
+            <div class="card-adult-tag" v-if="p.is_adult === 1">18+</div>
             <div class="card-deadline-tag">{{ formatDeadline(p.deadline) }}</div>
           </div>
           <div class="card-body">
             <h3 class="card-title">{{ p.title }}</h3>
             <p class="card-persona">角色：{{ p.persona_name }}</p>
+            <div class="card-tags" v-if="p.tags && p.tags.length">
+              <span class="tag" v-for="t in p.tags.slice(0, 3)" :key="t">{{ t }}</span>
+            </div>
             <div class="card-progress">
               <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: p.progress_percent + '%' }"></div>
@@ -420,6 +424,31 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 11px;
   color: rgba(255,255,255,0.8);
+}
+.card-adult-tag {
+  position: absolute;
+  top: 6px; left: 6px;
+  background: rgba(255,45,85,0.9);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.card-tags .tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.3);
+  color: #a5b4fc;
+  font-size: 10px;
+  line-height: 1.6;
 }
 .card-body { padding: 10px; }
 .card-title {

@@ -137,6 +137,17 @@ final class Crowdfunding extends Backend
             'title'           => $project->title,
             'persona_name'    => $project->persona_name,
             'description'     => $project->description,
+            'tags'            => $this->splitList((string)$project->tags),
+            'style'           => (string)$project->style,
+            'gender'          => (string)$project->gender,
+            'age_range'       => (string)$project->age_range,
+            'language'        => (string)$project->language,
+            'personality'     => $this->splitList((string)$project->personality),
+            'voice_style'     => (string)$project->voice_style,
+            'deliverables'    => $this->splitList((string)$project->deliverables),
+            'is_adult'        => (int)$project->is_adult,
+            'highlights'      => (string)$project->highlights,
+            'reference_url'   => (string)$project->reference_url,
             'cover_url'       => $project->cover_url,
             'target_amount'   => (float)$project->target_amount,
             'raised_amount'   => $raised,
@@ -180,6 +191,10 @@ final class Crowdfunding extends Backend
             $this->error('角色名称不能为空');
             return;
         }
+        if (mb_strlen($description, 'UTF-8') < 200) {
+            $this->error('角色描述不能少于200字');
+            return;
+        }
         if ($targetAmount <= 0) {
             $this->error('目标金额必须大于0');
             return;
@@ -210,6 +225,17 @@ final class Crowdfunding extends Backend
         $project->title         = $title;
         $project->persona_name  = $personaName;
         $project->description   = $description;
+        $project->tags          = $this->normalizeList((string)$this->request->post('tags', ''));
+        $project->style         = trim((string)$this->request->post('style', ''));
+        $project->gender        = trim((string)$this->request->post('gender', ''));
+        $project->age_range     = trim((string)$this->request->post('age_range', ''));
+        $project->language      = trim((string)$this->request->post('language', ''));
+        $project->personality   = $this->normalizeList((string)$this->request->post('personality', ''));
+        $project->voice_style   = trim((string)$this->request->post('voice_style', ''));
+        $project->deliverables  = $this->normalizeList($this->listParam($this->request->post('deliverables', '')));
+        $project->is_adult      = (int)$this->request->post('is_adult/d', 0) === 1 ? 1 : 0;
+        $project->highlights    = trim((string)$this->request->post('highlights', ''));
+        $project->reference_url = trim((string)$this->request->post('reference_url', ''));
         $project->cover_url     = $coverUrl;
         $project->target_amount = $targetAmount;
         $project->deadline      = date('Y-m-d H:i:s', $deadlineTs);
@@ -232,6 +258,42 @@ final class Crowdfunding extends Backend
             return;
         }
         $this->success('删除成功');
+    }
+
+    /**
+     * 逗号分隔字符串 -> 数组
+     */
+    private function splitList(string $value): array
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return [];
+        }
+        return array_values(array_filter(array_map('trim', explode(',', $value)), static fn($s) => $s !== ''));
+    }
+
+    /**
+     * 数组或逗号分隔字符串 -> 字符串
+     */
+    private function listParam(mixed $value): string
+    {
+        if (is_array($value)) {
+            return implode(',', array_map('strval', $value));
+        }
+        return (string) $value;
+    }
+
+    /**
+     * 逗号分隔字符串 -> 去重、去空后的字符串
+     */
+    private function normalizeList(string $value): string
+    {
+        $value = trim(str_replace('，', ',', $value));
+        if ($value === '') {
+            return '';
+        }
+        $parts = array_filter(array_map('trim', explode(',', $value)), static fn($s) => $s !== '');
+        return implode(',', array_unique($parts));
     }
 
     private function renderPage($list, $statusMap, array $stats): string
@@ -470,7 +532,18 @@ final class Crowdfunding extends Backend
                 .form-field input,.form-field textarea{width:100%;padding:10px 14px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:#1f2430;background:#fff;outline:none;transition:border-color .2s,box-shadow .2s;box-sizing:border-box}
                 .form-field input:focus,.form-field textarea:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
                 .form-field textarea{resize:vertical;min-height:96px;line-height:1.6}
+                .form-field select{width:100%;padding:10px 14px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:#1f2430;background:#fff;outline:none;box-sizing:border-box;cursor:pointer}
+                .form-field select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
                 .form-field .hint{font-size:11px;color:#9aa0b0;margin-top:5px}
+                .chk-group{display:flex;flex-wrap:wrap;gap:12px;padding-top:2px}
+                .chk-group label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#3a4051;font-weight:400;cursor:pointer;margin:0}
+                .chk-group input[type=checkbox]{width:auto;margin:0}
+                .kv-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 18px;margin-bottom:20px}
+                .kv-item{font-size:13px;color:#3a4051;line-height:1.6}
+                .kv-item .k{color:#8a90a3;margin-right:6px}
+                .tag-list{display:flex;flex-wrap:wrap;gap:6px}
+                .tag-chip{padding:3px 10px;border-radius:999px;background:#f4ecfe;border:1px solid #e4d4fb;color:#7c3aed;font-size:12px}
+                .adult-chip{padding:3px 10px;border-radius:999px;background:#fdeef2;border:1px solid #f7c9d6;color:#e11d48;font-size:12px;font-weight:600}
                 .cover-preview{width:100%;height:160px;border-radius:12px;border:2px dashed #d8dbea;background:#fafbfe;display:flex;align-items:center;justify-content:center;color:#b8bdd0;font-size:13px;overflow:hidden;margin-top:8px;cursor:pointer;transition:border-color .2s,background .2s;flex-direction:column;gap:6px}
                 .cover-preview:hover{border-color:#6366f1;background:#f7f8ff;color:#6366f1}
                 .cover-preview img{width:100%;height:100%;object-fit:cover;display:block}
@@ -570,8 +643,99 @@ final class Crowdfunding extends Backend
                                 <input type="text" id="editPersona" maxlength="50" placeholder="角色名字" />
                             </div>
                             <div class="form-field full">
-                                <label>详细描述</label>
-                                <textarea id="editDesc" placeholder="描述角色人设、风格、创意理念…"></textarea>
+                                <label>角色描述 <span class="req">*</span></label>
+                                <textarea id="editDesc" placeholder="描述角色人设、风格、创意理念…（不少于200字）"></textarea>
+                                <div class="hint" id="editDescHint">不少于 200 字</div>
+                            </div>
+                            <div class="form-field full">
+                                <label>标签</label>
+                                <input type="text" id="editTags" placeholder="逗号分隔，例如：御姐,甜美,高冷" />
+                            </div>
+                            <div class="form-field">
+                                <label>风格</label>
+                                <select id="editStyle">
+                                    <option value="">未设置</option>
+                                    <option value="realistic">写实</option>
+                                    <option value="anime">二次元</option>
+                                    <option value="3d">3D</option>
+                                    <option value="cyberpunk">赛博朋克</option>
+                                    <option value="chinese">古风</option>
+                                    <option value="korean">韩系</option>
+                                    <option value="western">欧美</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>角色性别</label>
+                                <select id="editGender">
+                                    <option value="">未设置</option>
+                                    <option value="female">女性</option>
+                                    <option value="male">男性</option>
+                                    <option value="other">其他</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>年龄段</label>
+                                <select id="editAgeRange">
+                                    <option value="">未设置</option>
+                                    <option value="18-22">18-22 岁</option>
+                                    <option value="23-27">23-27 岁</option>
+                                    <option value="28-35">28-35 岁</option>
+                                    <option value="36-45">36-45 岁</option>
+                                    <option value="45+">45 岁以上</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>语言</label>
+                                <select id="editLanguage">
+                                    <option value="">未设置</option>
+                                    <option value="zh-CN">中文</option>
+                                    <option value="en-US">英文</option>
+                                    <option value="ja-JP">日文</option>
+                                    <option value="ms-MY">马来语</option>
+                                    <option value="multi">多语言</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>性格特点</label>
+                                <input type="text" id="editPersonality" placeholder="逗号分隔，例如：温柔,幽默" />
+                            </div>
+                            <div class="form-field">
+                                <label>语音风格</label>
+                                <select id="editVoiceStyle">
+                                    <option value="">未设置</option>
+                                    <option value="sweet">甜美</option>
+                                    <option value="mature">御姐</option>
+                                    <option value="magnetic">磁性</option>
+                                    <option value="loli">萝莉</option>
+                                    <option value="cold">冷艳</option>
+                                    <option value="gentle">温柔</option>
+                                    <option value="none">不涉及语音</option>
+                                </select>
+                            </div>
+                            <div class="form-field full">
+                                <label>交付内容</label>
+                                <div class="chk-group" id="editDeliverables">
+                                    <label><input type="checkbox" value="portrait" />立绘</label>
+                                    <label><input type="checkbox" value="voice" />语音</label>
+                                    <label><input type="checkbox" value="video" />短视频</label>
+                                    <label><input type="checkbox" value="live" />直播</label>
+                                    <label><input type="checkbox" value="chat" />AI 聊天</label>
+                                </div>
+                            </div>
+                            <div class="form-field">
+                                <label>是否 18+ 内容</label>
+                                <select id="editIsAdult">
+                                    <option value="0">否 · 全年龄</option>
+                                    <option value="1">是 · 18+</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>参考链接</label>
+                                <input type="text" id="editReferenceUrl" placeholder="https://..." />
+                            </div>
+                            <div class="form-field full">
+                                <label>项目亮点</label>
+                                <textarea id="editHighlights" placeholder="一句话卖点或差异化优势"></textarea>
                             </div>
                             <div class="form-field full">
                                 <label>封面图</label>
@@ -600,6 +764,15 @@ final class Crowdfunding extends Backend
             <script>
             function htmlEscape(s) {
                 return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+            var STYLE_LABEL = {realistic:'写实',anime:'二次元','3d':'3D',cyberpunk:'赛博朋克',chinese:'古风',korean:'韩系',western:'欧美'};
+            var GENDER_LABEL = {female:'女性',male:'男性',other:'其他'};
+            var LANGUAGE_LABEL = {'zh-CN':'中文','en-US':'英文','ja-JP':'日文','ms-MY':'马来语',multi:'多语言'};
+            var VOICE_LABEL = {sweet:'甜美',mature:'御姐',magnetic:'磁性',loli:'萝莉',cold:'冷艳',gentle:'温柔',none:'不涉及语音'};
+            var DELIVER_LABEL = {portrait:'立绘',voice:'语音',video:'短视频',live:'直播',chat:'AI 聊天'};
+            function labelOf(map, val) { return val ? (map[val] || val) : ''; }
+            function kv(label, valueHtml) {
+                return '<div class="kv-item"><span class="k">' + label + '：</span>' + valueHtml + '</div>';
             }
             function fmt(n) {
                 return Number(n || 0).toLocaleString();
@@ -665,6 +838,26 @@ final class Crowdfunding extends Backend
                                 '<div class="detail-progress">' +
                                     '<div class="big-progress"><div class="fill" style="width:' + p.progress_percent + '%"></div></div>' +
                                 '</div>' +
+                                (function(){
+                                    var info = '';
+                                    var tags = p.tags || [];
+                                    if (tags.length) {
+                                        info += kv('标签', '<span class="tag-list">' + tags.map(function(t){ return '<span class="tag-chip">' + htmlEscape(t) + '</span>'; }).join('') + '</span>');
+                                    }
+                                    if (p.style) info += kv('风格', htmlEscape(labelOf(STYLE_LABEL, p.style)));
+                                    if (p.gender) info += kv('性别', htmlEscape(labelOf(GENDER_LABEL, p.gender)));
+                                    if (p.age_range) info += kv('年龄段', htmlEscape(p.age_range));
+                                    if (p.language) info += kv('语言', htmlEscape(labelOf(LANGUAGE_LABEL, p.language)));
+                                    var personality = p.personality || [];
+                                    if (personality.length) info += kv('性格特点', htmlEscape(personality.join('、')));
+                                    if (p.voice_style) info += kv('语音风格', htmlEscape(labelOf(VOICE_LABEL, p.voice_style)));
+                                    var deliverables = p.deliverables || [];
+                                    if (deliverables.length) info += kv('交付内容', htmlEscape(deliverables.map(function(d){ return labelOf(DELIVER_LABEL, d); }).join('、')));
+                                    info += kv('18+ 内容', p.is_adult ? '<span class="adult-chip">18+</span>' : '否');
+                                    if (p.reference_url) info += kv('参考链接', '<a href="' + htmlEscape(p.reference_url) + '" target="_blank" rel="noopener" style="color:#6366f1">' + htmlEscape(p.reference_url) + '</a>');
+                                    return info ? '<div class="kv-list">' + info + '</div>' : '';
+                                })() +
+                                (p.highlights ? '<div class="sec-title">项目亮点</div><div class="detail-desc">' + htmlEscape(p.highlights) + '</div>' : '') +
                                 '<div class="sec-title">项目描述</div>' +
                                 '<div class="detail-desc">' + desc + '</div>' +
                                 '<div class="sec-title">支持记录（' + pledges.length + '）</div>' +
@@ -699,6 +892,7 @@ final class Crowdfunding extends Backend
                         document.getElementById('editDeadline').value = toLocalInput(p.deadline);
                         document.getElementById('coverFile').value = '';
                         setCoverPreview(p.cover_url);
+                        updateDescHint();
                         document.getElementById('editModal').classList.add('active');
                     })
                     .catch(function(){ alert('网络错误'); });
@@ -729,7 +923,18 @@ final class Crowdfunding extends Backend
             function closeEdit() {
                 document.getElementById('editModal').classList.remove('active');
             }
+            function updateDescHint() {
+                var el = document.getElementById('editDesc');
+                var hint = document.getElementById('editDescHint');
+                if (!el || !hint) return;
+                var len = el.value.trim().length;
+                hint.textContent = len + ' / 200 字' + (len >= 200 ? '' : '（不少于200字）');
+                hint.style.color = len >= 200 ? '#059669' : '#e11d48';
+            }
+            document.getElementById('editDesc').addEventListener('input', updateDescHint);
             function saveEdit() {
+                var desc = document.getElementById('editDesc').value.trim();
+                if (desc.length < 200) { alert('角色描述不能少于200字（当前 ' + desc.length + ' 字）'); return; }
                 var btn = document.getElementById('editSaveBtn');
                 btn.disabled = true;
                 btn.textContent = '保存中...';
@@ -737,7 +942,21 @@ final class Crowdfunding extends Backend
                 fd.append('id', document.getElementById('editId').value);
                 fd.append('title', document.getElementById('editTitle').value.trim());
                 fd.append('persona_name', document.getElementById('editPersona').value.trim());
-                fd.append('description', document.getElementById('editDesc').value.trim());
+                fd.append('description', desc);
+                fd.append('tags', document.getElementById('editTags').value.trim());
+                fd.append('style', document.getElementById('editStyle').value);
+                fd.append('gender', document.getElementById('editGender').value);
+                fd.append('age_range', document.getElementById('editAgeRange').value);
+                fd.append('language', document.getElementById('editLanguage').value);
+                fd.append('personality', document.getElementById('editPersonality').value.trim());
+                fd.append('voice_style', document.getElementById('editVoiceStyle').value);
+                fd.append('is_adult', document.getElementById('editIsAdult').value);
+                fd.append('reference_url', document.getElementById('editReferenceUrl').value.trim());
+                fd.append('highlights', document.getElementById('editHighlights').value.trim());
+                var checkedDeliver = document.querySelectorAll('#editDeliverables input[type=checkbox]:checked');
+                for (var i = 0; i < checkedDeliver.length; i++) {
+                    fd.append('deliverables[]', checkedDeliver[i].value);
+                }
                 fd.append('cover_url', document.getElementById('editCover').value);
                 fd.append('target_amount', document.getElementById('editTarget').value);
                 fd.append('deadline', document.getElementById('editDeadline').value);

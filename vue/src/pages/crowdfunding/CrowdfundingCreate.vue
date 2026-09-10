@@ -11,6 +11,8 @@
     </div>
 
     <form class="form" v-anim @submit.prevent="doSubmit">
+      <div class="section-label">基础信息</div>
+
       <!-- 封面图 -->
       <div class="form-group">
         <label class="form-label">封面图</label>
@@ -36,11 +38,121 @@
         <input v-model="form.title" class="form-input" placeholder="一句话描述你的角色创意" maxlength="100" />
       </div>
 
-      <!-- 详细描述 -->
+      <!-- 角色描述 -->
       <div class="form-group">
-        <label class="form-label">详细描述</label>
-        <textarea v-model="form.description" class="form-textarea" placeholder="描述你的角色人设、风格、创意理念…" rows="5"></textarea>
+        <label class="form-label">角色描述 <span class="required">*</span></label>
+        <textarea
+          v-model="form.description"
+          class="form-textarea"
+          placeholder="详细介绍角色：背景故事、性格人设、外观与穿搭、说话方式、日常互动场景、适合的玩法与受众…"
+          rows="9"
+          maxlength="5000"
+        ></textarea>
+        <p class="form-hint" :class="descOk ? 'hint-ok' : 'hint-warn'">
+          {{ descLen }} / 200 字{{ descOk ? '' : '（不少于200字）' }}
+        </p>
       </div>
+
+      <div class="section-label">角色设定</div>
+
+      <!-- 标签 -->
+      <div class="form-group">
+        <label class="form-label">标签 <span class="required">*</span></label>
+        <input v-model="form.tags" class="form-input" placeholder="逗号分隔，例如：御姐,甜美,高冷,粘人" />
+        <p class="form-hint">最多 10 个标签，中英文逗号均可</p>
+      </div>
+
+      <!-- 风格 / 性别 -->
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">风格 <span class="required">*</span></label>
+          <select v-model="form.style" class="form-input">
+            <option value="">请选择风格</option>
+            <option v-for="o in styleOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">角色性别</label>
+          <select v-model="form.gender" class="form-input">
+            <option value="">不限</option>
+            <option v-for="o in genderOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 年龄段 / 语言 -->
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">年龄段</label>
+          <select v-model="form.age_range" class="form-input">
+            <option value="">不限</option>
+            <option v-for="o in ageOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">语言</label>
+          <select v-model="form.language" class="form-input">
+            <option value="">不限</option>
+            <option v-for="o in languageOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 性格特点 -->
+      <div class="form-group">
+        <label class="form-label">性格特点</label>
+        <input v-model="form.personality" class="form-input" placeholder="逗号分隔，例如：温柔,幽默,小傲娇" />
+      </div>
+
+      <!-- 语音风格 -->
+      <div class="form-group">
+        <label class="form-label">语音风格</label>
+        <select v-model="form.voice_style" class="form-input">
+          <option value="">不限</option>
+          <option v-for="o in voiceOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+        </select>
+      </div>
+
+      <div class="section-label">交付与合规</div>
+
+      <!-- 交付内容 -->
+      <div class="form-group">
+        <label class="form-label">交付内容 <span class="required">*</span></label>
+        <div class="chips">
+          <button
+            v-for="o in deliverOptions" :key="o.value"
+            type="button"
+            class="chip"
+            :class="{ on: form.deliverables.includes(o.value) }"
+            @click="toggleDeliver(o.value)"
+          >{{ o.label }}</button>
+        </div>
+        <p class="form-hint">可多选，至少选择一项</p>
+      </div>
+
+      <!-- 18+ -->
+      <div class="form-group">
+        <label class="form-label">是否为 18+ 内容 <span class="required">*</span></label>
+        <div class="chips">
+          <button type="button" class="chip chip--wide" :class="{ on: form.is_adult === 0 }" @click="form.is_adult = 0">否 · 全年龄</button>
+          <button type="button" class="chip chip--wide" :class="{ on: form.is_adult === 1 }" @click="form.is_adult = 1">是 · 18+</button>
+        </div>
+        <p class="form-hint">18+ 内容仅对成年用户开放展示</p>
+      </div>
+
+      <!-- 项目亮点 -->
+      <div class="form-group">
+        <label class="form-label">项目亮点</label>
+        <textarea v-model="form.highlights" class="form-textarea" placeholder="一句话卖点或差异化优势，可分行" rows="3" maxlength="500"></textarea>
+      </div>
+
+      <!-- 参考链接 -->
+      <div class="form-group">
+        <label class="form-label">参考链接</label>
+        <input v-model="form.reference_url" class="form-input" placeholder="https://... （可选，风格参考/作品集）" />
+      </div>
+
+      <div class="section-label">众筹设置</div>
 
       <!-- 目标金额 -->
       <div class="form-group">
@@ -65,6 +177,7 @@
         <ul>
           <li>无法达标将全额退还支持者</li>
           <li>达标后需手动创建角色并关联</li>
+          <li>18+ 内容需符合平台内容规范</li>
         </ul>
       </div>
 
@@ -91,9 +204,74 @@ const form = ref({
   persona_name: '',
   title: '',
   description: '',
+  tags: '',
+  style: '',
+  gender: '',
+  age_range: '',
+  language: '',
+  personality: '',
+  voice_style: '',
+  deliverables: [] as string[],
+  is_adult: 0,
+  highlights: '',
+  reference_url: '',
   target_amount: 0,
   deadline: '',
 })
+
+const styleOptions = [
+  { value: 'realistic', label: '写实' },
+  { value: 'anime', label: '二次元' },
+  { value: '3d', label: '3D' },
+  { value: 'cyberpunk', label: '赛博朋克' },
+  { value: 'chinese', label: '古风' },
+  { value: 'korean', label: '韩系' },
+  { value: 'western', label: '欧美' },
+]
+const genderOptions = [
+  { value: 'female', label: '女性' },
+  { value: 'male', label: '男性' },
+  { value: 'other', label: '其他' },
+]
+const ageOptions = [
+  { value: '18-22', label: '18-22 岁' },
+  { value: '23-27', label: '23-27 岁' },
+  { value: '28-35', label: '28-35 岁' },
+  { value: '36-45', label: '36-45 岁' },
+  { value: '45+', label: '45 岁以上' },
+]
+const languageOptions = [
+  { value: 'zh-CN', label: '中文' },
+  { value: 'en-US', label: '英文' },
+  { value: 'ja-JP', label: '日文' },
+  { value: 'ms-MY', label: '马来语' },
+  { value: 'multi', label: '多语言' },
+]
+const voiceOptions = [
+  { value: 'sweet', label: '甜美' },
+  { value: 'mature', label: '御姐' },
+  { value: 'magnetic', label: '磁性' },
+  { value: 'loli', label: '萝莉' },
+  { value: 'cold', label: '冷艳' },
+  { value: 'gentle', label: '温柔' },
+  { value: 'none', label: '不涉及语音' },
+]
+const deliverOptions = [
+  { value: 'portrait', label: '立绘' },
+  { value: 'voice', label: '语音' },
+  { value: 'video', label: '短视频' },
+  { value: 'live', label: '直播' },
+  { value: 'chat', label: 'AI 聊天' },
+]
+
+const descLen = computed(() => form.value.description.trim().length)
+const descOk = computed(() => descLen.value >= 200)
+
+function toggleDeliver(v: string) {
+  const i = form.value.deliverables.indexOf(v)
+  if (i === -1) form.value.deliverables.push(v)
+  else form.value.deliverables.splice(i, 1)
+}
 
 const minDeadline = computed(() => {
   const d = new Date()
@@ -117,17 +295,52 @@ async function onFileChange(e: Event) {
   }
 }
 
+// 中英文逗号分隔 -> 去重数组
+function splitList(v: string): string[] {
+  return String(v || '')
+    .replace(/，/g, ',')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+}
+
 async function doSubmit() {
-  if (!form.value.title.trim()) { alert('请输入项目标题'); return }
   if (!form.value.persona_name.trim()) { alert('请输入角色名称'); return }
+  if (!form.value.title.trim()) { alert('请输入项目标题'); return }
+  if (descLen.value < 200) { alert('角色描述不能少于200字（当前 ' + descLen.value + ' 字）'); return }
+
+  const tags = splitList(form.value.tags)
+  if (tags.length === 0) { alert('请至少填写一个标签'); return }
+  if (tags.length > 10) { alert('标签最多填写10个'); return }
+  if (!form.value.style) { alert('请选择角色风格'); return }
+  if (form.value.deliverables.length === 0) { alert('请至少选择一项交付内容'); return }
+  if (form.value.reference_url && !/^https?:\/\//i.test(form.value.reference_url)) {
+    alert('参考链接需以 http(s):// 开头')
+    return
+  }
   if (!form.value.target_amount || form.value.target_amount <= 0) { alert('请输入有效的目标金额'); return }
   if (!form.value.deadline) { alert('请选择截止时间'); return }
 
   submitting.value = true
   try {
     const res: any = await initiateCrowdfunding({
-      ...form.value,
+      title: form.value.title.trim(),
+      persona_name: form.value.persona_name.trim(),
+      description: form.value.description.trim(),
+      tags: tags.join(','),
+      style: form.value.style,
+      gender: form.value.gender,
+      age_range: form.value.age_range,
+      language: form.value.language,
+      personality: splitList(form.value.personality).join(','),
+      voice_style: form.value.voice_style,
+      deliverables: form.value.deliverables,
+      is_adult: form.value.is_adult,
+      highlights: form.value.highlights.trim(),
+      reference_url: form.value.reference_url.trim(),
+      cover_url: form.value.cover_url,
       target_amount: Number(form.value.target_amount),
+      deadline: form.value.deadline,
     })
     const respData = res?.data
     // 检查后端返回的错误码
@@ -240,6 +453,38 @@ async function doSubmit() {
   font-size: 11px; color: rgba(255,255,255,0.3);
   margin-top: 6px;
 }
+.hint-ok { color: #00d4aa; }
+.hint-warn { color: #f59e0b; }
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.5px;
+  margin: 4px 0 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.section-label:first-child { border-top: none; padding-top: 0; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+select.form-input { appearance: none; -webkit-appearance: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.chip.on {
+  border-color: rgba(99,102,241,0.65);
+  background: rgba(99,102,241,0.18);
+  color: #a5b4fc;
+}
+.chip--wide { flex: 1; text-align: center; }
 
 .cover-upload {
   width: 100%;

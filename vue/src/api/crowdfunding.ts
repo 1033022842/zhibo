@@ -6,6 +6,17 @@ export interface CrowdfundingProject {
   title: string
   persona_name: string
   description: string
+  tags: string[]
+  style: string
+  gender: string
+  age_range: string
+  language: string
+  personality: string[]
+  voice_style: string
+  deliverables: string[]
+  is_adult: number
+  highlights: string
+  reference_url: string
   cover_url: string
   target_amount: number
   raised_amount: number
@@ -44,6 +55,17 @@ export interface InitiateParams {
   title: string
   persona_name: string
   description: string
+  tags: string
+  style: string
+  gender?: string
+  age_range?: string
+  language?: string
+  personality?: string
+  voice_style?: string
+  deliverables: string[]
+  is_adult: number
+  highlights?: string
+  reference_url?: string
   cover_url: string
   target_amount: number
   deadline: string

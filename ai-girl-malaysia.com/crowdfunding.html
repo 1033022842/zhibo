@@ -26,10 +26,24 @@
     .field input[type=number],
     .field input[type=datetime-local],
     .field input[type=url],
-    .field textarea{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#fff;font-size:15px;outline:none;font-family:inherit}
+    .field select,
+    .field textarea{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#fff;font-size:15px;outline:none;font-family:inherit;color-scheme:dark}
+    .field select option{background:#161a2b;color:#fff}
     .field textarea{resize:vertical;min-height:80px}
-    .field input:focus,.field textarea:focus{border-color:#a855f7}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:#a855f7}
     .field .hint{font-size:11px;color:rgba(255,255,255,.3);margin-top:4px}
+    .field .counter{font-size:11px;color:rgba(255,255,255,.35);margin-top:5px;text-align:right}
+    .field .counter.ok{color:#34d399}
+    .field .counter.bad{color:#f59e0b}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+    @media (max-width:420px){.grid-2{grid-template-columns:1fr}}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.7);font-size:13px;font-family:inherit;cursor:pointer;user-select:none;transition:border-color .15s,background .15s,color .15s}
+    .chip:active{transform:scale(.97)}
+    .chip.on{border-color:rgba(168,85,247,.65);background:rgba(168,85,247,.16);color:#c9a6f7}
+    .radio-row{display:flex;gap:10px}
+    .radio-row .chip{flex:1;text-align:center;justify-content:center}
+    .section-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.5px;text-transform:uppercase;margin:22px 0 10px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07)}
     .amount-row{display:flex;align-items:center;gap:8px}
     .amount-row input{flex:1}
     .amount-unit{font-size:15px;color:rgba(255,255,255,.4)}
@@ -150,12 +164,87 @@
             '<div class="upload-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>点击上传封面</span></div>' +
             '</div><input type="file" id="coverInput" accept="image/*" style="display:none" onchange="uploadCover(this)" /></div>' +
             '<input type="hidden" id="coverUrl" />' +
+
+            '<div class="section-label">基础信息</div>' +
             '<div class="field"><label>角色名称 <span class="required">*</span></label><input type="text" id="personaName" placeholder="给你的角色起个名字" maxlength="50" /></div>' +
             '<div class="field"><label>项目标题 <span class="required">*</span></label><input type="text" id="title" placeholder="一句话描述你的角色创意" maxlength="100" /></div>' +
-            '<div class="field"><label>详细描述</label><textarea id="description" placeholder="描述你的角色人设、风格、创意理念…" rows="4"></textarea></div>' +
+            '<div class="field"><label>角色描述 <span class="required">*</span></label>' +
+            '<textarea id="description" rows="9" maxlength="5000" oninput="onDescInput()" placeholder="详细介绍角色：背景故事、性格人设、外观与穿搭、说话方式、日常互动场景、适合的玩法与受众…"></textarea>' +
+            '<div class="counter" id="descCounter">0 / 200 字</div></div>' +
+
+            '<div class="section-label">角色设定</div>' +
+            '<div class="field"><label>标签 <span class="required">*</span></label>' +
+            '<input type="text" id="tags" placeholder="逗号分隔，例如：御姐,甜美,高冷,粘人" />' +
+            '<div class="hint">最多 10 个标签，中英文逗号均可</div></div>' +
+            '<div class="grid-2">' +
+            '<div class="field"><label>风格 <span class="required">*</span></label><select id="style">' +
+            '<option value="">请选择风格</option>' +
+            '<option value="realistic">写实</option>' +
+            '<option value="anime">二次元</option>' +
+            '<option value="3d">3D</option>' +
+            '<option value="cyberpunk">赛博朋克</option>' +
+            '<option value="chinese">古风</option>' +
+            '<option value="korean">韩系</option>' +
+            '<option value="western">欧美</option>' +
+            '</select></div>' +
+            '<div class="field"><label>角色性别</label><select id="gender">' +
+            '<option value="">不限</option>' +
+            '<option value="female">女性</option>' +
+            '<option value="male">男性</option>' +
+            '<option value="other">其他</option>' +
+            '</select></div>' +
+            '</div>' +
+            '<div class="grid-2">' +
+            '<div class="field"><label>年龄段</label><select id="ageRange">' +
+            '<option value="">不限</option>' +
+            '<option value="18-22">18-22 岁</option>' +
+            '<option value="23-27">23-27 岁</option>' +
+            '<option value="28-35">28-35 岁</option>' +
+            '<option value="36-45">36-45 岁</option>' +
+            '<option value="45+">45 岁以上</option>' +
+            '</select></div>' +
+            '<div class="field"><label>语言</label><select id="language">' +
+            '<option value="">不限</option>' +
+            '<option value="zh-CN">中文</option>' +
+            '<option value="en-US">英文</option>' +
+            '<option value="ja-JP">日文</option>' +
+            '<option value="ms-MY">马来语</option>' +
+            '<option value="multi">多语言</option>' +
+            '</select></div>' +
+            '</div>' +
+            '<div class="field"><label>性格特点</label><input type="text" id="personality" placeholder="逗号分隔，例如：温柔,幽默,小傲娇" /></div>' +
+            '<div class="field"><label>语音风格</label><select id="voiceStyle">' +
+            '<option value="">不限</option>' +
+            '<option value="sweet">甜美</option>' +
+            '<option value="mature">御姐</option>' +
+            '<option value="magnetic">磁性</option>' +
+            '<option value="loli">萝莉</option>' +
+            '<option value="cold">冷艳</option>' +
+            '<option value="gentle">温柔</option>' +
+            '<option value="none">不涉及语音</option>' +
+            '</select></div>' +
+
+            '<div class="section-label">交付与合规</div>' +
+            '<div class="field"><label>交付内容 <span class="required">*</span></label>' +
+            '<div class="chips" id="deliverChips">' +
+            '<button type="button" class="chip" data-v="portrait" onclick="toggleDeliver(this)">立绘</button>' +
+            '<button type="button" class="chip" data-v="voice" onclick="toggleDeliver(this)">语音</button>' +
+            '<button type="button" class="chip" data-v="video" onclick="toggleDeliver(this)">短视频</button>' +
+            '<button type="button" class="chip" data-v="live" onclick="toggleDeliver(this)">直播</button>' +
+            '<button type="button" class="chip" data-v="chat" onclick="toggleDeliver(this)">AI 聊天</button>' +
+            '</div><div class="hint">可多选，至少选择一项</div></div>' +
+            '<div class="field"><label>是否为 18+ 内容 <span class="required">*</span></label>' +
+            '<div class="radio-row" id="adultRow">' +
+            '<button type="button" class="chip on" data-v="0" onclick="pickAdult(this)">否 · 全年龄</button>' +
+            '<button type="button" class="chip" data-v="1" onclick="pickAdult(this)">是 · 18+</button>' +
+            '</div><div class="hint">18+ 内容仅对成年用户开放展示</div></div>' +
+            '<div class="field"><label>项目亮点</label><textarea id="highlights" rows="3" maxlength="500" placeholder="一句话卖点或差异化优势，可分行"></textarea></div>' +
+            '<div class="field"><label>参考链接</label><input type="url" id="referenceUrl" placeholder="https://... （可选，风格参考/作品集）" /></div>' +
+
+            '<div class="section-label">众筹设置</div>' +
             '<div class="field"><label>目标金额（钻石）<span class="required">*</span></label><div class="amount-row"><input type="number" id="targetAmount" placeholder="例如：10000" min="1" /><span class="amount-unit">钻</span></div><div class="hint">设置合理的目标金额，达标的角色才能创建</div></div>' +
             '<div class="field"><label>截止时间 <span class="required">*</span></label><input type="datetime-local" id="deadline" /></div>' +
-            '<div class="agreement"><p>发起即表示同意：</p><ul><li>无法达标将全额退还支持者</li><li>达标后需手动创建角色并关联</li></ul></div>' +
+            '<div class="agreement"><p>发起即表示同意：</p><ul><li>无法达标将全额退还支持者</li><li>达标后需手动创建角色并关联</li><li>18+ 内容需符合平台内容规范</li></ul></div>' +
             '<button class="btn-submit" id="submitBtn" onclick="doSubmit()">发起众筹</button>' +
             '</div>'
 
@@ -163,6 +252,28 @@
         var now = new Date()
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
         document.getElementById('deadline').min = now.toISOString().slice(0, 16)
+
+        onDescInput()
+    }
+
+    window.onDescInput = function() {
+        var el = document.getElementById('description')
+        var counter = document.getElementById('descCounter')
+        if (!el || !counter) return
+        var len = el.value.trim().length
+        counter.textContent = len + ' / 200 字'
+        counter.className = 'counter' + (len >= 200 ? ' ok' : (len > 0 ? ' bad' : ''))
+    }
+
+    window.toggleDeliver = function(btn) {
+        btn.classList.toggle('on')
+    }
+
+    window.pickAdult = function(btn) {
+        var row = document.getElementById('adultRow')
+        var chips = row.getElementsByClassName('chip')
+        for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on')
+        btn.classList.add('on')
     }
 
     window.uploadCover = function(input) {
@@ -199,12 +310,30 @@
         var title = document.getElementById('title').value.trim()
         var personaName = document.getElementById('personaName').value.trim()
         var description = document.getElementById('description').value.trim()
+        var tags = splitList(document.getElementById('tags').value)
+        var style = document.getElementById('style').value
+        var gender = document.getElementById('gender').value
+        var ageRange = document.getElementById('ageRange').value
+        var language = document.getElementById('language').value
+        var personality = splitList(document.getElementById('personality').value)
+        var voiceStyle = document.getElementById('voiceStyle').value
+        var deliverables = getDeliverables()
+        var adultChip = document.querySelector('#adultRow .chip.on')
+        var highlights = document.getElementById('highlights').value.trim()
+        var referenceUrl = document.getElementById('referenceUrl').value.trim()
         var targetAmount = parseFloat(document.getElementById('targetAmount').value)
         var deadline = document.getElementById('deadline').value
         var coverUrl = document.getElementById('coverUrl').value
 
-        if (!title) { showToast('请输入项目标题', 'warn'); return }
         if (!personaName) { showToast('请输入角色名称', 'warn'); return }
+        if (!title) { showToast('请输入项目标题', 'warn'); return }
+        if (description.length < 200) { showToast('角色描述不能少于200字（当前 ' + description.length + ' 字）', 'warn'); return }
+        if (!tags.length) { showToast('请至少填写一个标签', 'warn'); return }
+        if (tags.length > 10) { showToast('标签最多填写10个', 'warn'); return }
+        if (!style) { showToast('请选择角色风格', 'warn'); return }
+        if (!deliverables.length) { showToast('请至少选择一项交付内容', 'warn'); return }
+        if (!adultChip) { showToast('请选择是否为18+内容', 'warn'); return }
+        if (referenceUrl && !/^https?:\/\//i.test(referenceUrl)) { showToast('参考链接需以 http(s):// 开头', 'warn'); return }
         if (!targetAmount || targetAmount <= 0) { showToast('请输入有效的目标金额', 'warn'); return }
         if (!deadline) { showToast('请选择截止时间', 'warn'); return }
         if (new Date(deadline).getTime() <= Date.now()) { showToast('截止时间必须在当前时间之后', 'warn'); return }
@@ -223,6 +352,17 @@
                 title: title,
                 persona_name: personaName,
                 description: description,
+                tags: tags.join(','),
+                style: style,
+                gender: gender,
+                age_range: ageRange,
+                language: language,
+                personality: personality.join(','),
+                voice_style: voiceStyle,
+                deliverables: deliverables,
+                is_adult: adultChip.getAttribute('data-v'),
+                highlights: highlights,
+                reference_url: referenceUrl,
                 cover_url: coverUrl,
                 target_amount: targetAmount,
                 deadline: deadline + ':00'
@@ -242,6 +382,23 @@
             btn.textContent = '发起众筹'
             showToast('网络错误，请稍后重试', 'error')
         })
+    }
+
+    // 逗号分隔（中英文）-> 数组
+    function splitList(v) {
+        return String(v || '')
+            .replace(/，/g, ',')
+            .split(',')
+            .map(function(s){ return s.trim() })
+            .filter(function(s){ return s !== '' })
+    }
+
+    // 已选交付内容
+    function getDeliverables() {
+        var out = []
+        var chips = document.querySelectorAll('#deliverChips .chip.on')
+        for (var i = 0; i < chips.length; i++) out.push(chips[i].getAttribute('data-v'))
+        return out
     }
 
     loadStatus()

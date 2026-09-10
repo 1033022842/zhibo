@@ -24,6 +24,17 @@ final class CrowdfundingService
             $project->title        = $data['title'];
             $project->persona_name = $data['persona_name'];
             $project->description  = $data['description'] ?? '';
+            $project->tags         = $data['tags'] ?? '';
+            $project->style        = $data['style'] ?? '';
+            $project->gender       = $data['gender'] ?? '';
+            $project->age_range    = $data['age_range'] ?? '';
+            $project->language     = $data['language'] ?? '';
+            $project->personality  = $data['personality'] ?? '';
+            $project->voice_style  = $data['voice_style'] ?? '';
+            $project->deliverables = $data['deliverables'] ?? '';
+            $project->is_adult     = (int) ($data['is_adult'] ?? 0);
+            $project->highlights   = $data['highlights'] ?? '';
+            $project->reference_url = $data['reference_url'] ?? '';
             $project->cover_url    = $data['cover_url'] ?? '';
             $project->target_amount = $data['target_amount'];
             $project->deadline     = $data['deadline'];
@@ -392,6 +403,17 @@ final class CrowdfundingService
             'title'           => $p['title'],
             'persona_name'    => $p['persona_name'],
             'description'     => $p['description'],
+            'tags'            => $this->splitList((string)($p['tags'] ?? '')),
+            'style'           => (string)($p['style'] ?? ''),
+            'gender'          => (string)($p['gender'] ?? ''),
+            'age_range'       => (string)($p['age_range'] ?? ''),
+            'language'        => (string)($p['language'] ?? ''),
+            'personality'     => $this->splitList((string)($p['personality'] ?? '')),
+            'voice_style'     => (string)($p['voice_style'] ?? ''),
+            'deliverables'    => $this->splitList((string)($p['deliverables'] ?? '')),
+            'is_adult'        => (int)($p['is_adult'] ?? 0),
+            'highlights'      => (string)($p['highlights'] ?? ''),
+            'reference_url'   => (string)($p['reference_url'] ?? ''),
             'cover_url'       => $p['cover_url'],
             'target_amount'   => (float)$p['target_amount'],
             'raised_amount'   => (float)$p['raised_amount'],
@@ -401,6 +423,18 @@ final class CrowdfundingService
             'persona_id'      => $p['persona_id'] ? (int)$p['persona_id'] : null,
             'created_at'      => $p['created_at'],
         ];
+    }
+
+    /**
+     * 逗号分隔字符串 -> 数组
+     */
+    private function splitList(string $value): array
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return [];
+        }
+        return array_values(array_filter(array_map('trim', explode(',', $value)), static fn($s) => $s !== ''));
     }
 
     private function formatProjectSimple(array $p, int $id): array

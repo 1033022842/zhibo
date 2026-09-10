@@ -58,6 +58,11 @@
 			.cf-btn:hover{opacity:.9}
 			.cf-card.reached .cf-btn{background:#434343;color:#A1A1A1;cursor:default}
 			.cf-deadline{display:flex;align-items:center;justify-content:space-between;margin-top:10px;color:#A1A1A1;font-size:11px}
+			/* 标签 / 18+ */
+			.cf-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+			.cf-tag{font-size:10px;line-height:1;padding:4px 8px;border-radius:9999px;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7;white-space:nowrap}
+			.cf-adult{position:absolute;left:10px;top:10px;z-index:11;padding:4px 8px;border-radius:9999px;background:rgba(239,68,68,.92);color:#fff;font-size:10px;font-weight:700;line-height:1}
+			.cf-adult-inline{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.45);color:#fca5a5;font-size:10px;font-weight:700;line-height:1.3;vertical-align:middle}
 			/* 顶部统计 */
 			.cf-hero{background:linear-gradient(135deg,rgba(168,85,247,.14),rgba(231,82,117,.08));border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:20px}
 			.cf-hero-stats{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
@@ -590,19 +595,27 @@
 				var cover = p.cover_url
 					? '<img src="' + esc(p.cover_url) + '" alt="cover" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />'
 					: ''
+				var adult = parseInt(p.is_adult) === 1
+				var tags = Array.isArray(p.tags) ? p.tags : []
+				var adultBadge = adult ? '<div class="cf-adult">18+</div>' : ''
+				var tagsHtml = tags.length
+					? '<div class="cf-tags">' + tags.slice(0, 4).map(function(t){ return '<span class="cf-tag">' + esc(t) + '</span>' }).join('') + '</div>'
+					: ''
 				return '<li>' +
 					'<div class="cf-card' + theme + '">' +
 					'<div class="cf-cover-wrap">' + cover +
 					'<div class="cf-cover-fallback" style="' + (p.cover_url ? 'display:none' : '') + '"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>' +
 					'<div class="cf-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>Crowdfunding</span></div>' +
+					adultBadge +
 					badge +
 					'<div class="cf-title-overlay">' +
-					'<div class="text-white text-sm font-semibold truncate">' + esc(p.title) + '</div>' +
+					'<div class="text-white text-sm font-semibold truncate">' + esc(p.title) + (adult ? '<span class="cf-adult-inline">18+</span>' : '') + '</div>' +
 					'<div class="text-[#c9a6f7] text-xs mt-0.5 truncate">&#10024; ' + esc(p.persona_name) + '</div>' +
 					'</div>' +
 					'</div>' +
 					'<div class="cf-body">' +
 					(p.description ? '<div class="cf-desc">' + esc(p.description) + '</div>' : '<div class="cf-desc" style="visibility:hidden">-</div>') +
+					tagsHtml +
 					'<div class="flex justify-between items-baseline mt-2 mb-1.5">' +
 					'<span class="text-[#a855f7] text-sm font-extrabold">' + pct + '%</span>' +
 					'<span class="text-[#A1A1A1] text-[11px]">Goal ' + fmtNum(p.target_amount) + ' &#128142;</span>' +

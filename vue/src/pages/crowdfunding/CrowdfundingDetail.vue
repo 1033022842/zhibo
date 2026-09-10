@@ -49,6 +49,46 @@
         </div>
       </div>
 
+      <!-- 角色设定 -->
+      <div class="info-card" v-anim v-if="hasInfo">
+        <h3>角色设定</h3>
+        <div class="info-row" v-if="project.tags && project.tags.length">
+          <span class="info-k">标签</span>
+          <span class="info-v">
+            <span class="tag" v-for="t in project.tags" :key="t">{{ t }}</span>
+          </span>
+        </div>
+        <div class="info-row" v-if="project.style"><span class="info-k">风格</span><span class="info-v">{{ styleLabel(project.style) }}</span></div>
+        <div class="info-row" v-if="project.gender"><span class="info-k">性别</span><span class="info-v">{{ genderLabel(project.gender) }}</span></div>
+        <div class="info-row" v-if="project.age_range"><span class="info-k">年龄段</span><span class="info-v">{{ project.age_range }} 岁</span></div>
+        <div class="info-row" v-if="project.language"><span class="info-k">语言</span><span class="info-v">{{ languageLabel(project.language) }}</span></div>
+        <div class="info-row" v-if="project.personality && project.personality.length">
+          <span class="info-k">性格</span><span class="info-v">{{ project.personality.join('、') }}</span>
+        </div>
+        <div class="info-row" v-if="project.voice_style"><span class="info-k">语音风格</span><span class="info-v">{{ voiceLabel(project.voice_style) }}</span></div>
+        <div class="info-row" v-if="project.deliverables && project.deliverables.length">
+          <span class="info-k">交付内容</span>
+          <span class="info-v">{{ project.deliverables.map(deliverLabel).join('、') }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-k">18+ 内容</span>
+          <span class="info-v">
+            <span class="adult-chip" v-if="project.is_adult === 1">18+</span>
+            <span v-else>否</span>
+          </span>
+        </div>
+        <div class="info-row" v-if="project.reference_url">
+          <span class="info-k">参考链接</span>
+          <span class="info-v"><a :href="project.reference_url" target="_blank" rel="noopener" class="link">{{ project.reference_url }}</a></span>
+        </div>
+      </div>
+
+      <!-- 项目亮点 -->
+      <div class="desc-card" v-anim v-if="project.highlights">
+        <h3>项目亮点</h3>
+        <div class="desc-body">{{ project.highlights }}</div>
+      </div>
+
       <!-- 描述 -->
       <div class="desc-card" v-anim v-if="project.description">
         <h3>项目描述</h3>
@@ -106,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getCrowdfundingDetail, pledgeCrowdfunding, topupDiamonds, type CrowdfundingProject } from '@/api/crowdfunding'
 
@@ -133,6 +173,38 @@ function statusText(s: number): string {
 function statusClass(s: number): string {
   return ['active', 'success', 'failed'][s] || ''
 }
+
+const STYLE_LABEL: Record<string, string> = {
+  realistic: '写实', anime: '二次元', '3d': '3D', cyberpunk: '赛博朋克',
+  chinese: '古风', korean: '韩系', western: '欧美',
+}
+const GENDER_LABEL: Record<string, string> = { female: '女性', male: '男性', other: '其他' }
+const LANGUAGE_LABEL: Record<string, string> = {
+  'zh-CN': '中文', 'en-US': '英文', 'ja-JP': '日文', 'ms-MY': '马来语', multi: '多语言',
+}
+const VOICE_LABEL: Record<string, string> = {
+  sweet: '甜美', mature: '御姐', magnetic: '磁性', loli: '萝莉',
+  cold: '冷艳', gentle: '温柔', none: '不涉及语音',
+}
+const DELIVER_LABEL: Record<string, string> = {
+  portrait: '立绘', voice: '语音', video: '短视频', live: '直播', chat: 'AI 聊天',
+}
+
+function styleLabel(v: string) { return STYLE_LABEL[v] || v }
+function genderLabel(v: string) { return GENDER_LABEL[v] || v }
+function languageLabel(v: string) { return LANGUAGE_LABEL[v] || v }
+function voiceLabel(v: string) { return VOICE_LABEL[v] || v }
+function deliverLabel(v: string) { return DELIVER_LABEL[v] || v }
+
+const hasInfo = computed(() => {
+  const p = project.value
+  if (!p) return false
+  return !!(
+    (p.tags && p.tags.length) || p.style || p.gender || p.age_range || p.language ||
+    (p.personality && p.personality.length) || p.voice_style ||
+    (p.deliverables && p.deliverables.length) || p.is_adult === 1 || p.reference_url
+  )
+})
 
 async function doPledge() {
   if (pledging.value || pledgeAmount.value <= 0) return
@@ -312,6 +384,55 @@ async function doTopup() {
 }
 .desc-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
 .desc-body { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.7; }
+
+.info-card {
+  position: relative; z-index: 1;
+  margin: 0 16px 16px;
+  padding: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+.info-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.info-row {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.8;
+  padding: 3px 0;
+}
+.info-k {
+  flex-shrink: 0;
+  width: 68px;
+  color: rgba(255,255,255,0.4);
+}
+.info-v {
+  flex: 1;
+  min-width: 0;
+  color: rgba(255,255,255,0.8);
+  word-break: break-word;
+}
+.info-v .tag {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.3);
+  color: #a5b4fc;
+  font-size: 11px;
+}
+.adult-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(255,45,85,0.18);
+  border: 1px solid rgba(255,45,85,0.45);
+  color: #ff8fa3;
+  font-size: 11px;
+  font-weight: 700;
+}
+.link { color: #a5b4fc; text-decoration: underline; word-break: break-all; }
 
 .action-zone {
   position: relative; z-index: 1;
