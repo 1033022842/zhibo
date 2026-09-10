@@ -408,7 +408,7 @@
 						<a href="./crowdfunding.html" class="text-[#E75275] text-sm font-semibold no-underline">Start a project &#8594;</a>
 					</div>
 					<ul role="list" id="cfActiveList" class="mx-auto md:mb-0 mb-10 grid max-w-2xl grid-cols-2 gap-5 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-4">
-						<li class="col-span-2 lg:col-span-4 flex justify-center py-10">
+						<li class="col-span-2 lg:col-span-4 flex justify-center py-10" style="grid-column:1/-1">
 							<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#434343" stroke-width="3"/><path d="M22 12a10 10 0 0 0-10-10" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/></svg>
 						</li>
 					</ul>
@@ -638,12 +638,11 @@
 			}
 
 			function emptyHtml(msg) {
-				return '<li class="col-span-2 lg:col-span-4">' +
-					'<div class="text-center py-14">' +
+				return '<li class="col-span-2 lg:col-span-4" style="grid-column:1/-1">' +
+					'<div class="flex flex-col items-center justify-center text-center py-14" style="text-align:center">' +
 					'<div class="text-4xl mb-3">&#127775;</div>' +
 					'<div class="text-white text-base font-bold mb-1">No active projects</div>' +
-					'<div class="text-[#A1A1A1] text-xs mb-4">' + msg + '</div>' +
-					'<a href="./crowdfunding.html" class="inline-flex px-6 h-10 leading-10 bg-[#E75275] rounded-lg text-white text-sm font-semibold no-underline">Start a Project</a>' +
+					'<div class="text-[#A1A1A1] text-xs" style="max-width:420px;margin-left:auto;margin-right:auto">' + msg + '</div>' +
 					'</div></li>'
 			}
 
