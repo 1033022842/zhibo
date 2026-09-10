@@ -34,6 +34,9 @@
     .ms .v{font-size:13px;font-weight:700}
     .ms .k{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
     .row{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.45);margin-top:8px}
+    .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+    .tg{font-size:10px;line-height:1;padding:4px 8px;border-radius:999px;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7}
+    .adult{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.45);color:#fca5a5;font-size:10px;font-weight:700;vertical-align:middle}
     .empty{padding:70px 20px;text-align:center;color:rgba(255,255,255,.3);font-size:14px}
     .load{display:flex;justify-content:center;padding:60px 0}
     .spin{width:30px;height:30px;border:3px solid rgba(255,255,255,.1);border-top-color:#a855f7;border-radius:50%;animation:r .8s linear infinite}
@@ -86,9 +89,15 @@
             if (t === 'projects') {
                 data.forEach(function(p) {
                     var c = pct(p), done = p.status == 1 || c >= 100
+                    var tags = Array.isArray(p.tags) ? p.tags : []
+                    var tagsHtml = tags.length
+                        ? '<div class="tags">' + tags.slice(0, 6).map(function(t){ return '<span class="tg">' + esc(t) + '</span>' }).join('') + '</div>'
+                        : ''
+                    var adultTag = parseInt(p.is_adult) === 1 ? '<span class="adult">18+</span>' : ''
                     html += '<div class="card">' +
-                        '<div class="card-top"><div><div class="t">' + esc(p.title) + '</div><div class="persona">&#10024; ' + esc(p.persona_name) + '</div></div>' +
+                        '<div class="card-top"><div><div class="t">' + esc(p.title) + adultTag + '</div><div class="persona">&#10024; ' + esc(p.persona_name) + '</div></div>' +
                         '<span class="badge b' + p.status + '">' + (stMap[p.status] || '未知') + '</span></div>' +
+                        tagsHtml +
                         '<div class="track"><div class="fill' + (done ? ' ok' : '') + '" style="width:' + c + '%"></div></div>' +
                         '<div class="meta"><div class="ms"><div class="v">' + p.raised_amount + '</div><div class="k">Raised</div></div>' +
                         '<div class="ms"><div class="v">' + p.supporter_count + '</div><div class="k">Backers</div></div>' +

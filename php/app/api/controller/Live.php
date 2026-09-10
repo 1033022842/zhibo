@@ -234,6 +234,12 @@ final class Live extends BaseController
         $checksum = (string) ($attachment['sha1'] ?? '');
         $assetCode = 'u' . $userId . '_' . substr(md5($fileUrl . '|' . $checksum), 0, 10);
 
+        // 详细素材信息
+        $detail = $this->normalizeMediaDetail($this->request->post(), []);
+        if ($detail['error'] !== '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, $detail['error']);
+        }
+
         try {
             $query = \think\facade\Db::connect('live_mysql')->table('lp_media_asset');
             $query->insert([
@@ -253,6 +259,13 @@ final class Live extends BaseController
                 'machine_id'  => '',
                 'remote_path' => '',
                 'created_at'  => date('Y-m-d H:i:s'),
+                'description' => $detail['description'],
+                'cover_url'   => $this->normalizeMediaUrl((string) $this->request->post('cover_url', '')),
+                'tags'        => $detail['tags'],
+                'style'       => $detail['style'],
+                'mood'        => $detail['mood'],
+                'resolution'  => $detail['resolution'],
+                'is_adult'    => $detail['is_adult'],
             ]);
             $id = (int) $query->getLastInsID();
         } catch (\Throwable $e) {
@@ -260,14 +273,129 @@ final class Live extends BaseController
         }
 
         return $this->jsonSuccess([
-            'id'         => $id,
-            'title'      => $title,
-            'file_url'   => $fileUrl,
-            'asset_type' => $assetType,
-            'scene_type' => $sceneType,
-            'persona'    => $persona,
-            'keywords'   => $keywords,
+            'id'          => $id,
+            'title'       => $title,
+            'file_url'    => $fileUrl,
+            'asset_type'  => $assetType,
+            'scene_type'  => $sceneType,
+            'persona'     => $persona,
+            'keywords'    => $keywords,
+            'description' => $detail['description'],
+            'tags'        => $detail['tags'],
+            'style'       => $detail['style'],
+            'mood'        => $detail['mood'],
+            'resolution'  => $detail['resolution'],
+            'is_adult'    => $detail['is_adult'],
         ], '素材上传成功');
+    }
+
+    /**
+     * 素材详细字段白名单
+     */
+    private const MEDIA_STYLE_MAP = [
+        'realistic' => '写实',
+        'anime'     => '二次元',
+        '3d'        => '3D',
+        'cyberpunk' => '赛博朋克',
+        'chinese'   => '古风',
+        'korean'    => '韩系',
+        'western'   => '欧美',
+    ];
+
+    private const MEDIA_MOOD_MAP = [
+        'happy'   => '开心',
+        'cute'    => '撒娇',
+        'shy'     => '害羞',
+        'cold'    => '高冷',
+        'sexy'    => '性感',
+        'healing' => '治愈',
+        'funny'   => '搞笑',
+        'serious' => '认真',
+    ];
+
+    private const MEDIA_RESOLUTION_MAP = [
+        '720P'  => '720P',
+        '1080P' => '1080P',
+        '2K'    => '2K',
+        '4K'    => '4K',
+    ];
+
+    /**
+     * 整理并校验素材详细字段
+     *
+     * @param array $post     当前提交数据
+     * @param array $existing 已有记录（编辑时用于回退）
+     * @return array{description:string,tags:string,style:string,mood:string,resolution:string,is_adult:int,error:string}
+     */
+    private function normalizeMediaDetail(array $post, array $existing): array
+    {
+        $has = static fn(string $key): bool => array_key_exists($key, $post);
+
+        // 描述：必填，不少于 20 字
+        $description = trim((string) ($post['description'] ?? ($existing['description'] ?? '')));
+        if ($description === '') {
+            return ['description' => '', 'tags' => '', 'style' => '', 'mood' => '', 'resolution' => '', 'is_adult' => 0, 'error' => '请输入素材描述'];
+        }
+        if (mb_strlen($description, 'UTF-8') < 20) {
+            return ['description' => '', 'tags' => '', 'style' => '', 'mood' => '', 'resolution' => '', 'is_adult' => 0, 'error' => '素材描述不能少于20字'];
+        }
+
+        // 标签：必填，最多 10 个
+        $tags = $this->normalizeMediaKeywords((string) ($post['tags'] ?? ($existing['tags'] ?? '')));
+        if ($tags === '') {
+            return ['description' => '', 'tags' => '', 'style' => '', 'mood' => '', 'resolution' => '', 'is_adult' => 0, 'error' => '请至少填写一个标签'];
+        }
+        if (count(explode(',', $tags)) > 10) {
+            return ['description' => '', 'tags' => '', 'style' => '', 'mood' => '', 'resolution' => '', 'is_adult' => 0, 'error' => '标签最多填写10个'];
+        }
+
+        // 风格：必填
+        $style = trim((string) ($post['style'] ?? ($existing['style'] ?? '')));
+        if ($has('style') || !isset($existing['style'])) {
+            if (!isset(self::MEDIA_STYLE_MAP[$style])) {
+                return ['description' => '', 'tags' => '', 'style' => '', 'mood' => '', 'resolution' => '', 'is_adult' => 0, 'error' => '请选择素材风格'];
+            }
+        }
+
+        // 情绪 / 清晰度：可选，但选值必须在白名单内
+        $mood = trim((string) ($post['mood'] ?? ($existing['mood'] ?? '')));
+        if ($mood !== '' && !isset(self::MEDIA_MOOD_MAP[$mood])) {
+            return ['description' => '', 'tags' => '', 'style' => '', 'mood' => '', 'resolution' => '', 'is_adult' => 0, 'error' => '情绪氛围不合法'];
+        }
+
+        $resolution = trim((string) ($post['resolution'] ?? ($existing['resolution'] ?? '')));
+        if ($resolution !== '' && !isset(self::MEDIA_RESOLUTION_MAP[$resolution])) {
+            return ['description' => '', 'tags' => '', 'style' => '', 'mood' => '', 'resolution' => '', 'is_adult' => 0, 'error' => '清晰度不合法'];
+        }
+
+        // 是否 18+：必填
+        $isAdultRaw = $post['is_adult'] ?? ($existing['is_adult'] ?? '');
+        if ($isAdultRaw === '' || $isAdultRaw === null) {
+            return ['description' => '', 'tags' => '', 'style' => '', 'mood' => '', 'resolution' => '', 'is_adult' => 0, 'error' => '请选择是否为18+内容'];
+        }
+        $isAdult = in_array((string) $isAdultRaw, ['1', 'true', 'on'], true) ? 1 : 0;
+
+        return [
+            'description' => $description,
+            'tags'        => $tags,
+            'style'       => $style,
+            'mood'        => $mood,
+            'resolution'  => $resolution,
+            'is_adult'    => $isAdult,
+            'error'       => '',
+        ];
+    }
+
+    /**
+     * 素材地址：相对路径补全为完整 URL
+     */
+    private function normalizeMediaUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '' || preg_match('/^https?:\/\//i', $url)) {
+            return $url;
+        }
+        return rtrim($this->request->domain(), '/') . '/' . ltrim($url, '/');
     }
 
     /**
@@ -292,14 +420,25 @@ final class Live extends BaseController
             if ($fileUrl !== '' && !preg_match('/^https?:\/\//i', $fileUrl)) {
                 $fileUrl = $domain . '/' . ltrim($fileUrl, '/');
             }
+            $coverUrl = (string) ($row['cover_url'] ?? '');
+            if ($coverUrl !== '' && !preg_match('/^https?:\/\//i', $coverUrl)) {
+                $coverUrl = $domain . '/' . ltrim($coverUrl, '/');
+            }
             return [
                 'id'          => (int) $row['id'],
                 'title'       => (string) ($row['title'] ?? ''),
                 'file_url'    => $fileUrl,
+                'cover_url'   => $coverUrl,
                 'asset_type'  => (string) ($row['asset_type'] ?? ''),
                 'scene_type'  => (string) ($row['scene_type'] ?? ''),
                 'persona'     => (string) ($row['persona'] ?? ''),
                 'keywords'    => (string) ($row['keywords'] ?? ''),
+                'description' => (string) ($row['description'] ?? ''),
+                'tags'        => (string) ($row['tags'] ?? ''),
+                'style'       => (string) ($row['style'] ?? ''),
+                'mood'        => (string) ($row['mood'] ?? ''),
+                'resolution'  => (string) ($row['resolution'] ?? ''),
+                'is_adult'    => (int) ($row['is_adult'] ?? 0),
                 'weight'      => (int) ($row['weight'] ?? 1),
                 'duration_ms' => (int) ($row['duration_ms'] ?? 0),
                 'created_at'  => (string) ($row['created_at'] ?? ''),
@@ -379,6 +518,28 @@ final class Live extends BaseController
             }
         }
 
+        // 封面图：优先新上传，其次表单传入，最后保留原值
+        $coverUrl = (string) ($row['cover_url'] ?? '');
+        $coverFile = $this->request->file('cover_file');
+        if ($coverFile) {
+            $coverUpload = new \app\common\library\Upload($coverFile);
+            $coverUpload->setTopic('media');
+            $coverAttachment = $coverUpload->upload(null, 0, $userId);
+            $newCover = trim((string) ($coverAttachment['url'] ?? ''));
+            if ($newCover !== '') {
+                $coverUrl = $newCover;
+            }
+        } elseif (array_key_exists('cover_url', $this->request->post())) {
+            $coverUrl = (string) $this->request->post('cover_url', '');
+        }
+        $coverUrl = $this->normalizeMediaUrl($coverUrl);
+
+        // 详细素材信息（编辑时以提交值为准，未提交则保留原值）
+        $detail = $this->normalizeMediaDetail($this->request->post(), $row);
+        if ($detail['error'] !== '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, $detail['error']);
+        }
+
         $data = [
             'title'       => $title,
             'asset_type'  => $assetType,
@@ -388,6 +549,13 @@ final class Live extends BaseController
             'weight'      => $weight,
             'duration_ms' => $durationMs,
             'file_url'    => $fileUrl,
+            'cover_url'   => $coverUrl,
+            'description' => $detail['description'],
+            'tags'        => $detail['tags'],
+            'style'       => $detail['style'],
+            'mood'        => $detail['mood'],
+            'resolution'  => $detail['resolution'],
+            'is_adult'    => $detail['is_adult'],
             'checksum'    => $checksum,
         ];
 
