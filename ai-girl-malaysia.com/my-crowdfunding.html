@@ -1,65 +1,89 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
     <title>My Crowdfunding · 我的众筹</title>
+    <link rel="icon" type="image/x-icon" href="/assets/favico-c002e20e13e2ee0d917bef3242cab0236c1087207a951e9d578b370c519d800a.png">
     <link rel="stylesheet" href="./assets/fy.css" data-turbo-track="reload">
     <link rel="stylesheet" href="./Girls_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
-    <script src="./Girls_files/jquery-3.6.0.min.js"></script>
-    <script src="./assets/layer/3.1.1/layer.js"></script>
-<style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0c0e18;color:#fff;min-height:100vh}
-    .wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
-    .top{display:flex;align-items:center;gap:12px;padding:14px 0 18px}
-    .back{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:18px;cursor:pointer}
-    h1{font-size:20px;font-weight:700}
-    .tabs{display:flex;gap:8px;margin-bottom:18px}
-    .tab{flex:1;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent}
-    .tab.on{background:rgba(168,85,247,.12);color:#c9a6f7;border-color:rgba(168,85,247,.35)}
-    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:14px}
-    .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-    .t{font-size:15px;font-weight:700}
-    .persona{font-size:12px;color:#c9a6f7;margin-top:2px}
-    .badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;flex-shrink:0}
-    .b0{background:rgba(168,85,247,.15);color:#c9a6f7}
-    .b1{background:rgba(16,185,129,.15);color:#34d399}
-    .b2{background:rgba(120,120,120,.2);color:#9a9a9a}
-    .track{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 6px}
-    .fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#a855f7,#E75275)}
-    .fill.ok{background:linear-gradient(90deg,#10b981,#059669)}
-    .meta{display:flex;gap:6px}
-    .ms{flex:1;background:rgba(0,0,0,.25);border-radius:8px;padding:6px;text-align:center}
-    .ms .v{font-size:13px;font-weight:700}
-    .ms .k{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
-    .row{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.45);margin-top:8px}
-    .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
-    .tg{font-size:10px;line-height:1;padding:4px 8px;border-radius:999px;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7}
-    .adult{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.45);color:#fca5a5;font-size:10px;font-weight:700;vertical-align:middle}
-    .empty{padding:70px 20px;text-align:center;color:rgba(255,255,255,.3);font-size:14px}
-    .load{display:flex;justify-content:center;padding:60px 0}
-    .spin{width:30px;height:30px;border:3px solid rgba(255,255,255,.1);border-top-color:#a855f7;border-radius:50%;animation:r .8s linear infinite}
-    @keyframes r{to{transform:rotate(360deg)}}
-</style>
+    <style>
+        @media only screen and (max-width: 768px){ .pc-nav{ display:none; } }
+        .login-pf{ display:none; }
+        #user-login{ display:none; }
+
+        /* 众筹卡片（沿用站点配色） */
+        .cf-card{background:#262626;border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;position:relative;transition:border-color .2s,transform .2s}
+        .cf-card:hover{border-color:rgba(231,82,117,.4);transform:translateY(-2px)}
+        .cf-cover-wrap{position:relative;height:190px;background:#161616}
+        .cf-cover-wrap img{width:100%;height:100%;object-fit:cover;object-position:center}
+        .cf-cover-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e1b31,#2a2145)}
+        .cf-badge{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:9999px;background:linear-gradient(135deg,#a855f7,#7c3aed);box-shadow:0 4px 12px rgba(0,0,0,.4);z-index:10}
+        .cf-badge span{color:#fff;font-size:11px;font-weight:600}
+        .cf-adult{position:absolute;right:10px;top:10px;z-index:11;padding:4px 8px;border-radius:9999px;background:rgba(239,68,68,.92);color:#fff;font-size:10px;font-weight:700;line-height:1}
+        .cf-title-overlay{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 10px;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);z-index:5}
+        .cf-body{padding:14px}
+        .cf-progress-track{height:8px;border-radius:9999px;background:#434343;overflow:hidden}
+        .cf-progress-fill{height:100%;border-radius:9999px;background:linear-gradient(90deg,#a855f7,#E75275);transition:width .6s ease}
+        .cf-progress-fill.ok{background:linear-gradient(90deg,#10b981,#059669)}
+        .cf-progress-fill.fail{background:#6b6b6b}
+        .cf-stats{display:flex;gap:6px;margin-top:10px}
+        .cf-stat{flex:1;background:#1d1d1d;border-radius:8px;padding:6px 4px;text-align:center}
+        .cf-stat .v{color:#fff;font-size:13px;font-weight:700;line-height:1.2}
+        .cf-stat .k{color:#A1A1A1;font-size:10px;margin-top:1px}
+        .cf-stat.raise .v{color:#fbbf24}
+        .cf-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+        .cf-tag{font-size:10px;line-height:1;padding:4px 8px;border-radius:9999px;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7;white-space:nowrap}
+        .cf-deadline{display:flex;align-items:center;justify-content:space-between;margin-top:10px;color:#A1A1A1;font-size:11px}
+
+        /* 状态徽章 */
+        .st-badge{padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;flex-shrink:0}
+        .st-b0{background:rgba(168,85,247,.15);color:#c9a6f7}
+        .st-b1{background:rgba(16,185,129,.15);color:#34d399}
+        .st-b2{background:rgba(120,120,120,.2);color:#9a9a9a}
+
+        /* Tab */
+        .mc-tab{padding:9px 22px;border-radius:9999px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:transparent;color:#A1A1A1;transition:all .2s}
+        .mc-tab:hover{color:#fff;border-color:rgba(255,255,255,.25)}
+        .mc-tab.on{background:rgba(231,82,117,.14);border-color:#E75275;color:#E75275}
+
+        .mc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+        @media (min-width:1024px){ .mc-grid{grid-template-columns:repeat(3,minmax(0,1fr));} }
+        @media (min-width:1280px){ .mc-grid{grid-template-columns:repeat(4,minmax(0,1fr));} }
+
+        .mc-load{display:flex;justify-content:center;padding:60px 0}
+        .mc-spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#E75275;border-radius:50%;animation:mcr .8s linear infinite}
+        @keyframes mcr{to{transform:rotate(360deg)}}
+        .mc-fill{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:64px 16px;color:#A1A1A1}
+    </style>
+    <script src="./js/site-shell.js"></script>
 </head>
-<body>
-<div class="wrap">
-    <div class="top">
-        <button class="back" onclick="location.href='./index.html'">&#8592;</button>
-        <h1>My Crowdfunding</h1>
-    </div>
-    <div class="tabs">
-        <button class="tab on" data-t="projects" onclick="switchTab('projects')">我发起的</button>
-        <button class="tab" data-t="pledges" onclick="switchTab('pledges')">我支持的</button>
-    </div>
-    <div id="list"><div class="load"><div class="spin"></div></div></div>
+<body class="bg-main pages" id="app" data-controller="main" data-main-is-sidebar-opened-value="true">
+<script>window.SiteShell && SiteShell.render('crowdfunding')</script>
+
+<div class="main-content-container">
+    <main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6">
+
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-white text-2xl font-bold">My Crowdfunding</h1>
+                <a href="./index.html" class="text-[#E75275] text-sm font-semibold no-underline">&#8592; Back to Crowdfunding</a>
+            </div>
+
+            <div class="flex gap-2 mb-7">
+                <button class="mc-tab on" data-t="projects" onclick="switchTab('projects')">我发起的</button>
+                <button class="mc-tab" data-t="pledges" onclick="switchTab('pledges')">我支持的</button>
+            </div>
+
+            <div id="list"><div class="mc-load"><div class="mc-spin"></div></div></div>
+        </div>
+    </main>
 </div>
+
 <script>
 (function() {
     var base = '/api/v1'
     var token = localStorage.getItem('live_access_token')
-
     if (!token) { location.href = './Login.html'; return }
 
     var stMap = { 0: '进行中', 1: '已达标', 2: '未达标·已退款' }
@@ -71,57 +95,81 @@
     function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] }) }
 
     window.switchTab = function(t) {
-        $('.tab').removeClass('on')
-        $('.tab[data-t=' + t + ']').addClass('on')
+        document.querySelectorAll('.mc-tab').forEach(function(el){ el.classList.toggle('on', el.getAttribute('data-t') === t) })
         load(t)
     }
 
+    function projectCard(p) {
+        var c = pct(p), done = p.status == 1 || c >= 100
+        var tags = Array.isArray(p.tags) ? p.tags : []
+        var tagsHtml = tags.length ? '<div class="cf-tags">' + tags.slice(0, 3).map(function(t){ return '<span class="cf-tag">' + esc(t) + '</span>' }).join('') + '</div>' : ''
+        var adult = parseInt(p.is_adult) === 1 ? '<div class="cf-adult">18+</div>' : ''
+        var cover = p.cover_url
+            ? '<img src="' + esc(p.cover_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />'
+            : ''
+        var fillCls = p.status == 2 ? ' fail' : (done ? ' ok' : '')
+        return '<div class="cf-card">' +
+            '<div class="cf-cover-wrap">' + cover +
+            '<div class="cf-cover-fallback" style="' + (p.cover_url ? 'display:none' : '') + '"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>' +
+            '<div class="cf-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>Crowdfunding</span></div>' +
+            adult +
+            '<div class="cf-title-overlay"><div class="text-white text-sm font-semibold truncate">' + esc(p.title) + '</div>' +
+            '<div class="text-[#c9a6f7] text-xs mt-0.5 truncate">&#10024; ' + esc(p.persona_name) + '</div></div></div>' +
+            '<div class="cf-body">' +
+            tagsHtml +
+            '<div class="flex items-center justify-between mt-3 mb-2">' +
+            '<span class="st-badge st-b' + p.status + '">' + (stMap[p.status] || '未知') + '</span>' +
+            '<span class="text-[#a855f7] text-sm font-extrabold">' + c + '%</span></div>' +
+            '<div class="cf-progress-track"><div class="cf-progress-fill' + fillCls + '" style="width:' + c + '%"></div></div>' +
+            '<div class="cf-stats">' +
+            '<div class="cf-stat raise"><div class="v">' + p.raised_amount + '</div><div class="k">Raised</div></div>' +
+            '<div class="cf-stat"><div class="v">' + p.supporter_count + '</div><div class="k">Backers</div></div>' +
+            '<div class="cf-stat"><div class="v">' + p.target_amount + '</div><div class="k">Goal</div></div>' +
+            '</div>' +
+            '<div class="cf-deadline"><span>&#9200; ' + (p.deadline || '').slice(0, 10) + '</span><span>#' + p.id + '</span></div>' +
+            '</div></div>'
+    }
+
+    function pledgeCard(w) {
+        var p = w.project || {}
+        var st = w.status
+        var stTxt = st == 0 ? '冻结中' : (st == 1 ? '已划转' : '已退款')
+        var stCls = st == 1 ? 'st-b1' : (st == 2 ? 'st-b2' : 'st-b0')
+        var c = p.target_amount ? Math.min(100, Math.round((p.raised_amount || 0) / p.target_amount * 100)) : 0
+        return '<div class="cf-card"><div class="cf-body" style="padding:18px">' +
+            '<div class="flex items-start justify-between mb-2">' +
+            '<div><div class="text-white text-base font-bold">' + esc(p.title || ('项目 #' + w.project_id)) + '</div>' +
+            '<div class="text-[#c9a6f7] text-xs mt-1">支持 ' + w.amount + ' 钻 · ' + (w.created_at || '').slice(0, 10) + '</div></div>' +
+            '<span class="st-badge ' + stCls + '">' + stTxt + '</span></div>' +
+            '<div class="cf-progress-track" style="margin:14px 0 6px"><div class="cf-progress-fill" style="width:' + c + '%"></div></div>' +
+            '<div class="cf-deadline"><span>项目进度 ' + c + '%</span><span>' + (stMap[p.status] != null ? '项目' + stMap[p.status] : '') + '</span></div>' +
+            '</div></div>'
+    }
+
+    function emptyHtml(msg) {
+        return '<div class="mc-fill"><div class="text-4xl mb-3">&#127775;</div><div class="text-white text-base font-bold mb-1">' + esc(msg) + '</div></div>'
+    }
+
     function load(t) {
-        $('#list').html('<div class="load"><div class="spin"></div></div>')
-        $.ajax({
-            url: base + '/crowdfunding/' + (t === 'projects' ? 'my-projects' : 'my-pledges'),
-            headers: { 'Authorization': 'Bearer ' + token },
-        }).done(function(r) {
-            if (r.code !== '00000') { $('#list').html('<div class="empty">' + esc(r.msg || '加载失败') + '</div>'); return }
-            var data = r.data || []
-            if (!data.length) { $('#list').html('<div class="empty">暂无记录</div>'); return }
-            var html = ''
-            if (t === 'projects') {
-                data.forEach(function(p) {
-                    var c = pct(p), done = p.status == 1 || c >= 100
-                    var tags = Array.isArray(p.tags) ? p.tags : []
-                    var tagsHtml = tags.length
-                        ? '<div class="tags">' + tags.slice(0, 6).map(function(t){ return '<span class="tg">' + esc(t) + '</span>' }).join('') + '</div>'
-                        : ''
-                    var adultTag = parseInt(p.is_adult) === 1 ? '<span class="adult">18+</span>' : ''
-                    html += '<div class="card">' +
-                        '<div class="card-top"><div><div class="t">' + esc(p.title) + adultTag + '</div><div class="persona">&#10024; ' + esc(p.persona_name) + '</div></div>' +
-                        '<span class="badge b' + p.status + '">' + (stMap[p.status] || '未知') + '</span></div>' +
-                        tagsHtml +
-                        '<div class="track"><div class="fill' + (done ? ' ok' : '') + '" style="width:' + c + '%"></div></div>' +
-                        '<div class="meta"><div class="ms"><div class="v">' + p.raised_amount + '</div><div class="k">Raised</div></div>' +
-                        '<div class="ms"><div class="v">' + p.supporter_count + '</div><div class="k">Backers</div></div>' +
-                        '<div class="ms"><div class="v">' + c + '%</div><div class="k">Progress</div></div></div>' +
-                        '<div class="row"><span>目标 ' + p.target_amount + ' 钻</span><span>截止 ' + (p.deadline || '').slice(0, 10) + '</span></div>' +
-                        '</div>'
-                })
-            } else {
-                data.forEach(function(w) {
-                    var p = w.project || {}
-                    var st = w.status
-                    var stTxt = st == 0 ? '冻结中' : (st == 1 ? '已划转' : '已退款')
-                    var stCls = st == 1 ? 'b1' : (st == 2 ? 'b2' : 'b0')
-                    var c = p.target_amount ? Math.min(100, Math.round((p.raised_amount || 0) / p.target_amount * 100)) : 0
-                    html += '<div class="card">' +
-                        '<div class="card-top"><div><div class="t">' + esc(p.title || ('项目 #' + w.project_id)) + '</div><div class="persona">支持 ' + w.amount + ' 钻 · ' + (w.created_at || '').slice(0, 10) + '</div></div>' +
-                        '<span class="badge ' + stCls + '">' + stTxt + '</span></div>' +
-                        '<div class="track"><div class="fill" style="width:' + c + '%"></div></div>' +
-                        '<div class="row"><span>项目进度 ' + c + '%</span><span>' + (stMap[p.status] != null ? '项目' + stMap[p.status] : '') + '</span></div>' +
-                        '</div>'
-                })
+        var list = document.getElementById('list')
+        list.innerHTML = '<div class="mc-load"><div class="mc-spin"></div></div>'
+        fetch(base + '/crowdfunding/' + (t === 'projects' ? 'my-projects' : 'my-pledges'), {
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r){ return r.json() }).then(function(r) {
+            if (r.code !== '00000') {
+                list.innerHTML = emptyHtml(r.msg || '加载失败')
+                return
             }
-            $('#list').html(html)
-        }).fail(function(){ $('#list').html('<div class="empty">网络错误</div>') })
+            var data = r.data || []
+            if (!data.length) {
+                list.innerHTML = emptyHtml(t === 'projects' ? '还没有发起过众筹' : '还没有支持过任何项目')
+                return
+            }
+            var html = '<div class="mc-grid">' + data.map(t === 'projects' ? projectCard : pledgeCard).join('') + '</div>'
+            list.innerHTML = html
+        }).catch(function() {
+            list.innerHTML = emptyHtml('网络错误，请稍后重试')
+        })
     }
 
     load('projects')
