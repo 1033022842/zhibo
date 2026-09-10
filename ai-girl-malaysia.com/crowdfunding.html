@@ -21,6 +21,8 @@
         .cf-input::placeholder{color:rgba(255,255,255,.28)}
         select.cf-input{appearance:none;-webkit-appearance:none}
         select.cf-input option{background:#1d1d1d;color:#fff}
+        .cf-date{cursor:pointer}
+        .cf-date::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.75}
         textarea.cf-input{resize:vertical;min-height:90px}
         .cf-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
         @media (max-width:520px){ .cf-grid2{grid-template-columns:1fr} }
@@ -80,7 +82,7 @@
 
 <div class="main-content-container">
     <main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
-        <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pt-6 pb-24">
+        <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pt-6 pb-20">
 
             <div class="flex items-center justify-between mb-6">
                 <h1 class="text-white text-2xl font-bold">Start a Crowdfunding</h1>
@@ -219,7 +221,7 @@
             '<div class="cf-field"><label class="cf-label">目标金额（钻石） <span class="req">*</span></label>' +
             '<div class="cf-amount"><input type="number" class="cf-input" id="targetAmount" placeholder="例如：10000" min="1" /><span class="unit">钻</span></div>' +
             '<div class="cf-hint">设置合理的目标金额，达标的角色才能创建</div></div>' +
-            '<div class="cf-field"><label class="cf-label">截止时间 <span class="req">*</span></label><input type="datetime-local" class="cf-input" id="deadline" /></div>' +
+            '<div class="cf-field"><label class="cf-label">截止时间 <span class="req">*</span></label><input type="datetime-local" class="cf-input cf-date" id="deadline" onclick="cfOpenPicker(this)" onfocus="cfOpenPicker(this)" /></div>' +
 
             '<div class="cf-agreement"><p>发起即表示同意：</p><ul><li>无法达标将全额退还支持者</li><li>达标后需手动创建角色并关联</li><li>18+ 内容需符合平台内容规范</li></ul></div>' +
             '<button class="cf-submit" id="submitBtn" onclick="doSubmit()">发起众筹</button>' +
@@ -241,6 +243,11 @@
     }
 
     window.toggleDeliver = function(btn) { btn.classList.toggle('on') }
+
+    // 点击输入框任意位置即弹出日期时间选择器（原生 datetime-local 默认只能点小图标）
+    window.cfOpenPicker = function(el) {
+        try { if (el && typeof el.showPicker === 'function') el.showPicker() } catch (e) {}
+    }
 
     window.pickAdult = function(btn) {
         var row = document.getElementById('adultRow')
