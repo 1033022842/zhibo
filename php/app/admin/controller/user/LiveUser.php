@@ -14,6 +14,11 @@ class LiveUser extends Backend
      */
     protected object $model;
 
+    /**
+     * 手动充值/扣减钻石无需单独配置权限节点（登录鉴权仍生效）
+     */
+    protected array $noNeedPermission = ['adjustDiamond'];
+
     protected array $withJoinTable = [];
 
     protected string|array $preExcludeFields = [];
@@ -38,15 +43,16 @@ class LiveUser extends Backend
             ->field('
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
                 live_user.email, live_user.status, live_user.level, live_user.created_at,
-                IFNULL(lp_user_auth.auth_key, \'\') as auth_account,
-                IFNULL(lp_user_auth.auth_type, \'\') as auth_type,
+                IFNULL(wallet.diamond_balance, 0) as diamond_balance,
+                IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
+                IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
                 IFNULL(lp_user_profile.last_login_ip, \'\') as last_login_ip,
                 IFNULL(lp_user_profile.last_login_at, NULL) as last_login_at,
                 IFNULL(cert.status, -1) as cert_status,
                 IFNULL(cert.id, 0) as cert_id
             ')
             ->alias($alias)
-            ->leftJoin('lp_user_auth', 'lp_user_auth.user_id = live_user.id')
+            ->leftJoin('lp_wallet_account wallet', 'wallet.user_id = live_user.id')
             ->leftJoin('lp_user_profile', 'lp_user_profile.user_id = live_user.id')
             ->leftJoin('lp_merchant_certification cert', 'cert.user_id = live_user.id')
             ->where($where)
@@ -77,6 +83,54 @@ class LiveUser extends Backend
     public function add(): void
     {
         $this->error('直播平台用户不支持手动添加，请通过注册流程创建');
+    }
+
+    /**
+     * 手动充值/扣减用户钻石
+     * POST /admin/user.LiveUser/adjustDiamond
+     * @param int    user_id 用户ID
+     * @param float  amount  钻石数量（正数）
+     * @param string type    credit=充值(增加) debit=扣减(减少)
+     * @param string remark  备注（可选）
+     */
+    public function adjustDiamond(): void
+    {
+        $userId = $this->request->post('user_id/d', 0);
+        $amount = (float) $this->request->post('amount/f', 0);
+        $type   = (string) $this->request->post('type/s', 'credit');
+        $remark = trim((string) $this->request->post('remark/s', ''));
+
+        if ($userId <= 0) {
+            $this->error('请选择用户');
+        }
+        if ($amount <= 0) {
+            $this->error('钻石数量必须大于 0');
+        }
+        if (!in_array($type, ['credit', 'debit'], true)) {
+            $this->error('操作类型无效');
+        }
+        if (!$this->model->find($userId)) {
+            $this->error('用户不存在');
+        }
+
+        $adminName = (string) ($this->auth->nickname ?? '');
+        $memo = ($type === 'debit' ? '管理员手动扣减' : '管理员手动充值')
+            . ($adminName !== '' ? '（' . $adminName . '）' : '')
+            . ($remark !== '' ? '：' . $remark : '');
+
+        try {
+            $service = new \app\live\service\WalletService();
+            $result  = $type === 'debit'
+                ? $service->debit($userId, $amount, 'adjust', 0, mb_substr($memo, 0, 255))
+                : $service->credit($userId, $amount, 'recharge', 0, mb_substr($memo, 0, 255));
+        } catch (\Throwable $e) {
+            $this->error($e->getMessage());
+            return;
+        }
+
+        // 注意：success() 内部通过抛 HttpResponseException 输出响应，必须放在 try/catch 之外，
+        // 否则会被 catch (\Throwable) 捕获而误报为失败（钻石已入账但前端收到错误提示）。
+        $this->success($type === 'debit' ? '扣减成功' : '充值成功', $result);
     }
 
     public function del(): void
