@@ -20,7 +20,7 @@ const props = defineProps({
 const item = inject<any>('item')
 const currentItem = computed(() => item?.value ?? item ?? {})
 const liveLocation = computed(() => {
-  return currentItem.value?.city || currentItem.value?.address || currentItem.value?.room_no || ''
+  return currentItem.value?.city || currentItem.value?.address || ''
 })
 const liveAuthorName = computed(() => {
   return currentItem.value?.author?.nickname || currentItem.value?.persona?.name || '官方直播间'

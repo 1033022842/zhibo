@@ -282,7 +282,7 @@ final class RoomService
     private function hlsBase(string $domain): string
     {
         // 配置了 HLS CDN（七牛等）则播放走 CDN，否则源站直连
-        $cdn = trim((string) env('HLS_CDN_DOMAIN', ''), '/');
+        $cdn = trim((string) (env('AI.HLS_CDN_DOMAIN', env('HLS_CDN_DOMAIN', ''))), '/');
         return $cdn !== '' ? $cdn : rtrim($domain, '/');
     }
 

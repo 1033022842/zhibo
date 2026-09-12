@@ -19,7 +19,7 @@ final class Whep extends BaseController
         $contentType = $this->request->header('Content-Type', 'application/sdp');
 
         $mediamtxUrl = sprintf(
-            'http://127.0.0.1:8889/%s/%s/whep',
+            'http://172.81.98.55:8889/%s/%s/whep',
             urlencode($app),
             urlencode($stream)
         );

@@ -30,7 +30,7 @@
       <template v-if="isLive">
         <div class="live-top">
           <div class="live-pill">{{ liveBadgeText }}</div>
-          <div v-if="liveRoomNo" class="live-pill subtle">{{ liveRoomNo }}</div>
+          
           <div v-if="livePlaybackModeText" class="live-pill subtle">{{ livePlaybackModeText }}</div>
         </div>
         <div class="live-side">
@@ -258,11 +258,6 @@ const progressClass = $computed(() => {
 const liveBadgeText = $computed(() => {
   return props.item?.display?.badge_text || (props.item?.state?.privilege_active ? '特权直播' : '直播中')
 })
-const liveRoomNo = $computed(() => {
-  if (props.item?.room_no) return props.item.room_no
-  if (props.item?.room_id) return `房间 ${props.item.room_id}`
-  return ''
-})
 const liveOnlineText = $computed(() => {
   return normalizeCountText(
     props.item?.display?.online_text ?? props.item?.statistics?.comment_count,
@@ -309,7 +304,9 @@ async function ensureLivePlayback(force = false) {
   if (!props.isLive || !hasLivePlaySource.value) return
 
   const signature = `${props.item?.play?.webrtc_url || ''}|${props.item?.play?.hls_url || ''}`
-  if (!force && livePlaybackController && state.livePlaybackSignature === signature) {
+  if (livePlaybackController && state.livePlaybackSignature === signature) {
+    // 实例还在（挂起态）：直接续播，跳过整条 HLS 握手
+    await livePlaybackController.resume()
     return
   }
 
@@ -405,11 +402,6 @@ onMounted(() => {
   bus.on(EVENT_KEY.CLOSE_SUB_TYPE, onCloseSubType)
 
   bus.on(EVENT_KEY.REMOVE_MUTED, removeMuted)
-
-  // 直播流：挂载时自动开始播放（解决列表数据异步加载后没有 ITEM_PLAY 事件触发的问题）
-  if (props.isLive && hasLivePlaySource.value) {
-    play()
-  }
 })
 
 onUnmounted(() => {
@@ -535,7 +527,8 @@ async function play(forceRestart = false) {
 function pause() {
   state.status = SlideItemPlayStatus.Pause
   if (props.isLive) {
-    destroyLivePlayback()
+    // 挂起而非销毁：保留 hls 实例，滑回来 resume 秒续
+    livePlaybackController?.suspend?.()
     state.loading = false
     return
   }
@@ -580,9 +573,8 @@ function touchend(e) {
   text-align: center;
 
   video {
-    width: 100%;
+    max-width: 100%;
     height: 100%;
-    object-fit: cover;
     transition:
       height,
       margin-top 0.3s;

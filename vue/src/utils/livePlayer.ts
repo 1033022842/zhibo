@@ -1,11 +1,9 @@
 import Hls from 'hls.js'
-
-export type LivePlaybackMode = 'webrtc' | 'hls' | 'preview'
+export type LivePlaybackMode = 'webrtc' | 'hls' | 'native-hls' | 'preview'
 
 interface LivePlaybackOptions {
   videoEl: HTMLVideoElement
   webrtcUrl?: string
-  hlsUrl?: string
   previewUrl?: string
   muted?: boolean
   onModeChange?: (mode: LivePlaybackMode) => void
@@ -76,125 +74,95 @@ function resetVideoElement(videoEl: HTMLVideoElement) {
   videoEl.pause()
   videoEl.loop = false
   videoEl.removeAttribute('src')
-  // 不要清除 srcObject，hls.js attachMedia 会自行替换
-  // 不要调用 load()，让 hls.js 完全接管 video 元素
-  delete videoEl.dataset.hlsReady
+  videoEl.srcObject = null
+  videoEl.load()
+}
+
+
+function canUseNativeHls(): boolean {
+  if (typeof document === 'undefined') return false
+  const video = document.createElement('video')
+  return Boolean(video.canPlayType('application/vnd.apple.mpegurl'))
+}
+
+
+function waitForFrames(videoEl: HTMLVideoElement, timeoutMs = 5000): Promise<boolean> {
+  if (videoEl.readyState >= 2) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    let done = false
+    const finish = (ok: boolean) => {
+      if (done) return
+      done = true
+      clearTimeout(timer)
+      videoEl.removeEventListener('loadeddata', onCheck)
+      videoEl.removeEventListener('canplay', onCheck)
+      resolve(ok)
+    }
+    const onCheck = () => {
+      if (videoEl.readyState >= 2) finish(true)
+    }
+    const timer = setTimeout(() => finish(false), timeoutMs)
+    videoEl.addEventListener('loadeddata', onCheck)
+    videoEl.addEventListener('canplay', onCheck)
+  })
+}
+
+async function playHls(
+  videoEl: HTMLVideoElement,
+  hlsUrl: string,
+  onModeChange?: (mode: LivePlaybackMode) => void,
+): Promise<boolean> {
+  if (!hlsUrl) return false
+
+  resetVideoElement(videoEl)
+
+  if (canUseNativeHls()) {
+    // Safari / iOS 原生 HLS
+    videoEl.src = hlsUrl
+    videoEl.loop = false
+    videoEl.play().catch(() => undefined)
+    onModeChange?.('native-hls')
+    return true
+  }
+
+  const HlsCtor = (Hls as unknown as { default?: typeof Hls }).default ?? Hls
+  if (!HlsCtor?.isSupported?.()) return false
+
+  const hls = new HlsCtor({ lowLatencyMode: false, liveSyncDurationCount: 1, maxBufferLength: 10, backBufferLength: 10, enableWorker: false })
+  ;(videoEl as HTMLVideoElement & { _hls?: Hls })._hls = hls
+  hls.attachMedia(videoEl)
+  hls.loadSource(hlsUrl)
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('hls manifest timeout')), 12000)
+    hls.on(HlsCtor.Events.MANIFEST_PARSED, () => {
+      clearTimeout(timer)
+      resolve()
+    })
+    hls.on(HlsCtor.Events.ERROR, (_event, data) => {
+      if (data.fatal) {
+        clearTimeout(timer)
+        reject(new Error(`hls fatal: ${data.details}`))
+      }
+    })
+  })
+  videoEl.play().catch(() => undefined)
+  onModeChange?.('hls')
+  return true
 }
 
 async function playPreview(videoEl: HTMLVideoElement, previewUrl: string) {
   resetVideoElement(videoEl)
   videoEl.loop = true
   videoEl.src = previewUrl
-  videoEl.autoplay = true
   videoEl.load()
   await videoEl.play()
   return 'preview' as const
-}
-
-function playHls(videoEl: HTMLVideoElement, hlsUrl: string, onInstance?: (hls: Hls) => void): Promise<boolean> {
-  return new Promise((resolve) => {
-    // HTTPS 页面加载 HTTP 的 CDN 资源会被浏览器拦截（mixed content）
-    // 此时回退到页面同域路径（源站直连），牺牲 CDN 加速但保证能播
-    try {
-      const u = new URL(hlsUrl)
-      if (window.location.protocol === 'https:' && u.protocol === 'http:') {
-        console.warn('[HLS] https page + http cdn url, fallback to same-origin:', u.pathname)
-        hlsUrl = window.location.origin + u.pathname + u.search
-      }
-    } catch (_) { /* keep original */ }
-    console.warn('[HLS] playHls, url:', hlsUrl)
-
-    if (!Hls.isSupported()) {
-      console.warn('[HLS] Hls.isSupported=false, giving up')
-      resolve(false)
-      return
-    }
-
-    resetVideoElement(videoEl)
-    const hls = new Hls({
-      enableWorker: false,
-      debug: false,
-      maxBufferLength: 12,
-      maxMaxBufferLength: 30,
-      // 贴近直播边缘（2 个分片 ≈ 6.4s），降低送礼视频的可见延迟
-      liveSyncDurationCount: 2,
-      maxBufferSize: 30 * 1000 * 1000, // 30MB
-      maxBufferHole: 0.5,
-    })
-    let resolved = false
-    let firstFragLoading = false
-
-    onInstance?.(hls)
-    hls.attachMedia(videoEl)
-
-    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-      videoEl.dataset.hlsReady = '1'
-      hls.loadSource(hlsUrl)
-    })
-
-    hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
-      const levels = data.levels?.length ?? 'media'
-      const duration = data.firstLevel?.details?.totalduration
-      console.warn('[HLS] manifest parsed, levels:', levels, 'duration:', Math.round(duration || 0))
-    })
-
-    // Log all fragment loading events
-    hls.on(Hls.Events.FRAG_LOADING, (_event, data) => {
-      firstFragLoading = true
-      const fullUrl = data.frag?.url || ''
-      console.warn('[HLS] loading frag:', data.frag?.sn, 'url:', fullUrl)
-    })
-
-    hls.on(Hls.Events.FRAG_LOADED, (_event, data) => {
-      console.warn('[HLS] frag loaded:', data.frag?.sn, 'size:', data.payload?.byteLength, 'loadTime:', Math.round(data.stats?.loading?.ms || 0), 'ms')
-    })
-
-    hls.on(Hls.Events.FRAG_LOAD_PROGRESS, (_event, data) => {
-      // 每收到进度事件都打印（大文件下载时帮助判断是否在进行中）
-      if (data.stats?.loaded && data.stats?.total) {
-        const pct = Math.round(data.stats.loaded / data.stats.total * 100)
-        console.warn('[HLS] frag progress:', data.frag?.sn, Math.round(data.stats.loaded/1024), '/', Math.round(data.stats.total/1024), 'KB (', pct, '%)')
-      }
-    })
-
-    hls.on(Hls.Events.FRAG_PARSED, (_event, data) => {
-      console.warn('[HLS] frag parsed:', data.frag?.sn)
-    })
-
-    hls.on(Hls.Events.FRAG_BUFFERED, () => {
-      if (!resolved) {
-        resolved = true
-        console.warn('[HLS] playback ready (first frag buffered)')
-        videoEl.play().catch((e) => console.warn('[HLS] play rejected:', e.name))
-        resolve(true)
-      }
-    })
-
-    // Log ALL errors, not just fatal
-    hls.on(Hls.Events.ERROR, (_event, data) => {
-      console.error('[HLS] error:', data.type, data.details, data.fatal ? 'FATAL' : 'non-fatal')
-      if (data.fatal) {
-        hls.destroy()
-        if (!resolved) { resolved = true; resolve(false) }
-      }
-    })
-
-    setTimeout(() => {
-      if (!resolved) {
-        console.warn('[HLS] timeout (120s), firstFragLoading:', firstFragLoading)
-        hls.destroy()
-        resolved = true
-        resolve(false)
-      }
-    }, 120000)
-  })
 }
 
 export function createLivePlaybackController(options: LivePlaybackOptions): LivePlaybackController {
   const { videoEl, webrtcUrl, hlsUrl, previewUrl, muted = true, onModeChange } = options
   const teardownList: Array<() => void> = []
   let rtcPlayer: SrsRtcPlayer | null = null
-  let hlsInstance: Hls | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
 
@@ -211,7 +179,10 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
       rtcPlayer = createSrsRtcPlayer()
       videoEl.srcObject = rtcPlayer.stream
       await rtcPlayer.play(webrtcUrl)
-      await videoEl.play()
+      await Promise.race([
+        videoEl.play(),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]).catch(() => undefined)
       onModeChange?.('webrtc')
       return true
     } catch (error) {
@@ -241,15 +212,12 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
         console.warn(`WebRTC reconnect attempt ${retries}/${maxRetries}, retrying in 1.5s...`)
         reconnectTimer = setTimeout(tryReconnect, 1500)
       } else {
-        console.warn('WebRTC reconnect exhausted, falling back')
+        console.warn('WebRTC reconnect exhausted, falling back to HLS')
         if (hlsUrl && !destroyed) {
-          playHls(videoEl, hlsUrl, (h) => { hlsInstance = h }).then((ok) => {
-            if (ok) onModeChange?.('hls')
-            else if (previewUrl) {
-              playPreview(videoEl, previewUrl).then((mode) => onModeChange?.(mode))
-            }
-          })
-        } else if (previewUrl && !destroyed) {
+          playHls(videoEl, hlsUrl, onModeChange).catch(() => undefined)
+          return
+        }
+        if (previewUrl && !destroyed) {
           playPreview(videoEl, previewUrl).then((mode) => {
             onModeChange?.(mode)
           })
@@ -280,23 +248,39 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
 
   return {
     async play() {
-      // HLS 优先（更稳定，兼容性好）
+      // 默认 HLS（秒开、稳定）；WebRTC 仅作 HLS 失败时的备用
       if (hlsUrl) {
-        const ok = await playHls(videoEl, hlsUrl, (h) => { hlsInstance = h })
-        if (ok) {
-          onModeChange?.('hls')
-          return 'hls'
+        try {
+          const okHls = await playHls(videoEl, hlsUrl, onModeChange)
+          if (okHls) return 'hls' as const
+        } catch (hlsError) {
+          console.warn('HLS play failed, trying WebRTC', hlsError)
         }
       }
 
-      // WebRTC 备选
-      const ok2 = await attemptWebrtc()
-      if (ok2) {
+      const ok = await attemptWebrtc()
+      if (ok) {
         watchConnection()
-        return 'webrtc'
+        // 信令成功≠出帧（ICE可能永远打不通）：限时等帧，超时放弃
+        const hasFrames = await waitForFrames(videoEl, 5000)
+        if (hasFrames) return 'webrtc'
+        console.warn('WebRTC signaling ok but no frames in 5s')
+        rtcPlayer?.close()
+        rtcPlayer = null
+        resetVideoElement(videoEl)
       }
 
-      // 最后兜底：预览视频
+      // 次选：HLS（经 CDN，延迟约 10-15s）
+      if (hlsUrl) {
+        try {
+          const okHls = await playHls(videoEl, hlsUrl, onModeChange)
+          if (okHls) return 'hls' as const
+        } catch (hlsError) {
+          console.warn('HLS play failed', hlsError)
+        }
+      }
+
+      // 兜底：预览视频
       if (previewUrl) {
         const mode = await playPreview(videoEl, previewUrl)
         onModeChange?.(mode)
@@ -305,19 +289,35 @@ export function createLivePlaybackController(options: LivePlaybackOptions): Live
 
       throw new Error('No playable source found')
     },
+    suspend() {
+      // 滑走挂起：停下载但保留实例，回来秒续（避免整条 HLS 握手重来）
+      videoEl.pause()
+      const vh = videoEl as HTMLVideoElement & { _hls?: Hls }
+      vh._hls?.stopLoad()
+    },
+
+    async resume() {
+      const vh = videoEl as HTMLVideoElement & { _hls?: Hls }
+      if (vh._hls) vh._hls.startLoad(-1)
+      try {
+        await videoEl.play()
+      } catch {
+        // autoplay 拒绝时静默，等待用户手势
+      }
+    },
+
     destroy() {
       destroyed = true
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
         reconnectTimer = null
       }
-      teardownList.splice(0).forEach((teardown) => teardown())
+      teardownList.splice(0).forEach((fn) => fn())
+      const vh = videoEl as HTMLVideoElement & { _hls?: Hls }
+      vh._hls?.destroy()
+      vh._hls = undefined
       rtcPlayer?.close()
       rtcPlayer = null
-      if (hlsInstance) {
-        hlsInstance.destroy()
-        hlsInstance = null
-      }
       resetVideoElement(videoEl)
     }
   }

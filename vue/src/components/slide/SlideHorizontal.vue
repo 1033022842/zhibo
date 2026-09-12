@@ -12,6 +12,7 @@ import { SlideType } from '@/utils/const_var'
 import { _css } from '@/utils/dom'
 
 const props = defineProps({
+  disabled: { type: Boolean, default: false },
   index: {
     type: Number,
     default: () => {
@@ -105,14 +106,17 @@ onUnmounted(() => {
 
 function touchStart(e) {
   slideTouchStart(e, slideListEl.value, state)
+  if (props.disabled) return
 }
 
 function touchMove(e) {
   slideTouchMove(e, slideListEl.value, state)
+  if (props.disabled) return
 }
 
 function touchEnd(e) {
   slideTouchEnd(e, state)
+  if (props.disabled) return
   slideReset(e, slideListEl.value, state, emit)
 }
 </script>
