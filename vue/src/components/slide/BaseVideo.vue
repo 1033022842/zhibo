@@ -306,11 +306,12 @@ async function ensureLivePlayback(force = false) {
   // 卡片优先播循环切片（秒开）；没有切片才走直播流
   const previewLoop = props.item?.preview_video_url
   if (previewLoop) {
-    if (videoEl.src !== previewLoop) {
+    if (videoEl.getAttribute('src') !== previewLoop) {
       destroyLivePlayback()
       resetVideoElement(videoEl)
       videoEl.src = previewLoop
       videoEl.loop = true
+      videoEl.muted = true
       videoEl.play().catch(() => undefined)
       state.livePlaybackMode = 'preview'
       state.loading = false
@@ -435,7 +436,7 @@ onUnmounted(() => {
 })
 
 watch(
-  () => [props.item?.play?.webrtc_url, props.item?.play?.hls_url],
+  () => [props.item?.play?.webrtc_url, props.item?.play?.hls_url, props.item?.preview_video_url],
   async () => {
     if (!props.isLive || !hasLivePlaySource.value) return
     if (state.status !== SlideItemPlayStatus.Play) return
