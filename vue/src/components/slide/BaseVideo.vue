@@ -351,6 +351,15 @@ onMounted(() => {
   state.height = document.body.clientHeight
   state.width = document.body.clientWidth
   videoEl.currentTime = 0
+  // 卡片切片自启：不依赖 bus 事件时序（手动 render() 挂载下事件监听注册晚于 emit，会永久错过）
+  if (props.isLive && props.item?.preview_video_url) {
+    videoEl.src = props.item.preview_video_url
+    videoEl.loop = true
+    videoEl.muted = true
+    videoEl.play().catch(() => undefined)
+    state.livePlaybackMode = 'preview'
+    state.loading = false
+  }
   let fun = (e) => {
     state.currentTime = Math.ceil(e.target.currentTime)
     state.playX = (state.currentTime - 1) * state.step
