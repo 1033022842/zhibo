@@ -38,7 +38,7 @@ LOOP_INTERVAL = 0.5          # 主循环 sleep（秒）
 RTMP_CONNECT_TIMEOUT = 20    # 等待 RTMP 连接建立的最长时间（秒）
 FFMPEG_RESTART_INTERVAL = 1800  # 定期重启 ffmpeg 的间隔（秒，30分钟）
 PLAYLIST_REFRESH_INTERVAL = 300  # 定期刷新播单的间隔（秒，5分钟），后台改播单后自动生效
-GIFT_QUEUE_MAX = 2              # 礼物视频队列上限：防连击排队数十秒导致卡死观感
+GIFT_QUEUE_MAX = 6              # 礼物视频队列上限：防连击排队数十秒导致卡死观感
 
 # TS 预转统一规格（保证 HTTP 源拼接无花屏；实际规格可由环境变量覆盖）
 TS_SCALE = os.environ.get('TS_SCALE', '360:640')   # 输出分辨率（降画质省带宽）
@@ -199,12 +199,7 @@ class PlaylistRepository:
             "ORDER BY RAND() LIMIT 1", (persona, keyword))
         if rows:
             return self._fmt(rows[0])
-        rows = self.db.query(
-            "SELECT id, asset_code, title, file_url, duration_ms, keywords "
-            "FROM lp_media_asset WHERE asset_type = 'video' AND status = 1 "
-            "AND FIND_IN_SET(%s, REPLACE(keywords, ' ', '')) > 0 "
-            "ORDER BY RAND() LIMIT 1", (keyword,))
-        return self._fmt(rows[0]) if rows else None
+        # 不做全局兜底：跨人设取素材会把别的房间画面串进本房间流（线上事故教训）
 
     def all_keyword_videos(self, persona):
         rows = self.db.query(
@@ -769,10 +764,6 @@ def main():
                 continue
             with source_lock:
                 q = source_state['gift_queue']
-                if ts in q:
-                    # 连击合并：同一礼物已在待播队列，不再重复排（否则N个礼物=N×10s连播，观众侧卡死观感）
-                    log(f"[礼物] '{kw}' 连击合并（队列已有同视频，跳过）")
-                    continue
                 if len(q) >= GIFT_QUEUE_MAX:
                     log(f"[礼物] '{kw}' 队列已满({len(q)}/{GIFT_QUEUE_MAX})，丢弃")
                     continue

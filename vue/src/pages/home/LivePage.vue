@@ -390,9 +390,19 @@ let lastEffectPlayedAt = 0
 function playGiftEffectVideo(videoUrl: string, durationMs?: number) {
   if (!videoUrl) return
 
-  // 节流：密集送礼时特效重启会拖垮低端手机，1.5s 内只播一次
+  // 密集送礼时避免频繁重启 webm 解码（低端手机会卡死）：
+  // 1.5s 内且是同一个特效 → 延长展示时间（不吞礼物反馈）；不同特效 → 立即切换
   const now = Date.now()
-  if (now - lastEffectPlayedAt < 1500) return
+  if (now - lastEffectPlayedAt < 1500) {
+    if (effectVideo.value.show && effectVideo.value.url === videoUrl && effectVideo.value.timer !== null) {
+      window.clearTimeout(effectVideo.value.timer)
+      effectVideo.value.timer = window.setTimeout(() => {
+        onEffectVideoEnded()
+      }, (durationMs || 1500) + 1000)
+    }
+    lastEffectPlayedAt = now
+    return
+  }
   lastEffectPlayedAt = now
 
   // 清理之前的特效视频
