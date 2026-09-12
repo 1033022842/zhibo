@@ -702,7 +702,11 @@
 
 			window.cfGoLive = function(roomId) {
 				// 新标签页打开主站（80 端口）对应直播间；用当前 hostname 动态拼接，避免硬编码 IP
-				window.open(window.location.protocol + '//' + window.location.hostname + '/home/live?roomId=' + roomId, '_blank')
+				// 附带登录 token（8082 与 80 是不同源，localStorage 不共享，用 URL 传递）
+				var tk = localStorage.getItem('live_access_token') || ''
+				var u = window.location.protocol + '//' + window.location.hostname + '/home/live?roomId=' + roomId
+				if (tk) u += '&token=' + encodeURIComponent(tk)
+				window.open(u, '_blank')
 			}
 
 			function emptyHtml(msg) {
