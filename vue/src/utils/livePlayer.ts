@@ -70,7 +70,7 @@ function createSrsRtcPlayer(): SrsRtcPlayer {
   }
 }
 
-function resetVideoElement(videoEl: HTMLVideoElement) {
+export function resetVideoElement(videoEl: HTMLVideoElement) {
   videoEl.pause()
   videoEl.loop = false
   videoEl.removeAttribute('src')
