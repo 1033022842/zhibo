@@ -171,7 +171,23 @@ watch(
   (newVal) => {
     //当激活此页时，如果list为空，那么向上发射事件通知父组件请求数据
     if (newVal && !props.list.length) {
-      return emit('refresh')
+      emit('refresh')
+      // 竞态修复：active 置位时 list 还没加载（feed 走 CDN 会慢于挂载），
+      // 上面的 return 不会发 ITEM_PLAY，等数据到位后补发，否则首屏卡片永远黑屏
+      const stopWatch = watch(
+        () => props.list.length,
+        (len) => {
+          if (newVal && len > 0) {
+            stopWatch()
+            bus.emit(EVENT_KEY.SINGLE_CLICK_BROADCAST, {
+              uniqueId: props.uniqueId,
+              index: state.localIndex,
+              type: EVENT_KEY.ITEM_PLAY
+            })
+          }
+        }
+      )
+      return
     }
     let t = newVal ? 0 : 200
     // console.log('active', 'newVal', newVal, 'oldVal', oldVal)
