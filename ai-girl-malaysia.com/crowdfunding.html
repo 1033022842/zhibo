@@ -1,100 +1,107 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>角色众筹</title>
-<style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0c0e18;color:#fff;min-height:100vh}
-    .container{max-width:480px;margin:0 auto;padding:20px}
-    .top-bar{display:flex;align-items:center;gap:12px;padding:16px 0;margin-bottom:24px}
-    .back-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:transparent;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-    h1{font-size:20px;font-weight:700}
-    .status-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px}
-    .status-icon{font-size:48px;margin-bottom:16px}
-    .status-title{font-size:18px;font-weight:700;margin-bottom:8px}
-    .status-desc{font-size:14px;color:rgba(255,255,255,.5);line-height:1.6}
-    .passed .status-title{color:#a855f7}
-    .warning .status-title{color:#f59e0b}
-    .form-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px}
-    .form-title{font-size:16px;font-weight:600;margin-bottom:20px;text-align:center}
-    .field{margin-bottom:18px}
-    .field label{display:block;font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px}
-    .field label .required{color:#ff2d55}
-    .field input[type=text],
-    .field input[type=number],
-    .field input[type=datetime-local],
-    .field input[type=url],
-    .field select,
-    .field textarea{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#fff;font-size:15px;outline:none;font-family:inherit;color-scheme:dark}
-    .field select option{background:#161a2b;color:#fff}
-    .field textarea{resize:vertical;min-height:80px}
-    .field input:focus,.field select:focus,.field textarea:focus{border-color:#a855f7}
-    .field .hint{font-size:11px;color:rgba(255,255,255,.3);margin-top:4px}
-    .field .counter{font-size:11px;color:rgba(255,255,255,.35);margin-top:5px;text-align:right}
-    .field .counter.ok{color:#34d399}
-    .field .counter.bad{color:#f59e0b}
-    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-    @media (max-width:420px){.grid-2{grid-template-columns:1fr}}
-    .chips{display:flex;flex-wrap:wrap;gap:8px}
-    .chip{padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.7);font-size:13px;font-family:inherit;cursor:pointer;user-select:none;transition:border-color .15s,background .15s,color .15s}
-    .chip:active{transform:scale(.97)}
-    .chip.on{border-color:rgba(168,85,247,.65);background:rgba(168,85,247,.16);color:#c9a6f7}
-    .radio-row{display:flex;gap:10px}
-    .radio-row .chip{flex:1;text-align:center;justify-content:center}
-    .section-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.5px;text-transform:uppercase;margin:22px 0 10px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07)}
-    .amount-row{display:flex;align-items:center;gap:8px}
-    .amount-row input{flex:1}
-    .amount-unit{font-size:15px;color:rgba(255,255,255,.4)}
-    .upload-zone{width:100%;aspect-ratio:16/9;border:2px dashed rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color .2s}
-    .upload-zone:hover{border-color:rgba(255,255,255,.3)}
-    .upload-zone img{width:100%;height:100%;object-fit:cover}
-    .upload-placeholder{display:flex;flex-direction:column;align-items:center;color:rgba(255,255,255,.3);gap:6px;font-size:13px;padding:16px}
-    .btn-submit{width:100%;padding:14px;border:none;border-radius:24px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(135deg,#a855f7,#7c3aed);cursor:pointer;margin-top:12px;transition:opacity .2s}
-    .btn-submit:disabled{opacity:.5;cursor:not-allowed}
-    .btn-secondary{width:100%;padding:12px;border-radius:24px;font-size:15px;font-weight:600;color:#a855f7;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);cursor:pointer;margin-top:8px}
-    .agreement{padding:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:16px;font-size:12px;color:rgba(255,255,255,.4);line-height:1.8}
-    .agreement ul{padding-left:16px}
-    .loading{display:flex;justify-content:center;padding:60px 0}
-    .spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#a855f7;border-radius:50%;animation:spin .8s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);padding:14px 28px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;animation:toastIn .3s ease;box-shadow:0 8px 30px rgba(0,0,0,.4);display:none}
-    .toast-success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
-    .toast-error{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
-    .toast-warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
-    @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:998;align-items:center;justify-content:center;animation:fadeIn .2s ease}
-    .modal-overlay.show{display:flex}
-    .modal-box{background:#1a1d2e;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px 24px 24px;width:360px;max-width:92vw;text-align:center;animation:modalPop .3s ease}
-    @keyframes modalPop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    .modal-icon{font-size:52px;margin-bottom:16px;line-height:1}
-    .modal-title{font-size:17px;font-weight:700;margin-bottom:8px;color:#fff}
-    .modal-desc{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
-    .modal-btn{display:inline-block;padding:10px 36px;border-radius:24px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff;background:linear-gradient(135deg,#a855f7,#7c3aed);transition:opacity .2s}
-    .modal-btn:hover{opacity:.85}
-</style>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <title>Start a Crowdfunding · 发起角色众筹</title>
+    <link rel="icon" type="image/x-icon" href="/assets/favico-c002e20e13e2ee0d917bef3242cab0236c1087207a951e9d578b370c519d800a.png">
+    <link rel="stylesheet" href="./assets/fy.css" data-turbo-track="reload">
+    <link rel="stylesheet" href="./Girls_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
+    <style>
+        @media only screen and (max-width: 768px){ .pc-nav{ display:none; } }
+        .login-pf{ display:none; }
+        #user-login{ display:none; }
+
+        .cf-form{background:#262626;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px}
+        .cf-field{margin-bottom:20px}
+        .cf-label{display:block;font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px}
+        .cf-label .req{color:#E75275}
+        .cf-input{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#1d1d1d;color:#fff;font-size:14px;outline:none;font-family:inherit;box-sizing:border-box}
+        .cf-input:focus{border-color:#E75275}
+        .cf-input::placeholder{color:rgba(255,255,255,.28)}
+        select.cf-input{appearance:none;-webkit-appearance:none}
+        select.cf-input option{background:#1d1d1d;color:#fff}
+        .cf-date{cursor:pointer}
+        .cf-date::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.75}
+        textarea.cf-input{resize:vertical;min-height:90px}
+        .cf-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+        @media (max-width:520px){ .cf-grid2{grid-template-columns:1fr} }
+        .cf-hint{font-size:11px;color:rgba(255,255,255,.35);margin-top:6px}
+        .cf-counter{font-size:11px;color:rgba(255,255,255,.35);margin-top:5px;text-align:right}
+        .cf-counter.ok{color:#34d399}
+        .cf-counter.bad{color:#f59e0b}
+        .cf-section{font-size:12px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.5px;text-transform:uppercase;margin:26px 0 14px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)}
+        .cf-section:first-child{border-top:none;padding-top:0;margin-top:0}
+        .cf-chips{display:flex;flex-wrap:wrap;gap:8px}
+        .cf-chip{padding:9px 16px;border-radius:9999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.7);font-size:13px;font-family:inherit;cursor:pointer;user-select:none;transition:all .15s}
+        .cf-chip:hover{border-color:rgba(255,255,255,.3)}
+        .cf-chip.on{border-color:#E75275;background:rgba(231,82,117,.16);color:#F97187}
+        .cf-chips.wide .cf-chip{flex:1;text-align:center}
+        .cf-upload{width:100%;aspect-ratio:16/9;border:2px dashed rgba(255,255,255,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color .2s}
+        .cf-upload:hover{border-color:#E75275}
+        .cf-upload img{width:100%;height:100%;object-fit:cover}
+        .cf-upload-ph{display:flex;flex-direction:column;align-items:center;gap:8px;color:rgba(255,255,255,.35);font-size:13px}
+        .cf-amount{display:flex;align-items:center;gap:8px}
+        .cf-amount .cf-input{flex:1}
+        .cf-amount .unit{font-size:15px;color:rgba(255,255,255,.4)}
+        .cf-agreement{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;font-size:12px;color:rgba(255,255,255,.45);line-height:1.8;margin:22px 0 18px}
+        .cf-agreement ul{padding-left:16px}
+        .cf-submit{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(268deg,#fc768a -14.8%,#e65073 102.08%);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s}
+        .cf-submit:disabled{opacity:.5;cursor:not-allowed}
+
+        .cf-center{display:flex;justify-content:center;padding:60px 0}
+        .cf-spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#E75275;border-radius:50%;animation:cfr .8s linear infinite}
+        @keyframes cfr{to{transform:rotate(360deg)}}
+        .cf-status{background:#262626;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:32px;text-align:center}
+        .cf-status .ico{font-size:48px;margin-bottom:14px}
+        .cf-status .ttl{font-size:18px;font-weight:700;margin-bottom:8px}
+        .cf-status .desc{font-size:14px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:18px}
+        .cf-warn .ttl{color:#f59e0b}
+        .cf-pass .ttl{color:#F97187}
+        .cf-status .btn-line{display:flex;justify-content:center;gap:10px}
+        .cf-btn-o{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;border-radius:9999px;border:1px solid #E75275;color:#E75275;background:transparent;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none}
+        .cf-btn-s{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;border-radius:9999px;border:none;color:#fff;background:linear-gradient(268deg,#fc768a,#e65073);font-size:14px;font-weight:700;cursor:pointer;text-decoration:none}
+
+        .cf-toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:12px 26px;border-radius:10px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.4);display:none}
+        .cf-toast-success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+        .cf-toast-error{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+        .cf-toast-warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+
+        .cf-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:16px}
+        .cf-modal.show{display:flex}
+        .cf-modal-box{background:#1b1b1b;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:30px 26px;width:380px;max-width:100%;text-align:center}
+        .cf-modal-box .ico{font-size:52px;margin-bottom:14px;line-height:1}
+        .cf-modal-box .ttl{font-size:18px;font-weight:700;margin-bottom:8px}
+        .cf-modal-box .desc{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
+        .cf-modal-box .mbtn{display:inline-block;padding:11px 40px;border-radius:9999px;border:none;color:#fff;background:linear-gradient(268deg,#fc768a,#e65073);font-size:14px;font-weight:700;cursor:pointer}
+    </style>
+    <script src="./js/site-shell.js"></script>
 </head>
-<body>
-<div class="container">
-    <div class="top-bar">
-        <button class="back-btn" onclick="history.length>1?history.back():location.href='./index.html'">&#8592;</button>
-        <h1>角色众筹</h1>
-    </div>
-    <div id="content">
-        <div class="loading"><div class="spinner"></div></div>
-    </div>
+<body class="bg-main pages" id="app" data-controller="main" data-main-is-sidebar-opened-value="true">
+<script>window.SiteShell && SiteShell.render('crowdfunding')</script>
+
+<div class="main-content-container">
+    <main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
+        <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pt-6 pb-20">
+
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-white text-2xl font-bold">Start a Crowdfunding</h1>
+                <a href="./my-crowdfunding.html" class="text-[#E75275] text-sm font-semibold no-underline">My Projects &#8594;</a>
+            </div>
+
+            <div id="content"><div class="cf-center"><div class="cf-spin"></div></div></div>
+        </div>
+    </main>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="cf-toast" id="toast"></div>
 
-<div class="modal-overlay" id="modal">
-    <div class="modal-box">
-        <div class="modal-icon" id="modalIcon"></div>
-        <div class="modal-title" id="modalTitle"></div>
-        <div class="modal-desc" id="modalDesc"></div>
-        <button class="modal-btn" id="modalBtn">确定</button>
+<div class="cf-modal" id="modal">
+    <div class="cf-modal-box">
+        <div class="ico" id="modalIcon"></div>
+        <div class="ttl" id="modalTitle"></div>
+        <div class="desc" id="modalDesc"></div>
+        <button class="mbtn" id="modalBtn">OK</button>
     </div>
 </div>
 
@@ -106,18 +113,17 @@
     function showToast(msg, type) {
         var el = document.getElementById('toast')
         el.textContent = msg
-        el.className = 'toast toast-' + (type || 'success')
+        el.className = 'cf-toast cf-toast-' + (type || 'success')
         el.style.display = 'block'
         setTimeout(function(){ el.style.display = 'none' }, 2500)
     }
 
-    function showModal(icon, title, desc, btnText, btnClass, callback) {
+    function showModal(icon, title, desc, btnText, callback) {
         document.getElementById('modalIcon').textContent = icon
         document.getElementById('modalTitle').textContent = title
         document.getElementById('modalDesc').textContent = desc
         var btn = document.getElementById('modalBtn')
-        btn.textContent = btnText || '确定'
-        btn.className = 'modal-btn ' + (btnClass || '')
+        btn.textContent = btnText || 'OK'
         btn.onclick = function(){
             document.getElementById('modal').classList.remove('show')
             if (callback) callback()
@@ -125,134 +131,105 @@
         document.getElementById('modal').classList.add('show')
     }
 
-    if (!token) {
-        location.href = './Login.html'
-        return
-    }
+    if (!token) { location.href = './Login.html'; return }
 
-    // 检查商家认证后才能发起
     function loadStatus() {
-        fetch(base + '/merchant/status', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        }).then(function(r){ return r.json() }).then(function(d){
-            if (d.code && d.code !== '00000') {
-                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">登录已过期</p><button class="btn-submit" onclick="location.href=\'./Login.html\'">去登录</button></div>'
-                return
-            }
-            var status = d.data ? d.data.cert_status : -1
-            if (status === 1) {
-                renderForm()
-            } else {
-                renderNeedCert()
-            }
-        }).catch(function(){
-            document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">网络错误</p><button class="btn-submit" onclick="loadStatus()">重试</button></div>'
-        })
+        fetch(base + '/merchant/status', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r){ return r.json() }).then(function(d){
+                if (d.code && d.code !== '00000') {
+                    document.getElementById('content').innerHTML = '<div class="cf-status"><div class="desc">登录已过期</div><a class="cf-btn-s" href="./Login.html">去登录</a></div>'
+                    return
+                }
+                var status = d.data ? d.data.cert_status : -1
+                if (status === 1) { renderForm() } else { renderNeedCert() }
+            }).catch(function(){
+                document.getElementById('content').innerHTML = '<div class="cf-status cf-warn"><div class="ico">&#9888;</div><div class="ttl">网络错误</div><div class="desc">加载失败，请稍后重试</div><button class="cf-btn-o" onclick="loadStatus()">重试</button></div>'
+            })
     }
 
     function renderNeedCert() {
         document.getElementById('content').innerHTML =
-            '<div class="status-card warning"><div class="status-icon">&#9888;</div><div class="status-title">需要商家认证</div><div class="status-desc">发起角色众筹需要先通过商家认证</div><button class="btn-submit" onclick="location.href=\'./certification.html\'">去认证</button><button class="btn-secondary" onclick="history.back()">返回</button></div>'
+            '<div class="cf-status cf-warn"><div class="ico">&#9888;</div><div class="ttl">需要商家认证</div>' +
+            '<div class="desc">发起角色众筹需要先通过商家认证</div>' +
+            '<div class="btn-line"><a class="cf-btn-s" href="./certification.html">去认证</a>' +
+            '<button class="cf-btn-o" onclick="history.back()">返回</button></div></div>'
     }
 
     function renderForm() {
         document.getElementById('content').innerHTML =
-            '<div class="form-card">' +
-            '<div class="form-title">发起角色众筹</div>' +
-            '<div class="field"><label>封面图</label>' +
-            '<div class="upload-zone" id="coverUpload" onclick="document.getElementById(\'coverInput\').click()">' +
-            '<div class="upload-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>点击上传封面</span></div>' +
+            '<div class="cf-form">' +
+            '<div class="cf-section">基础信息</div>' +
+
+            '<div class="cf-field"><label class="cf-label">封面图</label>' +
+            '<div class="cf-upload" id="coverUpload" onclick="document.getElementById(\'coverInput\').click()">' +
+            '<div class="cf-upload-ph"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>点击上传封面</span></div>' +
             '</div><input type="file" id="coverInput" accept="image/*" style="display:none" onchange="uploadCover(this)" /></div>' +
             '<input type="hidden" id="coverUrl" />' +
 
-            '<div class="section-label">基础信息</div>' +
-            '<div class="field"><label>角色名称 <span class="required">*</span></label><input type="text" id="personaName" placeholder="给你的角色起个名字" maxlength="50" /></div>' +
-            '<div class="field"><label>项目标题 <span class="required">*</span></label><input type="text" id="title" placeholder="一句话描述你的角色创意" maxlength="100" /></div>' +
-            '<div class="field"><label>角色描述 <span class="required">*</span></label>' +
-            '<textarea id="description" rows="9" maxlength="5000" oninput="onDescInput()" placeholder="详细介绍角色：背景故事、性格人设、外观与穿搭、说话方式、日常互动场景、适合的玩法与受众…"></textarea>' +
-            '<div class="counter" id="descCounter">0 / 200 字</div></div>' +
+            '<div class="cf-field"><label class="cf-label">角色名称 <span class="req">*</span></label><input type="text" class="cf-input" id="personaName" placeholder="给你的角色起个名字" maxlength="50" /></div>' +
+            '<div class="cf-field"><label class="cf-label">项目标题 <span class="req">*</span></label><input type="text" class="cf-input" id="title" placeholder="一句话描述你的角色创意" maxlength="100" /></div>' +
+            '<div class="cf-field"><label class="cf-label">角色描述 <span class="req">*</span></label>' +
+            '<textarea class="cf-input" id="description" rows="9" maxlength="5000" oninput="onDescInput()" placeholder="详细介绍角色：背景故事、性格人设、外观与穿搭、说话方式、日常互动场景、适合的玩法与受众…"></textarea>' +
+            '<div class="cf-counter" id="descCounter">0 / 200 字</div></div>' +
 
-            '<div class="section-label">角色设定</div>' +
-            '<div class="field"><label>标签 <span class="required">*</span></label>' +
-            '<input type="text" id="tags" placeholder="逗号分隔，例如：御姐,甜美,高冷,粘人" />' +
-            '<div class="hint">最多 10 个标签，中英文逗号均可</div></div>' +
-            '<div class="grid-2">' +
-            '<div class="field"><label>风格 <span class="required">*</span></label><select id="style">' +
-            '<option value="">请选择风格</option>' +
-            '<option value="realistic">写实</option>' +
-            '<option value="anime">二次元</option>' +
-            '<option value="3d">3D</option>' +
-            '<option value="cyberpunk">赛博朋克</option>' +
-            '<option value="chinese">古风</option>' +
-            '<option value="korean">韩系</option>' +
-            '<option value="western">欧美</option>' +
+            '<div class="cf-section">角色设定</div>' +
+            '<div class="cf-field"><label class="cf-label">标签 <span class="req">*</span></label>' +
+            '<input type="text" class="cf-input" id="tags" placeholder="逗号分隔，例如：御姐,甜美,高冷,粘人" />' +
+            '<div class="cf-hint">最多 10 个标签，中英文逗号均可</div></div>' +
+
+            '<div class="cf-grid2">' +
+            '<div class="cf-field"><label class="cf-label">风格 <span class="req">*</span></label><select class="cf-input" id="style">' +
+            '<option value="">请选择风格</option><option value="realistic">写实</option><option value="anime">二次元</option><option value="3d">3D</option><option value="cyberpunk">赛博朋克</option><option value="chinese">古风</option><option value="korean">韩系</option><option value="western">欧美</option>' +
             '</select></div>' +
-            '<div class="field"><label>角色性别</label><select id="gender">' +
-            '<option value="">不限</option>' +
-            '<option value="female">女性</option>' +
-            '<option value="male">男性</option>' +
-            '<option value="other">其他</option>' +
+            '<div class="cf-field"><label class="cf-label">角色性别</label><select class="cf-input" id="gender">' +
+            '<option value="">不限</option><option value="female">女性</option><option value="male">男性</option><option value="other">其他</option>' +
+            '</select></div></div>' +
+
+            '<div class="cf-grid2">' +
+            '<div class="cf-field"><label class="cf-label">年龄段</label><select class="cf-input" id="ageRange">' +
+            '<option value="">不限</option><option value="18-22">18-22 岁</option><option value="23-27">23-27 岁</option><option value="28-35">28-35 岁</option><option value="36-45">36-45 岁</option><option value="45+">45 岁以上</option>' +
             '</select></div>' +
-            '</div>' +
-            '<div class="grid-2">' +
-            '<div class="field"><label>年龄段</label><select id="ageRange">' +
-            '<option value="">不限</option>' +
-            '<option value="18-22">18-22 岁</option>' +
-            '<option value="23-27">23-27 岁</option>' +
-            '<option value="28-35">28-35 岁</option>' +
-            '<option value="36-45">36-45 岁</option>' +
-            '<option value="45+">45 岁以上</option>' +
-            '</select></div>' +
-            '<div class="field"><label>语言</label><select id="language">' +
-            '<option value="">不限</option>' +
-            '<option value="zh-CN">中文</option>' +
-            '<option value="en-US">英文</option>' +
-            '<option value="ja-JP">日文</option>' +
-            '<option value="ms-MY">马来语</option>' +
-            '<option value="multi">多语言</option>' +
-            '</select></div>' +
-            '</div>' +
-            '<div class="field"><label>性格特点</label><input type="text" id="personality" placeholder="逗号分隔，例如：温柔,幽默,小傲娇" /></div>' +
-            '<div class="field"><label>语音风格</label><select id="voiceStyle">' +
-            '<option value="">不限</option>' +
-            '<option value="sweet">甜美</option>' +
-            '<option value="mature">御姐</option>' +
-            '<option value="magnetic">磁性</option>' +
-            '<option value="loli">萝莉</option>' +
-            '<option value="cold">冷艳</option>' +
-            '<option value="gentle">温柔</option>' +
-            '<option value="none">不涉及语音</option>' +
+            '<div class="cf-field"><label class="cf-label">语言</label><select class="cf-input" id="language">' +
+            '<option value="">不限</option><option value="zh-CN">中文</option><option value="en-US">英文</option><option value="ja-JP">日文</option><option value="ms-MY">马来语</option><option value="multi">多语言</option>' +
+            '</select></div></div>' +
+
+            '<div class="cf-field"><label class="cf-label">性格特点</label><input type="text" class="cf-input" id="personality" placeholder="逗号分隔，例如：温柔,幽默,小傲娇" /></div>' +
+            '<div class="cf-field"><label class="cf-label">语音风格</label><select class="cf-input" id="voiceStyle">' +
+            '<option value="">不限</option><option value="sweet">甜美</option><option value="mature">御姐</option><option value="magnetic">磁性</option><option value="loli">萝莉</option><option value="cold">冷艳</option><option value="gentle">温柔</option><option value="none">不涉及语音</option>' +
             '</select></div>' +
 
-            '<div class="section-label">交付与合规</div>' +
-            '<div class="field"><label>交付内容 <span class="required">*</span></label>' +
-            '<div class="chips" id="deliverChips">' +
-            '<button type="button" class="chip" data-v="portrait" onclick="toggleDeliver(this)">立绘</button>' +
-            '<button type="button" class="chip" data-v="voice" onclick="toggleDeliver(this)">语音</button>' +
-            '<button type="button" class="chip" data-v="video" onclick="toggleDeliver(this)">短视频</button>' +
-            '<button type="button" class="chip" data-v="live" onclick="toggleDeliver(this)">直播</button>' +
-            '<button type="button" class="chip" data-v="chat" onclick="toggleDeliver(this)">AI 聊天</button>' +
-            '</div><div class="hint">可多选，至少选择一项</div></div>' +
-            '<div class="field"><label>是否为 18+ 内容 <span class="required">*</span></label>' +
-            '<div class="radio-row" id="adultRow">' +
-            '<button type="button" class="chip on" data-v="0" onclick="pickAdult(this)">否 · 全年龄</button>' +
-            '<button type="button" class="chip" data-v="1" onclick="pickAdult(this)">是 · 18+</button>' +
-            '</div><div class="hint">18+ 内容仅对成年用户开放展示</div></div>' +
-            '<div class="field"><label>项目亮点</label><textarea id="highlights" rows="3" maxlength="500" placeholder="一句话卖点或差异化优势，可分行"></textarea></div>' +
-            '<div class="field"><label>参考链接</label><input type="url" id="referenceUrl" placeholder="https://... （可选，风格参考/作品集）" /></div>' +
+            '<div class="cf-section">交付与合规</div>' +
+            '<div class="cf-field"><label class="cf-label">交付内容 <span class="req">*</span></label>' +
+            '<div class="cf-chips" id="deliverChips">' +
+            '<button type="button" class="cf-chip" data-v="portrait" onclick="toggleDeliver(this)">立绘</button>' +
+            '<button type="button" class="cf-chip" data-v="voice" onclick="toggleDeliver(this)">语音</button>' +
+            '<button type="button" class="cf-chip" data-v="video" onclick="toggleDeliver(this)">短视频</button>' +
+            '<button type="button" class="cf-chip" data-v="live" onclick="toggleDeliver(this)">直播</button>' +
+            '<button type="button" class="cf-chip" data-v="chat" onclick="toggleDeliver(this)">AI 聊天</button>' +
+            '</div><div class="cf-hint">可多选，至少选择一项</div></div>' +
 
-            '<div class="section-label">众筹设置</div>' +
-            '<div class="field"><label>目标金额（钻石）<span class="required">*</span></label><div class="amount-row"><input type="number" id="targetAmount" placeholder="例如：10000" min="1" /><span class="amount-unit">钻</span></div><div class="hint">设置合理的目标金额，达标的角色才能创建</div></div>' +
-            '<div class="field"><label>截止时间 <span class="required">*</span></label><input type="datetime-local" id="deadline" /></div>' +
-            '<div class="agreement"><p>发起即表示同意：</p><ul><li>无法达标将全额退还支持者</li><li>达标后需手动创建角色并关联</li><li>18+ 内容需符合平台内容规范</li></ul></div>' +
-            '<button class="btn-submit" id="submitBtn" onclick="doSubmit()">发起众筹</button>' +
+            '<div class="cf-field"><label class="cf-label">是否为 18+ 内容 <span class="req">*</span></label>' +
+            '<div class="cf-chips wide" id="adultRow">' +
+            '<button type="button" class="cf-chip on" data-v="0" onclick="pickAdult(this)">否 · 全年龄</button>' +
+            '<button type="button" class="cf-chip" data-v="1" onclick="pickAdult(this)">是 · 18+</button>' +
+            '</div><div class="cf-hint">18+ 内容仅对成年用户开放展示</div></div>' +
+
+            '<div class="cf-field"><label class="cf-label">项目亮点</label><textarea class="cf-input" id="highlights" rows="3" maxlength="500" placeholder="一句话卖点或差异化优势，可分行"></textarea></div>' +
+            '<div class="cf-field"><label class="cf-label">参考链接</label><input type="url" class="cf-input" id="referenceUrl" placeholder="https://... （可选，风格参考/作品集）" /></div>' +
+
+            '<div class="cf-section">众筹设置</div>' +
+            '<div class="cf-field"><label class="cf-label">目标金额（钻石） <span class="req">*</span></label>' +
+            '<div class="cf-amount"><input type="number" class="cf-input" id="targetAmount" placeholder="例如：10000" min="1" /><span class="unit">钻</span></div>' +
+            '<div class="cf-hint">设置合理的目标金额，达标的角色才能创建</div></div>' +
+            '<div class="cf-field"><label class="cf-label">截止时间 <span class="req">*</span></label><input type="datetime-local" class="cf-input cf-date" id="deadline" onclick="cfOpenPicker(this)" onfocus="cfOpenPicker(this)" /></div>' +
+
+            '<div class="cf-agreement"><p>发起即表示同意：</p><ul><li>无法达标将全额退还支持者</li><li>达标后需手动创建角色并关联</li><li>18+ 内容需符合平台内容规范</li></ul></div>' +
+            '<button class="cf-submit" id="submitBtn" onclick="doSubmit()">发起众筹</button>' +
             '</div>'
 
-        // 设置截止时间最小值为当前时间
         var now = new Date()
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
         document.getElementById('deadline').min = now.toISOString().slice(0, 16)
-
         onDescInput()
     }
 
@@ -262,16 +239,19 @@
         if (!el || !counter) return
         var len = el.value.trim().length
         counter.textContent = len + ' / 200 字'
-        counter.className = 'counter' + (len >= 200 ? ' ok' : (len > 0 ? ' bad' : ''))
+        counter.className = 'cf-counter' + (len >= 200 ? ' ok' : (len > 0 ? ' bad' : ''))
     }
 
-    window.toggleDeliver = function(btn) {
-        btn.classList.toggle('on')
+    window.toggleDeliver = function(btn) { btn.classList.toggle('on') }
+
+    // 点击输入框任意位置即弹出日期时间选择器（原生 datetime-local 默认只能点小图标）
+    window.cfOpenPicker = function(el) {
+        try { if (el && typeof el.showPicker === 'function') el.showPicker() } catch (e) {}
     }
 
     window.pickAdult = function(btn) {
         var row = document.getElementById('adultRow')
-        var chips = row.getElementsByClassName('chip')
+        var chips = row.getElementsByClassName('cf-chip')
         for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on')
         btn.classList.add('on')
     }
@@ -284,26 +264,31 @@
         var btn = document.getElementById('submitBtn')
         btn.disabled = true
         btn.textContent = '上传封面中...'
+        fetch(base + '/merchant/upload', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r){ return r.json() }).then(function(d){
+                btn.disabled = false
+                btn.textContent = '发起众筹'
+                if (d.data && d.data.url) {
+                    document.getElementById('coverUrl').value = d.data.url
+                    document.getElementById('coverUpload').innerHTML = '<img src="' + d.data.url + '" alt="封面" />'
+                } else {
+                    showToast('上传失败', 'error')
+                }
+            }).catch(function(){
+                btn.disabled = false
+                btn.textContent = '发起众筹'
+                showToast('网络错误', 'error')
+            })
+    }
 
-        fetch(base + '/merchant/upload', {
-            method: 'POST',
-            body: fd,
-            headers: { 'Authorization': 'Bearer ' + token }
-        }).then(function(r){ return r.json() }).then(function(d){
-            btn.disabled = false
-            btn.textContent = '发起众筹'
-            if (d.data && d.data.url) {
-                document.getElementById('coverUrl').value = d.data.url
-                var zone = document.getElementById('coverUpload')
-                zone.innerHTML = '<img src="' + d.data.url + '" alt="封面" />'
-            } else {
-                showToast('上传失败', 'error')
-            }
-        }).catch(function(){
-            btn.disabled = false
-            btn.textContent = '发起众筹'
-            showToast('网络错误', 'error')
-        })
+    function splitList(v) {
+        return String(v || '').replace(/，/g, ',').split(',').map(function(s){ return s.trim() }).filter(function(s){ return s !== '' })
+    }
+    function getDeliverables() {
+        var chips = document.querySelectorAll('#deliverChips .cf-chip.on')
+        var arr = []
+        for (var i = 0; i < chips.length; i++) arr.push(chips[i].getAttribute('data-v'))
+        return arr
     }
 
     window.doSubmit = function() {
@@ -318,7 +303,7 @@
         var personality = splitList(document.getElementById('personality').value)
         var voiceStyle = document.getElementById('voiceStyle').value
         var deliverables = getDeliverables()
-        var adultChip = document.querySelector('#adultRow .chip.on')
+        var adultChip = document.querySelector('#adultRow .cf-chip.on')
         var highlights = document.getElementById('highlights').value.trim()
         var referenceUrl = document.getElementById('referenceUrl').value.trim()
         var targetAmount = parseFloat(document.getElementById('targetAmount').value)
@@ -344,35 +329,21 @@
 
         fetch(base + '/crowdfunding/initiate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({
-                title: title,
-                persona_name: personaName,
-                description: description,
-                tags: tags.join(','),
-                style: style,
-                gender: gender,
-                age_range: ageRange,
-                language: language,
-                personality: personality.join(','),
-                voice_style: voiceStyle,
-                deliverables: deliverables,
-                is_adult: adultChip.getAttribute('data-v'),
-                highlights: highlights,
-                reference_url: referenceUrl,
-                cover_url: coverUrl,
-                target_amount: targetAmount,
-                deadline: deadline + ':00'
+                title: title, persona_name: personaName, description: description,
+                tags: tags.join(','), style: style, gender: gender, age_range: ageRange,
+                language: language, personality: personality.join(','), voice_style: voiceStyle,
+                deliverables: deliverables, is_adult: adultChip.getAttribute('data-v'),
+                highlights: highlights, reference_url: referenceUrl, cover_url: coverUrl,
+                target_amount: targetAmount, deadline: deadline
             })
         }).then(function(r){ return r.json() }).then(function(d){
             btn.disabled = false
             btn.textContent = '发起众筹'
-            if (d.code === '00000') {
-                showModal('\u2728', '众筹项目已发起！', '你的角色众筹项目已成功发起，现在可以在「我的AI」中查看。', '返回', '', function(){
-                    location.href = './charactersIndex.html'
+            if (d.code === '00000' || (d.data && d.data.id)) {
+                showModal('\u2728', '众筹项目已发起！', '你的角色众筹项目已成功发起，现在可以在「我的众筹」中查看。', '查看我的众筹', function(){
+                    location.href = './my-crowdfunding.html'
                 })
             } else {
                 showToast(d.msg || '发起失败', 'error')
@@ -384,25 +355,8 @@
         })
     }
 
-    // 逗号分隔（中英文）-> 数组
-    function splitList(v) {
-        return String(v || '')
-            .replace(/，/g, ',')
-            .split(',')
-            .map(function(s){ return s.trim() })
-            .filter(function(s){ return s !== '' })
-    }
-
-    // 已选交付内容
-    function getDeliverables() {
-        var out = []
-        var chips = document.querySelectorAll('#deliverChips .chip.on')
-        for (var i = 0; i < chips.length; i++) out.push(chips[i].getAttribute('data-v'))
-        return out
-    }
-
     loadStatus()
-})();
+})()
 </script>
 </body>
 </html>

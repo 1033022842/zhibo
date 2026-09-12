@@ -109,7 +109,7 @@
     <template v-if="activeTab === 'mine'">
       <div class="section-header" v-anim>
         <h2>我发起的众筹</h2>
-        <button class="btn-create" @click="goCreate">发起众筹</button>
+        <button v-if="!loadingMine && myProjects.length > 0" class="btn-create" @click="goCreate">发起众筹</button>
       </div>
 
       <div class="loading-zone" v-if="loadingMine">

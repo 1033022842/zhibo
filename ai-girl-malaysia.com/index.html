@@ -82,6 +82,11 @@
 			.cf-toast.success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
 			.cf-toast.error{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
 			.cf-toast.warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+			/* 加载更多 / 重试 按钮 */
+			.cf-more-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 34px;height:44px;border-radius:9999px;border:1px solid rgba(231,82,117,.5);background:rgba(231,82,117,.08);color:#F97187;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+			.cf-more-btn:hover{background:rgba(231,82,117,.18);border-color:#E75275;color:#fff}
+			.cf-more-btn:disabled{opacity:.5;cursor:not-allowed}
+			.cf-more-wrap{display:flex;justify-content:center;margin:6px 0 48px}
 		</style>
 	</head>
 	<body class="bg-main pages home" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
@@ -384,7 +389,7 @@
 		<!-- ===== 主内容区 ===== -->
 		<div class="main-content-container" data-main-target="contentContainer">
 			<main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
-				<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 pb-20">
 
 					<!-- Hero -->
 					<div class="cf-hero mt-6">
@@ -408,7 +413,7 @@
 						<a href="./crowdfunding.html" class="text-[#E75275] text-sm font-semibold no-underline">Start a project &#8594;</a>
 					</div>
 					<ul role="list" id="cfActiveList" class="mx-auto md:mb-0 mb-10 grid max-w-2xl grid-cols-2 gap-5 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-4">
-						<li class="col-span-2 lg:col-span-4 flex justify-center py-10">
+						<li class="col-span-2 lg:col-span-4 flex justify-center py-10" style="grid-column:1/-1">
 							<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#434343" stroke-width="3"/><path d="M22 12a10 10 0 0 0-10-10" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/></svg>
 						</li>
 					</ul>
@@ -429,8 +434,8 @@
 						<ul role="list" id="cfFailList" class="mx-auto md:mb-0 mb-10 grid max-w-2xl grid-cols-2 gap-5 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-4"></ul>
 					</div>
 
-					<div id="cfMoreWrap" class="hidden justify-center mb-10">
-						<button id="cfMoreBtn" onclick="cfLoadMore()" class="mx-auto px-6 h-10 border-[#E75275] border text-[#E75275] rounded-lg text-sm font-semibold cursor-pointer bg-transparent">Load More</button>
+					<div id="cfMoreWrap" class="cf-more-wrap" style="display:none">
+						<button id="cfMoreBtn" onclick="cfLoadMore()" class="cf-more-btn">Load More</button>
 					</div>
 
 				</div>
@@ -638,12 +643,11 @@
 			}
 
 			function emptyHtml(msg) {
-				return '<li class="col-span-2 lg:col-span-4">' +
-					'<div class="text-center py-14">' +
+				return '<li class="col-span-2 lg:col-span-4" style="grid-column:1/-1">' +
+					'<div class="flex flex-col items-center justify-center text-center py-14" style="text-align:center">' +
 					'<div class="text-4xl mb-3">&#127775;</div>' +
 					'<div class="text-white text-base font-bold mb-1">No active projects</div>' +
-					'<div class="text-[#A1A1A1] text-xs mb-4">' + msg + '</div>' +
-					'<a href="./crowdfunding.html" class="inline-flex px-6 h-10 leading-10 bg-[#E75275] rounded-lg text-white text-sm font-semibold no-underline">Start a Project</a>' +
+					'<div class="text-[#A1A1A1] text-xs" style="max-width:420px;margin-left:auto;margin-right:auto">' + msg + '</div>' +
 					'</div></li>'
 			}
 
@@ -673,7 +677,7 @@
 				failWrap.innerHTML = failed.map(cardHtml).join('')
 				document.getElementById('cfFailSection').className = failed.length ? '' : 'hidden'
 
-				document.getElementById('cfMoreWrap').className = projects.length < total ? 'flex justify-center mb-10' : 'hidden'
+				document.getElementById('cfMoreWrap').style.display = projects.length < total ? 'flex' : 'none'
 			}
 
 			function renderHero() {
@@ -695,7 +699,7 @@
 					.then(function(r){ return r.json() })
 					.then(function(d) {
 						if (d.code && d.code !== '00000') {
-							document.getElementById('cfActiveList').innerHTML = '<li class="col-span-2 lg:col-span-4 text-center py-10"><div class="text-[#A1A1A1] text-sm mb-3">' + esc(d.msg || 'Failed to load') + '</div><button onclick="cfLoadPage()" class="px-6 h-10 border-[#E75275] border text-[#E75275] rounded-lg text-sm font-semibold cursor-pointer bg-transparent">Retry</button></li>'
+							document.getElementById('cfActiveList').innerHTML = '<li class="col-span-2 lg:col-span-4 text-center py-10" style="grid-column:1/-1"><div class="text-[#A1A1A1] text-sm mb-3">' + esc(d.msg || 'Failed to load') + '</div><button onclick="cfLoadPage()" class="cf-more-btn">Retry</button></li>'
 							return
 						}
 						var list = (d.data && d.data.list) || []
@@ -705,7 +709,7 @@
 						renderHero()
 					})
 					.catch(function() {
-						document.getElementById('cfActiveList').innerHTML = '<li class="col-span-2 lg:col-span-4 text-center py-10"><div class="text-[#A1A1A1] text-sm mb-3">Network error</div><button onclick="cfLoadPage()" class="px-6 h-10 border-[#E75275] border text-[#E75275] rounded-lg text-sm font-semibold cursor-pointer bg-transparent">Retry</button></li>'
+						document.getElementById('cfActiveList').innerHTML = '<li class="col-span-2 lg:col-span-4 text-center py-10" style="grid-column:1/-1"><div class="text-[#A1A1A1] text-sm mb-3">Network error</div><button onclick="cfLoadPage()" class="cf-more-btn">Retry</button></li>'
 					})
 			}
 			window.cfLoadPage = function() { load(true) }

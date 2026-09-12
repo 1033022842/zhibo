@@ -167,7 +167,7 @@
       <!-- 截止时间 -->
       <div class="form-group">
         <label class="form-label">截止时间 <span class="required">*</span></label>
-        <input v-model="form.deadline" type="datetime-local" class="form-input" :min="minDeadline" />
+        <input v-model="form.deadline" type="datetime-local" class="form-input form-date" :min="minDeadline" @click="openPicker" />
         <p class="form-hint">超过截止时间未达标将自动退款给支持者</p>
       </div>
 
@@ -281,6 +281,12 @@ const minDeadline = computed(() => {
 
 function triggerUpload() {
   fileInput.value?.click()
+}
+
+// 点击输入框任意位置即弹出日期时间选择器（原生 datetime-local 默认只能点小图标）
+function openPicker(e: MouseEvent) {
+  const el = e.target as HTMLInputElement
+  try { (el as any).showPicker?.() } catch { /* 忽略 */ }
 }
 
 async function onFileChange(e: Event) {
@@ -432,6 +438,9 @@ async function doSubmit() {
 }
 .form-input:focus { border-color: rgba(99,102,241,0.5); }
 .form-input::placeholder { color: rgba(255,255,255,0.25); }
+.form-date { cursor: pointer; }
+.form-date::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .7; }
+.form-date:hover { border-color: rgba(99,102,241,0.35); }
 .form-textarea {
   width: 100%;
   padding: 12px;
