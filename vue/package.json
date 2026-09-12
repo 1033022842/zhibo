@@ -23,6 +23,7 @@
     "commit": "git-cz"
   },
   "dependencies": {
+    "@iconify/json": "^2.2.527",
     "@jambonn/vue-lazyload": "1.0.9",
     "axios": "^1.15.0",
     "axios-mock-adapter": "^1.22.0",
