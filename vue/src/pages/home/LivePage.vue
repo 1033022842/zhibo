@@ -301,7 +301,7 @@ function buildWsUrl() {
   // 同源 /ws（nginx 反代到 ws-webman:8788），兼容 CDN/反代场景，不再硬编码端口
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
   const host = window.location.host || '127.0.0.1'
-  return `${protocol}://${host}/ws`
+  return `${protocol}://${host}/ws/`
 }
 
 function appendChatMessage(item: ChatMessageItem) {
