@@ -116,7 +116,7 @@ import { SlideItemPlayStatus } from '@/utils/const_var'
 import { computed, onMounted, onUnmounted, provide, reactive, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { _css } from '@/utils/dom'
-import { createLivePlaybackController, type LivePlaybackMode } from '@/utils/livePlayer'
+import { createLivePlaybackController, resetVideoElement, type LivePlaybackMode } from '@/utils/livePlayer'
 import { useBaseStore } from '@/store/pinia'
 
 defineOptions({
