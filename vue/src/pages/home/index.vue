@@ -1,31 +1,17 @@
 <template>
   <div class="home-index" id="home-index">
-    <SlideHorizontal name="main" v-model:index="state.baseIndex" :disabled="true">
-      <SlideItem>
-        <LongVideo :active="state.baseIndex === 0" />
-        <BaseFooter v-bind:init-tab="0" />
-      </SlideItem>
-      <SlideItem>
-        <UserPanel
-          ref="userPanelRef"
-          :active="state.baseIndex === 1"
-          @back="state.baseIndex = 0"
-        />
-      </SlideItem>
-    </SlideHorizontal>
+    <!-- 废弃的横向第二页（UserPanel）已移除，仅保留直播 feed，杜绝左右滑动 -->
+    <LongVideo :active="state.active" />
+    <BaseFooter v-bind:init-tab="0" />
   </div>
 </template>
 
 <script setup lang="ts">
-import SlideHorizontal from '@/components/slide/SlideHorizontal.vue'
-import SlideItem from '@/components/slide/SlideItem.vue'
 import { onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref } from 'vue'
 import bus, { EVENT_KEY } from '@/utils/bus'
 import { useNav } from '@/utils/hooks/useNav'
-import UserPanel from '@/components/UserPanel.vue'
 import LongVideo from '@/pages/home/slide/LongVideo.vue'
 const nav = useNav()
-const userPanelRef = ref()
 
 const state = reactive({
   active: true,
@@ -55,7 +41,7 @@ onMounted(() => {
   })
   bus.on(EVENT_KEY.GO_USERINFO, () => {
     if (!state.active) return
-    state.baseIndex = 1
+    nav('/me')
   })
   bus.on(EVENT_KEY.CURRENT_ITEM, setCurrentItem)
 })
