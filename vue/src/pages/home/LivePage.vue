@@ -385,8 +385,15 @@ function onEffectVideoEnded() {
   clearEffectVideoTimer()
 }
 
+let lastEffectPlayedAt = 0
+
 function playGiftEffectVideo(videoUrl: string, durationMs?: number) {
   if (!videoUrl) return
+
+  // 节流：密集送礼时特效重启会拖垮低端手机，1.5s 内只播一次
+  const now = Date.now()
+  if (now - lastEffectPlayedAt < 1500) return
+  lastEffectPlayedAt = now
 
   // 清理之前的特效视频
   clearEffectVideoTimer()
