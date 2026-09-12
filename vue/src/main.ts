@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import './assets/less/index.less'
+import { startMock } from '@/mock'
+import './utils/iconsOffline'
 import router from './router'
 import mixin from './utils/mixin'
 import VueLazyload from '@jambonn/vue-lazyload'
@@ -49,6 +51,9 @@ app.mount('#app')
 app.directive('click', vClick)
 
 //放到最后才可以使用pinia
+if (import.meta.env.DEV) {
+  startMock() // mock 仅本地开发启用，生产走真实 API
+}
 setTimeout(() => {
   bus.emit(EVENT_KEY.HIDE_MUTED_NOTICE)
   window.showMutedNotice = false
