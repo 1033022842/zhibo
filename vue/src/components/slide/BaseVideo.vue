@@ -303,6 +303,23 @@ function destroyLivePlayback() {
 async function ensureLivePlayback(force = false) {
   if (!props.isLive || !hasLivePlaySource.value) return
 
+  // 卡片优先播循环切片（秒开）；没有切片才走直播流
+  const previewLoop = props.item?.preview_video_url
+  if (previewLoop) {
+    if (videoEl.src !== previewLoop) {
+      destroyLivePlayback()
+      resetVideoElement(videoEl)
+      videoEl.src = previewLoop
+      videoEl.loop = true
+      videoEl.play().catch(() => undefined)
+      state.livePlaybackMode = 'preview'
+      state.loading = false
+    } else {
+      videoEl.play().catch(() => undefined)
+    }
+    return
+  }
+
   const signature = `${props.item?.play?.webrtc_url || ''}|${props.item?.play?.hls_url || ''}`
   if (livePlaybackController && state.livePlaybackSignature === signature) {
     // 实例还在（挂起态）：直接续播，跳过整条 HLS 握手
@@ -527,8 +544,12 @@ async function play(forceRestart = false) {
 function pause() {
   state.status = SlideItemPlayStatus.Pause
   if (props.isLive) {
-    // 挂起而非销毁：保留 hls 实例，滑回来 resume 秒续
-    livePlaybackController?.suspend?.()
+    if (livePlaybackController) {
+      // 挂起而非销毁：保留 hls 实例，滑回来 resume 秒续
+      livePlaybackController.suspend?.()
+    } else {
+      videoEl.pause()
+    }
     state.loading = false
     return
   }

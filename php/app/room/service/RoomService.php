@@ -368,6 +368,20 @@ final class RoomService
 
     private function loadPreviewVideos(array $bindings, string $domain): array
     {
+        // 卡片预览改用预生成的循环切片（秒开、弱网友好），不再取播单首个素材
+        $map = [];
+        foreach ($bindings as $binding) {
+            $roomId = (int) ($binding['room_id'] ?? 0);
+            $persona = (string) ($binding['persona'] ?? '');
+            if ($roomId > 0 && $persona !== '') {
+                $map[$roomId] = '/storage/loops/' . $persona . '.mp4';
+            }
+        }
+        return $map;
+    }
+
+    private function loadPreviewVideosLegacy(array $bindings, string $domain): array
+    {
         $playlistTemplateIds = [];
         foreach ($bindings as $binding) {
             $playlistTemplateId = (int) ($binding['playlist_template_id'] ?? 0);
