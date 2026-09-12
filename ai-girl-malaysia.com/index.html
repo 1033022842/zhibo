@@ -546,6 +546,7 @@
 			var base = '/api/v1'
 			var token = localStorage.getItem('live_access_token')
 			var page = 1, pageSize = 12, total = 0, projects = [], currentProject = null
+			var liveRooms = []
 
 			function showToast(msg, type) {
 				var el = document.getElementById('cfToast')
@@ -642,6 +643,61 @@
 					'</li>'
 			}
 
+			// ===== 直播间卡片：作为众筹完成（Funded）项目展示，按钮跳转对应直播间 =====
+			function liveCardHtml(r) {
+				var cover = r.cover_url
+					? '<img src="' + esc(r.cover_url) + '" alt="cover" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />'
+					: ''
+				var tags = Array.isArray(r.persona && r.persona.tags) ? r.persona.tags : []
+				var personaName = (r.persona && r.persona.name) || ''
+				var subtitle = r.subtitle || ''
+				return '<li>' +
+					'<div class="cf-card reached">' +
+					'<div class="cf-cover-wrap">' + cover +
+					'<div class="cf-cover-fallback" style="' + (r.cover_url ? 'display:none' : '') + '"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>' +
+					'<div class="cf-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>LIVE</span></div>' +
+					'<div class="cf-goal-badge" style="display:flex"><span>&#10003; Funded</span></div>' +
+					'<div class="cf-title-overlay">' +
+					'<div class="text-white text-sm font-semibold truncate">' + esc(r.title) + '</div>' +
+					'<div class="text-[#c9a6f7] text-xs mt-0.5 truncate">&#10024; ' + esc(personaName) + '</div>' +
+					'</div>' +
+					'</div>' +
+					'<div class="cf-body">' +
+					(subtitle ? '<div class="cf-desc">' + esc(subtitle) + '</div>' : '<div class="cf-desc" style="visibility:hidden">-</div>') +
+					(tags.length ? '<div class="cf-tags">' + tags.slice(0, 4).map(function(t){ return '<span class="cf-tag">' + esc(t) + '</span>' }).join('') + '</div>' : '') +
+					'<div class="flex justify-between items-baseline mt-2 mb-1.5">' +
+					'<span class="text-[#a855f7] text-sm font-extrabold">100%</span>' +
+					'<span class="text-[#A1A1A1] text-[11px]">Goal &#10003; Funded</span>' +
+					'</div>' +
+					'<div class="cf-progress-track"><div class="cf-progress-fill" style="width:100%"></div></div>' +
+					'<div class="cf-stats">' +
+					'<div class="cf-stat raise"><div class="v">' + esc((r.display && r.display.online_text) || '0') + '</div><div class="k">Watching</div></div>' +
+					'<div class="cf-stat"><div class="v">' + esc((r.display && r.display.like_text) || '0') + '</div><div class="k">Likes</div></div>' +
+					'<div class="cf-stat"><div class="v">&#10003;</div><div class="k">Progress</div></div>' +
+					'</div>' +
+					'<div class="cf-deadline"><span>&#128308; LIVE now</span><span>' + esc(r.room_no || '') + '</span></div>' +
+					'<button class="cf-btn" onclick="cfGoLive(' + parseInt(r.room_id) + ')">Watch Live &#9654;</button>' +
+					'</div>' +
+					'</div>' +
+					'</li>'
+			}
+
+			function loadLiveRooms() {
+				fetch(base + '/feed/live?limit=30')
+					.then(function(r){ return r.json() })
+					.then(function(d) {
+						var list = (d && d.data && d.data.list) || []
+						liveRooms = list.filter(function(r){ return (r.status || '') === 'living' })
+						renderList()
+					})
+					.catch(function(){})
+			}
+
+			window.cfGoLive = function(roomId) {
+				// 跳转主站（80 端口）对应直播间；用当前 hostname 动态拼接，避免硬编码 IP
+				window.location.href = window.location.protocol + '//' + window.location.hostname + '/home/live?roomId=' + roomId
+			}
+
 			function emptyHtml(msg) {
 				return '<li class="col-span-2 lg:col-span-4" style="grid-column:1/-1">' +
 					'<div class="flex flex-col items-center justify-center text-center py-14" style="text-align:center">' +
@@ -661,12 +717,12 @@
 				})
 
 				var activeWrap = document.getElementById('cfActiveList')
-				if (active.length === 0) {
+				if (liveRooms.length === 0 && active.length === 0) {
 					activeWrap.innerHTML = emptyHtml('Be the first creator to bring a new AI character to life.')
 				} else {
-					activeWrap.innerHTML = active.map(cardHtml).join('')
+					activeWrap.innerHTML = liveRooms.map(liveCardHtml).join('') + active.map(cardHtml).join('')
 				}
-				document.getElementById('cfActiveCount').textContent = active.length ? '(' + active.length + ')' : ''
+				document.getElementById('cfActiveCount').textContent = (liveRooms.length + active.length) ? '(' + (liveRooms.length + active.length) + ')' : ''
 
 				var doneWrap = document.getElementById('cfDoneList')
 				doneWrap.innerHTML = done.map(cardHtml).join('')
@@ -793,6 +849,7 @@
 			}
 
 			load(true)
+			loadLiveRooms()
 			setInterval(function() { if (projects.length) renderList() }, 60000)
 		})();
 		</script>
