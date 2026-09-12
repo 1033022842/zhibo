@@ -205,6 +205,8 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   height: calc(var(--vh, 1vh) * 100 - var(--footer-height));
+  /* 动态视口高度：手机地址栏收起/展开时跟随，消除底部缝隙 */
+  height: calc(100dvh - var(--footer-height));
   background: #000;
   overflow: hidden;
 

@@ -1,6 +1,6 @@
 <template>
   <div class="home-index" id="home-index">
-    <SlideHorizontal name="main" v-model:index="state.baseIndex">
+    <SlideHorizontal name="main" v-model:index="state.baseIndex" :disabled="true">
       <SlideItem>
         <LongVideo :active="state.baseIndex === 0" />
         <BaseFooter v-bind:init-tab="0" />

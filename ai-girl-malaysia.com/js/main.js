@@ -166,7 +166,7 @@
             setTimeout(function() {
             var redirect = getUrlParam(window.location.href, 'redirect')
             if (redirect && redirect !== 'null') {
-              window.location.href = decodeURIComponent(redirect)
+              window.location.replace(decodeURIComponent(redirect))
             } else {
               window.location.href = './index.html'
             }
