@@ -128,19 +128,39 @@ async function playHls(
   const HlsCtor = (Hls as unknown as { default?: typeof Hls }).default ?? Hls
   if (!HlsCtor?.isSupported?.()) return false
 
-  const hls = new HlsCtor({ lowLatencyMode: false, liveSyncDurationCount: 1, maxBufferLength: 10, backBufferLength: 10, enableWorker: false })
+  const hls = new HlsCtor({ lowLatencyMode: false, liveSyncDurationCount: 2, maxBufferLength: 24, maxMaxBufferLength: 60, backBufferLength: 30, liveMaxLatencyDurationCount: 8, enableWorker: false })
   ;(videoEl as HTMLVideoElement & { _hls?: Hls })._hls = hls
   hls.attachMedia(videoEl)
   hls.loadSource(hlsUrl)
+  let mediaRecovered = 0
+  hls.on(HlsCtor.Events.ERROR, (_event, data) => {
+    if (!data.fatal) return
+    // 解码缓冲异常：官方姿势是 recoverMediaError，给两次机会而不是直接放弃
+    if (data.type === HlsCtor.ErrorTypes.MEDIA_ERROR && mediaRecovered < 2) {
+      mediaRecovered++
+      console.warn(`hls media error, recover #${mediaRecovered}:`, data.details)
+      hls.recoverMediaError()
+      return
+    }
+    // 网络抖动：让 hls 内部重试，不打断
+    if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR && mediaRecovered < 1) {
+      mediaRecovered = 1
+      console.warn('hls network error, startLoad retry')
+      hls.startLoad()
+      return
+    }
+  })
   await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('hls manifest timeout')), 12000)
+    const timer = setTimeout(() => reject(new Error('hls manifest timeout')), 15000)
     hls.on(HlsCtor.Events.MANIFEST_PARSED, () => {
       clearTimeout(timer)
       resolve()
     })
     hls.on(HlsCtor.Events.ERROR, (_event, data) => {
-      if (data.fatal) {
+      if (data.fatal && mediaRecovered >= 2) {
         clearTimeout(timer)
+        hls.destroy()
+        ;(videoEl as HTMLVideoElement & { _hls?: Hls })._hls = undefined
         reject(new Error(`hls fatal: ${data.details}`))
       }
     })
