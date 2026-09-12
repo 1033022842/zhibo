@@ -8,11 +8,40 @@
         />
 
         <Table />
+
+        <el-dialog v-model="rechargeState.visible" title="手动充值 / 扣减钻石" width="440px" :close-on-click-modal="false">
+            <el-form label-width="90px">
+                <el-form-item label="用户">
+                    <span>{{ rechargeState.nickname }}（ID: {{ rechargeState.userId }}）</span>
+                </el-form-item>
+                <el-form-item label="当前余额">
+                    <span>{{ rechargeState.balance }} 钻</span>
+                </el-form-item>
+                <el-form-item label="操作类型">
+                    <el-radio-group v-model="rechargeState.type">
+                        <el-radio value="credit">充值（增加）</el-radio>
+                        <el-radio value="debit">扣减（减少）</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="钻石数量">
+                    <el-input-number v-model="rechargeState.amount" :min="0.01" :precision="2" :step="10" style="width: 180px" />
+                </el-form-item>
+                <el-form-item label="备注">
+                    <el-input v-model="rechargeState.remark" placeholder="选填，如充值原因" clearable />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="rechargeState.visible = false">{{ t('Cancel') }}</el-button>
+                <el-button type="primary" :loading="rechargeState.loading" @click="submitRecharge">{{ t('Confirm') }}</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
 <script setup lang="ts">
-import { provide } from 'vue'
+import { provide, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import baTableClass from '/@/utils/baTable'
 import Table from '/@/components/table/index.vue'
 import TableHeader from '/@/components/table/header/index.vue'
@@ -23,6 +52,52 @@ defineOptions({
     name: 'user/liveUser',
 })
 
+const { t } = useI18n()
+
+const rechargeState = reactive({
+    visible: false,
+    loading: false,
+    userId: 0,
+    nickname: '',
+    balance: 0,
+    type: 'credit',
+    amount: 100,
+    remark: '',
+})
+
+const openRecharge = (row: TableRow) => {
+    rechargeState.userId = Number(row.id)
+    rechargeState.nickname = String(row.nickname ?? '')
+    rechargeState.balance = Number(row.diamond_balance ?? 0)
+    rechargeState.type = 'credit'
+    rechargeState.amount = 100
+    rechargeState.remark = ''
+    rechargeState.visible = true
+}
+
+const submitRecharge = () => {
+    if (!rechargeState.amount || rechargeState.amount <= 0) {
+        ElMessage.warning('请输入大于 0 的钻石数量')
+        return
+    }
+    rechargeState.loading = true
+    baTable.api
+        .postData('adjustDiamond', {
+            user_id: rechargeState.userId,
+            amount: rechargeState.amount,
+            type: rechargeState.type,
+            remark: rechargeState.remark,
+        })
+        .then(() => {
+            rechargeState.loading = false
+            rechargeState.visible = false
+            baTable.getData()
+        })
+        .catch(() => {
+            rechargeState.loading = false
+        })
+}
+
 const baTable = new baTableClass(
     new baTableApi('/admin/user.LiveUser/'),
     {
@@ -32,6 +107,7 @@ const baTable = new baTableClass(
             { label: 'ID', prop: 'id', align: 'center', operator: '=', width: 70 },
             { label: '用户编号', prop: 'user_no', align: 'center', operator: 'LIKE' },
             { label: '昵称', prop: 'nickname', align: 'center', operator: 'LIKE', show: true },
+            { label: '钻石余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
             { label: '邮箱', prop: 'email', align: 'center', operator: 'LIKE', render: 'tag' },
             {
                 label: '认证方式',
@@ -91,9 +167,19 @@ const baTable = new baTableClass(
             {
                 label: '操作',
                 align: 'center',
-                width: 160,
+                width: 220,
                 render: 'buttons',
-                buttons: defaultOptButtons(['delete']),
+                buttons: [
+                    {
+                        render: 'basicButton',
+                        name: 'recharge',
+                        text: '充值',
+                        type: 'warning',
+                        icon: 'fa fa-diamond',
+                        click: (row: TableRow) => openRecharge(row),
+                    },
+                    ...defaultOptButtons(['delete']),
+                ],
                 operator: false,
             },
         ],
