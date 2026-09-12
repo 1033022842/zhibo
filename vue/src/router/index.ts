@@ -16,6 +16,15 @@ const router = createRouter({
   }
 })
 router.beforeEach((to, from) => {
+  // 跨源跳转携带的 token（如 8082 主站跳直播间）：存入本源 localStorage 后去除 query 参数
+  const urlToken = to.query.token
+  if (typeof urlToken === 'string' && urlToken) {
+    localStorage.setItem('live_access_token', urlToken)
+    const query = { ...to.query }
+    delete query.token
+    return { path: to.path, query, replace: true }
+  }
+
   const baseStore = useBaseStore()
   //footer下面的5个按钮，对跳不要用动画
   const noAnimation = ['/', '/home', '/me', '/shop', '/message', '/publish', '/home/live', '/test']
