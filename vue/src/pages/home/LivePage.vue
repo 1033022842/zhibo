@@ -785,7 +785,9 @@ function sendGift(gift: LiveGiftInfo) {
 
 function goBack() {
   clearPrivilegeTimer()
-  if (window.history.length > 1) {
+  // 仅当 SPA 路由栈里确有上一页时才 back；站外直链进入（history 无 back 状态）直接回 /home
+  const backRoute = (router.options.history.state as { back?: string } | null)?.back
+  if (backRoute) {
     router.back()
     return
   }
