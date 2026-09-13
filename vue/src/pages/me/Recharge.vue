@@ -102,7 +102,7 @@
 
         <div class="pay-amount-zone">
           <div class="pay-amount-label">应付金额（请务必精确转账，含小数尾号）</div>
-          <div class="pay-amount-value" @click="copyText(lastOrder?.pay_amount)">
+          <div class="pay-amount-value" @click="copyText(lastOrder?.pay_amount, '应付金额已复制，请精确转账')">
             {{ lastOrder?.pay_amount }} USDT
             <span class="copy-mini">复制</span>
           </div>
@@ -172,7 +172,12 @@
         <button class="btn-back-channel" @click="step = 'channel'">返回充值</button>
       </div>
     </template>
-  </div>
+  
+    <!-- 复制成功 toast -->
+    <transition name="toast-fade">
+      <div v-if="copyToast.show" class="copy-toast">{{ copyToast.text }}</div>
+    </transition>
+</div>
 </template>
 
 <script setup lang="ts">
@@ -226,8 +231,7 @@ async function selectChannel(ch: RechargeChannel) {
 
 function copyAddress() {
   if (selectedChannel.value?.address) {
-    navigator.clipboard.writeText(selectedChannel.value.address)
-    alert('地址已复制')
+    copyText(selectedChannel.value.address, '收款地址已复制')
   }
 }
 
@@ -294,7 +298,7 @@ async function pollStatus() {
       step.value = 'success'
     } else if (st === 3) {
       stopPoll()
-      alert('订单已过期，请重新下单')
+      showToast('订单已超时未支付，请重新下单')
       step.value = 'channel'
     }
   } catch { /* 网络抖动继续轮询 */ }
@@ -310,9 +314,36 @@ function cancelWaiting() {
   step.value = 'channel'
 }
 
-function copyText(t?: string | number) {
+const copyToast = ref<{ show: boolean; text: string }>({ show: false, text: '' })
+let copyToastTimer: number | null = null
+
+function showToast(text: string) {
+  copyToast.value = { show: true, text }
+  if (copyToastTimer) window.clearTimeout(copyToastTimer)
+  copyToastTimer = window.setTimeout(() => (copyToast.value.show = false), 1600)
+}
+
+async function copyText(t?: string | number, tip = '已复制') {
   if (t === undefined || t === null || t === '') return
-  navigator.clipboard.writeText(String(t))
+  const text = String(t)
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      // http 环境降级：临时 textarea + execCommand
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    showToast(tip)
+  } catch {
+    showToast('复制失败，请长按手动复制')
+  }
 }
 
 async function goOrders() {
@@ -433,4 +464,30 @@ onMounted(async () => {
 .hl{color:#00d4aa}
 .status-tag.passed{background:rgba(0,212,170,.15);color:#00d4aa}
 .status-tag.rejected{background:rgba(255,45,85,.15);color:#ff2d55}
+
+/* 复制 toast */
+.copy-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18vh;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 28, 0.92);
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+}
 </style>
