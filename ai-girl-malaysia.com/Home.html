@@ -52,9 +52,9 @@
 			.c-home *{box-sizing:border-box}
 
 			/* ---------- Hero：全宽 560px、无圆角、整图铺满 ---------- */
-			/* Hero：与下方卡片行同一 1336 容器，左右各留 28px（移动端 16px） */
-			.c-hero-wrap{width:100%;max-width:1336px;margin:0 auto;padding:0 28px}
-			.c-hero{position:relative;height:560px;overflow:hidden;background:var(--h-page)}
+			/* Hero：满内容列宽（左右比下方卡片各宽 28px）；桌面端用负 margin 让标题/搜索/标签压在图上 */
+			.c-hero-wrap{width:100%;max-width:1336px;margin:-16px auto 0;padding:0}
+			.c-hero{position:relative;height:190px;overflow:hidden;background:var(--h-page)}
 			.c-hero-slide{position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none}
 			.c-hero-slide.active{opacity:1;pointer-events:auto}
 			.c-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:block}
@@ -73,28 +73,47 @@
 			.c-hero-nav:hover{opacity:1}
 			.c-hero-nav.prev{left:0}
 			.c-hero-nav.next{right:0}
-			.c-hero-dots{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:4;display:flex;gap:6px}
+			.c-hero-dots{position:absolute;left:50%;bottom:160px;transform:translateX(-50%);z-index:4;display:flex;gap:6px}
 			.c-hero-dot{width:24px;height:24px;padding:0;border:none;background:transparent;cursor:pointer;
 				display:flex;align-items:center;justify-content:center}
 			.c-hero-dot i{display:block;width:15px;height:4px;border-radius:2px;background:rgba(255,255,255,.3)}
 			.c-hero-dot.active i{background:#fff}
+			/* 桌面端：Hero 560px，并把下方区块上提 144px（-164px margin + 20px flex gap），
+			   使标题/搜索/chips 压在轮播图上（与参考站一致） */
+			@media (min-width:769px){
+				.c-hero-wrap{margin-top:-24px;margin-bottom:-164px}
+				.c-hero{height:560px}
+			}
 
 			/* ---------- Explore Featured Characters ---------- */
-			.c-featured{width:100%;max-width:1336px;margin:0 auto;padding-bottom:14px}
+			/* 下方区块需压在 Hero 之上 */
+			.c-featured{position:relative;z-index:10;width:100%;max-width:1336px;margin:0 auto;padding-bottom:14px}
 			.c-sec-head{display:flex;align-items:center;margin-bottom:18px;padding:0 28px}
 			.c-sec-title{margin:0;font-size:22px;font-weight:600;line-height:24px;color:#fff}
 			.c-sec-title em{font-style:normal;color:var(--h-primary)}
 			.c-filters{display:flex;align-items:center;gap:12px;padding:0 28px}
-			/* 搜索：默认收成图标，点击/聚焦向左展开 */
-			.c-search{display:flex;align-items:center;gap:10px;height:40px;width:40px;min-width:40px;padding:0;
+			/* 搜索：默认收成图标，点击/聚焦向左展开（参考站：40→323px，transition width .5s cubic-bezier(.4,0,.2,1)） */
+			.c-search{position:relative;display:flex;align-items:center;gap:8px;height:40px;width:40px;min-width:40px;padding:0;
 				justify-content:center;border-radius:9999px;background:#252525;cursor:pointer;flex:0 0 auto;
-				transition:width .28s ease,padding .28s ease}
+				transition:width .5s cubic-bezier(.4,0,.2,1),padding .5s cubic-bezier(.4,0,.2,1)}
 			.c-search svg{width:20px;height:20px;flex-shrink:0;color:#fff}
-			.c-search input{display:none;flex:1;min-width:0;width:100%;padding:0;background:transparent;border:none;
-				outline:none;color:#fff;font-size:14px;font-family:inherit;caret-color:#fff}
+			.c-search input{display:none;flex:1;min-width:0;width:100%;height:36px;padding:8px 0;background:transparent;
+				border:none;outline:none;box-shadow:none;color:#fff;font-size:14px;line-height:20px;font-family:inherit;
+				caret-color:#eb5a79}
 			.c-search input::placeholder{color:var(--h-grey)}
-			.c-search.expanded{width:220px;padding:0 20px;justify-content:flex-start}
-			.c-search.expanded input{display:block}
+			.c-search input::-webkit-search-cancel-button,
+			.c-search input::-ms-clear{display:none}
+			.c-search.expanded{width:323px;padding:0 20px;justify-content:flex-start}
+			.c-search.expanded input{display:block;padding-right:12px}
+			/* 清空按钮：有内容时出现（参考站 20x20 圆，right 10px，opacity/scale 过渡） */
+			.c-search-clear{position:absolute;right:10px;top:50%;width:20px;height:20px;padding:0;border:none;
+				border-radius:9999px;background:transparent;color:var(--h-grey);cursor:pointer;
+				display:flex;align-items:center;justify-content:center;
+				opacity:0;pointer-events:none;transform:translateY(-50%) scale(.8);
+				transition:opacity .3s ease,transform .3s ease,color .15s ease}
+			.c-search.has-value .c-search-clear{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1)}
+			.c-search-clear:hover{color:#fff}
+			.c-search-clear svg{width:14px;height:14px}
 			.c-chips-wrap{position:relative;display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 			.c-chips{display:flex;align-items:center;gap:12px;overflow-x:auto;scrollbar-width:none;min-width:0}
 			.c-chips::-webkit-scrollbar{display:none}
@@ -106,6 +125,14 @@
 			.c-row::-webkit-scrollbar{height:0}
 			.c-row.dragging{cursor:grabbing;scroll-behavior:auto;user-select:none}
 			.c-row img{-webkit-user-drag:none;user-select:none}
+			/* 列表两侧渐隐：仅在该侧还有内容可滚时出现（参考站用 70px mask 软边） */
+			.c-row.fade-right{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 70px),transparent 100%);
+				mask-image:linear-gradient(to right,#000 calc(100% - 70px),transparent 100%)}
+			.c-row.fade-left{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px);
+				mask-image:linear-gradient(to right,transparent 0,#000 70px)}
+			.c-row.fade-left.fade-right{
+				-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%);
+				mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%)}
 			/* 滚动箭头：标题行 / chips 行 / 卡片行 */
 			.c-arrow{width:24px;height:24px;padding:0;border:none;background:transparent;color:var(--h-grey);cursor:pointer;
 				display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -208,9 +235,8 @@
 				.c-footer-inner{flex-direction:row;gap:86px}
 			}
 			@media (max-width:768px){
-				.c-hero-wrap{padding:0 16px}
 				.c-hero{height:240px}
-				.c-hero-content{left:16px;right:16px;max-width:100%;padding-bottom:56px}
+				.c-hero-content{left:16px;right:16px;max-width:100%;padding-bottom:0}
 				.c-hero-sub{font-size:14px;line-height:20px;margin-bottom:8px}
 				.c-hero-name{font-size:28px}
 				.c-hero-cta{height:38px;padding:0 22px;font-size:13px;margin-top:12px}
@@ -574,7 +600,10 @@
 						<div class="c-filters">
 							<label class="c-search" id="searchBox">
 								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-								<input type="text" id="heroSearch" placeholder="Search" autocomplete="off">
+								<input type="search" id="heroSearch" placeholder="Search" autocomplete="off">
+								<button class="c-search-clear" id="searchClear" type="button" aria-label="Clear search">
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+								</button>
 							</label>
 							<div class="c-chips-wrap">
 								<div class="c-chips" id="heroChips"></div>
@@ -925,6 +954,9 @@
 					if (prev) prev.classList.toggle('is-disabled', row.scrollLeft <= 1)
 					if (next) next.classList.toggle('is-disabled', atEnd)
 					if (title) title.classList.toggle('is-disabled', max <= 0 || atEnd)
+					// 两侧渐隐：该侧还有内容时才有
+					row.classList.toggle('fade-left', row.scrollLeft > 1)
+					row.classList.toggle('fade-right', max > 0 && !atEnd)
 				}
 				var chips = document.getElementById('heroChips')
 				if (chips) {
@@ -989,9 +1021,14 @@
 			bindWheel(chipsEl)
 			chipsEl.addEventListener('scroll', syncArrows)
 
-			/* ---------- 搜索：默认收成图标，点击展开 ---------- */
+			/* ---------- 搜索：默认收成图标，点击展开；有内容时显示清空按钮 ---------- */
 			var searchBox = document.getElementById('searchBox')
 			var searchInput = document.getElementById('heroSearch')
+			var searchClear = document.getElementById('searchClear')
+
+			function syncSearchClear() {
+				searchBox.classList.toggle('has-value', !!searchInput.value.trim())
+			}
 			searchBox.addEventListener('click', function() {
 				searchBox.classList.add('expanded')
 				searchInput.focus()
@@ -1004,6 +1041,7 @@
 					searchInput.value = ''
 					keyword = ''
 					renderGrid()
+					syncSearchClear()
 					searchBox.classList.remove('expanded')
 					searchInput.blur()
 				}
@@ -1011,6 +1049,16 @@
 			searchInput.addEventListener('input', function() {
 				keyword = this.value.trim().toLowerCase()
 				renderGrid()
+				syncSearchClear()
+			})
+			searchClear.addEventListener('click', function(e) {
+				e.preventDefault()
+				e.stopPropagation()
+				searchInput.value = ''
+				keyword = ''
+				renderGrid()
+				syncSearchClear()
+				searchInput.focus()
 			})
 
 			/* ---------- FAQ ---------- */
