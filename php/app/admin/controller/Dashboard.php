@@ -122,7 +122,7 @@ class Dashboard extends Backend
     {
         try {
             $ctx = stream_context_create(['http' => ['timeout' => 2]]);
-            $raw = @file_get_contents('http://127.0.0.1:1985/api/v1/streams/', false, $ctx);
+            $raw = @file_get_contents('http://127.0.0.1:1986/api/v1/streams/', false, $ctx);
             if ($raw === false) {
                 return -1;
             }
