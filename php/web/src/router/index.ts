@@ -18,6 +18,12 @@ const router = createRouter({
 router.beforeEach((to) => {
     NProgress.configure({ showSpinner: false })
     NProgress.start()
+
+    // 后台部署：根路径(BuildAdmin演示首页)一律进管理员登录页
+    if (to.path === '/' || to.path === '') {
+        return { name: 'adminLogin' }
+    }
+
     if (!window.existLoading) {
         loading.show()
         window.existLoading = true
