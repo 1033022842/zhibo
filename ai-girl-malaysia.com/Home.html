@@ -52,12 +52,14 @@
 			.c-home *{box-sizing:border-box}
 
 			/* ---------- Hero：全宽 560px、无圆角、整图铺满 ---------- */
-			.c-hero{position:relative;width:100%;height:560px;overflow:hidden;background:var(--h-page)}
+			/* Hero：与下方卡片行同一 1336 容器，左右各留 28px（移动端 16px） */
+			.c-hero-wrap{width:100%;max-width:1336px;margin:0 auto;padding:0 28px}
+			.c-hero{position:relative;height:560px;overflow:hidden;background:var(--h-page)}
 			.c-hero-slide{position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none}
 			.c-hero-slide.active{opacity:1;pointer-events:auto}
 			.c-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:block}
 			.c-hero-content{position:absolute;top:0;bottom:0;z-index:3;display:flex;flex-direction:column;justify-content:center;
-				left:max(72px,calc((100% - 1336px) / 2 + 28px));max-width:36%;padding-bottom:132px}
+				left:28px;max-width:36%;padding-bottom:132px}
 			.c-hero-sub{margin:0 0 18px;font-size:19px;font-weight:500;line-height:28px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
 			.c-hero-name{margin:0;font-size:56px;font-weight:800;line-height:1.06;color:#fff;
 				filter:drop-shadow(0 2px 8px rgba(0,0,0,.65))}
@@ -71,7 +73,7 @@
 			.c-hero-nav:hover{opacity:1}
 			.c-hero-nav.prev{left:0}
 			.c-hero-nav.next{right:0}
-			.c-hero-dots{position:absolute;left:50%;bottom:160px;transform:translateX(-50%);z-index:4;display:flex;gap:6px}
+			.c-hero-dots{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:4;display:flex;gap:6px}
 			.c-hero-dot{width:24px;height:24px;padding:0;border:none;background:transparent;cursor:pointer;
 				display:flex;align-items:center;justify-content:center}
 			.c-hero-dot i{display:block;width:15px;height:4px;border-radius:2px;background:rgba(255,255,255,.3)}
@@ -82,29 +84,47 @@
 			.c-sec-head{display:flex;align-items:center;margin-bottom:18px;padding:0 28px}
 			.c-sec-title{margin:0;font-size:22px;font-weight:600;line-height:24px;color:#fff}
 			.c-sec-title em{font-style:normal;color:var(--h-primary)}
-			.c-scroll-btn{margin-left:auto;width:24px;height:24px;padding:0;border:none;background:transparent;
-				color:var(--h-grey);cursor:pointer;display:flex;align-items:center;justify-content:center}
-			.c-scroll-btn:hover{color:#fff}
-			.c-filters{display:flex;align-items:center;gap:12px;padding:0 28px;overflow-x:auto;scrollbar-width:none}
-			.c-filters::-webkit-scrollbar{display:none}
-			.c-search{display:flex;align-items:center;gap:10px;height:40px;width:170px;min-width:170px;padding:0 20px;
-				border-radius:9999px;background:#252525}
+			.c-filters{display:flex;align-items:center;gap:12px;padding:0 28px}
+			/* 搜索：默认收成图标，点击/聚焦向左展开 */
+			.c-search{display:flex;align-items:center;gap:10px;height:40px;width:40px;min-width:40px;padding:0;
+				justify-content:center;border-radius:9999px;background:#252525;cursor:pointer;flex:0 0 auto;
+				transition:width .28s ease,padding .28s ease}
 			.c-search svg{width:20px;height:20px;flex-shrink:0;color:#fff}
-			.c-search input{flex:1;min-width:0;background:transparent;border:none;outline:none;color:#fff;font-size:14px;
-				font-family:inherit;caret-color:#fff}
+			.c-search input{display:none;flex:1;min-width:0;width:100%;padding:0;background:transparent;border:none;
+				outline:none;color:#fff;font-size:14px;font-family:inherit;caret-color:#fff}
 			.c-search input::placeholder{color:var(--h-grey)}
-			.c-chips{display:flex;align-items:center;gap:12px;overflow-x:auto;scrollbar-width:none}
+			.c-search.expanded{width:220px;padding:0 20px;justify-content:flex-start}
+			.c-search.expanded input{display:block}
+			.c-chips-wrap{position:relative;display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+			.c-chips{display:flex;align-items:center;gap:12px;overflow-x:auto;scrollbar-width:none;min-width:0}
 			.c-chips::-webkit-scrollbar{display:none}
 			.c-chip{flex:0 0 auto;height:40px;padding:0 20px;border-radius:9999px;background:#252525;border:2px solid #282828;
 				color:#fff;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;white-space:nowrap}
 			.c-chip.active{background:linear-gradient(162.57deg,#1a1a1a 6.61%,#2a1e21 88.06%);border-color:#E75275}
-			.c-row{display:flex;width:100%;overflow-x:auto;padding:12px 28px;cursor:grab;
-				scroll-snap-type:x proximity;scroll-behavior:smooth}
+			.c-row-wrap{position:relative}
+			.c-row{display:flex;width:100%;overflow-x:auto;padding:12px 28px;cursor:grab;scroll-behavior:smooth}
 			.c-row::-webkit-scrollbar{height:0}
+			.c-row.dragging{cursor:grabbing;scroll-behavior:auto;user-select:none}
+			.c-row img{-webkit-user-drag:none;user-select:none}
+			/* 滚动箭头：标题行 / chips 行 / 卡片行 */
+			.c-arrow{width:24px;height:24px;padding:0;border:none;background:transparent;color:var(--h-grey);cursor:pointer;
+				display:flex;align-items:center;justify-content:center;flex-shrink:0}
+			.c-arrow:hover{color:#fff}
+			.c-arrow.is-disabled{opacity:.3;cursor:default}
+			.c-arrow.is-disabled:hover{color:var(--h-grey)}
+			.c-title-arrow{margin-left:8px}
+			.c-row-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:8;width:36px;height:36px;padding:0;
+				border-radius:9999px;border:1px solid rgba(255,255,255,.18);background:rgba(11,7,13,.72);
+				backdrop-filter:blur(6px);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
+				opacity:0;transition:opacity .2s ease}
+			.c-row-wrap:hover .c-row-arrow{opacity:1}
+			.c-row-arrow.left{left:8px}
+			.c-row-arrow.right{right:8px}
+			.c-row-arrow.is-disabled{opacity:0!important;pointer-events:none}
 			.c-row-grid{display:grid;grid-auto-flow:column;gap:16px;margin:0;padding:0;list-style:none}
 			.c-card{position:relative;display:flex;flex-direction:column;width:180px;height:300px;aspect-ratio:3/5;
 				overflow:hidden;border-radius:18px;background:var(--h-card);border:1px solid rgba(255,255,255,.07);
-				text-decoration:none;scroll-snap-align:start;
+				text-decoration:none;
 				transition:transform .22s cubic-bezier(0,0,.2,1)}
 			.c-card:hover{transform:scale(1.05);z-index:6}
 			.c-card .cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
@@ -188,6 +208,7 @@
 				.c-footer-inner{flex-direction:row;gap:86px}
 			}
 			@media (max-width:768px){
+				.c-hero-wrap{padding:0 16px}
 				.c-hero{height:240px}
 				.c-hero-content{left:16px;right:16px;max-width:100%;padding-bottom:56px}
 				.c-hero-sub{font-size:14px;line-height:20px;margin-bottom:8px}
@@ -198,7 +219,10 @@
 				.c-sec-head{padding:0 16px}
 				.c-sec-title{font-size:19px}
 				.c-filters{padding:0 16px;gap:10px}
-				.c-search{width:130px;min-width:130px;padding:0 14px}
+				.c-search.expanded{width:180px;padding:0 16px}
+				.c-title-arrow{display:none}
+				.c-row-arrow{display:none}
+				.c-chip-arrow{display:none}
 				.c-row{padding:12px 16px}
 				.c-card{width:150px;height:250px;border-radius:12px}
 				.c-card-name b{font-size:12.5px;line-height:17px}
@@ -517,7 +541,8 @@
 			<main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
 				<div class="c-home">
 
-					<!-- Hero 轮播：全宽 560px，5 张，7s 淡入淡出 -->
+					<!-- Hero 轮播：与卡片行对齐、560px、5 张、7s 淡入淡出 -->
+					<div class="c-hero-wrap">
 					<section class="c-hero" id="hero">
 						<div id="heroSlides">
 							<div class="c-hero-slide active">
@@ -536,30 +561,44 @@
 						</button>
 						<div class="c-hero-dots" id="heroDots"></div>
 					</section>
+					</div>
 
 					<!-- Explore Featured Characters -->
 					<section class="c-featured">
 						<div class="c-sec-head">
 							<h1 class="c-sec-title"><em>Explore</em> Featured Characters</h1>
-							<button class="c-scroll-btn" type="button" aria-label="Scroll right" onclick="rowScrollRight()">
+							<button class="c-arrow c-title-arrow" id="titleArrow" type="button" aria-label="Scroll right" onclick="scrollRow(1)">
 								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
 							</button>
 						</div>
 						<div class="c-filters">
-							<label class="c-search">
+							<label class="c-search" id="searchBox">
 								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
 								<input type="text" id="heroSearch" placeholder="Search" autocomplete="off">
 							</label>
-							<div class="c-chips" id="heroChips"></div>
+							<div class="c-chips-wrap">
+								<div class="c-chips" id="heroChips"></div>
+								<button class="c-arrow c-chip-arrow" id="chipArrow" type="button" aria-label="More filters" onclick="scrollChips(1)">
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+								</button>
+							</div>
 						</div>
-						<div class="c-row" id="row">
-							<ul class="c-row-grid" id="rowGrid">
-								<li><div class="c-skeleton"></div></li>
-								<li><div class="c-skeleton"></div></li>
-								<li><div class="c-skeleton"></div></li>
-								<li><div class="c-skeleton"></div></li>
-								<li><div class="c-skeleton"></div></li>
-							</ul>
+						<div class="c-row-wrap">
+							<div class="c-row" id="row">
+								<ul class="c-row-grid" id="rowGrid">
+									<li><div class="c-skeleton"></div></li>
+									<li><div class="c-skeleton"></div></li>
+									<li><div class="c-skeleton"></div></li>
+									<li><div class="c-skeleton"></div></li>
+									<li><div class="c-skeleton"></div></li>
+								</ul>
+							</div>
+							<button class="c-row-arrow left" id="rowPrev" type="button" aria-label="Scroll left" onclick="scrollRow(-1)">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+							</button>
+							<button class="c-row-arrow right" id="rowNext" type="button" aria-label="Scroll right" onclick="scrollRow(1)">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
 						</div>
 					</section>
 
@@ -808,7 +847,7 @@
 					? '<div class="c-card-top"><span class="c-card-glyph"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.2 6.2L21 10l-5.3 3.9L17 21l-5-3.4L7 21l1.3-7.1L3 10l6.8-1.8z"/></svg><span>' + esc(tags[0]) + '</span></span></div>'
 					: ''
 				var link = c.link_url || './Girls.html'
-				return '<li><a class="c-card" href="' + esc(link) + '">' +
+				return '<li><a class="c-card" draggable="false" href="' + esc(link) + '">' +
 					cover +
 					'<div class="c-card-scrim"></div>' +
 					badge +
@@ -836,13 +875,12 @@
 				var list = filtered()
 				if (!all.length) {
 					grid.innerHTML = '<li class="c-empty" style="width:auto">No characters yet</li>'
-					return
-				}
-				if (!list.length) {
+				} else if (!list.length) {
 					grid.innerHTML = '<li class="c-empty" style="width:auto">No matching characters</li>'
-					return
+				} else {
+					grid.innerHTML = list.map(cardHtml).join('')
 				}
-				grid.innerHTML = list.map(cardHtml).join('')
+				syncArrows()
 			}
 
 			function renderChips() {
@@ -866,11 +904,111 @@
 				})
 			}
 
-			window.rowScrollRight = function() {
+			/* ---------- 横向滚动：箭头 + 拖动 + 滚轮 ---------- */
+			window.scrollRow = function(dir) {
 				var row = document.getElementById('row')
-				row.scrollBy({ left: 392, behavior: 'smooth' })
+				row.scrollBy({ left: dir * 392, behavior: 'smooth' })
 			}
-			document.getElementById('heroSearch').addEventListener('input', function() {
+			window.scrollChips = function(dir) {
+				var chips = document.getElementById('heroChips')
+				chips.scrollBy({ left: dir * 200, behavior: 'smooth' })
+			}
+
+			function syncArrows() {
+				var row = document.getElementById('row')
+				if (row) {
+					var max = row.scrollWidth - row.clientWidth
+					var prev = document.getElementById('rowPrev')
+					var next = document.getElementById('rowNext')
+					var title = document.getElementById('titleArrow')
+					var atEnd = row.scrollLeft >= max - 1
+					if (prev) prev.classList.toggle('is-disabled', row.scrollLeft <= 1)
+					if (next) next.classList.toggle('is-disabled', atEnd)
+					if (title) title.classList.toggle('is-disabled', max <= 0 || atEnd)
+				}
+				var chips = document.getElementById('heroChips')
+				if (chips) {
+					var cmax = chips.scrollWidth - chips.clientWidth
+					var ca = document.getElementById('chipArrow')
+					if (ca) ca.classList.toggle('is-disabled', cmax <= 0 || chips.scrollLeft >= cmax - 1)
+				}
+			}
+
+			function bindDrag(el) {
+				var down = false, startX = 0, startLeft = 0, moved = false
+				el.addEventListener('pointerdown', function(e) {
+					if (e.button !== 0 || e.pointerType === 'touch') return
+					down = true
+					moved = false
+					startX = e.clientX
+					startLeft = el.scrollLeft
+					el.classList.add('dragging')
+				})
+				window.addEventListener('pointermove', function(e) {
+					if (!down) return
+					var dx = e.clientX - startX
+					if (Math.abs(dx) > 3) moved = true
+					el.scrollLeft = startLeft - dx
+				})
+				window.addEventListener('pointerup', function() {
+					if (!down) return
+					down = false
+					el.classList.remove('dragging')
+					syncArrows()
+				})
+				// 拖动结束后抑制这一次点击，避免误跳转到卡片
+				el.addEventListener('click', function(e) {
+					if (moved) {
+						e.preventDefault()
+						e.stopPropagation()
+						moved = false
+					}
+				}, true)
+			}
+
+			function bindWheel(el) {
+				el.addEventListener('wheel', function(e) {
+					if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+					var max = el.scrollWidth - el.clientWidth
+					if (max <= 0) return
+					var dy = e.deltaY
+					if ((dy > 0 && el.scrollLeft < max - 1) || (dy < 0 && el.scrollLeft > 1)) {
+						e.preventDefault()
+						el.scrollLeft += dy
+						syncArrows()
+					}
+				}, { passive: false })
+			}
+
+			var rowEl = document.getElementById('row')
+			var chipsEl = document.getElementById('heroChips')
+			bindDrag(rowEl)
+			bindWheel(rowEl)
+			rowEl.addEventListener('scroll', syncArrows)
+			bindDrag(chipsEl)
+			bindWheel(chipsEl)
+			chipsEl.addEventListener('scroll', syncArrows)
+
+			/* ---------- 搜索：默认收成图标，点击展开 ---------- */
+			var searchBox = document.getElementById('searchBox')
+			var searchInput = document.getElementById('heroSearch')
+			searchBox.addEventListener('click', function() {
+				searchBox.classList.add('expanded')
+				searchInput.focus()
+			})
+			searchInput.addEventListener('blur', function() {
+				if (!searchInput.value.trim()) searchBox.classList.remove('expanded')
+			})
+			searchInput.addEventListener('keydown', function(e) {
+				if (e.key === 'Escape') {
+					searchInput.value = ''
+					keyword = ''
+					renderGrid()
+					searchBox.classList.remove('expanded')
+					searchInput.blur()
+				}
+			})
+			searchInput.addEventListener('input', function() {
 				keyword = this.value.trim().toLowerCase()
 				renderGrid()
 			})
