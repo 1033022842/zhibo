@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<link rel="icon" type="image/png" href="./sugus-favicon.png">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<style type="text/css">
+			@media only screen and (max-width: 768px) {
+              /* mobile: hide pc sidebar */
+              .pc-nav{
+               display: none;
+               }
+            }
+            .login-pf{display:none;}
+            #user-login{display:none;}
+		</style>
+
+		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
+
+		<link rel="stylesheet" href="./assets/fy.css" data-turbo-track="reload">
+		<link rel="stylesheet" href="./Girls_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
+		<script src="./Girls_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
+		<script src="./Girls_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
+
+		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
+		<script src="./assets/layer/3.1.1/layer.js"></script>
+		<script src="./js/main.js?v=20260913"></script>
+		<script src="./js/event.js"></script>
+
+		<title>Sugus.ai: Create Your AI Girlfriend &amp; Start Chatting</title>
+		<meta name="description" content="Your dream companion awaits! Chat, call and create your own AI Girlfriend. Meet our featured AI characters and start a conversation in seconds.">
+
+		<style>
+			/* ================= AI 女友端首页（candy.ai 版式参考） ================= */
+			.candy-wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+
+			/* 顶部促销条 */
+			.candy-promo{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+				padding:10px 16px;border-radius:12px;
+				background:linear-gradient(90deg,rgba(168,85,247,.18),rgba(231,82,117,.16));
+				border:1px solid rgba(231,82,117,.3)}
+			.candy-promo-tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;
+				background:linear-gradient(135deg,#E75275,#a855f7);color:#fff;font-size:11px;font-weight:800;letter-spacing:.4px}
+			.candy-promo-text{color:#d8d8d8;font-size:13px}
+			.candy-promo-btn{display:inline-flex;align-items:center;height:30px;padding:0 16px;border-radius:9999px;
+				background:#fff;color:#131313;font-size:12px;font-weight:800;text-decoration:none}
+			.candy-promo-btn:hover{opacity:.85}
+
+			/* Hero 轮播 */
+			.candy-hero{position:relative;margin-top:16px;border-radius:20px;overflow:hidden;background:#1b1b1b;
+				border:1px solid rgba(255,255,255,.08);min-height:420px}
+			.candy-slides{position:relative;width:100%;height:420px}
+			.candy-slide{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;pointer-events:none}
+			.candy-slide.active{opacity:1;pointer-events:auto}
+			.candy-slide-bg{position:absolute;inset:0;background:linear-gradient(135deg,#241a33,#331527)}
+			.candy-slide-bg img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
+			.candy-slide-scrim{position:absolute;inset:0;
+				background:linear-gradient(90deg,rgba(10,10,12,.94) 0%,rgba(10,10,12,.7) 42%,rgba(10,10,12,.12) 100%)}
+			.candy-slide-inner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;
+				padding:40px 44px 40px 76px;max-width:660px}
+			.candy-eyebrow{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;
+				padding:5px 12px;border-radius:9999px;background:rgba(231,82,117,.16);border:1px solid rgba(231,82,117,.45);
+				color:#F97187;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+			.candy-hero-name{margin:14px 0 0;color:#fff;font-size:44px;line-height:1.05;font-weight:800;letter-spacing:-.5px}
+			.candy-hero-tag{margin:12px 0 0;color:#cfcfcf;font-size:15px;line-height:1.7;max-width:480px}
+			.candy-hero-meta{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+			.candy-hero-cta{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 30px;margin-top:24px;
+				border-radius:9999px;background:linear-gradient(135deg,#E75275,#a855f7);color:#fff;font-size:15px;font-weight:800;
+				text-decoration:none;box-shadow:0 10px 28px rgba(231,82,117,.32);align-self:flex-start}
+			.candy-hero-cta:hover{opacity:.92}
+			.candy-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:42px;height:42px;border-radius:50%;
+				border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(4px);color:#fff;
+				font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+			.candy-nav:hover{background:rgba(0,0,0,.7)}
+			.candy-nav.prev{left:14px}
+			.candy-nav.next{right:14px}
+			.candy-dots{position:absolute;left:76px;bottom:22px;z-index:5;display:flex;gap:7px}
+			.candy-dot{width:8px;height:8px;border-radius:9999px;background:rgba(255,255,255,.35);border:none;cursor:pointer;padding:0}
+			.candy-dot.active{width:22px;background:#E75275}
+
+			/* 区块标题 */
+			.candy-section{margin-top:56px}
+			.candy-sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+			.candy-sec-head h2{color:#fff;font-size:26px;line-height:1.2;font-weight:800}
+			.candy-sec-head p{color:#A1A1A1;font-size:13px;margin-top:6px}
+			.candy-sec-more{color:#F97187;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+			.candy-sec-more:hover{color:#fff}
+
+			/* 角色卡片 */
+			.candy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+			.candy-card{position:relative;border-radius:16px;overflow:hidden;background:#1b1b1b;border:1px solid rgba(255,255,255,.08);
+				display:flex;flex-direction:column;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+			.candy-card:hover{transform:translateY(-4px);border-color:rgba(231,82,117,.5);box-shadow:0 16px 40px rgba(0,0,0,.45)}
+			.candy-card-cover{position:relative;width:100%;aspect-ratio:3/4;background:linear-gradient(135deg,#241a33,#331527);overflow:hidden}
+			.candy-card-cover img{width:100%;height:100%;object-fit:cover;display:block}
+			.candy-card-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.8),transparent 55%)}
+			.candy-card-adult{position:absolute;left:10px;top:10px;z-index:3;padding:3px 8px;border-radius:6px;
+				background:rgba(239,68,68,.92);color:#fff;font-size:10px;font-weight:800;line-height:1.3}
+			.candy-card-body{position:relative;z-index:2;padding:12px 14px 16px;display:flex;flex-direction:column;flex:1}
+			.candy-card-name{color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;gap:7px}
+			.candy-card-age{color:#A1A1A1;font-size:12px;font-weight:600}
+			.candy-card-tag{color:#A1A1A1;font-size:12px;line-height:1.55;margin-top:5px;
+				display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:37px}
+			.candy-card-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;height:22px;overflow:hidden}
+			.candy-chip{font-size:10px;line-height:1;padding:4px 8px;border-radius:9999px;
+				background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7;white-space:nowrap}
+			.candy-card-btn{display:flex;align-items:center;justify-content:center;gap:6px;height:38px;margin-top:12px;border-radius:10px;
+				background:rgba(231,82,117,.12);border:1px solid rgba(231,82,117,.45);color:#F97187;font-size:13px;font-weight:700;
+				text-decoration:none;transition:background .2s,color .2s}
+			.candy-card-btn:hover{background:#E75275;color:#fff}
+			.candy-skeleton{border-radius:16px;background:#1b1b1b;border:1px solid rgba(255,255,255,.06);aspect-ratio:3/4.6;
+				animation:candyPulse 1.4s ease-in-out infinite}
+			@keyframes candyPulse{0%,100%{opacity:.55}50%{opacity:1}}
+			.candy-empty{grid-column:1/-1;padding:52px 16px;text-align:center;border-radius:16px;
+				background:#1b1b1b;border:1px dashed rgba(255,255,255,.12)}
+			.candy-empty .t{color:#fff;font-size:15px;font-weight:700}
+			.candy-empty .d{color:#A1A1A1;font-size:12px;margin-top:6px}
+
+			/* 特性三栏 */
+			.candy-features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
+			.candy-feature{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:22px}
+			.candy-feature .ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+				background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(231,82,117,.18));margin-bottom:14px}
+			.candy-feature h3{color:#fff;font-size:16px;font-weight:800}
+			.candy-feature p{color:#A1A1A1;font-size:13px;line-height:1.75;margin-top:8px}
+
+			/* 长文说明 */
+			.candy-prose{max-width:920px;margin-top:56px}
+			.candy-prose h2{color:#fff;font-size:24px;font-weight:800;line-height:1.3;margin-top:34px}
+			.candy-prose h3{color:#fff;font-size:17px;font-weight:700;margin-top:22px}
+			.candy-prose p{color:#A1A1A1;font-size:14px;line-height:1.95;margin-top:12px}
+			.candy-prose a{color:#F97187;text-decoration:none}
+
+			/* FAQ 手风琴 */
+			.candy-faq{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+			.candy-faq details{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden}
+			.candy-faq details[open]{border-color:rgba(231,82,117,.35)}
+			.candy-faq summary{list-style:none;cursor:pointer;padding:16px 18px;color:#fff;font-size:14px;font-weight:700;
+				display:flex;align-items:center;justify-content:space-between;gap:12px}
+			.candy-faq summary::-webkit-details-marker{display:none}
+			.candy-faq summary::after{content:'+';color:#F97187;font-size:20px;font-weight:700;line-height:1}
+			.candy-faq details[open] summary::after{content:'–'}
+			.candy-faq .ans{padding:0 18px 18px;color:#A1A1A1;font-size:13px;line-height:1.85}
+
+			/* 底部 CTA */
+			.candy-cta{margin-top:56px;border-radius:20px;padding:38px 32px;text-align:center;
+				background:linear-gradient(135deg,rgba(168,85,247,.22),rgba(231,82,117,.2));border:1px solid rgba(231,82,117,.3)}
+			.candy-cta h2{color:#fff;font-size:26px;font-weight:800}
+			.candy-cta p{color:#d8d8d8;font-size:13px;margin-top:10px}
+			.candy-cta-btn{display:inline-flex;align-items:center;height:50px;padding:0 34px;margin-top:22px;border-radius:9999px;
+				background:#fff;color:#131313;font-size:15px;font-weight:800;text-decoration:none}
+			.candy-cta-btn:hover{opacity:.88}
+
+			/* 页脚 */
+			.candy-footer{margin-top:56px;border-top:1px solid rgba(255,255,255,.08);padding:36px 0 8px}
+			.candy-footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:26px}
+			.candy-footer-brand{color:#fff;font-size:20px;font-weight:800;
+				background:linear-gradient(90deg,#E75275,#a855f7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+			.candy-footer-desc{color:#8a8a8a;font-size:12px;line-height:1.85;margin-top:12px;max-width:320px}
+			.candy-footer h4{color:#fff;font-size:13px;font-weight:700;margin-bottom:12px}
+			.candy-footer ul{list-style:none}
+			.candy-footer li{margin-bottom:9px}
+			.candy-footer li a{color:#A1A1A1;font-size:12px;text-decoration:none}
+			.candy-footer li a:hover{color:#F97187}
+			.candy-footer-bottom{margin-top:28px;border-top:1px solid rgba(255,255,255,.08);padding-top:18px;
+				display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+				color:#6b6b6b;font-size:11px}
+
+			@media (max-width:1024px){
+				.candy-grid{grid-template-columns:repeat(3,1fr)}
+				.candy-footer-grid{grid-template-columns:1fr 1fr}
+			}
+			@media (max-width:768px){
+				.candy-hero,.candy-slides{min-height:380px;height:380px}
+				.candy-slide-inner{padding:24px;max-width:100%}
+				.candy-hero-name{font-size:32px}
+				.candy-nav{display:none}
+				.candy-dots{left:24px;bottom:16px}
+				.candy-grid{grid-template-columns:repeat(2,1fr)}
+				.candy-features{grid-template-columns:1fr}
+				.candy-section{margin-top:40px}
+				.candy-sec-head h2{font-size:21px}
+				.candy-prose h2{font-size:20px}
+			}
+		</style>
+	</head>
+	<body class="bg-main pages home" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
+
+		<!-- ===== 左侧 PC 侧边栏 - 收起态 100px ===== -->
+		<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+			<nav class="flex flex-col justify-between h-full">
+				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto overflow-x-auto">
+					<li class="relative w-full">
+						<a href="./Home.html" class="relative h-[48px] w-[52px] hover:bg-zinc-700 bg-[#303030] rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./Girls.html" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">
+							<img class="w-6 h-6" src="./characters_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./Image.html" target="_top" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./characters.html" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./characters_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./charactersIndex.html" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-6 h-6" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./upload_media.html" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+						</a>
+					</li>
+				</ul>
+				<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
+					<li class="relative w-full">
+						<a href="./Subscriptions.html" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+							<img class="w-6 h-6" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+						</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+
+		<!-- ===== 左侧 PC 侧边栏 - 展开态 220px ===== -->
+		<div data-main-target="mainSidebarOpenedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[220px] lg:pb-5 w-[220px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar pc-nav" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+			<nav class="flex flex-col justify-between h-full">
+				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto overflow-x-auto">
+					<li class="relative w-full">
+						<a href="./Home.html" class="relative h-[40px] hover:bg-zinc-700 bg-[#303030] rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">Home</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./Girls.html" class="h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 flex justify-start px-3 items-center gap-2 cursor-pointer">
+							<img class="w-4 h-4" src="./characters_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+							<span class="text-start text-grey-medium text-xxs font-medium leading-4">Explore</span>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./Image.html" target="_top" class="relative h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">Generate Image</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./characters.html" class="relative h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./characters_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">Create Character</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./charactersIndex.html" class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<img class="w-4 h-4" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">My AI</div>
+						</a>
+					</li>
+					<li class="relative w-full">
+						<a href="./upload_media.html" class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">
+							<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+							<div class="text-start text-grey-medium text-xxs font-medium leading-none">Upload Media</div>
+						</a>
+					</li>
+				</ul>
+				<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
+					<li class="relative w-full">
+						<a href="./Subscriptions.html" class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">
+							<img class="w-4 h-4" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+							<div class="text-start text-pink-default text-xxs font-medium leading-4">Become Premium</div>
+						</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+
+		<!-- ===== 移动端抽屉侧边栏 ===== -->
+		<div data-main-target="mainMobileSidebarContainer" data-action="click->main#setMobileSidebarValueToDefault" class="inset-y-0 w-[100vw] mt-[64px] z-[100] pr-[40vw] no-scroll fixed left-0 webkit-transition-sidebar webkit-transform-sidebar">
+			<nav class="flex flex-col justify-between h-full w-[240px]" style="background: linear-gradient(0deg, #131313 0%, #131313 100%)">
+				<div class="flex flex-col justify-between h-full">
+					<div class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login">
+						<div class="gap-x-2 flex px-5 py-5">
+							<div class="flex gap-x-4 lg:gap-x-6">
+								<a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline">
+									<div class="text-white text-sm font-semibold leading-tight">Register</div>
+								</a>
+							</div>
+							<div class="flex gap-x-4 lg:gap-x-6">
+								<a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline">
+									<div class="text-sm font-semibold leading-tight">Login</div>
+								</a>
+							</div>
+						</div>
+					</div>
+					<ul role="list" class="flex flex-col items-center justify-start px-5 bg-zinc-900 h-screen overflow-auto">
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Home.html" class="w-full flex justify-start items-center gap-2">
+								<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+								<span class="text-start text-grey-medium text-xs leading-5 font-semibold">Home</span>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Girls.html" class="w-full flex justify-start items-center gap-2">
+								<img class="w-5 h-5" src="./characters_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">
+								<span class="text-start text-grey-medium text-xs leading-5 font-semibold">Explore</span>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Image.html" class="w-full flex justify-start items-center gap-2">
+								<img class="w-5 h-5" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">
+								<span class="text-start text-grey-medium text-xs leading-5 font-semibold">Generate Image</span>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./characters.html" class="w-full flex justify-start items-center gap-2">
+								<img class="w-5 h-5" src="./characters_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">
+								<span class="text-start text-grey-medium text-xs leading-5 font-semibold">Create Character</span>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./charactersIndex.html" class="w-full flex justify-start items-center gap-2">
+								<img class="w-5 h-5" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+								<span class="text-start text-grey-medium text-xs leading-5 font-semibold">My AI</span>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./upload_media.html" class="w-full flex justify-start items-center gap-2">
+								<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+								<span class="text-start text-grey-medium text-xs leading-5 font-semibold">Upload Media</span>
+							</a>
+						</li>
+						<li class="relative w-full py-4 border-b border-white border-opacity-10">
+							<a href="./Subscriptions.html" class="w-full flex justify-start items-center gap-2">
+								<img class="w-5 h-5" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">
+								<span class="text-start text-pink-default text-xs leading-5 font-semibold">Become Premium</span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</nav>
+		</div>
+
+		<!-- ===== 顶部导航栏 ===== -->
+		<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">
+			<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger">
+				<span class="sr-only">Open sidebar</span>
+				<svg class="nav-hamburger h-8 w-8 mr-1 text-white" data-action="click->main#handleMenuClick" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+				</svg>
+			</button>
+			<a href="./Home.html">
+				<img src="sugus-wordmark.png" class="h-[30px] md:h-[30px] w-[115px]">
+			</a>
+			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
+
+			<!-- 频道按钮：Girls / Anime / Guys（由 main.js 渲染） -->
+			<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
+				<script type="text/template" id="head-template">
+					<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Girls.html" accept-charset="UTF-8" data-remote="true" method="post">
+       <button data-id="27" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+         <div class="flex items-center">
+           <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+              </svg>
+          </div>
+              <div class="text-white text-[13px] font-semibold leading-normal">Girls</div>
+         </div>
+       </button>
+</form>
+					<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Anime.html" accept-charset="UTF-8" data-remote="true" method="post">
+      <button data-id="36" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+        <div class="flex items-center">
+          <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path>
+            </svg>
+          </div>
+              <div class="text-white text-[13px] font-semibold leading-normal">Anime</div>
+        </div>
+      </button>
+</form>
+					<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Guys.html" accept-charset="UTF-8" data-remote="true" method="post">
+      <button data-id="35" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
+        <div class="flex items-center">
+          <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+                <path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+                <path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+              </svg>
+          </div>
+              <div class="text-white text-[13px] font-semibold leading-normal">Guys</div>
+        </div>
+      </button>
+</form>
+      </script>
+			</div>
+
+			<!-- 右侧：未登录 Register / Login -->
+			<div class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">
+				<form class="relative flex flex-1" action="#" method="GET"></form>
+				<div class="headerfy"></div>
+				<div class="gap-x-2 flex pc-rg-login">
+					<div class="flex items-center gap-x-4 lg:gap-x-6">
+						<a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline">
+							<div class="text-white text-sm font-semibold leading-tight">Register</div>
+						</a>
+					</div>
+					<div class="flex items-center gap-x-4 lg:gap-x-6">
+						<a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline">
+							<div class="text-sm font-semibold leading-tight">Login</div>
+						</a>
+					</div>
+				</div>
+			</div>
+			<!-- 右侧：已登录（由 main.js 切换显示） -->
+			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main">
+				<form class="relative flex flex-1" action="#" method="GET"></form>
+				<div class="headerfy"></div>
+				<div class="flex items-center gap-x-4 lg:gap-x-6 nav-zk">
+					<a href="./Subscriptions.html" class="justify-center items-center primary-gradient flex max-w-full gap-2 px-2 py-1.5 rounded-xl">
+						<img src="./assets/olympic-sale/torch-62c1f4e586ca3ad6b1eadcb4457ba71edbe67652e8f775909a81c208c256996c.svg" class="object-cover object-center w-4 overflow-hidden shrink-0">
+						<div class="text-white text-xs font-semibold self-stretch">Subscribe 75% OFF</div>
+					</a>
+				</div>
+				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
+					<div class="lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true"></div>
+					<div id="profileDropdownWrap" class="w-fit relative">
+						<button type="button" class="-m-1.5 flex items-center p-1.5" id="user-menu-button" aria-expanded="false">
+							<span class="sr-only">Open user menu</span>
+							<img src="./assets/user-icons/woman-875180869a83d543d3ac906ca91d24634cc13f486d5c2565ed2908927a1fc10e.svg" class="h-8 w-8 rounded-full">
+							<span class="hidden lg:flex lg:items-center">
+								<span class="ml-4 text-sm font-semibold leading-6 text-white" aria-hidden="true">My Profile</span>
+								<svg class="ml-2 h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+									<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>
+								</svg>
+							</span>
+						</button>
+						<div id="profileDropdownMenu" class="absolute right-0 z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none" style="display: none;">
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./charactersIndex.html">
+								<div class="w-5 h-5 relative">
+									<img src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">My AI</div>
+							</a>
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./upload_media.html">
+								<div class="w-5 h-5 relative">
+									<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Upload Media</div>
+							</a>
+							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./setting.html">
+								<div class="w-5 h-5 relative">
+									<img src="./assets/settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg">
+								</div>
+								<div class="text-white text-sm font-semibold leading-normal">Settings</div>
+							</a>
+							<form class="button_to" method="post" onsubmit="return false">
+								<button data-turbo="false" id="logout" class="rounded-b-lg w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" type="submit">
+									<div class="w-5 h-5 relative">
+										<img src="./assets/logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg">
+									</div>
+									<div class="text-white text-sm font-semibold leading-normal">Logout</div>
+								</button>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ===== 主内容区 ===== -->
+		<div class="main-content-container" data-main-target="contentContainer">
+			<main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
+				<div class="candy-wrap pt-4 pb-20">
+
+					<!-- 顶部促销条 -->
+					<div class="candy-promo">
+						<span class="candy-promo-tag">SALE 70% OFF</span>
+						<span class="candy-promo-text">Unlock unlimited chat, voice notes &amp; AI images</span>
+						<a href="./Subscriptions.html" class="candy-promo-btn">Join Now</a>
+					</div>
+
+					<!-- Hero 轮播 -->
+					<section class="candy-hero" id="candyHero">
+						<div class="candy-slides" id="candySlides">
+							<div class="candy-slide active">
+								<div class="candy-slide-bg"></div>
+								<div class="candy-slide-scrim"></div>
+								<div class="candy-slide-inner">
+									<span class="candy-eyebrow">Meet her now!</span>
+									<h1 class="candy-hero-name">Your AI Girlfriend</h1>
+									<p class="candy-hero-tag">Create your dream companion, shape her look and personality, and start chatting in seconds.</p>
+									<a href="./characters.html" class="candy-hero-cta">Create Now
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+									</a>
+								</div>
+							</div>
+						</div>
+						<button class="candy-nav prev" type="button" onclick="candyHeroPrev()" aria-label="Previous">&#8249;</button>
+						<button class="candy-nav next" type="button" onclick="candyHeroNext()" aria-label="Next">&#8250;</button>
+						<div class="candy-dots" id="candyDots"></div>
+					</section>
+
+					<!-- Featured Characters -->
+					<section class="candy-section">
+						<div class="candy-sec-head">
+							<div>
+								<h2>Explore Featured Characters</h2>
+								<p>Pick a companion and start a conversation right away.</p>
+							</div>
+							<a href="./Girls.html" class="candy-sec-more">See all &#8594;</a>
+						</div>
+						<div class="candy-grid" id="candyGrid">
+							<div class="candy-skeleton"></div>
+							<div class="candy-skeleton"></div>
+							<div class="candy-skeleton"></div>
+							<div class="candy-skeleton"></div>
+						</div>
+					</section>
+
+					<!-- 三步开始 -->
+					<section class="candy-section">
+						<div class="candy-sec-head">
+							<div>
+								<h2>How It Works</h2>
+								<p>From first hello to a companion who remembers you.</p>
+							</div>
+						</div>
+						<div class="candy-features">
+							<div class="candy-feature">
+								<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97187" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+								<h3>Pick or create her</h3>
+								<p>Choose from our featured AI characters, or build your own from scratch — ethnicity, hair, age, personality and voice.</p>
+							</div>
+							<div class="candy-feature">
+								<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
+								<h3>Chat, voice &amp; images</h3>
+								<p>Text her, hear her voice and generate pictures together. Every message makes her understand you a little better.</p>
+							</div>
+							<div class="candy-feature">
+								<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97187" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l8.84 8.84 8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+								<h3>She grows with you</h3>
+								<p>She remembers what you told her, adapts to your mood and keeps every conversation warm, private and personal.</p>
+							</div>
+						</div>
+					</section>
+
+					<!-- 长文说明 -->
+					<section class="candy-prose">
+						<h2>An AI companion for every moment</h2>
+						<p>Whether you are after a light-hearted chat at the end of a long day or a deeper conversation when you need someone to listen, an AI girlfriend is always there. Built with personality modelling and memory, she picks up on what you like, remembers the details that matter and replies in a way that feels natural rather than scripted.</p>
+						<p>Unlike a static chatbot, she evolves with every exchange — adjusting tone, humour and emotional intelligence to match your vibe. Think of it as talking to someone who not only listens, but genuinely gets you.</p>
+
+						<h2>You set the tone in every chat, voice and image</h2>
+						<p>This is not just texting with a robot. Conversations flow, with your companion picking up on your tone and keeping things fresh and personal.</p>
+						<h3>Chat that feels real</h3>
+						<p>She remembers your stories, follows up on what you told her last week and never makes you repeat yourself.</p>
+						<h3>Voice and images</h3>
+						<p>Choose the voice you like — soft and comforting, bold and confident or anything in between — and generate images of her in the outfits, poses and scenes you imagine.</p>
+
+						<h2>Build a companion that grows with you</h2>
+						<p>Creating your own companion starts with the basics: pick a look, choose an age range and dial in the personality — bubbly, calm, cheeky or nurturing. Add a voice you love, sprinkle in some hobbies, and you have someone who is not just a companion, but your kind of real.</p>
+					</section>
+
+					<!-- FAQ -->
+					<section class="candy-section">
+						<div class="candy-sec-head">
+							<div>
+								<h2>Sugus.ai FAQ</h2>
+							</div>
+						</div>
+						<div class="candy-faq">
+							<details open>
+								<summary>What is Sugus.ai?</summary>
+								<div class="ans">Sugus.ai is an AI companion platform where you can create personalised virtual characters or chat instantly with our featured AI characters in immersive, private conversations.</div>
+							</details>
+							<details>
+								<summary>Can I create my own AI girlfriend?</summary>
+								<div class="ans">Yes. The creation flow lets you customise appearance, age range, personality and voice, so your companion matches exactly what you have in mind.</div>
+							</details>
+							<details>
+								<summary>Can my companion send images or voice messages?</summary>
+								<div class="ans">Absolutely. Your companion supports chat, voice and AI image generation, and she can respond in the medium that fits the moment.</div>
+							</details>
+							<details>
+								<summary>Do I need to install anything?</summary>
+								<div class="ans">No installation needed. You can access Sugus.ai directly from your desktop or mobile browser, anytime and anywhere.</div>
+							</details>
+							<details>
+								<summary>Is my chat private and secure?</summary>
+								<div class="ans">Yes. Your conversations are kept private to your account. Your chat history stays under your control and is never shared or sold.</div>
+							</details>
+						</div>
+					</section>
+
+					<!-- 底部 CTA -->
+					<section class="candy-cta">
+						<h2>Ready to meet her?</h2>
+						<p>Create your AI girlfriend in one click and start chatting right now — no installation, no waiting.</p>
+						<a href="./characters.html" class="candy-cta-btn">Create Your AI Girlfriend</a>
+					</section>
+
+					<!-- 页脚 -->
+					<footer class="candy-footer">
+						<div class="candy-footer-grid">
+							<div>
+								<div class="candy-footer-brand">Sugus.ai</div>
+								<p class="candy-footer-desc">Your dream companion awaits. Create your AI girlfriend, shape her look and personality, and bring her to life in one click — 100% powered by Artificial Intelligence.</p>
+							</div>
+							<div>
+								<h4>Explore</h4>
+								<ul>
+									<li><a href="./Girls.html">AI Girls</a></li>
+									<li><a href="./Anime.html">Anime</a></li>
+									<li><a href="./Guys.html">AI Guys</a></li>
+									<li><a href="./Gallery.html">Gallery</a></li>
+								</ul>
+							</div>
+							<div>
+								<h4>Create</h4>
+								<ul>
+									<li><a href="./characters.html">Create Character</a></li>
+									<li><a href="./Image.html">Generate Image</a></li>
+									<li><a href="./upload_media.html">Upload Media</a></li>
+									<li><a href="./charactersIndex.html">My AI</a></li>
+								</ul>
+							</div>
+							<div>
+								<h4>Account</h4>
+								<ul>
+									<li><a href="./Login.html">Login / Register</a></li>
+									<li><a href="./Subscriptions.html">Subscription</a></li>
+									<li><a href="./setting.html">Settings</a></li>
+									<li><a href="./index.html">Crowdfunding</a></li>
+								</ul>
+							</div>
+						</div>
+						<div class="candy-footer-bottom">
+							<span>&copy; Sugus.ai — All characters are fictional and AI-generated.</span>
+							<span>18+ only · Please chat responsibly</span>
+						</div>
+					</footer>
+
+				</div>
+			</main>
+		</div>
+
+		<!-- ===== 移动端底部导航 ===== -->
+		<div>
+			<div class="flex px-5 py-2 justify-between w-full h-[70px] fixed bottom-0 z-50 border-t border-white border-opacity-20 bg-black-default lg:hidden">
+				<a href="./Home.html" class="flex flex-col items-center">
+					<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#F97187" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+					<span class="text-[#F97187] text-[10px] mt-1">Home</span>
+				</a>
+				<a href="./Girls.html" class="flex flex-col items-center">
+					<img src="./Image_files/explore-active-ca279297c446de8d9227ffbadf9fef01e001cd35d665ec3620b02c9c35cab08c.svg" class="w-6 h-6">
+					<span class="text-[#A1A1A1] text-[10px] mt-1">Explore</span>
+				</a>
+				<a href="./Image.html" class="flex flex-col items-center relative">
+					<img src="./Girls_files/generate-e0a4445659c35cbc82e7046cf089cf881179d55eaa82d4bf32dae229a06666c1.svg" class="w-6 h-6">
+					<span class="text-[#A1A1A1] text-[10px] mt-1">Generate</span>
+				</a>
+				<a href="./characters.html" class="flex flex-col items-center">
+					<img src="./Girls_files/mobile-magic-wand-d445265367be8ddfbfe1c22810893d0ea4dbdaf1eadd7c4496861113d5388d78.svg" class="w-6 h-6">
+					<span class="text-[#A1A1A1] text-[10px] mt-1">Create</span>
+				</a>
+				<a href="./Subscriptions.html" class="flex flex-col items-center cursor-pointer">
+					<img src="./Girls_files/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+					<span class="text-[#A1A1A1] text-[10px] mt-1">Premium</span>
+				</a>
+			</div>
+		</div>
+
+		<script>
+		// 个人中心下拉（与 index.html 一致，jQuery 实现）
+		(function() {
+			var menuOpen = false
+			function setMenu(v) {
+				menuOpen = v
+				var m = document.getElementById('profileDropdownMenu')
+				var b = document.getElementById('user-menu-button')
+				if (m) m.style.display = v ? 'block' : 'none'
+				if (b) b.setAttribute('aria-expanded', v ? 'true' : 'false')
+			}
+			document.addEventListener('click', function(e) {
+				var btn = document.getElementById('user-menu-button')
+				var menu = document.getElementById('profileDropdownMenu')
+				if (!btn || !menu) return
+				if (btn.contains(e.target)) {
+					setMenu(!menuOpen)
+				} else if (!menu.contains(e.target)) {
+					setMenu(false)
+				}
+			})
+			document.addEventListener('keydown', function(e) {
+				if (e.key === 'Escape') setMenu(false)
+			})
+		})();
+		</script>
+		<script>
+		(function() {
+			var base = '/api/v1'
+			var slides = [], cur = 0, timer = null
+
+			function esc(s) {
+				return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+					return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+				})
+			}
+			// 去掉内网/已知域名的绝对前缀，避免封面图指向后台地址
+			function fixUrl(u) {
+				if (!u) return u
+				u = String(u)
+				if (/^https?:\/\/(38\.181\.44\.164|172\.81\.98\.55|127\.0\.0\.1|[\w.-]*b-cdn\.net|sugus\.[a-z.]+)(\/|$)/i.test(u)) {
+					return u.replace(/^https?:\/\/[^\/]+/i, '')
+				}
+				return u
+			}
+
+			function heroSlideHtml(c) {
+				var cover = c.cover_url
+					? '<div class="candy-slide-bg"><img src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" onerror="this.style.display=\'none\'"></div>'
+					: '<div class="candy-slide-bg"></div>'
+				var tags = Array.isArray(c.tags) ? c.tags.slice(0, 3) : []
+				var tagsHtml = tags.length
+					? '<div class="candy-hero-meta">' + tags.map(function(t){ return '<span class="candy-chip">' + esc(t) + '</span>' }).join('') + '</div>'
+					: ''
+				var link = c.link_url || './Girls.html'
+				return '<div class="candy-slide">' + cover + '<div class="candy-slide-scrim"></div>' +
+					'<div class="candy-slide-inner">' +
+						'<span class="candy-eyebrow">Meet her now!</span>' +
+						'<h1 class="candy-hero-name">' + esc(c.name) + '</h1>' +
+						'<p class="candy-hero-tag">' + esc(c.tagline) + '</p>' +
+						tagsHtml +
+						'<a href="' + esc(link) + '" class="candy-hero-cta">Chat Now' +
+							'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
+						'</a>' +
+					'</div></div>'
+			}
+
+			function renderHero(list) {
+				var wrap = document.getElementById('candySlides')
+				var dots = document.getElementById('candyDots')
+				slides = list.slice(0, 5)
+				if (!slides.length) { dots.innerHTML = ''; return }
+
+				wrap.innerHTML = slides.map(heroSlideHtml).join('')
+				dots.innerHTML = slides.map(function(_, i){
+					return '<button class="candy-dot' + (i === 0 ? ' active' : '') + '" type="button" onclick="candyGoTo(' + i + ')" aria-label="Slide ' + (i + 1) + '"></button>'
+				}).join('')
+
+				cur = 0
+				setActive(0)
+				if (slides.length > 1) startAuto()
+			}
+
+			function setActive(i) {
+				var el = document.querySelectorAll('#candySlides .candy-slide')
+				var dots = document.querySelectorAll('#candyDots .candy-dot')
+				for (var k = 0; k < el.length; k++) el[k].classList.remove('active')
+				for (var j = 0; j < dots.length; j++) dots[j].classList.remove('active')
+				if (el[i]) el[i].classList.add('active')
+				if (dots[i]) dots[i].classList.add('active')
+				cur = i
+			}
+			function startAuto() {
+				if (timer) clearInterval(timer)
+				timer = setInterval(function(){ candyHeroNext() }, 6000)
+			}
+			window.candyGoTo = function(i) { setActive(i); startAuto() }
+			window.candyHeroNext = function() {
+				if (slides.length < 2) return
+				setActive((cur + 1) % slides.length)
+			}
+			window.candyHeroPrev = function() {
+				if (slides.length < 2) return
+				setActive((cur - 1 + slides.length) % slides.length)
+			}
+
+			function cardHtml(c) {
+				var cover = c.cover_url
+					? '<img src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
+					: ''
+				var adult = parseInt(c.is_adult) === 1 ? '<span class="candy-card-adult">18+</span>' : ''
+				var tags = Array.isArray(c.tags) ? c.tags : []
+				var tagsHtml = tags.length
+					? '<div class="candy-card-tags">' + tags.slice(0, 3).map(function(t){ return '<span class="candy-chip">' + esc(t) + '</span>' }).join('') + '</div>'
+					: ''
+				var link = c.link_url || './Girls.html'
+				return '<div class="candy-card">' +
+					'<div class="candy-card-cover">' + cover + adult + '</div>' +
+					'<div class="candy-card-body">' +
+						'<div class="candy-card-name">' + esc(c.name) +
+							(c.age ? '<span class="candy-card-age">' + esc(c.age) + '</span>' : '') +
+						'</div>' +
+						'<div class="candy-card-tag">' + esc(c.tagline) + '</div>' +
+						tagsHtml +
+						'<a href="' + esc(link) + '" class="candy-card-btn">Chat with ' + esc(c.name) + '</a>' +
+					'</div>' +
+				'</div>'
+			}
+
+			function renderGrid(list) {
+				var grid = document.getElementById('candyGrid')
+				if (!list.length) {
+					grid.innerHTML = '<div class="candy-empty"><div class="t">No characters yet</div>' +
+						'<div class="d">Featured characters will show up here once they are published.</div></div>'
+					return
+				}
+				grid.innerHTML = list.map(cardHtml).join('')
+			}
+
+			fetch(base + '/home/characters?limit=12')
+				.then(function(r){ return r.json() })
+				.then(function(d) {
+					var list = (d && d.code === '00000' && d.data && d.data.list) || []
+					renderHero(list)
+					renderGrid(list)
+				})
+				.catch(function() {
+					renderGrid([])
+				})
+		})();
+		</script>
+	</body>
+</html>
