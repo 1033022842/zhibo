@@ -18,7 +18,7 @@
         <div class="login">
             <div class="login-box">
                 <div class="head">
-                    <img src="~assets/login-header.png" alt="" />
+                    <img src="~assets/sugus-logo.png" alt="Sugus" />
                 </div>
                 <div class="form">
                     <img class="profile-avatar" :src="fullUrl('/static/images/avatar.png')" alt="" />
@@ -200,10 +200,11 @@ const onSubmit = (captchaInfo = '') => {
         margin-bottom: 80px;
     }
     .head {
-        background: #ccccff;
+        background: #1a1a1a;
+        padding: 24px 0 16px 0;
         img {
             display: block;
-            width: 430px;
+            width: 168px;
             margin: 0 auto;
             user-select: none;
         }
@@ -264,9 +265,7 @@ const onSubmit = (captchaInfo = '') => {
             background: #161b22;
         }
         .head {
-            img {
-                filter: brightness(61%);
-            }
+            background: #101216;
         }
         .form {
             .submit-button {
