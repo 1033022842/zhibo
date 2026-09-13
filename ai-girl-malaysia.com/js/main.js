@@ -119,7 +119,7 @@
             localStorage.setItem('live_user_info', JSON.stringify(userinfo))
             localStorage.setItem('live_access_token', res.data.access_token)
             token = res.data.access_token
-           layer.msg(res.msg || '注册成功')
+           layer.msg('Registration successful')
             setTimeout(() => {
             location.reload()
             }, 800);
@@ -162,7 +162,7 @@
             localStorage.setItem('live_user_info', JSON.stringify(userinfo))
             localStorage.setItem('live_access_token', res.data.access_token)
             token = res.data.access_token
-           layer.msg(res.msg || '登录成功')
+           layer.msg('Login successful')
             setTimeout(function() {
             var redirect = getUrlParam(window.location.href, 'redirect')
             if (redirect && redirect !== 'null') {
@@ -195,8 +195,8 @@
           }
 		   // console.log(response.data)
           var res = response
-           if(res.code === 1) {
-            if(typeof(res.data) === 'object') {
+           if(res.code === 1 || res.code === '00000') {
+            if(res.data && !Array.isArray(res.data) && typeof(res.data) === 'object') {
               var template = $('#head-template').html();
               if (!template) return
 			  // for (var i=0;i<res.data.length;i++)
@@ -352,7 +352,7 @@
             response = JSON.parse(response)
           }
           var res = response
-           if(res.code === 1) {
+           if(res.code === 1 || res.code === '00000') {
             localStorage.setItem('pageList', JSON.stringify(res.data.pagelist.data))
             getInfoList(res.data.pagelist.data)
           } else {
