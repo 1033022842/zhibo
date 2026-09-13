@@ -93,6 +93,15 @@
         return t <= 0 ? 0 : Math.min(100, Math.round(r / t * 100))
     }
     function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] }) }
+			function fixUrl(u) {
+				if (!u) return u
+				u = String(u)
+				if (/^https?:\/\/(38\.181\.44\.164|172\.81\.98\.55|127\.0\.0\.1|[\w.-]*b-cdn\.net|sugus\.[a-z.]+)(\/|$)/i.test(u)) {
+					return u.replace(/^https?:\/\/[^\/]+/i, '')
+				}
+				return u
+			}
+
 
     window.switchTab = function(t) {
         document.querySelectorAll('.mc-tab').forEach(function(el){ el.classList.toggle('on', el.getAttribute('data-t') === t) })
@@ -105,7 +114,7 @@
         var tagsHtml = tags.length ? '<div class="cf-tags">' + tags.slice(0, 3).map(function(t){ return '<span class="cf-tag">' + esc(t) + '</span>' }).join('') + '</div>' : ''
         var adult = parseInt(p.is_adult) === 1 ? '<div class="cf-adult">18+</div>' : ''
         var cover = p.cover_url
-            ? '<img src="' + esc(p.cover_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />'
+            ? '<img src="' + esc(fixUrl(p.cover_url)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />'
             : ''
         var fillCls = p.status == 2 ? ' fail' : (done ? ' ok' : '')
         return '<div class="cf-card">' +

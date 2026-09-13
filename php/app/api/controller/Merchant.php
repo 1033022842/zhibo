@@ -125,9 +125,11 @@ final class Merchant extends BaseController
         $upload->setTopic('certification');
         $userId = $this->getAuthUserId();
         $attachment = $upload->upload(null, 0, $userId);
+        // 返回相对路径（/storage/...）：避免拼接请求域名导致跨域协议锁定与 Mixed Content
         $url = $attachment['url'];
-        if (!str_starts_with($url, 'http')) {
-            $url = rtrim($this->request->domain(), '/') . '/' . ltrim($url, '/');
+        if (str_starts_with($url, 'http')) {
+            $parsed = parse_url($url);
+            $url = $parsed['path'] ?? $url;
         }
         return $this->jsonSuccess(['url' => $url]);
     }
