@@ -298,7 +298,7 @@ async function pollStatus() {
       step.value = 'success'
     } else if (st === 3) {
       stopPoll()
-      alert('订单已过期，请重新下单')
+      showToast('订单已超时未支付，请重新下单')
       step.value = 'channel'
     }
   } catch { /* 网络抖动继续轮询 */ }
