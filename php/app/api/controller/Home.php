@@ -41,6 +41,7 @@ final class Home extends BaseController
                 'description' => (string) $row->description,
                 'cover_url'   => (string) $row->cover_url,
                 'tags'        => $tags,
+                'section'     => (string) $row->section,
                 'link_url'    => (string) $row->link_url,
                 'is_adult'    => (int) $row->is_adult,
             ];

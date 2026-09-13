@@ -35,6 +35,7 @@ final class HomeCharacter extends Backend
     {
         $keyword = trim((string)$this->request->param('search', ''));
         $status  = $this->request->param('status', '');
+        $section = trim((string)$this->request->param('section', ''));
 
         $query = $this->model;
         if ($keyword !== '') {
@@ -47,6 +48,11 @@ final class HomeCharacter extends Backend
         if ($status !== '') {
             $query = $query->where('status', (int)$status);
         }
+        if ($section !== '') {
+            $query = $section === '__none__'
+                ? $query->where('section', '')
+                : $query->where('section', $section);
+        }
 
         $list = $query->order('weigh', 'desc')->order('id', 'desc')->paginate(15);
 
@@ -57,7 +63,11 @@ final class HomeCharacter extends Backend
             'adult'    => (int)$this->model->where('is_adult', 1)->count(),
         ];
 
-        $html = $this->renderPage($list, $stats);
+        // 已使用的板块名（用于筛选与表单候选项）
+        $sections = $this->model->where('section', '<>', '')
+            ->distinct(true)->order('section', 'asc')->column('section');
+
+        $html = $this->renderPage($list, $stats, $sections);
         response($html)->send();
         exit;
     }
@@ -206,6 +216,7 @@ final class HomeCharacter extends Backend
             'description' => $desc,
             'cover_url'   => $cover,
             'tags'        => $tags,
+            'section'     => trim((string)$this->request->post('section', '')),
             'link_url'    => $link,
             'is_adult'    => (int)$this->request->post('is_adult/d', 0) === 1 ? 1 : 0,
             'weigh'       => (int)$this->request->post('weigh/d', 0),
@@ -226,7 +237,7 @@ final class HomeCharacter extends Backend
         return implode(',', array_unique($parts));
     }
 
-    private function renderPage($list, array $stats): string
+    private function renderPage($list, array $stats, array $sections = []): string
     {
         $rows = '';
         foreach ($list->items() as $row) {
@@ -243,6 +254,11 @@ final class HomeCharacter extends Backend
             $tagsHtml = $tags
                 ? implode('', array_map(static fn($t) => '<span class="tag-chip">' . htmlspecialchars($t) . '</span>', $tags))
                 : '<span class="muted">-</span>';
+
+            $sectionRaw  = (string)$row['section'];
+            $sectionHtml = $sectionRaw !== ''
+                ? '<span class="section-chip">' . htmlspecialchars($sectionRaw) . '</span>'
+                : '<span class="muted">未分组</span>';
 
             $cover = $row['cover_url']
                 ? '<div class="thumb"><img src="' . htmlspecialchars((string)$row['cover_url']) . '" alt="" onerror="this.style.display=\'none\'"></div>'
@@ -269,6 +285,7 @@ final class HomeCharacter extends Backend
                 </td>
                 <td><div class="cell-clamp">{$tagline}</div></td>
                 <td><div class="tag-list">{$tagsHtml}</div></td>
+                <td>{$sectionHtml}</td>
                 <td class="td-center">{$adultHtml}</td>
                 <td class="td-center">{$weigh}</td>
                 <td class="td-center">{$statusHtml}</td>
@@ -288,7 +305,7 @@ final class HomeCharacter extends Backend
         }
 
         if ($rows === '') {
-            $rows = '<tr><td colspan="9"><div class="empty-tip">暂无推荐角色，点击右上角「新增角色」添加</div></td></tr>';
+            $rows = '<tr><td colspan="10"><div class="empty-tip">暂无推荐角色，点击右上角「新增角色」添加</div></td></tr>';
         }
 
         $pager = $list->render();
@@ -298,6 +315,17 @@ final class HomeCharacter extends Backend
         $statusAll  = $statusVal === '' ? 'selected' : '';
         $status1    = (string)$statusVal === '1' ? 'selected' : '';
         $status0    = (string)$statusVal === '0' ? 'selected' : '';
+
+        $sectionVal   = trim((string)$this->request->param('section', ''));
+        $sectionAll   = $sectionVal === '' ? 'selected' : '';
+        $sectionNone  = $sectionVal === '__none__' ? 'selected' : '';
+        $sectionOpts  = '';
+        $sectionNames = '';
+        foreach ($sections as $s) {
+            $sv           = htmlspecialchars((string)$s);
+            $sectionOpts .= '<option value="' . $sv . '"' . ($sectionVal === (string)$s ? ' selected' : '') . '>' . $sv . '</option>';
+            $sectionNames .= '<option value="' . $sv . '"></option>';
+        }
 
         $statTotal    = number_format($stats['total'], 0);
         $statEnabled  = number_format($stats['enabled'], 0);
@@ -368,6 +396,7 @@ final class HomeCharacter extends Backend
 
                 .tag-list{display:flex;flex-wrap:wrap;gap:5px}
                 .tag-chip{padding:3px 9px;border-radius:999px;background:#f4ecfe;border:1px solid #e4d4fb;color:#7c3aed;font-size:12px;white-space:nowrap}
+                .section-chip{padding:3px 9px;border-radius:999px;background:#eef0ff;border:1px solid #d9defb;color:#4f46e5;font-size:12px;white-space:nowrap}
                 .adult-chip{padding:3px 10px;border-radius:999px;background:#fdeef2;border:1px solid #f7c9d6;color:#e11d48;font-size:12px;font-weight:600}
 
                 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600}
@@ -459,6 +488,11 @@ final class HomeCharacter extends Backend
                         <option value="1" {$status1}>启用</option>
                         <option value="0" {$status0}>禁用</option>
                     </select>
+                    <select name="section">
+                        <option value="" {$sectionAll}>全部板块</option>
+                        <option value="__none__" {$sectionNone}>未分组（首页第一个列表）</option>
+                        {$sectionOpts}
+                    </select>
                     <button class="btn btn-primary" type="submit">查询</button>
                     <a class="btn btn-ghost" href="/admin/live.HomeCharacter/index">重置</a>
                 </form>
@@ -467,7 +501,7 @@ final class HomeCharacter extends Backend
                     <div class="table-wrap">
                         <table>
                             <thead><tr>
-                                <th>ID</th><th>角色</th><th>简介</th><th>标签</th><th>18+</th><th>权重</th><th>状态</th><th>更新时间</th><th>操作</th>
+                                <th>ID</th><th>角色</th><th>简介</th><th>标签</th><th>板块</th><th>18+</th><th>权重</th><th>状态</th><th>更新时间</th><th>操作</th>
                             </tr></thead>
                             <tbody>{$rows}</tbody>
                         </table>
@@ -504,6 +538,12 @@ final class HomeCharacter extends Backend
                             <div class="form-field full">
                                 <label>标签</label>
                                 <input type="text" id="fTags" placeholder="逗号分隔，例如：Sweet,Voice,Girlfriend" />
+                            </div>
+                            <div class="form-field full">
+                                <label>所属板块</label>
+                                <input type="text" id="fSection" list="sectionList" maxlength="60" placeholder="留空 = 首页第一个两排列表；填写则归到下方该板块" />
+                                <datalist id="sectionList">{$sectionNames}</datalist>
+                                <div class="hint">下方板块按名称自动生成；板块标题的粉色前缀取名称的第一个词</div>
                             </div>
                             <div class="form-field full">
                                 <label>跳转链接</label>
@@ -571,6 +611,7 @@ final class HomeCharacter extends Backend
                 document.getElementById('fTagline').value = '';
                 document.getElementById('fDesc').value = '';
                 document.getElementById('fTags').value = '';
+                document.getElementById('fSection').value = '';
                 document.getElementById('fLink').value = '';
                 document.getElementById('fWeigh').value = '0';
                 document.getElementById('fAdult').value = '0';
@@ -597,6 +638,7 @@ final class HomeCharacter extends Backend
                         document.getElementById('fTagline').value = p.tagline || '';
                         document.getElementById('fDesc').value = p.description || '';
                         document.getElementById('fTags').value = p.tags || '';
+                        document.getElementById('fSection').value = p.section || '';
                         document.getElementById('fLink').value = p.link_url || '';
                         document.getElementById('fWeigh').value = p.weigh || 0;
                         document.getElementById('fAdult').value = String(p.is_adult || 0);
@@ -629,6 +671,7 @@ final class HomeCharacter extends Backend
                 fd.append('tagline', tagline);
                 fd.append('description', document.getElementById('fDesc').value.trim());
                 fd.append('tags', document.getElementById('fTags').value.trim());
+                fd.append('section', document.getElementById('fSection').value.trim());
                 fd.append('link_url', document.getElementById('fLink').value.trim());
                 fd.append('weigh', document.getElementById('fWeigh').value || 0);
                 fd.append('is_adult', document.getElementById('fAdult').value);

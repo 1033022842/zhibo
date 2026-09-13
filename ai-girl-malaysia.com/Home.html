@@ -130,11 +130,11 @@
 			.c-row.dragging{cursor:grabbing;scroll-behavior:auto;user-select:none}
 			.c-row img{-webkit-user-drag:none;user-select:none}
 			/* 列表两侧渐隐：仅在该侧还有内容可滚时出现（参考站用 70px mask 软边） */
-			.c-row.fade-right{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 70px),transparent 100%);
+			.c-row.fade-right,.c-chips.fade-right{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 70px),transparent 100%);
 				mask-image:linear-gradient(to right,#000 calc(100% - 70px),transparent 100%)}
-			.c-row.fade-left{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px);
+			.c-row.fade-left,.c-chips.fade-left{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px);
 				mask-image:linear-gradient(to right,transparent 0,#000 70px)}
-			.c-row.fade-left.fade-right{
+			.c-row.fade-left.fade-right,.c-chips.fade-left.fade-right{
 				-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%);
 				mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%)}
 			/* 滚动箭头：标题行 / chips 行 / 卡片行 */
@@ -152,7 +152,8 @@
 			.c-row-arrow.left{left:8px}
 			.c-row-arrow.right{right:8px}
 			.c-row-arrow.is-disabled{opacity:0!important;pointer-events:none}
-			.c-row-grid{display:grid;grid-auto-flow:column;gap:16px;margin:0;padding:0;list-style:none}
+			/* 第一个列表：两排（参考站 grid-auto-flow:column + grid-template-rows: 300px 300px） */
+			.c-row-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,300px);gap:16px;margin:0;padding:0;list-style:none}
 			.c-card{position:relative;display:flex;flex-direction:column;width:180px;height:300px;aspect-ratio:3/5;
 				overflow:hidden;border-radius:18px;background:var(--h-card);border:1px solid rgba(255,255,255,.07);
 				text-decoration:none;
@@ -187,6 +188,14 @@
 			.c-skeleton{width:180px;height:300px;border-radius:18px;background:var(--h-card);border:1px solid rgba(255,255,255,.05);
 				animation:cPulse 1.4s ease-in-out infinite}
 			@keyframes cPulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+			/* ---------- 下方板块（参考站：单排、卡片 190×271、7/10） ---------- */
+			.c-shelf{position:relative;z-index:10;width:100%;max-width:1336px;margin:0 auto}
+			.c-shelf-head{display:flex;align-items:center;margin-bottom:18px;padding:0 28px}
+			.c-shelf-title{margin:0;font-size:20px;font-weight:600;line-height:24px;color:#fff}
+			.c-shelf-title em{font-style:normal;color:var(--h-primary)}
+			.c-row-grid-short{grid-template-rows:auto}
+			.c-card-short{width:190px;height:271px;aspect-ratio:7/10;background:#131313}
 
 			/* ---------- FAQ ---------- */
 			.c-faq{width:100%;max-width:1280px;margin:128px auto 0;padding:0 20px}
@@ -255,6 +264,11 @@
 				.c-chip-arrow{display:none}
 				.c-row{padding:12px 16px}
 				.c-card{width:150px;height:250px;border-radius:12px}
+				.c-row-grid{grid-template-rows:repeat(1,250px)}
+				.c-row-grid-short{grid-template-rows:auto}
+				.c-card-short{width:150px;height:214px;border-radius:12px}
+				.c-shelf-head{padding:0 16px}
+				.c-shelf-title{font-size:17px}
 				.c-card-name b{font-size:12.5px;line-height:17px}
 				.c-card-name i{font-size:12.5px;line-height:17px}
 				.c-card-desc{font-size:10px;line-height:14px}
@@ -593,11 +607,11 @@
 					</section>
 					</div>
 
-					<!-- Explore Featured Characters -->
-					<section class="c-featured">
+					<!-- 第一个列表：Explore Featured Characters（两排） -->
+					<section class="c-featured" id="featured">
 						<div class="c-sec-head">
 							<h1 class="c-sec-title"><em>Explore</em> Featured Characters</h1>
-							<button class="c-arrow c-title-arrow" id="titleArrow" type="button" aria-label="Scroll right" onclick="scrollRow(1)">
+							<button class="c-arrow c-title-arrow" type="button" data-scroll="next" aria-label="Scroll right">
 								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
 							</button>
 						</div>
@@ -611,14 +625,15 @@
 							</label>
 							<div class="c-chips-wrap">
 								<div class="c-chips" id="heroChips"></div>
-								<button class="c-arrow c-chip-arrow" id="chipArrow" type="button" aria-label="More filters" onclick="scrollChips(1)">
+								<button class="c-arrow c-chip-arrow" type="button" data-chips="next" aria-label="More filters">
 									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
 								</button>
 							</div>
 						</div>
 						<div class="c-row-wrap">
-							<div class="c-row" id="row">
+							<div class="c-row" id="row" data-row>
 								<ul class="c-row-grid" id="rowGrid">
+									<li><div class="c-skeleton"></div></li>
 									<li><div class="c-skeleton"></div></li>
 									<li><div class="c-skeleton"></div></li>
 									<li><div class="c-skeleton"></div></li>
@@ -626,14 +641,17 @@
 									<li><div class="c-skeleton"></div></li>
 								</ul>
 							</div>
-							<button class="c-row-arrow left" id="rowPrev" type="button" aria-label="Scroll left" onclick="scrollRow(-1)">
+							<button class="c-row-arrow left" type="button" data-scroll="prev" aria-label="Scroll left">
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
 							</button>
-							<button class="c-row-arrow right" id="rowNext" type="button" aria-label="Scroll right" onclick="scrollRow(1)">
+							<button class="c-row-arrow right" type="button" data-scroll="next" aria-label="Scroll right">
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
 							</button>
 						</div>
 					</section>
+
+					<!-- 下方板块：按后台「所属板块」自动生成（单排、7/10 短卡） -->
+					<div id="shelves"></div>
 
 					<!-- FAQ -->
 					<section class="c-faq">
@@ -868,7 +886,8 @@
 			heroEl.addEventListener('mouseleave', function(){ if (slides.length > 1) startAuto() })
 
 			/* ---------- 卡片 ---------- */
-			function cardHtml(c) {
+			function cardHtml(c, cls) {
+				cls = cls ? ' ' + cls : ''
 				var cover = c.cover_url
 					? '<img class="cover" src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
 					: ''
@@ -880,7 +899,7 @@
 					? '<div class="c-card-top"><span class="c-card-glyph"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.2 6.2L21 10l-5.3 3.9L17 21l-5-3.4L7 21l1.3-7.1L3 10l6.8-1.8z"/></svg><span>' + esc(tags[0]) + '</span></span></div>'
 					: ''
 				var link = c.link_url || './Girls.html'
-				return '<li><a class="c-card" draggable="false" href="' + esc(link) + '">' +
+				return '<li><a class="c-card' + cls + '" draggable="false" href="' + esc(link) + '">' +
 					cover +
 					'<div class="c-card-scrim"></div>' +
 					badge +
@@ -894,8 +913,13 @@
 				'</a></li>'
 			}
 
+			// 第一个列表：板块为空（未分组）的角色
+			function sectionless() {
+				return all.filter(function(c) { return !String(c.section || '').trim() })
+			}
+
 			function filtered() {
-				return all.filter(function(c) {
+				return sectionless().filter(function(c) {
 					var tags = Array.isArray(c.tags) ? c.tags : []
 					var okChip = activeChip === 'All' || tags.indexOf(activeChip) > -1
 					var okKw = !keyword || String(c.name).toLowerCase().indexOf(keyword) > -1
@@ -911,9 +935,13 @@
 				} else if (!list.length) {
 					grid.innerHTML = '<li class="c-empty" style="width:auto">No matching characters</li>'
 				} else {
-					grid.innerHTML = list.map(cardHtml).join('')
+					grid.innerHTML = list.map(function(c) { return cardHtml(c) }).join('')
 				}
-				syncArrows()
+				// 未分组角色全部被分到板块后，隐藏第一个列表（含搜索/chips）
+				var hideFeatured = all.length > 0 && sectionless().length === 0
+				document.getElementById('featured').style.display = hideFeatured ? 'none' : ''
+				var rowEl = document.getElementById('row')
+				if (rowEl && rowEl.__sync) rowEl.__sync()
 			}
 
 			function renderChips() {
@@ -935,95 +963,135 @@
 						renderGrid()
 					})
 				})
+				if (box.__sync) box.__sync()
 			}
 
-			/* ---------- 横向滚动：箭头 + 拖动 + 滚轮 ---------- */
-			window.scrollRow = function(dir) {
-				var row = document.getElementById('row')
-				row.scrollBy({ left: dir * 392, behavior: 'smooth' })
-			}
-			window.scrollChips = function(dir) {
-				var chips = document.getElementById('heroChips')
-				chips.scrollBy({ left: dir * 200, behavior: 'smooth' })
+			// 下方板块：按「所属板块」分组，数据已按 weigh 倒序返回，故按首次出现顺序成板块
+			function renderShelves() {
+				var box = document.getElementById('shelves')
+				var order = [], map = {}
+				all.forEach(function(c) {
+					var s = String(c.section || '').trim()
+					if (!s) return
+					if (!map[s]) { map[s] = []; order.push(s) }
+					map[s].push(c)
+				})
+				box.innerHTML = order.map(function(s) {
+					var parts = s.split(/\s+/)
+					var head = '<em>' + esc(parts[0]) + '</em>' + (parts.length > 1 ? ' ' + esc(parts.slice(1).join(' ')) : '')
+					return '<section class="c-shelf">' +
+						'<div class="c-shelf-head">' +
+							'<h2 class="c-shelf-title">' + head + '</h2>' +
+							'<button class="c-arrow c-title-arrow" type="button" data-scroll="next" aria-label="Scroll right">' +
+								'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>' +
+							'</button>' +
+						'</div>' +
+						'<div class="c-row-wrap">' +
+							'<div class="c-row" data-row>' +
+								'<ul class="c-row-grid c-row-grid-short">' +
+									map[s].map(function(c) { return cardHtml(c, 'c-card-short') }).join('') +
+								'</ul>' +
+							'</div>' +
+							'<button class="c-row-arrow left" type="button" data-scroll="prev" aria-label="Scroll left">' +
+								'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>' +
+							'</button>' +
+							'<button class="c-row-arrow right" type="button" data-scroll="next" aria-label="Scroll right">' +
+								'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>' +
+							'</button>' +
+						'</div>' +
+					'</section>'
+				}).join('')
+				box.querySelectorAll('.c-shelf').forEach(function(sec) { initShelf(sec) })
 			}
 
-			function syncArrows() {
-				var row = document.getElementById('row')
-				if (row) {
+			/* ---------- 横向滚动：箭头 + 拖动 + 滚轮 + 两侧渐隐（列表与板块通用） ---------- */
+			function createScroller(row, opts) {
+				opts = opts || {}
+				var prev = opts.prev || null
+				var next = opts.next || null
+				var extras = opts.extras || []
+				var step = opts.step || 392
+
+				function sync() {
 					var max = row.scrollWidth - row.clientWidth
-					var prev = document.getElementById('rowPrev')
-					var next = document.getElementById('rowNext')
-					var title = document.getElementById('titleArrow')
 					var atEnd = row.scrollLeft >= max - 1
 					if (prev) prev.classList.toggle('is-disabled', row.scrollLeft <= 1)
-					if (next) next.classList.toggle('is-disabled', atEnd)
-					if (title) title.classList.toggle('is-disabled', max <= 0 || atEnd)
+					if (next) next.classList.toggle('is-disabled', max <= 0 || atEnd)
+					extras.forEach(function(b) { b.classList.toggle('is-disabled', max <= 0 || atEnd) })
 					// 两侧渐隐：该侧还有内容时才有
 					row.classList.toggle('fade-left', row.scrollLeft > 1)
 					row.classList.toggle('fade-right', max > 0 && !atEnd)
 				}
-				var chips = document.getElementById('heroChips')
-				if (chips) {
-					var cmax = chips.scrollWidth - chips.clientWidth
-					var ca = document.getElementById('chipArrow')
-					if (ca) ca.classList.toggle('is-disabled', cmax <= 0 || chips.scrollLeft >= cmax - 1)
+				function stepBy(dir) {
+					row.scrollBy({ left: dir * step, behavior: 'smooth' })
 				}
-			}
+				if (prev) prev.addEventListener('click', function() { stepBy(-1) })
+				if (next) next.addEventListener('click', function() { stepBy(1) })
+				extras.forEach(function(b) { b.addEventListener('click', function() { stepBy(1) }) })
 
-			function bindDrag(el) {
+				// 鼠标拖动
 				var down = false, startX = 0, startLeft = 0, moved = false
-				el.addEventListener('pointerdown', function(e) {
+				row.addEventListener('pointerdown', function(e) {
 					if (e.button !== 0 || e.pointerType === 'touch') return
 					down = true
 					moved = false
 					startX = e.clientX
-					startLeft = el.scrollLeft
-					el.classList.add('dragging')
+					startLeft = row.scrollLeft
+					row.classList.add('dragging')
 				})
 				window.addEventListener('pointermove', function(e) {
 					if (!down) return
 					var dx = e.clientX - startX
 					if (Math.abs(dx) > 3) moved = true
-					el.scrollLeft = startLeft - dx
+					row.scrollLeft = startLeft - dx
 				})
 				window.addEventListener('pointerup', function() {
 					if (!down) return
 					down = false
-					el.classList.remove('dragging')
-					syncArrows()
+					row.classList.remove('dragging')
+					sync()
 				})
 				// 拖动结束后抑制这一次点击，避免误跳转到卡片
-				el.addEventListener('click', function(e) {
+				row.addEventListener('click', function(e) {
 					if (moved) {
 						e.preventDefault()
 						e.stopPropagation()
 						moved = false
 					}
 				}, true)
-			}
 
-			function bindWheel(el) {
-				el.addEventListener('wheel', function(e) {
+				// 滚轮横滚：到端头后交还页面滚动
+				row.addEventListener('wheel', function(e) {
 					if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
-					var max = el.scrollWidth - el.clientWidth
+					var max = row.scrollWidth - row.clientWidth
 					if (max <= 0) return
 					var dy = e.deltaY
-					if ((dy > 0 && el.scrollLeft < max - 1) || (dy < 0 && el.scrollLeft > 1)) {
+					if ((dy > 0 && row.scrollLeft < max - 1) || (dy < 0 && row.scrollLeft > 1)) {
 						e.preventDefault()
-						el.scrollLeft += dy
-						syncArrows()
+						row.scrollLeft += dy
+						sync()
 					}
 				}, { passive: false })
+
+				row.addEventListener('scroll', sync)
+				row.__sync = sync
+				sync()
 			}
 
-			var rowEl = document.getElementById('row')
-			var chipsEl = document.getElementById('heroChips')
-			bindDrag(rowEl)
-			bindWheel(rowEl)
-			rowEl.addEventListener('scroll', syncArrows)
-			bindDrag(chipsEl)
-			bindWheel(chipsEl)
-			chipsEl.addEventListener('scroll', syncArrows)
+			// 为一个区块（第一个列表 / 下方板块）初始化横向滚动
+			function initShelf(sec) {
+				var wrap = sec.querySelector('.c-row-wrap')
+				if (!wrap) return
+				var row = wrap.querySelector('[data-row]')
+				if (!row) return
+				var titleArrow = sec.querySelector('.c-title-arrow')
+				createScroller(row, {
+					prev: wrap.querySelector('.c-row-arrow.left'),
+					next: wrap.querySelector('.c-row-arrow.right'),
+					extras: titleArrow ? [titleArrow] : [],
+					step: wrap.querySelector('.c-row-grid-short') ? 412 : 392
+				})
+			}
 
 			/* ---------- 搜索：默认收成图标，点击展开；有内容时显示清空按钮 ---------- */
 			var searchBox = document.getElementById('searchBox')
@@ -1073,16 +1141,25 @@
 				})
 			}
 
+			/* ---------- 初始化滚动（第一个列表 + chips 行） ---------- */
+			initShelf(document.getElementById('featured'))
+			createScroller(document.getElementById('heroChips'), {
+				next: document.querySelector('.c-chip-arrow'),
+				step: 200
+			})
+
 			/* ---------- 数据 ---------- */
-			fetch(base + '/home/characters?limit=12')
+			fetch(base + '/home/characters?limit=50')
 				.then(function(r){ return r.json() })
 				.then(function(d) {
 					all = (d && d.code === '00000' && d.data && d.data.list) || []
 					renderHero()
 					renderChips()
+					renderShelves()
 					renderGrid()
 				})
 				.catch(function() {
+					renderShelves()
 					renderGrid()
 				})
 		})();
