@@ -30,156 +30,190 @@
 		<meta name="description" content="Your dream companion awaits! Chat, call and create your own AI Girlfriend. Meet our featured AI characters and start a conversation in seconds.">
 
 		<style>
-			/* ================= AI 女友端首页（candy.ai 版式参考） ================= */
-			.candy-wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+			/* ================= 首页样式：与参考站 candy.ai 实测值一致 ================= */
+			:root{
+				--h-primary:#f97187;          /* --primary-color */
+				--h-cta:#f53b70;              /* hero CTA / badge */
+				--h-accent:#ee5876;           /* header 主按钮 */
+				--h-page:#0d0a0f;             /* body 背景 */
+				--h-nav:#131313;              /* header / 侧边栏 */
+				--h-card:#120d16;             /* 卡片底色 */
+				--h-line:#282828;             /* FAQ / 长文边框 */
+				--h-zinc900:#18181b;          /* FAQ 底色 */
+				--h-grey:#a4a4a4;             /* 次要文字 */
+				--h-grey2:#aeaeae;            /* 卡片简介 */
+				--h-grey3:#a1a1a1;            /* FAQ 答案 */
+				--h-age:#cbb6bf;              /* 卡片年龄 */
+			}
+			body.home{background-color:var(--h-page)}
+			.c-home{display:flex;flex-direction:column;gap:20px;padding:24px 0;
+				font-family:Poppins,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+				color:#fff}
+			.c-home *{box-sizing:border-box}
 
-			/* 顶部促销条 */
-			.candy-promo{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
-				padding:10px 16px;border-radius:12px;
-				background:linear-gradient(90deg,rgba(168,85,247,.18),rgba(231,82,117,.16));
-				border:1px solid rgba(231,82,117,.3)}
-			.candy-promo-tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;
-				background:linear-gradient(135deg,#E75275,#a855f7);color:#fff;font-size:11px;font-weight:800;letter-spacing:.4px}
-			.candy-promo-text{color:#d8d8d8;font-size:13px}
-			.candy-promo-btn{display:inline-flex;align-items:center;height:30px;padding:0 16px;border-radius:9999px;
-				background:#fff;color:#131313;font-size:12px;font-weight:800;text-decoration:none}
-			.candy-promo-btn:hover{opacity:.85}
+			/* ---------- Hero：全宽 560px、无圆角、整图铺满 ---------- */
+			.c-hero{position:relative;width:100%;height:560px;overflow:hidden;background:var(--h-page)}
+			.c-hero-slide{position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none}
+			.c-hero-slide.active{opacity:1;pointer-events:auto}
+			.c-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+			.c-hero-content{position:absolute;top:0;bottom:0;z-index:3;display:flex;flex-direction:column;justify-content:center;
+				left:max(72px,calc((100% - 1336px) / 2 + 28px));max-width:36%;padding-bottom:132px}
+			.c-hero-sub{margin:0 0 18px;font-size:19px;font-weight:500;line-height:28px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+			.c-hero-name{margin:0;font-size:56px;font-weight:800;line-height:1.06;color:#fff;
+				filter:drop-shadow(0 2px 8px rgba(0,0,0,.65))}
+			.c-hero-cta{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;
+				height:46px;padding:0 36px;margin-top:22px;border-radius:9999px;background:var(--h-cta);
+				border:1px solid rgba(255,255,255,.3);box-shadow:0 8px 22px rgba(238,88,118,.35);
+				color:#fff;font-size:15px;font-weight:600;text-decoration:none}
+			.c-hero-cta:hover{filter:brightness(1.06)}
+			.c-hero-nav{position:absolute;top:0;bottom:0;z-index:4;width:50px;display:flex;align-items:center;justify-content:center;
+				border:none;background:transparent;color:#fff;opacity:.9;cursor:pointer}
+			.c-hero-nav:hover{opacity:1}
+			.c-hero-nav.prev{left:0}
+			.c-hero-nav.next{right:0}
+			.c-hero-dots{position:absolute;left:50%;bottom:160px;transform:translateX(-50%);z-index:4;display:flex;gap:6px}
+			.c-hero-dot{width:24px;height:24px;padding:0;border:none;background:transparent;cursor:pointer;
+				display:flex;align-items:center;justify-content:center}
+			.c-hero-dot i{display:block;width:15px;height:4px;border-radius:2px;background:rgba(255,255,255,.3)}
+			.c-hero-dot.active i{background:#fff}
 
-			/* Hero 轮播 */
-			.candy-hero{position:relative;margin-top:16px;border-radius:20px;overflow:hidden;background:#1b1b1b;
-				border:1px solid rgba(255,255,255,.08);min-height:420px}
-			.candy-slides{position:relative;width:100%;height:420px}
-			.candy-slide{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;pointer-events:none}
-			.candy-slide.active{opacity:1;pointer-events:auto}
-			.candy-slide-bg{position:absolute;inset:0;background:linear-gradient(135deg,#241a33,#331527)}
-			.candy-slide-bg img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
-			.candy-slide-scrim{position:absolute;inset:0;
-				background:linear-gradient(90deg,rgba(10,10,12,.94) 0%,rgba(10,10,12,.7) 42%,rgba(10,10,12,.12) 100%)}
-			.candy-slide-inner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;
-				padding:40px 44px 40px 76px;max-width:660px}
-			.candy-eyebrow{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;
-				padding:5px 12px;border-radius:9999px;background:rgba(231,82,117,.16);border:1px solid rgba(231,82,117,.45);
-				color:#F97187;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
-			.candy-hero-name{margin:14px 0 0;color:#fff;font-size:44px;line-height:1.05;font-weight:800;letter-spacing:-.5px}
-			.candy-hero-tag{margin:12px 0 0;color:#cfcfcf;font-size:15px;line-height:1.7;max-width:480px}
-			.candy-hero-meta{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
-			.candy-hero-cta{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 30px;margin-top:24px;
-				border-radius:9999px;background:linear-gradient(135deg,#E75275,#a855f7);color:#fff;font-size:15px;font-weight:800;
-				text-decoration:none;box-shadow:0 10px 28px rgba(231,82,117,.32);align-self:flex-start}
-			.candy-hero-cta:hover{opacity:.92}
-			.candy-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:42px;height:42px;border-radius:50%;
-				border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(4px);color:#fff;
-				font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
-			.candy-nav:hover{background:rgba(0,0,0,.7)}
-			.candy-nav.prev{left:14px}
-			.candy-nav.next{right:14px}
-			.candy-dots{position:absolute;left:76px;bottom:22px;z-index:5;display:flex;gap:7px}
-			.candy-dot{width:8px;height:8px;border-radius:9999px;background:rgba(255,255,255,.35);border:none;cursor:pointer;padding:0}
-			.candy-dot.active{width:22px;background:#E75275}
+			/* ---------- Explore Featured Characters ---------- */
+			.c-featured{width:100%;max-width:1336px;margin:0 auto;padding-bottom:14px}
+			.c-sec-head{display:flex;align-items:center;margin-bottom:18px;padding:0 28px}
+			.c-sec-title{margin:0;font-size:22px;font-weight:600;line-height:24px;color:#fff}
+			.c-sec-title em{font-style:normal;color:var(--h-primary)}
+			.c-scroll-btn{margin-left:auto;width:24px;height:24px;padding:0;border:none;background:transparent;
+				color:var(--h-grey);cursor:pointer;display:flex;align-items:center;justify-content:center}
+			.c-scroll-btn:hover{color:#fff}
+			.c-filters{display:flex;align-items:center;gap:12px;padding:0 28px;overflow-x:auto;scrollbar-width:none}
+			.c-filters::-webkit-scrollbar{display:none}
+			.c-search{display:flex;align-items:center;gap:10px;height:40px;width:170px;min-width:170px;padding:0 20px;
+				border-radius:9999px;background:#252525}
+			.c-search svg{width:20px;height:20px;flex-shrink:0;color:#fff}
+			.c-search input{flex:1;min-width:0;background:transparent;border:none;outline:none;color:#fff;font-size:14px;
+				font-family:inherit;caret-color:#fff}
+			.c-search input::placeholder{color:var(--h-grey)}
+			.c-chips{display:flex;align-items:center;gap:12px;overflow-x:auto;scrollbar-width:none}
+			.c-chips::-webkit-scrollbar{display:none}
+			.c-chip{flex:0 0 auto;height:40px;padding:0 20px;border-radius:9999px;background:#252525;border:2px solid #282828;
+				color:#fff;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;white-space:nowrap}
+			.c-chip.active{background:linear-gradient(162.57deg,#1a1a1a 6.61%,#2a1e21 88.06%);border-color:#E75275}
+			.c-row{display:flex;width:100%;overflow-x:auto;padding:12px 28px;cursor:grab;
+				scroll-snap-type:x proximity;scroll-behavior:smooth}
+			.c-row::-webkit-scrollbar{height:0}
+			.c-row-grid{display:grid;grid-auto-flow:column;gap:16px;margin:0;padding:0;list-style:none}
+			.c-card{position:relative;display:flex;flex-direction:column;width:180px;height:300px;aspect-ratio:3/5;
+				overflow:hidden;border-radius:18px;background:var(--h-card);border:1px solid rgba(255,255,255,.07);
+				text-decoration:none;scroll-snap-align:start;
+				transition:transform .22s cubic-bezier(0,0,.2,1)}
+			.c-card:hover{transform:scale(1.05);z-index:6}
+			.c-card .cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+			.c-card-scrim{position:absolute;left:0;right:0;bottom:0;height:48%;
+				background:linear-gradient(to top,rgba(8,6,10,.78),rgba(8,6,10,.3) 55%,transparent)}
+			.c-card-badge{position:absolute;left:0;top:0;z-index:20;display:flex;align-items:center;gap:5px;
+				border-radius:0 0 12px 0;background:var(--h-cta);padding:5px 9px 5px 8px;
+				font-size:11px;font-weight:700;line-height:15px;letter-spacing:.02em;color:#fff}
+			.c-card-badge svg{height:14px;width:auto}
+			.c-card-top{position:absolute;right:9px;top:9px;z-index:20;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+			.c-card-glyph{display:flex;align-items:center;justify-content:center;width:29px;min-width:29px;height:29px;
+				border-radius:9999px;border:1px solid rgba(255,255,255,.3);background:rgba(11,7,13,.75);
+				backdrop-filter:blur(6px);overflow:hidden;
+				transition:width .3s ease-out,padding .3s ease-out}
+			.c-card-glyph svg{flex-shrink:0;width:14px;height:14px}
+			.c-card-glyph span{max-width:0;overflow:hidden;opacity:0;white-space:nowrap;font-size:10.5px;font-weight:700;
+				letter-spacing:.03em;color:#fff;transition:max-width .3s ease-out,opacity .3s ease-out,margin .3s ease-out}
+			.c-card:hover .c-card-glyph{width:auto;padding:0 8px}
+			.c-card:hover .c-card-glyph span{max-width:130px;opacity:1;margin-left:6px}
+			.c-card-info{position:relative;z-index:20;margin-top:auto;min-width:0;padding:12px}
+			.c-card-name{display:flex;align-items:baseline;gap:5px;min-width:0}
+			.c-card-name b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+				font-size:18px;font-weight:700;line-height:24px;color:#fff}
+			.c-card-name i{flex-shrink:0;font-style:normal;font-size:15px;font-weight:700;line-height:24px;color:var(--h-age)}
+			/* 参考站 180px 卡片为 compact 变体：只显示角色名 + 年龄，简介不渲染 */
+			.c-card-desc{display:none;margin:3px 0 0;font-size:12.5px;font-weight:500;line-height:17px;color:var(--h-grey2);
+				-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+			.c-empty{padding:60px 28px;text-align:center;color:var(--h-grey);font-size:14px}
+			.c-skeleton{width:180px;height:300px;border-radius:18px;background:var(--h-card);border:1px solid rgba(255,255,255,.05);
+				animation:cPulse 1.4s ease-in-out infinite}
+			@keyframes cPulse{0%,100%{opacity:.5}50%{opacity:1}}
 
-			/* 区块标题 */
-			.candy-section{margin-top:56px}
-			.candy-sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
-			.candy-sec-head h2{color:#fff;font-size:26px;line-height:1.2;font-weight:800}
-			.candy-sec-head p{color:#A1A1A1;font-size:13px;margin-top:6px}
-			.candy-sec-more{color:#F97187;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
-			.candy-sec-more:hover{color:#fff}
+			/* ---------- FAQ ---------- */
+			.c-faq{width:100%;max-width:1280px;margin:128px auto 0;padding:0 20px}
+			.c-faq h2{margin:0;text-align:center;font-size:32px;font-weight:700;line-height:40px;color:var(--h-primary)}
+			.c-faq h2 span{color:#fff}
+			.c-faq-list{display:flex;flex-direction:column;align-items:center;gap:28px;width:100%;margin-top:40px}
+			.c-faq-item{width:100%;border:1px solid var(--h-line);background:var(--h-zinc900);border-radius:10px;
+				transition:all .5s cubic-bezier(.4,0,.2,1)}
+			.c-faq-item.open{background:linear-gradient(to right,#4D1D28,#1F1F1F)}
+			.c-faq-q{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;
+				cursor:pointer;user-select:none}
+			.c-faq-q h3{margin:0;padding:20px 0;font-size:20px;font-weight:500;line-height:32px;color:#fff}
+			.c-faq-q svg{width:20px;height:20px;flex-shrink:0;color:#6a7282;transition:transform .2s}
+			.c-faq-item.open .c-faq-q svg{transform:rotate(180deg)}
+			.c-faq-a{display:none;padding:12px}
+			.c-faq-item.open .c-faq-a{display:block}
+			.c-faq-a p{margin:0;font-size:16px;font-weight:500;line-height:26px;color:var(--h-grey3)}
+			.c-faq-a p + p{margin-top:16px}
 
-			/* 角色卡片 */
-			.candy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
-			.candy-card{position:relative;border-radius:16px;overflow:hidden;background:#1b1b1b;border:1px solid rgba(255,255,255,.08);
-				display:flex;flex-direction:column;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
-			.candy-card:hover{transform:translateY(-4px);border-color:rgba(231,82,117,.5);box-shadow:0 16px 40px rgba(0,0,0,.45)}
-			.candy-card-cover{position:relative;width:100%;aspect-ratio:3/4;background:linear-gradient(135deg,#241a33,#331527);overflow:hidden}
-			.candy-card-cover img{width:100%;height:100%;object-fit:cover;display:block}
-			.candy-card-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.8),transparent 55%)}
-			.candy-card-adult{position:absolute;left:10px;top:10px;z-index:3;padding:3px 8px;border-radius:6px;
-				background:rgba(239,68,68,.92);color:#fff;font-size:10px;font-weight:800;line-height:1.3}
-			.candy-card-body{position:relative;z-index:2;padding:12px 14px 16px;display:flex;flex-direction:column;flex:1}
-			.candy-card-name{color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;gap:7px}
-			.candy-card-age{color:#A1A1A1;font-size:12px;font-weight:600}
-			.candy-card-tag{color:#A1A1A1;font-size:12px;line-height:1.55;margin-top:5px;
-				display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:37px}
-			.candy-card-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;height:22px;overflow:hidden}
-			.candy-chip{font-size:10px;line-height:1;padding:4px 8px;border-radius:9999px;
-				background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7;white-space:nowrap}
-			.candy-card-btn{display:flex;align-items:center;justify-content:center;gap:6px;height:38px;margin-top:12px;border-radius:10px;
-				background:rgba(231,82,117,.12);border:1px solid rgba(231,82,117,.45);color:#F97187;font-size:13px;font-weight:700;
-				text-decoration:none;transition:background .2s,color .2s}
-			.candy-card-btn:hover{background:#E75275;color:#fff}
-			.candy-skeleton{border-radius:16px;background:#1b1b1b;border:1px solid rgba(255,255,255,.06);aspect-ratio:3/4.6;
-				animation:candyPulse 1.4s ease-in-out infinite}
-			@keyframes candyPulse{0%,100%{opacity:.55}50%{opacity:1}}
-			.candy-empty{grid-column:1/-1;padding:52px 16px;text-align:center;border-radius:16px;
-				background:#1b1b1b;border:1px dashed rgba(255,255,255,.12)}
-			.candy-empty .t{color:#fff;font-size:15px;font-weight:700}
-			.candy-empty .d{color:#A1A1A1;font-size:12px;margin-top:6px}
+			/* ---------- 长文说明 ---------- */
+			.c-prose{width:100%;max-width:1280px;margin:128px auto 32px;padding:32px;border:1px solid var(--h-line);border-radius:10px}
+			.c-prose h2{margin:0 0 12px;font-size:24px;font-weight:700;line-height:32px;color:#fff}
+			.c-prose h3{margin:24px 0 8px;font-size:18px;font-weight:600;line-height:26px;color:#fff}
+			.c-prose p{margin:0;font-size:16px;font-weight:400;line-height:26px;color:var(--h-grey3)}
+			.c-prose p + p{margin-top:12px}
 
-			/* 特性三栏 */
-			.candy-features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
-			.candy-feature{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:22px}
-			.candy-feature .ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-				background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(231,82,117,.18));margin-bottom:14px}
-			.candy-feature h3{color:#fff;font-size:16px;font-weight:800}
-			.candy-feature p{color:#A1A1A1;font-size:13px;line-height:1.75;margin-top:8px}
-
-			/* 长文说明 */
-			.candy-prose{max-width:920px;margin-top:56px}
-			.candy-prose h2{color:#fff;font-size:24px;font-weight:800;line-height:1.3;margin-top:34px}
-			.candy-prose h3{color:#fff;font-size:17px;font-weight:700;margin-top:22px}
-			.candy-prose p{color:#A1A1A1;font-size:14px;line-height:1.95;margin-top:12px}
-			.candy-prose a{color:#F97187;text-decoration:none}
-
-			/* FAQ 手风琴 */
-			.candy-faq{margin-top:14px;display:flex;flex-direction:column;gap:10px}
-			.candy-faq details{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden}
-			.candy-faq details[open]{border-color:rgba(231,82,117,.35)}
-			.candy-faq summary{list-style:none;cursor:pointer;padding:16px 18px;color:#fff;font-size:14px;font-weight:700;
-				display:flex;align-items:center;justify-content:space-between;gap:12px}
-			.candy-faq summary::-webkit-details-marker{display:none}
-			.candy-faq summary::after{content:'+';color:#F97187;font-size:20px;font-weight:700;line-height:1}
-			.candy-faq details[open] summary::after{content:'–'}
-			.candy-faq .ans{padding:0 18px 18px;color:#A1A1A1;font-size:13px;line-height:1.85}
-
-			/* 底部 CTA */
-			.candy-cta{margin-top:56px;border-radius:20px;padding:38px 32px;text-align:center;
-				background:linear-gradient(135deg,rgba(168,85,247,.22),rgba(231,82,117,.2));border:1px solid rgba(231,82,117,.3)}
-			.candy-cta h2{color:#fff;font-size:26px;font-weight:800}
-			.candy-cta p{color:#d8d8d8;font-size:13px;margin-top:10px}
-			.candy-cta-btn{display:inline-flex;align-items:center;height:50px;padding:0 34px;margin-top:22px;border-radius:9999px;
-				background:#fff;color:#131313;font-size:15px;font-weight:800;text-decoration:none}
-			.candy-cta-btn:hover{opacity:.88}
-
-			/* 页脚 */
-			.candy-footer{margin-top:56px;border-top:1px solid rgba(255,255,255,.08);padding:36px 0 8px}
-			.candy-footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:26px}
-			.candy-footer-brand{color:#fff;font-size:20px;font-weight:800;
-				background:linear-gradient(90deg,#E75275,#a855f7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-			.candy-footer-desc{color:#8a8a8a;font-size:12px;line-height:1.85;margin-top:12px;max-width:320px}
-			.candy-footer h4{color:#fff;font-size:13px;font-weight:700;margin-bottom:12px}
-			.candy-footer ul{list-style:none}
-			.candy-footer li{margin-bottom:9px}
-			.candy-footer li a{color:#A1A1A1;font-size:12px;text-decoration:none}
-			.candy-footer li a:hover{color:#F97187}
-			.candy-footer-bottom{margin-top:28px;border-top:1px solid rgba(255,255,255,.08);padding-top:18px;
+			/* ---------- 页脚 ---------- */
+			.c-footer{margin-top:40px;width:100%;color:#fff;
+				background:linear-gradient(90deg,rgba(77,29,40,.5) 0%,#1f1f1f 37.35%,#1f1f1f 62.65%,rgba(77,29,40,.5) 100%)}
+			.c-footer-inner{display:flex;flex-direction:column-reverse;gap:32px;max-width:1280px;margin:0 auto;padding:40px 20px}
+			.c-footer-brand{flex:1;min-width:0}
+			.c-footer-brand .logo{font-size:24px;font-weight:800;line-height:1.2;color:#fff}
+			.c-footer-desc{margin:16px 0 0;max-width:360px;font-size:14px;font-weight:500;line-height:22px;color:#E1E1E1}
+			.c-footer-label{margin:20px 0 8px;font-size:14px;font-weight:500;color:var(--h-grey)}
+			.c-footer-addr{margin:0;font-size:14px;font-weight:500;line-height:22px;color:#E1E1E1}
+			.c-footer-cols{display:grid;grid-template-columns:1fr;gap:28px;flex:1;min-width:0}
+			.c-footer h4{margin:0 0 20px;font-size:14px;font-weight:500;color:var(--h-grey)}
+			.c-footer ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:20px}
+			.c-footer li a{font-size:14px;font-weight:500;color:#fff;text-decoration:none}
+			.c-footer li a:hover{color:var(--h-primary)}
+			.c-footer-bottom{max-width:1280px;margin:0 auto;padding:18px 20px 24px;border-top:1px solid rgba(255,255,255,.1);
 				display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-				color:#6b6b6b;font-size:11px}
+				font-size:14px;font-weight:500;color:var(--h-grey)}
+			.c-footer-bottom a{color:var(--h-grey);text-decoration:underline}
 
-			@media (max-width:1024px){
-				.candy-grid{grid-template-columns:repeat(3,1fr)}
-				.candy-footer-grid{grid-template-columns:1fr 1fr}
+			@media (min-width:768px){
+				.c-footer-cols{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+			}
+			@media (min-width:1024px){
+				.c-footer-inner{flex-direction:row;gap:86px}
 			}
 			@media (max-width:768px){
-				.candy-hero,.candy-slides{min-height:380px;height:380px}
-				.candy-slide-inner{padding:24px;max-width:100%}
-				.candy-hero-name{font-size:32px}
-				.candy-nav{display:none}
-				.candy-dots{left:24px;bottom:16px}
-				.candy-grid{grid-template-columns:repeat(2,1fr)}
-				.candy-features{grid-template-columns:1fr}
-				.candy-section{margin-top:40px}
-				.candy-sec-head h2{font-size:21px}
-				.candy-prose h2{font-size:20px}
+				.c-hero{height:240px}
+				.c-hero-content{left:16px;right:16px;max-width:100%;padding-bottom:56px}
+				.c-hero-sub{font-size:14px;line-height:20px;margin-bottom:8px}
+				.c-hero-name{font-size:28px}
+				.c-hero-cta{height:38px;padding:0 22px;font-size:13px;margin-top:12px}
+				.c-hero-nav{display:none}
+				.c-hero-dots{bottom:14px}
+				.c-sec-head{padding:0 16px}
+				.c-sec-title{font-size:19px}
+				.c-filters{padding:0 16px;gap:10px}
+				.c-search{width:130px;min-width:130px;padding:0 14px}
+				.c-row{padding:12px 16px}
+				.c-card{width:150px;height:250px;border-radius:12px}
+				.c-card-name b{font-size:12.5px;line-height:17px}
+				.c-card-name i{font-size:12.5px;line-height:17px}
+				.c-card-desc{font-size:10px;line-height:14px}
+				.c-faq{margin-top:64px}
+				.c-faq h2{font-size:24px;line-height:32px}
+				.c-faq-item{border-radius:10px}
+				.c-faq-q h3{font-size:16px;line-height:26px;padding:16px 0}
+				.c-faq-a p{font-size:14px;line-height:24px}
+				.c-prose{margin-top:64px;padding:20px}
+				.c-prose h2{font-size:19px;line-height:28px}
+				.c-prose p{font-size:14px;line-height:24px}
+				.c-footer-inner{padding:28px 16px}
+				.c-footer-bottom{padding:16px 16px 22px}
 			}
 		</style>
 	</head>
@@ -481,82 +515,93 @@
 		<!-- ===== 主内容区 ===== -->
 		<div class="main-content-container" data-main-target="contentContainer">
 			<main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
-				<div class="candy-wrap pt-4 pb-20">
+				<div class="c-home">
 
-					<!-- 顶部促销条 -->
-					<div class="candy-promo">
-						<span class="candy-promo-tag">SALE 70% OFF</span>
-						<span class="candy-promo-text">Unlock unlimited chat, voice notes &amp; AI images</span>
-						<a href="./Subscriptions.html" class="candy-promo-btn">Join Now</a>
-					</div>
-
-					<!-- Hero 轮播 -->
-					<section class="candy-hero" id="candyHero">
-						<div class="candy-slides" id="candySlides">
-							<div class="candy-slide active">
-								<div class="candy-slide-bg"></div>
-								<div class="candy-slide-scrim"></div>
-								<div class="candy-slide-inner">
-									<span class="candy-eyebrow">Meet her now!</span>
-									<h1 class="candy-hero-name">Your AI Girlfriend</h1>
-									<p class="candy-hero-tag">Create your dream companion, shape her look and personality, and start chatting in seconds.</p>
-									<a href="./characters.html" class="candy-hero-cta">Create Now
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-									</a>
+					<!-- Hero 轮播：全宽 560px，5 张，7s 淡入淡出 -->
+					<section class="c-hero" id="hero">
+						<div id="heroSlides">
+							<div class="c-hero-slide active">
+								<div class="c-hero-content">
+									<p class="c-hero-sub">Meet her now!</p>
+									<h1 class="c-hero-name">Your AI Girlfriend</h1>
+									<a href="./characters.html" class="c-hero-cta">Create Now</a>
 								</div>
 							</div>
 						</div>
-						<button class="candy-nav prev" type="button" onclick="candyHeroPrev()" aria-label="Previous">&#8249;</button>
-						<button class="candy-nav next" type="button" onclick="candyHeroNext()" aria-label="Next">&#8250;</button>
-						<div class="candy-dots" id="candyDots"></div>
+						<button class="c-hero-nav prev" type="button" aria-label="Previous banner" onclick="heroPrev()">
+							<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+						</button>
+						<button class="c-hero-nav next" type="button" aria-label="Next banner" onclick="heroNext()">
+							<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+						</button>
+						<div class="c-hero-dots" id="heroDots"></div>
 					</section>
 
-					<!-- Featured Characters -->
-					<section class="candy-section">
-						<div class="candy-sec-head">
-							<div>
-								<h2>Explore Featured Characters</h2>
-								<p>Pick a companion and start a conversation right away.</p>
-							</div>
-							<a href="./Girls.html" class="candy-sec-more">See all &#8594;</a>
+					<!-- Explore Featured Characters -->
+					<section class="c-featured">
+						<div class="c-sec-head">
+							<h1 class="c-sec-title"><em>Explore</em> Featured Characters</h1>
+							<button class="c-scroll-btn" type="button" aria-label="Scroll right" onclick="rowScrollRight()">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
 						</div>
-						<div class="candy-grid" id="candyGrid">
-							<div class="candy-skeleton"></div>
-							<div class="candy-skeleton"></div>
-							<div class="candy-skeleton"></div>
-							<div class="candy-skeleton"></div>
+						<div class="c-filters">
+							<label class="c-search">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+								<input type="text" id="heroSearch" placeholder="Search" autocomplete="off">
+							</label>
+							<div class="c-chips" id="heroChips"></div>
+						</div>
+						<div class="c-row" id="row">
+							<ul class="c-row-grid" id="rowGrid">
+								<li><div class="c-skeleton"></div></li>
+								<li><div class="c-skeleton"></div></li>
+								<li><div class="c-skeleton"></div></li>
+								<li><div class="c-skeleton"></div></li>
+								<li><div class="c-skeleton"></div></li>
+							</ul>
 						</div>
 					</section>
 
-					<!-- 三步开始 -->
-					<section class="candy-section">
-						<div class="candy-sec-head">
-							<div>
-								<h2>How It Works</h2>
-								<p>From first hello to a companion who remembers you.</p>
+					<!-- FAQ -->
+					<section class="c-faq">
+						<h2><span>Sugus.ai </span>FAQ</h2>
+						<div class="c-faq-list" id="faqList">
+							<div class="c-faq-item">
+								<dt class="c-faq-q"><h3>What is Sugus.ai?</h3>
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7"/></svg>
+								</dt>
+								<dd class="c-faq-a"><p>Sugus.ai is an AI companion platform where you can create personalised virtual characters or chat instantly with our featured AI characters in immersive, private conversations — all within a safe and private space.</p></dd>
 							</div>
-						</div>
-						<div class="candy-features">
-							<div class="candy-feature">
-								<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97187" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-								<h3>Pick or create her</h3>
-								<p>Choose from our featured AI characters, or build your own from scratch — ethnicity, hair, age, personality and voice.</p>
+							<div class="c-faq-item">
+								<dt class="c-faq-q"><h3>Can I create my own AI girlfriend?</h3>
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7"/></svg>
+								</dt>
+								<dd class="c-faq-a"><p>Yes. The creation flow lets you customise appearance, age range, personality and voice, so your companion matches exactly what you have in mind.</p></dd>
 							</div>
-							<div class="candy-feature">
-								<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
-								<h3>Chat, voice &amp; images</h3>
-								<p>Text her, hear her voice and generate pictures together. Every message makes her understand you a little better.</p>
+							<div class="c-faq-item">
+								<dt class="c-faq-q"><h3>Can my companion send images, voice or video?</h3>
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7"/></svg>
+								</dt>
+								<dd class="c-faq-a"><p>Absolutely. Your companion supports chat, voice and AI image generation, and she can respond in the medium that fits the moment.</p></dd>
 							</div>
-							<div class="candy-feature">
-								<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97187" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l8.84 8.84 8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
-								<h3>She grows with you</h3>
-								<p>She remembers what you told her, adapts to your mood and keeps every conversation warm, private and personal.</p>
+							<div class="c-faq-item">
+								<dt class="c-faq-q"><h3>Do I need to install anything to talk to my AI GF?</h3>
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7"/></svg>
+								</dt>
+								<dd class="c-faq-a"><p>No installation needed. You can access Sugus.ai directly from your desktop or mobile browser, anytime and anywhere.</p></dd>
+							</div>
+							<div class="c-faq-item">
+								<dt class="c-faq-q"><h3>Is chatting with my AI girlfriend private and secure?</h3>
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7"/></svg>
+								</dt>
+								<dd class="c-faq-a"><p>Yes. Your conversations are kept private to your account. Your chat history stays under your control and is never shared or sold.</p></dd>
 							</div>
 						</div>
 					</section>
 
 					<!-- 长文说明 -->
-					<section class="candy-prose">
+					<section class="c-prose">
 						<h2>An AI companion for every moment</h2>
 						<p>Whether you are after a light-hearted chat at the end of a long day or a deeper conversation when you need someone to listen, an AI girlfriend is always there. Built with personality modelling and memory, she picks up on what you like, remembers the details that matter and replies in a way that feels natural rather than scripted.</p>
 						<p>Unlike a static chatbot, she evolves with every exchange — adjusting tone, humour and emotional intelligence to match your vibe. Think of it as talking to someone who not only listens, but genuinely gets you.</p>
@@ -572,82 +617,52 @@
 						<p>Creating your own companion starts with the basics: pick a look, choose an age range and dial in the personality — bubbly, calm, cheeky or nurturing. Add a voice you love, sprinkle in some hobbies, and you have someone who is not just a companion, but your kind of real.</p>
 					</section>
 
-					<!-- FAQ -->
-					<section class="candy-section">
-						<div class="candy-sec-head">
-							<div>
-								<h2>Sugus.ai FAQ</h2>
-							</div>
-						</div>
-						<div class="candy-faq">
-							<details open>
-								<summary>What is Sugus.ai?</summary>
-								<div class="ans">Sugus.ai is an AI companion platform where you can create personalised virtual characters or chat instantly with our featured AI characters in immersive, private conversations.</div>
-							</details>
-							<details>
-								<summary>Can I create my own AI girlfriend?</summary>
-								<div class="ans">Yes. The creation flow lets you customise appearance, age range, personality and voice, so your companion matches exactly what you have in mind.</div>
-							</details>
-							<details>
-								<summary>Can my companion send images or voice messages?</summary>
-								<div class="ans">Absolutely. Your companion supports chat, voice and AI image generation, and she can respond in the medium that fits the moment.</div>
-							</details>
-							<details>
-								<summary>Do I need to install anything?</summary>
-								<div class="ans">No installation needed. You can access Sugus.ai directly from your desktop or mobile browser, anytime and anywhere.</div>
-							</details>
-							<details>
-								<summary>Is my chat private and secure?</summary>
-								<div class="ans">Yes. Your conversations are kept private to your account. Your chat history stays under your control and is never shared or sold.</div>
-							</details>
-						</div>
-					</section>
-
-					<!-- 底部 CTA -->
-					<section class="candy-cta">
-						<h2>Ready to meet her?</h2>
-						<p>Create your AI girlfriend in one click and start chatting right now — no installation, no waiting.</p>
-						<a href="./characters.html" class="candy-cta-btn">Create Your AI Girlfriend</a>
-					</section>
-
 					<!-- 页脚 -->
-					<footer class="candy-footer">
-						<div class="candy-footer-grid">
-							<div>
-								<div class="candy-footer-brand">Sugus.ai</div>
-								<p class="candy-footer-desc">Your dream companion awaits. Create your AI girlfriend, shape her look and personality, and bring her to life in one click — 100% powered by Artificial Intelligence.</p>
+					<footer class="c-footer">
+						<div class="c-footer-inner">
+							<div class="c-footer-brand">
+								<div class="logo">Sugus.ai</div>
+								<p class="c-footer-desc">Sugus.ai powers immersive experiences that feel real, allowing users to generate images and create AI characters.</p>
+								<p class="c-footer-label">Contacts:</p>
+								<p class="c-footer-addr">EverAI Limited, Nr. C107181 56 Central Business Centre, Triq Is-Soll, Santa Venera SVR 1833, Malta</p>
 							</div>
-							<div>
-								<h4>Explore</h4>
-								<ul>
-									<li><a href="./Girls.html">AI Girls</a></li>
-									<li><a href="./Anime.html">Anime</a></li>
-									<li><a href="./Guys.html">AI Guys</a></li>
-									<li><a href="./Gallery.html">Gallery</a></li>
-								</ul>
-							</div>
-							<div>
-								<h4>Create</h4>
-								<ul>
-									<li><a href="./characters.html">Create Character</a></li>
-									<li><a href="./Image.html">Generate Image</a></li>
-									<li><a href="./upload_media.html">Upload Media</a></li>
-									<li><a href="./charactersIndex.html">My AI</a></li>
-								</ul>
-							</div>
-							<div>
-								<h4>Account</h4>
-								<ul>
-									<li><a href="./Login.html">Login / Register</a></li>
-									<li><a href="./Subscriptions.html">Subscription</a></li>
-									<li><a href="./setting.html">Settings</a></li>
-									<li><a href="./index.html">Crowdfunding</a></li>
-								</ul>
+							<div class="c-footer-cols">
+								<div>
+									<h4>Features</h4>
+									<ul>
+										<li><a href="./Chat.html">Chat</a></li>
+										<li><a href="./characters.html">Create Character</a></li>
+										<li><a href="./Gallery.html">Gallery</a></li>
+										<li><a href="./charactersIndex.html">My AI</a></li>
+									</ul>
+								</div>
+								<div>
+									<h4>Popular</h4>
+									<ul>
+										<li><a href="./Home.html">Sugus AI</a></li>
+										<li><a href="./Girls.html">AI Girlfriend</a></li>
+										<li><a href="./Anime.html">AI Anime</a></li>
+										<li><a href="./Guys.html">AI Boyfriend</a></li>
+									</ul>
+								</div>
+								<div>
+									<h4>Legal &amp; Support</h4>
+									<ul>
+										<li><a href="./index.html">Terms and Policies</a></li>
+										<li><a href="./setting.html">Help Center</a></li>
+									</ul>
+								</div>
+								<div>
+									<h4>Company</h4>
+									<ul>
+										<li><a href="./Inviter.html">Affiliate Program</a></li>
+									</ul>
+								</div>
 							</div>
 						</div>
-						<div class="candy-footer-bottom">
-							<span>&copy; Sugus.ai — All characters are fictional and AI-generated.</span>
-							<span>18+ only · Please chat responsibly</span>
+						<div class="c-footer-bottom">
+							<span>&copy; 2026 Sugus.ai. All Rights Reserved</span>
+							<span>18+ only · All characters are fictional and AI-generated</span>
 						</div>
 					</footer>
 
@@ -710,7 +725,7 @@
 		<script>
 		(function() {
 			var base = '/api/v1'
-			var slides = [], cur = 0, timer = null
+			var all = [], slides = [], cur = 0, timer = null, activeChip = 'All', keyword = ''
 
 			function esc(s) {
 				return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -727,108 +742,158 @@
 				return u
 			}
 
-			function heroSlideHtml(c) {
+			/* ---------- Hero ---------- */
+			function slideHtml(c, i) {
 				var cover = c.cover_url
-					? '<div class="candy-slide-bg"><img src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" onerror="this.style.display=\'none\'"></div>'
-					: '<div class="candy-slide-bg"></div>'
-				var tags = Array.isArray(c.tags) ? c.tags.slice(0, 3) : []
-				var tagsHtml = tags.length
-					? '<div class="candy-hero-meta">' + tags.map(function(t){ return '<span class="candy-chip">' + esc(t) + '</span>' }).join('') + '</div>'
+					? '<img class="c-hero-bg" src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" onerror="this.style.display=\'none\'">'
 					: ''
 				var link = c.link_url || './Girls.html'
-				return '<div class="candy-slide">' + cover + '<div class="candy-slide-scrim"></div>' +
-					'<div class="candy-slide-inner">' +
-						'<span class="candy-eyebrow">Meet her now!</span>' +
-						'<h1 class="candy-hero-name">' + esc(c.name) + '</h1>' +
-						'<p class="candy-hero-tag">' + esc(c.tagline) + '</p>' +
-						tagsHtml +
-						'<a href="' + esc(link) + '" class="candy-hero-cta">Chat Now' +
-							'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
-						'</a>' +
+				return '<div class="c-hero-slide' + (i === 0 ? ' active' : '') + '">' + cover +
+					'<div class="c-hero-content">' +
+						'<p class="c-hero-sub">Meet her now!</p>' +
+						'<h1 class="c-hero-name">' + esc(c.name) + '</h1>' +
+						'<a href="' + esc(link) + '" class="c-hero-cta">Chat Now</a>' +
 					'</div></div>'
 			}
 
-			function renderHero(list) {
-				var wrap = document.getElementById('candySlides')
-				var dots = document.getElementById('candyDots')
-				slides = list.slice(0, 5)
+			function renderHero() {
+				var wrap = document.getElementById('heroSlides')
+				var dots = document.getElementById('heroDots')
+				slides = all.slice(0, 5)
 				if (!slides.length) { dots.innerHTML = ''; return }
-
-				wrap.innerHTML = slides.map(heroSlideHtml).join('')
+				wrap.innerHTML = slides.map(slideHtml).join('')
 				dots.innerHTML = slides.map(function(_, i){
-					return '<button class="candy-dot' + (i === 0 ? ' active' : '') + '" type="button" onclick="candyGoTo(' + i + ')" aria-label="Slide ' + (i + 1) + '"></button>'
+					return '<button class="c-hero-dot' + (i === 0 ? ' active' : '') + '" type="button" aria-label="Slide ' + (i + 1) + '" onclick="heroGo(' + i + ')"><i></i></button>'
 				}).join('')
-
-				cur = 0
 				setActive(0)
 				if (slides.length > 1) startAuto()
 			}
 
 			function setActive(i) {
-				var el = document.querySelectorAll('#candySlides .candy-slide')
-				var dots = document.querySelectorAll('#candyDots .candy-dot')
-				for (var k = 0; k < el.length; k++) el[k].classList.remove('active')
-				for (var j = 0; j < dots.length; j++) dots[j].classList.remove('active')
-				if (el[i]) el[i].classList.add('active')
-				if (dots[i]) dots[i].classList.add('active')
+				var els = document.querySelectorAll('#heroSlides .c-hero-slide')
+				var ds = document.querySelectorAll('#heroDots .c-hero-dot')
+				for (var k = 0; k < els.length; k++) els[k].classList.remove('active')
+				for (var j = 0; j < ds.length; j++) ds[j].classList.remove('active')
+				if (els[i]) els[i].classList.add('active')
+				if (ds[i]) ds[i].classList.add('active')
 				cur = i
 			}
 			function startAuto() {
 				if (timer) clearInterval(timer)
-				timer = setInterval(function(){ candyHeroNext() }, 6000)
+				timer = setInterval(function(){ heroNext() }, 7000)
 			}
-			window.candyGoTo = function(i) { setActive(i); startAuto() }
-			window.candyHeroNext = function() {
+			window.heroGo = function(i) { setActive(i); startAuto() }
+			window.heroNext = function() {
 				if (slides.length < 2) return
 				setActive((cur + 1) % slides.length)
 			}
-			window.candyHeroPrev = function() {
+			window.heroPrev = function() {
 				if (slides.length < 2) return
 				setActive((cur - 1 + slides.length) % slides.length)
 			}
+			var heroEl = document.getElementById('hero')
+			heroEl.addEventListener('mouseenter', function(){ if (timer) clearInterval(timer) })
+			heroEl.addEventListener('mouseleave', function(){ if (slides.length > 1) startAuto() })
 
+			/* ---------- 卡片 ---------- */
 			function cardHtml(c) {
 				var cover = c.cover_url
-					? '<img src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
+					? '<img class="cover" src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
 					: ''
-				var adult = parseInt(c.is_adult) === 1 ? '<span class="candy-card-adult">18+</span>' : ''
+				var badge = parseInt(c.is_adult) === 1
+					? '<span class="c-card-badge"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.2 6.2L21 10l-5.3 3.9L17 21l-5-3.4L7 21l1.3-7.1L3 10l6.8-1.8z"/></svg>18+</span>'
+					: ''
 				var tags = Array.isArray(c.tags) ? c.tags : []
-				var tagsHtml = tags.length
-					? '<div class="candy-card-tags">' + tags.slice(0, 3).map(function(t){ return '<span class="candy-chip">' + esc(t) + '</span>' }).join('') + '</div>'
+				var glyph = tags.length
+					? '<div class="c-card-top"><span class="c-card-glyph"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.2 6.2L21 10l-5.3 3.9L17 21l-5-3.4L7 21l1.3-7.1L3 10l6.8-1.8z"/></svg><span>' + esc(tags[0]) + '</span></span></div>'
 					: ''
 				var link = c.link_url || './Girls.html'
-				return '<div class="candy-card">' +
-					'<div class="candy-card-cover">' + cover + adult + '</div>' +
-					'<div class="candy-card-body">' +
-						'<div class="candy-card-name">' + esc(c.name) +
-							(c.age ? '<span class="candy-card-age">' + esc(c.age) + '</span>' : '') +
+				return '<li><a class="c-card" href="' + esc(link) + '">' +
+					cover +
+					'<div class="c-card-scrim"></div>' +
+					badge +
+					glyph +
+					'<div class="c-card-info">' +
+						'<div class="c-card-name"><b title="' + esc(c.name) + '">' + esc(c.name) + '</b>' +
+							(c.age ? '<i>' + esc(c.age) + '</i>' : '') +
 						'</div>' +
-						'<div class="candy-card-tag">' + esc(c.tagline) + '</div>' +
-						tagsHtml +
-						'<a href="' + esc(link) + '" class="candy-card-btn">Chat with ' + esc(c.name) + '</a>' +
+						(c.tagline ? '<p class="c-card-desc">' + esc(c.tagline) + '</p>' : '') +
 					'</div>' +
-				'</div>'
+				'</a></li>'
 			}
 
-			function renderGrid(list) {
-				var grid = document.getElementById('candyGrid')
+			function filtered() {
+				return all.filter(function(c) {
+					var tags = Array.isArray(c.tags) ? c.tags : []
+					var okChip = activeChip === 'All' || tags.indexOf(activeChip) > -1
+					var okKw = !keyword || String(c.name).toLowerCase().indexOf(keyword) > -1
+					return okChip && okKw
+				})
+			}
+
+			function renderGrid() {
+				var grid = document.getElementById('rowGrid')
+				var list = filtered()
+				if (!all.length) {
+					grid.innerHTML = '<li class="c-empty" style="width:auto">No characters yet</li>'
+					return
+				}
 				if (!list.length) {
-					grid.innerHTML = '<div class="candy-empty"><div class="t">No characters yet</div>' +
-						'<div class="d">Featured characters will show up here once they are published.</div></div>'
+					grid.innerHTML = '<li class="c-empty" style="width:auto">No matching characters</li>'
 					return
 				}
 				grid.innerHTML = list.map(cardHtml).join('')
 			}
 
+			function renderChips() {
+				var box = document.getElementById('heroChips')
+				var tags = []
+				all.forEach(function(c) {
+					(Array.isArray(c.tags) ? c.tags : []).forEach(function(t) {
+						if (tags.indexOf(t) === -1) tags.push(t)
+					})
+				})
+				var items = ['All'].concat(tags.slice(0, 8))
+				box.innerHTML = items.map(function(t) {
+					return '<button class="c-chip' + (t === activeChip ? ' active' : '') + '" type="button" data-chip="' + esc(t) + '">' + esc(t) + '</button>'
+				}).join('')
+				box.querySelectorAll('.c-chip').forEach(function(btn) {
+					btn.addEventListener('click', function() {
+						activeChip = this.getAttribute('data-chip')
+						renderChips()
+						renderGrid()
+					})
+				})
+			}
+
+			window.rowScrollRight = function() {
+				var row = document.getElementById('row')
+				row.scrollBy({ left: 392, behavior: 'smooth' })
+			}
+			document.getElementById('heroSearch').addEventListener('input', function() {
+				keyword = this.value.trim().toLowerCase()
+				renderGrid()
+			})
+
+			/* ---------- FAQ ---------- */
+			var items = document.querySelectorAll('#faqList .c-faq-item')
+			for (var i = 0; i < items.length; i++) {
+				items[i].querySelector('.c-faq-q').addEventListener('click', function() {
+					this.parentNode.classList.toggle('open')
+				})
+			}
+
+			/* ---------- 数据 ---------- */
 			fetch(base + '/home/characters?limit=12')
 				.then(function(r){ return r.json() })
 				.then(function(d) {
-					var list = (d && d.code === '00000' && d.data && d.data.list) || []
-					renderHero(list)
-					renderGrid(list)
+					all = (d && d.code === '00000' && d.data && d.data.list) || []
+					renderHero()
+					renderChips()
+					renderGrid()
 				})
 				.catch(function() {
-					renderGrid([])
+					renderGrid()
 				})
 		})();
 		</script>
