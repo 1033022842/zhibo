@@ -171,10 +171,10 @@ final class RechargeChannel extends Backend
         $id = (int) $this->request->param('id', 0);
         $row = $id ? Db::connect('live_mysql')->table('lp_vip_plan')->where('id', $id)->find() : null;
 
-        $r = $row ? $row : ['id' => '', 'name' => '', 'months' => '1', 'usdt_price' => '', 'diamond_price' => '', 'daily_diamond' => '', 'sort' => '0'];
+        $r = $row ? $row : ['id' => '', 'name' => '', 'months' => '1', 'usd_price' => '', 'diamond_price' => '', 'daily_diamond' => '', 'sort' => '0'];
         $vName = htmlspecialchars((string)$r['name'], ENT_QUOTES);
         $vMonths = (int)$r['months'];
-        $vUsd = htmlspecialchars((string)$r['usdt_price'], ENT_QUOTES);
+        $vUsd = htmlspecialchars((string)$r['usd_price'], ENT_QUOTES);
         $vDia = htmlspecialchars((string)$r['diamond_price'], ENT_QUOTES);
         $vDaily = htmlspecialchars((string)$r['daily_diamond'], ENT_QUOTES);
         $vSort = (int)$r['sort'];
@@ -202,7 +202,7 @@ final class RechargeChannel extends Backend
                 <input type="hidden" name="id" value="{$vId}" />
                 <div class="field"><label>套餐名称</label><input name="name" value="{$vName}" required /></div>
                 <div class="field"><label>月数</label><input type="number" name="months" value="{$vMonths}" min="1" required /></div>
-                <div class="field"><label>USDT 参考价（页面展示用）</label><input type="number" step="0.01" name="usdt_price" value="{$vUsd}" required /></div>
+                <div class="field"><label>USDT 参考价（页面展示用）</label><input type="number" step="0.01" name="usd_price" value="{$vUsd}" required /></div>
                 <div class="field"><label>钻石支付价（购买实际扣钻）</label><input type="number" step="0.01" name="diamond_price" value="{$vDia}" required /></div>
                 <div class="field"><label>每日领取钻石</label><input type="number" step="0.01" name="daily_diamond" value="{$vDaily}" required /></div>
                 <div class="field"><label>排序</label><input type="number" name="sort" value="{$vSort}" /></div>
@@ -223,7 +223,7 @@ final class RechargeChannel extends Backend
         $data = [
             'name'          => trim((string) $this->request->post('name', '')),
             'months'        => max(1, (int) $this->request->post('months', 1)),
-            'usdt_price'    => (float) $this->request->post('usdt_price', 0),
+            'usd_price'    => (float) $this->request->post('usd_price', 0),
             'diamond_price' => (float) $this->request->post('diamond_price', 0),
             'daily_diamond' => (float) $this->request->post('daily_diamond', 0),
             'sort'          => (int) $this->request->post('sort', 0),
@@ -266,10 +266,10 @@ final class RechargeChannel extends Backend
     {
         $vipRows = '';
         foreach ($vipPlans as $v) {
-            $v['usdt_price'] = $v['usdt_price'] ?? '0.00';
+            $v['usd_price'] = $v['usd_price'] ?? '0.00';
             $vid = (int)$v['id'];
             $vst = ((int)$v['status'] === 1) ? '<span style="color:#00a870">启用</span>' : '<span style="color:#999">禁用</span>';
-            $vipRows .= "<tr><td>{$vid}</td><td>" . htmlspecialchars((string)$v['name']) . "</td><td>{$v['months']}</td><td>{$v['usdt_price']}</td><td>{$v['diamond_price']}</td><td>{$v['daily_diamond']}</td><td>{$v['sort']}</td><td>{$vst}</td>"
+            $vipRows .= "<tr><td>{$vid}</td><td>" . htmlspecialchars((string)$v['name']) . "</td><td>{$v['months']}</td><td>{$v['usd_price']}</td><td>{$v['diamond_price']}</td><td>{$v['daily_diamond']}</td><td>{$v['sort']}</td><td>{$vst}</td>"
                 . "<td><a class='btn-edit' href='/admin/live.RechargeChannel/editVip?id={$vid}'>编辑</a> "
                 . "<a class='btn-edit' href='/admin/live.RechargeChannel/vipPlanToggle?id={$vid}' onclick=\"return confirm('切换启用状态?')\">切换</a></td></tr>";
         }
