@@ -11,7 +11,7 @@ use app\live\service\RechargeService;
 final class Recharge extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['channels', 'submit', 'orders', 'upload']],
+        \app\live\middleware\Auth::class => ['only' => ['channels', 'submit', 'orders', 'status', 'upload']],
     ];
 
     private RechargeService $service;
@@ -58,6 +58,32 @@ final class Recharge extends BaseController
     /**
      * 充值记录
      */
+    /**
+     * 订单状态轮询（付款等待页 5s 一次）
+     */
+    public function status()
+    {
+        $userId = $this->getAuthUserId();
+        $orderNo = (string) $this->request->param('order_no', '');
+        if ($orderNo === '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '参数错误');
+        }
+        $order = \think\facade\Db::name('recharge_order')
+            ->where('order_no', $orderNo)
+            ->where('user_id', $userId)
+            ->find();
+        if (!$order) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '订单不存在');
+        }
+        return $this->jsonSuccess([
+            'order_no'       => $order['order_no'],
+            'status'         => (int) $order['status'],
+            'pay_amount'     => $order['pay_amount'],
+            'diamond_amount' => $order['diamond_amount'],
+            'expire_at'      => $order['expire_at'] ?? '',
+        ]);
+    }
+
     public function orders()
     {
         $userId = $this->getAuthUserId();
