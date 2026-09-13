@@ -57,6 +57,10 @@
 			.c-hero{position:relative;height:190px;overflow:hidden;background:var(--h-page)}
 			.c-hero-slide{position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none}
 			.c-hero-slide.active{opacity:1;pointer-events:auto}
+			/* 底部暗色遮罩：压图区（下 144px）之上要放白色标题/chips，
+			   参考站靠 banner 图自身的暗部，我们的竖版人像裁切后此处偏亮，故补一层渐入页面底色的遮罩保证可读 */
+			.c-hero::after{content:'';position:absolute;left:0;right:0;bottom:0;height:240px;z-index:2;pointer-events:none;
+				background:linear-gradient(to top,rgba(13,10,15,.96) 0%,rgba(13,10,15,.72) 38%,rgba(13,10,15,0) 100%)}
 			.c-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:block}
 			.c-hero-content{position:absolute;top:0;bottom:0;z-index:3;display:flex;flex-direction:column;justify-content:center;
 				left:28px;max-width:36%;padding-bottom:132px}
