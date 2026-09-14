@@ -23,17 +23,33 @@
                 $('#user-login').css('display', 'none')
         }
         var id = getParam('id')
+        // 登录态初始化必须最先做：下面 trigger('click') 万一抛错也不会把它跳过
+        if(token) setupSignedInChat()
         channelDetail(id)
         $('#message-list').find('a').on('click', function(){
             $('#message-list').find('a').each(function() {
                 $(this).removeClass('px-[6px] bg-[#303030] border border-zinc-600');
               });
             $(this).addClass('px-[6px] bg-[#303030] border border-zinc-600')
-            getDetail($(this).data('id'))
+            getDetail(chatItemById($(this).data('id')))
         })
-        $('#message-list').find('a').eq(0).trigger('click')
-        if(token) setupSignedInChat()
+        try {
+            $('#message-list').find('a').eq(0).trigger('click')
+        } catch (e) {
+            console.warn('初始化会话失败', e)
+        }
     }, 1000);
+
+    // 会话项 data-id -> pageList 里的角色对象（原来直接传 id 字符串会让 getDetail 报错）
+    function chatItemById(id) {
+        if (id && typeof id === 'object') return id
+        var list = []
+        try { list = JSON.parse(localStorage.getItem('pageList') || '[]') || [] } catch (e) { list = [] }
+        for (var i = 0; i < list.length; i++) {
+            if (String(list[i] && list[i].id) === String(id)) return list[i]
+        }
+        return null
+    }
 
     /* ---------- 已登录：不弹登录框，发送走站内 AI 接口 ---------- */
     var sending = false
