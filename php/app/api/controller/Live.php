@@ -768,6 +768,9 @@ final class Live extends BaseController
         if (!is_array($history)) {
             $history = [];
         }
+        // 无平台内容 id 的角色（如首页推荐角色）允许前端直接传人设
+        $customPersonaName = trim((string) $this->request->post('persona_name', ''));
+        $customPersonaDesc = trim((string) $this->request->post('persona_desc', ''));
 
         if ($message === '') {
             return $this->jsonFail(ResultCode::PARAM_ERROR, '消息不能为空');
@@ -797,6 +800,12 @@ final class Live extends BaseController
 
             // 取内容人设
             [$personaName, $personaDesc] = $this->loadPersonaPrompt($contentId);
+            if ($contentId <= 0) {
+                if ($customPersonaName !== '') {
+                    $personaName = $customPersonaName;
+                }
+                $personaDesc = $customPersonaDesc;
+            }
 
             // 构造 OpenAI messages（sugus.ai 风格：代入角色、口语化、带 emoji）
             $system = '你是「' . $personaName . '」，一个真实、鲜活的 AI 虚拟伴侣。';
