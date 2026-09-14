@@ -798,7 +798,7 @@ final class Live extends BaseController
             // 取内容人设
             [$personaName, $personaDesc] = $this->loadPersonaPrompt($contentId);
 
-            // 构造 OpenAI messages（candy.ai 风格：代入角色、口语化、带 emoji）
+            // 构造 OpenAI messages（sugus.ai 风格：代入角色、口语化、带 emoji）
             $system = '你是「' . $personaName . '」，一个真实、鲜活的 AI 虚拟伴侣。';
             $system .= '请完全代入这个角色，用第一人称、口语化、自然的方式和对方聊天，像真人发消息一样。';
             $system .= '回复要简短（通常 1~3 句话），主动延续话题、适当调情暧昧，但保持自然不油腻。';
