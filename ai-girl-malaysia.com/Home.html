@@ -55,23 +55,14 @@
 			/* Hero：满内容列宽（左右比下方卡片各宽 28px）；桌面端用负 margin 让标题/搜索/标签压在图上 */
 			.c-hero-wrap{width:100%;max-width:1336px;margin:-16px auto 0;padding:0}
 			.c-hero{position:relative;height:190px;overflow:hidden;background:var(--h-page)}
-			.c-hero-slide{position:absolute;inset:0;opacity:0;transition:opacity .5s ease;pointer-events:none}
+			.c-hero-slide{position:absolute;inset:0;display:block;opacity:0;transition:opacity .5s ease;pointer-events:none}
 			.c-hero-slide.active{opacity:1;pointer-events:auto}
+			.c-hero-slide[data-link]{cursor:pointer}
 			/* 底部暗色遮罩：压图区（下 144px）之上要放白色标题/chips，
 			   参考站靠 banner 图自身的暗部，我们的竖版人像裁切后此处偏亮，故补一层渐入页面底色的遮罩保证可读 */
 			.c-hero::after{content:'';position:absolute;left:0;right:0;bottom:0;height:240px;z-index:2;pointer-events:none;
 				background:linear-gradient(to top,rgba(13,10,15,.96) 0%,rgba(13,10,15,.72) 38%,rgba(13,10,15,0) 100%)}
 			.c-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:block}
-			.c-hero-content{position:absolute;top:0;bottom:0;z-index:3;display:flex;flex-direction:column;justify-content:center;
-				left:28px;max-width:36%;padding-bottom:132px}
-			.c-hero-sub{margin:0 0 18px;font-size:19px;font-weight:500;line-height:28px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
-			.c-hero-name{margin:0;font-size:56px;font-weight:800;line-height:1.06;color:#fff;
-				filter:drop-shadow(0 2px 8px rgba(0,0,0,.65))}
-			.c-hero-cta{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;
-				height:46px;padding:0 36px;margin-top:22px;border-radius:9999px;background:var(--h-cta);
-				border:1px solid rgba(255,255,255,.3);box-shadow:0 8px 22px rgba(238,88,118,.35);
-				color:#fff;font-size:15px;font-weight:600;text-decoration:none}
-			.c-hero-cta:hover{filter:brightness(1.06)}
 			.c-hero-nav{position:absolute;top:0;bottom:0;z-index:4;width:50px;display:flex;align-items:center;justify-content:center;
 				border:none;background:transparent;color:#fff;opacity:.9;cursor:pointer}
 			.c-hero-nav:hover{opacity:1}
@@ -249,10 +240,6 @@
 			}
 			@media (max-width:768px){
 				.c-hero{height:240px}
-				.c-hero-content{left:16px;right:16px;max-width:100%;padding-bottom:0}
-				.c-hero-sub{font-size:14px;line-height:20px;margin-bottom:8px}
-				.c-hero-name{font-size:28px}
-				.c-hero-cta{height:38px;padding:0 22px;font-size:13px;margin-top:12px}
 				.c-hero-nav{display:none}
 				.c-hero-dots{bottom:14px}
 				.c-sec-head{padding:0 16px}
@@ -585,17 +572,11 @@
 			<main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
 				<div class="c-home">
 
-					<!-- Hero 轮播：与卡片行对齐、560px、5 张、7s 淡入淡出 -->
+					<!-- Hero 轮播：只展示图片，点击整张图跳转（图片与链接由后台「首页轮播图」维护） -->
 					<div class="c-hero-wrap">
 					<section class="c-hero" id="hero">
 						<div id="heroSlides">
-							<div class="c-hero-slide active">
-								<div class="c-hero-content">
-									<p class="c-hero-sub">Meet her now!</p>
-									<h1 class="c-hero-name">Your AI Girlfriend</h1>
-									<a href="./characters.html" class="c-hero-cta">Create Now</a>
-								</div>
-							</div>
+							<div class="c-hero-slide active"></div>
 						</div>
 						<button class="c-hero-nav prev" type="button" aria-label="Previous banner" onclick="heroPrev()">
 							<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
@@ -815,7 +796,7 @@
 		<script>
 		(function() {
 			var base = '/api/v1'
-			var all = [], slides = [], cur = 0, timer = null, activeChip = 'All', keyword = ''
+			var all = [], banners = [], slides = [], cur = 0, timer = null, activeChip = 'All', keyword = ''
 
 			function esc(s) {
 				return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -832,24 +813,27 @@
 				return u
 			}
 
-			/* ---------- Hero ---------- */
-			function slideHtml(c, i) {
-				var cover = c.cover_url
-					? '<img class="c-hero-bg" src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" onerror="this.style.display=\'none\'">'
-					: ''
-				var link = c.link_url || './Girls.html'
-				return '<div class="c-hero-slide' + (i === 0 ? ' active' : '') + '">' + cover +
-					'<div class="c-hero-content">' +
-						'<p class="c-hero-sub">Meet her now!</p>' +
-						'<h1 class="c-hero-name">' + esc(c.name) + '</h1>' +
-						'<a href="' + esc(link) + '" class="c-hero-cta">Chat Now</a>' +
-					'</div></div>'
+			/* ---------- Hero 轮播：只展示图片，点击整张图跳转 ---------- */
+			function slideHtml(b, i) {
+				if (!b.cover_url) return ''
+				var cls = 'c-hero-slide' + (i === 0 ? ' active' : '')
+				var img = '<img class="c-hero-bg" src="' + esc(fixUrl(b.cover_url)) + '" alt="" onerror="this.style.display=\'none\'">'
+				var link = String(b.link_url || '')
+				// 有链接：整张图可点击跳转；没链接：只展示图片
+				return link
+					? '<a class="' + cls + '" data-link="1" href="' + esc(link) + '" aria-label="Banner ' + (i + 1) + '">' + img + '</a>'
+					: '<div class="' + cls + '">' + img + '</div>'
 			}
 
 			function renderHero() {
 				var wrap = document.getElementById('heroSlides')
 				var dots = document.getElementById('heroDots')
-				slides = all.slice(0, 5)
+				// 优先用后台「首页轮播图」；未配置时用推荐角色的封面 + 其跳转链接兜底
+				slides = banners.length
+					? banners.slice(0, 10)
+					: all.slice(0, 5).map(function(c) {
+						return { cover_url: c.cover_url, link_url: c.link_url || './Girls.html' }
+					})
 				if (!slides.length) { dots.innerHTML = ''; return }
 				wrap.innerHTML = slides.map(slideHtml).join('')
 				dots.innerHTML = slides.map(function(_, i){
@@ -1148,20 +1132,22 @@
 				step: 200
 			})
 
-			/* ---------- 数据 ---------- */
-			fetch(base + '/home/characters?limit=50')
-				.then(function(r){ return r.json() })
-				.then(function(d) {
-					all = (d && d.code === '00000' && d.data && d.data.list) || []
-					renderHero()
-					renderChips()
-					renderShelves()
-					renderGrid()
-				})
-				.catch(function() {
-					renderShelves()
-					renderGrid()
-				})
+			/* ---------- 数据：轮播图 + 推荐角色 ---------- */
+			function loadJson(url) {
+				return fetch(url).then(function(r){ return r.json() }).catch(function(){ return null })
+			}
+			Promise.all([
+				loadJson(base + '/home/characters?limit=50'),
+				loadJson(base + '/home/banners?limit=10')
+			]).then(function(res) {
+				var d = res[0], b = res[1]
+				all = (d && d.code === '00000' && d.data && d.data.list) || []
+				banners = (b && b.code === '00000' && b.data && b.data.list) || []
+				renderHero()
+				renderChips()
+				renderShelves()
+				renderGrid()
+			})
 		})();
 		</script>
 	</body>
