@@ -151,7 +151,46 @@ ssh-keygen -R "[127.0.0.1]:12225"   # 隧道方式用
 
 ---
 
-## 七、相关文档
+## 七、本地大模型服务（2026-09-15 新增，聊天功能生产依赖）
 
-- 《ai电脑推流启动说明.md》——推流启动/素材/故障排查
-- 《服务器部署指南.md》——服务器侧架构与部署
+> **AI 电脑现在是线上聊天功能的推理后端**，此服务挂了 = 全站 AI 聊天不可用（GLM 云端配置保留可一键回退）。
+
+### 架构
+
+```
+用户 → Chat.html → 172 php(/api/live/chat)
+                      │ .env [LLM] BASE_URL = http://127.0.0.1:11434/v1
+                      ▼
+          frp 隧道（172 frps ← AI电脑 frpc 反连，断线5秒自动重连）
+                      ▼
+        Ollama 0.34.0 @ AI 电脑（RTX 5090D 24G）
+        模型 qwen3:30b-a3b-instruct-2507-q4_K_M（18GB，常驻显存）
+```
+
+### AI 电脑侧组件
+
+| 组件 | 位置 | 自启/自愈 |
+|---|---|---|
+| Ollama serve | `C:\Users\Administrator\AppData\Local\Programs\Ollama\ollama.exe serve` | 计划任务 `OllamaServe`（登录触发） |
+| 模型存储 | `D:\ollama_models`（env OLLAMA_MODEDS 写在系统环境变量） | — |
+| 上下文/常驻 | `OLLAMA_CONTEXT_LENGTH=16384`、`OLLAMA_KEEP_ALIVE=12h` | 系统环境变量 |
+| frpc 隧道 | `D:\frp\frp_win\frpc.exe -c D:\frp\llm\frpc.toml` | 计划任务 `AIFrpLLM` → `D:\frp\llm\frpc_llm_loop.bat` 死循环保活 |
+| Defender 白名单 | `D:\frp`（frp 会被杀毒秒删，勿动） | — |
+
+### 172 侧组件
+
+| 组件 | 说明 |
+|---|---|
+| frps | systemd 服务 `frps`，`/etc/frp/frps.toml`，代理端口只绑 127.0.0.1（不对公网暴露） |
+| tinyproxy | 带认证 HTTP 代理 :3128（AI 电脑出国下载用），凭据在 `/root/frp_token.txt` |
+| .env [LLM] | 已切本地模型；GLM 回退配置以注释保留在 .env 内 |
+
+### 排障速查
+
+1. **聊天没回复**：`172: curl http://127.0.0.1:11434/api/version` 不通 → 隧道断，AI 电脑上 `tasklist | findstr frpc`，无则 `schtasks /run /tn AIFrpLLM`
+2. **frpc 在但隧道不通**：172 `systemctl status frps`；token 变更需同步改 `D:\frp\llm\frpc.toml`
+3. **首次请求慢（30s+）**：模型冷加载正常现象；`OLLAMA_KEEP_ALIVE=12h` 内不会复发
+4. **换模型**：AI 电脑 `ollama pull <新模型>` → 172 改 `.env` 的 MODEL → 清 runtime 缓存
+5. **临时回退 GLM**：.env 里取消注释 GLM 三行、注释本地两行，重启 php-fpm
+
+> 模型下载源 registry.ollama.ai 走 CF 国内边缘，AI 电脑可直连（40+MB/s）；ollama.com/github 需走 172 的 tinyproxy。
