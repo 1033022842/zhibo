@@ -107,7 +107,7 @@
       '<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">' +
       '<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger"><span class="sr-only">Open sidebar</span>' +
       '<svg class="nav-hamburger h-8 w-8 mr-1 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path></svg></button>' +
-      '<a href="./Girls.html"><img src="./Girls_files/candyai-navbar-d321c31d58617371f7caf9e34a4e3f9624dce580afcceb6fecdf48c78beafd83.svg" class="h-[30px] md:h-[30px] w-[115px]"></a>' +
+      '<a href="./Girls.html"><img src="./Girls_files/sugusai-navbar-d321c31d58617371f7caf9e34a4e3f9624dce580afcceb6fecdf48c78beafd83.svg" class="h-[30px] md:h-[30px] w-[115px]"></a>' +
       '<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>' +
       '<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">' +
       channel('./Girls.html', 'Girls', girls) + channel('./Anime.html', 'Anime', anime) + channel('./Guys.html', 'Guys', guys) +
