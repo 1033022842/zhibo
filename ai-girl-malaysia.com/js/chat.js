@@ -23,8 +23,8 @@
                 $('#user-login').css('display', 'none')
         }
         var id = getParam('id')
-        // 登录态初始化必须最先做：下面 trigger('click') 万一抛错也不会把它跳过
-        if(token) setupSignedInChat()
+        // 登录态/跳登录页的初始化必须最先做：下面 trigger('click') 万一抛错也不会把它跳过
+        setupAuthFlow()
         channelDetail(id)
         $('#message-list').find('a').on('click', function(){
             $('#message-list').find('a').each(function() {
@@ -191,15 +191,24 @@
             .then(function () { sending = false })
     }
 
-    function setupSignedInChat() {
-        // 让页面的 Stimulus 控制器知道已登录，避免走「弹注册框」分支
-        document.body.setAttribute('data-main-is-current-user-signed-in', 'true')
+    // 未登录：站内原本「弹注册/登录框」的地方，统一改成跳转登录页（带上回跳地址）
+    function goLoginPage() {
+        hideAuthModals()
+        var back = window.location.pathname + window.location.search
+        window.location.href = './Login.html?redirect=' + encodeURIComponent(back)
+    }
 
-        // 切到登录态的发送按钮（游客版会弹注册框）
+    function setupAuthFlow() {
+        // 已登录：让页面的 Stimulus 控制器知道已登录，并切到登录态的发送按钮
+        if (token) {
+            document.body.setAttribute('data-main-is-current-user-signed-in', 'true')
+        }
         var guestBtn = document.getElementById('send-question')
         var realBtn = document.getElementById('send-question-with-token')
-        if (guestBtn) guestBtn.classList.add('hidden')
-        if (realBtn) realBtn.classList.remove('hidden')
+        if (token) {
+            if (guestBtn) guestBtn.classList.add('hidden')
+            if (realBtn) realBtn.classList.remove('hidden')
+        }
 
         var inChat = function (node) {
             var area1 = document.getElementById('messages')
@@ -207,25 +216,33 @@
             return (area1 && area1.contains(node)) || (area2 && area2.contains(node))
         }
 
-        // 聊天区里「点击弹注册框」的元素：改成直接发消息
+        // 所有「打开注册/登录弹窗」的元素：不再弹窗
         document.addEventListener('click', function (e) {
-            var el = e.target && e.target.closest ? e.target.closest('[data-action*="openRegistrationModal"]') : null
-            if (!el || !inChat(el)) return
+            var el = e.target && e.target.closest
+                ? e.target.closest('[data-action*="openRegistrationModal"], [data-action*="openSignInModal"]')
+                : null
+            if (!el) return
             e.preventDefault()
             e.stopPropagation()
             hideAuthModals()
-            sendMessage()
+            if (!token) {
+                goLoginPage()
+                return
+            }
+            // 已登录时聊天区内的元素（发送、推荐语、语音等）直接发消息
+            if (inChat(el)) sendMessage()
         }, true)
 
-        // 输入框回车：不再弹框，直接发送
+        // 输入框回车：未登录跳登录页，已登录直接发送
         document.addEventListener('keydown', function (e) {
             if (e.key !== 'Enter' || !e.target || e.target.id !== 'message_body') return
             e.preventDefault()
             e.stopPropagation()
-            sendMessage()
+            if (token) sendMessage()
+            else goLoginPage()
         }, true)
 
-        if (realBtn) {
+        if (token && realBtn) {
             realBtn.addEventListener('click', function (e) {
                 e.preventDefault()
                 e.stopPropagation()
