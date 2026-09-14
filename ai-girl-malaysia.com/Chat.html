@@ -171,7 +171,37 @@ src="https://www.facebook.com/tr?id=1331886174129149&ev=PageView&noscript=1"
     <!-- End Google Tag Manager -->
 
     
-  </head>
+  <style id="sugus-chat-theme">
+/* ===== Sugus Chat · candy.ai 配色（页面级覆盖） ===== */
+:root{--sg-page:#0d0a0f;--sg-panel:#131313;--sg-card:#120d16;--sg-line:#282828;--sg-pink:#f97187;--sg-cta:#f53b70;--sg-accent:#ee5876}
+body.bg-main,.bg-main{background-color:var(--sg-page)!important}
+#conversation-container{background-image:none!important;background:radial-gradient(1000px 480px at 70% -10%,rgba(249,113,135,.10),transparent 60%),radial-gradient(800px 420px at 8% 110%,rgba(238,88,118,.07),transparent 60%),var(--sg-page)!important}
+#pfp-banner-container .bg-main{background-color:var(--sg-panel)!important;border-color:var(--sg-line)!important}
+aside.list-container,.bg-\[\#1A1A1A\]{background-color:var(--sg-panel)!important}
+.bg-\[\#181818\]{background-color:var(--sg-panel)!important}
+.border-\[\#363636\]{border-color:var(--sg-line)!important}
+/* 静态模板里的旧粉/灰气泡 → candy 渐变/卡片 */
+.bg-\[\#D98491\],div[style*="background:#D98491"]{background:linear-gradient(135deg,var(--sg-pink),var(--sg-cta))!important;color:#fff!important;box-shadow:0 4px 14px rgba(245,59,112,.22)}
+.js-bubble[style*="#303030"]{background:#17111c!important;border:1px solid #2b2231!important}
+.text-neutral-500{color:#7d7681!important}
+/* 输入区 */
+.bg-\[\#252525\]{background-color:var(--sg-card)!important;border:1px solid var(--sg-line)!important;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+#ask-button{background:linear-gradient(135deg,var(--sg-accent),var(--sg-cta))!important}
+.border-violet-400{border-color:var(--sg-pink)!important}
+svg.text-\[\#C14DA0\],.text-\[\#C14DA0\]{color:var(--sg-cta)!important}
+/* 侧边栏当前项/hover */
+nav .bg-\[\#303030\]{background-color:rgba(249,113,135,.14)!important;border-color:rgba(249,113,135,.28)!important}
+nav li a:hover{background-color:rgba(249,113,135,.08)!important}
+/* 主按钮与强调 */
+.bg-\[\#E75275\]{background:linear-gradient(135deg,var(--sg-accent),var(--sg-cta))!important}
+.text-\[\#E75275\]{color:var(--sg-pink)!important}
+.bg-neutral-900{background-color:var(--sg-panel)!important}
+/* 滚动条 */
+.scrollbar::-webkit-scrollbar,.messages-container::-webkit-scrollbar{width:8px}
+.scrollbar::-webkit-scrollbar-thumb,.messages-container::-webkit-scrollbar-thumb{background:#2b222f;border-radius:4px}
+.scrollbar::-webkit-scrollbar-thumb:hover{background:#3a2d3a}
+</style>
+</head>
   <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
     
           <!-- Google Tag Manager (noscript) -->
