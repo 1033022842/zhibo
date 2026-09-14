@@ -5,67 +5,77 @@
  */
 (function () {
   var ICON = {
+    home: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
     crowdfunding: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
     explore: '<img class="w-6 h-6" src="./characters_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">',
+    chat: '<img class="w-6 h-6" src="./Chat_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg">',
     generate: '<img class="w-6 h-6" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">',
     create: '<img class="w-6 h-6" src="./characters_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg">',
     myai: '<img class="w-6 h-6" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">',
-    upload: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>'
+    upload: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>',
+    gallery: '<img class="w-6 h-6" src="./Chat_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg">',
+    game: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>',
+    premium: '<img class="w-6 h-6" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">'
   };
+
+  // 统一导航项：[key, href, 文字, 图标key, 附加属性]
+  var NAV = [
+    ['home', './Home.html', 'Home', 'home', ''],
+    ['explore', './Girls.html', 'Explore', 'explore', ''],
+    ['chat', './Chat.html', 'Chat', 'chat', ''],
+    ['generate', './Image.html', 'Generate Image', 'generate', ' target="_top"'],
+    ['create', './characters.html', 'Create Character', 'create', ''],
+    ['myai', './charactersIndex.html', 'My AI', 'myai', ''],
+    ['upload', './upload_media.html', 'Upload Media', 'upload', ''],
+    ['gallery', './Gallery.html', 'Gallery', 'gallery', ''],
+    ['game', './Game.html', 'Games', 'game', ''],
+    ['crowdfunding', './index.html', 'Crowdfunding', 'crowdfunding', '']
+  ];
+  var PREMIUM = ['./Subscriptions.html', 'Become Premium', 'premium'];
 
   // 收起态图标栏（100px）
   function collapsedSidebar(active) {
-    function item(key, href, icon, title) {
-      var isActive = key === active;
-      return '<li class="relative w-full"><a href="' + href + '" title="' + title + '" class="relative h-[48px] w-[52px] hover:bg-zinc-700 ' + (isActive ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">' + icon + '</a></li>';
+    function item(row) {
+      var isActive = row[0] === active;
+      return '<li class="relative w-full"><a href="' + row[1] + '" title="' + row[2] + '" class="relative h-[48px] w-[52px] hover:bg-zinc-700 ' + (isActive ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">' + ICON[row[3]] + '</a></li>';
     }
     return '' +
       '<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">' +
       '<nav class="flex flex-col justify-between h-full">' +
       '<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto overflow-x-auto">' +
-      item('crowdfunding', './index.html', ICON.crowdfunding, 'Crowdfunding') +
-      item('explore', './Girls.html', ICON.explore, 'Explore') +
-      item('generate', './Image.html', ICON.generate, 'Generate Image') +
-      item('create', './characters.html', ICON.create, 'Create Character') +
-      item('myai', './charactersIndex.html', ICON.myai, 'My AI') +
-      item('upload', './upload_media.html', ICON.upload, 'Upload Media') +
+      NAV.map(item).join('') +
       '</ul>' +
       '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">' +
-      '<li class="relative w-full"><a href="./Subscriptions.html" title="Become Premium" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"></a></li>' +
+      '<li class="relative w-full"><a href="' + PREMIUM[0] + '" title="' + PREMIUM[1] + '" class="h-[48px] w-[52px] hover:bg-zinc-700 ' + (active === 'premium' ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">' + ICON[PREMIUM[2]] + '</a></li>' +
       '</ul></nav></div>';
   }
 
   // 展开态侧边栏（220px）
   function expandedSidebar(active) {
-    function item(key, href, hrefAttr, icon, label) {
-      var isActive = key === active;
-      return '<li class="relative w-full"><a href="' + href + '"' + (hrefAttr || '') + ' class="relative h-[40px] w-full hover:bg-zinc-700 ' + (isActive ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">' +
-        icon.replace(/class="w-6 h-6"/, 'class="w-4 h-4"') +
-        '<span class="text-start text-grey-medium text-xxs font-medium leading-4">' + label + '</span></a></li>';
+    function item(row) {
+      var isActive = row[0] === active;
+      return '<li class="relative w-full"><a href="' + row[1] + '"' + (row[4] || '') + ' class="relative h-[40px] w-full hover:bg-zinc-700 ' + (isActive ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">' +
+        ICON[row[3]].replace(/class="w-6 h-6"/, 'class="w-4 h-4"') +
+        '<span class="text-start ' + (isActive ? 'text-white' : 'text-grey-medium') + ' text-xxs font-medium leading-4">' + row[2] + '</span></a></li>';
     }
     return '' +
       '<div data-main-target="mainSidebarOpenedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[220px] lg:pb-5 w-[220px] fixed top-0 left-0 h-full webkit-transition-sidebar pc-nav" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">' +
       '<nav class="flex flex-col justify-between h-full">' +
       '<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto overflow-x-auto">' +
-      item('crowdfunding', './index.html', '', ICON.crowdfunding, 'Crowdfunding') +
-      item('explore', './Girls.html', '', ICON.explore, 'Explore') +
-      item('generate', './Image.html', ' target="_top"', ICON.generate, 'Generate Image') +
-      item('create', './characters.html', '', ICON.create, 'Create Character') +
-      item('myai', './charactersIndex.html', '', ICON.myai, 'My AI') +
-      item('upload', './upload_media.html', '', ICON.upload, 'Upload Media') +
+      NAV.map(item).join('') +
       '</ul>' +
       '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">' +
-      '<li class="relative w-full"><a href="./Subscriptions.html" class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"><span class="text-start text-pink-default text-xxs font-medium leading-4">Become Premium</span></a></li>' +
+      '<li class="relative w-full"><a href="' + PREMIUM[0] + '" class="h-[40px] hover:bg-zinc-700 ' + (active === 'premium' ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">' + ICON[PREMIUM[2]].replace(/class="w-6 h-6"/, 'class="w-4 h-4"') + '<span class="text-start text-pink-default text-xxs font-medium leading-4">' + PREMIUM[1] + '</span></a></li>' +
       '</ul></nav></div>';
   }
 
   // 移动端抽屉
   function mobileDrawer(active) {
-    function row(key, href, icon, label) {
-      var isActive = key === active;
-      return '<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="' + href + '" class="w-full flex justify-start items-center gap-2">' +
-        icon.replace(/class="w-6 h-6"/, 'class="w-5 h-5"') +
-        '<span class="text-start ' + (isActive ? 'text-white' : 'text-grey-medium') + ' text-xs leading-5 font-semibold">' + label + '</span></a></li>';
+    function row(row2) {
+      var isActive = row2[0] === active;
+      return '<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="' + row2[1] + '" class="w-full flex justify-start items-center gap-2">' +
+        ICON[row2[3]].replace(/class="w-6 h-6"/, 'class="w-5 h-5"') +
+        '<span class="text-start ' + (isActive ? 'text-white' : 'text-grey-medium') + ' text-xs leading-5 font-semibold">' + row2[2] + '</span></a></li>';
     }
     return '' +
       '<div data-main-target="mainMobileSidebarContainer" class="inset-y-0 w-[100vw] mt-[64px] z-[100] pr-[40vw] no-scroll fixed left-0 webkit-transition-sidebar webkit-transform-sidebar">' +
@@ -76,13 +86,8 @@
       '<div class="flex gap-x-4 lg:gap-x-6"><a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline"><div class="text-sm font-semibold leading-tight">Login</div></a></div>' +
       '</div></div>' +
       '<ul role="list" class="flex flex-col items-center justify-start px-5 bg-zinc-900 h-screen overflow-auto">' +
-      row('crowdfunding', './index.html', ICON.crowdfunding, 'Crowdfunding') +
-      row('explore', './Girls.html', ICON.explore, 'Explore') +
-      row('generate', './Image.html', ICON.generate, 'Generate Image') +
-      row('create', './characters.html', ICON.create, 'Create Character') +
-      row('myai', './charactersIndex.html', ICON.myai, 'My AI') +
-      row('upload', './upload_media.html', ICON.upload, 'Upload Media') +
-      '<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Subscriptions.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"><span class="text-start text-pink-default text-xs leading-5 font-semibold">Become Premium</span></a></li>' +
+      NAV.map(row).join('') +
+      '<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="' + PREMIUM[0] + '" class="w-full flex justify-start items-center gap-2">' + ICON[PREMIUM[2]].replace(/class="w-6 h-6"/, 'class="w-5 h-5"') + '<span class="text-start text-pink-default text-xs leading-5 font-semibold">' + PREMIUM[1] + '</span></a></li>' +
       '</ul></div></nav></div>';
   }
 
@@ -135,7 +140,7 @@
   }
 
   function render(active) {
-    active = active || 'crowdfunding';
+    active = active || 'home';
     var html = collapsedSidebar(active) + expandedSidebar(active) + mobileDrawer(active) + topbar() + bottomNav();
     document.body.insertAdjacentHTML('afterbegin', html);
     bind(active);
