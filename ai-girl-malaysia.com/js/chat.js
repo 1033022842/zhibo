@@ -113,8 +113,8 @@
         row.innerHTML = '<div class="flex ' + (mine ? 'justify-end' : 'justify-start') + '">' +
             '<div class="flex-col gap-[9px] inline-flex ' + (mine ? 'ml-auto items-end' : '') + '">' +
             '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;' +
-            (mine ? 'background:#17111c;padding:10px 12px;border-radius:10px 10px 0 10px;max-width:80%;border:1px solid #2b2231'
-                  : 'background:linear-gradient(135deg,#f97187,#f53b70);padding:12px;border-radius:10px 10px 10px 0;box-shadow:0 4px 14px rgba(245,59,112,.22)') + '"></div>' +
+            (mine ? 'background:#303030;padding:10px 12px;border-radius:10px;max-width:80%'
+                  : 'background:#D98491;padding:12px;border-radius:10px 10px 10px 0') + '"></div>' +
             '<div class="text-neutral-500 text-[13px] font-normal">' + nowTime() + '</div>' +
             '</div></div>'
         row.querySelector('.js-bubble').textContent = text
@@ -129,7 +129,7 @@
         var row = document.createElement('div')
         row.className = 'user-response px-4 py-2'
         row.innerHTML = '<div class="flex justify-start"><div class="px-8 py-3 inline-flex" ' +
-            'style="background:linear-gradient(135deg,#f97187,#f53b70);border-radius:10px 10px 10px 0">' +
+            'style="background:#D98491;border-radius:10px 10px 10px 0">' +
             '<div class="snippet" data-title="dot-elastic"><div class="stage"><div class="dot-elastic"></div></div></div>' +
             '</div></div>'
         box.appendChild(row)
