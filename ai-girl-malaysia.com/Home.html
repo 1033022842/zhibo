@@ -794,8 +794,7 @@
 				var glyph = tags.length
 					? '<div class="c-card-top"><span class="c-card-glyph"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.2 6.2L21 10l-5.3 3.9L17 21l-5-3.4L7 21l1.3-7.1L3 10l6.8-1.8z"/></svg><span>' + esc(tags[0]) + '</span></span></div>'
 					: ''
-				var link = c.link_url || './Girls.html'
-				return '<li><a class="c-card' + cls + '" draggable="false" href="' + esc(link) + '">' +
+				return '<li><a class="c-card' + cls + '" draggable="false" data-cid="' + esc(c.id) + '" href="./Chat.html?id=' + encodeURIComponent('home-' + c.id) + '">' +
 					cover +
 					'<div class="c-card-scrim"></div>' +
 					badge +
@@ -1036,6 +1035,57 @@
 					this.parentNode.classList.toggle('open')
 				})
 			}
+
+			/* ---------- 卡片点击：把角色写入会话数据并跳到 Chat.html 对应聊天 ---------- */
+			function openChat(cid) {
+				var c = null
+				for (var i = 0; i < all.length; i++) {
+					if (String(all[i].id) === String(cid)) { c = all[i]; break }
+				}
+				if (!c) return
+				var now = new Date()
+				var hh = ('0' + now.getHours()).slice(-2)
+				var mm = ('0' + now.getMinutes()).slice(-2)
+				var tags = Array.isArray(c.tags) ? c.tags : []
+				// 结构与 Explore 页写入的 pageList 一致，Chat.html 靠 ?id= 在 pageList 里取这条
+				var entry = {
+					id: 'home-' + c.id,
+					title: c.name || '',
+					image: fixUrl(c.cover_url) || '',
+					description: c.description || c.tagline || '',
+					time: hh + ':' + mm,
+					price: c.age || '',
+					age: c.age || '',
+					occupation: '',
+					hobbies: tags.join(', '),
+					relationship: '',
+					body: '',
+					ethnicity: '',
+					messageList: []
+				}
+				try {
+					var list = JSON.parse(localStorage.getItem('pageList') || '[]')
+					if (!Array.isArray(list)) list = []
+					list = list.filter(function(t) { return String(t && t.id) !== entry.id })
+					list.unshift(entry)
+					localStorage.setItem('pageList', JSON.stringify(list))
+				} catch (e) {}
+				location.href = './Chat.html?id=' + encodeURIComponent(entry.id)
+			}
+
+			// 左键点击卡片走 Chat.html（先写入会话数据）；Ctrl/中键仍走 href 新标签打开
+			document.addEventListener('click', function(e) {
+				if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+				var el = e.target
+				while (el && el !== document.body) {
+					if (el.classList && el.classList.contains('c-card')) {
+						e.preventDefault()
+						openChat(el.getAttribute('data-cid'))
+						return
+					}
+					el = el.parentNode
+				}
+			})
 
 			/* ---------- 初始化滚动（第一个列表 + chips 行） ---------- */
 			initShelf(document.getElementById('featured'))
