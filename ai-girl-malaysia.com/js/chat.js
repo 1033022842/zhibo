@@ -347,6 +347,8 @@
         var box = messagesBox()
         if (box) box.innerHTML = ''
         var cid = convContentId()
+        // 非平台角色（首页跳转过来的）没有服务端历史，直接跳过
+        if (cid === '0') { loadAffection(); return }
         fetch('/api/live/chatHistory?content_id=' + cid + '&device_id=' + encodeURIComponent(deviceId()) + '&limit=50', {
             headers: authHeaders(false)
         })
