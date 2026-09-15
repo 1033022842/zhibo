@@ -105,6 +105,72 @@ class Upload
     }
 
     /**
+     * 大图自动压缩：>300KB 的 jpg/png/webp 统一转 WebP（最长边 1920，q82）
+     * 原地替换上传临时文件字节，并同步 fileInfo（扩展名/类型/大小/sha1），
+     * 下游 saveName/url/附件入库全部按 .webp 走，避免"png 扩展名装 webp 字节"。
+     */
+    private function compressImageIfLarge(): void
+    {
+        if (!$this->file || empty($this->fileInfo)) {
+            return;
+        }
+        $mime = (string)($this->fileInfo['type'] ?? '');
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            return;
+        }
+        if (!function_exists('imagewebp')) {
+            return; // 无 GD 扩展时保持原样
+        }
+        $path = $this->file->getPathname();
+        if (!is_file($path) || (int)@filesize($path) <= 300 * 1024) {
+            return;
+        }
+        $src = match ($mime) {
+            'image/jpeg' => @imagecreatefromjpeg($path),
+            'image/png'  => @imagecreatefrompng($path),
+            default      => @imagecreatefromwebp($path),
+        };
+        if (!$src) {
+            return;
+        }
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $max = 1920;
+        if ($w >= $h && $w > $max) {
+            $nw = $max; $nh = max(1, (int)round($h * $max / $w));
+        } elseif ($h > $w && $h > $max) {
+            $nw = max(1, (int)round($w * $max / $h)); $nh = $max;
+        } else {
+            $nw = $w; $nh = $h;
+        }
+        if ($nw !== $w || $nh !== $h) {
+            $dst = imagecreatetruecolor($nw, $nh);
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+            imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+            imagedestroy($src);
+            $src = $dst;
+        }
+        $tmp = $path . '.webp.tmp';
+        if (!@imagewebp($src, $tmp, 82)) {
+            @unlink($tmp);
+            imagedestroy($src);
+            return;
+        }
+        imagedestroy($src);
+        if (!is_file($tmp) || (int)@filesize($tmp) === 0 || (int)@filesize($tmp) >= (int)@filesize($path)) {
+            // 压缩无收益则保留原图
+            @unlink($tmp);
+            return;
+        }
+        rename($tmp, $path);
+        $this->fileInfo['suffix'] = 'webp';
+        $this->fileInfo['type']   = 'image/webp';
+        $this->fileInfo['size']   = (int)filesize($path);
+        $this->fileInfo['sha1']   = sha1_file($path);
+    }
+
+    /**
      * 获取上传驱动句柄
      * @param ?string $driver           驱动名称
      * @param bool    $noDriveException 找不到驱动是否抛出异常
@@ -280,6 +346,7 @@ class Upload
      */
     public function upload(?string $saveName = null, int $adminId = 0, int $userId = 0): array
     {
+        $this->compressImageIfLarge();
         $this->validates();
 
         $driver   = $this->getDriver();
