@@ -110,9 +110,10 @@
                 liveClass = 'pointer-events-none opacity-50'
                 liveText = 'Under maintenance...'
               } else {
-                liveUrl = '#'
-                liveClass = 'pointer-events-none opacity-50'
-                liveText = 'Preparing...'
+                // 聊天伴侣角色（无直播间）：直接进 Chat
+                liveUrl = './Chat.html?id=my-' + t.id
+                liveClass = ''
+                liveText = 'Chat now ⚡'
               }
               
               var rendered = template.replace(/{{name}}/g, name)

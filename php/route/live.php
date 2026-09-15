@@ -11,6 +11,7 @@ Route::get('live/profile',           '\app\api\controller\Live@profile')->middle
 Route::get('live/userInfo',          '\app\api\controller\Live@userInfo')->middleware(\app\live\middleware\Auth::class);
 Route::put('live/update-profile',    '\app\api\controller\Live@updateProfile')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/customRoleCreate', '\app\api\controller\Live@customRoleCreate')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/upload',           '\app\api\controller\Live@upload')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/uploadMediaAsset',  '\app\api\controller\Live@uploadMediaAsset')->middleware(\app\live\middleware\Auth::class);
@@ -21,6 +22,15 @@ Route::get('live/replayClips',       '\app\api\controller\Live@replayClips')->mi
 Route::get('live/affection',         '\app\api\controller\Live@affection')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/buyAffection',     '\app\api\controller\Live@buyAffection')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/unlockVideo',      '\app\api\controller\Live@unlockVideo')->middleware(\app\live\middleware\Auth::class);
+
+// VIP 定制角色视频（AI 电脑生成）
+Route::get('customVideo/options',    '\app\api\controller\CustomVideo@options')->middleware(\app\live\middleware\Auth::class);
+Route::post('customVideo/submit',    '\app\api\controller\CustomVideo@submit')->middleware(\app\live\middleware\Auth::class);
+Route::get('customVideo/myList',     '\app\api\controller\CustomVideo@myList')->middleware(\app\live\middleware\Auth::class);
+// worker 侧（X-Api-Key 鉴权，控制器内 middleware only）
+Route::get('customVideo/pending',    '\app\api\controller\CustomVideo@pending');
+Route::post('customVideo/accept',    '\app\api\controller\CustomVideo@accept');
+Route::post('customVideo/uploadVideo', '\app\api\controller\CustomVideo@uploadVideo');
 
 // 公开接口 - 显式注册
 Route::post('live/registerFromAi',   '\app\api\controller\Live@registerFromAi');
