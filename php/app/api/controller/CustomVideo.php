@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\api\controller;
 
 use app\ai\model\AiTask;
+use app\BaseController;
 use app\common\enums\TaskStatus;
 use app\common\exception\BusinessException;
 use app\common\util\StrHelper;
