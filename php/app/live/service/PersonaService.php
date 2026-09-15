@@ -12,9 +12,11 @@ use app\common\web\ResultCode;
 final class PersonaService
 {
     /**
-     * AI 前端创建角色 → 写入 lp_persona（status=1 准备中）+ 自动创建维护态房间
+     * AI 前端创建角色 → 写入 lp_persona
+     * $withRoom=true：自动创建维护态房间（开播商户流程）
+     * $withRoom=false：纯聊天伴侣角色（不开直播间，status=1 直接可用）
      */
-    public function createFromAi(int $userId, array $data): array
+    public function createFromAi(int $userId, array $data, bool $withRoom = true): array
     {
         $persona = new Persona();
         $persona->code = StrHelper::orderNo('P');
@@ -29,21 +31,23 @@ final class PersonaService
         $persona->updated_at = date('Y-m-d H:i:s');
         $persona->save();
 
-        // 自动创建维护态房间，等待运营上传素材
-        $room = new Room();
-        $room->room_no     = StrHelper::orderNo('R');
-        $room->title       = $persona->name . '的直播间';
-        $room->persona_id  = $persona->id;
-        $room->room_type   = 'live';
-        $room->status      = 2; // 2=维护中（等待运营上传素材）
-        $room->cover_url   = $persona->cover_url;
-        $room->created_at  = date('Y-m-d H:i:s');
-        $room->updated_at  = date('Y-m-d H:i:s');
-        $room->save();
+        if ($withRoom) {
+            // 自动创建维护态房间，等待运营上传素材
+            $room = new Room();
+            $room->room_no     = StrHelper::orderNo('R');
+            $room->title       = $persona->name . '的直播间';
+            $room->persona_id  = $persona->id;
+            $room->room_type   = 'live';
+            $room->status      = 2; // 2=维护中（等待运营上传素材）
+            $room->cover_url   = $persona->cover_url;
+            $room->created_at  = date('Y-m-d H:i:s');
+            $room->updated_at  = date('Y-m-d H:i:s');
+            $room->save();
 
-        // 人设已被房间绑定 → 正在使用
-        $persona->status = 2;
-        $persona->save();
+            // 人设已被房间绑定 → 正在使用
+            $persona->status = 2;
+            $persona->save();
+        }
 
         return $persona->toArray();
     }

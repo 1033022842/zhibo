@@ -157,6 +157,21 @@ final class Live extends BaseController
     }
 
     /**
+     * AI 前端：创建聊天伴侣角色（免商家认证、不开直播间，角色属于当前用户）
+     */
+    public function customRoleCreate()
+    {
+        $userId = $this->getAuthUserId();
+        $data = $this->request->post();
+        $persona = $this->personaService->createFromAi($userId, $data, false);
+        return $this->jsonSuccess([
+            'id'     => (int) $persona['id'],
+            'name'   => $persona['name'],
+            'status' => (int) $persona['status'],
+        ]);
+    }
+
+    /**
      * AI 前端：我的角色列表（含关联直播间信息）
      */
     public function customOneList()

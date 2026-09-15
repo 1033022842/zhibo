@@ -58,7 +58,8 @@
 		
 
 
-	</head>
+	<script src="./js/customVideo.js?v=20260915"></script>
+</head>
 	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
 
 		<!-- Google Tag Manager (noscript) -->
@@ -630,102 +631,50 @@
 					</div>
 				</a>
 				<div class="flex flex-col lg:mx-auto items-center justify-center w-full lg:w-[760px] mt-8 lg:mt-12 max-w-[333px] md:max-w-none mx-auto">
-					<div class="flex items-center justify-center gap-x-3 mx-auto  mb-4 lg:mb-9 md:mt-0 mt-5">
-						<img src="./characters_files/edit-tools-bbf2bf2c112195dace08ca66624f3aaee6cdce6fb94e6712f6ec1ecf3e1576e0.svg" class="w-7 h-7">
+					<div class="flex items-center justify-center gap-x-3 mx-auto mb-4 lg:mb-9 md:mt-0 mt-5">
 						<div style="position: relative;">
-							<h1 class="text-center text-white text-[22px] lg:text-[32px] font-bold leading-[42px]">Upload pictures to generate AI videos</h1>
+							<h1 class="text-center text-white text-[22px] lg:text-[32px] font-bold leading-[42px]">Custom AI Video · VIP</h1>
 							<span class="create-elipse hidden lg:block"></span>
 						</div>
 					</div>
-					
 
-					
+					<!-- 双栏切换 -->
+					<div class="flex w-full max-w-[420px] mx-auto mb-6 bg-[#1a1a1a] rounded-full p-1 border border-[#282828]">
+						<button id="cvTabCreate" class="flex-1 py-2.5 rounded-full text-sm font-semibold text-white bg-[#E75275] cursor-pointer">＋ Create</button>
+						<button id="cvTabWorks" class="flex-1 py-2.5 rounded-full text-sm font-semibold text-[#A1A1A1] cursor-pointer">My Works</button>
+					</div>
 
-					<div style="color:white" data-controller="create-flow" data-create-flow-default-character-age="18" data-create-flow-default-character-ethnicity="Asian" class="h-auto flex-col justify-start w-full bg-popup rounded-xl z-10 border border-[#282828] mb-5" id="edit_profile_73274226" action="return false" accept-charset="UTF-8" method="post" data-create-flow-selected-character-age-value="18" data-create-flow-selected-character-ethnicity-value="Asian">
-						<input type="hidden" name="_method" value="patch" autocomplete="off">
-						<input type="hidden" name="authenticity_token" value="bld6jxAD7NxEa9XkXAFmKbufc8TcRzBlyB7CZDrsizWRRw1JqomnwmjdIVZUTHQydN_W8bAZCg43tC8of1cDqQ" autocomplete="off">
-						<fieldset class="flex flex-col mx-auto font-semibold" data-create-flow-target="fieldset" data-auto-submit="false">
-							<legend class="text-[#E1E1E1] w-full font-semibold text-center text-[14px] lg:text-[20px] lg:leading-8 pt-5 lg:pt-10 pb-4 lg:pb-8">Custom Information*</legend>
-							<div style="display: flex;    align-items: center;justify-content: center;">
-								<label for="image">Upload pictures:</label>
-								<input class="hidden" type="file" id="uploadImage" name="image" accept="image/*" >
-								<div id="upload" style="margin: 20px;" class="relative min-w-[140px] px-4 py-3 text-white rounded-[10px] bg-[#E75275] ml-auto w-[140px] lg:w-auto  cursor-pointer justify-center items-center gap-3 flex">Upload</div>
-								<!-- 图片回显 -->
-								<input type="hidden" id="photo" name="uploadedImageUrl">
-							</div>
-							<br>
-							<br>
-							<img id="imagePreview" src="#" alt="Image Preview" style="display: none; width: 200px; height: auto; margin-left: 40%;">
-							<br>
-							<br>
-							<div style="display: flex;   text-align:center;" class="mb-3">
-								<!--<label for="height">height(cm):</label>-->
-								<!--<input style="margin: 20px;color: black;" type="number" id="height" name="height">-->
-								
-									<div class="input name required user_name w-full">
-													<input class="string name  pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]"  placeholder="height(cm)" type="number" id="height" name="height">
-									</div>
-							</div>
-							
-							
-							<!--<div style="display: flex;    align-items: center;justify-content: center;">-->
-							<!--	<label for="weight">weight(kg):</label>-->
-							<!--	<input style="margin: 20px;color: black;" type="number" id="weight" name="weight" >-->
-							<!--</div>-->
-							
-							<div style="display: flex;   text-align:center;">
-							
-								
-									<div class="input name required user_name w-full">
-													<input class="string name  pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]"   placeholder="weight(kg)" type="number" id="weight" name="weight">
-									</div>
-							</div>
-							
-
-							<br>
-							<br>
-						</fieldset>
-						<fieldset data-create-flow-target="fieldset" data-auto-submit="false">
-							<legend class="text-[#E1E1E1] text-[#E1E1E1] w-full font-semibold text-center lg:text-[20px] lg:leading-8 pb-8">Choose Voice*</legend>
-							<div id="audio-group" class="flex flex-wrap gap-2 mb-10 lg:gap-2 md:px-10 px-1">
-								<script type="text/template" id="audio-template">
-									<div class="inline-block">
-        <div data-action="click-&gt;create-flow#selectAudioButton" class=" cursor-pointer px-3 py-2 text-neutral-200  rounded-full border border-neutral-600 justify-center items-center gap-1 inline-flex">
-          <input class="hidden notranslate" data-create-flow-target="option-radio" type="radio" value="cmai_voice_1" name="profile[voice_name]" id="profile_voice_name_cmai_voice_1">
-          <div class="relative">
-            <div data-audio-target="wrapper" class="toggle-play-button button-transform cursor-pointer w-[20px] h-[20px] p-1 justify-center items-center inline-flex rounded-full bg-white" data-controller="audio" data-action="click-&gt;audio#togglePlay">
-              <div class="relative">
-                <div data-audio-target="playIcon" class="w-[12px] h-[12px]">
-                  <svg id="play-icon" class="text-[#C14DA0]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"></path>
-                  </svg>
-                </div>
-                <div data-audio-target="pauseIcon" class="hidden w-[12px] h-[12px]">
-                  <svg id="pause-icon" class="text-[#C14DA0]" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5"></path>
-                  </svg>
-                </div>
-              </div>
-              <audio controlslist="nodownload" id="song" data-audio-target="song">
-                <source src="{{src}}" type="audio/mp3">
-              </audio>
-            </div>
-          </div>
-          <div class="text-sm font-medium leading-[14px]"> Voice {{index}}</div>
-        </div>
-      </div>
-      </script>
-							</div>
-						</fieldset>
-
-						<div class="form-navigation mx-5 lg:mx-10 mb-5 lg:mb-10 mt-8 lg:mt-12 flex md:flex-row  md:justify-end justify-center gap-4 text-white text-[14px] font-semibold">
-							<button id="submitInfo" data-create-flow-target="nextButton" data-controller="loading-button-cma" data-loading-button-cma-target="submit" class="relative min-w-[140px] px-4 py-3 text-white rounded-[10px] bg-[#E75275] ml-auto w-[140px] lg:w-auto  cursor-pointer justify-center items-center gap-3 flex">
-								<div class="whitespace-nowrap">
-									Submit
-								</div>
-								<img class="style-image-class" src="./choosePersonalityAnime_files/arrow-east-811274d2d7e43a5ccbdd000c6e0c680496b0940f372163dfd9bbff1642fb7b05.svg">
-							</button>
+					<!-- ===== Create 面板 ===== -->
+					<div id="cvCreatePanel" style="color:white" class="h-auto flex-col justify-start w-full bg-popup rounded-xl z-10 border border-[#282828] mb-5 p-5 lg:p-8">
+						<div id="cvVipGate" class="hidden text-center py-8">
+							<div class="text-[#E1E1E1] text-lg font-semibold mb-2">🔒 VIP Members Only</div>
+							<div class="text-[#A1A1A1] text-sm mb-6">Custom AI video generation is exclusive to VIP members.<br>Generate up to <b class="text-[#fbbf24]">3 videos per day</b>.</div>
+							<a href="./Subscriptions.html" class="inline-block px-8 py-3 rounded-[10px] bg-[#E75275] text-white text-sm font-semibold cursor-pointer">Get VIP</a>
 						</div>
+
+						<div id="cvCreateForm" class="hidden flex-col gap-8">
+							<fieldset>
+								<legend class="text-[#E1E1E1] w-full font-semibold text-left text-[14px] lg:text-[16px] pb-3">1 · Choose your girl*</legend>
+								<div id="cvPersonaGrid" class="grid grid-cols-3 md:grid-cols-4 gap-3"></div>
+							</fieldset>
+							<fieldset>
+								<legend class="text-[#E1E1E1] w-full font-semibold text-left text-[14px] lg:text-[16px] pb-3">2 · Choose an action*</legend>
+								<div id="cvActionGrid" class="flex flex-wrap gap-2.5"></div>
+							</fieldset>
+							<div class="flex items-center justify-between">
+								<div class="text-[#A1A1A1] text-xs">Remaining today: <b id="cvRemain">-</b></div>
+								<button id="cvSubmit" class="min-w-[140px] px-4 py-3 text-white rounded-[10px] bg-[#E75275] cursor-pointer justify-center items-center gap-3 flex text-sm font-semibold">
+									Generate ✨
+								</button>
+							</div>
+							<div class="text-[#6b6b6b] text-[11px] leading-relaxed">Your video will be generated by our AI studio — usually ready in a few minutes. Track progress in “My Works”.</div>
+						</div>
+					</div>
+
+					<!-- ===== My Works 面板 ===== -->
+					<div id="cvWorksPanel" class="hidden w-full bg-popup rounded-xl border border-[#282828] p-5 lg:p-8">
+						<div id="cvWorksEmpty" class="text-center py-10 text-[#A1A1A1] text-sm">No videos yet — create your first one! ✨</div>
+						<div id="cvWorksGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
 					</div>
 				</div>
 			</div>

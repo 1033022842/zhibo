@@ -77,7 +77,64 @@
                 return { name: list[i].title || conv.name, desc: list[i].description || '' }
             }
         }
+        // 自建角色（my-N）：loadMyPersona 已缓存人设
+        if (/^my-\d+$/.test(String(conv.id))) {
+            try {
+                var cached = JSON.parse(localStorage.getItem('myPersona:' + conv.id) || 'null')
+                if (cached) return { name: cached.name || conv.name, desc: cached.desc || '' }
+            } catch (e) {}
+        }
         return { name: conv.name, desc: '' }
+    }
+
+    /* 我的角色（characters 向导创建）会话：customOneList 拉取并渲染 */
+    function loadMyPersona(id) {
+        var pid = String(id).slice(3)
+        if (!token) {
+            location.href = './Login.html?redirect=' + encodeURIComponent('./Chat.html?id=' + id)
+            return
+        }
+        fetch('/api/live/customOneList', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                if (!d || d.code !== '00000' || !Array.isArray(d.data)) {
+                    appendError((d && d.msg) || 'Failed to load character')
+                    return
+                }
+                var t = null
+                for (var i = 0; i < d.data.length; i++) {
+                    if (String(d.data[i].id) === pid) { t = d.data[i]; break }
+                }
+                if (!t) { appendError('Character not found'); return }
+                var sf = t.source_fields || {}
+                var bits = []
+                if (sf.age) bits.push(sf.age + ' years old')
+                if (sf.race) bits.push(sf.race)
+                if (sf.personality) bits.push(sf.personality + ' personality')
+                if (sf.hairstyle || sf.hair) bits.push((sf.hairstyle || '') + ' ' + (sf.hair || '') + ' hair')
+                if (sf.body) bits.push(sf.body + ' body')
+                if (sf.clothing) bits.push('wearing ' + sf.clothing)
+                if (sf.relation) bits.push('relationship: ' + sf.relation)
+                var desc = 'The user created this AI girlfriend. Traits: ' + (bits.join(', ') || 'a sweet and loving companion')
+                var img = String(t.photo || '')
+                if (img && img.indexOf('://') < 0) img = img.replace(/^\./, '')
+                var info = {
+                    id: id,
+                    title: t.name || 'My AI',
+                    image: img,
+                    description: desc,
+                    occupation: sf.profession || '-',
+                    hobbies: sf.hobby || '-',
+                    relationship: sf.relation || '-',
+                    body: sf.body || '-',
+                    age: sf.age || '-',
+                    ethnicity: sf.race || '-',
+                    messageList: []
+                }
+                localStorage.setItem('myPersona:' + id, JSON.stringify({ name: info.title, desc: desc }))
+                getInfo([info])
+            })
+            .catch(function () { appendError('Network error') })
     }
 
     function deviceId() {
@@ -828,6 +885,7 @@
     }
 
     function channelDetail(id){
+        if (String(id).indexOf('my-') === 0) { loadMyPersona(id); return }
         // var token = localStorage.getItem('token')
         // var headers = {}
         // if(token) {

@@ -259,6 +259,16 @@ final class AiTaskService
 
         Log::info("AiTaskService: task {$task->task_no} completed, duration={$durationSec}s");
 
+        // VIP 定制视频：与直播间无关（room_id=0），跳过播单/切换调度/房间推送
+        if ($task->task_type === 'custom_video') {
+            return [
+                'task_id'     => $taskId,
+                'task_no'     => $task->task_no,
+                'status'      => TaskStatus::COMPLETED->value,
+                'finished_at' => $now,
+            ];
+        }
+
         $roomId = (int) $task->room_id;
 
         $playTaskId = $this->createInteractionPlayTask($roomId, $taskId, $task->task_no, $durationSec, $videoUrl, $coverUrl);
