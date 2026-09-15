@@ -768,6 +768,8 @@ final class Live extends BaseController
         if (!is_array($history)) {
             $history = [];
         }
+        // 非平台角色（首页推荐/自建角色）用 role_key 归档聊天记录，如 home-4
+        $roleKey = $this->normalizeRoleKey((string) $this->request->post('role_key', ''));
         // 无平台内容 id 的角色（如首页推荐角色）允许前端直接传人设
         $customPersonaName = trim((string) $this->request->post('persona_name', ''));
         $customPersonaDesc = trim((string) $this->request->post('persona_desc', ''));
@@ -794,8 +796,8 @@ final class Live extends BaseController
         $reply = '';
         if ($triggerMedia === null) {
             // 读取历史上下文：登录用户按 user_id，游客按 device_id
-            if ($contentId > 0 && ($userId > 0 || $deviceId !== '')) {
-                $history = $this->loadChatHistory($userId, $deviceId, $contentId, 24);
+            if (($contentId > 0 || $roleKey !== '') && ($userId > 0 || $deviceId !== '')) {
+                $history = $this->loadChatHistory($userId, $deviceId, $contentId, 24, $roleKey);
             }
 
             // 取内容人设
@@ -837,10 +839,10 @@ final class Live extends BaseController
         }
 
         // 保存本轮对话（用户消息 + AI 回复；触发素材时保存媒体消息）
-        if ($contentId > 0 && ($userId > 0 || $deviceId !== '')) {
-            $this->saveChatMessage($userId, $deviceId, $contentId, 'user', $message, [], $voice);
+        if (($contentId > 0 || $roleKey !== '') && ($userId > 0 || $deviceId !== '')) {
+            $this->saveChatMessage($userId, $deviceId, $contentId, 'user', $message, [], $voice, $roleKey);
             if ($reply !== '') {
-                $this->saveChatMessage($userId, $deviceId, $contentId, 'assistant', $reply, [], $voice);
+                $this->saveChatMessage($userId, $deviceId, $contentId, 'assistant', $reply, [], $voice, $roleKey);
             } elseif ($triggerMedia !== null) {
                 $mediaMsgId = $this->saveChatMessage($userId, $deviceId, $contentId, 'assistant', '', [
                     'kind'         => $triggerMedia['kind'],
@@ -848,7 +850,7 @@ final class Live extends BaseController
                     'title'        => $triggerMedia['title'],
                     'id'           => (int) $triggerMedia['id'],
                     'unlock_price' => (int) $triggerMedia['unlock_price'],
-                ], $voice);
+                ], $voice, $roleKey);
                 $triggerMedia['message_id'] = $mediaMsgId;
             }
         }
@@ -886,7 +888,9 @@ final class Live extends BaseController
         $userId = $this->optionalAuthUserId();
         $deviceId = trim((string) $this->request->get('device_id', ''));
         $contentId = (int) $this->request->get('content_id', 0);
-        if ($contentId <= 0) {
+        // 非平台角色用 role_key（如 home-4）取历史
+        $roleKey = $this->normalizeRoleKey((string) $this->request->get('role_key', ''));
+        if ($contentId <= 0 && $roleKey === '') {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'content_id 无效');
         }
 
@@ -897,7 +901,7 @@ final class Live extends BaseController
         $limit = (int) $this->request->get('limit', 50);
         $limit = max(1, min(200, $limit));
 
-        return $this->jsonSuccess($this->loadChatHistory($userId, $deviceId, $contentId, $limit));
+        return $this->jsonSuccess($this->loadChatHistory($userId, $deviceId, $contentId, $limit, $roleKey));
     }
 
     /**
@@ -1399,11 +1403,17 @@ final class Live extends BaseController
      * 读取聊天历史（按时间正序，最多 limit 条）
      * 登录用户按 user_id，游客按 device_id
      */
-    private function loadChatHistory(int $userId, string $deviceId, int $contentId, int $limit): array
+    private function loadChatHistory(int $userId, string $deviceId, int $contentId, int $limit, string $roleKey = ''): array
     {
         $query = \think\facade\Db::connect('live_mysql')
-            ->table('lp_ai_chat_message')
-            ->where('content_id', $contentId);
+            ->table('lp_ai_chat_message');
+
+        if ($contentId > 0) {
+            $query->where('content_id', $contentId);
+        } else {
+            // 非平台角色：按 role_key 归档
+            $query->where('content_id', 0)->where('role_key', $roleKey);
+        }
 
         if ($userId > 0) {
             $query->where('user_id', $userId);
@@ -1470,14 +1480,27 @@ final class Live extends BaseController
     }
 
     /**
+     * 非平台角色标识过滤（只允许字母数字下划线短横），非法一律按空处理
+     */
+    private function normalizeRoleKey(string $key): string
+    {
+        $key = trim($key);
+        if ($key === '' || strlen($key) > 64) {
+            return '';
+        }
+        return preg_match('/^[A-Za-z0-9_\-]+$/', $key) === 1 ? $key : '';
+    }
+
+    /**
      * 保存一条聊天记录
      */
-    private function saveChatMessage(int $userId, string $deviceId, int $contentId, string $role, string $content, array $media = [], bool $voice = false): int
+    private function saveChatMessage(int $userId, string $deviceId, int $contentId, string $role, string $content, array $media = [], bool $voice = false, string $roleKey = ''): int
     {
         $data = [
             'user_id'    => $userId,
             'device_id'  => $deviceId,
             'content_id' => $contentId,
+            'role_key'   => $roleKey,
             'role'       => $role,
             'content'    => $content,
             'created_at' => date('Y-m-d H:i:s'),
