@@ -37,7 +37,7 @@
     <script src="./Chat_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./Chat_files/jquery-3.6.0.min.js"></script>
-    <script src="./js/chat.js?v=20260915a"></script>
+    <script src="./js/chat.js?v=20260915b"></script>
     <script src="./plugins/lodash.js"></script>
     <script type="text/javascript">
   (function (f, b) {
@@ -1014,8 +1014,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </script>
     <script>
       setTimeout(function () {
-          $('.no-user-loader')[0].style.visibility = 'hidden';
-          $('.no-user-greeting')[0].style.visibility = 'visible';
+          var loader = $('.no-user-loader')[0];
+          var greeting = $('.no-user-greeting')[0];
+          if (loader) loader.style.visibility = 'hidden';
+          if (greeting) greeting.style.visibility = 'visible';
           $('#answer-suggestion').removeClass('hidden');
       }, 1000); // 2000 milliseconds or 2 seconds delay
     </script>
@@ -1097,7 +1099,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <div class="text-white text-sm font-medium leading-tight flex"><img src="./Chat_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Spicy photos requests</div>
                   </div>
                   <div class="justify-start items-center gap-2 inline-flex">
-                    <div class="text-white text-sm font-medium leading-tight flex"><img src="./Chat_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> and more�?/div>
+                    <div class="text-white text-sm font-medium leading-tight flex"><img src="./Chat_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> and more锟?/div>
                   </div>
               </div>
             </div>
@@ -1437,7 +1439,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <div><div class="grecaptcha-badge" data-style="bottomright" style="width: 256px; height: 60px; display: block; transition: right 0.3s ease 0s; position: fixed; bottom: 14px; right: -186px; box-shadow: gray 0px 0px 5px; border-radius: 2px; overflow: hidden;"><div class="grecaptcha-logo"><iframe title="reCAPTCHA" width="256" height="60" role="presentation" name="a-dwboylbdijuc" frameborder="0" scrolling="no" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation" src="./Chat_files/anchor(1).html"></iframe></div><div class="grecaptcha-error"></div><textarea id="g-recaptcha-response-100000" name="g-recaptcha-response" class="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea></div></div>
 <script>
-  // 资料空值行不展示：从首页跳过来的角色没有「职业/关系/身材/种族」等字段
+  // 璧勬枡绌哄€艰涓嶅睍绀猴細浠庨椤佃烦杩囨潵鐨勮鑹叉病鏈夈€岃亴涓?鍏崇郴/韬潗/绉嶆棌銆嶇瓑瀛楁
   (function () {
     setTimeout(function () {
       ['occupation', 'hobbies', 'relationship', 'body', 'ethnicity'].forEach(function (id) {
