@@ -32,6 +32,7 @@ final class CustomVideo extends BaseController
     ];
 
     protected array $middleware = [
+        \app\live\middleware\Auth::class => ['only' => ['options', 'submit', 'myList']],
         \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'uploadVideo']],
     ];
 
