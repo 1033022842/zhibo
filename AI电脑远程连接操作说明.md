@@ -195,3 +195,22 @@ ssh-keygen -R "[127.0.0.1]:12225"   # 隧道方式用
 5. **临时回退 GLM**：.env 里取消注释 GLM 三行、注释本地两行，重启 php-fpm
 
 > 模型下载源 registry.ollama.ai 走 CF 国内边缘，AI 电脑可直连（40+MB/s）；ollama.com/github 需走 172 的 tinyproxy。
+
+---
+
+## 八、VIP 定制视频 worker（2026-09-16 新增，生产运行中）
+
+> 用户在 `sugus.ai/ai/Image.html` 选人设+动作提交任务 → 本机生成成品视频回传。
+> 挂了不影响站其它功能，仅定制视频任务积压（停留 queued，恢复后自动续跑）。
+
+| 组件 | 位置 | 说明 |
+|---|---|---|
+| worker 主程序 | `D:\custom_video\custom_video_worker.py` | 15s 轮询 → LivePortrait 生成 → 720p 转码 → 回传 → 回调完成；日志 `worker.log` |
+| 保活 | 计划任务 `AICustomVideo` → `cv_worker_loop.bat` | 断线 10s 自动重启 |
+| 运行环境 | `D:\LivePortrait\venv`（torch 2.9.1+cu128） | 显存 ~6G |
+| 驱动片段 | `D:\custom_video\driving\{wave,kiss,dance,wink,hello}.mp4` | 动作模板对应片段，可替换/扩充（需与后端 CustomVideo::ACTIONS 对齐） |
+| API 通道 | 经 172 tinyproxy（凭据 /root/frp_token.txt） | 绕开国内屏蔽；X-Api-Key 鉴权 |
+
+排障：
+1. 任务不动 → 看 `D:\custom_video\worker.log`；`schtasks /run /tn AICustomVideo` 手动拉起
+2. 上线 GPU 服务器时：worker 脚本整体平移，改 PROXY/直连 + WORKER_KEY 即可，后端零改动
