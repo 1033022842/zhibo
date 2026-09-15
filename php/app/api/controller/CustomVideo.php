@@ -280,12 +280,12 @@ final class CustomVideo extends BaseController
         return $this->jsonSuccess(['video_url' => $videoUrl, 'cover_url' => $coverUrl]);
     }
 
-    /** 相对路径补当前域名（worker 回传的是 /storage/... 相对地址） */
+    /** 统一返回相对路径（/storage/...）：同源访问正确，且不受 CDN 回源 Host 影响 */
     private function absUrl(string $url): string
     {
         if ($url === '' || str_starts_with($url, 'http')) {
             return $url;
         }
-        return rtrim((string) $this->request->domain(), '/') . '/' . ltrim($url, '/');
+        return '/' . ltrim($url, '/');
     }
 }
