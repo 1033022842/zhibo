@@ -108,11 +108,16 @@
         return document.getElementById('messages_turbo_frame') || document.getElementById('messages')
     }
 
-    function appendBubble(text, mine) {
+    function appendBubble(text, mine, voice) {
         var box = messagesBox()
         if (!box) return null
         var row = document.createElement('div')
         row.className = 'user-response px-4 py-2'
+        var tag = voice
+            ? '<span style="display:inline-flex;align-items:center;height:18px;padding:0 7px;margin-right:7px;border-radius:99px;' +
+              'background:' + (mine ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.18)') + ';font-size:11px;font-weight:600;' +
+              'line-height:1;color:rgba(255,255,255,.92);vertical-align:middle;white-space:nowrap">VOICE</span>'
+            : ''
         row.innerHTML = '<div class="flex ' + (mine ? 'justify-end' : 'justify-start') + '">' +
             '<div class="flex-col gap-[9px] inline-flex ' + (mine ? 'ml-auto items-end' : '') + '">' +
             '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;' +
@@ -120,7 +125,9 @@
                   : 'background:#D98491;padding:12px;border-radius:10px 10px 10px 0') + '"></div>' +
             '<div class="text-neutral-500 text-[13px] font-normal">' + nowTime() + '</div>' +
             '</div></div>'
-        row.querySelector('.js-bubble').textContent = text
+        var bubble = row.querySelector('.js-bubble')
+        if (tag) bubble.innerHTML = tag
+        bubble.appendChild(document.createTextNode(text))
         box.appendChild(row)
         scrollMessagesToBottom()
         return row
@@ -161,6 +168,12 @@
     function convContentId() {
         var id = String(currentConversation().id || '')
         return /^\d+$/.test(id) ? id : '0'
+    }
+
+    // 非平台角色的归档标识（如 home-4），后端在 content_id=0 时靠它区分角色
+    function convRoleKey() {
+        var id = String(currentConversation().id || '')
+        return (id === '' || /^\d+$/.test(id)) ? '' : id
     }
 
     function authHeaders(json) {
@@ -341,13 +354,16 @@
             .catch(function () {})
     }
 
-    // 载入该角色的历史聊天（登录按用户，游客按 device_id）
+    // 载入该角色的历史聊天（登录按用户，游客按 device_id；非平台角色按 role_key）
     function loadChatHistory() {
         chatHis = []
         var cid = convContentId()
-        // 非平台角色（首页跳转过来的）没有服务端历史，直接跳过
-        if (cid === '0') { loadAffection(); return }
-        fetch('/api/live/chatHistory?content_id=' + cid + '&device_id=' + encodeURIComponent(deviceId()) + '&limit=50', {
+        var rkey = convRoleKey()
+        if (cid === '0' && rkey === '') { loadAffection(); return }
+        var url = '/api/live/chatHistory?content_id=' + cid +
+            '&device_id=' + encodeURIComponent(deviceId()) + '&limit=50'
+        if (rkey !== '') url += '&role_key=' + encodeURIComponent(rkey)
+        fetch(url, {
             headers: authHeaders(false)
         })
             .then(function (r) { return r.json() })
@@ -359,7 +375,7 @@
                     if (!m) continue
                     var mine = m.role !== 'assistant'
                     if (m.media && (m.media.url || m.media.unlocked === false)) rows.push({ media: m.media, mine: mine })
-                    else if (m.content) rows.push({ text: m.content, mine: mine, role: m.role })
+                    else if (m.content) rows.push({ text: m.content, mine: mine, role: m.role, voice: !!m.voice })
                 }
                 // 没有历史就保留页面自带的问候占位
                 if (!rows.length) return
@@ -369,7 +385,7 @@
                     var r = rows[j]
                     if (r.media) paintMedia(mediaRow(r.media, r.mine), r.media, r.mine)
                     else {
-                        appendBubble(r.text, r.mine)
+                        appendBubble(r.text, r.mine, r.voice)
                         chatHis.push({ role: r.role, content: r.text })
                     }
                 }
@@ -391,6 +407,7 @@
         var typing = appendTyping()
 
         var cid = convContentId()
+        var rkey = convRoleKey()
         var persona = currentPersona()
         var body = {
             message: text,
@@ -399,7 +416,8 @@
             lang: uiLang(),
             history: chatHis.slice(-12)
         }
-        // 首页等非平台角色：把人设一起带给接口
+        // 首页等非平台角色：带上归档标识与人设
+        if (rkey !== '') body.role_key = rkey
         if (cid === '0') {
             body.persona_name = persona.name || ''
             body.persona_desc = persona.desc || ''
@@ -437,19 +455,77 @@
     var callMuted = false
     var callSpeaking = false
     var callRec = null
-    var callTimer = null
-    var callSec = 0
 
     var CALL_MIC_ON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3h2a7 7 0 0 1-6 6.92V21h-2v-3.08A7 7 0 0 1 5 11h2a5 5 0 0 0 10 0z"/></svg>'
     var CALL_MIC_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3h2a7 7 0 0 1-6 6.92V21h-2v-3.08A7 7 0 0 1 5 11h2a5 5 0 0 0 10 0z"/><path d="M3 3l18 18" stroke="#fff" stroke-width="2" fill="none"/></svg>'
+    var CALL_PHONE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>'
 
-    function callModal() {
-        return document.getElementById('phoneCallModal')
+    function ensureCallStyle() {
+        if (document.getElementById('js-call-style')) return
+        var s = document.createElement('style')
+        s.id = 'js-call-style'
+        s.textContent = '@keyframes js-call-pulse{0%,100%{opacity:1}50%{opacity:.25}}'
+        document.head.appendChild(s)
     }
 
-    function callPart(name) {
-        var m = callModal()
-        return m ? m.querySelector('[data-phone-call-target="' + name + '"]') : null
+    // 聊天头部：在线状态 + 通话控件（静音 / 挂断），效果与 ai_web/chat.html 一致
+    function callHeaderUi() {
+        var nameEl = document.getElementById('chat-name')
+        if (!nameEl || !nameEl.parentNode) return null
+        var holder = nameEl.parentNode
+        var status = document.getElementById('js-call-status')
+        if (!status) {
+            status = document.createElement('div')
+            status.id = 'js-call-status'
+            status.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:#A1A1A1;line-height:1.2'
+            status.innerHTML = '<span class="js-dot" style="width:8px;height:8px;border-radius:50%;background:#3ddc84;display:inline-block"></span>' +
+                '<span class="js-text">Online now</span>'
+            holder.appendChild(status)
+        }
+        var bar = document.getElementById('js-call-controls')
+        if (!bar) {
+            bar = document.createElement('div')
+            bar.id = 'js-call-controls'
+            bar.style.cssText = 'display:none;align-items:center;gap:8px;margin-right:10px'
+            bar.innerHTML =
+                '<button type="button" id="js-call-mic" style="height:34px;min-width:34px;padding:0 10px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#262626;border:1px solid #434343;color:#fff;font-size:13px;font-weight:600;cursor:pointer">' +
+                '<span class="js-mic-icon" style="display:flex">' + CALL_MIC_ON + '</span><span class="js-mic-label">Mute</span></button>' +
+                '<button type="button" id="js-call-hangup" style="height:34px;min-width:34px;padding:0 10px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#E7484F;border:1px solid #E7484F;color:#fff;font-size:13px;font-weight:600;cursor:pointer">' +
+                '<span style="display:flex;transform:rotate(135deg)">' + CALL_PHONE + '</span><span>Hang up</span></button>'
+            var phone = document.getElementById('phone-btn')
+            if (phone && phone.parentNode) phone.parentNode.insertBefore(bar, phone)
+            else holder.appendChild(bar)
+            bar.querySelector('#js-call-mic').addEventListener('click', function (e) {
+                e.preventDefault()
+                e.stopPropagation()
+                callMuted = !callMuted
+                var btn = bar.querySelector('#js-call-mic')
+                btn.querySelector('.js-mic-icon').innerHTML = callMuted ? CALL_MIC_OFF : CALL_MIC_ON
+                btn.querySelector('.js-mic-label').textContent = callMuted ? 'Unmute' : 'Mute'
+                btn.style.background = callMuted ? '#fff' : '#262626'
+                btn.style.color = callMuted ? '#000' : '#fff'
+                if (callMuted) callStopListening()
+                else if (!callSpeaking) callStartListening()
+            })
+            bar.querySelector('#js-call-hangup').addEventListener('click', function (e) {
+                e.preventDefault()
+                e.stopPropagation()
+                closeCall()
+            })
+        }
+        return { status: status, bar: bar }
+    }
+
+    function callResetMic() {
+        var bar = document.getElementById('js-call-controls')
+        if (!bar) return
+        var btn = bar.querySelector('#js-call-mic')
+        if (!btn) return
+        callMuted = false
+        btn.style.background = '#262626'
+        btn.style.color = '#fff'
+        btn.querySelector('.js-mic-icon').innerHTML = CALL_MIC_ON
+        btn.querySelector('.js-mic-label').textContent = 'Mute'
     }
 
     function callLocale() {
@@ -487,21 +563,24 @@
         return pool[seed % pool.length]
     }
 
-    function callLog(who, text) {
-        var box = callPart('transcribedText')
-        if (!box) return
-        var line = document.createElement('div')
-        line.style.cssText = 'margin:2px 0;line-height:1.35;color:' + (who === 'me' ? '#fff' : '#F97187')
-        line.textContent = (who === 'me' ? 'You: ' : callRoleName() + ': ') + text
-        box.appendChild(line)
-        box.scrollTop = box.scrollHeight
-    }
-
-    function callSetStatus(state) {
-        var r = callPart('ringingText')
-        var l = callPart('listeningText')
-        if (r) r.style.display = state === 'ringing' ? '' : 'none'
-        if (l) l.style.display = state === 'listening' ? 'flex' : 'none'
+    // 通话状态：头部状态点 + 通话控件显隐（对齐 ai_web/chat.html）
+    function callSetStatus(inCall) {
+        var ui = callHeaderUi()
+        if (!ui) return
+        var dot = ui.status.querySelector('.js-dot')
+        var text = ui.status.querySelector('.js-text')
+        if (!dot || !text) return
+        if (inCall) {
+            dot.style.background = '#E75275'
+            dot.style.animation = 'js-call-pulse 1s ease-in-out infinite'
+            text.textContent = 'In call…'
+            ui.bar.style.display = 'flex'
+        } else {
+            dot.style.background = '#3ddc84'
+            dot.style.animation = ''
+            text.textContent = 'Online now'
+            ui.bar.style.display = 'none'
+        }
     }
 
     function callStopListening() {
@@ -533,13 +612,9 @@
         if (!callActive || callMuted || callSpeaking) return
         var SR = window.SpeechRecognition || window.webkitSpeechRecognition
         if (!SR) {
-            var box = callPart('transcribedText')
-            if (box && !box.getAttribute('data-no-sr')) {
-                box.setAttribute('data-no-sr', '1')
-                var tip = document.createElement('div')
-                tip.style.cssText = 'margin:2px 0;color:#A1A1A1'
-                tip.textContent = 'This browser has no voice input — you can keep typing in the message box.'
-                box.appendChild(tip)
+            if (!window.jsCallNoSrTipShown) {
+                window.jsCallNoSrTipShown = true
+                appendError('This browser has no voice input — you can keep typing in the message box.')
             }
             return
         }
@@ -561,10 +636,11 @@
         try { callRec.start() } catch (e) {}
     }
 
-    // 通话里说的话同样走 /api/live/chat（带 voice:1），回复用语音念出来
+    // 通话里说的话同样走 /api/live/chat（带 voice:1），消息带 VOICE 标记，回复用语音念出来
     function callSend(text) {
-        callLog('me', text)
+        appendBubble(text, true, true)
         var cid = convContentId()
+        var rkey = convRoleKey()
         var persona = currentPersona()
         var body = {
             message: text,
@@ -574,6 +650,7 @@
             history: chatHis.slice(-12),
             voice: 1
         }
+        if (rkey !== '') body.role_key = rkey
         if (cid === '0') {
             body.persona_name = persona.name || ''
             body.persona_desc = persona.desc || ''
@@ -586,8 +663,7 @@
                 if (reply) {
                     chatHis.push({ role: 'assistant', content: reply })
                     if (chatHis.length > 24) chatHis = chatHis.slice(-24)
-                    callLog('ai', reply)
-                    appendBubble(reply, false)
+                    appendBubble(reply, false, true)
                     callSpeak(reply)
                 } else {
                     callSpeak("I'm listening, go on.")
@@ -596,71 +672,22 @@
             .catch(function () { callSpeak('Bad signal, say that again?') })
     }
 
-    function callMicBtn() {
-        return document.getElementById('js-call-mic')
-    }
-
-    // 静音键（参考页有，candy 弹窗里没有，按需加一个）
-    function addCallMuteBtn() {
-        var modal = callModal()
-        if (!modal || callMicBtn()) return
-        var hang = modal.querySelector('[data-action*="phone-call#endPhoneCall"]')
-        if (!hang || !hang.parentNode) return
-        var btn = document.createElement('div')
-        btn.id = 'js-call-mic'
-        btn.title = 'Mute'
-        btn.style.cssText = 'position:absolute;bottom:80px;left:calc(50% - 70px);width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;cursor:pointer'
-        btn.innerHTML = CALL_MIC_ON
-        btn.addEventListener('click', function (e) {
-            e.preventDefault()
-            e.stopPropagation()
-            callMuted = !callMuted
-            btn.innerHTML = callMuted ? CALL_MIC_OFF : CALL_MIC_ON
-            btn.style.background = callMuted ? 'rgba(231,82,117,.9)' : 'rgba(255,255,255,.18)'
-            if (callMuted) callStopListening()
-            else if (!callSpeaking) callStartListening()
-        })
-        hang.parentNode.insertBefore(btn, hang)
-    }
-
     function openCall() {
         if (!token) { goLoginPage(); return }
-        var modal = callModal()
-        if (!modal) return
-        var name = callRoleName()
-        var nameEl = modal.querySelector('.top-div span')
-        if (nameEl) nameEl.textContent = name
-        var img = $('#message-list .chat-obj').first().find('img').attr('src')
-        var card = modal.querySelector('.relative.flex.flex-col')
-        if (card && img) card.style.backgroundImage = "url('" + img + "')"
-        var box = callPart('transcribedText')
-        if (box) box.innerHTML = ''
-        var timer = callPart('timer')
-        if (timer) timer.textContent = ''
-        callSec = 0
-        callMuted = false
-        callSpeaking = false
+        if (callActive) return
+        ensureCallStyle()
         callActive = true
-        modal.style.display = 'flex'
-        callSetStatus('ringing')
-        addCallMuteBtn()
-        var ring = callPart('ringingSound')
-        if (ring) { try { ring.currentTime = 0; ring.play().catch(function () {}) } catch (e) {} }
-
+        callSpeaking = false
+        callHeaderUi()
+        callResetMic()
+        callSetStatus(true)
+        var name = callRoleName()
         setTimeout(function () {
             if (!callActive) return
-            if (ring) { try { ring.pause() } catch (e) {} }
-            callSetStatus('listening')
-            if (callTimer) clearInterval(callTimer)
-            callTimer = setInterval(function () {
-                callSec++
-                var t = callPart('timer')
-                if (t) t.textContent = ('0' + Math.floor(callSec / 60)).slice(-2) + ':' + ('0' + (callSec % 60)).slice(-2)
-            }, 1000)
             var greet = 'Hi, this is ' + name + '. So glad you called!'
-            callLog('ai', greet)
+            appendBubble(greet, false, true)
             callSpeak(greet)
-        }, 1200)
+        }, 800)
     }
 
     function closeCall() {
@@ -668,16 +695,11 @@
         callSpeaking = false
         callStopListening()
         if ('speechSynthesis' in window && window.speechSynthesis) window.speechSynthesis.cancel()
-        var ring = callPart('ringingSound')
-        if (ring) { try { ring.pause() } catch (e) {} }
-        if (callTimer) { clearInterval(callTimer); callTimer = null }
-        var modal = callModal()
-        if (modal) modal.style.display = 'none'
-        callSetStatus('ringing')
+        callSetStatus(false)
     }
 
     function setupCall() {
-        // 通话按钮：改用站内浏览器语音通话（不再走 candy 的 phone-call 控制器）
+        // 通话按钮：站内浏览器语音通话（不再走 candy 的 phone-call 控制器）
         document.addEventListener('click', function (e) {
             var el = e.target && e.target.closest
                 ? e.target.closest('#phone-btn, #call-btn, [data-phone-call-target="callButton"]')
@@ -687,20 +709,12 @@
             e.stopPropagation()
             openCall()
         }, true)
-        // 挂断
-        document.addEventListener('click', function (e) {
-            var el = e.target && e.target.closest
-                ? e.target.closest('#phoneCallModal [data-action*="phone-call#endPhoneCall"]')
-                : null
-            if (!el) return
-            e.preventDefault()
-            e.stopPropagation()
-            closeCall()
-        }, true)
         if ('speechSynthesis' in window && window.speechSynthesis) {
             window.speechSynthesis.onvoiceschanged = function () { window.speechSynthesis.getVoices() }
             window.speechSynthesis.getVoices()
         }
+        // 头部「Online now」状态与通话控件就位
+        callHeaderUi()
     }
 
     // 未登录：站内原本「弹注册/登录框」的地方，统一改成跳转登录页（带上回跳地址）
