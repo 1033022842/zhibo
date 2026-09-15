@@ -35,39 +35,39 @@
 			.cf-card{background:#262626;border:1px solid rgba(255,255,255,.08);border-radius:8px;overflow:hidden;position:relative}
 			.cf-cover-wrap{position:relative;height:210px;background:#161616}
 			.cf-cover-wrap img{width:100%;height:100%;object-fit:contain;object-position:center}
-			.cf-cover-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e1b31,#2a2145)}
-			.cf-badge{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:9999px;background:linear-gradient(135deg,#a855f7,#7c3aed);box-shadow:0 4px 12px rgba(0,0,0,.4);z-index:10}
+			.cf-cover-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a1a,#2a1d22)}
+			.cf-badge{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:9999px;background:linear-gradient(135deg,#E75275,#c93a5c);box-shadow:0 4px 12px rgba(0,0,0,.4);z-index:10}
 			.cf-badge span{color:#fff;font-size:11px;font-weight:600}
-			.cf-goal-badge{position:absolute;right:10px;top:10px;padding:4px 10px;border-radius:9999px;background:rgba(16,185,129,.9);z-index:10;display:none}
+			.cf-goal-badge{position:absolute;right:10px;top:10px;padding:4px 10px;border-radius:9999px;background:rgba(231,82,117,.92);z-index:10;display:none}
 			.cf-goal-badge span{color:#fff;font-size:11px;font-weight:600}
 			.cf-card.reached .cf-goal-badge{display:flex}
 			.cf-title-overlay{position:absolute;left:0;right:0;bottom:0;padding:24px 12px 10px;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);z-index:5}
 			.cf-body{padding:12px}
 			.cf-desc{color:#A1A1A1;font-size:12px;line-height:1.5;height:36px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 			.cf-progress-track{height:8px;border-radius:9999px;background:#434343;overflow:hidden}
-			.cf-progress-fill{height:100%;border-radius:9999px;background:linear-gradient(90deg,#a855f7,#E75275);transition:width .6s ease}
-			.cf-card.reached .cf-progress-fill{background:linear-gradient(90deg,#10b981,#059669)}
+			.cf-progress-fill{height:100%;border-radius:9999px;background:linear-gradient(90deg,#E75275,#F97187);transition:width .6s ease}
+			.cf-card.reached .cf-progress-fill{background:linear-gradient(90deg,#F97187,#ff9db3)}
 			.cf-card.failed .cf-progress-fill{background:#6b6b6b}
 			.cf-card.failed .cf-btn{background:#434343;color:#A1A1A1;cursor:default}
 			.cf-stats{display:flex;gap:6px;margin-top:10px}
 			.cf-stat{flex:1;background:#1d1d1d;border-radius:8px;padding:6px 4px;text-align:center}
 			.cf-stat .v{color:#fff;font-size:13px;font-weight:700;line-height:1.2}
 			.cf-stat .k{color:#A1A1A1;font-size:10px;margin-top:1px}
-			.cf-stat.raise .v{color:#fbbf24}
+			.cf-stat.raise .v{color:#F97187}
 			.cf-btn{display:block;width:100%;height:38px;margin-top:12px;border:none;border-radius:8px;background:#E75275;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s}
 			.cf-btn:hover{opacity:.9}
 			.cf-card.reached .cf-btn{background:#434343;color:#A1A1A1;cursor:default}
 			/* 直播间卡片按钮：开播=绿色可跳转，未开播=灰色禁用（覆盖 reached 主题的灰色） */
-			.cf-btn-live,.cf-card.reached .cf-btn.cf-btn-live{background:#10b981;color:#fff;cursor:pointer}
+			.cf-btn-live,.cf-card.reached .cf-btn.cf-btn-live{background:#fff;color:#131313;cursor:pointer}
 			.cf-btn-offline,.cf-card.reached .cf-btn.cf-btn-offline{background:#434343;color:#A1A1A1;cursor:default}
 			.cf-deadline{display:flex;align-items:center;justify-content:space-between;margin-top:10px;color:#A1A1A1;font-size:11px}
 			/* 标签 / 18+ */
 			.cf-tags{display:flex;flex-wrap:nowrap;gap:5px;margin-top:8px;height:20px;overflow:hidden}
-			.cf-tag{font-size:10px;line-height:1;padding:4px 8px;border-radius:9999px;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7;white-space:nowrap}
-			.cf-adult{position:absolute;left:10px;top:10px;z-index:11;padding:4px 8px;border-radius:9999px;background:rgba(239,68,68,.92);color:#fff;font-size:10px;font-weight:700;line-height:1}
-			.cf-adult-inline{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.45);color:#fca5a5;font-size:10px;font-weight:700;line-height:1.3;vertical-align:middle}
+			.cf-tag{font-size:10px;line-height:1;padding:4px 8px;border-radius:9999px;background:rgba(231,82,117,.12);border:1px solid rgba(231,82,117,.32);color:#F97187;white-space:nowrap}
+			.cf-adult{position:absolute;left:10px;top:10px;z-index:11;padding:4px 8px;border-radius:9999px;background:rgba(231,82,117,.95);color:#fff;font-size:10px;font-weight:700;line-height:1}
+			.cf-adult-inline{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;background:rgba(231,82,117,.16);border:1px solid rgba(231,82,117,.45);color:#F97187;font-size:10px;font-weight:700;line-height:1.3;vertical-align:middle}
 			/* 顶部统计 */
-			.cf-hero{background:linear-gradient(135deg,rgba(168,85,247,.14),rgba(231,82,117,.08));border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:20px}
+			.cf-hero{background:linear-gradient(135deg,rgba(231,82,117,.12),rgba(231,82,117,.08));border:1px solid rgba(231,82,117,.28);border-radius:12px;padding:20px}
 			.cf-hero-stats{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
 			.cf-hero-stat{flex:1;min-width:120px;background:rgba(0,0,0,.3);border-radius:10px;padding:12px;text-align:center}
 			.cf-hero-stat .v{color:#fff;font-size:20px;font-weight:800}
@@ -78,13 +78,13 @@
 			.cf-modal-box{background:#1b1b1b;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:24px;width:400px;max-width:100%;max-height:90vh;overflow-y:auto;position:relative}
 			.cf-modal-close{position:absolute;right:12px;top:12px;background:none;border:none;cursor:pointer;padding:4px}
 			.cf-qa{flex:1;padding:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#A1A1A1;font-size:12px;cursor:pointer}
-			.cf-qa.active{border-color:#a855f7;color:#a855f7;font-weight:700}
+			.cf-qa.active{border-color:#E75275;color:#E75275;font-weight:700}
 			.cf-amount-input{width:100%;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.04);color:#fff;font-size:16px;outline:none;text-align:center}
-			.cf-amount-input:focus{border-color:#a855f7}
+			.cf-amount-input:focus{border-color:#E75275}
 			.cf-toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:999;box-shadow:0 8px 30px rgba(0,0,0,.4);display:none}
-			.cf-toast.success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
-			.cf-toast.error{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
-			.cf-toast.warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+			.cf-toast.success{background:linear-gradient(135deg,#E75275,#c93a5c);color:#fff}
+			.cf-toast.error{background:linear-gradient(135deg,#b3184a,#7d0f33);color:#fff}
+			.cf-toast.warn{background:linear-gradient(135deg,#3f3f3f,#262626);border:1px solid rgba(231,82,117,.45);color:#fff}
 			/* 加载更多 / 重试 按钮 */
 			.cf-more-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 34px;height:44px;border-radius:9999px;border:1px solid rgba(231,82,117,.5);background:rgba(231,82,117,.08);color:#F97187;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,border-color .2s,color .2s}
 			.cf-more-btn:hover{background:rgba(231,82,117,.18);border-color:#E75275;color:#fff}
@@ -102,18 +102,21 @@
 		<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
 			<nav class="flex flex-col justify-between h-full">
 				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto overflow-x-auto">
-					<li class="relative w-full"><a href="./Home.html" title="Home" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></a></li>
+					<li class="relative w-full"><a href="./Home.html" title="Home" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></a></li>
 					<li class="relative w-full"><a href="./Girls.html" title="Explore" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./characters_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg"></a></li>
 					<li class="relative w-full"><a href="./Chat.html" title="Chat" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./Chat_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg"></a></li>
-					<li class="relative w-full"><a href="./Image.html" title="Generate Image" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg"></a></li>
+					<li class="relative w-full"><a href="./Gallery.html" title="Gallery" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./Chat_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg"></a></li>
+					<li class="relative w-full"><a href="./Image.html" title="Generate Image" target="_top" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg"></a></li>
 					<li class="relative w-full"><a href="./characters.html" title="Create Character" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./characters_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg"></a></li>
 					<li class="relative w-full"><a href="./charactersIndex.html" title="My AI" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg"></a></li>
 					<li class="relative w-full"><a href="./upload_media.html" title="Upload Media" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg></a></li>
-					<li class="relative w-full"><a href="./Gallery.html" title="Gallery" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./Chat_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg"></a></li>
-					<li class="relative w-full"><a href="./Game.html" title="Games" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg></a></li>
-					<li class="relative w-full"><a href="./index.html" title="Crowdfunding" class="relative h-[48px] w-[52px] hover:bg-zinc-700 bg-[#303030] rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></a></li>
+					<li class="relative w-full"><a href="./purchasePoints.html" title="Tokens" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 21 8 9l4-6 4 6z"/></svg></a></li>
+					<li class="relative w-full"><a href="./Game.html" title="Games" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg></a></li>
+					<li class="relative w-full"><a href="./index.html" title="Crowdfunding" class="relative h-[48px] w-[52px] hover:bg-zinc-700 bg-[#303030] rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></a></li>
 				</ul>
 				<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
+					<li class="relative w-full"><a href="mailto:support@sugusmail.ai" title="Contact Us" data-contact-us="1" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg></a></li>
+					<li class="relative w-full"><a href="./Inviter.html" title="Affiliate Program" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg></a></li>
 					<li class="relative w-full"><a href="./Subscriptions.html" title="Become Premium" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"></a></li>
 				</ul>
 			</nav>
@@ -123,18 +126,21 @@
 		<div data-main-target="mainSidebarOpenedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[220px] lg:pb-5 w-[220px] fixed top-0 left-0 h-full webkit-transition-sidebar pc-nav" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
 			<nav class="flex flex-col justify-between h-full">
 				<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 overflow-y-auto overflow-x-auto">
-					<li class="relative w-full"><a href="./Home.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Home</span></a></li>
+					<li class="relative w-full"><a href="./Home.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Home</span></a></li>
 					<li class="relative w-full"><a href="./Girls.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./characters_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg"><span class="text-start text-grey-medium text-xxs font-medium leading-4">Explore</span></a></li>
 					<li class="relative w-full"><a href="./Chat.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./Chat_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg"><span class="text-start text-grey-medium text-xxs font-medium leading-4">Chat</span></a></li>
-					<li class="relative w-full"><a href="./Image.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg"><span class="text-start text-grey-medium text-xxs font-medium leading-4">Generate Image</span></a></li>
+					<li class="relative w-full"><a href="./Gallery.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./Chat_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg"><span class="text-start text-grey-medium text-xxs font-medium leading-4">Gallery</span></a></li>
+					<li class="relative w-full"><a href="./Image.html" target="_top" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg"><span class="text-start text-grey-medium text-xxs font-medium leading-4">Generate Image</span></a></li>
 					<li class="relative w-full"><a href="./characters.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./characters_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg"><span class="text-start text-grey-medium text-xxs font-medium leading-4">Create Character</span></a></li>
 					<li class="relative w-full"><a href="./charactersIndex.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg"><span class="text-start text-grey-medium text-xxs font-medium leading-4">My AI</span></a></li>
 					<li class="relative w-full"><a href="./upload_media.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Upload Media</span></a></li>
-					<li class="relative w-full"><a href="./Gallery.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./Chat_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg"><span class="text-start text-grey-medium text-xxs font-medium leading-4">Gallery</span></a></li>
-					<li class="relative w-full"><a href="./Game.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Games</span></a></li>
-					<li class="relative w-full"><a href="./index.html" class="relative h-[40px] w-full hover:bg-zinc-700 bg-[#303030] rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="text-start text-white text-xxs font-medium leading-4">Crowdfunding</span></a></li>
+					<li class="relative w-full"><a href="./purchasePoints.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 21 8 9l4-6 4 6z"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Tokens</span></a></li>
+					<li class="relative w-full"><a href="./Game.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Games</span></a></li>
+					<li class="relative w-full"><a href="./index.html" class="relative h-[40px] w-full hover:bg-zinc-700 bg-[#303030] rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="text-start text-white text-xxs font-medium leading-4">Crowdfunding</span></a></li>
 				</ul>
 				<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
+					<li class="relative w-full"><a href="mailto:support@sugusmail.ai" data-contact-us="1" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Contact Us</span></a></li>
+					<li class="relative w-full"><a href="./Inviter.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Affiliate Program</span></a></li>
 					<li class="relative w-full"><a href="./Subscriptions.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"><span class="text-start text-pink-default text-xxs font-medium leading-4">Become Premium</span></a></li>
 				</ul>
 			</nav>
@@ -158,16 +164,19 @@
 							</div>
 						</div>
 					</div>
-					<ul role="list" class="flex flex-col items-center justify-start px-5 bg-zinc-900 h-screen overflow-auto"><li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Home.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Home</span></a></li>
+					<ul role="list" class="flex flex-col items-center justify-start px-5 bg-zinc-900 h-screen overflow-auto"><li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Home.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Home</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Girls.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Explore</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Chat.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./Chat_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Chat</span></a></li>
-<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Image.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Generate Image</span></a></li>
+<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Gallery.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./Chat_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Gallery</span></a></li>
+<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Image.html" target="_top" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Generate Image</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./characters.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Create Character</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./charactersIndex.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">My AI</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./upload_media.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Upload Media</span></a></li>
-<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Gallery.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./Chat_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Gallery</span></a></li>
-<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Game.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Games</span></a></li>
-<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./index.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="text-start text-white text-xs leading-5 font-semibold">Crowdfunding</span></a></li>
+<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./purchasePoints.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 21 8 9l4-6 4 6z"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Tokens</span></a></li>
+<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Game.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Games</span></a></li>
+<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./index.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="text-start text-white text-xs leading-5 font-semibold">Crowdfunding</span></a></li>
+<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="mailto:support@sugusmail.ai" data-contact-us="1" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Contact Us</span></a></li>
+<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Inviter.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Affiliate Program</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Subscriptions.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"><span class="text-start text-pink-default text-xs leading-5 font-semibold">Become Premium</span></a></li></ul>
 				</div>
 			</nav>
@@ -333,7 +342,7 @@
 					</div>
 					<ul role="list" id="cfActiveList" class="mx-auto md:mb-0 mb-10 grid max-w-2xl grid-cols-2 gap-5 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-4">
 						<li class="col-span-2 lg:col-span-4 flex justify-center py-10" style="grid-column:1/-1">
-							<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#434343" stroke-width="3"/><path d="M22 12a10 10 0 0 0-10-10" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/></svg>
+							<svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#434343" stroke-width="3"/><path d="M22 12a10 10 0 0 0-10-10" stroke="#E75275" stroke-width="3" stroke-linecap="round"/></svg>
 						</li>
 					</ul>
 
@@ -403,16 +412,16 @@
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A1A1A1" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
 				</button>
 				<div class="text-white text-base font-bold mb-1" id="pmTitle"></div>
-				<div class="text-[#a855f7] text-xs font-semibold mb-3" id="pmPersona"></div>
+				<div class="text-[#F97187] text-xs font-semibold mb-3" id="pmPersona"></div>
 				<div class="mb-3">
 					<div class="flex justify-between items-baseline mb-1.5">
-						<span class="text-[#a855f7] text-lg font-extrabold" id="pmPercent">0%</span>
+						<span class="text-[#F97187] text-lg font-extrabold" id="pmPercent">0%</span>
 						<span class="text-[#A1A1A1] text-xs" id="pmGoal"></span>
 					</div>
 					<div class="cf-progress-track"><div class="cf-progress-fill" id="pmFill" style="width:0%"></div></div>
 				</div>
 				<div class="flex justify-between text-xs text-[#A1A1A1] mb-3">
-					<span>Balance: <b class="text-[#fbbf24]" id="pmBalance">--</b> &#128142;</span>
+					<span>Balance: <b class="text-white" id="pmBalance">--</b> &#128142;</span>
 					<a href="./purchasePoints.html" class="text-[#E75275] font-semibold no-underline">Top up</a>
 				</div>
 				<div class="flex gap-2 mb-2" id="pmQuick">
@@ -538,20 +547,20 @@
 				return '<li>' +
 					'<div class="cf-card' + theme + '">' +
 					'<div class="cf-cover-wrap">' + cover +
-					'<div class="cf-cover-fallback" style="' + (p.cover_url ? 'display:none' : '') + '"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>' +
+					'<div class="cf-cover-fallback" style="' + (p.cover_url ? 'display:none' : '') + '"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>' +
 					'<div class="cf-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>Crowdfunding</span></div>' +
 					adultBadge +
 					badge +
 					'<div class="cf-title-overlay">' +
 					'<div class="text-white text-sm font-semibold truncate">' + esc(p.title) + (adult ? '<span class="cf-adult-inline">18+</span>' : '') + '</div>' +
-					'<div class="text-[#c9a6f7] text-xs mt-0.5 truncate">&#10024; ' + esc(p.persona_name) + '</div>' +
+					'<div class="text-[#F97187] text-xs mt-0.5 truncate">&#10024; ' + esc(p.persona_name) + '</div>' +
 					'</div>' +
 					'</div>' +
 					'<div class="cf-body">' +
 					(p.description ? '<div class="cf-desc">' + esc(p.description) + '</div>' : '<div class="cf-desc" style="visibility:hidden">-</div>') +
 					tagsHtml +
 					'<div class="flex justify-between items-baseline mt-2 mb-1.5">' +
-					'<span class="text-[#a855f7] text-sm font-extrabold">' + pct + '%</span>' +
+					'<span class="text-[#F97187] text-sm font-extrabold">' + pct + '%</span>' +
 					'<span class="text-[#A1A1A1] text-[11px]">Goal ' + fmtNum(p.target_amount) + ' &#128142;</span>' +
 					'</div>' +
 					'<div class="cf-progress-track"><div class="cf-progress-fill" style="width:' + Math.min(100, pct) + '%"></div></div>' +
@@ -583,19 +592,19 @@
 				return '<li>' +
 					'<div class="cf-card reached">' +
 					'<div class="cf-cover-wrap">' + cover +
-					'<div class="cf-cover-fallback" style="' + (r.cover_url ? 'display:none' : '') + '"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>' +
+					'<div class="cf-cover-fallback" style="' + (r.cover_url ? 'display:none' : '') + '"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>' +
 					'<div class="cf-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>' + (living ? 'LIVE' : 'Crowdfunding') + '</span></div>' +
 					'<div class="cf-goal-badge" style="display:flex"><span>&#10003; Funded</span></div>' +
 					'<div class="cf-title-overlay">' +
 					'<div class="text-white text-sm font-semibold truncate">' + esc(r.title) + '</div>' +
-					'<div class="text-[#c9a6f7] text-xs mt-0.5 truncate">&#10024; ' + esc(personaName) + '</div>' +
+					'<div class="text-[#F97187] text-xs mt-0.5 truncate">&#10024; ' + esc(personaName) + '</div>' +
 					'</div>' +
 					'</div>' +
 					'<div class="cf-body">' +
 					(subtitle ? '<div class="cf-desc">' + esc(subtitle) + '</div>' : '<div class="cf-desc" style="visibility:hidden">-</div>') +
 	
 					'<div class="flex justify-between items-baseline mt-2 mb-1.5">' +
-					'<span class="text-[#a855f7] text-sm font-extrabold">100%</span>' +
+					'<span class="text-[#F97187] text-sm font-extrabold">100%</span>' +
 					'<span class="text-[#A1A1A1] text-[11px]">Goal &#10003; Funded</span>' +
 					'</div>' +
 					'<div class="cf-progress-track"><div class="cf-progress-fill" style="width:100%"></div></div>' +
@@ -604,7 +613,7 @@
 					'<div class="cf-stat"><div class="v">' + esc((r.display && r.display.like_text) || '0') + '</div><div class="k">Likes</div></div>' +
 					'<div class="cf-stat"><div class="v">&#10003;</div><div class="k">Progress</div></div>' +
 					'</div>' +
-				'<div class="cf-deadline"><span>' + (living ? '&#128308; LIVE now' : '&#9898; Offline') + '</span><span>' + esc(r.room_no || '') + '</span></div>' +
+				'<div class="cf-deadline"><span>' + (living ? '<span style="color:#E75275">&#9679;</span> LIVE now' : '&#9898; Offline') + '</span><span>' + esc(r.room_no || '') + '</span></div>' +
 				(living
 					? '<button class="cf-btn cf-btn-live" onclick="cfGoLive(' + parseInt(r.room_id) + ')">Watch Live &#9654;</button>'
 					: '<button class="cf-btn cf-btn-offline" disabled>Offline</button>') +
@@ -789,5 +798,17 @@
 			setInterval(function() { if (projects.length) renderList() }, 60000)
 		})();
 		</script>
-	</body>
+	<script>
+/* nav-contact-us：页面有联系弹窗则弹窗，没有则走 href（客服邮箱） */
+document.addEventListener('click', function (e) {
+  var el = e.target && e.target.closest ? e.target.closest('[data-contact-us]') : null;
+  if (!el) return;
+  var modal = document.querySelector('[data-main-target="contactUsModalContainer"]');
+  if (!modal) return;
+  e.preventDefault();
+  e.stopPropagation();
+  modal.style.display = 'block';
+}, true);
+</script>
+</body>
 </html>

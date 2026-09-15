@@ -5,8 +5,8 @@
  */
 (function () {
   var ICON = {
-    home: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
-    crowdfunding: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    home: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
+    crowdfunding: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
     explore: '<img class="w-6 h-6" src="./characters_files/explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg">',
     chat: '<img class="w-6 h-6" src="./Chat_files/chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg">',
     generate: '<img class="w-6 h-6" src="./characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg">',
@@ -14,7 +14,10 @@
     myai: '<img class="w-6 h-6" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">',
     upload: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>',
     gallery: '<img class="w-6 h-6" src="./Chat_files/gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg">',
-    game: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>',
+    tokens: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 21 8 9l4-6 4 6z"/></svg>',
+    game: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>',
+    contact: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>',
+    affiliate: '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>',
     premium: '<img class="w-6 h-6" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg">'
   };
 
@@ -23,13 +26,19 @@
     ['home', './Home.html', 'Home', 'home', ''],
     ['explore', './Girls.html', 'Explore', 'explore', ''],
     ['chat', './Chat.html', 'Chat', 'chat', ''],
+    ['gallery', './Gallery.html', 'Gallery', 'gallery', ''],
     ['generate', './Image.html', 'Generate Image', 'generate', ' target="_top"'],
     ['create', './characters.html', 'Create Character', 'create', ''],
     ['myai', './charactersIndex.html', 'My AI', 'myai', ''],
     ['upload', './upload_media.html', 'Upload Media', 'upload', ''],
-    ['gallery', './Gallery.html', 'Gallery', 'gallery', ''],
+    ['tokens', './purchasePoints.html', 'Tokens', 'tokens', ''],
     ['game', './Game.html', 'Games', 'game', ''],
     ['crowdfunding', './index.html', 'Crowdfunding', 'crowdfunding', '']
+  ];
+  // 底部区（参考站结构：Contact / Affiliate / Premium）
+  var BOTTOM = [
+    ['contact', 'mailto:support@sugusmail.ai', 'Contact Us', 'contact', ' data-contact-us="1"'],
+    ['affiliate', './Inviter.html', 'Affiliate Program', 'affiliate', '']
   ];
   var PREMIUM = ['./Subscriptions.html', 'Become Premium', 'premium'];
 
@@ -37,7 +46,7 @@
   function collapsedSidebar(active) {
     function item(row) {
       var isActive = row[0] === active;
-      return '<li class="relative w-full"><a href="' + row[1] + '" title="' + row[2] + '" class="relative h-[48px] w-[52px] hover:bg-zinc-700 ' + (isActive ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">' + ICON[row[3]] + '</a></li>';
+      return '<li class="relative w-full"><a href="' + row[1] + '" title="' + row[2] + '"' + (row[4] || '') + ' class="relative h-[48px] w-[52px] hover:bg-zinc-700 ' + (isActive ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">' + ICON[row[3]] + '</a></li>';
     }
     return '' +
       '<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">' +
@@ -46,6 +55,7 @@
       NAV.map(item).join('') +
       '</ul>' +
       '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">' +
+      BOTTOM.map(item).join('') +
       '<li class="relative w-full"><a href="' + PREMIUM[0] + '" title="' + PREMIUM[1] + '" class="h-[48px] w-[52px] hover:bg-zinc-700 ' + (active === 'premium' ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer">' + ICON[PREMIUM[2]] + '</a></li>' +
       '</ul></nav></div>';
   }
@@ -65,6 +75,7 @@
       NAV.map(item).join('') +
       '</ul>' +
       '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">' +
+      BOTTOM.map(item).join('') +
       '<li class="relative w-full"><a href="' + PREMIUM[0] + '" class="h-[40px] hover:bg-zinc-700 ' + (active === 'premium' ? 'bg-[#303030] ' : '') + 'rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer">' + ICON[PREMIUM[2]].replace(/class="w-6 h-6"/, 'class="w-4 h-4"') + '<span class="text-start text-pink-default text-xxs font-medium leading-4">' + PREMIUM[1] + '</span></a></li>' +
       '</ul></nav></div>';
   }
@@ -73,7 +84,7 @@
   function mobileDrawer(active) {
     function row(row2) {
       var isActive = row2[0] === active;
-      return '<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="' + row2[1] + '" class="w-full flex justify-start items-center gap-2">' +
+      return '<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="' + row2[1] + '"' + (row2[4] || '') + ' class="w-full flex justify-start items-center gap-2">' +
         ICON[row2[3]].replace(/class="w-6 h-6"/, 'class="w-5 h-5"') +
         '<span class="text-start ' + (isActive ? 'text-white' : 'text-grey-medium') + ' text-xs leading-5 font-semibold">' + row2[2] + '</span></a></li>';
     }
@@ -87,6 +98,7 @@
       '</div></div>' +
       '<ul role="list" class="flex flex-col items-center justify-start px-5 bg-zinc-900 h-screen overflow-auto">' +
       NAV.map(row).join('') +
+      BOTTOM.map(row).join('') +
       '<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="' + PREMIUM[0] + '" class="w-full flex justify-start items-center gap-2">' + ICON[PREMIUM[2]].replace(/class="w-6 h-6"/, 'class="w-5 h-5"') + '<span class="text-start text-pink-default text-xs leading-5 font-semibold">' + PREMIUM[1] + '</span></a></li>' +
       '</ul></div></nav></div>';
   }
@@ -213,6 +225,17 @@
     applyPc();
     applyDrawer();
   }
+
+    // Contact Us：页面有联系弹窗则弹窗，没有则走 href（客服邮箱）
+    document.addEventListener('click', function (e) {
+      var el = e.target && e.target.closest ? e.target.closest('[data-contact-us]') : null;
+      if (!el) return;
+      var modal = document.querySelector('[data-main-target="contactUsModalContainer"]');
+      if (!modal) return;
+      e.preventDefault();
+      e.stopPropagation();
+      modal.style.display = 'block';
+    }, true);
 
   window.SiteShell = { render: render };
 })();
