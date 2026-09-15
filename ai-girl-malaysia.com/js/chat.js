@@ -344,8 +344,6 @@
     // 载入该角色的历史聊天（登录按用户，游客按 device_id）
     function loadChatHistory() {
         chatHis = []
-        var box = messagesBox()
-        if (box) box.innerHTML = ''
         var cid = convContentId()
         // 非平台角色（首页跳转过来的）没有服务端历史，直接跳过
         if (cid === '0') { loadAffection(); return }
@@ -355,15 +353,24 @@
             .then(function (r) { return r.json() })
             .then(function (d) {
                 var list = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
+                var rows = []
                 for (var i = 0; i < list.length; i++) {
                     var m = list[i]
                     if (!m) continue
                     var mine = m.role !== 'assistant'
-                    if (m.media && (m.media.url || m.media.unlocked === false)) {
-                        paintMedia(mediaRow(m.media, mine), m.media, mine)
-                    } else if (m.content) {
-                        appendBubble(m.content, mine)
-                        chatHis.push({ role: m.role, content: m.content })
+                    if (m.media && (m.media.url || m.media.unlocked === false)) rows.push({ media: m.media, mine: mine })
+                    else if (m.content) rows.push({ text: m.content, mine: mine, role: m.role })
+                }
+                // 没有历史就保留页面自带的问候占位
+                if (!rows.length) return
+                var box = messagesBox()
+                if (box) box.innerHTML = ''
+                for (var j = 0; j < rows.length; j++) {
+                    var r = rows[j]
+                    if (r.media) paintMedia(mediaRow(r.media, r.mine), r.media, r.mine)
+                    else {
+                        appendBubble(r.text, r.mine)
+                        chatHis.push({ role: r.role, content: r.text })
                     }
                 }
                 scrollMessagesToBottom()
