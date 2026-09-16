@@ -396,53 +396,6 @@
 			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
 
 			<!-- 频道按钮：Girls / Anime / Guys（由 main.js 渲染） -->
-			<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
-				<script type="text/template" id="head-template">
-					<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Girls.html" accept-charset="UTF-8" data-remote="true" method="post">
-       <button data-id="27" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
-         <div class="flex items-center">
-           <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
-              </svg>
-          </div>
-              <div class="text-white text-[13px] font-semibold leading-normal">Girls</div>
-         </div>
-       </button>
-</form>
-					<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Anime.html" accept-charset="UTF-8" data-remote="true" method="post">
-      <button data-id="36" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
-        <div class="flex items-center">
-          <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none">
-            <path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path>
-            </svg>
-          </div>
-              <div class="text-white text-[13px] font-semibold leading-normal">Anime</div>
-        </div>
-      </button>
-</form>
-					<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="./Guys.html" accept-charset="UTF-8" data-remote="true" method="post">
-      <button data-id="35" type="submit" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" data-gender-interest="female">
-        <div class="flex items-center">
-          <div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
-                <path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
-                <path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
-              </svg>
-          </div>
-              <div class="text-white text-[13px] font-semibold leading-normal">Guys</div>
-        </div>
-      </button>
-</form>
-      </script>
-			</div>
-
-			<!-- 右侧：未登录 Register / Login -->
-			<div class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">
-				<form class="relative flex flex-1" action="#" method="GET"></form>
-				<div class="headerfy"></div>
 				<div class="gap-x-2 flex pc-rg-login">
 					<div class="flex items-center gap-x-4 lg:gap-x-6">
 						<a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline">
