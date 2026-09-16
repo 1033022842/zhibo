@@ -178,7 +178,8 @@
                     '</button>' +
 
                     '<form class="hidden w-full" data-content-pack-confirm accept-charset="UTF-8" method="post">' +
-                       '<button type="button" class="flex h-[38px] w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-l from-[#fdc706] to-[#ffa800] md:h-[42px]  ">' +
+                       // 必须是 submit：下单逻辑挂在表单的 submit 上（form 无 action，submit 里已 preventDefault，不会跳站外）
+                       '<button type="submit" class="flex h-[38px] w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-l from-[#fdc706] to-[#ffa800] md:h-[42px]  ">' +
                          '<span class="text-xxs md:text-sm text-black-default font-semibold">Confirm</span>' +
                        '</button>' +
                      '</form>') +
