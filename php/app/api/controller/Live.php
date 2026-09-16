@@ -1411,27 +1411,6 @@ final class Live extends BaseController
     }
 
     /**
-     * 可选登录态：有合法 token 则返回 user_id，否则返回 0（不抛异常）
-     * 用于 chat 等公开接口，登录用户每天对话 +1 / 特殊视频判定
-     */
-    private function optionalAuthUserId(): int
-    {
-        $token = str_replace('Bearer ', '', (string) $this->request->header('Authorization', ''));
-        if ($token === '') {
-            $token = (string) $this->request->header('token', '');
-        }
-        if ($token === '') {
-            return 0;
-        }
-
-        $payload = \app\live\service\JwtService::parseToken($token);
-        if (!$payload || ($payload['type'] ?? '') !== 'access') {
-            return 0;
-        }
-        return (int) ($payload['sub'] ?? 0);
-    }
-
-    /**
      * 根据前端语言切换生成回复语言指令
      */
     private function langRule(string $lang): string
