@@ -1,0 +1,218 @@
+<!-- ==== TEMPLATE: main ==== -->
+<main class="ml-0 lg:ml-[220px] bg-[#131313] min-h-screen">
+  {{feed_desktop_container}}
+</main>
+
+<!-- ==== TEMPLATE: feed-desktop-container ==== -->
+<div class="feed-desktop-container">
+  <!-- Loading skeleton -->
+  {{loading_block}}
+
+  <!-- Row: videos + actions sidebar -->
+  <div class="feed-desktop-row">
+    <!-- Video container - videos will be dynamically added here -->
+    <div class="feed-desktop-content-column">
+      <div style="height: {{top_spacer_height}}px;"></div>
+      {{feed_items}}
+      <div style="height: {{bottom_spacer_height}}px;"></div>
+    </div>
+
+    <!-- Actions sidebar (Like counter) -->
+    {{like_hud}}
+  </div>
+
+  <!-- Shared play overlay for paused videos -->
+  {{play_overlay}}
+</div>
+
+<!-- ==== TEMPLATE: feed-desktop-loading ==== -->
+<div class="hidden" aria-live="polite">
+  <div class="feed-desktop-row">
+    <div class="feed-desktop-content-column">
+      <div class="feed-desktop-skeleton">
+        <div class="w-full h-full bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 animate-pulse rounded-[20px] relative">
+          <!-- Character info skeleton at bottom -->
+          <div class="absolute bottom-0 left-0 right-0 p-[18px] pb-[20px] z-10">
+            <div class="flex gap-[40px] items-end justify-between">
+              <!-- Left side: Character info -->
+              <div class="flex-1 space-y-3">
+                <!-- Avatar and name -->
+                <div class="flex gap-2 items-center">
+                  <div class="w-8 h-8 bg-zinc-700 rounded-full animate-pulse"></div>
+                  <div class="h-6 w-32 bg-zinc-700 rounded-lg animate-pulse"></div>
+                  <div class="h-8 w-20 bg-zinc-700 rounded-lg animate-pulse"></div>
+                </div>
+                <!-- Description -->
+                <div class="space-y-2">
+                  <div class="h-4 w-64 bg-zinc-700 rounded animate-pulse"></div>
+                  <div class="h-4 w-48 bg-zinc-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+              <!-- Right side: View counter -->
+              <div class="flex flex-col items-center gap-2">
+                <div class="w-7 h-6 bg-zinc-700 rounded animate-pulse"></div>
+                <div class="h-4 w-12 bg-zinc-700 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Loading text centered -->
+      <div class="text-center mt-8 mb-8">
+        <p class="text-zinc-400 text-sm font-medium">Loading Feed...</p>
+      </div>
+    </div>
+    <div class="feed-desktop-actions-spacer" aria-hidden="true"></div>
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: feed-desktop-skeleton ==== -->
+<div class="feed-desktop-skeleton">
+  <div class="w-full h-full bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 animate-pulse rounded-[20px] relative">
+    <!-- Character info skeleton at bottom -->
+    <div class="absolute bottom-0 left-0 right-0 p-[18px] pb-[20px] z-10">
+      <div class="flex gap-[40px] items-end justify-between">
+        <!-- Left side: Character info -->
+        <div class="flex-1 space-y-3">
+          <!-- Avatar and name -->
+          <div class="flex gap-2 items-center">
+            <div class="w-8 h-8 bg-zinc-700 rounded-full animate-pulse"></div>
+            <div class="h-6 w-32 bg-zinc-700 rounded-lg animate-pulse"></div>
+            <div class="h-8 w-20 bg-zinc-700 rounded-lg animate-pulse"></div>
+          </div>
+          <!-- Description -->
+          <div class="space-y-2">
+            <div class="h-4 w-64 bg-zinc-700 rounded animate-pulse"></div>
+            <div class="h-4 w-48 bg-zinc-700 rounded animate-pulse"></div>
+          </div>
+        </div>
+        <!-- Right side: View counter -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-7 h-6 bg-zinc-700 rounded animate-pulse"></div>
+          <div class="h-4 w-12 bg-zinc-700 rounded animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: feed-item ==== -->
+<div class="feed-desktop-video feed-desktop-item is-visible" data-post-id="{{post_id}}" data-index="{{index}}">
+  <div class="absolute inset-0">
+    <div class="absolute inset-0 flex items-center justify-center">
+      <div class="w-16 h-16 border-4 border-zinc-700 border-t-white rounded-full animate-spin-slow"></div>
+    </div>
+    <video src="{{video}}" class="absolute inset-0 w-full h-full object-cover cursor-pointer feed-desktop-media" muted="" playsinline="" loop="" preload="metadata" webkit-playsinline="true" x-webkit-airplay="allow"></video>
+  </div>
+
+  <div class="feed-desktop-overlay">
+    <div class="flex gap-[40px] items-end justify-end w-full">
+      <div class="flex-1 flex flex-col gap-3 min-w-0">
+        <div class="flex gap-2 items-center w-full">
+          <a href="{{character_url}}" class="w-8 h-8 rounded-full overflow-hidden shrink-0">
+            <img src="{{character_avatar}}" alt="{{character_name}}" class="w-full h-full object-cover">
+          </a>
+          <a href="{{character_url}}">
+            <div class="text-white text-[18px] leading-6 font-semibold font-poppins whitespace-nowrap overflow-hidden text-ellipsis min-w-0">{{character_name}}</div>
+          </a>
+          <a href="{{character_url}}" class="backdrop-blur-[5px] bg-black/20 border border-white/40 rounded-[8px] px-[9px] py-[7px] shrink-0 flex items-center justify-center">
+            <span class="text-white text-xs leading-4 font-medium font-poppins whitespace-nowrap">{{chat_now_text}}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: feed-item--with-description (variant of feed-item: only when the post has a description) ==== -->
+<div class="feed-desktop-video feed-desktop-item is-visible" data-post-id="{{post_id}}" data-index="{{index}}">
+  <div class="absolute inset-0">
+    <div class="absolute inset-0 flex items-center justify-center">
+      <div class="w-16 h-16 border-4 border-zinc-700 border-t-white rounded-full animate-spin-slow"></div>
+    </div>
+    <video src="{{video}}" class="absolute inset-0 w-full h-full object-cover cursor-pointer feed-desktop-media" muted="" playsinline="" loop="" preload="metadata" webkit-playsinline="true" x-webkit-airplay="allow"></video>
+  </div>
+
+  <div class="feed-desktop-overlay">
+    <div class="flex gap-[40px] items-end justify-end w-full">
+      <div class="flex-1 flex flex-col gap-3 min-w-0">
+        <div class="flex gap-2 items-center w-full">
+          <a href="{{character_url}}" class="w-8 h-8 rounded-full overflow-hidden shrink-0">
+            <img src="{{character_avatar}}" alt="{{character_name}}" class="w-full h-full object-cover">
+          </a>
+          <a href="{{character_url}}">
+            <div class="text-white text-[18px] leading-6 font-semibold font-poppins whitespace-nowrap overflow-hidden text-ellipsis min-w-0">{{character_name}}</div>
+          </a>
+          <a href="{{character_url}}" class="backdrop-blur-[5px] bg-black/20 border border-white/40 rounded-[8px] px-[9px] py-[7px] shrink-0 flex items-center justify-center">
+            <span class="text-white text-xs leading-4 font-medium font-poppins whitespace-nowrap">{{chat_now_text}}</span>
+          </a>
+        </div>
+        <p class="text-[#e8e8e8] text-sm leading-[22px] font-medium font-poppins overflow-hidden line-clamp-3 cursor-pointer transition-all">{{description}}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: feed-item--image (variant of feed-item: content_type = image, media is an <img> instead of <video>) ==== -->
+<div class="feed-desktop-video feed-desktop-item" data-post-id="{{post_id}}" data-index="{{index}}">
+  <img class="absolute inset-0 w-full h-full object-cover cursor-pointer feed-desktop-media" src="{{poster}}" alt="{{character_name}}" loading="lazy" />
+
+  <div class="feed-desktop-overlay">
+    <div class="flex gap-[40px] items-end justify-end w-full">
+      <div class="flex-1 flex flex-col gap-3 min-w-0">
+        <div class="flex gap-2 items-center w-full">
+          <a href="{{character_url}}" class="w-8 h-8 rounded-full overflow-hidden shrink-0">
+            <img src="{{character_avatar}}" alt="{{character_name}}" class="w-full h-full object-cover">
+          </a>
+          <a href="{{character_url}}">
+            <div class="text-white text-[18px] leading-6 font-semibold font-poppins whitespace-nowrap overflow-hidden text-ellipsis min-w-0">{{character_name}}</div>
+          </a>
+          <a href="{{character_url}}" class="backdrop-blur-[5px] bg-black/20 border border-white/40 rounded-[8px] px-[9px] py-[7px] shrink-0 flex items-center justify-center">
+            <span class="text-white text-xs leading-4 font-medium font-poppins whitespace-nowrap">{{chat_now_text}}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: feed-item-overlay ==== -->
+<div class="feed-desktop-overlay">
+  <div class="flex gap-[40px] items-end justify-end w-full">
+    <div class="flex-1 flex flex-col gap-3 min-w-0">
+      <div class="flex gap-2 items-center w-full">
+        <a href="{{character_url}}" class="w-8 h-8 rounded-full overflow-hidden shrink-0">
+          <img src="{{character_avatar}}" alt="{{character_name}}" class="w-full h-full object-cover">
+        </a>
+        <a href="{{character_url}}">
+          <div class="text-white text-[18px] leading-6 font-semibold font-poppins whitespace-nowrap overflow-hidden text-ellipsis min-w-0">{{character_name}}</div>
+        </a>
+        <a href="{{character_url}}" class="backdrop-blur-[5px] bg-black/20 border border-white/40 rounded-[8px] px-[9px] py-[7px] shrink-0 flex items-center justify-center">
+          <span class="text-white text-xs leading-4 font-medium font-poppins whitespace-nowrap">{{chat_now_text}}</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: feed-item-description (optional child of .flex-1.flex.flex-col, rendered only when description is not empty) ==== -->
+<p class="text-[#e8e8e8] text-sm leading-[22px] font-medium font-poppins overflow-hidden line-clamp-3 cursor-pointer transition-all">{{description}}</p>
+
+<!-- ==== TEMPLATE: like-hud ==== -->
+<aside class="feed-desktop-actions-sidebar" aria-live="polite" style="visibility: visible;">
+  <button type="button" class="flex flex-col items-center gap-[7px] cursor-pointer select-none" aria-label="Like" data-post-id="{{post_id}}">
+    <div class="relative w-[28px] h-[24px]">
+      <img alt="Like" class="w-full h-full" src="{{like_icon}}">
+    </div>
+    <p class="text-white text-sm leading-5 font-medium font-poppins" style="text-shadow: rgba(0,0,0,0.35) 0px 0px 5px">{{likes}}</p>
+  </button>
+</aside>
+
+<!-- ==== TEMPLATE: feed-play-overlay ==== -->
+<div style="display: none;" class="feed-play-overlay" aria-hidden="true">
+  <div class="feed-play-button">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="26" viewBox="0 0 24 26" fill="none">
+      <path d="M22.4207 11.5367C23.5856 12.2076 23.5856 13.8995 22.4207 14.5704L2.90388 25.1779C1.74742 25.8433 0.356445 25.0079 0.356445 23.6788L0.356445 2.4283C0.356445 1.09926 1.74742 0.263831 2.90388 0.929215L22.4207 11.5367Z" fill="white"></path>
+    </svg>
+  </div>
+</div>
