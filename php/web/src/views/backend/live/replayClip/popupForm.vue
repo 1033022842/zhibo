@@ -15,8 +15,8 @@
             <div class="ba-operate-form" :class="'ba-' + baTable.form.operate + '-form'">
                 <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-show="!baTable.form.loading">
                     <FormItem label="标题" v-model="baTable.form.items!.title" prop="title" type="string" />
-                    <FormItem label="视频URL" v-model="baTable.form.items!.video_url" prop="video_url" type="string" :input-attr="{ placeholder: '上传后的视频文件路径' }" />
-                    <FormItem label="封面图" v-model="baTable.form.items!.cover_url" type="string" :input-attr="{ placeholder: '可选' }" />
+                    <FormItem label="视频文件" v-model="baTable.form.items!.video_url" prop="video_url" type="file" :input-attr="{ limit: 1 }" />
+                    <FormItem label="封面图" v-model="baTable.form.items!.cover_url" type="image" />
                     <FormItem label="时长(秒)" v-model="baTable.form.items!.duration" type="number" />
                     <FormItem label="直播日期" v-model="baTable.form.items!.live_date" prop="live_date" type="date" />
                     <FormItem label="关联角色" v-model="baTable.form.items!.persona_id" type="number" :input-attr="{ placeholder: '关联角色ID' }" />
@@ -48,7 +48,7 @@ const baTable = inject('baTable') as baTableClass
 
 const rules: Partial<Record<string, FormItemRule[]>> = reactive({
     title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-    video_url: [{ required: true, message: '请输入视频URL', trigger: 'blur' }],
+    video_url: [{ required: true, message: '请上传视频文件', trigger: 'change' }],
     live_date: [{ required: true, message: '请选择直播日期', trigger: 'blur' }],
 })
 </script>

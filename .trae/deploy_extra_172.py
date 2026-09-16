@@ -59,6 +59,9 @@ ADMIN_FILES = [
     "php/web/src/views/backend/live/postItem/popupForm.vue",
     "php/web/src/views/backend/live/privateItem/index.vue",
     "php/web/src/views/backend/live/privateItem/popupForm.vue",
+    "php/web/src/views/backend/live/shopItem/popupForm.vue",
+    "php/web/src/views/backend/live/replayClip/popupForm.vue",
+    "php/web/src/views/backend/live/faceSwapTemplate/index.vue",
 ]
 
 STATIC_FILES = [
