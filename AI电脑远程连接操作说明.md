@@ -214,3 +214,23 @@ ssh-keygen -R "[127.0.0.1]:12225"   # 隧道方式用
 排障：
 1. 任务不动 → 看 `D:\custom_video\worker.log`；`schtasks /run /tn AICustomVideo` 手动拉起
 2. 上线 GPU 服务器时：worker 脚本整体平移，改 PROXY/直连 + WORKER_KEY 即可，后端零改动
+
+---
+
+## 九、AI Video Studio（2026-09-16 v2，H3 引擎生产运行中）
+
+> 用户在 `sugus.ai/ai/Image.html` 上传角色图 → AI 电脑 ComfyUI 跑 **MiniMax-H3** 生成带音频视频 → My Works 播放。
+> v2 弃用 LivePortrait 管线（v1 worker 保留在 `custom_video_worker.py` 可切回）。
+
+### 双 ComfyUI 架构（重要）
+
+| 实例 | 位置 | 端口 | 用途 |
+|---|---|---|---|
+| **Comfy-H3（生产）** | Desktop 核心 `D:\Comfy-Desktop\ComfyUI-Installs\ComfyUI\ComfyUI`（0.34.0）+ venv `D:\Administrator\ComfyUI\.venv`（torch 2.10 cu130） | **127.0.0.1:8000** | H3 图生视频（定制视频 worker 用） |
+| Comfy-B（同事用） | `D:\AI\ComfyUI`（0.22 + 启动ComfyUI.bat） | 8188 | Wan/动作迁移，**与 H3 显存冲突**：worker 跑任务前会自动停它 |
+
+- Comfy-H3 启动：计划任务 `ComfyH3Desktop` → `D:\custom_video\run_h3_desktop.bat`（开机自启；worker 检测 8000 不通也会自动拉起）
+- 权重共用 `D:\AI\ComfyUI\models`（经 extra_model_paths.yaml 映射，yaml 位于核心目录 + base 目录两处）
+- H3 工作流 API 模板：`D:\custom_video\h3_api.json`（由 `D:\Administrator\ComfyUI\user\default\workflows\海螺首尾帧.json` 经 wf2api.py 转换+补丁生成）；注入点：114/219 图、220 提示词、131 seed、302 输出
+- worker v2：`D:\custom_video\custom_video_worker_v2.py`（保活任务 `AICustomVideo`，日志 worker.log）
+- 注意：Comfy Desktop 桌面壳不用开（headless 跑核心）；`input` 目录在 `D:\Administrator\ComfyUI\input`，产物在 `output\custom_video\`
