@@ -34,6 +34,7 @@ TARBALL = os.path.join(LOCAL, ".trae", "_extra_assets.tgz")
 
 PHP_FILES = [
     "php/app/BaseController.php",
+    "php/app/api/controller/Live.php",
     "php/app/api/controller/Shorts.php",
     "php/app/api/controller/Posts.php",
     "php/app/api/controller/PrivateContent.php",
