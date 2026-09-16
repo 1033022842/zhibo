@@ -61,6 +61,33 @@
         return true
     }
 
+    /* ---------- 失败提示 ----------
+     * 用居中弹窗而不是 layer.msg：msg 是 60% 黑底、3 秒自动消失，在深色站上
+     * 用户基本看不到（余额不足这类提示必须让用户看见并去处理）。
+     */
+    function errText(res) {
+        var code = res && res.code
+        if (code === 'C0100') return 'Not enough diamonds. Please top up first.'
+        if (code === 'C0101') return 'Your wallet is frozen. Please contact support.'
+        if (code === 'A0100' || code === 'A0101') return 'Session expired. Please sign in again.'
+        return (res && res.msg) || 'Something went wrong. Please try again.'
+    }
+
+    function alertBox(msg) {
+        if (!window.layer || !layer.alert) { window.alert(msg); return }
+        if (!document.getElementById('candy-alert-skin')) {
+            var s = document.createElement('style')
+            s.id = 'candy-alert-skin'
+            s.textContent =
+                '.candy-alert{background:#1b1b1b!important;border:1px solid rgba(255,255,255,.14)!important;border-radius:14px!important;box-shadow:0 16px 48px rgba(0,0,0,.55)!important}' +
+                '.candy-alert .layui-layer-content{color:#fff;padding:24px 26px 4px;font-size:15px;font-weight:600;line-height:1.5;text-align:center}' +
+                '.candy-alert .layui-layer-btn{padding:0 0 18px;text-align:center}' +
+                '.candy-alert .layui-layer-btn0{background:linear-gradient(90deg,#E75275 0%,#FF6B9A 100%);border:0;border-radius:10px;color:#fff!important;font-weight:600;padding:9px 26px;height:auto;line-height:1.2}'
+            document.head.appendChild(s)
+        }
+        layer.alert(esc(msg), { skin: 'candy-alert', title: false, closeBtn: 0, shade: 0.45, btn: ['OK'] })
+    }
+
     function findItem(id) {
         for (var i = 0; i < items.length; i++) {
             if (String(items[i].id) === String(id)) return items[i]
@@ -348,7 +375,7 @@
             .then(function (res) {
                 btn.disabled = false
                 if (!res || res.code !== '00000') {
-                    if (window.layer) layer.msg((res && res.msg) || 'Unlock failed')
+                    alertBox(errText(res))
                     return
                 }
 
@@ -366,7 +393,7 @@
             })
             .catch(function () {
                 btn.disabled = false
-                if (window.layer) layer.msg('Network error, please try again')
+                alertBox('Network error, please try again')
             })
     }
 
