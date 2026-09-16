@@ -24,12 +24,7 @@
                     />
                     <FormItem label="封面图" v-model="baTable.form.items!.cover_url" type="image" />
                     <FormItem label="预览视频" v-model="baTable.form.items!.video_url" type="file" :input-attr="{ limit: 1 }" />
-                    <FormItem
-                        label="附加图片"
-                        v-model="baTable.form.items!.images"
-                        type="textarea"
-                        :input-attr="{ rows: 3, placeholder: '多个图片URL用英文逗号分隔' }"
-                    />
+                    <FormItem label="附加图片" v-model="baTable.form.items!.images" type="images" />
                     <FormItem label="价格(钻石)" v-model="baTable.form.items!.price" type="number" :input-attr="{ min: 0 }" />
                     <FormItem
                         label="评分"
