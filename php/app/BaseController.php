@@ -82,4 +82,25 @@ abstract class BaseController
     {
         return $this->request->userId ?? 0;
     }
+
+    /**
+     * 可选鉴权：带了合法 token 就返回用户 ID，否则返回 0（不抛异常）
+     * 供「公开但需要识别登录用户」的接口使用（如列表里标记是否已购/已点赞）
+     */
+    protected function optionalAuthUserId(): int
+    {
+        $token = str_replace('Bearer ', '', (string) $this->request->header('Authorization', ''));
+        if ($token === '') {
+            $token = (string) $this->request->header('token', '');
+        }
+        if ($token === '') {
+            return 0;
+        }
+
+        $payload = \app\live\service\JwtService::parseToken($token);
+        if (!$payload || ($payload['type'] ?? '') !== 'access') {
+            return 0;
+        }
+        return (int) ($payload['sub'] ?? 0);
+    }
 }

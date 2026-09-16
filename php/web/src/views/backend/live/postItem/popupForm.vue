@@ -22,7 +22,8 @@
                         label="角色主页链接"
                         v-model="baTable.form.items!.character_url"
                         type="string"
-                        :input-attr="{ placeholder: '如 https://candy.ai/ai-girlfriend/xxx' }"
+                        tip="留空或填站外地址时，前台一律回退到站内 ./Chat.html；要跳指定角色请填站内地址，如 ./Chat.html?id=123"
+                        :input-attr="{ placeholder: '如 ./Chat.html?id=123（留空=站内聊天页）' }"
                     />
                     <FormItem label="视频地址" v-model="baTable.form.items!.video_url" type="file" :input-attr="{ limit: 1 }" />
                     <FormItem label="视频封面" v-model="baTable.form.items!.poster_url" type="image" />

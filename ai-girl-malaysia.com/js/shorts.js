@@ -2,11 +2,16 @@
  * AI 女友端 Candy Shorts 短剧页
  * 卡片数据来自后台「直播运营 → 短剧管理」（GET /api/live/shorts），
  * DOM 结构与 class 与原站 candy.ai/candy-shorts 保持一致（像素级复刻）。
+ *
+ * 观看：点卡片一律在本站弹窗播放（video_url 由后台「短剧管理」上传）；
+ *       没配视频时弹窗展示封面并提示补传，不会再跳 candy.ai 站外链接。
  */
 (function () {
     var API_LIST = '/api/live/shorts'
 
     var ICON_SPICY = './candy-shorts_files/flame-b8e6610ff74d5100d93b3a666ef494a20f840ddc26fa850943a495199527ae39.svg'
+
+    var byId = {}
 
     function esc(s) {
         return String(s === null || s === undefined ? '' : s)
@@ -17,6 +22,41 @@
     function num(v) {
         var n = Number(v)
         return isFinite(n) ? n : 0
+    }
+
+    var SECTION_LABEL = {
+        continue_watching: 'Continue watching',
+        top_series: 'Top 10 shows in the US this week',
+        explore: 'Explore All Shorts',
+    }
+
+    /* ---------- 点击卡片：一律在本站弹窗观看，不再跳 candy.ai ---------- */
+    function bindCards() {
+        document.addEventListener('click', function (e) {
+            var el = e.target.closest ? e.target.closest('[data-short-id]') : null
+            if (!el) return
+            var item = byId[String(el.getAttribute('data-short-id') || '')]
+            if (!item) return
+            e.preventDefault()
+            if (!window.CandyWatch) return
+
+            window.CandyWatch.open({
+                title: item.title || '',
+                subtitle: SECTION_LABEL[String(item.section)] || '',
+                videoUrl: item.video_url || '',
+                // 没配视频时展示封面大图，并提示去后台补视频文件
+                images: item.poster ? [item.poster] : [],
+                notice: item.video_url ? '' : 'This episode has no video yet.',
+                emptyText: 'This episode has no video yet.',
+            })
+        })
+    }
+
+    function indexItems(list) {
+        byId = {}
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].id !== undefined) byId[String(list[i].id)] = list[i]
+        }
     }
 
     /* ---------- 卡片内的可选角标 ---------- */
@@ -67,7 +107,7 @@
     /* ---------- Continue watching 货架卡片（带进度条） ---------- */
     function shelfCard(item) {
         var p = num(item.progress)
-        return '<a class="cs-shelf-card group flex shrink-0 snap-start cursor-pointer flex-col text-left" aria-label="' + esc(item.title) + '" href="' + esc(item.href) + '">' +
+        return '<a class="cs-shelf-card group flex shrink-0 snap-start cursor-pointer flex-col text-left" data-short-id="' + esc(item.id) + '" aria-label="' + esc(item.title) + '" href="javascript:void(0)">' +
             '<div class="relative aspect-[240/342] w-full overflow-hidden rounded-[11px] bg-black-default ring-1 ring-white/5 drop-shadow-candy-shorts-card lg:rounded-[18px] lg:transition lg:duration-300 lg:group-hover:ring-white/20">' +
             '<img class="absolute inset-0 size-full object-cover lg:transition-transform lg:duration-300 lg:ease-out lg:group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="' + esc(item.poster) + '">' +
             '<div class="pointer-events-none absolute inset-x-0 bottom-0 hidden h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 lg:block lg:transition-opacity lg:duration-300 lg:group-hover:opacity-100" aria-hidden="true"></div>' +
@@ -85,7 +125,7 @@
         return '<div class="cs-top-shelf__item flex shrink-0 snap-start items-start" data-rank="' + rank + '">' +
             '<b class="cs-top-shelf__numeral font-poppins font-extrabold ' + (rank === 1 ? 'text-pink-dark' : 'text-white/60') + '" aria-hidden="true">' + rank + '</b>' +
             '<div class="cs-top-shelf__card relative z-10 shrink-0">' +
-            '<a class="group flex w-full cursor-pointer flex-col text-left" aria-label="' + esc(item.title) + '" href="' + esc(item.href) + '">' +
+            '<a class="group flex w-full cursor-pointer flex-col text-left" data-short-id="' + esc(item.id) + '" aria-label="' + esc(item.title) + '" href="javascript:void(0)">' +
             cardBox(item, item.featured) +
             '</a>' +
             '</div>' +
@@ -94,7 +134,7 @@
 
     /* ---------- Explore 网格卡片（图下一行标题） ---------- */
     function libraryCard(item) {
-        return '<a class="group flex flex-col gap-2 text-left cursor-pointer" aria-label="' + esc(item.title) + '" href="' + esc(item.href) + '">' +
+        return '<a class="group flex flex-col gap-2 text-left cursor-pointer" data-short-id="' + esc(item.id) + '" aria-label="' + esc(item.title) + '" href="javascript:void(0)">' +
             cardBox(item, item.featured) +
             '<span class="text-xs leading-5 lg:text-md lg:leading-6 font-semibold text-white lg:text-white/80 transition-colors duration-200 lg:group-hover:text-white line-clamp-2">' + esc(item.title) + '</span>' +
             '</a>'
@@ -242,13 +282,19 @@
         fetch(API_LIST, { method: 'GET' })
             .then(function (r) { return r.json() })
             .then(function (d) {
-                render((d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : [])
+                var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                indexItems(list)
+                render(list)
             })
-            .catch(function () { render([]) })
+            .catch(function () {
+                indexItems([])
+                render([])
+            })
     }
 
     document.addEventListener('DOMContentLoaded', function () {
         bindFilterTabs()
+        bindCards()
         load()
     })
 })()

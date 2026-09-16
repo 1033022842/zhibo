@@ -5,10 +5,13 @@
  *
  * 与原站行为差异（前端实现）：
  *   · 搜索：原站由服务端按关键词过滤，这里改为前端按 title / creator 做 includes 过滤；
- *   · 购买：原站点 Confirm 走 POST 下单，这里只弹提示，未接入支付。
+ *   · 购买：未解锁 → Unlock → Confirm → POST /api/live/privateUnlock（扣钻石，需登录）；
+ *           已解锁 → 点卡片在本站弹窗观看（媒体地址只有解锁后才会由接口下发）；
+ *           卡片一律不跳站外，未解锁时点卡片即展开 Confirm。
  */
 (() => {
     var API_LIST = '/api/live/privateContents'
+    var API_UNLOCK = '/api/live/privateUnlock'
 
     var VIDEO_ICON = './private-content_files/video-icon-dd7dcd618ba6d4bd2e3688728cbadce1a04c069fd72c2bf6137a79df332a60a2.svg'
     var IMAGE_ICON = './private-content_files/image-icon-bf418de39456539897833eaddf02154524833c9b2e8dc51cdffe77df10b9e36d.svg'
@@ -36,6 +39,33 @@
         return String(s === null || s === undefined ? '' : s)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+    }
+
+    /* ---------- 登录态 / 请求头 ---------- */
+    function token() {
+        try { return localStorage.getItem('live_access_token') || '' } catch (e) { return '' }
+    }
+
+    function headers(extra) {
+        var h = extra || {}
+        var t = token()
+        if (t) h.Authorization = 'Bearer ' + t
+        return h
+    }
+
+    // 未登录：提示并跳登录页；返回 true 表示已被拦下
+    function needLogin() {
+        if (token()) return false
+        if (window.layer) layer.msg('Please sign in first')
+        setTimeout(function () { location.href = './Login.html' }, 1000)
+        return true
+    }
+
+    function findItem(id) {
+        for (var i = 0; i < items.length; i++) {
+            if (String(items[i].id) === String(id)) return items[i]
+        }
+        return null
     }
 
     function content() {
@@ -81,21 +111,24 @@
         var hasVideo = videoCount > 0
         var hasImage = imageCount > 0
         var isNew = String(item.badge || '').toLowerCase() === 'new'
-        var url = esc(item.purchase_url)
+        // 已解锁：不再打码，点卡片在本站弹窗观看
+        var unlocked = Number(item.unlocked || 0) === 1
+        // 未解锁时封面是模糊的 teaser，解锁后展示原图
+        var posterClass = 'w-full h-full object-cover object-top pointer-events-none' + (unlocked ? '' : ' scale-110 blur-[7px]')
 
-        return '<div id="private-content-card-' + esc(item.id) + '" class="relative w-full aspect-[9/16] rounded-2xl overflow-hidden bg-[#14171B] group ">' +
+        return '<div id="private-content-card-' + esc(item.id) + '" data-private-card="' + esc(item.id) + '" class="relative w-full aspect-[9/16] rounded-2xl overflow-hidden bg-[#14171B] group ">' +
             '<div id="content_pack_' + esc(item.id) + '" class="absolute inset-0">' +
               '<span class="pointer-events-none absolute inset-1 z-30 rounded-xl"></span>' +
 
               '<!-- Media (always the blurred tease) -->' +
               '<div class="absolute inset-0 rounded-2xl overflow-hidden" data-mpc-card-media="">' +
-                '<img alt="" class="w-full h-full object-cover object-top pointer-events-none scale-110 blur-[7px]" src="' + esc(item.poster) + '">' +
+                '<img alt="" class="' + posterClass + '" src="' + esc(item.poster) + '">' +
                 '<div class="absolute inset-x-0 bottom-0 h-[62%] bg-linear-to-t from-[#050608]/95 via-[#050608]/55 to-transparent pointer-events-none" data-mpc-card-bottom-veil=""></div>' +
                 '<div class="absolute inset-x-0 top-0 h-16 bg-linear-to-b from-black/55 to-transparent pointer-events-none" data-mpc-card-top-veil=""></div>' +
               '</div>' +
 
-              '<!-- Tap the artwork = sneak peek -->' +
-              '<a class="absolute inset-x-0 top-0 bottom-[44%] z-10 block" aria-label="' + esc(item.creator) + '" href="' + url + '"></a>' +
+              '<!-- Tap the artwork = sneak peek / 未解锁点它走解锁，已解锁点它在本站观看。绝不跳站外 -->' +
+              '<a class="absolute inset-x-0 top-0 bottom-[44%] z-10 block" aria-label="' + esc(item.creator) + '" href="javascript:void(0)"></a>' +
 
               '<!-- Centered player / content info -->' +
               '<div class="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-20 w-max flex flex-col items-center gap-2 pointer-events-none" data-mpc-card-center="">' +
@@ -135,15 +168,20 @@
 
                 '<div class="truncate-2-lines text-left text-white/80 text-[11px] md:text-xs font-medium leading-tight" data-mpc-card-description="">' + esc(item.title) + '</div>' +
 
-                '<button type="button" data-content-pack-unlock class="flex h-[38px] w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-linear-to-r from-[#FA2A55] to-[#FF6B9A] px-0 transition-[filter] hover:brightness-110 md:h-[42px] md:px-3  ">' +
-                  '<span class="min-w-0 truncate text-xxs font-semibold text-white md:text-sm">Unlock</span>' +
-                '</button>' +
+                (unlocked
+                  // 绿色渐变用内联样式：Tailwind 是从原站编译的成品包，没有 #28A76B / #7EE2A8 这两个任意值
+                  ? '<button type="button" data-content-pack-watch style="background:linear-gradient(90deg,#28A76B 0%,#7EE2A8 100%);" class="flex h-[38px] w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl px-0 transition-[filter] hover:brightness-110 md:h-[42px] md:px-3">' +
+                      '<span class="min-w-0 truncate text-xxs font-semibold text-black-default md:text-sm">Watch</span>' +
+                    '</button>'
+                  : '<button type="button" data-content-pack-unlock class="flex h-[38px] w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-linear-to-r from-[#FA2A55] to-[#FF6B9A] px-0 transition-[filter] hover:brightness-110 md:h-[42px] md:px-3  ">' +
+                      '<span class="min-w-0 truncate text-xxs font-semibold text-white md:text-sm">Unlock</span>' +
+                    '</button>' +
 
-                '<form class="hidden w-full" data-content-pack-confirm action="' + url + '" accept-charset="UTF-8" method="post">' +
-                  '<button class="flex h-[38px] w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-l from-[#fdc706] to-[#ffa800] md:h-[42px]  ">' +
-                    '<span class="text-xxs md:text-sm text-black-default font-semibold">Confirm</span>' +
-                  '</button>' +
-                '</form>' +
+                    '<form class="hidden w-full" data-content-pack-confirm accept-charset="UTF-8" method="post">' +
+                       '<button type="button" class="flex h-[38px] w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-l from-[#fdc706] to-[#ffa800] md:h-[42px]  ">' +
+                         '<span class="text-xxs md:text-sm text-black-default font-semibold">Confirm</span>' +
+                       '</button>' +
+                     '</form>') +
               '</div>' +
             '</div>' +
           '</div>'
@@ -173,7 +211,7 @@
     }
 
     function load() {
-        fetch(API_LIST + '?tab=' + encodeURIComponent(tab), { method: 'GET' })
+        fetch(API_LIST + '?tab=' + encodeURIComponent(tab), { method: 'GET', headers: headers() })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 items = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
@@ -275,22 +313,100 @@
         syncClear()
     }
 
-    /* ---------- 卡片交互：Unlock → Confirm；Confirm 暂未接入支付 ---------- */
+    /* ---------- 观看弹窗（已解锁的卡片） ---------- */
+    function watch(item) {
+        if (!window.CandyWatch) return
+        var sub = []
+        if (item.creator) sub.push(item.creator)
+        var vc = Number(item.video_count || 0)
+        var ic = Number(item.image_count || 0)
+        if (vc > 0) sub.push(vc + (vc > 1 ? ' videos' : ' video') + (item.duration ? ' · ' + item.duration : ''))
+        if (ic > 0) sub.push(ic + (ic > 1 ? ' photos' : ' photo'))
+
+        window.CandyWatch.open({
+            title: item.title || '',
+            subtitle: sub.join(' · '),
+            videoUrl: item.video_url || '',
+            images: Array.isArray(item.images) ? item.images : [],
+            emptyText: 'This pack has no media yet. Please add video or images in the admin panel.',
+        })
+    }
+
+    /* ---------- 解锁：POST /api/live/privateUnlock ---------- */
+    function unlock(item, btn) {
+        if (!item || needLogin()) return
+        if (btn.disabled) return
+        btn.disabled = true
+
+        fetch(API_UNLOCK, {
+            method: 'POST',
+            headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: 'id=' + encodeURIComponent(item.id),
+        })
+            .then(function (r) { return r.json() })
+            .then(function (res) {
+                btn.disabled = false
+                if (!res || res.code !== '00000') {
+                    if (window.layer) layer.msg((res && res.msg) || 'Unlock failed')
+                    return
+                }
+
+                var fresh = (res.data && res.data.item) ? res.data.item : null
+                item.unlocked = 1
+                if (fresh) {
+                    item.video_url = fresh.video_url || ''
+                    item.images = Array.isArray(fresh.images) ? fresh.images : []
+                }
+                render()
+                if (window.layer) {
+                    layer.msg(Number(res.data && res.data.charged) === 1 ? 'Unlocked!' : 'Already unlocked')
+                }
+                watch(item)
+            })
+            .catch(function () {
+                btn.disabled = false
+                if (window.layer) layer.msg('Network error, please try again')
+            })
+    }
+
+    /* ---------- 卡片交互：未解锁走 Unlock → Confirm；已解锁点卡片即观看 ---------- */
     function bindCards() {
         var box = content()
         if (!box) return
 
         box.addEventListener('click', function (e) {
-            var unlock = e.target.closest ? e.target.closest('[data-content-pack-unlock]') : null
-            if (!unlock) return
-            var form = unlock.parentNode.querySelector('[data-content-pack-confirm]')
-            unlock.classList.add('hidden')
+            var card = e.target.closest ? e.target.closest('[data-private-card]') : null
+            if (!card) return
+            var item = findItem(card.getAttribute('data-private-card'))
+            if (!item) return
+
+            var unlocked = Number(item.unlocked || 0) === 1
+
+            if (unlocked) {
+                // 已解锁：点卡片任意位置即在本站观看
+                e.preventDefault()
+                watch(item)
+                return
+            }
+
+            // 未解锁：点卡片任意位置（Confirm 区除外）都展开 Confirm，绝不跳站外
+            e.preventDefault()
+            if (e.target.closest && e.target.closest('[data-content-pack-confirm]')) return
+            var unlockBtn = card.querySelector('[data-content-pack-unlock]')
+            var form = card.querySelector('[data-content-pack-confirm]')
+            if (unlockBtn) unlockBtn.classList.add('hidden')
             if (form) form.classList.remove('hidden')
         })
 
+        // Confirm 真正下单扣钻石（submit 在卡片内，用事件委托）
         box.addEventListener('submit', function (e) {
+            var form = e.target.closest ? e.target.closest('[data-content-pack-confirm]') : null
+            if (!form) return
             e.preventDefault()
-            if (window.layer) layer.msg('Purchases are not available yet')
+            var card = form.closest('[data-private-card]')
+            var item = card ? findItem(card.getAttribute('data-private-card')) : null
+            var btn = form.querySelector('button')
+            if (item && btn) unlock(item, btn)
         })
     }
 
