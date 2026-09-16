@@ -2,6 +2,7 @@
 use think\facade\Route;
 
 Route::get('v1/ai/tasks/pull', '\app\api\controller\AiTask@pull');
+Route::get('v1/ai/tasks/pull-face-swap', '\app\api\controller\AiTask@pullFaceSwap');
 Route::post('v1/ai/tasks/accept', '\app\api\controller\AiTask@accept');
 Route::post('v1/ai/tasks/progress', '\app\api\controller\AiTask@progress');
 Route::post('v1/ai/tasks/complete', '\app\api\controller\AiTask@complete');
