@@ -33,7 +33,7 @@ const baTable = new baTableClass(
             { label: 'ID', prop: 'id', align: 'center', width: 70, operator: '=' },
             { label: '模板名称', prop: 'title', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
             { label: '模板视频', prop: 'video_url', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
-            { label: '封面图', prop: 'cover_url', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
+            { label: '封面图', prop: 'cover_url', align: 'center', width: 80, render: 'image', operator: false },
             { label: '时长(秒)', prop: 'duration_sec', align: 'center', width: 100, operator: 'RANGE' },
             { label: '描述', prop: 'description', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
             { label: '权重', prop: 'weigh', align: 'center', width: 80, operator: 'RANGE' },
