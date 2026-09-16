@@ -72,6 +72,7 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/shorts.html",
     "ai-girl-malaysia.com/posts.html",
     "ai-girl-malaysia.com/private_content.html",
+    "ai-girl-malaysia.com/shop.html",
     "ai-girl-malaysia.com/js/shorts.js",
     "ai-girl-malaysia.com/js/posts.js",
     "ai-girl-malaysia.com/js/private_content.js",
