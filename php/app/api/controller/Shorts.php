@@ -11,10 +11,12 @@ use think\facade\Db;
  *
  * 卡片由后台「直播运营 → 短剧管理」配置，前台 Shorts 页读取：
  *   GET /api/live/shorts  短剧卡片列表（公开）
+ *
+ * video_url 配了就在本站弹窗播放，留空则前端维持跳 href 外链。
  */
 final class Shorts extends BaseController
 {
-    private const FIELDS = 'id, title, poster, href, section, rank, progress, spicy, featured, new_episodes';
+    private const FIELDS = 'id, title, poster, video_url, href, section, rank, progress, spicy, featured, new_episodes';
 
     private function table()
     {
@@ -56,6 +58,7 @@ final class Shorts extends BaseController
             'id'           => (int) $row['id'],
             'title'        => (string) $row['title'],
             'poster'       => $this->absoluteUrl((string) $row['poster']),
+            'video_url'    => $this->absoluteUrl((string) ($row['video_url'] ?? '')),
             'href'         => (string) $row['href'],
             'section'      => (string) $row['section'],
             'rank'         => (int) $row['rank'],

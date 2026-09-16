@@ -5,10 +5,12 @@
  *   - 竖向 scroll-snap 吸附，一次一屏一条
  *   - IntersectionObserver 给当前可见卡片加 is-visible（原站靠它把媒体下移 75px）并自动播放
  *   - 点击媒体切换播放 / 暂停，暂停时显示共享的 .feed-play-overlay
- *   - 右侧点赞 HUD 跟随当前卡片，点击只切换 UI 状态
+ *   - 右侧点赞 HUD 跟随当前卡片，点赞真实落库（POST /api/live/postLike，需登录）
+ *   - 头像 / 角色名 / Chat Now 一律指向站内，不再跳 candy.ai
  */
 (() => {
     var API_LIST = '/api/live/posts'
+    var API_LIKE = '/api/live/postLike'
     var LIKE_ICON = './posts_files/like-6bfb7f5a54d0259524bf6b37730926d02f493c54d1a3aa1db5fdd3a281f15d37.svg'
     var CHAT_NOW = 'Chat Now'
     var VISIBLE_RATIO = 0.5          // 与原站一致：可见比例 > 0.5 视为当前卡片
@@ -42,6 +44,26 @@
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
     }
 
+    /* ---------- 登录态 / 请求头 ---------- */
+    function token() {
+        try { return localStorage.getItem('live_access_token') || '' } catch (e) { return '' }
+    }
+
+    function headers(extra) {
+        var h = extra || {}
+        var t = token()
+        if (t) h.Authorization = 'Bearer ' + t
+        return h
+    }
+
+    // 未登录：提示并跳登录页；返回 true 表示已被拦下
+    function needLogin() {
+        if (token()) return false
+        if (window.layer) layer.msg('Please sign in first')
+        setTimeout(function () { location.href = './Login.html' }, 1000)
+        return true
+    }
+
     /* ---------------- 卡片（等价于原站 createDesktopSlideElement） ---------------- */
 
     function mediaHtml(post) {
@@ -58,8 +80,17 @@
             '" alt="' + esc(post.character_name) + '" loading="lazy" />'
     }
 
+    /* 角色链接：一律留在本站。
+     * 后台「角色主页链接」填的是站内相对地址就按它走；填了站外地址（历史数据里的 candy.ai）
+     * 或留空，则统一回退到站内聊天页，避免把用户带到站外。 */
+    function profileUrl(post) {
+        var url = String(post.character_url || '').trim()
+        if (url === '' || /^https?:/i.test(url) || url.indexOf('//') === 0) return './Chat.html'
+        return url
+    }
+
     function overlayHtml(post, descriptionHtml) {
-        var url = esc(post.character_url)
+        var url = esc(profileUrl(post))
         var name = esc(post.character_name)
         return '<div class="feed-desktop-overlay">' +
             '<div class="flex gap-[40px] items-end justify-end w-full">' +
@@ -193,7 +224,7 @@
         }
     }
 
-    /* ---------------- 点赞 HUD（只切 UI，不落库） ---------------- */
+    /* ---------------- 点赞 HUD（真实落库） ---------------- */
 
     function updateLikeHud() {
         if (!likeHud) return
@@ -212,14 +243,49 @@
         e.preventDefault()
         e.stopPropagation()
         var post = posts[currentIndex]
-        if (!post) return
-        post.likes = Math.max(0, (post.likes || 0) + (post.liked ? -1 : 1))
-        post.liked = !post.liked
+        if (!post || needLogin()) return
+        if (likeButton.dataset.loading === '1') return
+
+        var liked = !post.liked
+        var likes = Math.max(0, (post.likes || 0) + (liked ? 1 : -1))
+
+        // 先乐观更新，失败再回滚
+        var prevLiked = post.liked
+        var prevLikes = post.likes
+        post.liked = liked
+        post.likes = likes
         updateLikeHud()
-        // 原站会换成 unlike 图标，本地没有该资源，用原站的 likeSplash 动画表示状态切换
         likeIcon.classList.remove('feed-like-splash')
         void likeIcon.offsetWidth
         likeIcon.classList.add('feed-like-splash')
+
+        likeButton.dataset.loading = '1'
+        fetch(API_LIKE, {
+            method: 'POST',
+            headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: 'post_id=' + encodeURIComponent(post.post_id),
+        })
+            .then(function (r) { return r.json() })
+            .then(function (res) {
+                likeButton.dataset.loading = '0'
+                if (!res || res.code !== '00000') {
+                    post.liked = prevLiked
+                    post.likes = prevLikes
+                    updateLikeHud()
+                    if (window.layer) layer.msg((res && res.msg) || 'Action failed')
+                    return
+                }
+                post.liked = Number(res.data && res.data.liked) === 1
+                post.likes = Number((res.data && res.data.likes) || 0)
+                updateLikeHud()
+            })
+            .catch(function () {
+                likeButton.dataset.loading = '0'
+                post.liked = prevLiked
+                post.likes = prevLikes
+                updateLikeHud()
+                if (window.layer) layer.msg('Network error, please try again')
+            })
     }
 
     /* ---------------- 启动 ---------------- */
@@ -245,7 +311,7 @@
 
     if (loading) loading.classList.remove('hidden')
 
-    fetch(API_LIST, { method: 'GET' })
+    fetch(API_LIST, { method: 'GET', headers: headers() })
         .then(function (r) { return r.json() })
         .then(function (d) {
             posts = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []

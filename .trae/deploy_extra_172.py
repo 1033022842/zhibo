@@ -33,6 +33,8 @@ LOG = os.path.join(LOCAL, ".trae", "_deploy_extra.log")
 TARBALL = os.path.join(LOCAL, ".trae", "_extra_assets.tgz")
 
 PHP_FILES = [
+    "php/app/BaseController.php",
+    "php/app/api/controller/Live.php",
     "php/app/api/controller/Shorts.php",
     "php/app/api/controller/Posts.php",
     "php/app/api/controller/PrivateContent.php",
@@ -40,6 +42,7 @@ PHP_FILES = [
     "php/app/api/route/shorts.php",
     "php/app/api/route/posts.php",
     "php/app/api/route/private_content.php",
+    "php/app/api/route/shop.php",
     "php/app/admin/controller/live/ShortItem.php",
     "php/app/admin/controller/live/PostItem.php",
     "php/app/admin/controller/live/PrivateItem.php",
@@ -50,6 +53,7 @@ PHP_FILES = [
     "php/sql/upgrade_posts.sql",
     "php/sql/upgrade_private_content.sql",
     "php/sql/fix_menu_dup_and_seed_test.sql",
+    "php/sql/upgrade_purchase.sql",
 ]
 
 ADMIN_FILES = [
@@ -68,9 +72,12 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/shorts.html",
     "ai-girl-malaysia.com/posts.html",
     "ai-girl-malaysia.com/private_content.html",
+    "ai-girl-malaysia.com/shop.html",
     "ai-girl-malaysia.com/js/shorts.js",
     "ai-girl-malaysia.com/js/posts.js",
     "ai-girl-malaysia.com/js/private_content.js",
+    "ai-girl-malaysia.com/js/shop.js",
+    "ai-girl-malaysia.com/js/watch-dialog.js",
     "ai-girl-malaysia.com/js/site-shell.js",
 ]
 
@@ -88,7 +95,7 @@ export MYSQL_PWD="$DBP"
 
 SQL_STEP = DB_ENV + r"""set -e
 echo "库: $DBN @ $DBH"
-for f in fix_menu_dup_and_seed_test.sql upgrade_shorts.sql upgrade_posts.sql upgrade_private_content.sql; do
+for f in fix_menu_dup_and_seed_test.sql upgrade_purchase.sql upgrade_shorts.sql upgrade_posts.sql upgrade_private_content.sql; do
   echo "--- $f ---"
   mysql -h"$DBH" -u"$DBU" "$DBN" < "sql/$f" || echo "[FAILED] $f"
 done
@@ -119,8 +126,8 @@ echo "admin dist published"
 
 VERIFY_STEP = DB_ENV + (r"""
 echo "--- PHP 语法 ---"
-for f in app/api/controller/Shorts.php app/api/controller/Posts.php app/api/controller/PrivateContent.php app/api/controller/Shop.php \
-         app/api/route/shorts.php app/api/route/posts.php app/api/route/private_content.php \
+for f in app/BaseController.php app/api/controller/Shorts.php app/api/controller/Posts.php app/api/controller/PrivateContent.php app/api/controller/Shop.php \
+         app/api/route/shorts.php app/api/route/posts.php app/api/route/private_content.php app/api/route/shop.php \
          app/admin/controller/live/ShortItem.php app/admin/controller/live/PostItem.php app/admin/controller/live/PrivateItem.php; do
   php -l "$f"
 done
@@ -129,6 +136,12 @@ echo -n "shorts:  "; curl -s -m 20 'http://127.0.0.1:8082/api/live/shorts' | hea
 echo -n "posts:   "; curl -s -m 20 'http://127.0.0.1:8082/api/live/posts' | head -c 320; echo
 echo -n "private: "; curl -s -m 20 'http://127.0.0.1:8082/api/live/privateContents' | head -c 320; echo
 echo -n "private(most_liked): "; curl -s -m 20 'http://127.0.0.1:8082/api/live/privateContents?tab=most_liked' | head -c 200; echo
+echo -n "shopItems: "; curl -s -m 20 'http://127.0.0.1:8082/api/live/shopItems?limit=1' | head -c 260; echo
+echo "--- 需登录接口（无 token 应返回 A0100）---"
+echo -n "shopBuy:       "; curl -s -m 20 -X POST 'http://127.0.0.1:8082/api/live/shopBuy' -d 'id=1&quantity=1' | head -c 160; echo
+echo -n "privateUnlock: "; curl -s -m 20 -X POST 'http://127.0.0.1:8082/api/live/privateUnlock' -d 'id=481' | head -c 160; echo
+echo -n "postLike:      "; curl -s -m 20 -X POST 'http://127.0.0.1:8082/api/live/postLike' -d 'post_id=163' | head -c 160; echo
+echo -n "inventory:     "; curl -s -m 20 'http://127.0.0.1:8082/api/live/inventory' | head -c 160; echo
 echo "--- 静态文件 ---"
 ls -la %s/shorts.html %s/posts.html %s/private_content.html %s/js/shorts.js %s/js/posts.js %s/js/private_content.js
 echo "--- 素材目录 ---"

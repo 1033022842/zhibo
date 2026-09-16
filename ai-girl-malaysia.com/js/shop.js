@@ -2,14 +2,20 @@
  * AI 女友端 Candy Shop 商店
  * 商品数据来自后台「直播运营 → 商品管理」（GET /api/live/shopItems），
  * DOM 结构 / class 与原站 candy.ai/shop/items 保持一致。
+ *
+ * 购买：Buy now → Confirm → POST /api/live/shopBuy（扣钻石，需登录），
+ *       买到的商品进入 Inventory（GET /api/live/inventory）。
  */
 (() => {
     var API_LIST = '/api/live/shopItems'
     var API_ITEM = '/api/live/shopItem'
+    var API_BUY = '/api/live/shopBuy'
+    var API_INVENTORY = '/api/live/inventory'
     var TOKEN_ICON = './shop_files/token-f75f9cb0c7c7d6e061d16253167966aeb3fa8bc051f416cc3f6cba4c29aac39d.svg'
     var MAX_QTY = 10
 
     var items = []
+    var inventory = []
     // 详情弹窗里的媒体顺序：0=视频，1=封面图，2+=附加图片
     var media = []
     var current = null
@@ -25,6 +31,33 @@
         return String(s === null || s === undefined ? '' : s)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+    }
+
+    /* ---------- 登录态 / 请求头 ---------- */
+    function token() {
+        try { return localStorage.getItem('live_access_token') || '' } catch (e) { return '' }
+    }
+
+    function headers(extra) {
+        var h = extra || {}
+        var t = token()
+        if (t) h.Authorization = 'Bearer ' + t
+        return h
+    }
+
+    // 未登录：提示并跳登录页；返回 true 表示已被拦下
+    function needLogin() {
+        if (token()) return false
+        if (window.layer) layer.msg('Please sign in first')
+        setTimeout(function () { location.href = './Login.html' }, 1000)
+        return true
+    }
+
+    function ownedBadge(n, text) {
+        if (!n) return ''
+        return '<span style="position:absolute;left:8px;top:8px;z-index:3;padding:2px 8px;border-radius:9999px;' +
+            'background:rgba(0,0,0,.66);color:#fff;font-size:10px;font-weight:600;line-height:16px;">' +
+            esc(text) + '</span>'
     }
 
     /* ---------- 星级条：与原站 DOM 完全一致 ---------- */
@@ -43,6 +76,7 @@
         return '<article class="flex flex-col" data-candy-shop-item-id="' + item.id + '">' +
             '<a class="flex h-full flex-col gap-2.5" data-shop-item="' + item.id + '" href="./shop.html?item=' + item.id + '">' +
               '<div class="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black-light">' +
+                ownedBadge(Number(item.owned || 0), 'Owned × ' + Number(item.owned || 0)) +
                 '<div class="absolute inset-0 size-full" data-shop-card>' +
                   '<video preload="none" loop muted playsinline poster="' + esc(item.cover_url) + '" class="absolute inset-0 size-full object-cover object-top">' +
                     '<source src="' + esc(item.video_url) + '" type="video/mp4; codecs=avc1.4D401E">' +
@@ -74,7 +108,7 @@
     }
 
     function loadItems(cb) {
-        fetch(API_LIST, { method: 'GET' })
+        fetch(API_LIST, { method: 'GET', headers: headers() })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 items = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
@@ -142,9 +176,69 @@
         var tabs = document.querySelectorAll('[role="tab"][data-tab-id]')
         for (var i = 0; i < tabs.length; i++) {
             tabs[i].addEventListener('click', function () {
-                switchTab(String(this.getAttribute('data-tab-id') || ''))
+                var id = String(this.getAttribute('data-tab-id') || '')
+                switchTab(id)
+                if (id === 'shop-inventory') loadInventory()
             })
         }
+    }
+
+    /* ---------- 背包（Inventory）：已购商品 + 已解锁私密内容 ---------- */
+    function loadInventory() {
+        if (!token()) {
+            inventory = []
+            renderInventory()
+            return
+        }
+        fetch(API_INVENTORY, { method: 'GET', headers: headers() })
+            .then(function (r) { return r.json() })
+            .then(function (res) {
+                inventory = (res && res.code === '00000' && res.data && Array.isArray(res.data.list)) ? res.data.list : []
+                renderInventory()
+            })
+            .catch(function () {
+                inventory = []
+                renderInventory()
+            })
+    }
+
+    function inventoryCard(item) {
+        var badge = item.item_type === 'private' ? 'Private' : ('Owned × ' + Number(item.quantity || 1))
+        var sub = item.creator ? esc(item.creator) : ''
+        return '<article class="flex flex-col" data-inventory-item="' + esc(item.item_id) + '">' +
+            '<div class="flex h-full flex-col gap-2.5">' +
+              '<div class="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black-light">' +
+                ownedBadge(1, badge) +
+                '<img alt="" loading="lazy" class="absolute inset-0 size-full object-cover object-top" src="' + esc(item.cover_url) + '">' +
+              '</div>' +
+              '<div class="flex flex-col">' +
+                '<h3 class="truncate font-poppins text-sm font-semibold text-white">' + esc(item.title) + '</h3>' +
+                '<p class="mt-0.5 flex items-center gap-1 font-poppins text-xxs font-bold text-white">' +
+                  '<img class="size-4 shrink-0" alt="" src="' + TOKEN_ICON + '"><span>' + Number(item.price || 0) + '</span>' +
+                  (sub ? '<span class="ml-1 font-medium text-grey-default">' + sub + '</span>' : '') +
+                '</p>' +
+              '</div>' +
+            '</div></article>'
+    }
+
+    function renderInventory() {
+        var box = document.getElementById('shop-inventory-body')
+        if (!box) return
+        var count = document.getElementById('candy-shop-my-items-count')
+        if (count) count.textContent = '(' + inventory.length + ')'
+
+        var gridClass = 'grid grid-cols-2 items-stretch gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5'
+        if (!token() || !inventory.length) {
+            box.className = 'flex flex-1 items-center justify-center py-24'
+            box.innerHTML = '<p class="font-poppins text-xs leading-5 text-grey-default">' +
+                (token() ? 'No items yet.' : 'Sign in to see your items.') + '</p>'
+            return
+        }
+
+        var html = ''
+        for (var i = 0; i < inventory.length; i++) html += inventoryCard(inventory[i])
+        box.className = 'flex flex-1 flex-col'
+        box.innerHTML = '<div class="' + gridClass + '">' + html + '</div>'
     }
 
     /* ---------- 商品详情弹窗 ---------- */
@@ -222,13 +316,68 @@
         qty = 1
         document.getElementById('shop-buy-btn').classList.remove('hidden')
         document.getElementById('shop-confirm-btn').classList.add('hidden')
+        document.getElementById('shop-confirm-btn').disabled = false
         updateTotal()
+    }
+
+    /* ---------- 已购提示（弹窗底部购买栏上方） ---------- */
+    function syncOwnedNote() {
+        var form = document.getElementById('shop-buy-form')
+        if (!form || !current) return
+        var note = document.getElementById('shop-owned-note')
+        if (!note) {
+            note = document.createElement('p')
+            note.id = 'shop-owned-note'
+            note.style.cssText = 'margin:0 0 8px;font-size:11px;font-weight:600;color:#7EE2A8;'
+            form.parentNode.insertBefore(note, form)
+        }
+        var owned = Number(current.owned || 0)
+        note.textContent = owned > 0 ? ('Owned × ' + owned) : ''
+        note.style.display = owned > 0 ? 'block' : 'none'
+    }
+
+    /* ---------- 下单：POST /api/live/shopBuy ---------- */
+    function doBuy() {
+        if (!current || needLogin()) return
+
+        var btn = document.getElementById('shop-confirm-btn')
+        if (btn.disabled) return
+        btn.disabled = true
+
+        fetch(API_BUY, {
+            method: 'POST',
+            headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: 'id=' + encodeURIComponent(current.id) + '&quantity=' + encodeURIComponent(qty),
+        })
+            .then(function (r) { return r.json() })
+            .then(function (res) {
+                btn.disabled = false
+                if (!res || res.code !== '00000') {
+                    if (window.layer) layer.msg((res && res.msg) || 'Purchase failed')
+                    return
+                }
+
+                var owned = Number((res.data && res.data.owned) || 0)
+                current.owned = owned
+                for (var i = 0; i < items.length; i++) {
+                    if (String(items[i].id) === String(current.id)) items[i].owned = owned
+                }
+                renderGrid()
+                resetBuyBar()
+                syncOwnedNote()
+                if (window.layer) layer.msg('Purchased! It is in your Inventory now')
+                loadInventory()
+            })
+            .catch(function () {
+                btn.disabled = false
+                if (window.layer) layer.msg('Network error, please try again')
+            })
     }
 
     function openModal(id) {
         var d = dialog()
         if (!d || !id) return
-        fetch(API_ITEM + '?id=' + encodeURIComponent(id), { method: 'GET' })
+        fetch(API_ITEM + '?id=' + encodeURIComponent(id), { method: 'GET', headers: headers() })
             .then(function (r) { return r.json() })
             .then(function (res) {
                 if (!res || res.code !== '00000' || !res.data) {
@@ -240,6 +389,7 @@
                 renderTrack()
                 fillModal(current)
                 resetBuyBar()
+                syncOwnedNote()
                 if (!d.open) d.showModal()
             })
             .catch(function () { if (window.layer) layer.msg('Network error, please try again') })
@@ -287,15 +437,16 @@
             if (qty < MAX_QTY) { qty++; updateTotal() }
         })
 
-        // 两步下单：Buy now 先展开 Confirm（与原站一致），Confirm 暂未接入支付
+        // 两步下单：Buy now 先展开 Confirm（与原站一致），Confirm 真正下单扣钻石
         document.getElementById('shop-buy-btn').addEventListener('click', function () {
+            if (needLogin()) return
             document.getElementById('shop-buy-btn').classList.add('hidden')
             document.getElementById('shop-confirm-btn').classList.remove('hidden')
         })
 
         document.getElementById('shop-buy-form').addEventListener('submit', function (e) {
             e.preventDefault()
-            if (window.layer) layer.msg('Purchases are not available yet')
+            doBuy()
         })
     }
 
@@ -303,6 +454,8 @@
         bindGrid()
         bindTabs()
         bindModal()
+        renderInventory()
+        if (token()) loadInventory()
         loadItems(function () {
             var deep = String(getParam('item') || '')
             if (deep !== '') openModal(deep)
