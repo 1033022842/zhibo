@@ -15,20 +15,33 @@ use think\facade\Db;
 use think\facade\Log;
 
 /**
- * VIP 定制角色视频（AI 电脑生成，演示管线：LivePortrait）
+ * VIP 定制角色视频（AI 电脑 ComfyUI MiniMax-H3 生成）
  */
 final class CustomVideo extends BaseController
 {
     /** 每日生成配额（AI 电脑单卡串行，防爆队列） */
     private const DAILY_LIMIT = 3;
 
-    /** 动作模板 → AI 电脑驱动片段文件名（worker 侧 D:\custom_video\driving\ 下同名 mp4） */
-    private const ACTIONS = [
-        ['key' => 'wave',    'label' => 'Wave & smile',     'driving' => 'wave.mp4'],
-        ['key' => 'kiss',    'label' => 'Blow a kiss',      'driving' => 'kiss.mp4'],
-        ['key' => 'dance',   'label' => 'Gentle dance',     'driving' => 'dance.mp4'],
-        ['key' => 'wink',    'label' => 'Wink & tease',     'driving' => 'wink.mp4'],
-        ['key' => 'hello',   'label' => 'Say hello',        'driving' => 'hello.mp4'],
+    /** 生成预设 → H3 提示词（演示期 3 个，后续扩模板库） */
+    private const PRESETS = [
+        [
+            'key'    => 'dance',
+            'label'  => 'Dance clip',
+            'desc'   => 'She dances gracefully to the music',
+            'prompt' => 'The person in the reference image comes to life and dances gracefully with rhythmic body movement, natural micro-expressions, warm cinematic lighting, music video quality.',
+        ],
+        [
+            'key'    => 'wave',
+            'label'  => 'Say hi',
+            'desc'   => 'She waves and blows you a kiss',
+            'prompt' => 'The person in the reference image smiles warmly at the camera, waves her hand and blows a kiss, gentle head tilt, natural micro-expressions, soft cinematic lighting.',
+        ],
+        [
+            'key'    => 'vlog',
+            'label'  => 'Daily vlog',
+            'desc'   => 'A cozy daily-life moment',
+            'prompt' => 'The person in the reference image comes alive in a cozy daily vlog moment, looking around naturally, softly smiling, adjusting her hair, warm ambient home lighting, realistic camera.',
+        ],
     ];
 
     protected array $middleware = [
@@ -46,64 +59,30 @@ final class CustomVideo extends BaseController
      */
     public function options()
     {
-        $userId = $this->getAuthUserId();
-        $db = Db::connect('live_mysql');
-
-        $platform = $db->table('lp_persona')
-            ->field('id, name, cover_url')
-            ->where('user_id', 0)
-            ->whereIn('status', [1, 2])
-            ->where('cover_url', '<>', '')
-            ->order('id')
-            ->select()->toArray();
-
-        $mine = [];
-        if ($userId > 0) {
-            $mine = $db->table('lp_persona')
-                ->field('id, name, cover_url')
-                ->where('user_id', $userId)
-                ->where('cover_url', '<>', '')
-                ->order('id', 'desc')
-                ->limit(50)
-                ->select()->toArray();
-        }
-
         return $this->jsonSuccess([
-            'platform' => array_map(fn($p) => [
-                'id'    => (int) $p['id'],
-                'name'  => $p['name'],
-                'cover' => $this->absUrl((string) $p['cover_url']),
-                'mine'  => false,
-            ], $platform),
-            'mine' => array_map(fn($p) => [
-                'id'    => (int) $p['id'],
-                'name'  => $p['name'],
-                'cover' => $this->absUrl((string) $p['cover_url']),
-                'mine'  => true,
-            ], $mine),
-            'actions' => self::ACTIONS,
+            'presets' => self::PRESETS,
             'quota'   => ['daily_limit' => self::DAILY_LIMIT],
         ]);
     }
 
     /**
-     * 提交生成任务（VIP 专属）
+     * 提交生成任务（VIP 专属，multipart：image + preset + agreed_policy）
      */
     public function submit()
     {
         $userId = $this->getAuthUserId();
-        $personaId = (int) $this->request->post('persona_id', 0);
-        $actionKey = (string) $this->request->post('action', '');
+        $presetKey = (string) $this->request->post('preset', '');
+        $agreed = (int) $this->request->post('agreed_policy', 0);
 
-        if ($personaId <= 0 || $actionKey === '') {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择角色和动作');
+        if ($agreed !== 1) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please confirm the upload policy first.');
         }
-        $action = null;
-        foreach (self::ACTIONS as $a) {
-            if ($a['key'] === $actionKey) { $action = $a; break; }
+        $preset = null;
+        foreach (self::PRESETS as $p) {
+            if ($p['key'] === $presetKey) { $preset = $p; break; }
         }
-        if (!$action) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '不支持的动作');
+        if (!$preset) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please choose a style preset.');
         }
 
         // VIP 校验
@@ -112,16 +91,22 @@ final class CustomVideo extends BaseController
             return $this->jsonFail(ResultCode::NO_PERMISSION, 'Custom video is a VIP feature. Please subscribe to VIP first.');
         }
 
-        // 角色归属校验：平台人设(user_id=0) 或本人角色
-        $db = Db::connect('live_mysql');
-        $persona = $db->table('lp_persona')
-            ->field('id, name, user_id, cover_url')
-            ->where('id', $personaId)
-            ->whereIn('user_id', [0, $userId])
-            ->find();
-        if (!$persona || (string) $persona['cover_url'] === '') {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '角色不存在或缺少封面');
+        // 图片（≤10MB，jpg/png/webp；经 Upload 库自动压缩）
+        $file = $this->request->file('image');
+        if (!$file) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please upload an image.');
         }
+        if ((int) $file->getSize() > 10 * 1024 * 1024) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Image must be under 10MB.');
+        }
+        $ext = strtolower((string) $file->getOriginalExtension());
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Only jpg / png / webp images are supported.');
+        }
+        $upload = new \app\common\library\Upload($file);
+        $upload->setTopic('custom_video');
+        $attachment = $upload->upload(null, 0, $userId);
+        $imageUrl = (string) $attachment['url'];
 
         // 每日配额
         $todayCount = AiTask::where('source_type', 'custom_video')
@@ -140,12 +125,12 @@ final class CustomVideo extends BaseController
         $task->priority    = 5;
         $task->source_type = 'custom_video';
         $task->source_ref_id = $userId;
-        $task->persona_id  = $personaId;
+        $task->persona_id  = 0;
         $task->content     = json_encode([
-            'action'      => $action['key'],
-            'driving'     => $action['driving'],
-            'persona_name' => $persona['name'],
-            'persona_cover' => $persona['cover_url'],
+            'action'    => $preset['key'],
+            'label'     => $preset['label'],
+            'prompt'    => $preset['prompt'],
+            'image_url' => $imageUrl,
         ], JSON_UNESCAPED_UNICODE);
         $task->callback_mode = 'none';
         $task->status      = TaskStatus::PENDING->value;
@@ -178,8 +163,7 @@ final class CustomVideo extends BaseController
             return [
                 'task_id'    => (int) $t['id'],
                 'task_no'    => $t['task_no'],
-                'persona_id' => (int) $t['persona_id'],
-                'persona_name' => (string) ($c['persona_name'] ?? ''),
+                'label'      => (string) ($c['label'] ?? ''),
                 'action'     => (string) ($c['action'] ?? ''),
                 'status'     => $t['status'],
                 'video_url'  => $t['video_url'] ? $this->absUrl((string) $t['video_url']) : '',
@@ -209,11 +193,10 @@ final class CustomVideo extends BaseController
             return [
                 'task_id'    => (int) $t['id'],
                 'task_no'    => $t['task_no'],
-                'persona_id' => (int) $t['persona_id'],
-                'persona_name' => (string) ($c['persona_name'] ?? ''),
-                'persona_cover' => $this->absUrl((string) ($c['persona_cover'] ?? '')),
                 'action'     => (string) ($c['action'] ?? ''),
-                'driving'    => (string) ($c['driving'] ?? ''),
+                'label'      => (string) ($c['label'] ?? ''),
+                'prompt'     => (string) ($c['prompt'] ?? ''),
+                'image_url'  => $this->absUrl((string) ($c['image_url'] ?? '')),
                 'created_at' => $t['created_at'],
             ];
         }, $tasks));

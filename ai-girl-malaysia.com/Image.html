@@ -58,7 +58,7 @@
 		
 
 
-	<script src="./js/customVideo.js?v=20260915"></script>
+	<script src="./js/customVideo.js?v=20260916"></script>
 </head>
 	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
 
@@ -630,56 +630,122 @@
 						</div>
 					</div>
 				</a>
-				<div class="flex flex-col lg:mx-auto items-center justify-center w-full lg:w-[760px] mt-8 lg:mt-12 max-w-[333px] md:max-w-none mx-auto">
-					<div class="flex items-center justify-center gap-x-3 mx-auto mb-4 lg:mb-9 md:mt-0 mt-5">
-						<div style="position: relative;">
-							<h1 class="text-center text-white text-[22px] lg:text-[32px] font-bold leading-[42px]">Custom AI Video · VIP</h1>
-							<span class="create-elipse hidden lg:block"></span>
-						</div>
+				<style>
+:root{--sg-page:#0d0a0f;--sg-card:#120d16;--sg-line:#282828;--sg-pink:#f97187;--sg-cta:#f53b70;--sg-accent:#ee5876;--sg-grey:#a4a4a4}
+.cv-wrap{max-width:760px;margin:48px auto 32px;padding:0 16px;font-family:Poppins,system-ui,sans-serif}
+.cv-head{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.cv-head h1{color:#fff;font-size:26px;font-weight:700}
+.cv-head .vip-chip{background:linear-gradient(135deg,#f97187,#f53b70);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.5px}
+.cv-tabs{display:flex;background:var(--sg-card);border:1px solid var(--sg-line);border-radius:14px;padding:4px;margin-bottom:22px}
+.cv-tab{flex:1;padding:11px 0;border:0;border-radius:10px;background:transparent;color:var(--sg-grey);font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.cv-tab.on{background:linear-gradient(135deg,var(--sg-pink),var(--sg-cta));color:#fff;box-shadow:0 4px 18px rgba(245,59,112,.3)}
+.cv-panel{background:var(--sg-card);border:1px solid var(--sg-line);border-radius:18px;padding:26px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.cv-sec-t{color:#e6e6e6;font-size:15px;font-weight:600;margin:2px 0 14px}
+.cv-sec-t small{color:var(--sg-grey);font-weight:400;font-size:12px;margin-left:6px}
+.cv-drop{border:2px dashed #3a2d3f;border-radius:16px;background:rgba(255,255,255,.015);padding:38px 20px;text-align:center;cursor:pointer;transition:.2s}
+.cv-drop:hover,.cv-drop.over{border-color:var(--sg-pink);background:rgba(249,113,135,.05)}
+.cv-drop svg{opacity:.85;margin-bottom:10px}
+.cv-drop .t1{color:#e6e6e6;font-size:15px;font-weight:600;margin-bottom:6px}
+.cv-drop .t2{color:var(--sg-grey);font-size:12px}
+.cv-uploaded{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--sg-line)}
+.cv-uploaded img{width:100%;max-height:380px;object-fit:contain;background:#000;border-radius:16px}
+.cv-uploaded .rm{position:absolute;top:10px;right:10px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:15px;cursor:pointer}
+.cv-presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.cv-preset{background:#17111c;border:1.5px solid var(--sg-line);border-radius:14px;padding:16px;cursor:pointer;transition:.15s}
+.cv-preset:hover{border-color:#4a3a4f}
+.cv-preset.on{border-color:var(--sg-pink);background:rgba(249,113,135,.08)}
+.cv-preset .ic{font-size:22px;margin-bottom:8px}
+.cv-preset .n{color:#fff;font-size:14px;font-weight:600;margin-bottom:4px}
+.cv-preset .d{color:var(--sg-grey);font-size:12px;line-height:1.5}
+.cv-policy{display:flex;gap:10px;align-items:flex-start;background:#17111c;border:1px solid var(--sg-line);border-radius:12px;padding:13px 15px;margin-top:18px;cursor:pointer}
+.cv-policy input{margin-top:2px;accent-color:var(--sg-cta)}
+.cv-policy span{color:var(--sg-grey);font-size:12px;line-height:1.6}
+.cv-policy b{color:#ddd}
+.cv-submitbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:22px;flex-wrap:wrap}
+.cv-remain{color:var(--sg-grey);font-size:12px}
+.cv-remain b{color:#fbbf24}
+.cv-generate{border:0;border-radius:12px;padding:13px 34px;background:linear-gradient(135deg,var(--sg-accent),var(--sg-cta));color:#fff;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 22px rgba(245,59,112,.35);transition:.2s}
+.cv-generate:hover{filter:brightness(1.08)}
+.cv-generate:disabled{opacity:.5;cursor:not-allowed}
+.cv-gate{text-align:center;padding:44px 20px}
+.cv-gate .lock{font-size:34px;margin-bottom:12px}
+.cv-gate h3{color:#fff;font-size:18px;font-weight:700;margin-bottom:8px}
+.cv-gate p{color:var(--sg-grey);font-size:13px;line-height:1.7;margin-bottom:22px}
+.cv-gate a{display:inline-block;text-decoration:none;border-radius:12px;padding:13px 36px;background:linear-gradient(135deg,var(--sg-accent),var(--sg-cta));color:#fff;font-weight:700;font-size:14px}
+.cv-works{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.cv-work{background:#17111c;border:1px solid var(--sg-line);border-radius:14px;overflow:hidden}
+.cv-work .hd{display:flex;align-items:center;justify-content:space-between;padding:12px 15px}
+.cv-work .hd .n{color:#fff;font-size:14px;font-weight:600}
+.cv-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px}
+.cv-badge.wait{background:#2b2b2b;color:#9a9a9a}
+.cv-badge.run{background:rgba(245,158,11,.15);color:#fbbf24}
+.cv-badge.ok{background:rgba(16,185,129,.15);color:#10b981}
+.cv-badge.err{background:rgba(239,68,68,.15);color:#ef4444}
+.cv-work video{width:100%;display:block;background:#000}
+.cv-work .ft{display:flex;justify-content:space-between;align-items:center;padding:10px 15px;color:#6b6b6b;font-size:11px}
+.cv-work .ft a{color:var(--sg-pink);font-weight:700;text-decoration:none;font-size:12px}
+.cv-wait-body{padding:34px 15px;text-align:center;color:var(--sg-grey);font-size:13px}
+.cv-empty{padding:56px 15px;text-align:center;color:var(--sg-grey);font-size:14px}
+</style>
+
+<div class="cv-wrap">
+					<div class="cv-head">
+						<h1>AI Video Studio</h1>
+						<span class="vip-chip">VIP</span>
+					</div>
+					<div class="cv-tabs">
+						<button class="cv-tab on" id="cvTabCreate">＋ Create</button>
+						<button class="cv-tab" id="cvTabWorks">My Works</button>
 					</div>
 
-					<!-- 双栏切换 -->
-					<div class="flex w-full max-w-[420px] mx-auto mb-6 bg-[#1a1a1a] rounded-full p-1 border border-[#282828]">
-						<button id="cvTabCreate" class="flex-1 py-2.5 rounded-full text-sm font-semibold text-white bg-[#E75275] cursor-pointer">＋ Create</button>
-						<button id="cvTabWorks" class="flex-1 py-2.5 rounded-full text-sm font-semibold text-[#A1A1A1] cursor-pointer">My Works</button>
-					</div>
-
-					<!-- ===== Create 面板 ===== -->
-					<div id="cvCreatePanel" style="color:white" class="h-auto flex-col justify-start w-full bg-popup rounded-xl z-10 border border-[#282828] mb-5 p-5 lg:p-8">
-						<div id="cvVipGate" class="hidden text-center py-8">
-							<div class="text-[#E1E1E1] text-lg font-semibold mb-2">🔒 VIP Members Only</div>
-							<div class="text-[#A1A1A1] text-sm mb-6">Custom AI video generation is exclusive to VIP members.<br>Generate up to <b class="text-[#fbbf24]">3 videos per day</b>.</div>
-							<a href="./Subscriptions.html" class="inline-block px-8 py-3 rounded-[10px] bg-[#E75275] text-white text-sm font-semibold cursor-pointer">Get VIP</a>
+					<!-- Create -->
+					<div class="cv-panel" id="cvCreatePanel">
+						<div class="cv-gate" id="cvVipGate" style="display:none">
+							<div class="lock">🔒</div>
+							<h3>VIP Members Only</h3>
+							<p>Upload a picture of your AI girl and bring her to life.<br>VIP can generate up to <b style="color:#fbbf24">3 videos per day</b>.</p>
+							<a href="./Subscriptions.html">Get VIP</a>
 						</div>
 
-						<div id="cvCreateForm" class="hidden flex-col gap-8">
-							<fieldset>
-								<legend class="text-[#E1E1E1] w-full font-semibold text-left text-[14px] lg:text-[16px] pb-3">1 · Choose your girl*</legend>
-								<div id="cvPersonaGrid" class="grid grid-cols-3 md:grid-cols-4 gap-3"></div>
-							</fieldset>
-							<fieldset>
-								<legend class="text-[#E1E1E1] w-full font-semibold text-left text-[14px] lg:text-[16px] pb-3">2 · Choose an action*</legend>
-								<div id="cvActionGrid" class="flex flex-wrap gap-2.5"></div>
-							</fieldset>
-							<div class="flex items-center justify-between">
-								<div class="text-[#A1A1A1] text-xs">Remaining today: <b id="cvRemain">-</b></div>
-								<button id="cvSubmit" class="min-w-[140px] px-4 py-3 text-white rounded-[10px] bg-[#E75275] cursor-pointer justify-center items-center gap-3 flex text-sm font-semibold">
-									Generate ✨
-								</button>
+						<div id="cvCreateForm">
+							<div class="cv-sec-t">1 · Upload her picture <small>jpg / png / webp · ≤10MB</small></div>
+							<div class="cv-drop" id="cvDrop">
+								<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#f97187" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+								<div class="t1">Drop her image here, or click to browse</div>
+								<div class="t2">AI-generated / anime / your authorized images only</div>
 							</div>
-							<div class="text-[#6b6b6b] text-[11px] leading-relaxed">Your video will be generated by our AI studio — usually ready in a few minutes. Track progress in “My Works”.</div>
+							<div class="cv-uploaded" id="cvUploaded" style="display:none">
+								<img id="cvPreview" alt="preview">
+								<button class="rm" id="cvRemove" title="Remove">✕</button>
+							</div>
+							<input type="file" id="cvFile" accept="image/jpeg,image/png,image/webp" style="display:none">
+
+							<div style="height:22px"></div>
+							<div class="cv-sec-t">2 · Pick a vibe</div>
+							<div class="cv-presets" id="cvPresets"></div>
+
+							<label class="cv-policy" id="cvPolicyRow">
+								<input type="checkbox" id="cvPolicy">
+								<span>I confirm this image is <b>AI-generated, anime-style, or authorized by the person shown</b> — not a photo of a real third party. I take full responsibility for uploads that violate this rule.</span>
+							</label>
+
+							<div class="cv-submitbar">
+								<div class="cv-remain">Remaining today: <b id="cvRemain">-</b></div>
+								<button class="cv-generate" id="cvSubmit">✨ Generate Video</button>
+							</div>
+							<div style="margin-top:14px;color:#6b6b6b;font-size:11px;line-height:1.6">Generation usually takes 3-6 minutes. Track progress in "My Works".</div>
 						</div>
 					</div>
 
-					<!-- ===== My Works 面板 ===== -->
-					<div id="cvWorksPanel" class="hidden w-full bg-popup rounded-xl border border-[#282828] p-5 lg:p-8">
-						<div id="cvWorksEmpty" class="text-center py-10 text-[#A1A1A1] text-sm">No videos yet — create your first one! ✨</div>
-						<div id="cvWorksGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+					<!-- My Works -->
+					<div class="cv-panel" id="cvWorksPanel" style="display:none;margin-top:0">
+						<div class="cv-empty" id="cvWorksEmpty">No videos yet — create your first one! ✨</div>
+						<div class="cv-works" id="cvWorksGrid"></div>
 					</div>
 				</div>
 			</div>
 		</div>
-		<div id="character-registration-modal"></div>
+<div id="character-registration-modal"></div>
 		<div id="character-subscribe-modal"></div>
 		<div id="character-buy-tokens-modal"></div>
 
