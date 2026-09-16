@@ -18,6 +18,13 @@
                     <FormItem label="标题" v-model="baTable.form.items!.title" prop="title" type="string" />
                     <FormItem label="封面图" v-model="baTable.form.items!.poster" type="image" />
                     <FormItem
+                        label="视频文件"
+                        v-model="baTable.form.items!.video_url"
+                        type="file"
+                        :input-attr="{ limit: 1 }"
+                        tip="上传后前台点击卡片在本站弹窗播放；留空则卡片跳下方「链接」"
+                    />
+                    <FormItem
                         label="链接"
                         v-model="baTable.form.items!.href"
                         type="string"

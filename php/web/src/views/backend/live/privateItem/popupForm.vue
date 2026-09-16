@@ -23,6 +23,14 @@
                         :input-attr="{ rows: 5, placeholder: '卡片上展示的唯一文字' }"
                     />
                     <FormItem label="封面图" v-model="baTable.form.items!.poster" type="image" />
+                    <FormItem
+                        label="视频文件"
+                        v-model="baTable.form.items!.video_url"
+                        type="file"
+                        :input-attr="{ limit: 1 }"
+                        tip="解锁后在前台弹窗里播放"
+                    />
+                    <FormItem label="图片" v-model="baTable.form.items!.images" type="images" tip="解锁后在前台弹窗里查看，可多张" />
                     <FormItem label="角色头像" v-model="baTable.form.items!.avatar" type="image" />
                     <FormItem label="角色名" v-model="baTable.form.items!.creator" prop="creator" type="string" />
                     <FormItem label="价格" v-model="baTable.form.items!.price" type="number" :input-attr="{ min: 0 }" />
