@@ -1,0 +1,320 @@
+<!--
+  Candy Shorts 页面 DOM 模板集（抽取自 ai-girl-malaysia.com/candy-shorts.html 的 <main> 区域）
+  说明：
+  1) class 全部保持原样（像素级复刻关键），已把多行 class 合并为一行，便于复制。
+  2) 动态内容替换为 {{英文小写下划线}} 占位符。
+  3) 已删除前端框架专用属性：data-controller / data-action / *-target / data-candy-shorts--* / turbo-frame 的 src 等；
+     保留语义属性：role / aria-* / href / id / tabindex。
+  4) 特例：data-rank 与 data-fade 不是框架配置，而是 CSS 选择器钩子（页面 CSS 里有
+     .cs-top-shelf__item[data-rank="10"] 与 .cs-row-scroller[data-fade=...] 规则），因此保留。
+  5) 图片/图标均指向本地目录 ./candy-shorts_files/，实际替换时换成你自己的静态资源路径即可。
+-->
+
+<!-- ==== TEMPLATE: page-shell ==== -->
+<!-- body > .main-content-container > main 三层；main 的左侧 100px 偏移对应桌面端固定侧边栏 -->
+<body class="bg-main-v2 library index" id="app">
+  <div class="main-content-container">
+    <main class="ml-0 lg:ml-[100px] h-full pb-[calc(70px+env(safe-area-inset-bottom)+1rem)] lg:pb-0 mt-0 lg:mt-16" tabindex="-1">
+      {{sections}}
+    </main>
+  </div>
+</body>
+
+
+<!-- ==== TEMPLATE: content-wrapper ==== -->
+<!-- main 内唯一的一层内容包装：负责左右留白 + 最大宽度 + 隐藏的 h1 -->
+<div class="px-[10px] pb-4 md:px-4 md:pb-6 lg:px-[105px] pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-[calc(env(safe-area-inset-top)+1.5rem)] lg:pt-6">
+  <div class="mx-auto flex max-w-[1296px] flex-col lg:max-w-7xl">
+    <h1 class="sr-only">{{page_title}}</h1>
+    {{sections}}
+  </div>
+</div>
+
+
+<!-- ==== TEMPLATE: section-title-h2 ==== -->
+<!-- 三个 section 共用同一个标题写法：id 与 section 的 aria-labelledby 对应；标题内部用两个 span 做粉/白双色 -->
+<h2 id="{{section_id}}" class="text-[18px] leading-[27px] font-semibold text-white lg:text-xl lg:leading-6">
+  <span class="text-pink-dark">{{title_lead}}</span>
+  <span>{{title_rest}}</span>
+</h2>
+
+
+<!-- ==== TEMPLATE: section-continue-watching ==== -->
+<!-- 第 1 个 section（order-2）：横滑货架，卡片为 .cs-shelf-card，带底部进度条，可选 SPICY 角标 -->
+<section class="order-2 mb-5 lg:mb-7" aria-labelledby="candy-shorts-continue-watching-title">
+  <h2 id="candy-shorts-continue-watching-title" class="text-[18px] leading-[27px] font-semibold text-white lg:text-xl lg:leading-6"><span class="text-pink-dark">Continue</span><span>watching</span></h2>
+  <div class="relative mt-3 lg:mt-4">
+    <div class="cs-row-scroller hide-scrollbar -mx-[10px] flex snap-x snap-mandatory gap-[10px] overflow-x-auto px-[10px] pb-1 scroll-pl-[10px] md:-mx-4 md:px-4 md:scroll-pl-4 lg:mx-0 lg:gap-5 lg:px-0 lg:scroll-pl-0" data-fade="none">
+      {{items}}
+    </div>
+    {{row_arrows}}
+  </div>
+</section>
+
+
+<!-- ==== TEMPLATE: section-top-series ==== -->
+<!-- 第 2 个 section（order-4）：Top series 排行榜，滚动容器额外带 .cs-top-shelf，条目标题前有名次数字 -->
+<section class="order-4 mb-5 lg:mb-7" aria-labelledby="candy-shorts-top-series-title">
+  <h2 id="candy-shorts-top-series-title" class="text-[18px] leading-[27px] font-semibold text-white lg:text-xl lg:leading-6"><span class="text-pink-dark">Top 10</span><span>shows in the US this week</span></h2>
+  <div class="relative mt-3 lg:mt-4">
+    <div class="cs-row-scroller hide-scrollbar flex snap-x snap-mandatory items-start overflow-x-auto overflow-y-hidden pb-1 -mx-[10px] px-[10px] scroll-pl-[10px] md:-mx-4 md:px-4 md:scroll-pl-4 lg:mx-0 lg:px-0 lg:scroll-pl-0 cs-top-shelf" data-fade="right">
+      {{items}}
+    </div>
+    {{row_arrows}}
+  </div>
+</section>
+
+
+<!-- ==== TEMPLATE: section-explore-all-shorts ==== -->
+<!-- 第 3 个 section（order-5 标题 + order-6 网格）。原为 turbo-frame，换成 div 时 class 与 id 保持不变即可 -->
+<div class="order-5 mb-3 lg:mb-4">
+  <h2 class="text-[18px] leading-[27px] font-semibold text-white lg:text-xl lg:leading-6"><span class="text-pink-dark">Explore</span><span>All Shorts</span></h2>
+</div>
+
+<!-- ==== TEMPLATE: library-grid-frame ==== -->
+<turbo-frame class="order-6 block scroll-mt-40 md:scroll-mt-44 transition-opacity duration-150 aria-busy:pointer-events-none aria-busy:opacity-60" id="candy-shorts-library-grid">
+  <div id="candy-shorts-library-cards-{{scope}}-{{tag}}" class="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-6">
+    {{items}}
+  </div>
+  <turbo-frame loading="lazy" class="block mt-4 lg:mt-6" id="candy-shorts-library-pagination-{{scope}}-{{tag}}">
+    <div class="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-6" aria-hidden="true">
+      {{skeleton_items}}
+    </div>
+  </turbo-frame>
+</turbo-frame>
+
+
+<!-- ==== TEMPLATE: shelf-card (进度条 + SPICY 角标) ==== -->
+<!-- 用于 Continue watching 货架；href 为真实回退链接（原页面点击走 JS，href 是兜底/SEO） -->
+<a class="cs-shelf-card group flex shrink-0 snap-start cursor-pointer flex-col text-left" aria-label="{{title}}" href="{{href}}">
+  <div class="relative aspect-[240/342] w-full overflow-hidden rounded-[11px] bg-black-default ring-1 ring-white/5 drop-shadow-candy-shorts-card lg:rounded-[18px] lg:transition lg:duration-300 lg:group-hover:ring-white/20">
+    <img class="absolute inset-0 size-full object-cover lg:transition-transform lg:duration-300 lg:ease-out lg:group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="{{poster}}">
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 hidden h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 lg:block lg:transition-opacity lg:duration-300 lg:group-hover:opacity-100" aria-hidden="true"></div>
+    <div class="absolute right-1.5 top-1.5 z-30 md:right-2 md:top-2">
+      <span class="group/spicy flex size-5 items-center justify-center rounded-full border border-nsfw-spicy bg-black/75 backdrop-blur-[6px] transition-[width,padding] duration-[280ms] motion-reduce:transition-none md:size-7 md:min-w-7 md:hover:w-auto md:hover:px-2" role="img" aria-label="Spicy — adult content" title="Spicy — adult content">
+        <img class="size-2.5 shrink-0 object-contain md:size-3.5" alt="" aria-hidden="true" src="./candy-shorts_files/flame-b8e6610ff74d5100d93b3a666ef494a20f840ddc26fa850943a495199527ae39.svg">
+        <span class="hidden max-w-0 overflow-hidden opacity-0 transition-[max-width,opacity,margin] duration-[280ms] motion-reduce:transition-none md:block md:group-hover/spicy:ml-1.5 md:group-hover/spicy:max-w-20 md:group-hover/spicy:opacity-100 whitespace-nowrap text-[9px] font-bold tracking-[0.03em] text-white md:text-[10px]">SPICY</span>
+      </span>
+    </div>
+    <div class="absolute inset-x-2 bottom-1 z-10 h-0.5 overflow-hidden rounded-full bg-white/50 lg:inset-x-0 lg:bottom-0 lg:h-1.5 lg:bg-white/30" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{progress_int}}" aria-label="{{title}} viewing progress">
+      <div class="h-full rounded-full bg-white" style="width: {{progress}}%"></div>
+    </div>
+  </div>
+</a>
+
+<!-- ==== TEMPLATE: shelf-card--no-spicy (进度条，无 SPICY 角标) ==== -->
+<!-- 与上者的唯一差异：删掉了 <div class="absolute right-1.5 top-1.5 …"> 整块 SPICY 角标 -->
+<a class="cs-shelf-card group flex shrink-0 snap-start cursor-pointer flex-col text-left" aria-label="{{title}}" href="{{href}}">
+  <div class="relative aspect-[240/342] w-full overflow-hidden rounded-[11px] bg-black-default ring-1 ring-white/5 drop-shadow-candy-shorts-card lg:rounded-[18px] lg:transition lg:duration-300 lg:group-hover:ring-white/20">
+    <img class="absolute inset-0 size-full object-cover lg:transition-transform lg:duration-300 lg:ease-out lg:group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="{{poster}}">
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 hidden h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 lg:block lg:transition-opacity lg:duration-300 lg:group-hover:opacity-100" aria-hidden="true"></div>
+    <div class="absolute inset-x-2 bottom-1 z-10 h-0.5 overflow-hidden rounded-full bg-white/50 lg:inset-x-0 lg:bottom-0 lg:h-1.5 lg:bg-white/30" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{progress_int}}" aria-label="{{title}} viewing progress">
+      <div class="h-full rounded-full bg-white" style="width: {{progress}}%"></div>
+    </div>
+  </div>
+</a>
+
+
+<!-- ==== TEMPLATE: top-shelf-item ==== -->
+<!-- Top series 条目外壳：名次数字 + 卡片。数字配色规则：第 1 名 text-pink-dark，其余 text-white/60。
+     data-rank 必须保留（CSS 对 [data-rank="10"] 调整字距），第 2~9 名不需要额外属性 -->
+<div class="cs-top-shelf__item flex shrink-0 snap-start items-start" data-rank="{{rank}}">
+  <b class="cs-top-shelf__numeral font-poppins font-extrabold {{rank_color}}" aria-hidden="true">{{rank}}</b>
+  <div class="cs-top-shelf__card relative z-10 shrink-0">
+    {{card}}
+  </div>
+</div>
+
+
+<!-- ==== TEMPLATE: top-shelf-card--plain (普通款，无粉色高亮) ==== -->
+<a class="group flex w-full cursor-pointer flex-col text-left" aria-label="{{title}}" href="{{href}}">
+  <div class="w-full ">
+    <div class="relative w-full aspect-[240/342] overflow-hidden rounded-xl bg-black-default drop-shadow-candy-shorts-card ring-1 ring-white/5 transition duration-300 group-hover:ring-white/20">
+      <img class="absolute inset-0 size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="{{poster}}">
+      <div class="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true"></div>
+      {{optional_new_episodes_badge}}
+      {{optional_spicy_badge}}
+    </div>
+  </div>
+</a>
+
+<!-- ==== TEMPLATE: top-shelf-card--featured-ring (粉色描边高亮款) ==== -->
+<!-- 差异：卡片 div 的 class 末尾追加 "ring-2 ring-pink-ring/70 shadow-pink-lg transition-shadow duration-300 group-hover:shadow-pink-cta"
+     同时在 drop-shadow-candy-shorts-card 前的 "transition duration-300 group-hover:ring-white/20" 保持不动 -->
+<a class="group flex w-full cursor-pointer flex-col text-left" aria-label="{{title}}" href="{{href}}">
+  <div class="w-full ">
+    <div class="relative w-full aspect-[240/342] overflow-hidden rounded-xl bg-black-default drop-shadow-candy-shorts-card ring-1 ring-white/5 transition duration-300 group-hover:ring-white/20 ring-2 ring-pink-ring/70 shadow-pink-lg transition-shadow duration-300 group-hover:shadow-pink-cta">
+      <img class="absolute inset-0 size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="{{poster}}">
+      <div class="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true"></div>
+      {{optional_new_episodes_badge}}
+      {{optional_spicy_badge}}
+    </div>
+  </div>
+</a>
+
+<!-- ==== TEMPLATE: top-shelf-card--featured-gradient (粉色渐变外框款) ==== -->
+<!-- 差异：卡片外面多包一层渐变描边 div（p-[2px] rounded-[14px] bg-gradient-pink-cta + 外发光），内层卡片不再有 ring-2 -->
+<a class="group flex w-full cursor-pointer flex-col text-left" aria-label="{{title}}" href="{{href}}">
+  <div class="w-full p-[2px] rounded-[14px] bg-gradient-pink-cta shadow-[0_0_28px_4px_rgba(255,79,163,0.6)] transition-shadow duration-300 group-hover:shadow-[0_0_36px_6px_rgba(255,79,163,0.7)]">
+    <div class="relative w-full aspect-[240/342] overflow-hidden rounded-xl bg-black-default drop-shadow-candy-shorts-card ring-1 ring-white/5 transition duration-300 group-hover:ring-white/20">
+      <img class="absolute inset-0 size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="{{poster}}">
+      <div class="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true"></div>
+      {{optional_new_episodes_badge}}
+      {{optional_spicy_badge}}
+    </div>
+  </div>
+</a>
+
+
+<!-- ==== TEMPLATE: badge-spicy ==== -->
+<!-- 可选块：SPICY 角标（右上角，桌面端 hover 展开成胶囊） -->
+<div class="absolute z-30 right-1.5 top-1.5 md:right-2 md:top-2">
+  <span class="group/spicy flex size-5 items-center justify-center rounded-full border border-nsfw-spicy bg-black/75 backdrop-blur-[6px] transition-[width,padding] duration-[280ms] motion-reduce:transition-none md:size-7 md:min-w-7 md:hover:w-auto md:hover:px-2" role="img" aria-label="Spicy — adult content" title="Spicy — adult content">
+    <img class="size-2.5 shrink-0 object-contain md:size-3.5" alt="" aria-hidden="true" src="./candy-shorts_files/flame-b8e6610ff74d5100d93b3a666ef494a20f840ddc26fa850943a495199527ae39.svg">
+    <span class="hidden max-w-0 overflow-hidden opacity-0 transition-[max-width,opacity,margin] duration-[280ms] motion-reduce:transition-none md:block md:group-hover/spicy:ml-1.5 md:group-hover/spicy:max-w-20 md:group-hover/spicy:opacity-100 whitespace-nowrap text-[9px] font-bold tracking-[0.03em] text-white md:text-[10px]">SPICY</span>
+  </span>
+</div>
+
+<!-- ==== TEMPLATE: badge-new-episodes ==== -->
+<!-- 可选块：左上角 "New Episodes" 角标（移动端文案 New Eps） -->
+<span role="status" class="pointer-events-none absolute top-0 z-30 flex items-center py-0.75 text-4xs font-bold uppercase leading-2.75 tracking-[0.02em] md:py-1.25 md:text-3xs md:leading-3.75 bg-[#f53b70] text-white left-0 rounded-br-xl pl-1.25 pr-1.5 md:pl-2 md:pr-2.25">
+  <span class="md:hidden">New Eps</span>
+  <span class="hidden md:inline">New Episodes</span>
+</span>
+
+
+<!-- ==== TEMPLATE: library-grid-card--plain (网格卡片，无角标) ==== -->
+<!-- Explore All Shorts 网格卡片：3/4/5 列自适应；底部标题为独立 span -->
+<a class="group flex flex-col gap-2 text-left cursor-pointer" aria-label="{{title}}" href="{{href}}">
+  <div class="w-full ">
+    <div class="relative w-full aspect-[240/342] overflow-hidden rounded-xl bg-black-default drop-shadow-candy-shorts-card ring-1 ring-white/5 transition duration-300 group-hover:ring-white/20">
+      <img class="absolute inset-0 size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="{{poster}}">
+      <div class="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true"></div>
+      {{optional_new_episodes_badge}}
+      {{optional_spicy_badge}}
+    </div>
+  </div>
+  <span class="text-xs leading-5 lg:text-md lg:leading-6 font-semibold text-white lg:text-white/80 transition-colors duration-200 lg:group-hover:text-white line-clamp-2">{{title}}</span>
+</a>
+
+<!-- ==== TEMPLATE: library-grid-card--featured (网格卡片，粉色渐变外框) ==== -->
+<!-- 差异：外面包一层渐变描边 div，其余与 plain 版一致；与“带 New Episodes 角标”组合最常见 -->
+<a class="group flex flex-col gap-2 text-left cursor-pointer" aria-label="{{title}}" href="{{href}}">
+  <div class="w-full p-[2px] rounded-[14px] bg-gradient-pink-cta shadow-[0_0_28px_4px_rgba(255,79,163,0.6)] transition-shadow duration-300 group-hover:shadow-[0_0_36px_6px_rgba(255,79,163,0.7)]">
+    <div class="relative w-full aspect-[240/342] overflow-hidden rounded-xl bg-black-default drop-shadow-candy-shorts-card ring-1 ring-white/5 transition duration-300 group-hover:ring-white/20">
+      <img class="absolute inset-0 size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="{{poster}}">
+      <div class="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true"></div>
+      {{optional_new_episodes_badge}}
+      {{optional_spicy_badge}}
+    </div>
+  </div>
+  <span class="text-xs leading-5 lg:text-md lg:leading-6 font-semibold text-white lg:text-white/80 transition-colors duration-200 lg:group-hover:text-white line-clamp-2">{{title}}</span>
+</a>
+
+<!-- ==== TEMPLATE: library-grid-card--featured-ring (网格卡片，粉色描边高亮) ==== -->
+<!-- 差异：内层卡片 class 追加 "ring-2 ring-pink-ring/70 shadow-pink-lg transition-shadow duration-300 group-hover:shadow-pink-cta" -->
+<a class="group flex flex-col gap-2 text-left cursor-pointer" aria-label="{{title}}" href="{{href}}">
+  <div class="w-full ">
+    <div class="relative w-full aspect-[240/342] overflow-hidden rounded-xl bg-black-default drop-shadow-candy-shorts-card ring-1 ring-white/5 transition duration-300 group-hover:ring-white/20 ring-2 ring-pink-ring/70 shadow-pink-lg transition-shadow duration-300 group-hover:shadow-pink-cta">
+      <img class="absolute inset-0 size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="{{poster}}">
+      <div class="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true"></div>
+      {{optional_new_episodes_badge}}
+      {{optional_spicy_badge}}
+    </div>
+  </div>
+  <span class="text-xs leading-5 lg:text-md lg:leading-6 font-semibold text-white lg:text-white/80 transition-colors duration-200 lg:group-hover:text-white line-clamp-2">{{title}}</span>
+</a>
+
+<!-- ==== TEMPLATE: library-grid-skeleton-item ==== -->
+<!-- 分页占位骨架（原页面 1 帧 5 个，可循环 N 次） -->
+<div class="flex flex-col gap-2 animate-pulse">
+  <div class="w-full aspect-[240/342] rounded-xl bg-white/5"></div>
+  <div class="h-4 w-3/4 rounded-md bg-white/5"></div>
+</div>
+
+
+<!-- ==== TEMPLATE: row-arrow-buttons ==== -->
+<!-- 桌面端横滑左右箭头（lg:flex 才显示）。左键初始 disabled + opacity-0，右键按是否还有内容切换 opacity-0/100 -->
+<button type="button" class="absolute top-1/2 z-20 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full border border-shorts-row-arrow-border bg-shorts-row-arrow text-white shadow-shorts-row-arrow transition-opacity duration-200 hover:bg-shorts-row-arrow-hover lg:flex right-2 opacity-100" aria-label="Show more {{row_label}} series" aria-hidden="false">
+  <img class="size-[18px] brightness-200" alt="" aria-hidden="true" src="./candy-shorts_files/chevron_right-e61ca94ade214ead19832349d6a795f47b10c92906d388fee1313fa9ed2ddafe.svg">
+</button>
+
+<!-- ==== TEMPLATE: row-arrow-button--disabled ==== -->
+<button type="button" class="pointer-events-none absolute top-1/2 z-20 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full border border-shorts-row-arrow-border bg-shorts-row-arrow text-white opacity-0 shadow-shorts-row-arrow transition-opacity duration-200 hover:bg-shorts-row-arrow-hover lg:flex left-2" aria-label="Show previous {{row_label}} series" aria-hidden="true" disabled="">
+  <img class="size-[18px] brightness-200" alt="" aria-hidden="true" src="./candy-shorts_files/chevron_left-b8a7af3652c12d167876297ef2fa037cf5165553e306544588901c77d05ed096.svg">
+</button>
+
+
+<!-- ==== TEMPLATE: filter-bar (sticky 顶部筛选区，order-1) ==== -->
+<!-- 内含：返回首页按钮 + 角色类型 tablist（cs-filter-scroller）+ 分类标签 pills -->
+<div class="sticky z-20 bg-[#0d0a0f]/85 pb-3 pt-1 backdrop-blur-md order-1 mb-5 lg:mb-7 -mx-[10px] top-[env(safe-area-inset-top)] px-[10px] md:-mx-4 md:px-4 lg:-mx-6 lg:px-6 lg:top-16">
+  <div class="mx-auto flex max-w-7xl flex-col gap-3">
+    <div class="flex items-stretch border-b border-white/5 -mx-[10px] px-[10px] md:-mx-4 md:px-4 lg:-mx-6 lg:px-6">
+      <a class="mr-3 flex shrink-0 items-center self-center" aria-label="Back to home" href="{{home_href}}">
+        <span class="flex size-8 items-center justify-center rounded-full bg-white/[0.08] lg:size-11">
+          <img class="size-3.5 lg:size-4" alt="" aria-hidden="true" src="./candy-shorts_files/chevron_left-de2998a1c014f985d6671bd37486b618f48fd968ae90aa918c13405ce9b8fcf5.svg">
+        </span>
+      </a>
+      <div role="tablist" aria-label="Character type" class="cs-filter-scroller hide-scrollbar flex min-w-0 flex-1 items-center gap-6 overflow-x-auto" data-fade="none">
+        {{scope_tabs}}
+      </div>
+    </div>
+    <div role="tablist" aria-label="Categories" class="cs-filter-scroller hide-scrollbar flex snap-x items-center gap-2 overflow-x-auto -mx-[10px] px-[10px] scroll-pl-[10px] md:-mx-4 md:px-4 md:scroll-pl-4 lg:-mx-6 lg:px-6 lg:scroll-pl-6" data-fade="none">
+      {{tag_pills}}
+    </div>
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: filter-scope-tab ==== -->
+<!-- 角色类型 tab：选中态由 aria-selected="true" 驱动（下划线 span 靠 group-aria-selected:opacity-100 显示）。
+     原页面靠 JS 切换 aria-selected，替代实现只需要切换该属性即可 -->
+<button type="button" role="tab" aria-selected="false" class="group relative shrink-0 whitespace-nowrap pb-2.5 pt-1 text-sm md:text-md font-medium text-white/50 cursor-pointer transition-colors duration-200 hover:text-white aria-selected:text-white">
+  {{label}}
+  <span class="absolute inset-x-0 bottom-0 h-[2.5px] rounded-full bg-gradient-pink-cta opacity-0 transition-opacity duration-200 group-aria-selected:opacity-100" aria-hidden="true"></span>
+</button>
+
+<!-- ==== TEMPLATE: filter-tag-pill (普通标签) ==== -->
+<button type="button" role="tab" aria-selected="false" class="inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-sm text-white/70 transition-all duration-200 cursor-pointer hover:bg-white/10 hover:text-white aria-selected:border-transparent aria-selected:bg-white aria-selected:font-semibold aria-selected:text-black">
+  <span>{{label}}</span>
+</button>
+
+<!-- ==== TEMPLATE: filter-tag-pill--with-icon-and-new-badge (🔥 Spicy) ==== -->
+<button type="button" role="tab" aria-selected="false" class="inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-sm text-white/70 transition-all duration-200 cursor-pointer hover:bg-white/10 hover:text-white aria-selected:border-transparent aria-selected:bg-white aria-selected:font-semibold aria-selected:text-black">
+  <span aria-hidden="true">{{icon}}</span>
+  <span>{{label}}</span>
+  <span class="rounded bg-[#ff1f30] px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-white">New</span>
+</button>
+
+
+<!-- ==== TEMPLATE: player-modal ==== -->
+<!-- 点卡片后弹出的播放器模态（原页面 z-100，默认 hidden；关闭按钮会移除 hidden）。
+     遮罩层 data-action 已删；turbo-frame 换成 iframe/div 时保留 class 与 id 即可 -->
+<div id="candy-shorts-library-modal" class="hidden fixed inset-0 z-100">
+  <div class="absolute inset-0 bg-black/80"></div>
+  <div class="absolute inset-0 lg:top-[calc(64px+env(safe-area-inset-top))] flex items-stretch justify-center lg:items-center">
+    <div class="relative w-full h-full lg:h-[730px] lg:max-h-[calc(100dvh-128px)] lg:w-[920px] lg:max-w-[calc(100vw-32px)] lg:rounded-2xl lg:border lg:border-black-stroke lg:shadow-2xl overflow-hidden bg-black-default">
+      <div class="h-full w-full overflow-y-auto scrollbar lg:overflow-hidden">
+        <turbo-frame class="block lg:h-full" id="candy-shorts-frame">
+          <div class="flex items-center justify-center w-full h-full py-20">
+            {{loader_spinner}}
+          </div>
+        </turbo-frame>
+      </div>
+      <div class="hidden absolute inset-0 z-[95] flex items-center justify-center bg-black-default">
+        {{loader_spinner}}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: loader-spinner ==== -->
+<style>
+  @keyframes loader-spin-counter-clockwise {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+  .loader-spin-counter-clockwise {
+    animation: loader-spin-counter-clockwise 1s linear infinite;
+  }
+</style>
+<div class="relative inline-block loader-spin-counter-clockwise" style="width: 56px; height: 56px; background: conic-gradient(from 180deg at 50% 50%, #F77389 0deg, rgba(247, 115, 137, 0) 360deg); border-radius: 50%; mask: radial-gradient(farthest-side, transparent calc(100% - 4px), black calc(100% - 4px)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), black calc(100% - 4px));"></div>

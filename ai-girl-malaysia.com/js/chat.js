@@ -23,35 +23,46 @@
                 $('#user-login').css('display', 'none')
         }
         var id = getParam('id')
-        // 登录态/跳登录页/通话的初始化必须最先做：下面 trigger('click') 万一抛错也不会把它跳过
+        // 登录态/跳登录页/通话的初始化必须最先做：下面会话初始化万一抛错也不会把它跳过
         setupAuthFlow()
         setupCall()
-        channelDetail(id)
-        $('#message-list').find('a').on('click', function(){
-            $('#message-list').find('a').each(function() {
-                $(this).removeClass('px-[6px] bg-[#303030] border border-zinc-600');
-              });
-            $(this).addClass('px-[6px] bg-[#303030] border border-zinc-600')
-            getDetail(chatItemById($(this).data('id')))
-            loadChatHistory()
+        setupLogout()
+        // 会话列表是异步渲染的，点击必须用事件委托，否则后插入的条目不会带上事件
+        $(document).on('click', '#message-list a.chat-obj', function(){
+            selectConversation(String($(this).data('id') || ''))
         })
-        try {
-            $('#message-list').find('a').eq(0).trigger('click')
-        } catch (e) {
-            console.warn('初始化会话失败', e)
-            loadChatHistory()
-        }
+        channelDetail(id)
     }, 1000);
 
-    // 会话项 data-id -> pageList 里的角色对象（原来直接传 id 字符串会让 getDetail 报错）
-    function chatItemById(id) {
-        if (id && typeof id === 'object') return id
+    // 会话列表(id -> 角色对象)，点击时用它取右侧资料
+    var convItems = {}
+
+    // 本地会话列表（首页/Explore 点进角色时写入）
+    function readPageList() {
         var list = []
         try { list = JSON.parse(localStorage.getItem('pageList') || '[]') || [] } catch (e) { list = [] }
-        for (var i = 0; i < list.length; i++) {
-            if (String(list[i] && list[i].id) === String(id)) return list[i]
+        return Array.isArray(list) ? list : []
+    }
+
+    // 会话条目默认结构，保证 getDetail 不会因为缺字段报错
+    function emptyConv(id, title) {
+        return {
+            id: String(id || ''), title: title || String(id || ''), image: '', description: '', time: '',
+            occupation: '-', hobbies: '-', relationship: '-', body: '-', age: '-', ethnicity: '-', messageList: []
         }
-        return null
+    }
+
+    // 会话项 data-id -> 角色对象（原来直接传 id 字符串会让 getDetail 报错）
+    function chatItemById(id) {
+        if (id && typeof id === 'object') return id
+        id = String(id || '')
+        if (id === '') return null
+        if (convItems[id]) return convItems[id]
+        var list = readPageList()
+        for (var i = 0; i < list.length; i++) {
+            if (String(list[i] && list[i].id) === id) return list[i]
+        }
+        return emptyConv(id)
     }
 
     /* ---------- 已登录：不弹登录框，发送走站内 AI 接口 ---------- */
@@ -62,8 +73,48 @@
         $('#sign-in-modal').css('display', 'none')
     }
 
+    /* ---------- 退出登录（右上角 My Profile → Logout） ---------- */
+    // 该按钮原本放在 onsubmit="return false" 的表单里，没有脚本接管，点了没有任何反应
+    function setupLogout() {
+        $(document).on('click', '#logout, .logout', function (e) {
+            e.preventDefault()
+            var t = localStorage.getItem('live_access_token')
+            localStorage.removeItem('live_access_token')
+            localStorage.removeItem('live_user')
+            localStorage.removeItem('live_user_info')
+            // 本地会话缓存一并清掉，避免下一个登录的人看到上一个人的会话列表
+            localStorage.removeItem('pageList')
+            for (var i = localStorage.length - 1; i >= 0; i--) {
+                var k = localStorage.key(i)
+                if (k && k.indexOf('myPersona:') === 0) localStorage.removeItem(k)
+            }
+
+            var jumped = false
+            function goLogin() {
+                if (jumped) return
+                jumped = true
+                location.href = './Login.html'
+            }
+            // 先等接口吊销服务端 token（用 keepalive 避免跳转把请求打断），失败或超时也照样退出
+            if (t) {
+                fetch('/api/live/logout', { method: 'POST', headers: authHeaders(true), body: '{}', keepalive: true })
+                    .then(function (r) { return r.text() })
+                    .then(goLogin, goLogin)
+                setTimeout(goLogin, 1500)
+            } else {
+                goLogin()
+            }
+        })
+    }
+
     function currentConversation() {
-        var a = $('#message-list .chat-obj').first()
+        // 会话标识必须以「当前选中的会话」为准，否则切换到非首项会话时会存错/读错历史
+        var a = $('#message-list .chat-obj.active').first()
+        if (!a.length) {
+            var wanted = String(getParam('id') || '')
+            if (wanted !== '') a = $('#message-list .chat-obj[data-id="' + wanted + '"]').first()
+        }
+        if (!a.length) a = $('#message-list .chat-obj').first()
         return { id: a.attr('data-id') || '', name: a.find('.chat-name, .text-white').first().text().trim() }
     }
 
@@ -133,6 +184,7 @@
                 }
                 localStorage.setItem('myPersona:' + id, JSON.stringify({ name: info.title, desc: desc }))
                 getInfo([info])
+                selectConversation(String(id))
             })
             .catch(function () { appendError('Network error') })
     }
@@ -216,6 +268,10 @@
 
     /* ---------- 聊天：历史 / 媒体消息卡片 / 好感度 / 特殊视频（参考 ai_web/chat.html） ---------- */
     var chatHis = []
+    // 当前会话 id（左侧列表里被选中的那条，决定历史归档键）
+    var activeConvId = ''
+    // 是否已加载过一次历史（用于区分「首次加载」与「切换会话」）
+    var historyLoadedOnce = false
 
     function uiLang() {
         return (document.documentElement.getAttribute('lang') || 'en').slice(0, 2)
@@ -228,9 +284,12 @@
     }
 
     // 非平台角色的归档标识（如 home-4），后端在 content_id=0 时靠它区分角色
+    // 列表尚未渲染时以 URL ?id= 为准（避免回退到公共键后串到其它角色的历史）
     function convRoleKey() {
         var id = String(currentConversation().id || '')
-        return (id === '' || /^\d+$/.test(id)) ? '' : id
+        if (id === '') id = String(getParam('id') || '')
+        if (id === '') return 'chat-default'
+        return /^\d+$/.test(id) ? '' : id
     }
 
     function authHeaders(json) {
@@ -434,8 +493,16 @@
                     if (m.media && (m.media.url || m.media.unlocked === false)) rows.push({ media: m.media, mine: mine })
                     else if (m.content) rows.push({ text: m.content, mine: mine, role: m.role, voice: !!m.voice })
                 }
-                // 没有历史就保留页面自带的问候占位
-                if (!rows.length) return
+                // 没有历史：首次加载保留页面自带的问候占位，切换会话时清空上一个会话的消息
+                if (!rows.length) {
+                    if (historyLoadedOnce) {
+                        var emptyBox = messagesBox()
+                        if (emptyBox) emptyBox.innerHTML = ''
+                    }
+                    historyLoadedOnce = true
+                    return
+                }
+                historyLoadedOnce = true
                 var box = messagesBox()
                 if (box) box.innerHTML = ''
                 for (var j = 0; j < rows.length; j++) {
@@ -455,6 +522,8 @@
     function sendMessage() {
         var input = document.getElementById('message_body')
         if (!input) return
+        // 未登录不允许聊天（也不会产生记录）
+        if (!token) { goLoginPage(); return }
         var text = (input.value || '').trim()
         if (text === '' || sending) return
         sending = true
@@ -834,22 +903,31 @@
         }
     }
     function getInfo(data) {
-          $.each(data, function(index, item) {
-            var template = $('#user-template').html();
-    
-            var rendered = template.replace("{{name}}", item.title)
-            .replace("{{imgUrl}}", item.image.split(',')[0])
-            .replace("{{message}}", item.description)
-            .replace("{{time}}", item.time)
-            .replace("{{id}}", item.id);
-    
+        convItems = {}
+        var template = String($('#user-template').html() || '')
+        $('#message-list').find('a.chat-obj').remove()
+        $.each(data, function(index, item) {
+            if (!item || item.id === undefined || item.id === null || String(item.id) === '') return
+            var cid = String(item.id)
+            var conv = $.extend({}, item)
+            conv.id = cid
+            convItems[cid] = conv
+
+            var rendered = template.replace("{{name}}", conv.title == null ? '' : conv.title)
+            .replace("{{imgUrl}}", String(conv.image || '').split(',')[0])
+            .replace("{{message}}", conv.description == null ? '' : conv.description)
+            .replace("{{time}}", conv.time == null ? '' : conv.time)
+            .replace("{{id}}", cid);
+
             $('#message-list').append(rendered);
-            getDetail(item)
-          });
+        });
+        // 当前会话置为选中态，保证刷新后归档键不丢
+        var $active = $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').first()
+        if ($active.length) $active.addClass('px-[6px] bg-[#303030] border border-zinc-600').addClass('active')
     }
     function getDetail(info) {
         if(!info) return
-        var pictures =  info.image.split(',')
+        var pictures = String(info.image || '').split(',')
         $('#chat-name').html(info.title)
         $('#infomation').html(info.description)
         $('#occupation').html(info.occupation)
@@ -857,11 +935,11 @@
         $('#relationship').html(info.relationship)
         $('#body').html(info.body)
         $('#age').html(info.age)
-        $('#chat-img').attr('src', pictures[0])
+        if (pictures[0]) $('#chat-img').attr('src', pictures[0])
         $('#ethnicity').html(info.ethnicity)
         $('#name').html(info.title)
        
-        if(pictures && pictures.length > 0) {
+        if(pictures[0]) {
             var html = ''
             pictures.forEach((t, index) => {
                 if(index === 0) {
@@ -917,15 +995,122 @@
         //     alert(res.msg)
         //   }
         // }).catch(error => console.error(error))
-        var list = JSON.parse(localStorage.getItem('pageList'))
-        console.log(list)
-        console.log(id)
-        //localStorage.removeItem('pageList')
-        var data = list.filter(function(t){
-          return t.id == id
-        })
-        console.log(data)
-        getInfo(data)
+        var local = readPageList()
+        activeConvId = String(id || '') || String(getParam('id') || '')
+        // 聊天记录只属于登录用户：未登录不展示会话列表与历史，只显示当前角色资料
+        if (!token) {
+            getInfo([])
+            var guestConv = chatItemById(activeConvId)
+            if (guestConv) getDetail(guestConv)
+            return
+        }
+        if (activeConvId === '' && local.length > 0) activeConvId = String(local[0].id || '')
+
+        // 先用本地记录渲染一版，接口慢时左侧也不会空白
+        getInfo(buildConvItems([], local))
+
+        // 再拉服务端会话列表（换设备/清了缓存也能看到历史），按最近聊天排序
+        fetch('/api/live/chatConversations?device_id=' + encodeURIComponent(deviceId()), { headers: authHeaders(false) })
+          .then(function (r) { return r.json() })
+          .then(function (d) {
+            var convs = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
+            if (convs.length > 0) {
+              getInfo(buildConvItems(convs, local))
+              // URL 不带 ?id= 时补上，刷新后仍停留在同一会话
+              if (String(getParam('id') || '') === '') {
+                try { history.replaceState(null, '', './Chat.html?id=' + encodeURIComponent(activeConvId)) } catch (e) {}
+              }
+            }
+            startConversation()
+          })
+          .catch(function () { startConversation() })
       }
-    
+
+    // 服务端会话 + 本地记录 → 左侧可渲染条目（本地记录补名字/头像，服务端给最近一条消息与时间）
+    function buildConvItems(convs, local) {
+        var items = []
+        var used = {}
+        for (var i = 0; i < convs.length; i++) {
+            var conv = convs[i] || {}
+            var cid = Number(conv.content_id || 0)
+            var id = cid > 0 ? String(cid) : String(conv.role_key || '')
+            if (id === '' || id === '0') continue
+            var l = null
+            for (var k = 0; k < local.length; k++) {
+                if (String(local[k] && local[k].id) === id) { l = local[k]; break }
+            }
+            var persona = null
+            if (/^my-\d+$/.test(id)) {
+                try { persona = JSON.parse(localStorage.getItem('myPersona:' + id) || 'null') } catch (e) { persona = null }
+            }
+            used[id] = true
+            var item = emptyConv(id, (l && l.title) || conv.title || (persona && persona.name) || id)
+            item.image = (l && l.image) || conv.cover_url || ''
+            item.description = conv.last_message || (l && l.description) || ''
+            item.time = shortTime(conv.time) || (l && l.time) || ''
+            if (l) {
+                item.occupation = l.occupation || '-'
+                item.hobbies = l.hobbies || '-'
+                item.relationship = l.relationship || '-'
+                item.body = l.body || '-'
+                item.age = l.age || '-'
+                item.ethnicity = l.ethnicity || '-'
+            }
+            items.push(item)
+        }
+        // 本地刚点开、还没聊过的角色也留在列表里
+        for (var j = 0; j < local.length; j++) {
+            var e = local[j] || {}
+            var eid = String(e.id || '')
+            if (eid === '' || used[eid]) continue
+            used[eid] = true
+            var it = emptyConv(eid, e.title)
+            it.image = e.image || ''
+            it.description = e.description || ''
+            it.time = e.time || ''
+            it.occupation = e.occupation || '-'
+            it.hobbies = e.hobbies || '-'
+            it.relationship = e.relationship || '-'
+            it.body = e.body || '-'
+            it.age = e.age || '-'
+            it.ethnicity = e.ethnicity || '-'
+            items.push(it)
+        }
+        return items
+    }
+
+    // '2026-09-16 14:37:02' → 今天显示 14:37，其它显示 09-16
+    function shortTime(s) {
+        s = String(s || '')
+        if (s.length < 16) return ''
+        var d = new Date()
+        var today = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2)
+        return s.slice(0, 10) === today ? s.slice(11, 16) : s.slice(5, 10)
+    }
+
+    // 列表就绪后选中会话（优先 URL ?id=，否则列表第一项）
+    function startConversation() {
+        var $cur = $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').first()
+        if (!$cur.length) $cur = $('#message-list').find('a.chat-obj').first()
+        var cid = String($cur.data('id') || '')
+        if (cid !== '') { selectConversation(cid); return }
+        // 列表里没有任何会话（直接打开 Chat.html）也要加载历史，否则刷新后看不到记录
+        loadChatHistory()
+    }
+
+    // 切换会话：高亮 + 右侧资料 + 历史消息 + URL 同步
+    function selectConversation(convId) {
+        convId = String(convId || '')
+        if (convId === '') return
+        activeConvId = convId
+        $('#message-list').find('a.chat-obj').each(function() {
+            $(this).removeClass('px-[6px] bg-[#303030] border border-zinc-600').removeClass('active')
+        })
+        var $cur = $('#message-list').find('a.chat-obj[data-id="' + convId + '"]').first()
+        if ($cur.length) $cur.addClass('px-[6px] bg-[#303030] border border-zinc-600').addClass('active')
+        try { history.replaceState(null, '', './Chat.html?id=' + encodeURIComponent(convId)) } catch (e) {}
+        getDetail(chatItemById(convId))
+        loadChatHistory()
+    }
+
 })()

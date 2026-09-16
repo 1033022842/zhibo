@@ -31,6 +31,17 @@ final class AiTask extends BaseController
         return $this->jsonSuccess($tasks);
     }
 
+    /**
+     * 拉取待处理的换脸任务（离线任务，AI 电脑轮询此接口）
+     */
+    public function pullFaceSwap()
+    {
+        $count = min(10, max(1, (int) ($this->request->get('count') ?? 5)));
+        $workerId = $this->request->aiWorkerId ?? 'unknown';
+        $tasks = $this->aiTaskService->pullFaceSwapTasks($workerId, $count);
+        return $this->jsonSuccess($tasks);
+    }
+
     public function accept()
     {
         $taskId = (int) $this->request->post('task_id', 0);

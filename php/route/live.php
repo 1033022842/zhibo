@@ -39,6 +39,7 @@ Route::post('live/refresh_token',    '\app\api\controller\Live@refreshToken');
 Route::get('live/channelType',       '\app\api\controller\Live@channelType');
 Route::get('live/customPrice',       '\app\api\controller\Live@customPrice');
 Route::get('live/chatHistory',       '\app\api\controller\Live@chatHistory');
+Route::get('live/chatConversations', '\app\api\controller\Live@chatConversations');
 
 // WHEP WebRTC 代理（透传到 MediaMTX）
 Route::post('v1/whep/<app>/<stream>', '\app\api\controller\Whep@index');
