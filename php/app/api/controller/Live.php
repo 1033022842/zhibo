@@ -793,8 +793,12 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, '消息不能为空');
         }
 
-        // 登录用户：每天首次对话好感度 +1（一天最多 +1），并用数据库历史作为上下文
+        // 聊天记录只属于登录用户：未登录不允许聊天，也不会产生任何记录
         $userId = $this->optionalAuthUserId();
+        if ($userId <= 0) {
+            return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, '请先登录');
+        }
+
         $affectionData = null;
         if ($userId > 0 && $contentId > 0) {
             $affectionService = new AffectionService();
@@ -810,9 +814,9 @@ final class Live extends BaseController
 
         $reply = '';
         if ($triggerMedia === null) {
-            // 读取历史上下文：登录用户按 user_id，游客按 device_id
-            if (($contentId > 0 || $roleKey !== '') && ($userId > 0 || $deviceId !== '')) {
-                $history = $this->loadChatHistory($userId, $deviceId, $contentId, 24, $roleKey);
+            // 读取历史上下文（只含当前登录用户自己的记录）
+            if ($contentId > 0 || $roleKey !== '') {
+                $history = $this->loadChatHistory($userId, $contentId, 24, $roleKey);
             }
 
             // 取内容人设
@@ -854,7 +858,7 @@ final class Live extends BaseController
         }
 
         // 保存本轮对话（用户消息 + AI 回复；触发素材时保存媒体消息）
-        if (($contentId > 0 || $roleKey !== '') && ($userId > 0 || $deviceId !== '')) {
+        if ($contentId > 0 || $roleKey !== '') {
             $this->saveChatMessage($userId, $deviceId, $contentId, 'user', $message, [], $voice, $roleKey);
             if ($reply !== '') {
                 $this->saveChatMessage($userId, $deviceId, $contentId, 'assistant', $reply, [], $voice, $roleKey);
@@ -895,13 +899,12 @@ final class Live extends BaseController
     }
 
     /**
-     * AI 前端：获取聊天历史（登录用户按 user_id，游客按 device_id）
-     * GET { content_id, device_id, limit }
+     * AI 前端：获取聊天历史（只读当前登录用户自己的记录）
+     * GET { content_id, limit }
      */
     public function chatHistory()
     {
         $userId = $this->optionalAuthUserId();
-        $deviceId = trim((string) $this->request->get('device_id', ''));
         $contentId = (int) $this->request->get('content_id', 0);
         // 非平台角色用 role_key（如 home-4）取历史
         $roleKey = $this->normalizeRoleKey((string) $this->request->get('role_key', ''));
@@ -909,68 +912,95 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'content_id 无效');
         }
 
-        if ($userId <= 0 && $deviceId === '') {
+        // 聊天记录只属于登录用户：未登录不返回任何历史
+        if ($userId <= 0) {
             return $this->jsonSuccess([]);
         }
 
         $limit = (int) $this->request->get('limit', 50);
         $limit = max(1, min(200, $limit));
 
-        return $this->jsonSuccess($this->loadChatHistory($userId, $deviceId, $contentId, $limit, $roleKey));
+        return $this->jsonSuccess($this->loadChatHistory($userId, $contentId, $limit, $roleKey));
     }
 
     /**
      * AI 前端：会话列表（左侧聊天历史，按角色去重取最新一条）
-     * GET { device_id }
+     * 只返回当前登录用户自己的会话，未登录返回空
      */
     public function chatConversations()
     {
         $userId = $this->optionalAuthUserId();
-        $deviceId = trim((string) $this->request->get('device_id', ''));
-        if ($userId <= 0 && $deviceId === '') {
+        if ($userId <= 0) {
             return $this->jsonSuccess([]);
         }
 
         $db = \think\facade\Db::connect('live_mysql');
-        $query = $db->table('lp_ai_chat_message')->where('content_id', '>', 0);
-        if ($userId > 0) {
-            $query->where('user_id', $userId);
-        } else {
-            $query->where('device_id', $deviceId);
-        }
+        // 平台角色按 content_id 归档，首页/自建角色按 role_key 归档，两者都要出现在历史里
+        $query = $db->table('lp_ai_chat_message')
+            ->where('user_id', $userId)
+            ->where(function ($q) {
+                $q->where('content_id', '>', 0)->whereOr('role_key', '<>', '');
+            });
 
-        $rows = $query->field(['content_id', 'content', 'media_kind', 'created_at'])
-            ->order('id', 'desc')
-            ->limit(500)
+        // 按会话分组取最新一条，避免单个会话的消息把其它会话挤出 limit
+        $groups = $query->field('content_id, role_key, MAX(id) AS last_id')
+            ->group('content_id, role_key')
+            ->order('last_id', 'desc')
+            ->limit(100)
             ->select()
             ->toArray();
 
-        $seen = [];
-        $list = [];
-        foreach ($rows as $r) {
-            $cid = (int) $r['content_id'];
-            if (isset($seen[$cid])) {
-                continue;
+        $lastIds = [];
+        foreach ($groups as $g) {
+            $lastIds[] = (int) $g['last_id'];
+        }
+        $lastMap = [];
+        if (!empty($lastIds)) {
+            $rows = $db->table('lp_ai_chat_message')
+                ->whereIn('id', $lastIds)
+                ->field(['id', 'content', 'media_kind', 'created_at'])
+                ->select()
+                ->toArray();
+            foreach ($rows as $r) {
+                $lastMap[(int) $r['id']] = $r;
             }
-            $seen[$cid] = true;
+        }
 
-            $content = $db->table('lp_ai_content')
-                ->where('id', $cid)
-                ->field(['title', 'cover_url'])
-                ->find();
+        $list = [];
+        foreach ($groups as $g) {
+            $cid = (int) $g['content_id'];
+            $roleKey = (string) ($g['role_key'] ?? '');
+            $last = $lastMap[(int) $g['last_id']] ?? [];
 
-            $lastMessage = (string) $r['content'];
+            $lastMessage = (string) ($last['content'] ?? '');
             if ($lastMessage === '') {
-                $kind = (string) ($r['media_kind'] ?? '');
+                $kind = (string) ($last['media_kind'] ?? '');
                 $lastMessage = $kind === 'voice' ? '[语音]' : ($kind === 'video' ? '[视频]' : '');
+            }
+
+            // 首页角色的展示信息：home-N 对应内容表 id=N；自建角色 my-N 由前端用本地人设缓存补
+            $title = '';
+            $cover = '';
+            $lookupId = $cid;
+            if ($lookupId <= 0 && preg_match('/^home-(\d+)$/', $roleKey, $m) === 1) {
+                $lookupId = (int) $m[1];
+            }
+            if ($lookupId > 0) {
+                $content = $db->table('lp_ai_content')
+                    ->where('id', $lookupId)
+                    ->field(['title', 'cover_url'])
+                    ->find();
+                $title = (string) ($content['title'] ?? '');
+                $cover = $this->fullUrl((string) ($content['cover_url'] ?? ''));
             }
 
             $list[] = [
                 'content_id'   => $cid,
-                'title'        => $content['title'] ?? '',
-                'cover_url'    => $content['cover_url'] ?? '',
+                'role_key'     => $roleKey,
+                'title'        => $title,
+                'cover_url'    => $cover,
                 'last_message' => $lastMessage,
-                'time'         => $r['created_at'],
+                'time'         => (string) ($last['created_at'] ?? ''),
             ];
         }
 
@@ -1416,24 +1446,19 @@ final class Live extends BaseController
 
     /**
      * 读取聊天历史（按时间正序，最多 limit 条）
-     * 登录用户按 user_id，游客按 device_id
+     * 只读当前登录用户自己的记录
      */
-    private function loadChatHistory(int $userId, string $deviceId, int $contentId, int $limit, string $roleKey = ''): array
+    private function loadChatHistory(int $userId, int $contentId, int $limit, string $roleKey = ''): array
     {
         $query = \think\facade\Db::connect('live_mysql')
-            ->table('lp_ai_chat_message');
+            ->table('lp_ai_chat_message')
+            ->where('user_id', $userId);
 
         if ($contentId > 0) {
             $query->where('content_id', $contentId);
         } else {
             // 非平台角色：按 role_key 归档
             $query->where('content_id', 0)->where('role_key', $roleKey);
-        }
-
-        if ($userId > 0) {
-            $query->where('user_id', $userId);
-        } else {
-            $query->where('device_id', $deviceId);
         }
 
         $rows = $query->field(['id', 'role', 'content', 'media_kind', 'media_url', 'media_title', 'media_id', 'unlock_price', 'unlocked'])

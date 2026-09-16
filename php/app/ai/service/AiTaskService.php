@@ -25,6 +25,9 @@ final class AiTaskService
     private const STREAM_KEY = 'stream:ai:tasks';
     private const GROUP_NAME = 'ai-workers';
 
+    /** 离线换脸任务类型（用户上传人脸图 + 后台配置的固定模板视频） */
+    public const TASK_TYPE_FACE_SWAP = 'face_swap';
+
     private RoomStateMachine $stateMachine;
     private RoomSwitchScheduler $switchScheduler;
     private ChannelWorkerGateway $gateway;
@@ -162,6 +165,94 @@ final class AiTaskService
         return $result;
     }
 
+    /**
+     * 创建离线换脸任务（AI 女友端用户上传图片 + 后台配置的固定模板视频）
+     * 复用 lp_ai_task 队列：task_type=face_swap，room_id=0（无房间），callback_mode=file
+     */
+    public function createFaceSwapTask(
+        int $userId,
+        int $templateId,
+        string $imageUrl,
+        string $templateVideoUrl,
+        string $templateTitle = ''
+    ): array {
+        $taskNo = StrHelper::taskNo('FS');
+        $deadlineMin = (int) config('ai.face_swap.deadline_min', 60);
+        $now = date('Y-m-d H:i:s');
+
+        $task = AiTask::create([
+            'task_no'            => $taskNo,
+            'room_id'            => 0,
+            'task_type'          => self::TASK_TYPE_FACE_SWAP,
+            'priority'           => 0,
+            'source_type'        => 'user',
+            'source_ref_id'      => $userId,
+            'user_id'            => $userId,
+            'persona_id'         => null,
+            'content'            => mb_substr($templateTitle, 0, 1000),
+            'face_image_url'     => $imageUrl,
+            'template_video_url' => $templateVideoUrl,
+            'callback_mode'      => 'file',
+            'status'             => TaskStatus::PENDING->value,
+            'deadline_at'        => date('Y-m-d H:i:s', time() + $deadlineMin * 60),
+            'created_at'         => $now,
+            'updated_at'         => $now,
+        ]);
+
+        $this->writeLog((int) $task->id, 'created', [
+            'source_type' => self::TASK_TYPE_FACE_SWAP,
+            'user_id'     => $userId,
+            'template_id' => $templateId,
+            'image_url'   => $imageUrl,
+            'video_url'   => $templateVideoUrl,
+        ]);
+
+        Log::info("AiTaskService: face_swap task {$taskNo} created, user={$userId}, template={$templateId}");
+
+        return [
+            'task_id'    => (int) $task->id,
+            'task_no'    => $taskNo,
+            'status'     => TaskStatus::PENDING->value,
+            'created_at' => $now,
+        ];
+    }
+
+    /**
+     * AI 电脑拉取待处理的换脸任务（离线任务不走 Redis Stream，直接查 MySQL）
+     */
+    public function pullFaceSwapTasks(string $workerId, int $count = 5): array
+    {
+        $count = min(10, max(1, $count));
+
+        $tasks = AiTask::where('task_type', self::TASK_TYPE_FACE_SWAP)
+            ->where('status', TaskStatus::PENDING->value)
+            ->where(function ($query) {
+                $query->whereNull('deadline_at')
+                    ->whereOr('deadline_at', '>', date('Y-m-d H:i:s'));
+            })
+            ->order('priority', 'desc')
+            ->order('id', 'asc')
+            ->limit($count)
+            ->select()
+            ->toArray();
+
+        Log::info("AiTaskService: pulled " . count($tasks) . " face_swap tasks, consumer={$workerId}");
+
+        return array_map(function ($task) {
+            return [
+                'task_id'            => (int) $task['id'],
+                'task_no'            => $task['task_no'],
+                'task_type'          => $task['task_type'],
+                'user_id'            => (int) $task['user_id'],
+                'face_image_url'     => $task['face_image_url'],
+                'template_video_url' => $task['template_video_url'],
+                'title'              => $task['content'],
+                'deadline_at'        => $task['deadline_at'],
+                'created_at'         => $task['created_at'],
+            ];
+        }, $tasks);
+    }
+
     public function acceptTask(int $taskId, string $workerId): array
     {
         $task = AiTask::find($taskId);
@@ -265,6 +356,18 @@ final class AiTaskService
                 'task_id'     => $taskId,
                 'task_no'     => $task->task_no,
                 'status'      => TaskStatus::COMPLETED->value,
+                'finished_at' => $now,
+            ];
+        }
+
+        // 离线换脸任务：只落结果文件，不进互动播单、不切房间
+        if ($task->task_type === self::TASK_TYPE_FACE_SWAP) {
+            return [
+                'task_id'     => $taskId,
+                'task_no'     => $task->task_no,
+                'status'      => TaskStatus::COMPLETED->value,
+                'result_type' => 'video_file',
+                'video_url'   => $videoUrl,
                 'finished_at' => $now,
             ];
         }

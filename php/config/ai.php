@@ -12,4 +12,9 @@ return [
         'webrtc_app'     => env('ai.webrtc_app', 'live'),
         'max_stream_sec' => (int) env('ai.max_stream_sec', 120),
     ],
+    // 离线换脸任务（用户上传图片 + 后台配置的固定模板视频）
+    'face_swap' => [
+        'deadline_min' => (int) env('ai.face_swap_deadline_min', 60),
+        'list_limit'   => (int) env('ai.face_swap_list_limit', 30),
+    ],
 ];

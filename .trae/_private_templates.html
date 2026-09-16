@@ -1,0 +1,368 @@
+<!--
+  candy.ai /private-content 页面 DOM 模板抽取
+  来源: d:\phpstudy_pro\WWW\douyin\ai-girl-malaysia.com\private-content.html （<main> 1900-15349 行）
+  规则:
+   1) 动态值换成 {{占位符}}；class 与原文一字不改（多行 class 已合并为一行）。
+   2) 已删除的前端框架行为属性: data-controller / data-action / 所有 *-target /
+      以 data-mpc-- 开头的配置属性 / 以 data-confirm-content-pack 开头的属性 /
+      data-turbo-stream / data-method / data-section / data-border-radius /
+      data-loading-button-state-* / x-data / x-show / @click；
+      form 内的 authenticity_token 换成 {{csrf_token}}（原文是每次请求变化的真实 token）。
+   3) 保留的标记属性: data-mpc-card-*（media / bottom-veil / top-veil / center / play /
+      top / bottom / meta / description / avatar / name）与 data-token-display，
+      都是纯标记、无行为，便于识别区域，若要绝对干净可一并删除。
+   4) role / aria-* / href / id / class 全部保留。
+  占位符清单:
+   {{card_id}} {{poster}} {{avatar}} {{creator}} {{title}} {{price}} {{like}} {{badge}}
+   {{video_count}} {{duration}} {{image_count}} {{button_text}} {{gallery_href}} {{purchase_url}}
+   {{csrf_token}} {{tab_key}} {{tab_label}} {{tab_class}} {{placeholder}} {{cards}} {{tabs}}
+   {{search_bar}} {{badge_html}} {{play_button}} {{video_badge}} {{image_badge}} {{buy_all}}
+-->
+
+<!-- ==== TEMPLATE: page-main ==== -->
+<main class="ml-0 lg:ml-[100px] mt-[53px] md:mt-16 h-full pb-[calc(70px+env(safe-area-inset-bottom)+1rem)] lg:pb-8">
+  <div id="private-content-buy-all" class="empty:hidden">{{buy_all}}</div>
+
+  <div class="px-4 py-4 md:py-6">
+    <div class="mx-auto max-w-7xl">
+      {{search_filter_bar}}
+
+      <div id="private-content-lobby-content">{{lobby_grid}}</div>
+
+      <template></template>
+    </div>
+  </div>
+
+  <div id="content_packs_modal"></div>
+  <template id="content-pack-modal-loader"></template>
+  <div id="insufficiant-tokens-modal"></div>
+</main>
+<!-- 说明: 主容器原属性 data-controller="mpc--lobby" + data-mpc--lobby-load-on-connect-value="true"
+     + data-mpc--lobby-base-path-value="/private-content" 已删除；其中两个 tab 状态类可用于后台配置:
+     active   = "bg-white text-black border-white"
+     inactive = "bg-white/5 text-white/80 border-white/15 hover:bg-white/10"
+     另: #content_packs_modal 原带 data-controller="mpc--modal-container"；main 内还有一个
+     <turbo-cable-stream-source ...></turbo-cable-stream-source>（Rails Turbo 长连接，未收录）。 -->
+
+<!-- ==== TEMPLATE: buy-all-slot ==== -->
+<div id="private-content-buy-all" class="empty:hidden">{{buy_all}}</div>
+<!-- 说明: 存档页里该 div 是空的（服务端用 Turbo Stream 往 #private-content-buy-all 里塞“批量购买”CTA，
+     JS 里注册了 Stimulus 控制器 mpc--buy-all，targets = modal/successModal/submit/submitLabel/
+     loadingLabel/closeButton，即弹窗式批量解锁）。存档时为空，所以没有可抽取的真实标记。 -->
+
+<!-- ==== TEMPLATE: search-filter-bar ==== -->
+<div class="flex items-center gap-2 mb-5 lg:mb-7">
+  {{search_bar}}
+
+  <div id="private-content-lobby-tabs" class="flex items-center gap-2 overflow-x-auto no-scrollbar min-w-0 min-h-9">{{tabs}}</div>
+</div>
+
+<!-- ==== TEMPLATE: search-bar ==== -->
+<div class="flex items-center shrink-0 h-9 rounded-full border transition-colors border-white/15 bg-white/5">
+  <button type="button" class="w-9 h-9 flex items-center justify-center cursor-pointer text-white/80 hover:text-white focus:outline-none" aria-label="Search">
+    <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"></circle>
+
+      <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+    </svg>
+  </button>
+
+  <input type="text" value="" placeholder="{{placeholder}}" autocomplete="off" enterkeyhint="search" class="appearance-none bg-transparent border-0 outline-none focus:outline-none focus:ring-0 min-w-0 p-0 text-white text-sm font-medium placeholder-white/40 transition-all duration-300 w-0">
+
+  <button type="button" class="w-7 h-9 items-center justify-center cursor-pointer text-white/50 hover:text-white shrink-0 hidden" aria-label="Clear search">
+    <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+    </svg>
+  </button>
+</div>
+<!-- 说明: 输入框初始 placeholder="Search"、width = w-0（收起态，点击放大镜后由 JS 展开）；清空按钮带 hidden。 -->
+
+<!-- ==== TEMPLATE: filter-tabs ==== -->
+<div id="private-content-lobby-tabs" class="flex items-center gap-2 overflow-x-auto no-scrollbar min-w-0 min-h-9">
+  <a class="{{tab_class}}" href="{{tab_href}}">{{tab_label}}</a>
+</div>
+
+<!-- ==== TEMPLATE: filter-tab--active ==== -->
+<a class="shrink-0 h-9 px-4 inline-flex items-center rounded-full text-xs md:text-sm font-semibold transition-colors border bg-white text-black border-white" href="{{tab_href}}">{{tab_label}}</a>
+<!-- 代表实例: All -->
+
+<!-- ==== TEMPLATE: filter-tab--inactive ==== -->
+<a class="shrink-0 h-9 px-4 inline-flex items-center rounded-full text-xs md:text-sm font-semibold transition-colors border bg-white/5 text-white/80 border-white/15 hover:bg-white/10" href="{{tab_href}}">{{tab_label}}</a>
+<!-- 代表实例: Most liked -->
+<!-- 差异: 只有 class 不同——active = bg-white text-black border-white；inactive = bg-white/5 text-white/80 border-white/15 hover:bg-white/10。
+     两个 tab 的 href 分别是 /private-content 与 /private-content?section=most_liked（存档里是绝对地址 https://candy.ai/...）。
+     原属性 data-section="" / data-section="most_liked" 已被删掉，可自行用 {{tab_key}} 承载。 -->
+
+<!-- ==== TEMPLATE: lobby-content ==== -->
+<div id="private-content-lobby-content">{{lobby_grid}}</div>
+
+<!-- ==== TEMPLATE: lobby-grid ==== -->
+<div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">{{cards}}</div>
+<!-- 响应式列数: 默认 2 列 / md(≥768px) 4 列 / xl(≥1280px) 5 列；间距 gap-3 → md:gap-4。 -->
+
+<!-- ==== TEMPLATE: lobby-skeleton-template ==== -->
+<template></template>
+<!-- 原文: <template data-mpc--lobby-target="skeletonTemplate"></template>
+     为空模板（骨架屏 HTML 由 JS 克隆，但模板内容本身就是空的，所以实际不渲染骨架）。 -->
+
+<!-- ==== TEMPLATE: lobby-card ==== -->
+<div id="private-content-card-{{card_id}}" class="relative w-full aspect-[9/16] rounded-2xl overflow-hidden bg-[#14171B] group ">
+  <div id="content_pack_{{card_id}}" class="absolute inset-0">
+    <span class="pointer-events-none absolute inset-1 z-30 rounded-xl"></span>
+
+    <!-- Media (always the blurred tease) -->
+    <div class="absolute inset-0 rounded-2xl overflow-hidden" data-mpc-card-media="">
+      <img alt="" class="w-full h-full object-cover object-top pointer-events-none scale-110 blur-[7px]" src="{{poster}}">
+
+      <div class="absolute inset-x-0 bottom-0 h-[62%] bg-linear-to-t from-[#050608]/95 via-[#050608]/55 to-transparent pointer-events-none" data-mpc-card-bottom-veil=""></div>
+
+      <div class="absolute inset-x-0 top-0 h-16 bg-linear-to-b from-black/55 to-transparent pointer-events-none" data-mpc-card-top-veil=""></div>
+    </div>
+
+    <!-- Tap the artwork = sneak peek -->
+    <a class="absolute inset-x-0 top-0 bottom-[44%] z-10 block" aria-label="{{creator}}" href="{{gallery_href}}"></a>
+
+    <!-- Centered player / content info -->
+    <div class="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-20 w-max flex flex-col items-center gap-2 pointer-events-none" data-mpc-card-center="">
+      <span class="w-12 h-12 md:w-13 md:h-13 rounded-full bg-black/45 border border-white/50 backdrop-blur-[10px] flex items-center justify-center transition-transform duration-300 group-hover:scale-110" data-mpc-card-play="">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 -translate-x-[1px]" fill="white" aria-hidden="true">
+          <path d="M8 5.14v13.72c0 .8.87 1.3 1.56.88l10.5-6.86a1.03 1.03 0 0 0 0-1.76L9.56 4.26A1.03 1.03 0 0 0 8 5.14Z"></path>
+        </svg>
+      </span>
+
+      <div class="flex flex-col items-center gap-1">
+        <span class="px-2 py-1 md:px-2.5 md:py-1.5 rounded-md bg-black/60 backdrop-blur-[10px] inline-flex items-center whitespace-nowrap gap-1 md:gap-1.5 text-white text-[10px] md:text-xs font-semibold leading-none tracking-wide">
+          <span>{{video_count}} x</span>
+
+          <img class="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" alt="" src="./private-content_files/video-icon-dd7dcd618ba6d4bd2e3688728cbadce1a04c069fd72c2bf6137a79df332a60a2.svg">
+
+          <span>{{duration}}</span>
+        </span>
+
+        <span class="px-2 py-1 md:px-2.5 md:py-1.5 rounded-md bg-black/60 backdrop-blur-[10px] inline-flex items-center whitespace-nowrap gap-1 md:gap-1.5 text-white text-[10px] md:text-xs font-semibold leading-none tracking-wide">
+          <img class="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" alt="" src="./private-content_files/image-icon-bf418de39456539897833eaddf02154524833c9b2e8dc51cdffe77df10b9e36d.svg">
+          <span>{{image_count}}</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Top row -->
+    <div class="absolute top-3 inset-x-3 z-20 flex items-center justify-between gap-2 pointer-events-none" data-mpc-card-top="">
+      <div class="flex items-center gap-2 min-w-0">
+        <img alt="{{creator}}" class="w-7 h-7 object-cover object-top rounded-full ring-1 ring-white/40 shrink-0" data-mpc-card-avatar="true" src="{{avatar}}">
+
+        <span class="text-white text-sm font-semibold leading-tight truncate drop-shadow" data-mpc-card-name="">{{creator}}</span>
+      </div>
+
+      {{badge_html}}
+    </div>
+
+    <!-- Bottom stack -->
+    <div class="absolute bottom-0 inset-x-0 z-20 p-2.5 md:p-3 flex flex-col gap-1 md:gap-2" data-mpc-card-bottom="">
+      <div class="flex items-center justify-between gap-2" data-mpc-card-meta="">
+        <div class="flex items-center gap-2" data-token-display="">
+          <span class="inline-flex items-center gap-1.5">
+            <img class="w-4 h-4 shrink-0" alt="" src="./private-content_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg">
+            <span class="text-[#ffac0b] text-xs md:text-sm font-semibold">{{price}}</span>
+          </span>
+        </div>
+
+        <span class="inline-flex items-center gap-1 text-[#7EE2A8] text-xs font-semibold shrink-0">
+          <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor" aria-hidden="true">
+            <path d="M2 21h4V9H2v12ZM22 11c0-1.1-.9-2-2-2h-6.3l1-4.6v-.3c0-.4-.2-.8-.4-1.1L13.2 2 6.6 8.6c-.4.4-.6.9-.6 1.4v9c0 1.1.9 2 2 2h9c.8 0 1.5-.5 1.8-1.2l3-7.1c.1-.2.2-.5.2-.7v-1Z"></path>
+          </svg>
+
+          {{like}}%
+        </span>
+      </div>
+
+      <div class="truncate-2-lines text-left text-white/80 text-[11px] md:text-xs font-medium leading-tight" data-mpc-card-description="">{{title}}</div>
+
+      <button type="button" class="flex h-[38px] w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-linear-to-r from-[#FA2A55] to-[#FF6B9A] px-0 transition-[filter] hover:brightness-110 md:h-[42px] md:px-3  ">
+        <span class="min-w-0 truncate text-xxs font-semibold text-white md:text-sm">{{button_text}}</span>
+      </button>
+
+      <form class="hidden w-full" action="{{purchase_url}}" accept-charset="UTF-8" method="post">
+        <input type="hidden" name="authenticity_token" value="{{csrf_token}}">
+
+        <button class="flex h-[38px] w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-l from-[#fdc706] to-[#ffa800] md:h-[42px]  ">
+          <span class="text-xxs md:text-sm text-black-default font-semibold">Confirm</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- 代表实例: id=private-content-card-480（无角标 / 1 个视频+时长 / 有图片数）。
+     卡片原始状态: wrapper class 末尾有一个尾随空格（"...bg-[#14171B] group "），已原样保留；
+     Unlock 按钮 class 末尾也是两个空格（"...md:px-3  "），同样原样保留。
+     另: 原文在 “Top row” 之前、center 块之后还有一段纯空白行（line 2013/2164），
+     那是 JS 解锁动画用的空槽（closedHeartLargeIcon / halfLockIcon 由 JS 注入），无静态标记。 -->
+
+<!-- ==== TEMPLATE: lobby-card--with-badge ==== -->
+<!-- 差异: 与 lobby-card 完全相同，只是 “Top row” 里 justify-between 的第二个子节点不为空，
+     即插入下面 card-badge--new 的 <div>。全站 94 张里只有 card_id=481 带角标，文本为 "New"。 -->
+<div class="h-6 px-2.5 bg-red-badge rounded-full inline-flex items-center shrink-0">
+  <span class="text-white text-[10px] md:text-xs font-semibold leading-none">{{badge}}</span>
+</div>
+
+<!-- ==== TEMPLATE: card-badge--new ==== -->
+<div class="h-6 px-2.5 bg-red-badge rounded-full inline-flex items-center shrink-0">
+  <span class="text-white text-[10px] md:text-xs font-semibold leading-none">New</span>
+</div>
+
+<!-- ==== TEMPLATE: card-media ==== -->
+<div class="absolute inset-0 rounded-2xl overflow-hidden" data-mpc-card-media="">
+  <img alt="" class="w-full h-full object-cover object-top pointer-events-none scale-110 blur-[7px]" src="{{poster}}">
+
+  <div class="absolute inset-x-0 bottom-0 h-[62%] bg-linear-to-t from-[#050608]/95 via-[#050608]/55 to-transparent pointer-events-none" data-mpc-card-bottom-veil=""></div>
+
+  <div class="absolute inset-x-0 top-0 h-16 bg-linear-to-b from-black/55 to-transparent pointer-events-none" data-mpc-card-top-veil=""></div>
+</div>
+<!-- 未解锁态的关键: 封面图放大 1.1 倍 + blur-[7px]（永久模糊的“tease”），再叠上下两块渐变压暗。 -->
+
+<!-- ==== TEMPLATE: card-gallery-link ==== -->
+<a class="absolute inset-x-0 top-0 bottom-[44%] z-10 block" aria-label="{{creator}}" href="{{gallery_href}}"></a>
+<!-- 点上半部分（bottom-[44%] 以上）打开图集/预览弹窗；href 形如 /home/content_packs/{id}/gallery?lobby=true。 -->
+
+<!-- ==== TEMPLATE: card-center ==== -->
+<div class="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-20 w-max flex flex-col items-center gap-2 pointer-events-none" data-mpc-card-center="">
+  {{play_button}}
+
+  <div class="flex flex-col items-center gap-1">
+    {{video_badge}}
+
+    {{image_badge}}
+  </div>
+</div>
+
+<!-- ==== TEMPLATE: card-center-play ==== -->
+<span class="w-12 h-12 md:w-13 md:h-13 rounded-full bg-black/45 border border-white/50 backdrop-blur-[10px] flex items-center justify-center transition-transform duration-300 group-hover:scale-110" data-mpc-card-play="">
+  <svg viewBox="0 0 24 24" class="w-5 h-5 -translate-x-[1px]" fill="white" aria-hidden="true">
+    <path d="M8 5.14v13.72c0 .8.87 1.3 1.56.88l10.5-6.86a1.03 1.03 0 0 0 0-1.76L9.56 4.26A1.03 1.03 0 0 0 8 5.14Z"></path>
+  </svg>
+</span>
+<!-- 只有含视频的包才有这个播放圆钮；纯图包（card_id=49）整体没有该元素。 -->
+
+<!-- ==== TEMPLATE: card-info-video-badge ==== -->
+<span class="px-2 py-1 md:px-2.5 md:py-1.5 rounded-md bg-black/60 backdrop-blur-[10px] inline-flex items-center whitespace-nowrap gap-1 md:gap-1.5 text-white text-[10px] md:text-xs font-semibold leading-none tracking-wide">
+  <span>{{video_count}} x</span>
+
+  <img class="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" alt="" src="./private-content_files/video-icon-dd7dcd618ba6d4bd2e3688728cbadce1a04c069fd72c2bf6137a79df332a60a2.svg">
+
+  <span>{{duration}}</span>
+</span>
+<!-- 单视频时 duration = "09:09" 这种纯时长；多视频时 duration = "(Total 01:55)" 这种带 Total 前缀的累加时长。 -->
+
+<!-- ==== TEMPLATE: card-info-video-badge--no-duration ==== -->
+<span class="px-2 py-1 md:px-2.5 md:py-1.5 rounded-md bg-black/60 backdrop-blur-[10px] inline-flex items-center whitespace-nowrap gap-1 md:gap-1.5 text-white text-[10px] md:text-xs font-semibold leading-none tracking-wide">
+  <span>{{video_count}} x</span>
+
+  <img class="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" alt="" src="./private-content_files/video-icon-dd7dcd618ba6d4bd2e3688728cbadce1a04c069fd72c2bf6137a79df332a60a2.svg">
+
+</span>
+<!-- 差异: 视频角标里没有时长 <span>（card_id=184、246），其余 class 完全一致。 -->
+
+<!-- ==== TEMPLATE: card-info-image-badge ==== -->
+<span class="px-2 py-1 md:px-2.5 md:py-1.5 rounded-md bg-black/60 backdrop-blur-[10px] inline-flex items-center whitespace-nowrap gap-1 md:gap-1.5 text-white text-[10px] md:text-xs font-semibold leading-none tracking-wide">
+  <img class="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" alt="" src="./private-content_files/image-icon-bf418de39456539897833eaddf02154524833c9b2e8dc51cdffe77df10b9e36d.svg">
+  <span>{{image_count}}</span>
+</span>
+<!-- 有 3 张卡没有图片角标（card_id=253、169、160），即纯视频包。 -->
+
+<!-- ==== TEMPLATE: card-top-row ==== -->
+<div class="absolute top-3 inset-x-3 z-20 flex items-center justify-between gap-2 pointer-events-none" data-mpc-card-top="">
+  <div class="flex items-center gap-2 min-w-0">
+    <img alt="{{creator}}" class="w-7 h-7 object-cover object-top rounded-full ring-1 ring-white/40 shrink-0" data-mpc-card-avatar="true" src="{{avatar}}">
+
+    <span class="text-white text-sm font-semibold leading-tight truncate drop-shadow" data-mpc-card-name="">{{creator}}</span>
+  </div>
+
+  {{badge_html}}
+</div>
+
+<!-- ==== TEMPLATE: card-bottom ==== -->
+<div class="absolute bottom-0 inset-x-0 z-20 p-2.5 md:p-3 flex flex-col gap-1 md:gap-2" data-mpc-card-bottom="">
+  {{meta_row}}
+
+  <div class="truncate-2-lines text-left text-white/80 text-[11px] md:text-xs font-medium leading-tight" data-mpc-card-description="">{{title}}</div>
+
+  {{unlock_button}}
+
+  {{confirm_form}}
+</div>
+
+<!-- ==== TEMPLATE: card-meta-row ==== -->
+<div class="flex items-center justify-between gap-2" data-mpc-card-meta="">
+  <div class="flex items-center gap-2" data-token-display="">
+    <span class="inline-flex items-center gap-1.5">
+      <img class="w-4 h-4 shrink-0" alt="" src="./private-content_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg">
+      <span class="text-[#ffac0b] text-xs md:text-sm font-semibold">{{price}}</span>
+    </span>
+  </div>
+
+  <span class="inline-flex items-center gap-1 text-[#7EE2A8] text-xs font-semibold shrink-0">
+    <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor" aria-hidden="true">
+      <path d="M2 21h4V9H2v12ZM22 11c0-1.1-.9-2-2-2h-6.3l1-4.6v-.3c0-.4-.2-.8-.4-1.1L13.2 2 6.6 8.6c-.4.4-.6.9-.6 1.4v9c0 1.1.9 2 2 2h9c.8 0 1.5-.5 1.8-1.2l3-7.1c.1-.2.2-.5.2-.7v-1Z"></path>
+    </svg>
+
+    {{like}}%
+  </span>
+</div>
+<!-- 左: token 图标 + 代币价格（原带 data-content-pack-countdown-target="currentPrice"，便于 JS 改价，已删）；
+     右: 大拇指点赞图标 + 点赞率百分比（如 99%）。94 张卡全部都有这两个信息。 -->
+
+<!-- ==== TEMPLATE: card-price ==== -->
+<span class="inline-flex items-center gap-1.5">
+  <img class="w-4 h-4 shrink-0" alt="" src="./private-content_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg">
+  <span class="text-[#ffac0b] text-xs md:text-sm font-semibold">{{price}}</span>
+</span>
+
+<!-- ==== TEMPLATE: card-like ==== -->
+<span class="inline-flex items-center gap-1 text-[#7EE2A8] text-xs font-semibold shrink-0">
+  <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor" aria-hidden="true">
+    <path d="M2 21h4V9H2v12ZM22 11c0-1.1-.9-2-2-2h-6.3l1-4.6v-.3c0-.4-.2-.8-.4-1.1L13.2 2 6.6 8.6c-.4.4-.6.9-.6 1.4v9c0 1.1.9 2 2 2h9c.8 0 1.5-.5 1.8-1.2l3-7.1c.1-.2.2-.5.2-.7v-1Z"></path>
+  </svg>
+
+  {{like}}%
+</span>
+
+<!-- ==== TEMPLATE: card-description ==== -->
+<div class="truncate-2-lines text-left text-white/80 text-[11px] md:text-xs font-medium leading-tight" data-mpc-card-description="">{{title}}</div>
+<!-- 卡片的唯一文本标题/描述，长文案由 .truncate-2-lines 截断为 2 行。 -->
+
+<!-- ==== TEMPLATE: card-unlock-button ==== -->
+<button type="button" class="flex h-[38px] w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-linear-to-r from-[#FA2A55] to-[#FF6B9A] px-0 transition-[filter] hover:brightness-110 md:h-[42px] md:px-3  ">
+  <span class="min-w-0 truncate text-xxs font-semibold text-white md:text-sm">{{button_text}}</span>
+</button>
+<!-- 红色渐变主按钮，文案固定为 "Unlock"（94/94）；原带 data-confirm-content-pack-target="unlockButton"
+     + data-action="click->confirm-content-pack#unlock"（已删）。页面里没有锁形图标元素——"锁"由封面模糊 + Unlock 按钮表达。 -->
+
+<!-- ==== TEMPLATE: card-confirm-form ==== -->
+<form class="hidden w-full" action="{{purchase_url}}" accept-charset="UTF-8" method="post">
+  <input type="hidden" name="authenticity_token" value="{{csrf_token}}">
+
+  <button class="flex h-[38px] w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-l from-[#fdc706] to-[#ffa800] md:h-[42px]  ">
+    <span class="text-xxs md:text-sm text-black-default font-semibold">Confirm</span>
+  </button>
+</form>
+<!-- 二次确认态: 默认 hidden，点击 Unlock 后按钮隐藏、该表单显示（黄橙渐变 Confirm）。
+     action 形如 /home/content_packs/{id}/purchase?origin=lobby_all。 -->
+
+<!-- ==== TEMPLATE: card-confirm-form--unlocked-note ==== -->
+<!-- 存档页 94 张卡全部是「未解锁」状态（没有 Unlock 之外的第二套标记），
+     已解锁卡片的 DOM 在存档中不存在，故不臆造模板。已知差异（来自 JS 控制器 confirm-content-pack）:
+       · unlockButton 加 hidden、confirmButton 表单移除 hidden（即上一条 Confirm 态）；
+       · 边框 span 被加 boxShadow "0 0 0 4px #FFAC0B, 0px 4px 24px 0px rgba(255,189,11,.60)" 做高亮；
+       · closedHeartLarge / halfLockIcon 等 target 元素会在解锁时切换显示。
+     也就是说：模糊封面（blur-[7px]）与 Unlock 按钮是「未解锁」的标志；解锁后封面不再模糊。 -->
+
+<!-- ==== TEMPLATE: modal-container ==== -->
+<div id="content_packs_modal"></div>
+
+<!-- ==== TEMPLATE: modal-loader-template ==== -->
+<template id="content-pack-modal-loader"></template>
+
+<!-- ==== TEMPLATE: insufficient-tokens-modal ==== -->
+<div id="insufficiant-tokens-modal"></div>
