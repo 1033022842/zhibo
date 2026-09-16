@@ -234,3 +234,12 @@ ssh-keygen -R "[127.0.0.1]:12225"   # 隧道方式用
 - H3 工作流 API 模板：`D:\custom_video\h3_api.json`（由 `D:\Administrator\ComfyUI\user\default\workflows\海螺首尾帧.json` 经 wf2api.py 转换+补丁生成）；注入点：114/219 图、220 提示词、131 seed、302 输出
 - worker v2：`D:\custom_video\custom_video_worker_v2.py`（保活任务 `AICustomVideo`，日志 worker.log）
 - 注意：Comfy Desktop 桌面壳不用开（headless 跑核心）；`input` 目录在 `D:\Administrator\ComfyUI\input`，产物在 `output\custom_video\`
+
+### v2.1（2026-09-16 晚）：切换到 H3 独立安装 + 时间线导演台
+
+- **引擎**：`D:\Comfy-Desktop\ComfyUI-Installs\H3`（Comfy Desktop "H3" 安装，core v0.28.0，Python 3.13 + torch 2.12.1，含 `ComfyUI-MiniMaxH3-TimelineDirector` 自定义节点）
+- **服务**：计划任务 `ComfyH3` → `D:\custom_video\run_h3_server.bat`（H3\ComfyUI\.venv python，端口 8000，模型路径经 `D:\custom_video\h3_extra_paths.yaml` 多源映射：ComfyUI-Shared / Administrator / D:\AI\ComfyUI）
+- **工作流**：`h3_director_api.json`（时间线导演台，10 秒带音频）；注入点：184.prompt（结构化导演脚本）、184.timeline_data（EDL，images[0]=任务图）、129 seed、92 输出名；**SolAttnPatch 节点缺失已旁路**（124/126.model 直连 177，效果不受影响）
+- **worker**：`custom_video_worker_v21.py`（保活同 AICustomVideo）；单条约 6-10 分钟
+- 参考素材：`H3\ComfyUI\input\minimax_h3_timeline_director\`（53 张，来自旧 base）
+- 注意：H3 的 input/output 在它自己的 ComfyUI 目录下；旧 8000（Desktop base 0.34）任务 ComfyH3Desktop 已删除
