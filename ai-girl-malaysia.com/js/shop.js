@@ -54,8 +54,10 @@
     }
 
     /* ---------- 失败提示 ----------
-     * 用居中弹窗而不是 layer.msg：msg 是 60% 黑底、3 秒自动消失，在深色站上
-     * 用户基本看不到（余额不足这类提示必须让用户看见并去处理）。
+     * 1) 不能用 layer.msg：60% 黑底、3 秒自动消失，深色站上用户基本看不到；
+     * 2) 不能用 layer（普通 DOM + z-index）：商品详情是原生 modal <dialog>，
+     *    处于浏览器 top layer，任何 z-index 都盖不过它，提示会被整个挡住。
+     *    所以用原生 <dialog>.showModal()：后开的 dialog 在同一 top layer 里更靠上。
      */
     function errText(res) {
         var code = res && res.code
@@ -66,18 +68,30 @@
     }
 
     function alertBox(msg) {
-        if (!window.layer || !layer.alert) { window.alert(msg); return }
         if (!document.getElementById('candy-alert-skin')) {
             var s = document.createElement('style')
             s.id = 'candy-alert-skin'
-            s.textContent =
-                '.candy-alert{background:#1b1b1b!important;border:1px solid rgba(255,255,255,.14)!important;border-radius:14px!important;box-shadow:0 16px 48px rgba(0,0,0,.55)!important}' +
-                '.candy-alert .layui-layer-content{color:#fff;padding:24px 26px 4px;font-size:15px;font-weight:600;line-height:1.5;text-align:center}' +
-                '.candy-alert .layui-layer-btn{padding:0 0 18px;text-align:center}' +
-                '.candy-alert .layui-layer-btn0{background:linear-gradient(90deg,#E75275 0%,#FF6B9A 100%);border:0;border-radius:10px;color:#fff!important;font-weight:600;padding:9px 26px;height:auto;line-height:1.2}'
+            s.textContent = '#candy-alert-dialog::backdrop{background:rgba(0,0,0,.55)}'
             document.head.appendChild(s)
         }
-        layer.alert(esc(msg), { skin: 'candy-alert', title: false, closeBtn: 0, shade: 0.45, btn: ['OK'] })
+        var d = document.getElementById('candy-alert-dialog')
+        if (!d) {
+            d = document.createElement('dialog')
+            d.id = 'candy-alert-dialog'
+            d.setAttribute('aria-label', 'Notice')
+            d.style.cssText = 'margin:auto;padding:0;border:0;border-radius:14px;background:#1b1b1b;color:#fff;' +
+                'box-shadow:0 16px 48px rgba(0,0,0,.55);width:340px;max-width:86vw;'
+            d.innerHTML =
+                '<div style="padding:24px 24px 18px;text-align:center;">' +
+                '<p data-alert-text style="margin:0 0 18px;font-size:15px;font-weight:600;line-height:1.5;color:#fff;"></p>' +
+                '<button type="button" data-alert-ok style="min-width:120px;padding:9px 26px;border:0;border-radius:10px;' +
+                'background:linear-gradient(90deg,#E75275 0%,#FF6B9A 100%);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">OK</button>' +
+                '</div>'
+            document.body.appendChild(d)
+            d.querySelector('[data-alert-ok]').addEventListener('click', function () { d.close() })
+        }
+        d.querySelector('[data-alert-text]').textContent = msg
+        if (!d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', '') }
     }
 
     function ownedBadge(n, text) {
