@@ -49,6 +49,7 @@ PHP_FILES = [
     "php/sql/upgrade_shorts.sql",
     "php/sql/upgrade_posts.sql",
     "php/sql/upgrade_private_content.sql",
+    "php/sql/fix_menu_dup_and_seed_test.sql",
 ]
 
 ADMIN_FILES = [
@@ -84,7 +85,7 @@ export MYSQL_PWD="$DBP"
 
 SQL_STEP = DB_ENV + r"""set -e
 echo "库: $DBN @ $DBH"
-for f in upgrade_shorts.sql upgrade_posts.sql upgrade_private_content.sql; do
+for f in fix_menu_dup_and_seed_test.sql upgrade_shorts.sql upgrade_posts.sql upgrade_private_content.sql; do
   echo "--- $f ---"
   mysql -h"$DBH" -u"$DBU" "$DBN" < "sql/$f" || echo "[FAILED] $f"
 done
@@ -93,7 +94,8 @@ mysql -h"$DBH" -u"$DBU" "$DBN" -e "
   SELECT COUNT(*) AS shorts FROM lp_short_item;
   SELECT COUNT(*) AS posts  FROM lp_post_item;
   SELECT COUNT(*) AS private_items FROM lp_private_item;
-  SELECT id, pid, title, name, component, status FROM ba_admin_rule WHERE name LIKE 'live/shortItem%' OR name LIKE 'live/postItem%' OR name LIKE 'live/privateItem%';"
+  SELECT name, COUNT(*) AS c FROM ba_admin_rule GROUP BY name HAVING c > 1;
+  SELECT id, pid, type, title, name, component, status FROM ba_admin_rule WHERE name LIKE 'live/shopItem%' OR name LIKE 'live/shortItem%' OR name LIKE 'live/postItem%' OR name LIKE 'live/privateItem%' ORDER BY name;"
 """
 
 RELOAD_STEP = r"""
