@@ -390,9 +390,12 @@
                 return
             }
 
-            // 未解锁：点卡片任意位置（Confirm 区除外）都展开 Confirm，绝不跳站外
-            e.preventDefault()
+            // Confirm 区内的点击必须交给表单的 submit 处理：这里绝不能 preventDefault，
+            // 否则点击的默认动作被取消，submit 永不触发，下单逻辑也不会执行
             if (e.target.closest && e.target.closest('[data-content-pack-confirm]')) return
+
+            // 其余位置：点卡片任意处都展开 Confirm，绝不跳站外
+            e.preventDefault()
             var unlockBtn = card.querySelector('[data-content-pack-unlock]')
             var form = card.querySelector('[data-content-pack-confirm]')
             if (unlockBtn) unlockBtn.classList.add('hidden')
