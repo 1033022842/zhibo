@@ -249,12 +249,12 @@
 				.c-title-arrow{display:none}
 				.c-row-arrow{display:none}
 				.c-chip-arrow{display:none}
-				/* 手机端：横滚单排 → 3列网格（一屏至少 3x3 九张卡） */
-				.c-row{display:block;overflow:visible;padding:10px 16px}
-				.c-row-grid{display:grid;grid-auto-flow:row;grid-template-columns:repeat(3,1fr);grid-template-rows:none;gap:10px}
-				.c-card{width:auto;height:auto;aspect-ratio:3/5;border-radius:10px}
-				.c-skeleton{width:auto;height:auto;aspect-ratio:3/5;border-radius:10px}
-				.c-card-short{width:auto;height:auto;aspect-ratio:7/10;border-radius:10px}
+				/* 手机端：保持两排+横滚，卡缩小到一屏可见 ~3列x2排 */
+				.c-row{padding:10px 16px}
+				.c-row-grid{grid-auto-flow:column;grid-template-rows:repeat(2,158px);gap:10px}
+				.c-card{width:96px;height:158px;border-radius:10px}
+				.c-skeleton{width:96px;height:158px;border-radius:10px}
+				.c-card-short{width:96px;height:137px;border-radius:10px}
 				.c-shelf-head{padding:0 16px}
 				.c-shelf-title{font-size:17px}
 				.c-card-info{padding:7px 8px}
@@ -264,7 +264,6 @@
 				.c-card-badge{padding:3px 7px;font-size:9px}
 				.c-card-glyph{width:22px;min-width:22px;height:22px}
 				.c-card-glyph svg{width:11px;height:11px}
-				.c-row.fade-left,.c-row.fade-right,.c-row.fade-left.fade-right{-webkit-mask-image:none;mask-image:none}
 				.c-faq{margin-top:64px}
 				.c-faq h2{font-size:24px;line-height:32px}
 				.c-faq-item{border-radius:10px}
