@@ -33,6 +33,7 @@ const baTable = new baTableClass(
             { label: 'ID', prop: 'id', align: 'center', width: 70, operator: '=' },
             { label: '封面', prop: 'poster', align: 'center', width: 80, render: 'image', operator: false },
             { label: '标题', prop: 'title', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
+            { label: '前N集免费', prop: 'free_episodes', align: 'center', width: 110, operator: 'RANGE' },
             {
                 label: '分区',
                 prop: 'section',
@@ -102,6 +103,7 @@ const baTable = new baTableClass(
             spicy: 0,
             featured: '',
             new_episodes: 0,
+            free_episodes: 0,
             weigh: 0,
             status: 1,
         },

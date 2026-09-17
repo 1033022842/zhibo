@@ -99,7 +99,12 @@
             d.querySelector('[data-alert-ok]').addEventListener('click', function () { d.close() })
         }
         d.querySelector('[data-alert-text]').textContent = msg
-        if (!d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', '') }
+        if (!d.open) {
+            // showModal 在极端时序下可能不生效（节点已建但没显示出来），兜一次底，
+            // 保证提示一定可见：modal 失败就退化成普通 open
+            try { if (d.showModal) d.showModal() } catch (e) { /* 忽略，走下面的退化显示 */ }
+            if (!d.open) d.setAttribute('open', '')
+        }
     }
 
     function findItem(id) {
