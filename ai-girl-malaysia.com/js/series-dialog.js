@@ -591,6 +591,23 @@
                 state.episodes = Array.isArray(res.data.episodes) ? res.data.episodes : []
                 state.confirmId = 0
 
+                // 没配剧集的剧：用剧自身的视频兜底成第 1 集（免费），
+                // 这样任何卡片点开都是同一个弹窗，不会一半新样式一半旧样式
+                if (!state.episodes.length && s.video_url) {
+                    state.episodes = [{
+                        id: 0,
+                        short_id: state.shortId,
+                        episode_no: 1,
+                        title: state.title,
+                        poster: s.poster || '',
+                        duration: '',
+                        price: 0,
+                        free: 1,
+                        unlocked: 1,
+                        video_url: s.video_url,
+                    }]
+                }
+
                 // 默认停在第一集：免费集直接播，锁着的第一集就展示它的解锁 CTA
                 var first = state.episodes[0] || null
                 state.currentId = first ? Number(first.id) : 0

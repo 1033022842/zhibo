@@ -39,8 +39,9 @@
             if (!item) return
             e.preventDefault()
 
-            // 配了剧集的短剧：弹「剧集列表 + 按集解锁」，内部按 free_episodes / 单集价格判定免费
-            if (item.has_episodes && window.CandySeries) {
+            // 一律弹 candy.ai 同款的剧集弹窗（左视频 / 右介绍+剧集）：
+            // 后台配了剧集就列多集，没配就用剧自身视频兜底成第 1 集
+            if (window.CandySeries) {
                 window.CandySeries.open({
                     shortId: item.id,
                     title: item.title || '',
@@ -49,6 +50,7 @@
                 return
             }
 
+            // 极端情况（新版弹窗脚本没加载出来）才回退到旧的单视频弹窗
             if (!window.CandyWatch) return
 
             window.CandyWatch.open({
