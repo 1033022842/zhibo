@@ -151,7 +151,7 @@
 
         var fd = new FormData()
         fd.append('image', selFile)
-        fd.append('type', mode)
+        fd.append('type', mode === 'outfit' ? 'image' : 'video')
         fd.append('agreed_policy', '1')
         if (mode !== 'outfit') fd.append('preset', selPreset.key)
 
