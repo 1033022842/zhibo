@@ -5,6 +5,9 @@
 
     var selFile = null
     var selPreset = null
+    var mode = 'video'          // video | outfit
+    var imagePresets = []
+    var currentPresets = []
 
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -78,13 +81,14 @@
 
     /* ---------- 预设 ---------- */
     var PRESET_ICONS = { dance: '💃', wave: '💋', vlog: '☕' }
+    var OUTFIT_ICONS = { qipao: '🥻', dress: '👗', jk: '🎀', maid: '🧹', office: '💼', wedding: '👰' }
 
     function renderPresets(presets) {
         var box = $('cvPresets')
         box.innerHTML = presets.map(function (p) {
             var sel = selPreset && selPreset.key === p.key
             return '<div class="cv-preset' + (sel ? ' on' : '') + '" data-key="' + esc(p.key) + '">' +
-                '<div class="ic">' + (PRESET_ICONS[p.key] || '✨') + '</div>' +
+                '<div class="ic">' + ((mode === 'outfit' ? OUTFIT_ICONS : PRESET_ICONS)[p.key] || '✨') + '</div>' +
                 '<div class="n">' + esc(p.label) + '</div>' +
                 '<div class="d">' + esc(p.desc || '') + '</div></div>'
         }).join('')
@@ -104,7 +108,9 @@
         }
         authJson(API + '/options').then(function (d) {
             if (!d || d.code !== '00000' || !d.data) { toast((d && d.msg) || 'Load failed', 'error'); return }
-            renderPresets(d.data.presets || [])
+            imagePresets = d.data.image_presets || []
+            currentPresets = d.data.presets || []
+            renderPresets(mode === 'outfit' ? imagePresets : currentPresets)
             $('cvRemain').textContent = d.data.quota ? (d.data.quota.daily_limit + '/day') : '-'
         }).catch(function () { toast('Network error', 'error') })
 
@@ -116,6 +122,15 @@
                 $('cvCreateForm').style.display = vip ? '' : 'none'
             })
             .catch(function () { /* submit 兜底校验 */ })
+    }
+
+    function switchMode(m) {
+        if (mode === m) return
+        mode = m
+        selPreset = null
+        $('cvModeVideo').className = 'cv-tab' + (m === 'video' ? ' on' : '')
+        $('cvModeOutfit').className = 'cv-tab' + (m === 'outfit' ? ' on' : '')
+        renderPresets(m === 'outfit' ? imagePresets : currentPresets)
     }
 
     /* ---------- 提交 ---------- */
@@ -131,6 +146,7 @@
         var fd = new FormData()
         fd.append('image', selFile)
         fd.append('preset', selPreset.key)
+        fd.append('type', mode)
         fd.append('agreed_policy', '1')
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
@@ -161,7 +177,9 @@
         var m = STATUS_META[t.status] || { label: t.status, cls: 'wait' }
         var body
         if (t.status === 'completed' && t.video_url) {
-            body = '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '"></video>'
+            body = t.kind === 'image'
+                ? '<a href="' + esc(t.video_url) + '" target="_blank"><img src="' + esc(t.video_url) + '" style="width:100%;display:block;background:#000" alt="outfit"></a>'
+                : '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '"></video>'
         } else if (t.status === 'failed') {
             body = '<div class="cv-wait-body">Generation failed — please retry later.</div>'
         } else {
@@ -195,6 +213,8 @@
         if (!$('cvTabCreate')) return
         $('cvTabCreate').addEventListener('click', function () { switchTab(true) })
         $('cvTabWorks').addEventListener('click', function () { switchTab(false) })
+        $('cvModeVideo').addEventListener('click', function () { switchMode('video') })
+        $('cvModeOutfit').addEventListener('click', function () { switchMode('outfit') })
         $('cvSubmit').addEventListener('click', submit)
         bindUpload()
         loadOptions()

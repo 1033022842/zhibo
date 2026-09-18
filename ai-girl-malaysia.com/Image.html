@@ -58,7 +58,7 @@
 		
 
 
-	<script src="./js/customVideo.js?v=20260916"></script>
+	<script src="./js/customVideo.js?v=20260918"></script>
 </head>
 	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
 
@@ -721,7 +721,12 @@
 							<input type="file" id="cvFile" accept="image/jpeg,image/png,image/webp" style="display:none">
 
 							<div style="height:22px"></div>
-							<div class="cv-sec-t">2 · Pick a vibe</div>
+							<div class="cv-sec-t">2 · Pick a vibe
+								<span style="float:right;display:inline-flex;gap:6px" id="cvModeSwitch">
+									<button class="cv-tab on" id="cvModeVideo" style="padding:5px 14px;font-size:12px">🎬 Video</button>
+									<button class="cv-tab" id="cvModeOutfit" style="padding:5px 14px;font-size:12px">👗 Outfit</button>
+								</span>
+							</div>
 							<div class="cv-presets" id="cvPresets"></div>
 
 							<label class="cv-policy" id="cvPolicyRow">
