@@ -208,6 +208,180 @@ final class RechargeService
             ->update(['status' => 3, 'updated_at' => date('Y-m-d H:i:s')]);
     }
 
+    /**
+     * 充值套餐列表（后台可配，AI 女友端动态下发）
+     */
+    public function packages(): array
+    {
+        return Db::connect('live_mysql')->table('lp_recharge_package')
+            ->where('status', 1)
+            ->order('sort', 'asc')
+            ->order('price', 'asc')
+            ->select()->toArray();
+    }
+
+    /**
+     * star-pay 网关下单（固定套餐）
+     */
+    public function submitPackageOrder(int $userId, int $packageId, string $product = ''): array
+    {
+        $pkg = Db::connect('live_mysql')->table('lp_recharge_package')
+            ->where('id', $packageId)->where('status', 1)->find();
+        if (!$pkg) {
+            throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '充值套餐不存在或已下架');
+        }
+
+        return $this->createStarPayOrder(
+            $userId,
+            (int) $pkg['tokens'],
+            number_format((float) $pkg['price'], 2, '.', ''),
+            $product,
+            (int) $pkg['id']
+        );
+    }
+
+    /**
+     * 自选点数报价：在相邻两档套餐之间线性插值（与前端算法一致）
+     */
+    public function quoteByTokens(int $tokens): array
+    {
+        $list = $this->packages();
+        if (!$list) {
+            throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '充值套餐未配置');
+        }
+        usort($list, static fn($a, $b) => (int) $a['tokens'] <=> (int) $b['tokens']);
+
+        $min = (int) $list[0]['tokens'];
+        $max = (int) $list[count($list) - 1]['tokens'];
+        if ($tokens < $min || $tokens > $max) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, "点数需在 {$min}~{$max} 之间");
+        }
+
+        $low  = $list[0];
+        $high = $list[count($list) - 1];
+        foreach ($list as $i => $row) {
+            if ((int) $row['tokens'] <= $tokens && ($i + 1) < count($list)) {
+                $low  = $row;
+                $high = $list[$i + 1];
+            }
+        }
+
+        $lowTokens  = (int) $low['tokens'];
+        $highTokens = (int) $high['tokens'];
+        $ratio      = $highTokens > $lowTokens ? ($tokens - $lowTokens) / ($highTokens - $lowTokens) : 0.0;
+        $price      = (float) $low['price'] + $ratio * ((float) $high['price'] - (float) $low['price']);
+        $bonus      = (int) round((int) $low['bonus_percent'] + $ratio * ((int) $high['bonus_percent'] - (int) $low['bonus_percent']));
+
+        return [
+            'tokens'        => $tokens,
+            'price'         => number_format(round($price, 2), 2, '.', ''),
+            'bonus_percent' => $bonus,
+        ];
+    }
+
+    /**
+     * star-pay 网关下单（自选点数）
+     */
+    public function submitCustomOrder(int $userId, int $tokens, string $product = ''): array
+    {
+        $quote = $this->quoteByTokens($tokens);
+
+        return $this->createStarPayOrder($userId, $quote['tokens'], $quote['price'], $product, null);
+    }
+
+    /**
+     * 落库 + 调用网关下单，返回订单（含 pay_url）
+     */
+    private function createStarPayOrder(int $userId, int $tokens, string $amount, string $product, ?int $packageId): array
+    {
+        $db      = Db::connect('live_mysql');
+        $starPay = new StarPayService();
+        $product = $product !== '' ? $product : (string) config('starpay.product');
+        if (!$starPay->isProductEnabled($product)) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '不支持的支付方式');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $order = [
+            'order_no'       => StrHelper::orderNo('RC'),
+            'user_id'        => $userId,
+            'pay_channel'    => 'starpay',
+            'channel_id'     => 0,
+            'package_id'     => $packageId,
+            'chain_type'     => $product,
+            'pay_amount'     => number_format((float) $amount, 2, '.', ''),
+            'diamond_amount' => $tokens,
+            'proof_image'    => '',
+            'status'         => 0,
+            'expire_at'      => date('Y-m-d H:i:s', time() + ((int) (config('starpay.expire_minutes') ?: 120)) * 60),
+            'created_at'     => $now,
+            'updated_at'     => $now,
+        ];
+        $db->table('lp_recharge_order')->insert($order);
+
+        try {
+            $gw = $starPay->createDeposit($order['order_no'], $order['pay_amount'], $product);
+        } catch (\Throwable $e) {
+            $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update([
+                'status'       => 3,
+                'admin_remark' => '网关下单失败：' . $e->getMessage(),
+                'updated_at'   => date('Y-m-d H:i:s'),
+            ]);
+            throw $e;
+        }
+
+        $update = [
+            'system_ref' => (string) ($gw['system_ref'] ?? ''),
+            'pay_url'    => (string) ($gw['payurl'] ?? ''),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+        $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update($update);
+
+        return array_merge($order, $update, ['product' => $product]);
+    }
+
+    /**
+     * star-pay 异步通知确认入账（幂等）
+     */
+    public function confirmByGateway(string $orderNo, string $systemRef = '', string $productRef = ''): array
+    {
+        $db = Db::connect('live_mysql');
+
+        $db->startTrans();
+        try {
+            $order = $db->table('lp_recharge_order')->where('order_no', $orderNo)->lock(true)->find();
+            if (!$order) {
+                $db->commit();
+                throw new BusinessException(ResultCode::ORDER_NOT_FOUND);
+            }
+            if ((int) $order['status'] !== 0) {
+                $db->commit();
+                return $order; // 已处理，幂等返回
+            }
+
+            $now    = date('Y-m-d H:i:s');
+            $remark = 'star-pay 自动到账 system_ref=' . $systemRef . ($productRef !== '' ? ' product_ref=' . $productRef : '');
+
+            $db->table('lp_recharge_order')->where('id', $order['id'])->update([
+                'status'       => 1,
+                'paid_at'      => $now,
+                'reviewed_at'  => $now,
+                'system_ref'   => $systemRef !== '' ? $systemRef : (string) ($order['system_ref'] ?? ''),
+                'admin_remark' => $remark,
+                'updated_at'   => $now,
+            ]);
+
+            $this->creditDiamond($db, (int) $order['user_id'], (float) $order['diamond_amount'], (int) $order['id'], 'star-pay充值');
+
+            $db->commit();
+            $order['status'] = 1;
+            return $order;
+        } catch (\Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
+    }
+
     private function creditDiamond($db, int $userId, float $amount, int $bizId, string $remark = '管理员审核充值'): void
     {
         $wallet = $db->table('lp_wallet_account')
