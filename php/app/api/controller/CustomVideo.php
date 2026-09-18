@@ -72,7 +72,9 @@ final class CustomVideo extends BaseController
     {
         $userId = $this->getAuthUserId();
         $presetKey = (string) $this->request->post('preset', '');
-        $kind = $this->request->post('type', 'video') === 'image' ? 'image' : 'video';
+        // type 兼容 image / outfit（前端历史版本用 outfit）
+        $typeRaw = (string) $this->request->post('type', 'video');
+        $kind = in_array($typeRaw, ['image', 'outfit'], true) ? 'image' : 'video';
         $agreed = (int) $this->request->post('agreed_policy', 0);
 
         if ($agreed !== 1) {
