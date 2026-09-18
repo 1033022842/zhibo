@@ -334,7 +334,7 @@ final class AiTaskService
 
         $now = date('Y-m-d H:i:s');
         $task->status = TaskStatus::COMPLETED->value;
-        $task->result_type = 'video_file';
+        $task->result_type = $task->task_type === 'custom_image' ? 'image_file' : 'video_file';
         $task->video_url = $videoUrl;
         $task->cover_url = $coverUrl;
         $task->duration_sec = $durationSec;
@@ -350,8 +350,8 @@ final class AiTaskService
 
         Log::info("AiTaskService: task {$task->task_no} completed, duration={$durationSec}s");
 
-        // VIP 定制视频：与直播间无关（room_id=0），跳过播单/切换调度/房间推送
-        if ($task->task_type === 'custom_video') {
+        // VIP 定制内容（视频/图片）：与直播间无关（room_id=0），跳过播单/切换调度/房间推送
+        if (in_array($task->task_type, ['custom_video', 'custom_image'], true)) {
             return [
                 'task_id'     => $taskId,
                 'task_no'     => $task->task_no,

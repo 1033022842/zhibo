@@ -76,7 +76,8 @@ final class AiTask extends BaseController
         $durationSec = (int) $this->request->post('duration_sec', 0);
         $coverUrl = $this->request->post('cover_url', '');
 
-        if ($taskId <= 0 || $videoUrl === '' || $durationSec <= 0) {
+        // 图片任务（custom_image）无时长概念，duration_sec 允许为 0
+        if ($taskId <= 0 || $videoUrl === '' || $durationSec < 0) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task_id / video_url / duration_sec 均为必填');
         }
 
