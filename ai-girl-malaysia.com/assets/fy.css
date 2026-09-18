@@ -113,4 +113,32 @@
     .page-header-background .banner{
         top:-2.4rem;
     }
+
+/* ---------------------------------------------------------------
+   侧边栏导航：隐藏原生滚动条
+   小屏笔记本（非 24 寸）导航列表高于视口时会出现 Windows 原生滚动条，
+   与暗色侧栏风格冲突，这里统一隐藏但仍可滚动。
+   --------------------------------------------------------------- */
+[data-main-target="mainSidebarClosedContainer"] nav,
+[data-main-target="mainSidebarClosedContainer"] ul,
+[data-main-target="mainSidebarOpenedContainer"] nav,
+[data-main-target="mainSidebarOpenedContainer"] ul,
+[data-main-target="mainMobileSidebarContainer"] ul{
+    overflow-x: hidden;
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* 旧 Edge / IE */
+}
+[data-main-target="mainSidebarClosedContainer"] ul::-webkit-scrollbar,
+[data-main-target="mainSidebarOpenedContainer"] ul::-webkit-scrollbar,
+[data-main-target="mainMobileSidebarContainer"] ul::-webkit-scrollbar{
+    width: 0;
+    height: 0;
+    display: none;
+}
+/* 侧栏本身也不出现滚动条（撑满视口高度） */
+[data-main-target="mainSidebarClosedContainer"],
+[data-main-target="mainSidebarOpenedContainer"]{
+    overflow: hidden;
+}
+
     
