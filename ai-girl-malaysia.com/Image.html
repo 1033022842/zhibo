@@ -650,6 +650,11 @@
 	.cv-mode.on{background:linear-gradient(135deg,var(--sg-pink),var(--sg-cta));color:#fff;box-shadow:0 4px 18px rgba(245,59,112,.3)}
 	.cv-mode.on .ic{filter:none}
 	.cv-mode.on .sub{color:rgba(255,255,255,.78)}
+	@media (max-width:480px){
+		.cv-mode .sub{display:none}
+		.cv-mode{padding:11px 8px;gap:7px}
+		.cv-mode .ic{font-size:16px}
+	}
 .cv-panel{background:var(--sg-card);border:1px solid var(--sg-line);border-radius:18px;padding:26px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
 .cv-sec-t{color:#e6e6e6;font-size:15px;font-weight:600;margin:2px 0 14px}
 .cv-sec-t small{color:var(--sg-grey);font-weight:400;font-size:12px;margin-left:6px}
