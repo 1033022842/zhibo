@@ -29,6 +29,40 @@ final class ShortItem extends Backend
         $this->model = new ShortItemModel();
     }
 
+    /**
+     * remoteSelect 下拉数据（「短剧剧集」里选所属短剧用）
+     *
+     * traits\Backend::index() 在 select=true 时先调本方法；这里必须用 success() 收尾
+     * （内部抛 HttpResponseException 截断），否则会继续跑默认的分页查询。
+     */
+    public function select(): void
+    {
+        $quickSearch = trim((string) $this->request->get('quickSearch/s', ''));
+        $initValue   = (string) $this->request->get('initValue', '');
+
+        $query = $this->model->where('status', 1);
+        if ($quickSearch !== '') {
+            $query->where('title', 'like', '%' . $quickSearch . '%');
+        }
+
+        $list = $query->field('id,title')
+            ->order('weigh', 'desc')
+            ->order('id', 'desc')
+            ->limit(20)
+            ->select()
+            ->toArray();
+
+        // 编辑回显：当前绑定的剧若已下架或不在前 20 条里，补进列表
+        if ($initValue !== '' && !in_array((int) $initValue, array_map('intval', array_column($list, 'id')), true)) {
+            $current = $this->model->field('id,title')->find((int) $initValue);
+            if ($current) {
+                array_unshift($list, ['id' => (int) $current['id'], 'title' => (string) $current['title']]);
+            }
+        }
+
+        $this->success('', ['list' => $list, 'total' => count($list)]);
+    }
+
     public function add(): void
     {
         if (!$this->request->isPost()) {
@@ -89,6 +123,8 @@ final class ShortItem extends Backend
     private function normalizePayload(array $data, array $existing = []): array
     {
         $data['title']        = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
+        $data['description']  = trim((string) ($data['description'] ?? $existing['description'] ?? ''));
+        $data['free_episodes'] = max(0, (int) ($data['free_episodes'] ?? $existing['free_episodes'] ?? 0));
         $data['poster']       = $this->normalizeFileUrl((string) ($data['poster'] ?? $existing['poster'] ?? ''));
         $data['href']         = trim((string) ($data['href'] ?? $existing['href'] ?? ''));
         $data['section']      = (string) ($data['section'] ?? $existing['section'] ?? 'explore');

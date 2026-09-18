@@ -61,6 +61,52 @@
         return true
     }
 
+    /* ---------- 失败提示 ----------
+     * 1) 不能用 layer.msg：60% 黑底、3 秒自动消失，深色站上用户基本看不到；
+     * 2) 不能用 layer（普通 DOM + z-index）：站内其它弹窗是原生 modal <dialog>，
+     *    处于浏览器 top layer，任何 z-index 都盖不过它，提示会被整个挡住。
+     *    所以用原生 <dialog>.showModal()：后开的 dialog 在同一 top layer 里更靠上。
+     */
+    function errText(res) {
+        var code = res && res.code
+        if (code === 'C0100') return 'Not enough diamonds. Please top up first.'
+        if (code === 'C0101') return 'Your wallet is frozen. Please contact support.'
+        if (code === 'A0100' || code === 'A0101') return 'Session expired. Please sign in again.'
+        return (res && res.msg) || 'Something went wrong. Please try again.'
+    }
+
+    function alertBox(msg) {
+        if (!document.getElementById('candy-alert-skin')) {
+            var s = document.createElement('style')
+            s.id = 'candy-alert-skin'
+            s.textContent = '#candy-alert-dialog::backdrop{background:rgba(0,0,0,.55)}'
+            document.head.appendChild(s)
+        }
+        var d = document.getElementById('candy-alert-dialog')
+        if (!d) {
+            d = document.createElement('dialog')
+            d.id = 'candy-alert-dialog'
+            d.setAttribute('aria-label', 'Notice')
+            d.style.cssText = 'margin:auto;padding:0;border:0;border-radius:14px;background:#1b1b1b;color:#fff;' +
+                'box-shadow:0 16px 48px rgba(0,0,0,.55);width:340px;max-width:86vw;'
+            d.innerHTML =
+                '<div style="padding:24px 24px 18px;text-align:center;">' +
+                '<p data-alert-text style="margin:0 0 18px;font-size:15px;font-weight:600;line-height:1.5;color:#fff;"></p>' +
+                '<button type="button" data-alert-ok style="min-width:120px;padding:9px 26px;border:0;border-radius:10px;' +
+                'background:linear-gradient(90deg,#E75275 0%,#FF6B9A 100%);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">OK</button>' +
+                '</div>'
+            document.body.appendChild(d)
+            d.querySelector('[data-alert-ok]').addEventListener('click', function () { d.close() })
+        }
+        d.querySelector('[data-alert-text]').textContent = msg
+        if (!d.open) {
+            // showModal 在极端时序下可能不生效（节点已建但没显示出来），兜一次底，
+            // 保证提示一定可见：modal 失败就退化成普通 open
+            try { if (d.showModal) d.showModal() } catch (e) { /* 忽略，走下面的退化显示 */ }
+            if (!d.open) d.setAttribute('open', '')
+        }
+    }
+
     function findItem(id) {
         for (var i = 0; i < items.length; i++) {
             if (String(items[i].id) === String(id)) return items[i]
@@ -178,7 +224,8 @@
                     '</button>' +
 
                     '<form class="hidden w-full" data-content-pack-confirm accept-charset="UTF-8" method="post">' +
-                       '<button type="button" class="flex h-[38px] w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-l from-[#fdc706] to-[#ffa800] md:h-[42px]  ">' +
+                       // 必须是 submit：下单逻辑挂在表单的 submit 上（form 无 action，submit 里已 preventDefault，不会跳站外）
+                       '<button type="submit" class="flex h-[38px] w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-l from-[#fdc706] to-[#ffa800] md:h-[42px]  ">' +
                          '<span class="text-xxs md:text-sm text-black-default font-semibold">Confirm</span>' +
                        '</button>' +
                      '</form>') +
@@ -347,7 +394,7 @@
             .then(function (res) {
                 btn.disabled = false
                 if (!res || res.code !== '00000') {
-                    if (window.layer) layer.msg((res && res.msg) || 'Unlock failed')
+                    alertBox(errText(res))
                     return
                 }
 
@@ -365,7 +412,7 @@
             })
             .catch(function () {
                 btn.disabled = false
-                if (window.layer) layer.msg('Network error, please try again')
+                alertBox('Network error, please try again')
             })
     }
 
@@ -389,9 +436,12 @@
                 return
             }
 
-            // 未解锁：点卡片任意位置（Confirm 区除外）都展开 Confirm，绝不跳站外
-            e.preventDefault()
+            // Confirm 区内的点击必须交给表单的 submit 处理：这里绝不能 preventDefault，
+            // 否则点击的默认动作被取消，submit 永不触发，下单逻辑也不会执行
             if (e.target.closest && e.target.closest('[data-content-pack-confirm]')) return
+
+            // 其余位置：点卡片任意处都展开 Confirm，绝不跳站外
+            e.preventDefault()
             var unlockBtn = card.querySelector('[data-content-pack-unlock]')
             var form = card.querySelector('[data-content-pack-confirm]')
             if (unlockBtn) unlockBtn.classList.add('hidden')

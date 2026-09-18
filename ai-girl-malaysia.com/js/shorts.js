@@ -30,7 +30,7 @@
         explore: 'Explore All Shorts',
     }
 
-    /* ---------- 点击卡片：一律在本站弹窗观看，不再跳 candy.ai ---------- */
+    /* ---------- 点击卡片：有剧集走剧集弹窗，否则沿用单视频弹窗 ---------- */
     function bindCards() {
         document.addEventListener('click', function (e) {
             var el = e.target.closest ? e.target.closest('[data-short-id]') : null
@@ -38,6 +38,19 @@
             var item = byId[String(el.getAttribute('data-short-id') || '')]
             if (!item) return
             e.preventDefault()
+
+            // 一律弹 candy.ai 同款的剧集弹窗（左视频 / 右介绍+剧集）：
+            // 后台配了剧集就列多集，没配就用剧自身视频兜底成第 1 集
+            if (window.CandySeries) {
+                window.CandySeries.open({
+                    shortId: item.id,
+                    title: item.title || '',
+                    description: item.description || '',
+                })
+                return
+            }
+
+            // 极端情况（新版弹窗脚本没加载出来）才回退到旧的单视频弹窗
             if (!window.CandyWatch) return
 
             window.CandyWatch.open({
@@ -77,6 +90,27 @@
         return '<div class="absolute z-30 right-1.5 top-1.5 md:right-2 md:top-2">' + spicyPill() + '</div>'
     }
 
+    /* ---------- 右下角：集数 + 起售价 ----------
+     * 原站没有这两个角标，是新功能的展示位；用内联样式，避免依赖
+     * Tailwind 成品包里不存在的类名。withProgressBar=true 时抬高，
+     * 避开 Continue watching 卡片底部的进度条。
+     */
+    var PILL_STYLE = 'padding:1px 6px;border-radius:9999px;background:rgba(0,0,0,.66);color:#fff;' +
+        'font-size:10px;font-weight:600;line-height:16px;white-space:nowrap;backdrop-filter:blur(6px);'
+
+    function episodesBadge(item, withProgressBar) {
+        if (!item.has_episodes) return ''
+        var count = Math.round(num(item.episode_count))
+        if (count <= 0) return ''
+
+        var from = Math.round(num(item.price_from))
+        var pills = '<span style="' + PILL_STYLE + '">' + count + ' Eps</span>' +
+            '<span style="' + PILL_STYLE + '">' + (from > 0 ? from + ' 💎' : 'Free') + '</span>'
+
+        return '<div style="position:absolute;right:6px;bottom:' + (withProgressBar ? '14px' : '6px') +
+            ';z-index:30;display:flex;gap:4px;pointer-events:none;">' + pills + '</div>'
+    }
+
     /* 左上角 New Episodes 角标 */
     function newEpisodesBadge() {
         return '<span role="status" class="pointer-events-none absolute top-0 z-30 flex items-center py-0.75 text-4xs font-bold uppercase leading-2.75 tracking-[0.02em] md:py-1.25 md:text-3xs md:leading-3.75 bg-[#f53b70] text-white left-0 rounded-br-xl pl-1.25 pr-1.5 md:pl-2 md:pr-2.25">' +
@@ -96,6 +130,7 @@
             '<div class="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true"></div>' +
             (item.new_episodes ? newEpisodesBadge() : '') +
             (item.spicy ? spicyBadge() : '') +
+            episodesBadge(item, false) +
             '</div>'
 
         if (featured === 'gradient') {
@@ -115,6 +150,7 @@
             '<div class="absolute inset-x-2 bottom-1 z-10 h-0.5 overflow-hidden rounded-full bg-white/50 lg:inset-x-0 lg:bottom-0 lg:h-1.5 lg:bg-white/30" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(p) + '" aria-label="' + esc(item.title) + ' viewing progress">' +
             '<div class="h-full rounded-full bg-white" style="width: ' + p.toFixed(1) + '%"></div>' +
             '</div>' +
+            episodesBadge(item, true) +
             '</div>' +
             '</a>'
     }

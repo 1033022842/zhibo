@@ -44,12 +44,15 @@ PHP_FILES = [
     "php/app/api/route/private_content.php",
     "php/app/api/route/shop.php",
     "php/app/admin/controller/live/ShortItem.php",
+    "php/app/admin/controller/live/ShortEpisode.php",
     "php/app/admin/controller/live/PostItem.php",
     "php/app/admin/controller/live/PrivateItem.php",
     "php/app/admin/model/live/ShortItem.php",
+    "php/app/admin/model/live/ShortEpisode.php",
     "php/app/admin/model/live/PostItem.php",
     "php/app/admin/model/live/PrivateItem.php",
     "php/sql/upgrade_shorts.sql",
+    "php/sql/upgrade_short_episode.sql",
     "php/sql/upgrade_posts.sql",
     "php/sql/upgrade_private_content.sql",
     "php/sql/fix_menu_dup_and_seed_test.sql",
@@ -59,6 +62,8 @@ PHP_FILES = [
 ADMIN_FILES = [
     "php/web/src/views/backend/live/shortItem/index.vue",
     "php/web/src/views/backend/live/shortItem/popupForm.vue",
+    "php/web/src/views/backend/live/shortEpisode/index.vue",
+    "php/web/src/views/backend/live/shortEpisode/popupForm.vue",
     "php/web/src/views/backend/live/postItem/index.vue",
     "php/web/src/views/backend/live/postItem/popupForm.vue",
     "php/web/src/views/backend/live/privateItem/index.vue",
@@ -78,6 +83,7 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/js/private_content.js",
     "ai-girl-malaysia.com/js/shop.js",
     "ai-girl-malaysia.com/js/watch-dialog.js",
+    "ai-girl-malaysia.com/js/series-dialog.js",
     "ai-girl-malaysia.com/js/site-shell.js",
 ]
 
@@ -95,7 +101,7 @@ export MYSQL_PWD="$DBP"
 
 SQL_STEP = DB_ENV + r"""set -e
 echo "库: $DBN @ $DBH"
-for f in fix_menu_dup_and_seed_test.sql upgrade_purchase.sql upgrade_shorts.sql upgrade_posts.sql upgrade_private_content.sql; do
+for f in fix_menu_dup_and_seed_test.sql upgrade_purchase.sql upgrade_shorts.sql upgrade_short_episode.sql upgrade_posts.sql upgrade_private_content.sql; do
   echo "--- $f ---"
   mysql -h"$DBH" -u"$DBU" "$DBN" < "sql/$f" || echo "[FAILED] $f"
 done
