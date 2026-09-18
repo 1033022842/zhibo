@@ -80,16 +80,13 @@ final class CustomVideo extends BaseController
         }
 
         if ($kind === 'image') {
-            // 图片编辑：用户自由填写指令
+            // 图片编辑：正向词固定在 AI 电脑的工作流文件里（qwenedit_api.json 节点76），
+            // 支持可选覆盖（后台/前端传 prompt 时优先）
             $prompt = trim((string) $this->request->post('prompt', ''));
-            $len = mb_strlen($prompt);
-            if ($len < 3) {
-                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please describe what you want to change (at least 3 characters).');
-            }
-            if ($len > 500) {
+            if (mb_strlen($prompt) > 500) {
                 return $this->jsonFail(ResultCode::PARAM_ERROR, 'Instruction is too long (max 500 characters).');
             }
-            $preset = ['key' => 'custom', 'label' => 'Custom edit', 'prompt' => $prompt];
+            $preset = ['key' => 'image_edit', 'label' => 'AI Edit', 'prompt' => $prompt];
         } else {
             $preset = null;
             foreach (self::PRESETS as $p) {
