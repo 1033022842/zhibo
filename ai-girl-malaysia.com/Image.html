@@ -58,7 +58,7 @@
 		
 
 
-	<script src="./js/customVideo.js?v=20260918"></script>
+	<script src="./js/customVideo.js?v=20260918b"></script>
 </head>
 	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
 
@@ -721,13 +721,26 @@
 							<input type="file" id="cvFile" accept="image/jpeg,image/png,image/webp" style="display:none">
 
 							<div style="height:22px"></div>
-							<div class="cv-sec-t">2 · Pick a vibe
+							<div class="cv-sec-t">2 · Pick a mode
 								<span style="float:right;display:inline-flex;gap:6px" id="cvModeSwitch">
 									<button class="cv-tab on" id="cvModeVideo" style="padding:5px 14px;font-size:12px">🎬 Video</button>
-									<button class="cv-tab" id="cvModeOutfit" style="padding:5px 14px;font-size:12px">👗 Outfit</button>
+									<button class="cv-tab" id="cvModeOutfit" style="padding:5px 14px;font-size:12px">✏️ Edit</button>
 								</span>
 							</div>
-							<div class="cv-presets" id="cvPresets"></div>
+
+							<div id="cvPromptWrap" style="display:none">
+								<textarea id="cvPrompt" maxlength="500" rows="3" placeholder="Describe what you want (e.g. give her a beige beret and a knitted scarf)…"
+									style="width:100%;background:#17111c;border:1.5px solid var(--sg-line);border-radius:14px;padding:14px;color:#fff;font-size:14px;line-height:1.6;resize:vertical;outline:none;font-family:inherit"></textarea>
+								<div style="display:flex;justify-content:space-between;margin-top:6px">
+									<span style="color:var(--sg-grey);font-size:11px">Keep her face, hairstyle and pose unchanged — describe only the change.</span>
+									<span id="cvPromptCount" style="color:var(--sg-grey);font-size:11px">0/500</span>
+								</div>
+								<div style="height:18px"></div>
+							</div>
+
+							<div id="cvPresetWrap">
+								<div class="cv-presets" id="cvPresets"></div>
+							</div>
 
 							<label class="cv-policy" id="cvPolicyRow">
 								<input type="checkbox" id="cvPolicy">
