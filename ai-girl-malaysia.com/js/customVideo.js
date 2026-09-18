@@ -128,8 +128,8 @@
         if (mode === m) return
         mode = m
         selPreset = null
-        $('cvModeVideo').className = 'cv-tab' + (m === 'video' ? ' on' : '')
-        $('cvModeOutfit').className = 'cv-tab' + (m === 'outfit' ? ' on' : '')
+        $('cvModeVideo').className = 'cv-mode' + (m === 'video' ? ' on' : '')
+        $('cvModeOutfit').className = 'cv-mode' + (m === 'outfit' ? ' on' : '')
         var isEdit = m === 'outfit'
         $('cvPromptWrap').style.display = isEdit ? '' : 'none'
         $('cvPresetWrap').style.display = isEdit ? 'none' : ''
