@@ -16,6 +16,19 @@
             <div class="ba-operate-form" :class="'ba-' + baTable.form.operate + '-form'">
                 <el-form ref="formRef" :model="baTable.form.items" :rules="rules" label-width="120px" v-show="!baTable.form.loading">
                     <FormItem label="标题" v-model="baTable.form.items!.title" prop="title" type="string" />
+                    <FormItem
+                        label="介绍"
+                        v-model="baTable.form.items!.description"
+                        type="textarea"
+                        :input-attr="{ rows: 4, placeholder: '前台剧集弹窗里展示的剧情简介（可留空）' }"
+                    />
+                    <FormItem
+                        label="前N集免费"
+                        v-model="baTable.form.items!.free_episodes"
+                        type="number"
+                        :input-attr="{ min: 0 }"
+                        tip="集号 ≤ N 的剧集免钻直接播放；0 表示没有免费集。剧集在「短剧剧集」菜单里配置"
+                    />
                     <FormItem label="封面图" v-model="baTable.form.items!.poster" type="image" />
                     <FormItem
                         label="视频文件"

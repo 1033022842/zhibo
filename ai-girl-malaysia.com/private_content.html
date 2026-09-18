@@ -24,6 +24,9 @@
             }
             .login-pf{display:none;}
             #user-login{display:none;}
+            /* 本页复用的 Tailwind 产物没编译这两个任意值类，顶栏 Login 按钮会退回黑字灰边，这里按原站补回 */
+            .text-\[\#E75275\]{color:#E75275;}
+            .border-\[\#E75275\]{border-color:#E75275;}
 		</style>
 
 		<title>Private Content - Sugus.ai</title>
@@ -40,8 +43,8 @@
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/main.js?v=20260913"></script>
-		<script src="./js/watch-dialog.js"></script>
-		<script src="./js/private_content.js"></script>
+		<script src="./js/watch-dialog.js?v=20260917"></script>
+		<script src="./js/private_content.js?v=20260918"></script>
 
 			</head>
 	<body class="bg-main content_packs lobby" id="app" data-controller="main" data-onesignal-enabled="true" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="#&lt;User:0x00007f3ba06e9c80&gt;">
