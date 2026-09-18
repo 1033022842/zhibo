@@ -44,6 +44,16 @@ final class CustomVideo extends BaseController
         ],
     ];
 
+    /** 换装预设 → Qwen-Image-Edit 提示词（{OUTFIT} 由前端选预设后端拼装） */
+    private const IMAGE_PRESETS = [
+        ['key' => 'qipao',   'label' => 'Silk Qipao',    'desc' => 'Elegant red silk qipao',  'prompt' => '给她换上一件优雅的深红色丝绸旗袍，合身剪裁，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
+        ['key' => 'dress',   'label' => 'Evening Gown',  'desc' => 'Glamorous long gown',    'prompt' => '给她换上一条华丽的晚礼服长裙，闪耀的深蓝色面料，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
+        ['key' => 'jk',      'label' => 'School JK',     'desc' => 'Cute JK school uniform', 'prompt' => '给她换上一套日系JK制服，白色衬衫配深蓝百褶裙和领结，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
+        ['key' => 'maid',    'label' => 'Maid Outfit',   'desc' => 'Classic maid costume',   'prompt' => '给她换上一套经典女仆装，黑白配色带蕾丝围裙和头饰，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
+        ['key' => 'office',  'label' => 'Office Lady',   'desc' => 'Smart OL suit',          'prompt' => '给她换上一套干练的职业女装，白色衬衫配修身西装裙，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
+        ['key' => 'wedding', 'label' => 'Wedding Dress', 'desc' => 'White wedding gown',     'prompt' => '给她换上一件洁白的婚纱，精致蕾丝与长头纱，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
+    ];
+
     protected array $middleware = [
         \app\live\middleware\Auth::class => ['only' => ['options', 'submit', 'myList']],
         \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'uploadVideo']],
@@ -61,6 +71,7 @@ final class CustomVideo extends BaseController
     {
         return $this->jsonSuccess([
             'presets' => self::PRESETS,
+            'image_presets' => self::IMAGE_PRESETS,
             'quota'   => ['daily_limit' => self::DAILY_LIMIT],
         ]);
     }
@@ -72,13 +83,15 @@ final class CustomVideo extends BaseController
     {
         $userId = $this->getAuthUserId();
         $presetKey = (string) $this->request->post('preset', '');
+        $kind = $this->request->post('type', 'video') === 'image' ? 'image' : 'video';
         $agreed = (int) $this->request->post('agreed_policy', 0);
 
         if ($agreed !== 1) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please confirm the upload policy first.');
         }
+        $pool = $kind === 'image' ? self::IMAGE_PRESETS : self::PRESETS;
         $preset = null;
-        foreach (self::PRESETS as $p) {
+        foreach ($pool as $p) {
             if ($p['key'] === $presetKey) { $preset = $p; break; }
         }
         if (!$preset) {
@@ -109,7 +122,7 @@ final class CustomVideo extends BaseController
         $imageUrl = (string) $attachment['url'];
 
         // 每日配额
-        $todayCount = AiTask::where('source_type', 'custom_video')
+        $todayCount = AiTask::whereIn('source_type', ['custom_video', 'custom_image'])
             ->where('source_ref_id', $userId)
             ->whereLike('created_at', date('Y-m-d') . '%')
             ->count();
@@ -119,9 +132,9 @@ final class CustomVideo extends BaseController
 
         // 建任务
         $task = new AiTask();
-        $task->task_no     = StrHelper::orderNo('CV');
+        $task->task_no     = StrHelper::orderNo($kind === 'image' ? 'CI' : 'CV');
         $task->room_id     = 0;
-        $task->task_type   = 'custom_video';
+        $task->task_type   = $kind === 'image' ? 'custom_image' : 'custom_video';
         $task->priority    = 5;
         $task->source_type = 'custom_video';
         $task->source_ref_id = $userId;
@@ -152,7 +165,7 @@ final class CustomVideo extends BaseController
     public function myList()
     {
         $userId = $this->getAuthUserId();
-        $tasks = AiTask::where('source_type', 'custom_video')
+        $tasks = AiTask::whereIn('source_type', ['custom_video', 'custom_image'])
             ->where('source_ref_id', $userId)
             ->order('id', 'desc')
             ->limit(50)
@@ -164,6 +177,7 @@ final class CustomVideo extends BaseController
                 'task_id'    => (int) $t['id'],
                 'task_no'    => $t['task_no'],
                 'label'      => (string) ($c['label'] ?? ''),
+                'kind'       => $t['task_type'] === 'custom_image' ? 'image' : 'video',
                 'action'     => (string) ($c['action'] ?? ''),
                 'status'     => $t['status'],
                 'video_url'  => $t['video_url'] ? $this->absUrl((string) $t['video_url']) : '',
@@ -181,7 +195,7 @@ final class CustomVideo extends BaseController
     public function pending()
     {
         $count = min(3, max(1, (int) ($this->request->get('count') ?? 1)));
-        $tasks = AiTask::where('task_type', 'custom_video')
+        $tasks = AiTask::whereIn('task_type', ['custom_video', 'custom_image'])
             ->where('status', TaskStatus::PENDING->value)
             ->order('priority', 'desc')
             ->order('id', 'asc')
@@ -193,6 +207,7 @@ final class CustomVideo extends BaseController
             return [
                 'task_id'    => (int) $t['id'],
                 'task_no'    => $t['task_no'],
+                'kind'       => $t['task_type'] === 'custom_image' ? 'image' : 'video',
                 'action'     => (string) ($c['action'] ?? ''),
                 'label'      => (string) ($c['label'] ?? ''),
                 'prompt'     => (string) ($c['prompt'] ?? ''),
@@ -210,7 +225,7 @@ final class CustomVideo extends BaseController
         $taskId = (int) $this->request->post('task_id', 0);
         $workerId = (string) ($this->request->aiWorkerId ?? 'unknown');
         $task = AiTask::find($taskId);
-        if (!$task || $task->task_type !== 'custom_video') {
+        if (!$task || !in_array($task->task_type, ['custom_video', 'custom_image'], true)) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task 不存在');
         }
         if ($task->status !== TaskStatus::PENDING->value) {
@@ -238,7 +253,7 @@ final class CustomVideo extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task_id / video 必填');
         }
         $task = AiTask::find($taskId);
-        if (!$task || $task->task_type !== 'custom_video') {
+        if (!$task || !in_array($task->task_type, ['custom_video', 'custom_image'], true)) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task 不存在');
         }
 
