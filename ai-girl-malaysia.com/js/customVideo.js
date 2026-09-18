@@ -130,13 +130,23 @@
         selPreset = null
         $('cvModeVideo').className = 'cv-tab' + (m === 'video' ? ' on' : '')
         $('cvModeOutfit').className = 'cv-tab' + (m === 'outfit' ? ' on' : '')
-        renderPresets(m === 'outfit' ? imagePresets : currentPresets)
+        var isEdit = m === 'outfit'
+        $('cvPromptWrap').style.display = isEdit ? '' : 'none'
+        $('cvPresetWrap').style.display = isEdit ? 'none' : ''
+        $('cvSubmit').textContent = isEdit ? '✨ Edit Image' : '✨ Generate Video'
+        if (!isEdit) renderPresets(currentPresets)
     }
 
     /* ---------- 提交 ---------- */
     function submit() {
         if (!selFile) { toast('Please upload her picture first', 'warn'); return }
-        if (!selPreset) { toast('Please pick a vibe', 'warn'); return }
+        var editPrompt = ''
+        if (mode === 'outfit') {
+            editPrompt = ($('cvPrompt').value || '').trim()
+            if (editPrompt.length < 3) { toast('Please describe the change (at least 3 characters)', 'warn'); return }
+        } else if (!selPreset) {
+            toast('Please pick a vibe', 'warn'); return
+        }
         if (!$('cvPolicy').checked) { toast('Please confirm the upload policy', 'warn'); return }
 
         var btn = $('cvSubmit')
@@ -145,20 +155,25 @@
 
         var fd = new FormData()
         fd.append('image', selFile)
-        fd.append('preset', selPreset.key)
         fd.append('type', mode)
         fd.append('agreed_policy', '1')
+        if (mode === 'outfit') {
+            fd.append('prompt', editPrompt)
+        } else {
+            fd.append('preset', selPreset.key)
+        }
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             btn.disabled = false
-            btn.textContent = '✨ Generate Video'
+            btn.textContent = mode === 'outfit' ? '✨ Edit Image' : '✨ Generate Video'
             if (!d || d.code !== '00000') { toast((d && d.msg) || 'Submit failed', 'error'); return }
             if (d.data && typeof d.data.remain === 'number') $('cvRemain').textContent = d.data.remain + ' left'
+            if (mode === 'outfit') $('cvPrompt').value = ''
             toast('Task submitted! Track it in My Works', 'success')
             switchTab(false)
         }).catch(function () {
             btn.disabled = false
-            btn.textContent = '✨ Generate Video'
+            btn.textContent = mode === 'outfit' ? '✨ Edit Image' : '✨ Generate Video'
             toast('Network error', 'error')
         })
     }
@@ -217,6 +232,8 @@
         $('cvModeOutfit').addEventListener('click', function () { switchMode('outfit') })
         $('cvSubmit').addEventListener('click', submit)
         bindUpload()
+        var pt = $('cvPrompt')
+        if (pt) pt.addEventListener('input', function () { $('cvPromptCount').textContent = pt.value.length + '/500' })
         loadOptions()
         loadWorks(true)
     }

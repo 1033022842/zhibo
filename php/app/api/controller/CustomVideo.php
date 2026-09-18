@@ -44,16 +44,6 @@ final class CustomVideo extends BaseController
         ],
     ];
 
-    /** 换装预设 → Qwen-Image-Edit 提示词（{OUTFIT} 由前端选预设后端拼装） */
-    private const IMAGE_PRESETS = [
-        ['key' => 'qipao',   'label' => 'Silk Qipao',    'desc' => 'Elegant red silk qipao',  'prompt' => '给她换上一件优雅的深红色丝绸旗袍，合身剪裁，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
-        ['key' => 'dress',   'label' => 'Evening Gown',  'desc' => 'Glamorous long gown',    'prompt' => '给她换上一条华丽的晚礼服长裙，闪耀的深蓝色面料，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
-        ['key' => 'jk',      'label' => 'School JK',     'desc' => 'Cute JK school uniform', 'prompt' => '给她换上一套日系JK制服，白色衬衫配深蓝百褶裙和领结，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
-        ['key' => 'maid',    'label' => 'Maid Outfit',   'desc' => 'Classic maid costume',   'prompt' => '给她换上一套经典女仆装，黑白配色带蕾丝围裙和头饰，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
-        ['key' => 'office',  'label' => 'Office Lady',   'desc' => 'Smart OL suit',          'prompt' => '给她换上一套干练的职业女装，白色衬衫配修身西装裙，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
-        ['key' => 'wedding', 'label' => 'Wedding Dress', 'desc' => 'White wedding gown',     'prompt' => '给她换上一件洁白的婚纱，精致蕾丝与长头纱，保留她的脸部、发型、表情和姿态完全不变，画面其他部分保持不变，高质量细节'],
-    ];
-
     protected array $middleware = [
         \app\live\middleware\Auth::class => ['only' => ['options', 'submit', 'myList']],
         \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'uploadVideo']],
@@ -71,7 +61,6 @@ final class CustomVideo extends BaseController
     {
         return $this->jsonSuccess([
             'presets' => self::PRESETS,
-            'image_presets' => self::IMAGE_PRESETS,
             'quota'   => ['daily_limit' => self::DAILY_LIMIT],
         ]);
     }
@@ -89,13 +78,26 @@ final class CustomVideo extends BaseController
         if ($agreed !== 1) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please confirm the upload policy first.');
         }
-        $pool = $kind === 'image' ? self::IMAGE_PRESETS : self::PRESETS;
-        $preset = null;
-        foreach ($pool as $p) {
-            if ($p['key'] === $presetKey) { $preset = $p; break; }
-        }
-        if (!$preset) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please choose a style preset.');
+
+        if ($kind === 'image') {
+            // 图片编辑：用户自由填写指令
+            $prompt = trim((string) $this->request->post('prompt', ''));
+            $len = mb_strlen($prompt);
+            if ($len < 3) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please describe what you want to change (at least 3 characters).');
+            }
+            if ($len > 500) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Instruction is too long (max 500 characters).');
+            }
+            $preset = ['key' => 'custom', 'label' => 'Custom edit', 'prompt' => $prompt];
+        } else {
+            $preset = null;
+            foreach (self::PRESETS as $p) {
+                if ($p['key'] === $presetKey) { $preset = $p; break; }
+            }
+            if (!$preset) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please choose a style preset.');
+            }
         }
 
         // VIP 校验
