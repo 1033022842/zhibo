@@ -243,3 +243,25 @@ ssh-keygen -R "[127.0.0.1]:12225"   # 隧道方式用
 - **worker**：`custom_video_worker_v21.py`（保活同 AICustomVideo）；单条约 6-10 分钟
 - 参考素材：`H3\ComfyUI\input\minimax_h3_timeline_director\`（53 张，来自旧 base）
 - 注意：H3 的 input/output 在它自己的 ComfyUI 目录下；旧 8000（Desktop base 0.34）任务 ComfyH3Desktop 已删除
+
+### v3.3（2026-09-18）：多人共用 GPU + 自由提示词
+
+> ⚠️ **这台机器多人共用**，同事会用 Comfy Desktop 图形界面跑任务。worker 已做适配，双方可以共存。
+
+**端点自适应（关键）**
+- 优先借用同事的 Comfy Desktop（`127.0.0.1:8188`），它没开才起自建 headless（`127.0.0.1:8000`）
+- 两个实例**数据目录不同**，worker 按端点自动切换：
+  - 8188 → input `D:\Administrator\ComfyUI\input` / output `D:\Administrator\ComfyUI\output`
+  - 8000 → input/output 在 `H3\ComfyUI\` 下
+- 显存冲突不再强杀别人进程；ComfyUI 自带串行队列，双方任务自然排队
+
+**单例保护**：worker 绑定本地端口 47777，重复启动的进程自动退出（历史问题：计划任务+loop bat 叠加导致多进程抢任务）
+
+**图片编辑改自由提示词**：`type=image` 时前端传 `prompt`（3-500字），不再用固定服装预设。
+工作流 `qwenedit_api.json` 由同事的 `D:\工作流\qwenedit.json` 转换而来，**已移除 Remove-Clothes LoRA 及脱衣提示词**。
+
+**LoRA**：导演台串接 `soulmate_h3_v1.safetensors`（155MB，另存于 H3 models/loras），与 turbo LoRA 叠加使用。
+
+**运维**
+- 保活：计划任务 `AICustomVideo`（每5分钟）+ `AICustomVideoLogon`（登录时），bat 单次运行不循环
+- 排障：`netstat -ano | Select-String 47777` 看 worker 是否在跑；`worker.log` 看任务流水
