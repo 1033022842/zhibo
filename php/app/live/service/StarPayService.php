@@ -52,9 +52,10 @@ final class StarPayService
      * @param string $amount      金额（法币保留两位小数 / 数字货币保留六位小数）
      * @param string $product     产品（TRC20Buy / USDCDeposit ...）
      * @param array  $extra       额外参数，如 ['fiat_currency' => 'USD']
+     * @param string $returnUrl   同步跳回地址（为空则用全局配置）
      * @return array 网关业务参数：merchant_ref/system_ref/amount/fee/status/success_time/payurl/extra
      */
-    public function createDeposit(string $merchantRef, string $amount, string $product, array $extra = []): array
+    public function createDeposit(string $merchantRef, string $amount, string $product, array $extra = [], string $returnUrl = ''): array
     {
         $params = [
             'merchant_ref' => $merchantRef,
@@ -74,8 +75,9 @@ final class StarPayService
         if (!empty($this->cfg['notify_url'])) {
             $params['notify_url'] = $this->cfg['notify_url'];
         }
-        if (!empty($this->cfg['return_url'])) {
-            $params['return_url'] = $this->cfg['return_url'];
+        $backUrl = $returnUrl !== '' ? $returnUrl : (string) ($this->cfg['return_url'] ?? '');
+        if ($backUrl !== '') {
+            $params['return_url'] = $backUrl;
         }
 
         return $this->request('/api/gateway/pay', $params);
