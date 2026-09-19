@@ -1,47 +1,114 @@
 /**
- * Subscriptions 页（英文界面 · USDT 计价 · 钻石余额支付）
+ * Subscriptions 页（英文界面 · USDT 计价 · star-pay 网关支付）
  */
 (()=>{
     var base = '/api/v1'
     var token = localStorage.getItem('live_access_token')
-    var cacheTemplate = ''
+    var tmplPc = ''
+    var tmplYd = ''
     var plans = []
-    var vipStatus = null
+    var products = []
+    var product = 'TRC20Buy'
+    var PENDING_KEY = 'vip_pending_order'
+    // 页面币种入口 → star-pay 产品（data-text：1 ETH / 2 TRX / 3 USDT-ERC20 / 4 USDT-TRC20 / 5 BSC）
+    var COIN_PRODUCT = { '1': 'ERC20Buy', '2': 'TRC20Buy', '3': 'ERC20Buy', '4': 'TRC20Buy' }
 
     function h() { return token ? { 'Authorization': 'Bearer ' + token } : {} }
+
+    function toast(msg) {
+        if (window.layer && layer.msg) { layer.msg(msg) } else { alert(msg) }
+    }
 
     setTimeout(init, 800)
 
     function init() {
-        cacheTemplate = $('#vip-template').html()
+        tmplPc = $('#vip-template').html()
+        tmplYd = $('#vip-template-yd').html()
+        setupPayMethods()
         bindEvents()
+        loadProducts()
         loadPlans()
         loadVipStatus()
         loadBalance()
+        pollOrder(pendingOrderNo(), 12)
+    }
+
+    // ===== 支付方式 =====
+    function setupPayMethods() {
+        // 网关不支持 BSC 与卡支付，隐藏入口（保留原站 DOM 结构）
+        $('.usdt-group[data-text="5"], .usdt-group-yd[data-text="5"]').hide()
+        $('#hairColor .hairColor, #hairColor-yd .hairColor-yd').each(function() {
+            if ($(this).find('img').length) { $(this).hide() }
+        })
+        $('#usdt-layout').css({ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' })
+        $('#usdt-layout-yd').css({ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' })
     }
 
     function bindEvents() {
-        $('#vip-Layout').on('click', '.vip-group', function() {
-            $('#vip-Layout').find('.sub-gradient-active').each((i, d) => {
-                $(d).removeClass('sub-gradient-active')
-                $(d).addClass('sub-gradient')
-            })
-            $(this).removeClass('sub-gradient')
-            $(this).addClass('sub-gradient-active')
+        $('#vip-Layout').on('click', '.vip-group', function() { selectPlan('#vip-Layout', $(this), 'vip-group') })
+        $('#vip-Layout-yd').on('click', '.vip-group-yd', function() { selectPlan('#vip-Layout-yd', $(this), 'vip-group-yd') })
+
+        $('#usdt-layout, #usdt-layout-yd').on('click', '.usdt-group, .usdt-group-yd', function() {
+            var $box = $(this).closest('#usdt-layout, #usdt-layout-yd')
+            $box.find('.sub-gradient-active').removeClass('sub-gradient-active').addClass('sub-gradient')
+            $(this).removeClass('sub-gradient').addClass('sub-gradient-active')
+            product = COIN_PRODUCT[String($(this).data('text'))] || product
         })
 
-        $('#payment').on('click', function(e) { e.preventDefault(); buyVip() })
-        $('#payment-yd').on('click', function(e) { e.preventDefault(); buyVip() })
+        $('#hairColor, #hairColor-yd').on('click', '.hairColor, .hairColor-yd', function() {
+            $('#usdt-layout').css('display', 'flex')
+            $('#usdt-layout-yd').css('display', 'flex')
+        })
+
+        $('#payment').on('click', function(e) { e.preventDefault(); pay() })
+        $('#payment-yd').on('click', function(e) { e.preventDefault(); pay() })
         $('#buyPoint').on('click', goRecharge)
         $('#buyPoint-yd').on('click', goRecharge)
         $(document).on('click', '#vip-claim-btn:not(:disabled)', claimDaily)
-        $(document).on('click', '.vip-confirm-mask, .vip-confirm-cancel', closeConfirm)
-        $(document).on('click', '.vip-confirm-ok', function() { closeConfirm(); doBuy(pendingPlanId) })
+    }
+
+    function selectPlan(scope, $item, cls) {
+        $(scope).find('.' + cls).each(function() {
+            $(this).removeClass('sub-gradient-active').addClass('sub-gradient')
+        })
+        $item.removeClass('sub-gradient').addClass('sub-gradient-active')
     }
 
     function goRecharge() {
-        var tk = localStorage.getItem('live_access_token') || ''
-        window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
+        location.href = './purchasePoints.html'
+    }
+
+    // token 失效（A0100 Token无效 / A0101 Token已过期）：清登录态并回登录页
+    function backToLogin(msg) {
+        try { localStorage.removeItem('live_access_token') } catch (e) {}
+        toast(msg || 'Please log in again')
+        setTimeout(function(){ location.href = './Login.html' }, 900)
+    }
+
+    // ===== 支付方式可用性（以后台启用产品为准）=====
+    function loadProducts() {
+        $.ajax({ url: base + '/recharge/packages' }).done(function(r) {
+            if (r.code === '00000' && r.data && r.data.products) {
+                products = r.data.products || []
+                applyProductAvailability()
+            }
+            selectDefaultCoin()
+        }).catch(function() { selectDefaultCoin() })
+    }
+
+    function applyProductAvailability() {
+        var enabled = {}
+        products.forEach(function(p) { enabled[p.code] = true })
+        if (!Object.keys(enabled).length) return
+        $('#usdt-layout .usdt-group, #usdt-layout-yd .usdt-group-yd').each(function() {
+            var code = COIN_PRODUCT[String($(this).data('text'))]
+            if (!code || !enabled[code]) { $(this).hide() }
+        })
+    }
+
+    function selectDefaultCoin() {
+        var $target = $('#usdt-layout .usdt-group:visible').first()
+        if ($target.length) { $target.trigger('click') } else { product = 'TRC20Buy' }
     }
 
     // ===== Plans =====
@@ -57,29 +124,37 @@
         }).catch(function(){})
     }
 
-    function renderPlans(list) {
-        if (!cacheTemplate || !list.length) return
+    function fill(tpl, p) {
+        var months = parseInt(p.months, 10) || 1
+        var usd = parseFloat(p.usd_price) || 0
+        var per = usd / months
         var maxPerMonth = 0
-        list.forEach(function(p) {
-            var per = parseFloat(p.usdt_price) / (parseInt(p.months) || 1)
-            if (per > maxPerMonth) maxPerMonth = per
+        plans.forEach(function(item) {
+            var v = (parseFloat(item.usd_price) || 0) / (parseInt(item.months, 10) || 1)
+            if (v > maxPerMonth) maxPerMonth = v
         })
-        $('#vip-Layout').empty()
+        var off = maxPerMonth > 0 ? Math.round((1 - per / maxPerMonth) * 100) : 0
+        return tpl
+            .replace(/{{id}}/g, p.id)
+            .replace(/{{month}}/g, months)
+            .replace(/{{description}}/g, off)
+            .replace(/{{title}}/g, usd.toFixed(2) + ' USDT')
+            .replace(/\${{unit}}/g, per.toFixed(2))
+            .replace(/{{decimal}}/g, String(parseFloat(p.daily_diamond) || 0))
+    }
+
+    function renderPlans(list) {
+        if (!list.length) return
+        var htmlPc = ''
+        var htmlYd = ''
         list.forEach(function(p) {
-            var months = parseInt(p.months) || 1
-            var usdt = parseFloat(p.usdt_price)
-            var per = usdt / months
-            var off = maxPerMonth > 0 ? Math.round((1 - per / maxPerMonth) * 100) : 0
-            var html = cacheTemplate
-                .replace(/{{id}}/g, p.id)
-                .replace(/{{month}}/g, months)
-                .replace(/{{description}}/g, off)
-                .replace(/{{title}}/g, usdt.toFixed(2) + ' USDT')
-                .replace(/\${{unit}}/g, per.toFixed(2) + ' USDT')
-                .replace(/{{decimal}}/g, p.daily_diamond + '/day')
-            $('#vip-Layout').append(html)
+            htmlPc += fill(tmplPc || '', p)
+            htmlYd += fill(tmplYd || '', p)
         })
+        $('#vip-Layout').empty().append(htmlPc)
+        $('#vip-Layout-yd').empty().append(htmlYd)
         $('#vip-Layout .vip-group').first().trigger('click')
+        $('#vip-Layout-yd .vip-group-yd').first().trigger('click')
     }
 
     // ===== VIP status =====
@@ -87,8 +162,7 @@
         if (!token) return
         $.ajax({ url: base + '/vip/status', headers: h() }).done(function(r) {
             if (r.code === '00000' && r.data) {
-                vipStatus = r.data
-                renderStatus(vipStatus)
+                renderStatus(r.data)
             }
         }).catch(function(){})
     }
@@ -125,13 +199,13 @@
             headers: h(),
         }).done(function(r) {
             if (r.code === '00000') {
-                layer.msg('Claimed +' + (r.data.claimed || 0) + ' diamonds')
+                toast('Claimed +' + (r.data.claimed || 0) + ' diamonds')
                 loadVipStatus()
                 loadBalance()
             } else {
-                layer.msg(r.msg || 'Failed')
+                toast(r.msg || 'Failed')
             }
-        }).catch(function(){ layer.msg('Network error') })
+        }).catch(function(){ toast('Network error') })
     }
 
     function loadBalance() {
@@ -151,67 +225,80 @@
         }).catch(function(){})
     }
 
-    // ===== Purchase (styled English confirm) =====
-    var pendingPlanId = null
-
-    function buyVip() {
+    // ===== 下单支付 =====
+    function pay() {
         if (!token) {
-            layer.msg('Please log in first')
+            toast('Please log in first')
             setTimeout(function(){ location.href = './Login.html' }, 900)
             return
         }
-        var id = $('#vip-Layout .vip-group.sub-gradient-active').data('id')
+        var $sel = $('#vip-Layout .vip-group.sub-gradient-active, #vip-Layout-yd .vip-group-yd.sub-gradient-active').first()
+        var id = $sel.data('id')
         if (!id) {
-            layer.msg('Please select a plan')
+            toast('Please select a plan')
             return
         }
-        var plan = plans.find(function(p){ return p.id == id })
-        pendingPlanId = id
 
-        if ($('#vip-confirm-mask').length === 0) {
-            $('body').append(
-                '<div class="vip-confirm-mask" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;padding:20px">' +
-                '<div class="vip-confirm-box" style="width:100%;max-width:380px;background:linear-gradient(180deg,#1c1c26,#14141c);border:1px solid rgba(231,82,117,.35);border-radius:16px;padding:26px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">' +
-                '<div style="font-size:38px;margin-bottom:8px">&#128176;</div>' +
-                '<div id="vc-title" style="font-size:17px;font-weight:700;color:#fff;margin-bottom:4px"></div>' +
-                '<div id="vc-sub" style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:18px"></div>' +
-                '<div id="vc-price" style="font-size:26px;font-weight:800;color:#f59e0b;margin-bottom:22px"></div>' +
-                '<button class="vip-confirm-ok" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#E75275,#c73b5c);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">Confirm Payment</button>' +
-                '<button class="vip-confirm-cancel" style="width:100%;padding:11px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:transparent;color:rgba(255,255,255,.6);font-size:14px;cursor:pointer">Cancel</button>' +
-                '</div></div>'
-            )
-        }
-        $('#vc-title').text(plan ? plan.name : 'Membership')
-        $('#vc-sub').text((plan ? plan.months : '') + ' months membership')
-        $('#vc-price').html('<span style="font-size:15px;font-weight:400;color:rgba(255,255,255,.45)">pay with </span>' + (plan ? plan.diamond_price : '') + ' diamonds')
-        $('.vip-confirm-mask').css('display', 'flex')
-    }
-
-    function closeConfirm() { $('.vip-confirm-mask').css('display', 'none') }
-
-    function doBuy(planId) {
         var loadIdx = layer.load(1, { shade: [.1, '#fff'] })
         $.ajax({
-            url: base + '/vip/buy',
+            url: base + '/vip/order',
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, h()),
-            data: JSON.stringify({ plan_id: planId }),
+            data: JSON.stringify({ plan_id: id, product: product }),
             dataType: 'json',
         }).done(function(r) {
             layer.close(loadIdx)
-            if (r.code === '00000') {
-                layer.msg('Activated! Expires ' + (r.data.expire_to || '').slice(0, 10))
+            if (r && (r.code === 'A0100' || r.code === 'A0101')) { backToLogin(r.msg); return }
+            if (r && r.code === '00000' && r.data && r.data.pay_url) {
+                try { localStorage.setItem(PENDING_KEY, r.data.order_no) } catch (e) {}
+                location.href = r.data.pay_url
+            } else {
+                toast((r && r.msg) || 'Create order failed')
+            }
+        }).fail(function(xhr) {
+            layer.close(loadIdx)
+            var res = xhr && xhr.responseJSON
+            if (res && (res.code === 'A0100' || res.code === 'A0101')) { backToLogin(res.msg); return }
+            toast((res && res.msg) || 'Network error')
+        })
+    }
+
+    // ===== 支付回跳轮询 =====
+    function pendingOrderNo() {
+        var search = window.location.search
+        if (search) {
+            var raw = new URLSearchParams(search).get('params')
+            if (raw) {
+                try {
+                    var p = JSON.parse(decodeURIComponent(raw))
+                    if (p && p.merchant_ref) return p.merchant_ref
+                } catch (e) {}
+            }
+        }
+        try { return localStorage.getItem(PENDING_KEY) || '' } catch (e) { return '' }
+    }
+
+    function pollOrder(orderNo, times) {
+        if (!orderNo || times <= 0 || !token) return
+        $.ajax({
+            url: base + '/recharge/status',
+            headers: h(),
+            data: { order_no: orderNo },
+        }).done(function(r) {
+            if (r && (r.code === 'A0100' || r.code === 'A0101')) {
+                try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
+                return
+            }
+            if (r && r.code === '00000' && r.data && parseInt(r.data.status, 10) === 1) {
+                try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
+                toast('Payment successful, membership activated')
                 loadVipStatus()
                 loadBalance()
-            } else if (r.msg && r.msg.indexOf('余额不足') >= 0) {
-                layer.msg('Insufficient diamonds')
-                setTimeout(goRecharge, 900)
-            } else {
-                layer.msg(r.msg || 'Purchase failed')
+                return
             }
+            setTimeout(function(){ pollOrder(orderNo, times - 1) }, 5000)
         }).fail(function() {
-            layer.close(loadIdx)
-            layer.msg('Network error')
+            setTimeout(function(){ pollOrder(orderNo, times - 1) }, 5000)
         })
     }
 })()

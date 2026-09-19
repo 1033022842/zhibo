@@ -290,9 +290,37 @@ final class RechargeService
     }
 
     /**
-     * 落库 + 调用网关下单，返回订单（含 pay_url）
+     * star-pay 网关下单（会员订阅）
+     *
+     * 与充值共用 lp_recharge_order（biz_type=vip 标记），回调时开通会员而非加钻
      */
-    private function createStarPayOrder(int $userId, int $tokens, string $amount, string $product, ?int $packageId): array
+    public function submitVipOrder(int $userId, int $planId, string $product = ''): array
+    {
+        $plan = Db::connect('live_mysql')->table('lp_vip_plan')
+            ->where('id', $planId)->where('status', 1)->find();
+        if (!$plan) {
+            throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '会员套餐不存在或已下架');
+        }
+
+        $amount = number_format((float) $plan['usd_price'], 2, '.', '');
+        $min    = (float) config('starpay.min_amount');
+        if ((float) $amount < $min) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '该套餐金额低于网关最小支付金额 ' . number_format($min, 2));
+        }
+
+        return $this->createStarPayOrder($userId, 0, $amount, $product, null, [
+            'biz_type'    => 'vip',
+            'vip_plan_id' => (int) $plan['id'],
+            'return_url'  => (string) config('starpay.return_url_vip'),
+        ]);
+    }
+
+    /**
+     * 落库 + 调用网关下单，返回订单（含 pay_url）
+     *
+     * @param array $opt biz_type / vip_plan_id / return_url
+     */
+    private function createStarPayOrder(int $userId, int $tokens, string $amount, string $product, ?int $packageId, array $opt = []): array
     {
         $db      = Db::connect('live_mysql');
         $starPay = new StarPayService();
@@ -308,6 +336,8 @@ final class RechargeService
             'pay_channel'    => 'starpay',
             'channel_id'     => 0,
             'package_id'     => $packageId,
+            'biz_type'       => (string) ($opt['biz_type'] ?? 'coin'),
+            'vip_plan_id'    => $opt['vip_plan_id'] ?? null,
             'chain_type'     => $product,
             'pay_amount'     => number_format((float) $amount, 2, '.', ''),
             'diamond_amount' => $tokens,
@@ -320,7 +350,7 @@ final class RechargeService
         $db->table('lp_recharge_order')->insert($order);
 
         try {
-            $gw = $starPay->createDeposit($order['order_no'], $order['pay_amount'], $product);
+            $gw = $starPay->createDeposit($order['order_no'], $order['pay_amount'], $product, [], (string) ($opt['return_url'] ?? ''));
         } catch (\Throwable $e) {
             $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update([
                 'status'       => 3,
@@ -360,7 +390,9 @@ final class RechargeService
             }
 
             $now    = date('Y-m-d H:i:s');
-            $remark = 'star-pay 自动到账 system_ref=' . $systemRef . ($productRef !== '' ? ' product_ref=' . $productRef : '');
+            $isVip  = (string) ($order['biz_type'] ?? 'coin') === 'vip';
+            $remark = ($isVip ? 'star-pay 订阅到账 system_ref=' : 'star-pay 自动到账 system_ref=')
+                . $systemRef . ($productRef !== '' ? ' product_ref=' . $productRef : '');
 
             $db->table('lp_recharge_order')->where('id', $order['id'])->update([
                 'status'       => 1,
@@ -371,7 +403,17 @@ final class RechargeService
                 'updated_at'   => $now,
             ]);
 
-            $this->creditDiamond($db, (int) $order['user_id'], (float) $order['diamond_amount'], (int) $order['id'], 'star-pay充值');
+            if ($isVip) {
+                // 订阅订单：开通/顺延会员（同一订单号只生效一次）
+                (new VipService())->activate(
+                    (int) $order['user_id'],
+                    (int) $order['vip_plan_id'],
+                    (string) $order['order_no'],
+                    (float) $order['pay_amount']
+                );
+            } else {
+                $this->creditDiamond($db, (int) $order['user_id'], (float) $order['diamond_amount'], (int) $order['id'], 'star-pay充值');
+            }
 
             $db->commit();
             $order['status'] = 1;

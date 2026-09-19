@@ -72,34 +72,7 @@ final class VipService
         }
 
         try {
-            $user = Db::connect('live_mysql')->table('lp_user')
-                ->where('id', $userId)->field('vip_expire_at')->find();
-            $now = time();
-            $base = !empty($user['vip_expire_at']) && strtotime((string)$user['vip_expire_at']) > $now
-                ? strtotime((string)$user['vip_expire_at'])
-                : $now;
-            $expireTo = date('Y-m-d H:i:s', strtotime('+' . (int)$plan['months'] . ' months', $base));
-
-            $orderNo = StrHelper::orderNo('VIP');
-            Db::connect('live_mysql')->table('lp_vip_order')->insert([
-                'order_no'       => $orderNo,
-                'user_id'        => $userId,
-                'plan_id'        => $planId,
-                'diamond_amount' => $price,
-                'expire_from'    => date('Y-m-d H:i:s', $base),
-                'expire_to'      => $expireTo,
-                'status'         => 1,
-                'created_at'     => date('Y-m-d H:i:s'),
-            ]);
-            Db::connect('live_mysql')->table('lp_user')
-                ->where('id', $userId)->update(['vip_expire_at' => $expireTo]);
-
-            return [
-                'order_no'   => $orderNo,
-                'expire_to'  => $expireTo,
-                'plan_name'  => (string)$plan['name'],
-                'paid'       => $price,
-            ];
+            return $this->activate($userId, $planId, '', $price);
         } catch (\Throwable $e) {
             // 下单失败退钻
             if ($price > 0) {
@@ -107,6 +80,69 @@ final class VipService
             }
             throw new BusinessException(ResultCode::SERVER_ERROR, '开通失败: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * 开通/顺延会员（到期时间在现有会员基础上顺延）
+     *
+     * @param string $orderNo 外部订单号（star-pay 订阅单；为空则新建）
+     * @param float  $paid    实付钻石数（网关订阅单为 0）
+     */
+    public function activate(int $userId, int $planId, string $orderNo = '', float $paid = 0): array
+    {
+        $db = Db::connect('live_mysql');
+        $plan = $db->table('lp_vip_plan')->where('id', $planId)->find();
+        if (!$plan) {
+            throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '套餐不存在');
+        }
+
+        $orderNo = $orderNo !== '' ? $orderNo : StrHelper::orderNo('VIP');
+        // 幂等：同一订单号已生效则直接返回原结果
+        $exists = $db->table('lp_vip_order')->where('order_no', $orderNo)->find();
+        if ($exists) {
+            return [
+                'order_no'  => $orderNo,
+                'expire_to' => (string) $exists['expire_to'],
+                'plan_name' => (string) $plan['name'],
+                'paid'      => (float) $exists['diamond_amount'],
+            ];
+        }
+
+        $db->startTrans();
+        try {
+            $user = $db->table('lp_user')
+                ->where('id', $userId)->field('vip_expire_at')->lock(true)->find();
+            $now = time();
+            $base = !empty($user['vip_expire_at']) && strtotime((string)$user['vip_expire_at']) > $now
+                ? strtotime((string)$user['vip_expire_at'])
+                : $now;
+            $expireTo = date('Y-m-d H:i:s', strtotime('+' . (int)$plan['months'] . ' months', $base));
+
+            $db->table('lp_vip_order')->insert([
+                'order_no'       => $orderNo,
+                'user_id'        => $userId,
+                'plan_id'        => $planId,
+                'diamond_amount' => $paid,
+                'expire_from'    => date('Y-m-d H:i:s', $base),
+                'expire_to'      => $expireTo,
+                'status'         => 1,
+                'created_at'     => date('Y-m-d H:i:s'),
+            ]);
+            $db->table('lp_user')
+                ->where('id', $userId)->update(['vip_expire_at' => $expireTo]);
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
+
+        return [
+            'order_no'  => $orderNo,
+            'expire_to' => $expireTo,
+            'plan_name' => (string)$plan['name'],
+            'paid'      => $paid,
+        ];
     }
 
     /**

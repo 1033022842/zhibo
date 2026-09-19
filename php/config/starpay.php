@@ -9,7 +9,8 @@
  *   PRODUCT = TRC20Buy
  *   PRODUCTS = TRC20Buy,ERC20Buy,USDCERC20Buy,TRC20H5
  *   NOTIFY_URL = https://域名/api/v1/recharge/notify
- *   RETURN_URL = https://域名/purchasePoints.html
+ *   RETURN_URL = http://域名:8082/purchasePoints.html
+ *   RETURN_URL_VIP = http://域名:8082/Subscriptions.html
  */
 
 $productNames = [
@@ -49,6 +50,10 @@ return [
     'products'       => $products,
     'notify_url'     => (string) env('starpay.notify_url', ''),
     'return_url'     => (string) env('starpay.return_url', ''),
+    // 会员订阅页同步跳回地址
+    'return_url_vip' => (string) env('starpay.return_url_vip', ''),
+    // 网关最小支付金额（USD），低于该金额下单会被网关拒绝
+    'min_amount'     => (float) env('starpay.min_amount', 10),
     // 请求超时（秒）
     'timeout'        => 15,
     // 订单有效期（分钟）

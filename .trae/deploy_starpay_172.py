@@ -1,13 +1,15 @@
 """AI 女友端充值（star-pay）发布到 172.81.98.55
 
-用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify]
+用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|min]
 
 说明：
   - php    ：上传 star-pay 相关 PHP（配置/服务/控制器/路由/后台）并重载 php-fpm
-  - static ：上传 purchasePoints.html / js/purchasePoints.js 及其引用的 tokens 图标
-  - sql    ：执行 php/sql/upgrade_recharge_starpay.sql（幂等）
-  - env    ：在服务器 php/.env 追加 [STARPAY] 段（已存在则跳过）
-  - verify ：线上校验（语法 / 文件 / 接口 / 表结构）
+  - static ：上传 purchasePoints.html / js/purchasePoints.js / Subscriptions.html / js/subscriptions.js 及其引用的 tokens 图标
+  - sql    ：执行 php/sql/upgrade_recharge_starpay.sql、upgrade_vip_starpay.sql（幂等）
+  - env    ：在服务器 php/.env 追加 [STARPAY] 段（已存在则替换）
+  - verify ：线上校验（语法 / 文件 / 接口 / 表结构 / 公网路径）
+  - e2e    ：充值链路联调（下单 + 回调 + 幂等）
+  - vip    ：订阅链路联调（下单 + 回调 + 幂等 + 续订）
 """
 import datetime
 import os
@@ -37,15 +39,21 @@ PHP_FILES = [
     "php/config/starpay.php",
     "php/app/live/service/StarPayService.php",
     "php/app/live/service/RechargeService.php",
+    "php/app/live/service/VipService.php",
     "php/app/api/controller/Recharge.php",
+    "php/app/api/controller/Vip.php",
     "php/app/api/route/recharge.php",
+    "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/sql/upgrade_recharge_starpay.sql",
+    "php/sql/upgrade_vip_starpay.sql",
 ]
 
 STATIC_FILES = [
     "ai-girl-malaysia.com/purchasePoints.html",
     "ai-girl-malaysia.com/js/purchasePoints.js",
+    "ai-girl-malaysia.com/Subscriptions.html",
+    "ai-girl-malaysia.com/js/subscriptions.js",
 ]
 
 TOKENS_ASSETS = [
@@ -79,12 +87,16 @@ export MYSQL_PWD="$DBP"
 SQL_STEP = DB_ENV + r"""set -e
 echo "库: $DBN @ $DBH"
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_starpay.sql
+mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_starpay.sql
 echo "--- 迁移后校验 ---"
 mysql -h"$DBH" -u"$DBU" "$DBN" -e "
   SELECT COUNT(*) AS packages FROM lp_recharge_package;
   SHOW COLUMNS FROM lp_recharge_order LIKE 'pay_url';
   SHOW COLUMNS FROM lp_recharge_order LIKE 'system_ref';
-  SHOW COLUMNS FROM lp_recharge_order LIKE 'package_id';"
+  SHOW COLUMNS FROM lp_recharge_order LIKE 'package_id';
+  SHOW COLUMNS FROM lp_recharge_order LIKE 'biz_type';
+  SHOW COLUMNS FROM lp_recharge_order LIKE 'vip_plan_id';
+  SELECT id, name, months, usd_price, diamond_price, daily_diamond FROM lp_vip_plan ORDER BY sort;"
 """
 
 MIN_AMOUNT_STEP = DB_ENV + r"""
@@ -207,6 +219,154 @@ cat /tmp/notify_dbg.log 2>/dev/null || echo "(无)"
 '''
 
 
+VIP_E2E_STEP = r'''
+cat > /tmp/starpay_vip_e2e.php <<'PHPEOF'
+<?php
+require '/www/wwwroot/douyin/php/vendor/autoload.php';
+$app = new \think\App();
+$app->initialize();
+
+use think\facade\Config;
+use think\facade\Db;
+
+$cfg = (array) Config::get('starpay');
+$mno = (string) $cfg['merchant_no'];
+$key = (string) $cfg['key'];
+$db  = Db::connect('live_mysql');
+$rec = new \app\live\service\RechargeService();
+$vip = new \app\live\service\VipService();
+
+$uid = (int) $db->table('lp_recharge_order')->order('id desc')->value('user_id');
+if ($uid <= 0) { $uid = (int) $db->table('lp_user')->order('id asc')->value('id'); }
+
+$plan = $db->table('lp_vip_plan')->where('status', 1)->order('months asc')->find();
+$planId = (int) $plan['id'];
+$userBefore = $db->table('lp_user')->where('id', $uid)->field('vip_expire_at')->find();
+$balanceBefore = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
+printf("测试用户=%d 套餐=%s(%d个月 USD %s) 充值前会员到期=%s 钻石=%.2f\n\n",
+    $uid, $plan['name'], (int) $plan['months'], $plan['usd_price'],
+    (string) ($userBefore['vip_expire_at'] ?? '无'), $balanceBefore);
+
+function notify($url, $mno, $key, $biz, $tamper = false) {
+    $params = json_encode($biz, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $ts = (string) time();
+    $sign = md5($mno . $params . 'MD5' . $ts . $key);
+    if ($tamper) { $sign = substr($sign, 0, -1) . (substr($sign, -1) === '0' ? '1' : '0'); }
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'merchant_no' => $mno, 'timestamp' => $ts, 'sign_type' => 'MD5',
+            'params' => $params, 'sign' => $sign,
+        ]),
+    ]);
+    $r = curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$http, trim((string) $r)];
+}
+
+echo "--- 1) 订阅下单（真实网关）---\n";
+$order = $rec->submitVipOrder($uid, $planId, 'TRC20Buy');
+$orderNo = (string) $order['order_no'];
+printf("order_no=%s pay_amount=%s biz_type=%s vip_plan_id=%s product=%s\npay_url=%s\n",
+    $orderNo, $order['pay_amount'], $order['biz_type'], $order['vip_plan_id'],
+    $order['product'], $order['pay_url']);
+printf("断言: 金额=%s(期望 %s) 业务类型=vip pay_url=%s\n\n",
+    $order['pay_amount'], number_format((float) $plan['usd_price'], 2, '.', ''),
+    $order['pay_url'] !== '' ? '有' : '无');
+
+echo "--- 2) 回调（篡改签名，应拒）---\n";
+$url = 'http://127.0.0.1:8082/api/v1/recharge/notify';
+$biz = [
+    'merchant_ref' => $orderNo,
+    'system_ref'   => (string) ($order['system_ref'] ?: 'VIPTESTSYSREF'),
+    'amount'       => number_format((float) $order['pay_amount'], 2, '.', ''),
+    'fee'          => '0.00',
+    'status'       => 1,
+    'success_time' => time(),
+];
+list($http, $resp) = notify($url, $mno, $key, $biz, true);
+printf("http=%d resp=%s   期望 FAIL\n\n", $http, $resp);
+
+echo "--- 3) 回调（合法签名，应开通会员）---\n";
+list($http, $resp) = notify($url, $mno, $key, $biz);
+$o1 = $db->table('lp_recharge_order')->where('order_no', $orderNo)->find();
+$u1 = $db->table('lp_user')->where('id', $uid)->field('vip_expire_at')->find();
+$orders1 = $db->table('lp_vip_order')->where('order_no', $orderNo)->count();
+$balance1 = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
+$status1 = $vip->status($uid);
+printf("http=%d resp=%s -> 订单状态=%d 会员到期=%s 会员单数=%d 剩余天数=%d 钻石=%.2f（应不变）\n",
+    $http, $resp, (int) $o1['status'], (string) $u1['vip_expire_at'], (int) $orders1,
+    (int) $status1['remain_days'], $balance1);
+
+echo "\n--- 4) 重复推送（幂等）---\n";
+list($http, $resp) = notify($url, $mno, $key, $biz);
+$u2 = $db->table('lp_user')->where('id', $uid)->field('vip_expire_at')->find();
+$orders2 = $db->table('lp_vip_order')->where('order_no', $orderNo)->count();
+printf("http=%d resp=%s -> 会员到期=%s 会员单数=%d（应与上一步一致）\n\n",
+    $http, $resp, (string) $u2['vip_expire_at'], (int) $orders2);
+
+echo "--- 5) 续订（到期顺延）---\n";
+$order2 = $rec->submitVipOrder($uid, $planId, 'ERC20Buy');
+$orderNo2 = (string) $order2['order_no'];
+$biz2 = $biz;
+$biz2['merchant_ref'] = $orderNo2;
+$biz2['system_ref']   = (string) ($order2['system_ref'] ?: 'VIPTESTSYSREF2');
+list($http, $resp) = notify($url, $mno, $key, $biz2);
+$u3 = $db->table('lp_user')->where('id', $uid)->field('vip_expire_at')->find();
+$base = strtotime((string) $u2['vip_expire_at']);
+$expect = date('Y-m-d H:i:s', strtotime('+' . (int) $plan['months'] . ' months', $base));
+printf("http=%d resp=%s 续订单=%s 产品=%s -> 到期=%s（期望 %s）\n\n",
+    $http, $resp, $orderNo2, $order2['product'], (string) $u3['vip_expire_at'], $expect);
+
+echo "--- 6) 清理测试数据 ---\n";
+$db->table('lp_vip_order')->where('order_no', 'in', [$orderNo, $orderNo2])->delete();
+$db->table('lp_user')->where('id', $uid)->update(['vip_expire_at' => $userBefore['vip_expire_at'] ?? null]);
+$db->table('lp_recharge_order')->where('order_no', 'in', [$orderNo, $orderNo2])->delete();
+printf("会员到期还原=%s 残留会员单=%d 残留订单=%d\n",
+    (string) $db->table('lp_user')->where('id', $uid)->value('vip_expire_at'),
+    (int) $db->table('lp_vip_order')->where('order_no', 'in', [$orderNo, $orderNo2])->count(),
+    (int) $db->table('lp_recharge_order')->where('order_no', 'in', [$orderNo, $orderNo2])->count());
+PHPEOF
+php /tmp/starpay_vip_e2e.php
+'''
+
+
+TOKEN_STEP = r'''
+cat > /tmp/vip_token.php <<'PHPEOF'
+<?php
+require '/www/wwwroot/douyin/php/vendor/autoload.php';
+$app = new \think\App();
+$app->initialize();
+use think\facade\Db;
+
+$uid = (int) $argv[1];
+$u = Db::connect('live_mysql')->table('lp_user')->where('id', $uid)->find();
+if (!$u) { echo "user {$uid} not found\n"; exit(1); }
+printf("user: id=%s user_no=%s nickname=%s vip_expire_at=%s\n",
+    $u['id'], (string) ($u['user_no'] ?? ''), (string) ($u['nickname'] ?? ''),
+    (string) ($u['vip_expire_at'] ?? '无'));
+echo \app\live\service\JwtService::generateAccessToken(
+    (int) $u['id'], (string) ($u['user_no'] ?? ''), (string) ($u['nickname'] ?? '')
+) . "\n";
+PHPEOF
+php /tmp/vip_token.php "__UID__"
+'''
+
+
+CLEANVIP_STEP = DB_ENV + r"""
+set -e
+echo "--- 清理浏览器联调产生的未支付订阅单 ---"
+mysql -h"$DBH" -u"$DBU" "$DBN" -e "
+  SELECT id, order_no, biz_type, vip_plan_id, pay_amount, status, created_at
+  FROM lp_recharge_order WHERE biz_type = 'vip' ORDER BY id DESC LIMIT 10;
+  DELETE FROM lp_recharge_order
+  WHERE biz_type = 'vip' AND status = 0 AND created_at > DATE_SUB(NOW(), INTERVAL 2 HOUR);
+  SELECT COUNT(*) AS vip_unpaid_left FROM lp_recharge_order WHERE biz_type = 'vip' AND status = 0;"
+"""
+
+
 RELOAD_STEP = r"""
 set -e
 mkdir -p %s/runtime
@@ -220,22 +380,47 @@ else service php-fpm reload; echo "php-fpm reloaded"; fi
 VERIFY_STEP = DB_ENV + (r"""
 echo "--- PHP 语法 ---"
 for f in config/starpay.php app/live/service/StarPayService.php app/live/service/RechargeService.php \
-         app/api/controller/Recharge.php app/api/route/recharge.php \
+         app/live/service/VipService.php app/api/controller/Recharge.php app/api/controller/Vip.php \
+         app/api/route/recharge.php app/api/route/vip.php \
          app/admin/controller/live/RechargeChannel.php; do
   php -l "%s/$f"
 done
 echo "--- 静态文件 ---"
-ls -la %s/purchasePoints.html %s/js/purchasePoints.js
+ls -la %s/purchasePoints.html %s/js/purchasePoints.js %s/Subscriptions.html %s/js/subscriptions.js
 ls -la %s/tokens_files/coin_1-*.webp %s/tokens_files/coin_custom-*.webp
 echo "--- 套餐接口 ---"
-curl -s -m 20 'http://127.0.0.1:%s/api/v1/recharge/packages' | head -c 900
+curl -s -m 20 'http://127.0.0.1:%s/api/v1/recharge/packages' | head -c 300
+echo
+echo "--- 会员套餐接口 ---"
+curl -s -m 20 'http://127.0.0.1:%s/api/v1/vip/plans' | head -c 400
 echo
 echo "--- 下单接口未登录应鉴权失败 ---"
-curl -s -m 20 -X POST 'http://127.0.0.1:%s/api/v1/recharge/createOrder' -d 'package_id=1' | head -c 300
+curl -s -m 20 -X POST 'http://127.0.0.1:%s/api/v1/recharge/createOrder' -d 'package_id=1' | head -c 200
+echo
+curl -s -m 20 -X POST 'http://127.0.0.1:%s/api/v1/vip/order' -d 'plan_id=1' | head -c 200
 echo
 echo "--- 表结构 ---"
-mysql -h"$DBH" -u"$DBU" "$DBN" -e "SELECT id,tokens,price,bonus_percent,sort,status FROM lp_recharge_package ORDER BY sort;"
-""" % (PHP_DIR, SITE, SITE, SITE, SITE, API_PORT, API_PORT))
+mysql -h"$DBH" -u"$DBU" "$DBN" -e "
+  SELECT id,tokens,price,bonus_percent,sort,status FROM lp_recharge_package ORDER BY sort;
+  SELECT id,name,months,usd_price,diamond_price,daily_diamond FROM lp_vip_plan ORDER BY sort;
+  SHOW COLUMNS FROM lp_recharge_order LIKE 'biz_type';"
+echo "--- 公网页面可达性（H5 站点在 8082，RETURN_URL 用它）---"
+for u in http://sugus.it.com:8082/purchasePoints.html http://sugus.it.com:8082/Subscriptions.html; do
+  curl -s -k -m 15 -o /dev/null -w "%%{http_code} %%{size_download} $u\n" "$u"
+done
+""" % (PHP_DIR, SITE, SITE, SITE, SITE, SITE, SITE, API_PORT, API_PORT, API_PORT, API_PORT))
+
+URL_STEP = r"""
+echo "--- 候选公网页面地址 ---"
+for u in http://sugus.it.com:8082/Subscriptions.html http://172.81.98.55:8082/Subscriptions.html \
+         http://sugus.it.com:8082/purchasePoints.html \
+         https://sugus.it.com/api/v1/recharge/packages https://sugus.it.com/api/v1/vip/plans; do
+  curl -s -k -m 15 -o /dev/null -w "%{http_code} %{size_download} $u\n" "$u"
+done
+echo "--- 通知地址可达性（无签名应为 FAIL，但 HTTP 200 说明路由通）---"
+curl -s -k -m 15 -X POST "https://sugus.it.com/api/v1/recharge/notify" -d "merchant_no=x" -w " <- http=%{http_code}\n"
+"""
+
 
 PROBE_STEP = r"""
 echo "--- 自选点数报价抽样（对照 candy.ai 价格表核对） ---"
@@ -357,7 +542,8 @@ def starpay_section():
     c = local_starpay_env()
     if not c.get("MERCHANT_NO") or not c.get("KEY"):
         raise SystemExit("本地 php/.env 缺少 [STARPAY] MERCHANT_NO / KEY")
-    order = ["GATEWAY", "MERCHANT_NO", "KEY", "PRODUCT", "FIAT_CURRENCY", "PRODUCTS", "NOTIFY_URL", "RETURN_URL"]
+    order = ["GATEWAY", "MERCHANT_NO", "KEY", "PRODUCT", "FIAT_CURRENCY", "PRODUCTS",
+             "NOTIFY_URL", "RETURN_URL", "RETURN_URL_VIP", "MIN_AMOUNT"]
     return "[STARPAY]\n" + "".join("%s = %s\n" % (k, c[k]) for k in order if c.get(k))
 
 
@@ -481,6 +667,15 @@ def main():
             run(cli, buf, "star-pay 网关联调", GATEWAY_STEP, timeout=300)
         elif action == "e2e":
             run(cli, buf, "端到端下单+回调联调", E2E_STEP, timeout=300)
+        elif action == "vip":
+            run(cli, buf, "订阅支付联调（下单+回调+幂等+续订）", VIP_E2E_STEP, timeout=300)
+        elif action == "url":
+            run(cli, buf, "公网路径与 nginx 配置探测", URL_STEP, timeout=180)
+        elif action == "token":
+            uid = sys.argv[2] if len(sys.argv) > 2 else "2"
+            run(cli, buf, "生成测试用户 %s 的登录 token" % uid, TOKEN_STEP.replace("__UID__", uid), timeout=120)
+        elif action == "cleanvip":
+            run(cli, buf, "清理订阅联调残留", CLEANVIP_STEP, timeout=120)
         else:
             if action in ("all", "php"):
                 for rel in PHP_FILES:
