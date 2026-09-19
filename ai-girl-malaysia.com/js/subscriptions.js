@@ -9,9 +9,13 @@
     var plans = []
     var products = []
     var product = 'TRC20Buy'
+    // 当前支付方式：card 卡支付（收银台内可选 Visa/MasterCard/Apple Pay 等）| crypto 币种
+    var method = 'card'
     var PENDING_KEY = 'vip_pending_order'
     // 页面币种入口 → star-pay 产品（data-text：1 ETH / 2 TRX / 3 USDT-ERC20 / 4 USDT-TRC20 / 5 BSC）
     var COIN_PRODUCT = { '1': 'ERC20Buy', '2': 'TRC20Buy', '3': 'ERC20Buy', '4': 'TRC20Buy' }
+    // 卡支付下单使用的产品（默认与商户默认产品一致）
+    var CARD_PRODUCT = 'TRC20Buy'
 
     function h() { return token ? { 'Authorization': 'Bearer ' + token } : {} }
 
@@ -35,13 +39,37 @@
 
     // ===== 支付方式 =====
     function setupPayMethods() {
-        // 网关不支持 BSC 与卡支付，隐藏入口（保留原站 DOM 结构）
+        // 网关不支持 BSC，隐藏该入口（保留原站 DOM 结构）
         $('.usdt-group[data-text="5"], .usdt-group-yd[data-text="5"]').hide()
+        // 原站默认选中卡支付入口，币种列表默认收起
+        setMethod('card')
+    }
+
+    // 切换「卡支付 / 币种支付」：卡支付收起币种列表，币种支付选中一个币种
+    function setMethod(next) {
+        method = next === 'crypto' ? 'crypto' : 'card'
+        var showCrypto = method === 'crypto'
+        $('#usdt-layout, #usdt-layout-yd').css('display', showCrypto ? 'flex' : 'none')
+        // 入口选中态跟随切换（带 easypay 图片的为卡支付）
         $('#hairColor .hairColor, #hairColor-yd .hairColor-yd').each(function() {
-            if ($(this).find('img').length) { $(this).hide() }
+            $(this).toggleClass('selected', ($(this).find('img').length > 0) === !showCrypto)
         })
-        $('#usdt-layout').css({ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' })
-        $('#usdt-layout-yd').css({ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' })
+        if (!showCrypto) {
+            product = cardProduct()
+            return
+        }
+        var $active = $('#usdt-layout .usdt-group.sub-gradient-active').first()
+        if ($active.length) {
+            product = COIN_PRODUCT[String($active.data('text'))] || product
+        } else {
+            selectDefaultCoin()
+        }
+    }
+
+    function cardProduct() {
+        var enabled = products.map(function(p) { return p.code })
+        if (enabled.indexOf(CARD_PRODUCT) >= 0) { return CARD_PRODUCT }
+        return enabled.length ? enabled[0] : CARD_PRODUCT
     }
 
     function bindEvents() {
@@ -55,9 +83,9 @@
             product = COIN_PRODUCT[String($(this).data('text'))] || product
         })
 
+        // 带 easypay 图标的入口为卡支付，另一个为币种支付
         $('#hairColor, #hairColor-yd').on('click', '.hairColor, .hairColor-yd', function() {
-            $('#usdt-layout').css('display', 'flex')
-            $('#usdt-layout-yd').css('display', 'flex')
+            setMethod($(this).find('img').length ? 'card' : 'crypto')
         })
 
         $('#payment').on('click', function(e) { e.preventDefault(); pay() })
@@ -92,8 +120,8 @@
                 products = r.data.products || []
                 applyProductAvailability()
             }
-            selectDefaultCoin()
-        }).catch(function() { selectDefaultCoin() })
+            setMethod(method)
+        }).catch(function() { setMethod(method) })
     }
 
     function applyProductAvailability() {
@@ -108,7 +136,7 @@
 
     function selectDefaultCoin() {
         var $target = $('#usdt-layout .usdt-group:visible').first()
-        if ($target.length) { $target.trigger('click') } else { product = 'TRC20Buy' }
+        if ($target.length) { $target.trigger('click') } else { product = cardProduct() }
     }
 
     // ===== Plans =====
