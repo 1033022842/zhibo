@@ -64,6 +64,13 @@ final class StarPayService
         if ($extra !== []) {
             $params['extra'] = $extra;
         }
+        // 买币类产品必须带法币币种，否则网关报 Required fiat currency
+        if (in_array($product, (array) ($this->cfg['fiat_products'] ?? []), true)
+            && !isset($params['extra']['fiat_currency'])) {
+            $params['extra'] = array_merge((array) ($params['extra'] ?? []), [
+                'fiat_currency' => (string) $this->cfg['fiat_currency'],
+            ]);
+        }
         if (!empty($this->cfg['notify_url'])) {
             $params['notify_url'] = $this->cfg['notify_url'];
         }
@@ -90,7 +97,8 @@ final class StarPayService
     public function verifyNotify(array $post): array
     {
         $merchantNo = (string) ($post['merchant_no'] ?? '');
-        $paramsStr  = (string) ($post['params'] ?? '');
+        // 全局输入过滤会把 JSON 中的引号转义成 &quot;，验签前需还原为网关发出的原始字符串
+        $paramsStr  = htmlspecialchars_decode((string) ($post['params'] ?? ''), ENT_QUOTES);
         $signType   = (string) ($post['sign_type'] ?? 'MD5');
         $timestamp  = (string) ($post['timestamp'] ?? '');
         $sign       = (string) ($post['sign'] ?? '');
@@ -140,22 +148,30 @@ final class StarPayService
         ];
 
         try {
-            $client = new Client(['timeout' => (int) $this->cfg['timeout']]);
+            $client = new Client([
+                'timeout'     => (int) $this->cfg['timeout'],
+                // 网关错误响应为 HTTP 400 + JSON body，需自行解析 body 才能拿到 message
+                'http_errors' => false,
+            ]);
             $resp   = $client->post($this->cfg['gateway'] . $path, [
                 'form_params' => $fields,
                 'headers'     => ['Content-Type' => 'application/x-www-form-urlencoded'],
             ]);
             $rawBody = (string) $resp->getBody();
+            $status  = $resp->getStatusCode();
             $body    = json_decode($rawBody, true);
         } catch (\Throwable $e) {
             throw new BusinessException(ResultCode::SERVER_ERROR, '支付网关请求失败：' . $e->getMessage());
         }
 
         if (!is_array($body)) {
-            throw new BusinessException(ResultCode::SERVER_ERROR, '支付网关响应解析失败');
+            throw new BusinessException(ResultCode::SERVER_ERROR, '支付网关响应解析失败（HTTP ' . $status . '）：' . mb_substr($rawBody, 0, 200));
         }
         if ((string) ($body['code'] ?? '') !== '200') {
-            throw new BusinessException(ResultCode::PAY_CALLBACK_FAIL, '支付网关返回错误：' . (string) ($body['message'] ?? '未知错误'));
+            throw new BusinessException(
+                ResultCode::PAY_CALLBACK_FAIL,
+                '支付网关返回错误：' . (string) ($body['message'] ?? ('HTTP ' . $status))
+            );
         }
 
         $params = json_decode((string) ($body['params'] ?? ''), true);
