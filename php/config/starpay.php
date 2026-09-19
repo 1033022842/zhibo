@@ -14,13 +14,15 @@
  */
 
 $productNames = [
-    'ERC20Buy'          => 'USDT ERC20',
-    'TRC20Buy'          => 'USDT TRC20',
-    'TRC20H5'           => 'USDT TRC20 (H5)',
-    'USDCDeposit'       => 'USDC Deposit',
-    'USDCERC20Buy'      => 'USDC ERC20',
-    'USDT-ERC20Deposit' => 'USDT ERC20 Deposit',
-    'USDT-TRC20Deposit' => 'USDT TRC20 Deposit',
+    // 买币类：收银台内刷卡（Visa/MasterCard/Apple Pay 等）
+    'ERC20Buy'          => 'USDT ERC20 (Card / Buy)',
+    'TRC20Buy'          => 'USDT TRC20 (Card / Buy)',
+    'TRC20H5'           => 'USDT TRC20 H5 (Card / Buy)',
+    'USDCERC20Buy'      => 'USDC ERC20 (Card / Buy)',
+    // 充值类：给出收款地址，自己钱包转账
+    'USDCDeposit'       => 'USDC (Wallet Transfer)',
+    'USDT-ERC20Deposit' => 'USDT ERC20 (Wallet Transfer)',
+    'USDT-TRC20Deposit' => 'USDT TRC20 (Wallet Transfer)',
 ];
 
 // 买币类产品按法币下单，必须携带 extra.fiat_currency（网关会校验）
