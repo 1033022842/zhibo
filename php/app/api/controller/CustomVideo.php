@@ -72,17 +72,31 @@ final class CustomVideo extends BaseController
     {
         $userId = $this->getAuthUserId();
         $presetKey = (string) $this->request->post('preset', '');
+        // type 兼容 image / outfit（前端历史版本用 outfit）
+        $typeRaw = (string) $this->request->post('type', 'video');
+        $kind = in_array($typeRaw, ['image', 'outfit'], true) ? 'image' : 'video';
         $agreed = (int) $this->request->post('agreed_policy', 0);
 
         if ($agreed !== 1) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please confirm the upload policy first.');
         }
-        $preset = null;
-        foreach (self::PRESETS as $p) {
-            if ($p['key'] === $presetKey) { $preset = $p; break; }
-        }
-        if (!$preset) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please choose a style preset.');
+
+        if ($kind === 'image') {
+            // 图片编辑：正向词固定在 AI 电脑的工作流文件里（qwenedit_api.json 节点76），
+            // 支持可选覆盖（后台/前端传 prompt 时优先）
+            $prompt = trim((string) $this->request->post('prompt', ''));
+            if (mb_strlen($prompt) > 500) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Instruction is too long (max 500 characters).');
+            }
+            $preset = ['key' => 'image_edit', 'label' => 'AI Edit', 'prompt' => $prompt];
+        } else {
+            $preset = null;
+            foreach (self::PRESETS as $p) {
+                if ($p['key'] === $presetKey) { $preset = $p; break; }
+            }
+            if (!$preset) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please choose a style preset.');
+            }
         }
 
         // VIP 校验
@@ -109,7 +123,7 @@ final class CustomVideo extends BaseController
         $imageUrl = (string) $attachment['url'];
 
         // 每日配额
-        $todayCount = AiTask::where('source_type', 'custom_video')
+        $todayCount = AiTask::whereIn('source_type', ['custom_video', 'custom_image'])
             ->where('source_ref_id', $userId)
             ->whereLike('created_at', date('Y-m-d') . '%')
             ->count();
@@ -119,9 +133,9 @@ final class CustomVideo extends BaseController
 
         // 建任务
         $task = new AiTask();
-        $task->task_no     = StrHelper::orderNo('CV');
+        $task->task_no     = StrHelper::orderNo($kind === 'image' ? 'CI' : 'CV');
         $task->room_id     = 0;
-        $task->task_type   = 'custom_video';
+        $task->task_type   = $kind === 'image' ? 'custom_image' : 'custom_video';
         $task->priority    = 5;
         $task->source_type = 'custom_video';
         $task->source_ref_id = $userId;
@@ -152,7 +166,7 @@ final class CustomVideo extends BaseController
     public function myList()
     {
         $userId = $this->getAuthUserId();
-        $tasks = AiTask::where('source_type', 'custom_video')
+        $tasks = AiTask::whereIn('source_type', ['custom_video', 'custom_image'])
             ->where('source_ref_id', $userId)
             ->order('id', 'desc')
             ->limit(50)
@@ -164,6 +178,7 @@ final class CustomVideo extends BaseController
                 'task_id'    => (int) $t['id'],
                 'task_no'    => $t['task_no'],
                 'label'      => (string) ($c['label'] ?? ''),
+                'kind'       => $t['task_type'] === 'custom_image' ? 'image' : 'video',
                 'action'     => (string) ($c['action'] ?? ''),
                 'status'     => $t['status'],
                 'video_url'  => $t['video_url'] ? $this->absUrl((string) $t['video_url']) : '',
@@ -181,7 +196,7 @@ final class CustomVideo extends BaseController
     public function pending()
     {
         $count = min(3, max(1, (int) ($this->request->get('count') ?? 1)));
-        $tasks = AiTask::where('task_type', 'custom_video')
+        $tasks = AiTask::whereIn('task_type', ['custom_video', 'custom_image'])
             ->where('status', TaskStatus::PENDING->value)
             ->order('priority', 'desc')
             ->order('id', 'asc')
@@ -193,6 +208,7 @@ final class CustomVideo extends BaseController
             return [
                 'task_id'    => (int) $t['id'],
                 'task_no'    => $t['task_no'],
+                'kind'       => $t['task_type'] === 'custom_image' ? 'image' : 'video',
                 'action'     => (string) ($c['action'] ?? ''),
                 'label'      => (string) ($c['label'] ?? ''),
                 'prompt'     => (string) ($c['prompt'] ?? ''),
@@ -210,7 +226,7 @@ final class CustomVideo extends BaseController
         $taskId = (int) $this->request->post('task_id', 0);
         $workerId = (string) ($this->request->aiWorkerId ?? 'unknown');
         $task = AiTask::find($taskId);
-        if (!$task || $task->task_type !== 'custom_video') {
+        if (!$task || !in_array($task->task_type, ['custom_video', 'custom_image'], true)) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task 不存在');
         }
         if ($task->status !== TaskStatus::PENDING->value) {
@@ -238,7 +254,7 @@ final class CustomVideo extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task_id / video 必填');
         }
         $task = AiTask::find($taskId);
-        if (!$task || $task->task_type !== 'custom_video') {
+        if (!$task || !in_array($task->task_type, ['custom_video', 'custom_image'], true)) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task 不存在');
         }
 

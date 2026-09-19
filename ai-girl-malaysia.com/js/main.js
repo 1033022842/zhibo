@@ -3,6 +3,29 @@
     var base = '/api/live'
     var isSubmittingValue = false;
 
+    // 订阅促销位：已是会员的用户不该再看到促销（顶栏 "Subscribe 75% OFF" 与首充横幅）
+    var VIP_PROMO_SEL = '.nav-zk, a.w-full.h-14.cursor-pointer.z-10'
+    var vipChecked = false
+    var isVipUser = false
+
+    function applyVipPromo(){
+        if(!vipChecked) return
+        if(isVipUser) $(VIP_PROMO_SEL).css('display', 'none')
+    }
+
+    function checkVipStatus(token){
+        if(vipChecked || !token) return
+        fetch('/api/vip/status', { headers: { Authorization: 'Bearer ' + token } })
+            .then(function(r){ return r.json() })
+            .then(function(d){
+                var ok = d && (d.code === '00000' || d.code === 1)
+                isVipUser = !!(ok && d.data && d.data.is_vip)
+                vipChecked = true
+                applyVipPromo()
+            })
+            .catch(function(){ /* 拉取失败则保持原样，不影响页面 */ })
+    }
+
     function initMain() {
         var token = localStorage.getItem('live_access_token')
         var usercode = localStorage.getItem('code')
@@ -16,6 +39,8 @@
             $('#user-setting').css('display', 'flex')
             $('.user-login').css('display', 'none')
             $('.login-pf').css('display', 'block')
+            checkVipStatus(token)
+            applyVipPromo()
         } else {
             $('.user-login').css('display', 'flex')
             $('#user-setting').css('display', 'none')

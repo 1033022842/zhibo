@@ -5,6 +5,9 @@
 
     var selFile = null
     var selPreset = null
+    var mode = 'video'          // video | outfit
+    var imagePresets = []
+    var currentPresets = []
 
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -78,13 +81,14 @@
 
     /* ---------- 预设 ---------- */
     var PRESET_ICONS = { dance: '💃', wave: '💋', vlog: '☕' }
+    var OUTFIT_ICONS = { qipao: '🥻', dress: '👗', jk: '🎀', maid: '🧹', office: '💼', wedding: '👰' }
 
     function renderPresets(presets) {
         var box = $('cvPresets')
         box.innerHTML = presets.map(function (p) {
             var sel = selPreset && selPreset.key === p.key
             return '<div class="cv-preset' + (sel ? ' on' : '') + '" data-key="' + esc(p.key) + '">' +
-                '<div class="ic">' + (PRESET_ICONS[p.key] || '✨') + '</div>' +
+                '<div class="ic">' + ((mode === 'outfit' ? OUTFIT_ICONS : PRESET_ICONS)[p.key] || '✨') + '</div>' +
                 '<div class="n">' + esc(p.label) + '</div>' +
                 '<div class="d">' + esc(p.desc || '') + '</div></div>'
         }).join('')
@@ -104,7 +108,9 @@
         }
         authJson(API + '/options').then(function (d) {
             if (!d || d.code !== '00000' || !d.data) { toast((d && d.msg) || 'Load failed', 'error'); return }
-            renderPresets(d.data.presets || [])
+            imagePresets = d.data.image_presets || []
+            currentPresets = d.data.presets || []
+            renderPresets(mode === 'outfit' ? imagePresets : currentPresets)
             $('cvRemain').textContent = d.data.quota ? (d.data.quota.daily_limit + '/day') : '-'
         }).catch(function () { toast('Network error', 'error') })
 
@@ -118,10 +124,25 @@
             .catch(function () { /* submit 兜底校验 */ })
     }
 
+    function switchMode(m) {
+        if (mode === m) return
+        mode = m
+        selPreset = null
+        $('cvModeVideo').className = 'cv-mode' + (m === 'video' ? ' on' : '')
+        $('cvModeOutfit').className = 'cv-mode' + (m === 'outfit' ? ' on' : '')
+        var isEdit = m === 'outfit'
+        $('cvPromptWrap').style.display = isEdit ? '' : 'none'
+        $('cvPresetWrap').style.display = isEdit ? 'none' : ''
+        $('cvSubmit').textContent = isEdit ? '✨ Edit Image' : '✨ Generate Video'
+        if (!isEdit) renderPresets(currentPresets)
+    }
+
     /* ---------- 提交 ---------- */
     function submit() {
         if (!selFile) { toast('Please upload her picture first', 'warn'); return }
-        if (!selPreset) { toast('Please pick a vibe', 'warn'); return }
+        if (mode !== 'outfit' && !selPreset) {
+            toast('Please pick a vibe', 'warn'); return
+        }
         if (!$('cvPolicy').checked) { toast('Please confirm the upload policy', 'warn'); return }
 
         var btn = $('cvSubmit')
@@ -130,19 +151,20 @@
 
         var fd = new FormData()
         fd.append('image', selFile)
-        fd.append('preset', selPreset.key)
+        fd.append('type', mode === 'outfit' ? 'image' : 'video')
         fd.append('agreed_policy', '1')
+        if (mode !== 'outfit') fd.append('preset', selPreset.key)
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             btn.disabled = false
-            btn.textContent = '✨ Generate Video'
+            btn.textContent = mode === 'outfit' ? '✨ Edit Image' : '✨ Generate Video'
             if (!d || d.code !== '00000') { toast((d && d.msg) || 'Submit failed', 'error'); return }
             if (d.data && typeof d.data.remain === 'number') $('cvRemain').textContent = d.data.remain + ' left'
             toast('Task submitted! Track it in My Works', 'success')
             switchTab(false)
         }).catch(function () {
             btn.disabled = false
-            btn.textContent = '✨ Generate Video'
+            btn.textContent = mode === 'outfit' ? '✨ Edit Image' : '✨ Generate Video'
             toast('Network error', 'error')
         })
     }
@@ -161,7 +183,9 @@
         var m = STATUS_META[t.status] || { label: t.status, cls: 'wait' }
         var body
         if (t.status === 'completed' && t.video_url) {
-            body = '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '"></video>'
+            body = t.kind === 'image'
+                ? '<a href="' + esc(t.video_url) + '" target="_blank"><img src="' + esc(t.video_url) + '" style="width:100%;display:block;background:#000" alt="outfit"></a>'
+                : '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '"></video>'
         } else if (t.status === 'failed') {
             body = '<div class="cv-wait-body">Generation failed — please retry later.</div>'
         } else {
@@ -195,6 +219,8 @@
         if (!$('cvTabCreate')) return
         $('cvTabCreate').addEventListener('click', function () { switchTab(true) })
         $('cvTabWorks').addEventListener('click', function () { switchTab(false) })
+        $('cvModeVideo').addEventListener('click', function () { switchMode('video') })
+        $('cvModeOutfit').addEventListener('click', function () { switchMode('outfit') })
         $('cvSubmit').addEventListener('click', submit)
         bindUpload()
         loadOptions()
