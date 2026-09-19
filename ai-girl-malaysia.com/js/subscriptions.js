@@ -13,9 +13,18 @@
     var method = 'card'
     var PENDING_KEY = 'vip_pending_order'
     // 页面币种入口 → star-pay 产品（data-text：1 ETH / 2 TRX / 3 USDT-ERC20 / 4 USDT-TRC20 / 5 BSC）
-    var COIN_PRODUCT = { '1': 'ERC20Buy', '2': 'TRC20Buy', '3': 'ERC20Buy', '4': 'TRC20Buy' }
+    // USDT 两个入口走「收款地址」类产品（自己钱包转账），ETH/TRX 走买币类产品（收银台刷卡）
+    var COIN_PRODUCT = {
+        '1': 'ERC20Buy',
+        '2': 'TRC20Buy',
+        '3': 'USDT-ERC20Deposit',
+        '4': 'USDT-TRC20Deposit'
+    }
     // 卡支付下单使用的产品（默认与商户默认产品一致）
     var CARD_PRODUCT = 'TRC20Buy'
+    // 默认支付方式与默认币种：USDT-TRC20 收款地址（各网络均可用，不依赖第三方刷卡页）
+    var DEFAULT_METHOD = 'crypto'
+    var DEFAULT_PRODUCT = 'USDT-TRC20Deposit'
 
     function h() { return token ? { 'Authorization': 'Bearer ' + token } : {} }
 
@@ -41,8 +50,7 @@
     function setupPayMethods() {
         // 网关不支持 BSC，隐藏该入口（保留原站 DOM 结构）
         $('.usdt-group[data-text="5"], .usdt-group-yd[data-text="5"]').hide()
-        // 原站默认选中卡支付入口，币种列表默认收起
-        setMethod('card')
+        setMethod(DEFAULT_METHOD)
     }
 
     // 切换「卡支付 / 币种支付」：卡支付收起币种列表，币种支付选中一个币种
@@ -135,7 +143,10 @@
     }
 
     function selectDefaultCoin() {
-        var $target = $('#usdt-layout .usdt-group:visible').first()
+        var $target = $('#usdt-layout .usdt-group').filter(function() {
+            return COIN_PRODUCT[String($(this).data('text'))] === DEFAULT_PRODUCT
+        }).filter(':visible').first()
+        if (!$target.length) { $target = $('#usdt-layout .usdt-group:visible').first() }
         if ($target.length) { $target.trigger('click') } else { product = cardProduct() }
     }
 

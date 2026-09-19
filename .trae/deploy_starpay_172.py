@@ -307,8 +307,8 @@ $orders2 = $db->table('lp_vip_order')->where('order_no', $orderNo)->count();
 printf("http=%d resp=%s -> 会员到期=%s 会员单数=%d（应与上一步一致）\n\n",
     $http, $resp, (string) $u2['vip_expire_at'], (int) $orders2);
 
-echo "--- 5) 续订（到期顺延）---\n";
-$order2 = $rec->submitVipOrder($uid, $planId, 'ERC20Buy');
+echo "--- 5) 续订（到期顺延，走 USDT-TRC20 收款地址产品）---\n";
+$order2 = $rec->submitVipOrder($uid, $planId, 'USDT-TRC20Deposit');
 $orderNo2 = (string) $order2['order_no'];
 $biz2 = $biz;
 $biz2['merchant_ref'] = $orderNo2;
@@ -317,8 +317,9 @@ list($http, $resp) = notify($url, $mno, $key, $biz2);
 $u3 = $db->table('lp_user')->where('id', $uid)->field('vip_expire_at')->find();
 $base = strtotime((string) $u2['vip_expire_at']);
 $expect = date('Y-m-d H:i:s', strtotime('+' . (int) $plan['months'] . ' months', $base));
-printf("http=%d resp=%s 续订单=%s 产品=%s -> 到期=%s（期望 %s）\n\n",
-    $http, $resp, $orderNo2, $order2['product'], (string) $u3['vip_expire_at'], $expect);
+printf("http=%d resp=%s 续订单=%s 产品=%s pay_url=%s -> 到期=%s（期望 %s）\n\n",
+    $http, $resp, $orderNo2, $order2['product'],
+    (string) $order2['pay_url'] !== '' ? '有' : '无', (string) $u3['vip_expire_at'], $expect);
 
 echo "--- 6) 清理测试数据 ---\n";
 $db->table('lp_vip_order')->where('order_no', 'in', [$orderNo, $orderNo2])->delete();
@@ -330,6 +331,53 @@ printf("会员到期还原=%s 残留会员单=%d 残留订单=%d\n",
     (int) $db->table('lp_recharge_order')->where('order_no', 'in', [$orderNo, $orderNo2])->count());
 PHPEOF
 php /tmp/starpay_vip_e2e.php
+'''
+
+
+DEPOSIT_STEP = r'''
+cat > /tmp/starpay_deposit.php <<'PHPEOF'
+<?php
+$env  = parse_ini_file('/www/wwwroot/douyin/php/.env', true, INI_SCANNER_RAW);
+$c    = $env['STARPAY'] ?? [];
+$base = rtrim((string) ($c['GATEWAY'] ?? ''), '/');
+$mno  = trim((string) ($c['MERCHANT_NO'] ?? ''));
+$key  = trim((string) ($c['KEY'] ?? ''));
+
+$product = $argv[1] ?? 'USDT-TRC20Deposit';
+$amount  = $argv[2] ?? '10.00';
+
+$ts     = (string) time();
+$params = json_encode([
+    'merchant_ref' => 'DEPCHK' . substr(md5($product . $amount), 0, 6) . time(),
+    'product'      => $product,
+    'amount'       => $amount,
+    'notify_url'   => (string) ($c['NOTIFY_URL'] ?? ''),
+    'return_url'   => (string) ($c['RETURN_URL'] ?? ''),
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$sign = md5($mno . $params . 'MD5' . $ts . $key);
+
+$ch = curl_init($base . '/api/gateway/pay');
+curl_setopt_array($ch, [
+    CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+    CURLOPT_POSTFIELDS => http_build_query([
+        'merchant_no' => $mno, 'timestamp' => $ts, 'sign_type' => 'MD5',
+        'params' => $params, 'sign' => $sign,
+    ]),
+]);
+$raw  = (string) curl_exec($ch);
+$http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+printf("product=%s amount=%s http=%s\n", $product, $amount, $http);
+$body = json_decode($raw, true);
+$biz  = json_decode((string) ($body['params'] ?? ''), true) ?: [];
+echo "message=" . (string) ($body['message'] ?? '') . "\n";
+foreach ($biz as $k => $v) {
+    printf("  %-16s = %s\n", $k, is_scalar($v) ? (string) $v : json_encode($v));
+}
+PHPEOF
+php /tmp/starpay_deposit.php USDT-TRC20Deposit 10.00
+php /tmp/starpay_deposit.php USDT-ERC20Deposit 10.00
+php /tmp/starpay_deposit.php USDCDeposit 10.00
 '''
 
 
@@ -635,12 +683,27 @@ foreach (['TRC20Buy', 'ERC20Buy', 'USDCERC20Buy', 'TRC20H5'] as $p) {
         mb_substr((string) ($body['params'] ?? ''), 0, 320));
 }
 
-echo "\n########## 试单 9.99 USD（当前最低档）##########\n";
+echo "\n########## 试单 9.99 USD（当前最低档）##########";
 [$http, $body, $raw] = post($base, $mno, $key, '/api/gateway/pay', [
     'merchant_ref' => 'CHK999' . time(), 'product' => 'TRC20Buy', 'amount' => '9.99',
     'extra'        => ['fiat_currency' => 'USD'],
 ]);
 printf("http=%s msg=%s\n", $http, (string) ($body['message'] ?? ''));
+
+echo "\n########## 地址类（充值）产品试单 ##########\n";
+foreach (['USDT-TRC20Deposit', 'USDT-ERC20Deposit', 'USDCDeposit'] as $p) {
+    foreach ([['amount' => '10.00'], ['amount' => '50.00']] as $case) {
+        [$http, $body, $raw] = post($base, $mno, $key, '/api/gateway/pay', [
+            'merchant_ref' => 'DEP' . substr(md5($p . $case['amount'] . time()), 0, 8),
+            'product'      => $p,
+            'amount'       => $case['amount'],
+            'notify_url'   => (string) ($c['NOTIFY_URL'] ?? ''),
+            'return_url'   => (string) ($c['RETURN_URL'] ?? ''),
+        ]);
+        printf("%-20s amount=%-6s http=%s msg=%s params=%s\n", $p, $case['amount'], $http,
+            (string) ($body['message'] ?? ''), (string) ($body['params'] ?? ''));
+    }
+}
 
 echo "\n########## 试单 299.99 USD（当前最高档）##########\n";
 [$http, $body, $raw] = post($base, $mno, $key, '/api/gateway/pay', [
@@ -671,6 +734,8 @@ def main():
             run(cli, buf, "订阅支付联调（下单+回调+幂等+续订）", VIP_E2E_STEP, timeout=300)
         elif action == "url":
             run(cli, buf, "公网路径与 nginx 配置探测", URL_STEP, timeout=180)
+        elif action == "deposit":
+            run(cli, buf, "地址类产品试单（确认收款地址与 payurl）", DEPOSIT_STEP, timeout=180)
         elif action == "token":
             uid = sys.argv[2] if len(sys.argv) > 2 else "2"
             run(cli, buf, "生成测试用户 %s 的登录 token" % uid, TOKEN_STEP.replace("__UID__", uid), timeout=120)
