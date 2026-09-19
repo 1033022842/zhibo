@@ -22,6 +22,9 @@ $productNames = [
     'USDT-TRC20Deposit' => 'USDT TRC20 Deposit',
 ];
 
+// 买币类产品按法币下单，必须携带 extra.fiat_currency（网关会校验）
+$productFiat = ['ERC20Buy', 'TRC20Buy', 'TRC20H5', 'USDCERC20Buy'];
+
 $enabledCodes = array_filter(array_map('trim', explode(',', (string) env('starpay.products', 'TRC20Buy,ERC20Buy,USDCERC20Buy,TRC20H5'))));
 $products     = [];
 foreach ($enabledCodes as $code) {
@@ -39,6 +42,9 @@ return [
     'sign_type'      => 'MD5',
     // 默认产品
     'product'        => (string) env('starpay.product', 'TRC20Buy'),
+    // 买币类产品下单时的法币币种
+    'fiat_currency'  => (string) env('starpay.fiat_currency', 'USD'),
+    'fiat_products'  => $productFiat,
     // 前端可选支付方式（即 star-pay 的 product）
     'products'       => $products,
     'notify_url'     => (string) env('starpay.notify_url', ''),

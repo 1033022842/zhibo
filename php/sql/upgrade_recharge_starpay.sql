@@ -45,7 +45,7 @@ DROP PROCEDURE IF EXISTS `upgrade_recharge_order_starpay`;
 -- 3) 初始化套餐（表已有数据时跳过，可重复执行）
 INSERT INTO `lp_recharge_package` (`tokens`, `price`, `bonus_percent`, `sort`, `status`)
 SELECT * FROM (
-  SELECT 100 AS tokens, 9.99 AS price, 0 AS bonus_percent, 1 AS sort, 1 AS status UNION ALL
+  SELECT 100 AS tokens, 10.00 AS price, 0 AS bonus_percent, 1 AS sort, 1 AS status UNION ALL
   SELECT 350, 34.99, 0, 2, 1 UNION ALL
   SELECT 550, 49.99, 10, 3, 1 UNION ALL
   SELECT 1150, 99.99, 15, 4, 1 UNION ALL

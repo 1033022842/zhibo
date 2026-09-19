@@ -87,6 +87,126 @@ mysql -h"$DBH" -u"$DBU" "$DBN" -e "
   SHOW COLUMNS FROM lp_recharge_order LIKE 'package_id';"
 """
 
+MIN_AMOUNT_STEP = DB_ENV + r"""
+set -e
+echo "--- 最低档价格 9.99 改为 10.00（网关 USD 最小金额=10.00）---"
+mysql -h"$DBH" -u"$DBU" "$DBN" -e "
+  UPDATE lp_recharge_package SET price = 10.00, updated_at = NOW() WHERE tokens = 100 AND price < 10.00;
+  SELECT id, tokens, price, bonus_percent, sort, status FROM lp_recharge_package ORDER BY sort;"
+"""
+
+
+E2E_STEP = r'''
+cat > /tmp/starpay_e2e.php <<'PHPEOF'
+<?php
+require '/www/wwwroot/douyin/php/vendor/autoload.php';
+$app = new \think\App();
+$app->initialize();
+
+use think\facade\Config;
+use think\facade\Db;
+
+$cfg = (array) Config::get('starpay');
+$mno = (string) $cfg['merchant_no'];
+$key = (string) $cfg['key'];
+printf("网关=%s 商户号=%s 密钥长度=%d 支付方式=%s\n", $cfg['gateway'], $mno, strlen($key),
+    implode(',', array_column((array) $cfg['products'], 'code')));
+
+$db  = Db::connect('live_mysql');
+$svc = new \app\live\service\RechargeService();
+echo '自选报价 quote(550)=' . json_encode($svc->quoteByTokens(550)) . "\n\n";
+
+echo "--- 验签自检 ---\n";
+var_dump($cfg['merchant_no'], $cfg['fiat_currency'], $cfg['fiat_products']);
+$tbiz    = ['merchant_ref' => 'TESTONLY', 'status' => 1];
+$tparams = json_encode($tbiz, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$tts     = (string) time();
+$tsign   = md5((string) $cfg['merchant_no'] . $tparams . 'MD5' . $tts . (string) $cfg['key']);
+$self    = new \app\live\service\StarPayService();
+try {
+    $self->verifyNotify([
+        'merchant_no' => (string) $cfg['merchant_no'],
+        'timestamp'   => $tts,
+        'sign_type'   => 'MD5',
+        'params'      => $tparams,
+        'sign'        => $tsign,
+    ]);
+    echo "verifyNotify 自检 = OK（config 与 .env 一致）\n\n";
+} catch (\Throwable $e) {
+    echo 'verifyNotify 自检 = FAIL：' . get_class($e) . ' ' . $e->getMessage() . "\n\n";
+}
+
+$uid = (int) $db->table('lp_recharge_order')->order('id desc')->value('user_id');
+if ($uid <= 0) { $uid = (int) $db->table('lp_user')->order('id asc')->value('id'); }
+$before = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
+printf("测试用户=%d 充值前点数=%.2f\n", $uid, $before);
+
+$pkgId = (int) $db->table('lp_recharge_package')->where('tokens', 550)->value('id');
+$order = $svc->submitPackageOrder($uid, $pkgId, 'TRC20Buy');
+$orderNo = (string) $order['order_no'];
+printf("下单: order_no=%s amount=%s diamonds=%s system_ref=%s\npay_url=%s\n\n",
+    $orderNo, $order['pay_amount'], $order['diamond_amount'], $order['system_ref'], $order['pay_url']);
+
+function notify($url, $mno, $key, $biz, $tamper = false) {
+    $params = json_encode($biz, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $ts = (string) time();
+    $sign = md5($mno . $params . 'MD5' . $ts . $key);
+    if ($tamper) { $sign = substr($sign, 0, -1) . (substr($sign, -1) === '0' ? '1' : '0'); }
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'merchant_no' => $mno, 'timestamp' => $ts, 'sign_type' => 'MD5',
+            'params' => $params, 'sign' => $sign,
+        ]),
+    ]);
+    $r = curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$http, trim((string) $r)];
+}
+
+$url = 'http://127.0.0.1:8082/api/v1/recharge/notify';
+$biz = [
+    'merchant_ref' => $orderNo,
+    'system_ref'   => (string) ($order['system_ref'] ?: 'TESTSYSREF'),
+    'amount'       => number_format((float) $order['pay_amount'], 2, '.', ''),
+    'fee'          => '0.00',
+    'status'       => 1,
+    'success_time' => time(),
+];
+
+list($http, $resp) = notify($url, $mno, $key, $biz, true);
+printf("回调(篡改签名): http=%d resp=%s   期望 FAIL\n", $http, $resp);
+
+list($http, $resp) = notify($url, $mno, $key, $biz);
+$o  = $db->table('lp_recharge_order')->where('order_no', $orderNo)->find();
+$b1 = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
+printf("回调(合法签名): http=%d resp=%s -> 订单状态=%d 点数=%.2f（期望 1 / %.2f）\n",
+    $http, $resp, (int) $o['status'], $b1, $before + (float) $order['diamond_amount']);
+
+list($http, $resp) = notify($url, $mno, $key, $biz);
+$b2 = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
+printf("回调(重复推送): http=%d resp=%s -> 点数=%.2f（应不变，幂等）\n", $http, $resp, $b2);
+
+$ledger = $db->table('lp_wallet_ledger')->where('biz_id', (int) $o['id'])->where('biz_type', 'recharge')->select()->toArray();
+echo '流水记录数=' . count($ledger) . "\n\n";
+
+$db->table('lp_wallet_ledger')->where('biz_id', (int) $o['id'])->where('biz_type', 'recharge')->delete();
+$db->table('lp_wallet_account')->where('user_id', $uid)->update(['diamond_balance' => $before, 'updated_at' => date('Y-m-d H:i:s')]);
+$db->table('lp_recharge_order')->where('order_no', $orderNo)->delete();
+printf("清理测试数据: 点数=%.2f 残留订单=%d 残留流水=%d\n",
+    (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance'),
+    (int) $db->table('lp_recharge_order')->where('order_no', $orderNo)->count(),
+    (int) $db->table('lp_wallet_ledger')->where('biz_id', (int) $o['id'])->count());
+PHPEOF
+rm -f /tmp/notify_dbg.log
+php /tmp/starpay_e2e.php
+echo "########## 回调调试日志 ##########"
+cat /tmp/notify_dbg.log 2>/dev/null || echo "(无)"
+'''
+
+
 RELOAD_STEP = r"""
 set -e
 mkdir -p %s/runtime
@@ -95,6 +215,7 @@ if systemctl list-units --type=service | grep -q php8.3-fpm; then systemctl relo
 elif [ -f /etc/init.d/php-fpm-83 ]; then /etc/init.d/php-fpm-83 reload; echo "php-fpm-83 reloaded";
 else service php-fpm reload; echo "php-fpm reloaded"; fi
 """ % (PHP_DIR, PHP_DIR)
+
 
 VERIFY_STEP = DB_ENV + (r"""
 echo "--- PHP 语法 ---"
@@ -212,8 +333,36 @@ def upload_file(sftp, buf, rel, remote, backup_suffix=""):
     upload_bytes(sftp, buf, remote, data, backup_suffix)
 
 
+def local_starpay_env():
+    """从本地 php/.env 的 [STARPAY] 段读取密钥（php/.env 已被 git 忽略，不入库）"""
+    cfg = {}
+    try:
+        with open(os.path.join(LOCAL, "php", ".env"), "r", encoding="utf-8", errors="replace") as f:
+            section = ""
+            for line in f:
+                line = line.strip()
+                if line.startswith("[") and line.endswith("]"):
+                    section = line[1:-1].strip().upper()
+                    continue
+                if section != "STARPAY" or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                cfg[k.strip().upper()] = v.strip()
+    except IOError as exc:
+        print("read local .env failed:", exc)
+    return cfg
+
+
+def starpay_section():
+    c = local_starpay_env()
+    if not c.get("MERCHANT_NO") or not c.get("KEY"):
+        raise SystemExit("本地 php/.env 缺少 [STARPAY] MERCHANT_NO / KEY")
+    order = ["GATEWAY", "MERCHANT_NO", "KEY", "PRODUCT", "FIAT_CURRENCY", "PRODUCTS", "NOTIFY_URL", "RETURN_URL"]
+    return "[STARPAY]\n" + "".join("%s = %s\n" % (k, c[k]) for k in order if c.get(k))
+
+
 def ensure_env(sftp, buf, cli):
-    """在服务器 php/.env 追加 [STARPAY] 段（已存在则跳过）"""
+    """写入服务器 php/.env 的 [STARPAY] 段（已存在则替换）"""
     log_write(buf, "\n===== 服务器 .env [STARPAY] =====")
     remote = PHP_DIR + "/.env"
     try:
@@ -223,20 +372,101 @@ def ensure_env(sftp, buf, cli):
         log_write(buf, "read .env failed: %s" % exc)
         return
     text = raw.decode("utf-8", "replace")
-    if "[STARPAY]" in text:
-        log_write(buf, "[STARPAY] 已存在，跳过")
-        return
-    block = (
-        "\n[STARPAY]\n"
-        "GATEWAY = https://api.star-pay.vip\n"
-        "MERCHANT_NO =\n"
-        "KEY =\n"
-        "PRODUCT = TRC20Buy\n"
-        "PRODUCTS = TRC20Buy,ERC20Buy,USDCERC20Buy,TRC20H5\n"
-        "NOTIFY_URL = https://sugus.it.com/api/v1/recharge/notify\n"
-        "RETURN_URL = https://sugus.it.com/ai/purchasePoints.html\n"
-    )
-    upload_bytes(sftp, buf, remote, (text + block).encode("utf-8"), ".bak_starpayenv_" + STAMP)
+
+    lines = text.split("\n")
+    kept, skipping = [], False
+    for line in lines:
+        stripped = line.strip()
+        if stripped == "[STARPAY]":
+            skipping = True
+            continue
+        if skipping:
+            if stripped.startswith("[") and stripped.endswith("]"):
+                skipping = False
+            else:
+                continue
+        kept.append(line)
+
+    section = starpay_section()
+    body = "\n".join(kept).rstrip("\n")
+    upload_bytes(sftp, buf, remote, (body + "\n\n" + section).encode("utf-8"),
+                 ".bak_starpayenv_" + STAMP)
+    log_write(buf, "[STARPAY] 已写入（MERCHANT_NO=%s / KEY 长度=%d / 产品=%s）"
+              % (local_starpay_env().get("MERCHANT_NO", ""), len(local_starpay_env().get("KEY", "")),
+                 local_starpay_env().get("PRODUCTS", "")))
+
+
+GATEWAY_STEP = r'''
+cat > /tmp/starpay_check2.php <<'PHPEOF'
+<?php
+$env  = parse_ini_file('/www/wwwroot/douyin/php/.env', true, INI_SCANNER_RAW);
+$c    = $env['STARPAY'] ?? [];
+$base = rtrim((string) ($c['GATEWAY'] ?? ''), '/');
+$mno  = trim((string) ($c['MERCHANT_NO'] ?? ''));
+$key  = trim((string) ($c['KEY'] ?? ''));
+
+function post($base, $mno, $key, $path, $biz) {
+    $ts     = (string) time();
+    $params = json_encode($biz, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $sign   = md5($mno . $params . 'MD5' . $ts . $key);
+    $ch = curl_init($base . $path);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'merchant_no' => $mno, 'timestamp' => $ts, 'sign_type' => 'MD5',
+            'params' => $params, 'sign' => $sign,
+        ]),
+    ]);
+    $raw  = (string) curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$http, json_decode($raw, true), $raw];
+}
+
+echo "########## 各产品 USD 限额 ##########\n";
+foreach (['TRC20Buy', 'ERC20Buy', 'USDCERC20Buy', 'TRC20H5', 'USDT-TRC20Deposit', 'USDCDeposit'] as $p) {
+    [$http, $body, $raw] = post($base, $mno, $key, '/api/gateway/buy/coin/amount/range', ['product' => $p]);
+    $rows = json_decode((string) ($body['params'] ?? '[]'), true);
+    $usd  = null;
+    foreach ((array) $rows as $row) {
+        if (($row['bank_code'] ?? '') === 'USD') { $usd = $row; }
+    }
+    printf("%-20s http=%s rows=%d USD=%s msg=%s\n", $p, $http, is_array($rows) ? count($rows) : -1,
+        json_encode($usd), (string) ($body['message'] ?? ''));
+}
+
+echo "\n########## 逐产品试单 10.00 USD ##########\n";
+foreach (['TRC20Buy', 'ERC20Buy', 'USDCERC20Buy', 'TRC20H5'] as $p) {
+    [$http, $body, $raw] = post($base, $mno, $key, '/api/gateway/pay', [
+        'merchant_ref' => 'CHK' . $p . time(),
+        'product'      => $p,
+        'amount'       => '10.00',
+        'notify_url'   => (string) ($c['NOTIFY_URL'] ?? ''),
+        'return_url'   => (string) ($c['RETURN_URL'] ?? ''),
+        'extra'        => ['fiat_currency' => 'USD'],
+    ]);
+    printf("%-20s http=%s msg=%s params=%s\n", $p, $http, (string) ($body['message'] ?? ''),
+        mb_substr((string) ($body['params'] ?? ''), 0, 320));
+}
+
+echo "\n########## 试单 9.99 USD（当前最低档）##########\n";
+[$http, $body, $raw] = post($base, $mno, $key, '/api/gateway/pay', [
+    'merchant_ref' => 'CHK999' . time(), 'product' => 'TRC20Buy', 'amount' => '9.99',
+    'extra'        => ['fiat_currency' => 'USD'],
+]);
+printf("http=%s msg=%s\n", $http, (string) ($body['message'] ?? ''));
+
+echo "\n########## 试单 299.99 USD（当前最高档）##########\n";
+[$http, $body, $raw] = post($base, $mno, $key, '/api/gateway/pay', [
+    'merchant_ref' => 'CHK299' . time(), 'product' => 'TRC20Buy', 'amount' => '299.99',
+    'extra'        => ['fiat_currency' => 'USD'],
+]);
+printf("http=%s msg=%s params=%s\n", $http, (string) ($body['message'] ?? ''),
+    mb_substr((string) ($body['params'] ?? ''), 0, 400));
+PHPEOF
+php /tmp/starpay_check2.php
+'''
+
 
 
 def main():
@@ -247,6 +477,10 @@ def main():
         sftp = cli.open_sftp()
         if action == "probe":
             run(cli, buf, "服务器环境探测", PROBE_STEP, timeout=120)
+        elif action == "gateway":
+            run(cli, buf, "star-pay 网关联调", GATEWAY_STEP, timeout=300)
+        elif action == "e2e":
+            run(cli, buf, "端到端下单+回调联调", E2E_STEP, timeout=300)
         else:
             if action in ("all", "php"):
                 for rel in PHP_FILES:
@@ -261,6 +495,8 @@ def main():
                 ensure_env(sftp, buf, cli)
             if action in ("all", "sql"):
                 run(cli, buf, "数据库迁移", SQL_STEP, timeout=300)
+            if action in ("all", "min"):
+                run(cli, buf, "最低档改价（对齐网关最小金额）", MIN_AMOUNT_STEP, timeout=120)
             if action in ("all", "php"):
                 run(cli, buf, "重载 php-fpm", RELOAD_STEP, timeout=120)
                 run(cli, buf, "目录权限", "chown -R www-data:www-data %s/config %s/app" % (PHP_DIR, PHP_DIR), timeout=180)
