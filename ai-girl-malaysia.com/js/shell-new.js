@@ -9,7 +9,7 @@
  * 做法：只替换旧页面里「侧边栏 nav 的内容」与「#user-setting 的内容」，
  *      外层容器及其 data-main-target / webkit-transform-sidebar / pc-nav 全部保留，
  *      因此旧包的展开·收起逻辑（main_controller.js 的 toggleSidebar）继续生效。
- *      自带新版外壳的页面（Subscriptions.html）：左侧菜单同样统一成这一套，只保留它自己的顶栏。
+ *      自带新版外壳的页面（Subscriptions.html）：左侧菜单与顶栏右上角都统一成这一套。
  */
 (function () {
   'use strict'
@@ -432,8 +432,20 @@
       drawer.innerHTML = mobileDrawer()
     }
 
-    // 自带新版外壳的页面（Subscriptions.html）：左侧菜单统一成上面这套，右上角保留它自己的实现
-    if (document.querySelector('[data-testid="new-shell-navbar"]')) return true
+    // 自带新版外壳的页面（Subscriptions.html）：右上角也换成同一套，并摘掉它原本的成就徽章/胶囊/头像块
+    var builtInBar = document.querySelector('[data-testid="new-shell-navbar"]')
+    if (builtInBar) {
+      var anchor = builtInBar.querySelector('[data-testid="achievements-navbar-badge"]')
+      var rightSlot = anchor && anchor.parentElement
+      if (rightSlot) {
+        rightSlot.id = 'user-setting'
+        rightSlot.style.display = 'flex'
+        rightSlot.innerHTML = navRight()
+      }
+      var legacyProfile = builtInBar.querySelectorAll('[data-testid="new-shell-profile-button-desktop"]')
+      for (var k = 0; k < legacyProfile.length; k++) legacyProfile[k].parentNode.removeChild(legacyProfile[k])
+      return true
+    }
 
     // 顶栏右上角：统一成新版形态（并修正 #user-setting 落在顶栏之外的历史结构）
     var hamburger = document.getElementById('nav-hamburger')
