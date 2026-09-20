@@ -258,13 +258,24 @@
     }
 
     // ---------- 支付弹窗 ----------
+    // 收款网络图标（地址类产品：USDT TRC20 / ERC20）
+    var METHOD_META = {
+        'USDT-TRC20Deposit': { label: 'USDT TRC20', icon: './assets/USDT-TRC20.png' },
+        'USDT-ERC20Deposit': { label: 'USDT ERC20', icon: './assets/USDT-ERC20.png' }
+    }
+
     function renderMethods() {
         var html = ''
         products.forEach(function (m) {
-            html += '<button type="button" class="tk-method" data-code="' + m.code + '"><span>Continue with ' + m.name + '</span></button>'
+            var meta = METHOD_META[m.code] || {}
+            var label = meta.label || m.name
+            html += '<button type="button" class="tk-method" data-code="' + m.code + '">' +
+                '<span class="tk-method-text">Pay with ' + label + '</span>' +
+                (meta.icon ? '<span class="tk-method-icons"><img src="' + meta.icon + '" alt="' + label + '"></span>' : '') +
+                '</button>'
         })
         if (!products.length) {
-            html = '<button type="button" class="tk-method" disabled><span>Payment method unavailable</span></button>'
+            html = '<button type="button" class="tk-method" disabled><span class="tk-method-text">Payment method unavailable</span></button>'
         }
         $('#tk-modal-methods').html(html)
     }
@@ -274,6 +285,8 @@
         if (!sel) return
         selected = sel
         renderMethods()
+        $('#tk-plan-title').text(sel.tokens + ' tokens')
+        $('#tk-plan-price').text(money(sel.price))
         $('#tk-modal-summary').text('You are purchasing ' + sel.tokens + ' tokens for ' + money(sel.price))
         $('#tk-payment-modal').css('display', 'flex')
         hideBubble()

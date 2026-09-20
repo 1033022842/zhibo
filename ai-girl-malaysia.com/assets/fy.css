@@ -187,17 +187,32 @@ button.fy-avatar-btn{background-color:#221c26;background-image:none;border:0;}
 .fy-profile-menu form{margin:0;}
 
 /* ---------------------------------------------------------------
-   侧边栏（新版外观）：分隔线 / 语言切换 / 悬浮提示 / 移动端抽屉
+   侧边栏（新版形态）：角标 / NEW 标签 / 分隔线 / 语言切换 / 悬浮提示 / 移动端抽屉
    取值照参考页（Subscriptions.html）实测排版；旧包缺少的工具类在这里补齐。
-   菜单项沿用站点原有内容，只套外观。
    --------------------------------------------------------------- */
 /* 渲染前先藏起来，避免旧侧栏一闪而过 */
 html.fy-shell-pending [data-main-target="mainSidebarClosedContainer"] nav,
 html.fy-shell-pending [data-main-target="mainSidebarOpenedContainer"] nav,
 html.fy-shell-pending [data-main-target="mainMobileSidebarContainer"] nav{visibility:hidden;}
 
+/* Chat 未读角标 */
+.fy-badge{display:flex;width:20px;height:20px;justify-content:center;align-items:center;border-radius:9999px;background:#F51E1C;}
+.fy-badge span{color:#fff;font-size:13px;font-weight:400;line-height:1;}
+.fy-badge-abs{position:absolute;top:-6px;right:-9px;}
+.fy-badge-row{margin-left:auto;flex:0 0 auto;}
+
+/* Candy Shop 的 NEW 标签 */
+.fy-new{margin-left:auto;flex:0 0 auto;border-radius:100px;background:#f51e1c;padding:2px 5px;color:#fff;font-size:8px;line-height:11px;font-weight:700;text-transform:uppercase;}
+.fy-drawer .fy-new{padding:3px 8px;font-size:9.5px;line-height:12px;letter-spacing:.03em;}
+
 /* 分隔线（旧包没有 bg-white/10） */
 .fy-hr-li{position:relative;width:100%;height:1px;flex:0 0 auto;background:rgba(255,255,255,.1);}
+
+/* 展开态底部法务行 */
+.fy-legal{display:flex;align-items:center;width:100%;padding-top:12px;font-size:8px;line-height:1;color:#d1d1d1;}
+.fy-legal a{color:inherit;text-decoration:none;}
+.fy-legal a:hover{color:#fff;}
+.fy-legal-dot{display:inline-block;width:4px;height:4px;flex:0 0 auto;margin-right:8px;border-radius:9999px;background:#fff;}
 
 /* 语言切换：按钮 + 下拉 */
 .fy-langwrap{position:relative;width:100%;}
@@ -237,5 +252,9 @@ html.fy-shell-pending [data-main-target="mainMobileSidebarContainer"] nav{visibi
 .fy-drawer-menu a:hover,.fy-drawer-menu button:hover{color:#fff;}
 .fy-drawer-menu img,.fy-drawer-menu svg{width:20px;height:20px;flex:0 0 auto;}
 .fy-drawer-menu form{margin:0;}
+.fy-drawer-foot{display:flex;flex-direction:column;gap:10px;width:100%;padding:10px 0;border-top:1px solid #2F2F32;background:#1E1E1E;}
+.fy-drawer-foot-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;}
+.fy-dpill{display:flex;min-width:0;min-height:32px;align-items:center;justify-content:center;padding:6px 8px;border:1px solid #a4a4a4;border-radius:8px;text-decoration:none;}
+.fy-dpill span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;color:#e5e5e5;font-size:11px;font-weight:500;}
 
     

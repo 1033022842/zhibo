@@ -1,82 +1,57 @@
 /**
  * 新版外壳渲染（侧边栏 + 顶栏右上角）
- * 样式目标：Subscriptions.html / tokens.html 使用的新版外壳。
- * 菜单内容：沿用站点原有的菜单项与顺序（Home / Explore / Chat / Gallery / Generate Image /
- *          Create Character / My AI / Upload Media / Face Swap / Shop / Shorts / Posts /
- *          Private Content / Tokens / Games / Crowdfunding，底部 Contact Us / Affiliate Program /
- *          Become Premium），只换外观，不改入口。
+ * 目标形态：Subscriptions.html / tokens.html 使用的新版外壳。
  *
  * 做法：只替换旧页面里「侧边栏 nav 的内容」与「#user-setting 的内容」，
  *      外层容器及其 data-main-target / webkit-transform-sidebar / pc-nav 全部保留，
  *      因此旧包的展开·收起逻辑（main_controller.js 的 toggleSidebar）继续生效。
- *      已经是新版外壳的页面（带 data-testid="new-shell-*"）跳过。
+ *      已经是新版外壳的页面（带 data-testid="new-shell-*"）直接跳过。
  */
 (function () {
   'use strict'
 
   var T = './taocan_files/'
-  // 参考页没有的菜单项：形状沿用站点旧侧边栏，描边统一成新版侧栏的浅灰
-  var S = 'fill="none" stroke="#D1D1D1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"'
-
   var I = {
-    // 图片图标（新版侧栏同款）
-    home: { src: T + 'home-18a7d73adabda5674f78dab4a3d6b3acebbdbba31f0ad19053537dabffade496.svg' },
-    explore: { src: T + 'explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg' },
-    chat: { src: T + 'chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg' },
-    gallery: { src: T + 'gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg' },
-    candy: { src: T + 'candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg' },
-    shorts: { src: T + 'shorts-dd7eca01fe7f8a694cd100be90b5b6c20d241a5bf4c8b8c0f8633864125cffae.svg' },
-    wand: { src: T + 'magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg' },
-    lady: { src: T + 'love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg' },
-    lock: { src: T + 'heart-lock-c322a04a0a80c5ca1b50658063120fa33d2f209b5e0980e7be8e47cc9667f736.svg' },
-    token: { src: T + 'token-4193ee36c35274edacea995ff69347bb8d3e75f4094143958306eac195fe9a83.svg' },
-    premium: { src: T + 'premium-3fa8ec9f951178508109d03de202bc4a381ed87451b7dc9f8aa5a931bd485e02.svg' },
-    generate: { src: './characters_files/generate-33f95391d5d800565b7ea9ba3f6effa0a3d0a2b2eeafdba4ccc526aef7ae3498.svg' },
-    en: { src: T + 'en-337bbb31fb6de773da4d64ab2e90f99d4706f32ade21156a47b8603dfeccb1e4.svg' },
-    coin: { src: T + 'token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg' },
-    expand: { src: T + 'expand-cd76d60d9e4264d89102db00cc87d69cb1ecd6c96663e5cea3809a90dd47a9ab.svg' },
-    addWhite: { src: T + 'add_white-d504ef86384a5fe4014170fa04483735c82f42d80301af36e1c50f979a2c2245.svg' },
-    user: { src: T + 'user-136475e1e7120a61ab13061e84c88cdf96837d2fb8eafda7a8c5b73815512f42.svg' },
-    man: { src: T + 'man-f06d242ecbaa154c05843d8e91f779c41dbef390319247606b1919b87169c74a.svg' },
-    gift: { src: T + 'icon_gift-21fcbe4f1b1c5a97716a7735e28f760b007f6f05d08c337f2b1d16a56d6aa48d.svg' },
-    settings: { src: T + 'settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg' },
-    logout: { src: T + 'logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg' },
-
-    // 内联图标（站点旧侧边栏同款形状）
-    upload: { svg: '<svg viewBox="0 0 24 24" ' + S + '><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>' },
-    faceswap: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="9" cy="8.5" r="4.5"/><circle cx="15" cy="15.5" r="4.5"/><path d="M7.6 7.9h.01M10.4 7.9h.01M8.2 10.6c.5.4 1.1.4 1.6 0"/></svg>' },
-    posts: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.8" cy="9.8" r="1.5"/><path d="M4.2 18.2l4.6-4.6 3.6 3.6 2.8-2.4 4.6 3.4"/></svg>' },
-    games: { svg: '<svg viewBox="0 0 24 24" ' + S + '><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>' },
-    crowd: { svg: '<svg viewBox="0 0 24 24" ' + S + '><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
-    contact: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>' },
-    affiliate: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>' }
+    home: T + 'home-18a7d73adabda5674f78dab4a3d6b3acebbdbba31f0ad19053537dabffade496.svg',
+    explore: T + 'explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg',
+    shorts: T + 'shorts-dd7eca01fe7f8a694cd100be90b5b6c20d241a5bf4c8b8c0f8633864125cffae.svg',
+    candy: T + 'candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg',
+    chat: T + 'chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg',
+    gallery: T + 'gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg',
+    trophy: T + 'trophy-55ba15bcf830427b6fc776e11ff4465cce75c1c2a1a27ba0bd2eea0e5c03ff55.svg',
+    wand: T + 'magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg',
+    lady: T + 'love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg',
+    lock: T + 'heart-lock-c322a04a0a80c5ca1b50658063120fa33d2f209b5e0980e7be8e47cc9667f736.svg',
+    token: T + 'token-4193ee36c35274edacea995ff69347bb8d3e75f4094143958306eac195fe9a83.svg',
+    coin: T + 'token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg',
+    expand: T + 'expand-cd76d60d9e4264d89102db00cc87d69cb1ecd6c96663e5cea3809a90dd47a9ab.svg',
+    addWhite: T + 'add_white-d504ef86384a5fe4014170fa04483735c82f42d80301af36e1c50f979a2c2245.svg',
+    user: T + 'user-136475e1e7120a61ab13061e84c88cdf96837d2fb8eafda7a8c5b73815512f42.svg',
+    man: T + 'man-f06d242ecbaa154c05843d8e91f779c41dbef390319247606b1919b87169c74a.svg',
+    premium: T + 'premium-3fa8ec9f951178508109d03de202bc4a381ed87451b7dc9f8aa5a931bd485e02.svg',
+    gift: T + 'icon_gift-21fcbe4f1b1c5a97716a7735e28f760b007f6f05d08c337f2b1d16a56d6aa48d.svg',
+    settings: T + 'settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg',
+    logout: T + 'logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg',
+    en: T + 'en-337bbb31fb6de773da4d64ab2e90f99d4706f32ade21156a47b8603dfeccb1e4.svg',
+    discord: T + 'discord-526bbe3abf7210fa8bd8e76658d4df5a5c67d569f1349a2441b1d0bbd170c84d.svg',
+    help: T + 'help-center-1abd5651dab8abd889622a19eb9821ab4c19bd275da4ac1b9717820842a98dd8.svg',
+    contact: T + 'contact-c50065a887c8d0061543beceae78cec1bdaaac55ec7d37f11601912b3250e119.svg',
+    arrow: T + 'ask-arrow-5e9e3d502459a09cc6f7a6face21c887f7e5ff747265bdf33f1cc5eb16098469.svg'
   }
 
-  // 侧边栏菜单：沿用站点原有菜单项与顺序
+  // 导航项： [key, href, 文案, 图标, 角标(new|badge|invert|'')]
   var NAV = [
-    { href: './Home.html', label: 'Home', icon: 'home' },
-    { href: './Girls.html', label: 'Explore', icon: 'explore' },
-    { href: './Chat.html', label: 'Chat', icon: 'chat' },
-    { href: './Gallery.html', label: 'Gallery', icon: 'gallery' },
-    { href: './Image.html', label: 'Generate Image', icon: 'generate', top: true },
-    { href: './characters.html', label: 'Create Character', icon: 'wand' },
-    { href: './charactersIndex.html', label: 'My AI', icon: 'lady' },
-    { href: './upload_media.html', label: 'Upload Media', icon: 'upload' },
-    { href: './face_swap.html', label: 'Face Swap', icon: 'faceswap' },
-    { href: './shop.html', label: 'Shop', icon: 'candy' },
-    { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
-    { href: './posts.html', label: 'Posts', icon: 'posts' },
-    { href: './private_content.html', label: 'Private Content', icon: 'lock' },
-    { href: './purchasePoints.html', label: 'Tokens', icon: 'token' },
-    { href: './Game.html', label: 'Games', icon: 'games' },
-    { href: './index.html', label: 'Crowdfunding', icon: 'crowd' }
-  ]
-
-  // 侧边栏底部：沿用站点原有三项
-  var NAV_BOTTOM = [
-    { href: 'mailto:support@sugusmail.ai', label: 'Contact Us', icon: 'contact', attr: ' data-contact-us="1"' },
-    { href: './Inviter.html', label: 'Affiliate Program', icon: 'affiliate' },
-    { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' }
+    ['home', './Home.html', 'Home', I.home, ''],
+    ['discover', './posts.html', 'Discover', I.explore, ''],
+    ['shorts', './shorts.html', 'Shorts', I.shorts, ''],
+    ['candy-shop', './shop.html', 'Candy Shop', I.candy, 'new'],
+    ['chat', './Chat.html', 'Chat', I.chat, 'badge'],
+    ['gallery', './Gallery.html', 'Collection', I.gallery, ''],
+    ['achievements', './Game.html', 'Achievements', I.trophy, 'invert'],
+    ['character', './characters.html', 'Create Character', I.wand, ''],
+    ['my_ai', './charactersIndex.html', 'My AI', I.lady, ''],
+    ['private_content', './private_content.html', 'Private Content', I.lock, ''],
+    ['tokens', './tokens.html', 'Buy Tokens', I.token, '']
   ]
 
   // 语言列表（与 header/header.html 的下拉一致，复用 .lang-select 的既有逻辑）
@@ -94,36 +69,44 @@
     ['es', 'español']
   ]
 
+  var CONTACT_HREF = 'mailto:support@sugusmail.ai'
+  var DISCORD_HREF = 'https://discord.com/invite/candyai'
+  var AFFILIATE_HREF = 'https://webforms.pipedrive.com/f/bYSTErXD8pcDoco3iakbUUKFRtWtAjNDJphn0GpYA3B88R2NYvCzVMM2wsNCjtVMkP'
+  var HELP_HREF = 'https://everai.zendesk.com/hc/en-us'
+  var TRUST_HREF = 'https://helloeverai.zendesk.com/'
+
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
     })
   }
 
-  function iconHtml(key, size) {
-    var ic = I[key]
-    if (ic.svg) return ic.svg.replace('<svg ', '<svg class="' + size + '" ')
-    return '<img class="' + size + '" src="' + ic.src + '" alt="">'
+  function icon(item, size) {
+    var cls = size + (item[4] === 'invert' ? ' shrink-0 brightness-0 invert' : '')
+    return '<img class="' + cls + '" src="' + item[3] + '" alt="' + esc(item[2]) + '">'
   }
 
-  function linkAttr(item) {
-    return ' href="' + item.href + '"' +
-      (item.top ? ' target="_top"' : '') +
-      (item.attr || '')
+  // abs=true：收起态，绝对定位压在图标右上角；abs=false：展开态/抽屉，行内右对齐
+  function badge(abs) {
+    return '<span class="fy-badge ' + (abs ? 'fy-badge-abs' : 'fy-badge-row') + '"><span>5</span></span>'
+  }
+
+  function newTag() {
+    return '<span class="fy-new">NEW</span>'
   }
 
   /* ---------- 收起态 100px ---------- */
   function collapsedSidebar() {
     var items = NAV.map(function (n) {
-      return '<li class="relative w-full" data-fy-tip="' + esc(n.label) + '">' +
-        '<a class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer"' + linkAttr(n) + '>' +
-        iconHtml(n.icon, 'w-6 h-6') + '</a></li>'
-    }).join('')
-
-    var bottom = NAV_BOTTOM.map(function (n) {
-      return '<li class="relative w-full" data-fy-tip="' + esc(n.label) + '">' +
-        '<a class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer"' + linkAttr(n) + '>' +
-        iconHtml(n.icon, 'w-6 h-6') + '</a></li>'
+      var inner
+      if (n[4] === 'badge') {
+        inner = '<span class="relative">' + icon(n, 'w-6 h-6') + badge(true) + '</span>'
+      } else {
+        inner = icon(n, 'w-6 h-6')
+      }
+      return '<li class="relative w-full" data-fy-tip="' + esc(n[2]) + '">' +
+        '<a class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer" href="' + n[1] + '">' +
+        inner + '</a></li>'
     }).join('')
 
     return '<nav class="flex flex-col justify-between h-full">' +
@@ -131,29 +114,66 @@
       '<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6">' + items + '</ul>' +
       '</div>' +
       '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">' +
-      '<li class="relative w-full">' + langButton(false) + '</li>' + bottom +
+      '<li class="relative w-full">' + langButton(false) + '</li>' +
+      linkLi(I.discord, 'Discord', 'h-[48px] w-[52px] mx-auto', DISCORD_HREF, true) +
+      '<li class="relative w-full" data-fy-tip="Contact Us">' +
+      '<a class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer" href="' + CONTACT_HREF + '">' +
+      '<img class="w-6 h-6" src="' + I.contact + '" alt="Contact Us"></a></li>' +
+      linkLi(I.trophy, 'Affiliate', 'h-[48px] w-[52px] mx-auto shrink-0 brightness-0 invert', AFFILIATE_HREF, true) +
       '</ul></nav>'
+  }
+
+  function linkLi(iconSrc, label, sizeCls, href, blank) {
+    return '<li class="relative w-full" data-fy-tip="' + esc(label) + '">' +
+      '<a class="hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 cursor-pointer ' + sizeCls + '"' +
+      ' href="' + href + '"' + (blank ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' +
+      '<img class="w-6 h-6' + (sizeCls.indexOf('invert') > -1 ? ' shrink-0 brightness-0 invert' : '') + '" src="' + iconSrc + '" alt="' + esc(label) + '"></a></li>'
   }
 
   /* ---------- 展开态 220px ---------- */
   function expandedSidebar() {
-    function rows(list) {
-      return list.map(function (n) {
-        return '<li class="relative w-full">' +
-          '<a class="h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer"' + linkAttr(n) + '>' +
-          iconHtml(n.icon, 'w-4 h-4') +
-          '<span class="text-start text-grey-medium text-xxs font-medium leading-4">' + esc(n.label) + '</span>' +
-          '</a></li>'
-      }).join('')
-    }
+    var items = NAV.map(function (n) {
+      var inner
+      if (n[4] === 'badge') {
+        inner = '<img class="w-4 h-4" src="' + n[3] + '" alt="' + esc(n[2]) + '">' +
+          '<span class="text-start text-grey-medium text-xxs font-medium leading-4">' + esc(n[2]) + '</span>' + badge(false)
+      } else {
+        inner = icon(n, 'w-4 h-4') +
+          '<span class="text-start text-grey-medium text-xxs font-medium leading-4' + (n[4] === 'new' ? ' truncate' : '') + '">' + esc(n[2]) + '</span>' +
+          (n[4] === 'new' ? newTag() : '')
+      }
+      return '<li class="relative w-full">' +
+        '<a class="h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer" href="' + n[1] + '">' +
+        inner + '</a></li>'
+    }).join('')
+
+    var mid = '<li class="relative w-full">' + langButton(true) + '</li>' +
+      '<li class="relative w-full">' +
+      '<a class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white/10 justify-start px-3 items-center gap-2 flex cursor-pointer w-full" href="' + DISCORD_HREF + '" target="_blank" rel="noopener noreferrer">' +
+      '<img class="w-4 h-4" src="' + I.discord + '" alt="Discord">' +
+      '<span class="text-start text-grey-medium text-xs font-medium leading-4">Discord</span></a></li>' +
+      '<li class="relative w-full">' +
+      '<a class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white/10 justify-start px-3 items-center gap-2 flex cursor-pointer w-full" href="' + HELP_HREF + '" target="_blank" rel="noopener noreferrer">' +
+      '<img class="w-4 h-4" src="' + I.help + '" alt="Help Center">' +
+      '<span class="text-start text-grey-medium text-xs font-medium leading-4">Help Center</span></a></li>' +
+      '<li class="relative w-full">' +
+      '<a class="h-[40px] hover:bg-zinc-700 rounded-[10px] border border-white/10 justify-start px-3 items-center gap-2 flex cursor-pointer w-full" href="' + CONTACT_HREF + '">' +
+      '<img class="w-4 h-4" src="' + I.contact + '" alt="Contact Us">' +
+      '<span class="text-start text-grey-medium text-xs font-medium leading-4">Contact Us</span></a></li>' +
+      '<li class="relative w-full">' +
+      '<a class="hover:bg-zinc-700 rounded-[10px] border border-white/10 justify-start px-3 items-center gap-2 flex cursor-pointer w-full h-[40px]" href="' + AFFILIATE_HREF + '" target="_blank" rel="noopener noreferrer">' +
+      '<img class="w-4 h-4 shrink-0 brightness-0 invert" src="' + I.trophy + '" alt="Affiliate">' +
+      '<span class="text-start text-grey-medium text-xs font-medium leading-4">Affiliate</span></a></li>' +
+      '<li class="fy-legal"><a href="./setting.html">Legal Terms</a>' +
+      '<span class="fy-legal-dot"></span>' +
+      '<a href="' + TRUST_HREF + '" target="_blank" rel="noopener noreferrer">Trust &amp; Safety</a></li>'
 
     return '<nav class="flex flex-col justify-between h-full overflow-hidden">' +
       '<div class="flex flex-col flex-1 min-h-0">' +
-      '<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 flex-1 min-h-0 overflow-y-auto">' + rows(NAV) + '</ul>' +
+      '<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 flex-1 min-h-0 overflow-y-auto">' + items + '</ul>' +
       '</div>' +
-      '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end shrink-0">' +
-      '<li class="relative w-full">' + langButton(true) + '</li>' + rows(NAV_BOTTOM) +
-      '</ul></nav>'
+      '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end shrink-0">' + mid + '</ul>' +
+      '</nav>'
   }
 
   /* ---------- 语言切换按钮 + 下拉 ---------- */
@@ -163,7 +183,7 @@
     }).join('')
     return '<div class="fy-langwrap">' +
       '<button type="button" class="fy-langbtn' + (withLabel ? '' : ' fy-langbtn-sm') + '" aria-expanded="false">' +
-      '<img class="' + (withLabel ? 'w-[14px]' : 'h-[24px]') + '" src="' + I.en.src + '" alt="en flag icon">' +
+      '<img class="' + (withLabel ? 'w-[14px]' : 'h-[24px]') + '" src="' + I.en + '" alt="en flag icon">' +
       (withLabel ? '<span class="fy-langbtn-label">English</span>' : '') +
       '</button>' +
       '<div class="fy-lang-menu hidden">' + menu + '</div>' +
@@ -171,39 +191,45 @@
   }
 
   /* ---------- 移动端抽屉 ---------- */
-  function drawerRows() {
-    function row(n) {
+  function drawerItems() {
+    return NAV.map(function (n) {
+      var inner
+      if (n[4] === 'badge') {
+        inner = '<img class="w-5 h-5" src="' + n[3] + '" alt="' + esc(n[2]) + '">' +
+          '<span class="text-start text-grey-medium text-xs font-semibold">' + esc(n[2]) + '</span>' + badge(false)
+      } else {
+        inner = '<img class="w-5 h-5' + (n[4] === 'invert' ? ' shrink-0 brightness-0 invert' : '') + '" src="' + n[3] + '" alt="' + esc(n[2]) + '">' +
+          '<span class="text-start text-grey-medium text-xs font-semibold">' + esc(n[2]) + '</span>' +
+          (n[4] === 'new' ? newTag() : '')
+      }
       return '<li class="relative w-full">' +
-        '<a class="w-full flex justify-start items-center gap-2.5"' + linkAttr(n) + '>' +
-        iconHtml(n.icon, 'w-5 h-5') +
-        '<span class="text-start text-grey-medium text-xs font-semibold">' + esc(n.label) + '</span>' +
-        '</a></li><li class="fy-hr-li"></li>'
-    }
-    return NAV.map(row).join('') + NAV_BOTTOM.map(row).join('')
+        '<a class="w-full flex justify-start items-center gap-2.5" href="' + n[1] + '">' + inner + '</a></li>' +
+        '<li class="fy-hr-li"></li>'
+    }).join('')
   }
 
   function mobileDrawer() {
     var menu = '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./Subscriptions.html">' +
-      '<img class="w-5 h-5" src="' + I.premium.src + '" alt="Subscription">' +
+      '<img class="w-5 h-5" src="' + I.premium + '" alt="Subscription">' +
       '<span class="text-grey-medium text-xs font-semibold">Subscription</span></a>' +
-      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./purchasePoints.html">' +
-      '<img class="w-5 h-5" src="' + I.coin.src + '" alt="Tokens">' +
+      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./tokens.html">' +
+      '<img class="w-5 h-5" src="' + I.coin + '" alt="Tokens">' +
       '<span class="text-grey-medium text-xs font-semibold">Tokens</span></a>' +
       '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./charactersIndex.html">' +
-      '<img class="w-5 h-5" src="' + I.lady.src + '" alt="My AI">' +
+      '<img class="w-5 h-5" src="' + I.lady + '" alt="My AI">' +
       '<span class="text-grey-medium text-xs font-semibold">My AI</span></a>' +
       '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./upload_media.html">' +
-      '<img class="w-5 h-5" src="' + I.wand.src + '" alt="Upload Media">' +
+      '<img class="w-5 h-5" src="' + I.wand + '" alt="Upload Media">' +
       '<span class="text-grey-medium text-xs font-semibold">Upload Media</span></a>' +
       '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./Inviter.html">' +
-      '<img class="w-5 h-5" src="' + I.gift.src + '" alt="">' +
+      '<img class="w-5 h-5" src="' + I.gift + '" alt="">' +
       '<span class="text-grey-medium text-xs font-semibold">Get 100 tokens</span></a>' +
       '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./setting.html">' +
-      '<img class="w-5 h-5" src="' + I.settings.src + '" alt="Settings">' +
+      '<img class="w-5 h-5" src="' + I.settings + '" alt="Settings">' +
       '<span class="text-grey-medium text-xs font-semibold">Settings</span></a>' +
       '<form method="post" onsubmit="return false">' +
       '<button type="submit" class="logout w-full justify-start items-center gap-2.5 inline-flex">' +
-      '<img class="w-5 h-5" src="' + I.logout.src + '" alt="Logout">' +
+      '<img class="w-5 h-5" src="' + I.logout + '" alt="Logout">' +
       '<span class="text-grey-medium text-xs font-semibold">Logout</span></button></form>'
 
     return '<nav class="flex flex-col justify-between h-full w-60">' +
@@ -213,7 +239,7 @@
       // 我的资料（已登录）
       '<li class="fy-drawer-user login-pf relative w-full pt-2.5">' +
       '<button type="button" class="fy-drawer-userbtn user-dropdown" id="fy-drawer-user-btn" aria-expanded="false">' +
-      '<span class="relative"><img class="w-6 h-6 rounded-full user-dropdown" src="' + I.man.src + '" alt="Man profile icon">' +
+      '<span class="relative"><img class="w-6 h-6 rounded-full user-dropdown" src="' + I.man + '" alt="Man profile icon">' +
       '<span class="fy-drawer-dot"></span></span>' +
       '<span class="fy-drawer-userlabel user-dropdown"><span class="user-dropdown">My Profile</span>' +
       '<svg class="user-dropdown w-6 h-6 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
@@ -229,8 +255,23 @@
       '<span class="text-sm font-semibold leading-tight">Login</span></a></li>' +
 
       '<li class="fy-hr-li"></li>' +
-      drawerRows() +
-      '<li class="w-full">' + langButton(false) + '</li>' +
+      drawerItems() +
+
+      // 底部：Discord / Contact / Affiliate / 语言 / 法务
+      '<li class="fy-drawer-foot w-full">' +
+      '<div class="fy-drawer-foot-row">' +
+      '<a class="fy-dpill" href="' + DISCORD_HREF + '" target="_blank" rel="noopener noreferrer"><span>Discord</span></a>' +
+      '<a class="fy-dpill" href="' + CONTACT_HREF + '"><span>Contact Us</span></a>' +
+      '</div>' +
+      '<div class="fy-drawer-foot-row">' +
+      '<a class="fy-dpill" href="' + AFFILIATE_HREF + '" target="_blank" rel="noopener noreferrer"><span>Affiliate</span></a>' +
+      '<a class="fy-dpill" href="' + HELP_HREF + '" target="_blank" rel="noopener noreferrer"><span>Help Center</span></a>' +
+      '</div>' +
+      '<div class="fy-drawer-foot-row">' +
+      '<a class="fy-dpill" href="./setting.html"><span>Legal Terms</span></a>' +
+      '<a class="fy-dpill" href="' + TRUST_HREF + '" target="_blank" rel="noopener noreferrer"><span>Trust &amp; Safety</span></a>' +
+      '</div>' +
+      '</li>' +
 
       '</ul></div></nav>'
   }
@@ -239,9 +280,9 @@
   function tokenChip() {
     return '<div class="fy-chipwrap" id="token-chip-wrap">' +
       '<button type="button" class="fy-chip" id="token-chip-button" aria-expanded="false">' +
-      '<img class="fy-chip-coin" src="' + I.coin.src + '" alt="Tokens">' +
+      '<img class="fy-chip-coin" src="' + I.coin + '" alt="Tokens">' +
       '<span data-target="user-token-balance">0</span>' +
-      '<img class="fy-chip-arrow" src="' + I.expand.src + '" alt="">' +
+      '<img class="fy-chip-arrow" src="' + I.expand + '" alt="">' +
       '</button>' +
       '<div class="fy-chip-pop hidden" id="navbar-tokens-dropdown">' +
       '<div class="fy-chip-pop-in">' +
@@ -252,8 +293,8 @@
       row('Call cost', '3/min') +
       '</div>' +
       '<div class="fy-chip-pop-foot">' +
-      '<a class="fy-chip-pop-cta" href="./purchasePoints.html">Buy more' +
-      '<img src="' + I.addWhite.src + '" alt=""></a>' +
+      '<a class="fy-chip-pop-cta" href="./tokens.html">Buy more' +
+      '<img src="' + I.addWhite + '" alt=""></a>' +
       '</div>' +
       '</div></div>'
 
@@ -261,19 +302,19 @@
       return '<div class="fy-chip-pop-row">' +
         '<div class="fy-chip-pop-label">' + label + '</div>' +
         '<div class="fy-chip-pop-val">' + val +
-        '<img src="' + I.coin.src + '" alt=""></div></div>'
+        '<img src="' + I.coin + '" alt=""></div></div>'
     }
   }
 
   function navRight() {
-    var menu = '<a href="./Subscriptions.html"><img src="' + I.premium.src + '" alt=""><span>Subscription</span></a>' +
-      '<a href="./purchasePoints.html"><img src="' + I.coin.src + '" alt=""><span>Tokens</span></a>' +
-      '<a href="./charactersIndex.html"><img src="' + I.lady.src + '" alt=""><span>My AI</span></a>' +
-      '<a href="./upload_media.html"><img src="' + I.wand.src + '" alt=""><span>Upload Media</span></a>' +
-      '<a href="./Inviter.html"><img src="' + I.gift.src + '" alt=""><span>Get 100 tokens</span></a>' +
-      '<a href="./setting.html"><img src="' + I.settings.src + '" alt=""><span>Settings</span></a>' +
+    var menu = '<a href="./Subscriptions.html"><img src="' + I.premium + '" alt=""><span>Subscription</span></a>' +
+      '<a href="./tokens.html"><img src="' + I.coin + '" alt=""><span>Tokens</span></a>' +
+      '<a href="./charactersIndex.html"><img src="' + I.lady + '" alt=""><span>My AI</span></a>' +
+      '<a href="./upload_media.html"><img src="' + I.wand + '" alt=""><span>Upload Media</span></a>' +
+      '<a href="./Inviter.html"><img src="' + I.gift + '" alt=""><span>Get 100 tokens</span></a>' +
+      '<a href="./setting.html"><img src="' + I.settings + '" alt=""><span>Settings</span></a>' +
       '<form method="post" onsubmit="return false">' +
-      '<button data-turbo="false" id="logout" type="submit"><img src="' + I.logout.src + '" alt=""><span>Logout</span></button></form>'
+      '<button data-turbo="false" id="logout" type="submit"><img src="' + I.logout + '" alt=""><span>Logout</span></button></form>'
 
     return '<div class="fy-navright">' +
       '<a class="fy-achv" href="./Game.html" title="Achievements" aria-label="Achievements">' +
@@ -286,7 +327,7 @@
       '<div id="profileDropdownWrap" class="fy-profilewrap">' +
       '<button type="button" class="fy-avatar-btn" id="user-menu-button" aria-expanded="false">' +
       '<span class="sr-only">Open user menu</span>' +
-      '<img src="' + I.user.src + '" alt="Open user menu">' +
+      '<img src="' + I.user + '" alt="Open user menu">' +
       '<span class="fy-avatar-dot"></span></button>' +
       '<div id="profileDropdownMenu" class="fy-profile-menu" style="display:none">' + menu + '</div>' +
       '</div></div>'
