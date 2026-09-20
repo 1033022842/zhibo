@@ -11,11 +11,10 @@ sels = sys.argv[2:]
 css = io.open(path, encoding="utf-8", errors="replace").read()
 
 for sel in sels:
-    # 在压缩 CSS 中查找 ".selector{"
-    pat = re.escape(sel) + r"\s*\{([^{}]*)\}"
+    pat = re.escape(sel) + r"[^,{]*\{([^{}]*)\}"
     hits = re.findall(pat, css)
     if not hits:
-        print("%-28s MISSING" % sel)
+        print("%-34s MISSING" % sel)
         continue
-    for h in hits[:3]:
-        print("%-28s {%s}" % (sel, h.strip()))
+    for h in hits[:2]:
+        print("%-34s {%s}" % (sel, h.strip()[:160]))
