@@ -238,6 +238,31 @@
     }, 500)
   }
 
+  // 语言弹层：按按钮位置算 fixed 坐标（侧栏 ul 的 overflow 会把 absolute 弹层裁成一条边）
+  function placeLangMenu(menu, btn, wrap) {
+    if (!menu || !btn) return
+    var r = btn.getBoundingClientRect()
+    var mw = menu.offsetWidth
+    var mh = menu.offsetHeight
+    var collapsed = wrap.closest && wrap.closest('[data-main-target="mainSidebarClosedContainer"]')
+    var left = collapsed ? r.right + 8 : r.left
+    left = Math.max(8, Math.min(left, window.innerWidth - mw - 8))
+    var top = r.top - 8 - mh
+    if (top < 8) top = Math.max(8, Math.min(r.bottom + 8, window.innerHeight - mh - 8))
+    menu.style.left = left + 'px'
+    menu.style.top = top + 'px'
+  }
+
+  function hideLangMenus() {
+    var menus = document.querySelectorAll('.fy-langwrap .fy-lang-menu')
+    for (var i = 0; i < menus.length; i++) {
+      if (menus[i].classList.contains('hidden')) continue
+      menus[i].classList.add('hidden')
+      var b = menus[i].parentNode.querySelector('.fy-langbtn')
+      if (b) b.setAttribute('aria-expanded', 'false')
+    }
+  }
+
   /* ---------- 移动端抽屉 ---------- */
   function drawerRows() {
     function row(n) {
@@ -385,7 +410,12 @@
       if (li) showTip(li)
       else hideTip()
     })
-    document.addEventListener('scroll', hideTip, true)
+    document.addEventListener('scroll', function (e) {
+      hideTip()
+      // 语言弹层自身是滚动容器（11 种语言超出高度），它内部滚动不该把它收起来
+      if (e.target && e.target.closest && e.target.closest('.fy-lang-menu')) return
+      hideLangMenus()
+    }, true)
 
     // 头像下拉
     document.addEventListener('click', function (e) {
@@ -410,9 +440,12 @@
       document.querySelectorAll('.fy-langwrap').forEach(function (w) {
         var m = w.querySelector('.fy-lang-menu')
         var b = w.querySelector('.fy-langbtn')
+        if (!m) return
         if (w === wrap && !e.target.closest('.fy-lang-menu')) {
+          var opening = m.classList.contains('hidden')
           m.classList.toggle('hidden')
-          if (b) b.setAttribute('aria-expanded', m.classList.contains('hidden') ? 'false' : 'true')
+          if (opening) placeLangMenu(m, b, w)   // 先显示再量高度，同一帧内不会闪
+          if (b) b.setAttribute('aria-expanded', opening ? 'true' : 'false')
         } else if (!w.contains(e.target)) {
           m.classList.add('hidden')
           if (b) b.setAttribute('aria-expanded', 'false')
