@@ -22,19 +22,25 @@ final class CustomVideo extends BaseController
     /** 每日生成配额（AI 电脑单卡串行，防爆队列） */
     private const DAILY_LIMIT = 3;
 
+    /** 无限配额白名单（测试账号不限量） */
+    private const UNLIMITED_USER_IDS = [16];
+
     /** 生成预设 → H3 时间线导演台结构化提示词（subject_definitions/summary/分镜/音效/配乐） */
     private const PRESETS = [
         [
             'key'   => 'dance',
             'label' => 'Dance clip',
             'desc'  => 'She dances to the beat in a studio',
-            'prompt' => "subject_definitions:\n<Subject 1> is the young woman in <Picture 1>, with her facial features, hairstyle and skin tone exactly matching <Picture 1>, a natural figure, standing relaxed.\n\nsummary:\n[reference generation] A 10-second studio dance clip. <Subject 1> from <Picture 1> dances to a rhythmic pop track against a clean light-gray backdrop, starting slow, building energy through the middle, and ending calm. The camera is locked off.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - her face, hairstyle, skin tone and figure identical to <Picture 1> throughout.\n\ndetailed_description:\nA realistic live-action dance video on a light gray-white studio backdrop with soft even lighting.\n[Shot 1] Locked-off static camera, medium full-body framing, no camera movement for the whole 10 seconds.\nFrom 00:00.000 to 00:00.500 the screen is pure black. At 00:00.500 the frame fades in revealing <Subject 1> centered, feet together, arms relaxed, chin lifted, ready as the music enters.\nFrom 00:00.500 to 00:03.000 she sways slowly to the beat: weight shifting side to side, shoulders rolling gently, hands tracing soft arcs, hips following the rhythm in smooth controlled motions.\nFrom 00:03.000 to 00:07.000 the tempo lifts: she steps side to side with light footwork, upper-body pops on the accents, arms swinging with more energy, a bright confident smile growing on her face, her hair moving naturally with each turn of her shoulders.\nFrom 00:07.000 to 00:09.500 she eases back into the slow sway of the opening, motion gradually settling, ending centered with a warm smile, her appearance exactly as in <Picture 1>.\nAt 00:09.500 the frame fades to black, fully black by 00:10.000.\n\noverall_soundscape:\nA clean bright studio room tone; soft footfalls on each step, light breaths on the accents, settling quiet through the fade-out.\n\nnon_diegetic_music:\nA smooth rhythmic pop track around 108 BPM with a steady four-on-the-floor kick, crisp claps and a warm bass line, accents matching the choreography changes at 00:03.000 and 00:07.000, ending on a soft sustained chord through the fade.",
+            'prompt' => "
+            Editorial photograph for a Japanese fragrance campaign, cinematic still. A 22-year-old Japanese beauty stands completely nude in three-quarter view in a softly lit night garden, thighs held together, hips turned slightly away from the camera, body language carrying the whole mood, languid decadent air. She wears nothing. A luxurious pale blue and gold wide-sleeve silk robe lies folded on the stones behind her heels, not wrapping her ankles, not on her body. Her perky G-cup breasts with pink nipples are fully exposed and unobstructed. Her lower body is fully nude, smooth pale skin with a faint natural sheen; her thighs stay together and the private region between them is not presented to the camera, hidden in soft shadow along the inner line of her legs, not described further. Only a jeweled hip chain catching the light, covering nothing. Her right hand holds a closed black folding fan beside her right cheek, not covering her body. Her left arm hangs straight at her left side, empty, five fingers relaxed, away from her hips. Exactly two hands, exactly two arms, no extra limbs. She stands with both bare feet planted flat on the stone path, exactly two feet, ten toes visible, weight even. Long wavy hair half-tied in a loose bun with a few stray strands, metallic pendant hair ornaments, luxurious jeweled headpiece, tassel earrings, small sparkling floral sequins near the outer corners of her eyes, soft peach blush, glossy lips, almond eyes, sweet expressive gaze, otherworldly ethereal aura with a subtle yoki mystique. Background of blurred stone lanterns, cherry blossoms, drifting petals. 85mm portrait lens, soft warm Rembrandt side light carving her silhouette, rim light outlining the hair, dreamy bokeh, fine film grain, Kodak Portra 400 warmth. Photorealistic skin texture, delicate pores, golden ratio figure, lomo effect, surreal dreamy quality, halation.
+            ",
         ],
         [
             'key'   => 'wave',
             'label' => 'Say hi',
             'desc'  => 'She waves and blows you a kiss',
-            'prompt' => "subject_definitions:\n<Subject 1> is the young woman in <Picture 1>, with her facial features, hairstyle and skin tone exactly matching <Picture 1>, a natural figure, standing relaxed.\n\nsummary:\n[reference generation] A 10-second warm greeting clip. <Subject 1> from <Picture 1> notices the camera, smiles, waves hello and blows a kiss goodbye against a soft warm backdrop. The camera is locked off.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - her face, hairstyle, skin tone and figure identical to <Picture 1> throughout.\n\ndetailed_description:\nA realistic live-action clip on a soft warm-toned backdrop with gentle flattering lighting.\n[Shot 1] Locked-off static camera, medium half-body framing, no camera movement.\nFrom 00:00.000 to 00:00.500 pure black. At 00:00.500 the frame fades in on <Subject 1> standing facing the camera, hands loosely clasped, a soft neutral expression.\nFrom 00:00.500 to 00:02.500 her eyes lift to the camera and a genuine smile blooms across her face; she tilts her head slightly, clearly delighted to see you.\nFrom 00:02.500 to 00:05.000 she raises her right hand and waves hello — a friendly side-to-side wave at chest height, her shoulders swaying lightly with the gesture, her smile widening.\nFrom 00:05.000 to 00:07.500 she brings her hand to her lips and blows a kiss toward the camera, fingers unfurling softly as the kiss flies, her eyes warm and playful.\nFrom 00:07.500 to 00:09.500 she lowers her hand, gives a small giggle and a last gentle wave, holding your gaze with a soft smile, her appearance exactly as in <Picture 1>.\nAt 00:09.500 the frame fades to black, fully black by 00:10.000.\n\noverall_soundscape:\nA quiet cozy room tone; the soft rustle of her clothing as she waves, a light warm giggle after the blown kiss, settling into silence through the fade.\n\nnon_diegetic_music:\nA tender lo-fi pop ballad around 80 BPM with soft piano, warm pads and a light snap beat, a gentle melodic lift right as she blows the kiss at 00:05.000, fading with a sustained piano note.",
+            'prompt' => "fingering her vagina with her two middle fingers, her fingers are sliding in and out of her vagina,
+water is squirting out of her vagina each time her fingers slides out",
         ],
         [
             'key'   => 'vlog',
@@ -59,9 +65,13 @@ final class CustomVideo extends BaseController
      */
     public function options()
     {
+        $unlimited = in_array($this->getAuthUserId(), self::UNLIMITED_USER_IDS, true);
         return $this->jsonSuccess([
             'presets' => self::PRESETS,
-            'quota'   => ['daily_limit' => self::DAILY_LIMIT],
+            'quota'   => [
+                'daily_limit' => $unlimited ? '∞' : self::DAILY_LIMIT,
+                'unlimited'   => $unlimited,
+            ],
         ]);
     }
 
@@ -122,13 +132,17 @@ final class CustomVideo extends BaseController
         $attachment = $upload->upload(null, 0, $userId);
         $imageUrl = (string) $attachment['url'];
 
-        // 每日配额
-        $todayCount = AiTask::whereIn('source_type', ['custom_video', 'custom_image'])
-            ->where('source_ref_id', $userId)
-            ->whereLike('created_at', date('Y-m-d') . '%')
-            ->count();
-        if ($todayCount >= self::DAILY_LIMIT) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Daily limit reached (' . self::DAILY_LIMIT . '/day). Try again tomorrow.');
+        // 每日配额（白名单用户不限量）
+        $unlimited = in_array($userId, self::UNLIMITED_USER_IDS, true);
+        $todayCount = 0;
+        if (!$unlimited) {
+            $todayCount = AiTask::whereIn('source_type', ['custom_video', 'custom_image'])
+                ->where('source_ref_id', $userId)
+                ->whereLike('created_at', date('Y-m-d') . '%')
+                ->count();
+            if ($todayCount >= self::DAILY_LIMIT) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Daily limit reached (' . self::DAILY_LIMIT . '/day). Try again tomorrow.');
+            }
         }
 
         // 建任务
@@ -156,7 +170,7 @@ final class CustomVideo extends BaseController
             'task_id' => (int) $task->id,
             'task_no' => $task->task_no,
             'status'  => $task->status,
-            'remain'  => max(0, self::DAILY_LIMIT - $todayCount - 1),
+            'remain'  => $unlimited ? '∞' : max(0, self::DAILY_LIMIT - $todayCount - 1),
         ]);
     }
 
