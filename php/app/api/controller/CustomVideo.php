@@ -65,11 +65,15 @@ water is squirting out of her vagina each time her fingers slides out",
      */
     public function options()
     {
+        $ent = (new VipService())->entitlements($this->getAuthUserId());
         $unlimited = in_array($this->getAuthUserId(), self::UNLIMITED_USER_IDS, true);
+
         return $this->jsonSuccess([
             'presets' => self::PRESETS,
             'quota'   => [
-                'daily_limit' => $unlimited ? '∞' : self::DAILY_LIMIT,
+                'daily_limit' => $unlimited ? '∞' : (int) ($ent['image_daily_limit'] ?? 0),
+                'level'       => (string) ($ent['level_name'] ?? 'Free'),
+                'is_vip'      => (bool) ($ent['is_vip'] ?? false),
                 'unlimited'   => $unlimited,
             ],
         ]);
@@ -109,11 +113,12 @@ water is squirting out of her vagina each time her fingers slides out",
             }
         }
 
-        // VIP 校验
-        $vip = (new VipService())->status($userId);
-        if (empty($vip['is_vip'])) {
-            return $this->jsonFail(ResultCode::NO_PERMISSION, 'Custom video is a VIP feature. Please subscribe to VIP first.');
+        // 会员层级校验：定制视频/图片生成仅会员可用，额度按层级（Premium 3/天、Premium Plus 10/天）
+        $ent = (new VipService())->entitlements($userId);
+        if (empty($ent['is_vip']) || empty($ent['custom_video'])) {
+            return $this->jsonFail(ResultCode::NO_PERMISSION, 'Custom video is a Premium feature. Please subscribe to unlock it.');
         }
+        $dailyLimit = max(1, (int) ($ent['image_daily_limit'] ?? self::DAILY_LIMIT));
 
         // 图片（≤10MB，jpg/png/webp；经 Upload 库自动压缩）
         $file = $this->request->file('image');
@@ -140,8 +145,8 @@ water is squirting out of her vagina each time her fingers slides out",
                 ->where('source_ref_id', $userId)
                 ->whereLike('created_at', date('Y-m-d') . '%')
                 ->count();
-            if ($todayCount >= self::DAILY_LIMIT) {
-                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Daily limit reached (' . self::DAILY_LIMIT . '/day). Try again tomorrow.');
+            if ($todayCount >= $dailyLimit) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Daily limit reached (' . $dailyLimit . '/day). Try again tomorrow or upgrade to Premium Plus.');
             }
         }
 
@@ -170,7 +175,7 @@ water is squirting out of her vagina each time her fingers slides out",
             'task_id' => (int) $task->id,
             'task_no' => $task->task_no,
             'status'  => $task->status,
-            'remain'  => $unlimited ? '∞' : max(0, self::DAILY_LIMIT - $todayCount - 1),
+            'remain'  => $unlimited ? '∞' : max(0, $dailyLimit - $todayCount - 1),
         ]);
     }
 
