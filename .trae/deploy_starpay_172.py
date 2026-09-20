@@ -1,10 +1,11 @@
 """AI 女友端充值（star-pay）发布到 172.81.98.55
 
-用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|tier|min|url|deposit|token|cleanvip]
+用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|tier|min|url|deposit|token|cleanvip|shell]
 
 说明：
   - php    ：上传 star-pay 相关 PHP（配置/服务/控制器/路由/后台）并重载 php-fpm
   - static ：上传 purchasePoints.html / js/purchasePoints.js / Subscriptions.html / js/subscriptions.js 及其引用的 tokens 图标
+  - shell  ：上传新版外壳（js/shell-new.js + assets/fy.css + js/main.js + 所有引用了 shell-new.js 的页面）
   - sql    ：执行 php/sql/upgrade_recharge_starpay.sql、upgrade_vip_starpay.sql（幂等）
   - env    ：在服务器 php/.env 追加 [STARPAY] 段（已存在则替换）
   - verify ：线上校验（语法 / 文件 / 接口 / 表结构 / 公网路径）
@@ -66,7 +67,9 @@ PHP_FILES = [
 STATIC_FILES = [
     "ai-girl-malaysia.com/purchasePoints.html",
     "ai-girl-malaysia.com/Home.html",
+    "ai-girl-malaysia.com/index.html",
     "ai-girl-malaysia.com/assets/fy.css",
+    "ai-girl-malaysia.com/js/shell-new.js",
     "ai-girl-malaysia.com/js/purchasePoints.js",
     "ai-girl-malaysia.com/Subscriptions.html",
     "ai-girl-malaysia.com/js/subscriptions.js",
@@ -681,6 +684,19 @@ def upload_file(sftp, buf, rel, remote, backup_suffix=""):
     upload_bytes(sftp, buf, remote, data, backup_suffix)
 
 
+def shell_pages():
+    """所有引用了 js/shell-new.js 的页面（即挂了新版外壳的页面）"""
+    site = os.path.join(LOCAL, "ai-girl-malaysia.com")
+    out = []
+    for name in sorted(os.listdir(site)):
+        if not name.lower().endswith(".html"):
+            continue
+        with open(os.path.join(site, name), "rb") as f:
+            if b"js/shell-new.js" in f.read():
+                out.append("ai-girl-malaysia.com/" + name)
+    return out
+
+
 def upload_dir(sftp, buf, local_rel, remote_dir):
     """整目录上传（订阅页版式用的 taocan_files 静态资产）"""
     local_dir = os.path.join(LOCAL, local_rel.replace("/", os.sep))
@@ -875,6 +891,11 @@ def main():
             run(cli, buf, "生成测试用户 %s 的登录 token" % uid, TOKEN_STEP.replace("__UID__", uid), timeout=120)
         elif action == "cleanvip":
             run(cli, buf, "清理订阅联调残留", CLEANVIP_STEP, timeout=120)
+        elif action == "shell":
+            for rel in ["ai-girl-malaysia.com/assets/fy.css",
+                        "ai-girl-malaysia.com/js/shell-new.js",
+                        "ai-girl-malaysia.com/js/main.js"] + shell_pages():
+                upload_file(sftp, buf, rel, REMOTE + "/" + rel, ".bak_shell_" + STAMP)
         else:
             if action in ("all", "php"):
                 for rel in PHP_FILES:
