@@ -140,6 +140,11 @@
             var code = COIN_PRODUCT[String($(this).data('text'))]
             if (!code || !enabled[code]) { $(this).hide() }
         })
+        // 卡支付产品未启用时，整排「卡/币种」选择入口一并隐藏（只保留可支付的币种列表）
+        if (!enabled[CARD_PRODUCT]) {
+            $('#hairColor, #hairColor-yd').closest('fieldset').hide()
+            if (method === 'card') { setMethod('crypto') }
+        }
     }
 
     function selectDefaultCoin() {

@@ -154,7 +154,7 @@ $before = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value
 printf("测试用户=%d 充值前点数=%.2f\n", $uid, $before);
 
 $pkgId = (int) $db->table('lp_recharge_package')->where('tokens', 550)->value('id');
-$order = $svc->submitPackageOrder($uid, $pkgId, 'TRC20Buy');
+$order = $svc->submitPackageOrder($uid, $pkgId, 'USDT-TRC20Deposit');
 $orderNo = (string) $order['order_no'];
 printf("下单: order_no=%s amount=%s diamonds=%s system_ref=%s\npay_url=%s\n\n",
     $orderNo, $order['pay_amount'], $order['diamond_amount'], $order['system_ref'], $order['pay_url']);
@@ -267,7 +267,7 @@ function notify($url, $mno, $key, $biz, $tamper = false) {
 }
 
 echo "--- 1) 订阅下单（真实网关）---\n";
-$order = $rec->submitVipOrder($uid, $planId, 'TRC20Buy');
+$order = $rec->submitVipOrder($uid, $planId, 'USDT-TRC20Deposit');
 $orderNo = (string) $order['order_no'];
 printf("order_no=%s pay_amount=%s biz_type=%s vip_plan_id=%s product=%s\npay_url=%s\n",
     $orderNo, $order['pay_amount'], $order['biz_type'], $order['vip_plan_id'],
@@ -307,8 +307,8 @@ $orders2 = $db->table('lp_vip_order')->where('order_no', $orderNo)->count();
 printf("http=%d resp=%s -> 会员到期=%s 会员单数=%d（应与上一步一致）\n\n",
     $http, $resp, (string) $u2['vip_expire_at'], (int) $orders2);
 
-echo "--- 5) 续订（到期顺延，走 USDT-TRC20 收款地址产品）---\n";
-$order2 = $rec->submitVipOrder($uid, $planId, 'USDT-TRC20Deposit');
+echo "--- 5) 续订（到期顺延，走 USDT-ERC20 收款地址产品）---\n";
+$order2 = $rec->submitVipOrder($uid, $planId, 'USDT-ERC20Deposit');
 $orderNo2 = (string) $order2['order_no'];
 $biz2 = $biz;
 $biz2['merchant_ref'] = $orderNo2;
