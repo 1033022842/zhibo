@@ -60,6 +60,7 @@ PHP_FILES = [
     "php/sql/upgrade_recharge_starpay.sql",
     "php/sql/upgrade_vip_starpay.sql",
     "php/sql/upgrade_vip_tier.sql",
+    "php/sql/upgrade_vip_plans_v2.sql",
 ]
 
 STATIC_FILES = [
@@ -108,13 +109,15 @@ echo "库: $DBN @ $DBH"
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_starpay.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_starpay.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_tier.sql
+mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_plans_v2.sql
 echo "--- 迁移后校验 ---"
 mysql -h"$DBH" -u"$DBU" "$DBN" -e "
   SELECT COUNT(*) AS packages FROM lp_recharge_package;
   SHOW COLUMNS FROM lp_recharge_order LIKE 'pay_url';
   SHOW COLUMNS FROM lp_recharge_order LIKE 'biz_type';
   SHOW COLUMNS FROM lp_recharge_order LIKE 'vip_plan_id';
-  SELECT id, name, level, months, usd_price, daily_diamond, image_daily_limit, discount_percent FROM lp_vip_plan ORDER BY sort;
+  SELECT level, tokens_month, months, usd_price, LEFT(benefits, 60) AS benefits_head FROM lp_vip_plan WHERE status = 1 ORDER BY sort LIMIT 4;
+  SELECT COUNT(*) AS active_plans FROM lp_vip_plan WHERE status = 1;
   SELECT \`key\`, \`value\` FROM lp_platform_config WHERE \`key\` IN ('free_chat_daily_limit','vip_unblur_locked_preview');
   SHOW COLUMNS FROM lp_user_quota;"
 """
@@ -543,6 +546,9 @@ done
 echo "--- 静态文件 ---"
 ls -la %s/purchasePoints.html %s/js/purchasePoints.js %s/Subscriptions.html %s/js/subscriptions.js
 ls -la %s/tokens_files/coin_1-*.webp %s/tokens_files/coin_custom-*.webp
+ls -la %s/taocan_files/jquery-3.6.0.min.js %s/taocan_files/application-3ff79f06214141f503df3b79558fc49b57ca74f1323caab428d044cf2ce69ffe.css
+echo "taocan_files 文件数: $(ls %s/taocan_files | wc -l)"
+echo "订阅页残留 candy.ai 引用数: $(grep -c 'candy.ai' %s/Subscriptions.html || true)"
 echo "--- 套餐接口 ---"
 curl -s -m 20 'http://127.0.0.1:%s/api/v1/recharge/packages' | head -c 300
 echo
@@ -563,7 +569,7 @@ echo "--- 公网页面可达性（H5 站点在 8082，RETURN_URL 用它）---"
 for u in http://sugus.it.com:8082/purchasePoints.html http://sugus.it.com:8082/Subscriptions.html; do
   curl -s -k -m 15 -o /dev/null -w "%%{http_code} %%{size_download} $u\n" "$u"
 done
-""" % (PHP_DIR, SITE, SITE, SITE, SITE, SITE, SITE, API_PORT, API_PORT, API_PORT, API_PORT))
+""" % (PHP_DIR, SITE, SITE, SITE, SITE, SITE, SITE, SITE, SITE, SITE, SITE, API_PORT, API_PORT, API_PORT, API_PORT))
 
 URL_STEP = r"""
 echo "--- 候选公网页面地址 ---"
@@ -671,6 +677,23 @@ def upload_file(sftp, buf, rel, remote, backup_suffix=""):
     with open(local, "rb") as f:
         data = f.read()
     upload_bytes(sftp, buf, remote, data, backup_suffix)
+
+
+def upload_dir(sftp, buf, local_rel, remote_dir):
+    """整目录上传（订阅页版式用的 taocan_files 静态资产）"""
+    local_dir = os.path.join(LOCAL, local_rel.replace("/", os.sep))
+    mkdir_remote(sftp, remote_dir)
+    count = 0
+    for name in sorted(os.listdir(local_dir)):
+        path = os.path.join(local_dir, name)
+        if not os.path.isfile(path):
+            continue
+        with open(path, "rb") as f:
+            data = f.read()
+        with sftp.open(remote_dir + "/" + name, "wb") as f:
+            f.write(data)
+        count += 1
+    log_write(buf, "uploaded dir %s (%d files)" % (remote_dir, count))
 
 
 def local_starpay_env():
@@ -860,6 +883,8 @@ def main():
                 for name in TOKENS_ASSETS:
                     upload_file(sftp, buf, "ai-girl-malaysia.com/tokens_files/" + name,
                                 SITE + "/tokens_files/" + name, "")
+            if action in ("all", "static", "assets"):
+                upload_dir(sftp, buf, "ai-girl-malaysia.com/taocan_files", SITE + "/taocan_files")
             if action in ("all", "env"):
                 ensure_env(sftp, buf, cli)
             if action in ("all", "sql"):

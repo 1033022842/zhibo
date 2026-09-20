@@ -67,7 +67,8 @@ UPDATE `lp_vip_plan` SET
   `discount_percent` = 10,
   `custom_video`     = 1,
   `benefits`         = '["Unlimited text messages","3 image / video generations every day","Daily diamonds to spend anywhere","10% off private content & shop","Remove image blur","Exclusive Premium badge"]'
-WHERE `months` IN (1, 3, 12) AND (`level` = 'premium' OR `level` = '');
+WHERE `months` IN (1, 3, 12) AND (`level` = 'premium' OR `level` = '')
+  AND (`benefits` IS NULL OR `benefits` = '');
 
 -- 4b) 新增 premium_plus 三档（按月数幂等）
 INSERT INTO `lp_vip_plan` (`name`, `months`, `level`, `usd_price`, `diamond_price`, `daily_diamond`, `benefits`, `chat_daily_limit`, `image_daily_limit`, `discount_percent`, `custom_video`, `sort`, `status`)
