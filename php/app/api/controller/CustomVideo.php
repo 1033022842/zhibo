@@ -25,28 +25,21 @@ final class CustomVideo extends BaseController
     /** 无限配额白名单（测试账号不限量） */
     private const UNLIMITED_USER_IDS = [16];
 
-    /** 生成预设 → H3 时间线导演台结构化提示词（subject_definitions/summary/分镜/音效/配乐） */
-    private const PRESETS = [
+    /**
+     * 视频风格卡片（worker v5.0 按 style 选工作流）
+     * key   = style 传值，须与 AI 电脑 worker_v50.py 的 WF_VIDEO_MAP 键一致（空/未知值 worker 回退 fingering）
+     * label = 卡片标题、desc = 卡片描述 —— 展示文案，按需填写
+     */
+    private const STYLES = [
         [
-            'key'   => 'dance',
-            'label' => 'Dance clip',
-            'desc'  => 'She dances to the beat in a studio',
-            'prompt' => "
-            Editorial photograph for a Japanese fragrance campaign, cinematic still. A 22-year-old Japanese beauty stands completely nude in three-quarter view in a softly lit night garden, thighs held together, hips turned slightly away from the camera, body language carrying the whole mood, languid decadent air. She wears nothing. A luxurious pale blue and gold wide-sleeve silk robe lies folded on the stones behind her heels, not wrapping her ankles, not on her body. Her perky G-cup breasts with pink nipples are fully exposed and unobstructed. Her lower body is fully nude, smooth pale skin with a faint natural sheen; her thighs stay together and the private region between them is not presented to the camera, hidden in soft shadow along the inner line of her legs, not described further. Only a jeweled hip chain catching the light, covering nothing. Her right hand holds a closed black folding fan beside her right cheek, not covering her body. Her left arm hangs straight at her left side, empty, five fingers relaxed, away from her hips. Exactly two hands, exactly two arms, no extra limbs. She stands with both bare feet planted flat on the stone path, exactly two feet, ten toes visible, weight even. Long wavy hair half-tied in a loose bun with a few stray strands, metallic pendant hair ornaments, luxurious jeweled headpiece, tassel earrings, small sparkling floral sequins near the outer corners of her eyes, soft peach blush, glossy lips, almond eyes, sweet expressive gaze, otherworldly ethereal aura with a subtle yoki mystique. Background of blurred stone lanterns, cherry blossoms, drifting petals. 85mm portrait lens, soft warm Rembrandt side light carving her silhouette, rim light outlining the hair, dreamy bokeh, fine film grain, Kodak Portra 400 warmth. Photorealistic skin texture, delicate pores, golden ratio figure, lomo effect, surreal dreamy quality, halation.
-            ",
+            'key'   => 'fingering',
+            'label' => 'Style 1',
+            'desc'  => 'Describe this style here',
         ],
         [
-            'key'   => 'wave',
-            'label' => 'Say hi',
-            'desc'  => 'She waves and blows you a kiss',
-            'prompt' => "fingering her vagina with her two middle fingers, her fingers are sliding in and out of her vagina,
-water is squirting out of her vagina each time her fingers slides out",
-        ],
-        [
-            'key'   => 'vlog',
-            'label' => 'Daily vlog',
-            'desc'  => 'A cozy morning moment at home',
-            'prompt' => "subject_definitions:\n<Subject 1> is the young woman in <Picture 1>, with her facial features, hairstyle and skin tone exactly matching <Picture 1>, a natural figure.\n\nsummary:\n[reference generation] A 10-second cozy lifestyle vlog clip. <Subject 1> from <Picture 1> enjoys a slow morning at home by a sunlit window — stretching, sipping coffee, sharing a soft smile with the camera. The camera is locked off.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - her face, hairstyle, skin tone and figure identical to <Picture 1> throughout.\n\ndetailed_description:\nA realistic live-action lifestyle clip in a cozy home interior with warm morning sunlight streaming through a window, sheer curtains, plants and soft textures in the background.\n[Shot 1] Locked-off static camera, medium framing, no camera movement.\nFrom 00:00.000 to 00:00.500 pure black. At 00:00.500 the frame fades in on <Subject 1> standing by the window in the sunlight, stretching her arms overhead with a contented sigh.\nFrom 00:00.500 to 00:03.000 she lowers her arms, brushes a strand of hair behind her ear and picks up a warm mug from the windowsill, cradling it in both hands.\nFrom 00:03.000 to 00:06.000 she takes a slow sip, eyes closing briefly in enjoyment, then glances toward the camera and smiles softly as if sharing the peaceful moment with you.\nFrom 00:06.000 to 00:09.500 she leans her shoulder against the window frame, mug in hand, looking out at the light then back to the camera with a relaxed happy expression, chatting silently, her appearance exactly as in <Picture 1>.\nAt 00:09.500 the frame fades to black, fully black by 00:10.000.\n\noverall_soundscape:\nA soft morning ambience: distant birdsong, the faint hum of the city, a gentle clink as the mug is set on the sill, a contented exhale after the sip.\n\nnon_diegetic_music:\nA warm acoustic lo-fi track around 85 BPM with a soft guitar loop, mellow keys and a light shaker, unhurried and cozy, ending on a gentle resolved chord through the fade.",
+            'key'   => 'mysticxxx',
+            'label' => 'Style 2',
+            'desc'  => 'Describe this style here',
         ],
     ];
 
@@ -69,7 +62,7 @@ water is squirting out of her vagina each time her fingers slides out",
         $unlimited = in_array($this->getAuthUserId(), self::UNLIMITED_USER_IDS, true);
 
         return $this->jsonSuccess([
-            'presets' => self::PRESETS,
+            'styles' => self::STYLES,
             'quota'   => [
                 'daily_limit' => $unlimited ? '∞' : (int) ($ent['image_daily_limit'] ?? 0),
                 'level'       => (string) ($ent['level_name'] ?? 'Free'),
@@ -80,12 +73,11 @@ water is squirting out of her vagina each time her fingers slides out",
     }
 
     /**
-     * 提交生成任务（VIP 专属，multipart：image + preset + agreed_policy）
+     * 提交生成任务（VIP 专属，multipart：image + style + agreed_policy）
      */
     public function submit()
     {
         $userId = $this->getAuthUserId();
-        $presetKey = (string) $this->request->post('preset', '');
         // type 兼容 image / outfit（前端历史版本用 outfit）
         $typeRaw = (string) $this->request->post('type', 'video');
         $kind = in_array($typeRaw, ['image', 'outfit'], true) ? 'image' : 'video';
@@ -102,14 +94,16 @@ water is squirting out of her vagina each time her fingers slides out",
             if (mb_strlen($prompt) > 500) {
                 return $this->jsonFail(ResultCode::PARAM_ERROR, 'Instruction is too long (max 500 characters).');
             }
-            $preset = ['key' => 'image_edit', 'label' => 'AI Edit', 'prompt' => $prompt];
+            $style = ['key' => 'image_edit', 'label' => 'AI Edit'];
         } else {
-            $preset = null;
-            foreach (self::PRESETS as $p) {
-                if ($p['key'] === $presetKey) { $preset = $p; break; }
+            // 视频：style 选工作流（worker v5.0）；兼容旧前端传 preset
+            $styleKey = strtolower(trim((string) ($this->request->post('style', '') ?: $this->request->post('preset', ''))));
+            $style = null;
+            foreach (self::STYLES as $s) {
+                if ($s['key'] === $styleKey) { $style = $s; break; }
             }
-            if (!$preset) {
-                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please choose a style preset.');
+            if (!$style) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please choose a style.');
             }
         }
 
@@ -160,9 +154,8 @@ water is squirting out of her vagina each time her fingers slides out",
         $task->source_ref_id = $userId;
         $task->persona_id  = 0;
         $task->content     = json_encode([
-            'action'    => $preset['key'],
-            'label'     => $preset['label'],
-            'prompt'    => $preset['prompt'],
+            'style'     => $style['key'],
+            'label'     => $style['label'],
             'image_url' => $imageUrl,
         ], JSON_UNESCAPED_UNICODE);
         $task->callback_mode = 'none';
@@ -198,7 +191,7 @@ water is squirting out of her vagina each time her fingers slides out",
                 'task_no'    => $t['task_no'],
                 'label'      => (string) ($c['label'] ?? ''),
                 'kind'       => $t['task_type'] === 'custom_image' ? 'image' : 'video',
-                'action'     => (string) ($c['action'] ?? ''),
+                'style'      => (string) ($c['style'] ?? ($c['action'] ?? '')),
                 'status'     => $t['status'],
                 'video_url'  => $t['video_url'] ? $this->absUrl((string) $t['video_url']) : '',
                 'cover_url'  => $t['cover_url'] ? $this->absUrl((string) $t['cover_url']) : '',
@@ -228,7 +221,7 @@ water is squirting out of her vagina each time her fingers slides out",
                 'task_id'    => (int) $t['id'],
                 'task_no'    => $t['task_no'],
                 'kind'       => $t['task_type'] === 'custom_image' ? 'image' : 'video',
-                'action'     => (string) ($c['action'] ?? ''),
+                'style'      => (string) ($c['style'] ?? ($c['action'] ?? '')),
                 'label'      => (string) ($c['label'] ?? ''),
                 'prompt'     => (string) ($c['prompt'] ?? ''),
                 'image_url'  => $this->absUrl((string) ($c['image_url'] ?? '')),

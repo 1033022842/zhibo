@@ -79,8 +79,8 @@
         $('cvDrop').style.display = 'none'
     }
 
-    /* ---------- 预设 ---------- */
-    var PRESET_ICONS = { dance: '💃', wave: '💋', vlog: '☕' }
+    /* ---------- 风格卡片（key 对应后端 STYLES / worker 的 style 值） ---------- */
+    var STYLE_ICONS = { fingering: '💋', mysticxxx: '✨' }
     var OUTFIT_ICONS = { qipao: '🥻', dress: '👗', jk: '🎀', maid: '🧹', office: '💼', wedding: '👰' }
 
     function renderPresets(presets) {
@@ -88,7 +88,7 @@
         box.innerHTML = presets.map(function (p) {
             var sel = selPreset && selPreset.key === p.key
             return '<div class="cv-preset' + (sel ? ' on' : '') + '" data-key="' + esc(p.key) + '">' +
-                '<div class="ic">' + ((mode === 'outfit' ? OUTFIT_ICONS : PRESET_ICONS)[p.key] || '✨') + '</div>' +
+                '<div class="ic">' + ((mode === 'outfit' ? OUTFIT_ICONS : STYLE_ICONS)[p.key] || '✨') + '</div>' +
                 '<div class="n">' + esc(p.label) + '</div>' +
                 '<div class="d">' + esc(p.desc || '') + '</div></div>'
         }).join('')
@@ -109,7 +109,7 @@
         authJson(API + '/options').then(function (d) {
             if (!d || d.code !== '00000' || !d.data) { toast((d && d.msg) || 'Load failed', 'error'); return }
             imagePresets = d.data.image_presets || []
-            currentPresets = d.data.presets || []
+            currentPresets = d.data.styles || d.data.presets || []
             renderPresets(mode === 'outfit' ? imagePresets : currentPresets)
             $('cvRemain').textContent = d.data.quota ? (d.data.quota.daily_limit + '/day') : '-'
         }).catch(function () { toast('Network error', 'error') })
@@ -141,7 +141,8 @@
     function submit() {
         if (!selFile) { toast('Please upload her picture first', 'warn'); return }
         if (mode !== 'outfit' && !selPreset) {
-            toast('Please pick a vibe', 'warn'); return
+            toast('Please pick a style', 'warn')
+            return
         }
         if (!$('cvPolicy').checked) { toast('Please confirm the upload policy', 'warn'); return }
 
@@ -153,7 +154,7 @@
         fd.append('image', selFile)
         fd.append('type', mode === 'outfit' ? 'image' : 'video')
         fd.append('agreed_policy', '1')
-        if (mode !== 'outfit') fd.append('preset', selPreset.key)
+        if (mode !== 'outfit') fd.append('style', selPreset.key)
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             btn.disabled = false
