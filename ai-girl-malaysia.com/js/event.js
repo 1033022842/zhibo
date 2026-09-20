@@ -50,11 +50,11 @@
          
     //       // 触发表单验证
     //       if (this.checkValidity()) {
-    //          // 表单验证通过，可以执行提交操�?    //          console.log('Form is valid, submitting...');
+    //          // 表单验证通过，可以执行提交操�?    //          console.log('Form is valid, submitting...');
     //          // this.submit();
     //         //  register()
     //       } else {
-    //          // 表单验证失败，可以处理错�?    //          console.error('Form is invalid. Fix errors before submitting.');
+    //          // 表单验证失败，可以处理错�?    //          console.error('Form is invalid. Fix errors before submitting.');
     //       }
     //   })
 
@@ -64,11 +64,11 @@
          
     //     // 触发表单验证
     //     if (this.checkValidity()) {
-    //       // 表单验证通过，可以执行提交操�?    //       console.log('Form is valid, submitting...');
+    //       // 表单验证通过，可以执行提交操�?    //       console.log('Form is valid, submitting...');
     //       login()
     //       // this.submit();
     //     } else {
-    //       // 表单验证失败，可以处理错�?    //       console.error('Form is invalid. Fix errors before submitting.');
+    //       // 表单验证失败，可以处理错�?    //       console.error('Form is invalid. Fix errors before submitting.');
     //     }
     //   })
       initOp()
@@ -571,14 +571,14 @@
                 $('#summary-group').html(rendered)
           }
           
-          // 初始�?character name �?image 的存�?
+          // 初始�?character name �?image 的存�?
           initCharacterNameAndImage()
         }
         
         function initCharacterNameAndImage() {
           // 延迟执行以确保元素已经渲染到 DOM
           setTimeout(function() {
-            // �?localStorage 恢复 character name
+            // �?localStorage 恢复 character name
             var cacheData = localStorage.getItem('characterData')
             if(cacheData && cacheData != '{}') {
               var res = JSON.parse(cacheData)
@@ -610,14 +610,14 @@
             var previewImg = $('#character-image-preview')
             var fileInput = $(this)
             
-            // 显示上传中状�?            previewImg.hide()
+            // 显示上传中状�?            previewImg.hide()
             fileInput.prop('disabled', true)
             
             // 创建 FormData
             var formData = new FormData()
             formData.append("file", file)
             
-            // 准备请求�?            var headers = {}
+            // 准备请求�?            var headers = {}
             if(token) {
               headers = {
                 Authorization: 'Bearer ' + token
@@ -648,7 +648,7 @@
                 // 显示预览图片
                 previewImg.attr('src', imageUrl).show()
                 
-                // 存储 URL �?localStorage
+                // 存储 URL �?localStorage
                 var cacheData = localStorage.getItem('characterData')
                 if(cacheData && cacheData != '{}') {
                   var characterData = JSON.parse(cacheData)
@@ -662,7 +662,7 @@
               layer.msg("Failed to upload image, please try again")
               console.error("Upload error:", error)
             }).always(function() {
-              // 恢复文件输入框状�?              fileInput.prop('disabled', false)
+              // 恢复文件输入框状�?              fileInput.prop('disabled', false)
             })
           })
         }
@@ -754,7 +754,7 @@
                 return
               }
               
-              // 更新 localStorage 中的�?              obj.characterName = characterName
+              // 更新 localStorage 中的�?              obj.characterName = characterName
               localStorage.setItem('characterData', JSON.stringify(obj))
               
               // 提交表单数据
@@ -771,7 +771,7 @@
                   if(key === 'characterImage' || key === 'characterImageName') {
                     continue
                   }
-                  // 直接添加所有字段，包括 characterImageUrl（字符串URL�?                  formData.append(key, obj[key])
+                  // 直接添加所有字段，包括 characterImageUrl（字符串URL�?                  formData.append(key, obj[key])
               }
           }
           customRoleOne(formData)
@@ -835,7 +835,7 @@
               var isUnauthorized = false
               var errorMsg = "Failed to create character, please try again later"
               
-              // 检�?HTTP 状态码
+              // 检�?HTTP 状态码
               if(error.status === 401) {
                 isUnauthorized = true
               }
@@ -910,11 +910,11 @@
          
                 // // 触发表单验证
                 // if (this.checkValidity()) {
-                //   // 表单验证通过，可以执行提交操�?                //   console.log('Form is valid, submitting...');
+                //   // 表单验证通过，可以执行提交操�?                //   console.log('Form is valid, submitting...');
                 // //   login()
                 //   // this.submit();
                 // } else {
-                //   // 表单验证失败，可以处理错�?                //   console.error('Form is invalid. Fix errors before submitting.');
+                //   // 表单验证失败，可以处理错�?                //   console.error('Form is invalid. Fix errors before submitting.');
                 // }
               var file = event.target.files[0];     
               var image = document.getElementById('imagePreview');
@@ -950,7 +950,7 @@
                       image.src = data.fullurl;
                       image.style.display = 'block';  // 显示预览图片
       
-                      // 将上传后的图�?URL 填入隐藏字段�?                      document.getElementById('photo').value = data.fullurl;
+                      // 将上传后的图�?URL 填入隐藏字段�?                      document.getElementById('photo').value = data.fullurl;
       
                       // 启用提交按钮
                       submitButton.disabled = false;

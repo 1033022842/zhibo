@@ -69,8 +69,6 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/Home.html",
     "ai-girl-malaysia.com/index.html",
     "ai-girl-malaysia.com/assets/fy.css",
-    "ai-girl-malaysia.com/assets/USDT-TRC20.png",
-    "ai-girl-malaysia.com/assets/USDT-ERC20.png",
     "ai-girl-malaysia.com/js/shell-new.js",
     "ai-girl-malaysia.com/js/purchasePoints.js",
     "ai-girl-malaysia.com/Subscriptions.html",
@@ -584,6 +582,11 @@ for u in http://sugus.it.com:8082/Subscriptions.html http://172.81.98.55:8082/Su
          http://sugus.it.com:8082/purchasePoints.html \
          https://sugus.it.com/api/v1/recharge/packages https://sugus.it.com/api/v1/vip/plans; do
   curl -s -k -m 15 -o /dev/null -w "%{http_code} %{size_download} $u\n" "$u"
+done
+echo "--- 缓存头（html / js / css）---"
+for u in http://sugus.it.com:8082/purchasePoints.html http://sugus.it.com:8082/js/purchasePoints.js http://sugus.it.com:8082/assets/fy.css; do
+  echo "== $u"
+  curl -s -k -m 15 -D - -o /dev/null "$u" | tr -d '\r' | grep -iE '^HTTP/|cache-control|expires|etag|last-modified'
 done
 echo "--- 通知地址可达性（无签名应为 FAIL，但 HTTP 200 说明路由通）---"
 curl -s -k -m 15 -X POST "https://sugus.it.com/api/v1/recharge/notify" -d "merchant_no=x" -w " <- http=%{http_code}\n"
