@@ -189,7 +189,7 @@
             token = res.data.access_token
            layer.msg('Registration successful')
             setTimeout(() => {
-            location.reload()
+            window.location.replace(backUrl())
             }, 800);
           } else {
            layer.msg(res.msg);  
@@ -236,7 +236,7 @@
             if (redirect && redirect !== 'null') {
               window.location.replace(decodeURIComponent(redirect))
             } else {
-              window.location.href = './index.html'
+              window.location.replace(backUrl())
             }
             }, 800);
           } else {
@@ -352,6 +352,20 @@
           }
           return null;
         }
+
+      // 登录成功后的去处：优先 URL 上的 ?redirect=，其次是「点登录前所在的页面」（同源 referrer），最后回 Home.html
+      function backUrl() {
+        var referrer = document.referrer || ''
+        if (referrer) {
+          try {
+            var from = new URL(referrer)
+            if (from.origin === window.location.origin && from.pathname.indexOf('Login.html') < 0) {
+              return from.pathname + from.search
+            }
+          } catch (e) { /* 非法 referrer 直接走兜底 */ }
+        }
+        return './Home.html'
+      }
 
       function changeChannelType () {
 		  var currentUrl = window.location.href;
