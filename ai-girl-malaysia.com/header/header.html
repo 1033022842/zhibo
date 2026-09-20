@@ -11,10 +11,10 @@
                     			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|th)">แบบไทย</div>
                     		</div>
                     		<div role="menuitem" class="van-popover__action">
-                    			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|km)">កម្ពុជា�?/div>
+                    			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|km)">កម្ពុជា�?/div>
                     		</div>
                     		<div role="menuitem" class="van-popover__action">
-                    			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|lo)">ພາສາລາ�?/div>
+                    			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|lo)">ພາສາລາ�?/div>
                     		</div>
                     
                     		<div role="menuitem" class="van-popover__action">
@@ -24,10 +24,10 @@
                     			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|zh-CN)">中文</div>
                     		</div>
                     		<div role="menuitem" class="van-popover__action">
-                    			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|ja)">日本�?/div>
+                    			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|ja)">日本�?/div>
                     		</div>
                     		<div role="menuitem" class="van-popover__action">
-                    			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|ko)">한국�?/div>
+                    			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|ko)">한국�?/div>
                     		</div>
                     		<div role="menuitem" class="van-popover__action">
                     			<div class="van-popover__action-text van-hairline--bottom lang-select  notranslate" data-lang="en" href="#googtrans(en|ru)">Русский</div>
@@ -67,9 +67,8 @@
             $(".van-popover--light").removeClass("lang-close");
         }
     });
-    function googleTranslateElementInit() {
-        new google.translate.TranslateElement({pageLanguage: 'en', layout: google.translate.TranslateElement.FloatPosition.TOP_LEFT}, 'google_translate_element');
-    }
+    // 语言切换与 Google 翻译组件的加载统一由 js/shell-new.js 负责（它按 googtrans cookie 决定是否加载），
+    // 这里不再自带 element.js，避免同一个页面出现两个 TranslateElement 实例互相打架。
 
     function triggerHtmlEvent(element, eventName) {
         var event;
@@ -108,4 +107,4 @@
 
 
 </script>
-<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<!-- Google 翻译脚本改由 js/shell-new.js 在需要时加载，避免重复初始化 -->
