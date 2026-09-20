@@ -22,6 +22,12 @@
     }
     // 卡支付下单使用的产品（默认与商户默认产品一致）
     var CARD_PRODUCT = 'TRC20Buy'
+    // 会员层级（与后台 lp_vip_plan.level 对应）
+    var LEVELS = [
+        { code: 'premium', name: 'Premium' },
+        { code: 'premium_plus', name: 'Premium Plus' }
+    ]
+    var level = 'premium'
     // 默认支付方式与默认币种：USDT-TRC20 收款地址（各网络均可用，不依赖第三方刷卡页）
     var DEFAULT_METHOD = 'crypto'
     var DEFAULT_PRODUCT = 'USDT-TRC20Deposit'
@@ -163,17 +169,23 @@
         }).done(function(r) {
             if (r.code === '00000' && r.data) {
                 plans = r.data
-                renderPlans(plans)
+                renderPlans()
             }
         }).catch(function(){})
     }
 
-    function fill(tpl, p) {
+    /** 当前层级下的时长档位（缺层级字段时按基础层处理） */
+    function levelPlans() {
+        var list = plans.filter(function(p) { return (p.level || 'premium') === level })
+        return list.length ? list : plans
+    }
+
+    function fill(tpl, p, list) {
         var months = parseInt(p.months, 10) || 1
         var usd = parseFloat(p.usd_price) || 0
         var per = usd / months
         var maxPerMonth = 0
-        plans.forEach(function(item) {
+        list.forEach(function(item) {
             var v = (parseFloat(item.usd_price) || 0) / (parseInt(item.months, 10) || 1)
             if (v > maxPerMonth) maxPerMonth = v
         })
@@ -187,13 +199,55 @@
             .replace(/{{decimal}}/g, String(parseFloat(p.daily_diamond) || 0))
     }
 
-    function renderPlans(list) {
-        if (!list.length) return
+    /** 层级切换条：Premium / Premium Plus（每次渲染刷新选中态） */
+    function ensureLevelBar(barId, layoutSel, yd) {
+        if (!$(barId).length) {
+            $(layoutSel).before('<div id="' + barId.replace('#', '') + '" style="display:flex;gap:10px;margin-bottom:14px"></div>')
+            $(barId).on('click', '[data-level]', function() {
+                level = String($(this).data('level'))
+                renderPlans()
+            })
+        }
+        $(barId).html(LEVELS.map(function(l) {
+            var on = l.code === level
+            return '<button type="button" data-level="' + l.code + '"' + (yd ? ' data-yd="1"' : '') +
+                ' style="flex:1;padding:11px 14px;border-radius:12px;font:600 14px Poppins,sans-serif;cursor:pointer;' +
+                (on
+                    ? 'border:0;color:#fff;background:linear-gradient(135deg,#E75275,#6143E6)'
+                    : 'border:1px solid rgba(255,255,255,.18);background:transparent;color:rgba(255,255,255,.72)') +
+                '">' + l.name + '</button>'
+        }).join(''))
+    }
+
+    /** 当前层级的权益列表 */
+    function renderBenefits(boxSel, layoutSel, list) {
+        var benefits = (list[0] && list[0].benefits) || []
+        var $box = $(boxSel)
+        if (!$box.length) {
+            $(layoutSel).before('<div id="' + boxSel.replace('#', '') +
+                '" style="margin-bottom:18px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)"></div>')
+            $box = $(boxSel)
+        }
+        if (!benefits.length) { $box.hide(); return }
+        $box.show().html(benefits.map(function(t) {
+            return '<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;font:500 13px/18px Poppins,sans-serif;color:#fff">' +
+                '<span style="color:#E75275;line-height:18px">&#10003;</span><span>' + t + '</span></div>'
+        }).join(''))
+    }
+
+    function renderPlans() {
+        var list = levelPlans()
+        if (!list.length) { return }
+        ensureLevelBar('#vip-level-bar', '#vip-Layout', false)
+        ensureLevelBar('#vip-level-bar-yd', '#vip-Layout-yd', true)
+        renderBenefits('#vip-benefits', '#vip-Layout', list)
+        renderBenefits('#vip-benefits-yd', '#vip-Layout-yd', list)
+
         var htmlPc = ''
         var htmlYd = ''
         list.forEach(function(p) {
-            htmlPc += fill(tmplPc || '', p)
-            htmlYd += fill(tmplYd || '', p)
+            htmlPc += fill(tmplPc || '', p, list)
+            htmlYd += fill(tmplYd || '', p, list)
         })
         $('#vip-Layout').empty().append(htmlPc)
         $('#vip-Layout-yd').empty().append(htmlYd)
@@ -223,7 +277,7 @@
         }
         var txt = $('#vip-status-text')
         if (s.is_vip) {
-            txt.html('&#128081; Membership active &middot; <b style="color:#f59e0b">' + s.remain_days + '</b> days left (until ' + (s.expire_at || '').slice(0, 10) + ') &middot; ' + s.daily_diamond + ' diamonds daily')
+            txt.html('&#128081; ' + (s.level_name || 'Premium') + ' active &middot; <b style="color:#f59e0b">' + s.remain_days + '</b> days left (until ' + (s.expire_at || '').slice(0, 10) + ') &middot; ' + s.daily_diamond + ' diamonds daily')
             var btn = $('#vip-claim-btn')
             if (s.claimable_today) {
                 btn.show().text('Claim today\'s ' + s.daily_diamond + ' diamonds').prop('disabled', false).css('opacity', 1)
@@ -231,7 +285,9 @@
                 btn.show().text('Already claimed today &#10003;').prop('disabled', true).css('opacity', .5)
             }
         } else {
-            txt.html('Get membership: daily diamonds + exclusive badge')
+            var quota = s.chat_quota || {}
+            var freeTip = quota.limit > 0 ? ' &middot; ' + quota.remaining + ' free messages left today' : ''
+            txt.html('Get membership: unlimited chatting + daily diamonds' + freeTip)
             $('#vip-claim-btn').hide()
         }
     }

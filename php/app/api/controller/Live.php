@@ -11,6 +11,8 @@ use app\common\web\ResultCode;
 use app\live\service\AffectionService;
 use app\live\service\UserService;
 use app\live\service\PersonaService;
+use app\live\service\QuotaService;
+use app\live\service\VipService;
 use app\live\service\WalletService;
 use app\live\validate\UserValidate;
 
@@ -799,6 +801,22 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, '请先登录');
         }
 
+        // 免费用户每日消息额度（会员不限，Premium / Premium Plus 均为无限）
+        $entitlement   = (new VipService())->entitlements($userId);
+        $chatLimit     = (int) ($entitlement['chat_daily_limit'] ?? 0);
+        $chatUnlimited = !empty($entitlement['is_vip']) && $chatLimit <= 0;
+        $quotaService  = new QuotaService();
+        if (!$chatUnlimited) {
+            $limitMsg = empty($entitlement['is_vip'])
+                ? "You've used all {$chatLimit} free messages today. Upgrade to Premium for unlimited chatting."
+                : "You've reached today's message limit ({$chatLimit}).";
+            try {
+                $quotaService->check($userId, 'chat', $chatLimit, $limitMsg);
+            } catch (BusinessException $e) {
+                return $this->jsonFail($e->resultCode, $e->getMessage());
+            }
+        }
+
         $affectionData = null;
         if ($userId > 0 && $contentId > 0) {
             $affectionService = new AffectionService();
@@ -880,6 +898,12 @@ final class Live extends BaseController
         }
         if ($triggerMedia !== null) {
             $result['media'] = $triggerMedia;
+        }
+
+        // 计入当日消息额度（免费用户；会员无限时也计数，便于前端展示剩余额度）
+        if (!$chatUnlimited) {
+            $quotaService->incr($userId, 'chat');
+            $result['quota'] = $quotaService->info($userId, 'chat', $chatLimit);
         }
 
         // 好感度返回给前端，便于实时刷新进度条

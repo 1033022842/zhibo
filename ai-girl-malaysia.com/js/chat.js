@@ -266,6 +266,24 @@
         scrollMessagesToBottom()
     }
 
+    /* 免费额度相关提示：用尽时给升级入口，快用完时给剩余条数 */
+    function appendQuotaHint(msg, withUpgrade) {
+        var box = messagesBox()
+        if (!box) return
+        var row = document.createElement('div')
+        row.className = 'px-4 py-2'
+        row.innerHTML = withUpgrade
+            ? '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;' +
+                'background:linear-gradient(135deg,rgba(231,82,117,.18),rgba(97,67,230,.18));border:1px solid rgba(231,82,117,.35)">' +
+                '<div style="flex:1;font-size:12px;line-height:18px;color:#fff">' + msg + '</div>' +
+                '<a href="./Subscriptions.html" style="flex:0 0 auto;padding:8px 14px;border-radius:10px;' +
+                'background:linear-gradient(135deg,#E75275,#c73b5c);color:#fff;font-size:12px;font-weight:700;text-decoration:none">Upgrade</a>' +
+              '</div>'
+            : '<div style="font-size:11px;color:#a1a1aa">' + msg + '</div>'
+        box.appendChild(row)
+        scrollMessagesToBottom()
+    }
+
     /* ---------- 聊天：历史 / 媒体消息卡片 / 好感度 / 特殊视频（参考 ai_web/chat.html） ---------- */
     var chatHis = []
     // 当前会话 id（左侧列表里被选中的那条，决定历史归档键）
@@ -554,6 +572,11 @@
             .then(function (d) {
                 if (typing) typing.remove()
                 if (!d || d.code !== '00000' || !d.data) {
+                    // 免费用户每日消息额度用尽：给出升级入口
+                    if (d && d.code === 'G0100') {
+                        appendQuotaHint(d.msg || 'Daily free message limit reached.', true)
+                        return
+                    }
                     appendError((d && d.msg) ? ('发送失败：' + d.msg) : '发送失败，请稍后重试')
                     return
                 }
@@ -567,6 +590,12 @@
                 if (data.affection) renderAffection(data.affection)
                 if (data.special_video) playSpecialVideo(data.special_video)
                 if (!data.reply && !data.media) appendError('未收到回复，请再试一次')
+                // 免费用户：剩余条数不多时提醒一次
+                if (data.quota && data.quota.remaining >= 0 && data.quota.remaining <= 3) {
+                    appendQuotaHint(data.quota.remaining > 0
+                        ? ('Free messages left today: ' + data.quota.remaining)
+                        : 'Free messages for today are used up. Upgrade for unlimited chat.', data.quota.remaining <= 0)
+                }
                 if (chatHis.length > 24) chatHis = chatHis.slice(-24)
             })
             .catch(function () {

@@ -1,6 +1,6 @@
 """AI 女友端充值（star-pay）发布到 172.81.98.55
 
-用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|min]
+用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|tier|min|url|deposit|token|cleanvip]
 
 说明：
   - php    ：上传 star-pay 相关 PHP（配置/服务/控制器/路由/后台）并重载 php-fpm
@@ -10,6 +10,11 @@
   - verify ：线上校验（语法 / 文件 / 接口 / 表结构 / 公网路径）
   - e2e    ：充值链路联调（下单 + 回调 + 幂等）
   - vip    ：订阅链路联调（下单 + 回调 + 幂等 + 续订）
+  - tier   ：会员分层联调（免费额度 / Premium / Premium Plus 层级与折扣）
+  - url    ：公网路径与 nginx 配置探测
+  - deposit：地址类产品试单（收款地址与 payurl）
+  - token  ：生成测试用户登录 token（可带上 uid 参数）
+  - cleanvip：清理订阅联调残留
 """
 import datetime
 import os
@@ -40,13 +45,21 @@ PHP_FILES = [
     "php/app/live/service/StarPayService.php",
     "php/app/live/service/RechargeService.php",
     "php/app/live/service/VipService.php",
+    "php/app/live/service/QuotaService.php",
+    "php/app/live/service/WalletService.php",
     "php/app/api/controller/Recharge.php",
     "php/app/api/controller/Vip.php",
+    "php/app/api/controller/Live.php",
+    "php/app/api/controller/CustomVideo.php",
+    "php/app/api/controller/PrivateContent.php",
+    "php/app/api/controller/Shorts.php",
+    "php/app/api/controller/Shop.php",
     "php/app/api/route/recharge.php",
     "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/sql/upgrade_recharge_starpay.sql",
     "php/sql/upgrade_vip_starpay.sql",
+    "php/sql/upgrade_vip_tier.sql",
 ]
 
 STATIC_FILES = [
@@ -54,6 +67,12 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/js/purchasePoints.js",
     "ai-girl-malaysia.com/Subscriptions.html",
     "ai-girl-malaysia.com/js/subscriptions.js",
+    "ai-girl-malaysia.com/Image.html",
+    "ai-girl-malaysia.com/js/main.js",
+    "ai-girl-malaysia.com/js/chat.js",
+    "ai-girl-malaysia.com/js/customVideo.js",
+    "ai-girl-malaysia.com/js/private_content.js",
+    "ai-girl-malaysia.com/js/series-dialog.js",
 ]
 
 TOKENS_ASSETS = [
@@ -88,15 +107,16 @@ SQL_STEP = DB_ENV + r"""set -e
 echo "库: $DBN @ $DBH"
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_starpay.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_starpay.sql
+mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_tier.sql
 echo "--- 迁移后校验 ---"
 mysql -h"$DBH" -u"$DBU" "$DBN" -e "
   SELECT COUNT(*) AS packages FROM lp_recharge_package;
   SHOW COLUMNS FROM lp_recharge_order LIKE 'pay_url';
-  SHOW COLUMNS FROM lp_recharge_order LIKE 'system_ref';
-  SHOW COLUMNS FROM lp_recharge_order LIKE 'package_id';
   SHOW COLUMNS FROM lp_recharge_order LIKE 'biz_type';
   SHOW COLUMNS FROM lp_recharge_order LIKE 'vip_plan_id';
-  SELECT id, name, months, usd_price, diamond_price, daily_diamond FROM lp_vip_plan ORDER BY sort;"
+  SELECT id, name, level, months, usd_price, daily_diamond, image_daily_limit, discount_percent FROM lp_vip_plan ORDER BY sort;
+  SELECT \`key\`, \`value\` FROM lp_platform_config WHERE \`key\` IN ('free_chat_daily_limit','vip_unblur_locked_preview');
+  SHOW COLUMNS FROM lp_user_quota;"
 """
 
 MIN_AMOUNT_STEP = DB_ENV + r"""
@@ -415,6 +435,88 @@ mysql -h"$DBH" -u"$DBU" "$DBN" -e "
 """
 
 
+TIER_E2E_STEP = r'''
+cat > /tmp/vip_tier_e2e.php <<'PHPEOF'
+<?php
+require '/www/wwwroot/douyin/php/vendor/autoload.php';
+$app = new \think\App();
+$app->initialize();
+
+use think\facade\Db;
+
+$db     = Db::connect('live_mysql');
+$vipSvc = new \app\live\service\VipService();
+$quota  = new \app\live\service\QuotaService();
+
+$uid = (int) $db->table('lp_user')->order('id asc')->value('id');
+$userBefore = $db->table('lp_user')->where('id', $uid)->field('vip_expire_at')->find();
+$db->table('lp_user')->where('id', $uid)->update(['vip_expire_at' => null]);
+$db->table('lp_user_quota')->where('user_id', $uid)->delete();
+
+$premium = $db->table('lp_vip_plan')->where('level', 'premium')->where('months', 1)->find();
+$plus    = $db->table('lp_vip_plan')->where('level', 'premium_plus')->where('months', 1)->find();
+printf("测试用户=%d 套餐: premium(id=%d %s月 USD %s) plus(id=%d %s月 USD %s)\n\n",
+    $uid, $premium['id'], $premium['months'], $premium['usd_price'], $plus['id'], $plus['months'], $plus['usd_price']);
+
+echo "--- 1) 免费用户权益 ---\n";
+$e = $vipSvc->entitlements($uid);
+printf("is_vip=%s level=%s level_name=%s 聊天额度=%d 生成额度=%d 折扣=%d%% 定制视频=%s\n\n",
+    $e['is_vip'] ? '1' : '0', $e['level'], $e['level_name'], $e['chat_daily_limit'],
+    $e['image_daily_limit'], $e['discount_percent'], $e['custom_video'] ? '可用' : '不可用');
+
+echo "--- 2) 免费用户聊天额度拦截 ---\n";
+for ($i = 0; $i < $e['chat_daily_limit']; $i++) { $quota->incr($uid, 'chat'); }
+printf("已用=%d / 上限=%d\n", $quota->used($uid, 'chat'), $e['chat_daily_limit']);
+try {
+    $quota->check($uid, 'chat', $e['chat_daily_limit'], 'daily free messages used up');
+    echo "!! 未拦截（异常未抛出）\n";
+} catch (\Throwable $ex) {
+    printf("第 %d 条被拦截: %s (code=%s)\n", $e['chat_daily_limit'] + 1, $ex->getMessage(),
+        method_exists($ex, 'resultCode') && $ex->resultCode ? $ex->resultCode->value : '-');
+}
+$db->table('lp_user_quota')->where('user_id', $uid)->delete();
+
+echo "\n--- 3) 开通 Premium（1 个月）---\n";
+$vipSvc->activate($uid, (int) $premium['id'], 'TIERTEST-P-' . time(), (float) $premium['diamond_price']);
+$e = $vipSvc->entitlements($uid);
+printf("level=%s(%s) 聊天额度=%d(0=不限) 生成额度=%d 折扣=%d%% 权益文案=%d条 每日领钻=%s\n",
+    $e['level'], $e['level_name'], $e['chat_daily_limit'], $e['image_daily_limit'],
+    $e['discount_percent'], count($e['benefits']), $e['daily_diamond']);
+printf("折扣价校验: 100钻->%d（期望%d） 1000钻->%d（期望%d） 内容/商城同价\n\n",
+    $vipSvc->discounted(100, $e['discount_percent']), (int) round(100 * (100 - $e['discount_percent']) / 100),
+    $vipSvc->discounted(1000, $e['discount_percent']), (int) round(1000 * (100 - $e['discount_percent']) / 100));
+
+echo "--- 4) 升级 Premium Plus（层级取最高）---\n";
+$vipSvc->activate($uid, (int) $plus['id'], 'TIERTEST-X-' . time(), (float) $plus['diamond_price']);
+$e2 = $vipSvc->entitlements($uid);
+printf("level=%s(%s) 生成额度=%d 折扣=%d%% 每日领钻=%s\n",
+    $e2['level'], $e2['level_name'], $e2['image_daily_limit'], $e2['discount_percent'], $e2['daily_diamond']);
+printf("折扣价校验: 100钻->%d（期望%d） 1000钻->%d（期望%d）\n\n",
+    $vipSvc->discounted(100, $e2['discount_percent']), (int) round(100 * (100 - $e2['discount_percent']) / 100),
+    $vipSvc->discounted(1000, $e2['discount_percent']), (int) round(1000 * (100 - $e2['discount_percent']) / 100));
+
+echo "--- 5) 会员聊天不限（额度为 0 时不拦截）---\n";
+for ($i = 0; $i < 30; $i++) { $quota->incr($uid, 'chat'); }
+try {
+    $quota->check($uid, 'chat', (int) $e2['chat_daily_limit'], 'should not throw');
+    printf("已发 %d 条仍可继续发送（chat_daily_limit=%d 视为不限）\n", $quota->used($uid, 'chat'), $e2['chat_daily_limit']);
+} catch (\Throwable $ex) {
+    echo "!! 会员被误拦截: " . $ex->getMessage() . "\n";
+}
+
+echo "\n--- 6) 清理测试数据 ---\n";
+$db->table('lp_vip_order')->where('order_no', 'like', 'TIERTEST-%')->delete();
+$db->table('lp_user_quota')->where('user_id', $uid)->delete();
+$db->table('lp_user')->where('id', $uid)->update(['vip_expire_at' => $userBefore['vip_expire_at']]);
+printf("会员到期还原=%s 残留会员单=%d 残留额度记录=%d\n",
+    (string) $db->table('lp_user')->where('id', $uid)->value('vip_expire_at'),
+    (int) $db->table('lp_vip_order')->where('order_no', 'like', 'TIERTEST-%')->count(),
+    (int) $db->table('lp_user_quota')->where('user_id', $uid)->count());
+PHPEOF
+php /tmp/vip_tier_e2e.php
+'''
+
+
 RELOAD_STEP = r"""
 set -e
 mkdir -p %s/runtime
@@ -428,7 +530,12 @@ else service php-fpm reload; echo "php-fpm reloaded"; fi
 VERIFY_STEP = DB_ENV + (r"""
 echo "--- PHP 语法 ---"
 for f in config/starpay.php app/live/service/StarPayService.php app/live/service/RechargeService.php \
-         app/live/service/VipService.php app/api/controller/Recharge.php app/api/controller/Vip.php \
+         app/live/service/VipService.php app/live/service/QuotaService.php \
+         app/live/service/WalletService.php \
+         app/api/controller/Recharge.php app/api/controller/Vip.php \
+         app/api/controller/Live.php app/api/controller/CustomVideo.php \
+         app/api/controller/PrivateContent.php app/api/controller/Shorts.php \
+         app/api/controller/Shop.php \
          app/api/route/recharge.php app/api/route/vip.php \
          app/admin/controller/live/RechargeChannel.php; do
   php -l "%s/$f"
@@ -732,6 +839,8 @@ def main():
             run(cli, buf, "端到端下单+回调联调", E2E_STEP, timeout=300)
         elif action == "vip":
             run(cli, buf, "订阅支付联调（下单+回调+幂等+续订）", VIP_E2E_STEP, timeout=300)
+        elif action == "tier":
+            run(cli, buf, "会员分层联调（额度/折扣/层级）", TIER_E2E_STEP, timeout=300)
         elif action == "url":
             run(cli, buf, "公网路径与 nginx 配置探测", URL_STEP, timeout=180)
         elif action == "deposit":

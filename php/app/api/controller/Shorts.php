@@ -5,6 +5,7 @@ namespace app\api\controller;
 
 use app\BaseController;
 use app\common\web\ResultCode;
+use app\live\service\VipService;
 use app\live\service\WalletService;
 use think\facade\Db;
 
@@ -146,6 +147,12 @@ final class Shorts extends BaseController
         // 前 N 集免费 or 单集价格 0 → 免钻
         $isFree = (int) $episode['episode_no'] <= $freeEpisodes || $price === 0;
 
+        // 会员折扣（Premium 9 折 / Premium Plus 8 折）
+        $vipService = new VipService();
+        $ent        = $vipService->entitlements($userId);
+        $discount   = (int) ($ent['discount_percent'] ?? 0);
+        $payDiamond = $vipService->discounted($price, $discount);
+
         $wallet = new WalletService();
 
         $exists = $db->table('lp_user_item')
@@ -163,17 +170,21 @@ final class Shorts extends BaseController
             ]);
         }
 
-        $amount = $isFree ? 0.0 : (float) $price;
+        $amount = $isFree ? 0.0 : (float) $payDiamond;
 
         $db->startTrans();
         try {
             if ($amount > 0) {
+                $remark = '解锁短剧第' . (int) $episode['episode_no'] . '集：' . mb_substr((string) $short['title'], 0, 30);
+                if ($payDiamond < $price) {
+                    $remark .= '（' . $ent['level_name'] . ' 折扣 -' . $discount . '%）';
+                }
                 $wallet->debit(
                     $userId,
                     $amount,
                     'short_unlock',
                     $episodeId,
-                    '解锁短剧第' . (int) $episode['episode_no'] . '集：' . mb_substr((string) $short['title'], 0, 30)
+                    $remark
                 );
             }
 
@@ -195,11 +206,13 @@ final class Shorts extends BaseController
         }
 
         return $this->jsonSuccess([
-            'unlocked' => 1,
-            'charged'  => $amount > 0 ? 1 : 0,
-            'amount'   => $amount,
-            'balance'  => $wallet->balance($userId),
-            'episode'  => $this->formatEpisode($episode, $freeEpisodes, [$episodeId => true]),
+            'unlocked'         => 1,
+            'charged'          => $amount > 0 ? 1 : 0,
+            'amount'           => $amount,
+            'original_amount'  => $price,
+            'discount_percent' => $payDiamond < $price ? $discount : 0,
+            'balance'          => $wallet->balance($userId),
+            'episode'          => $this->formatEpisode($episode, $freeEpisodes, [$episodeId => true]),
         ]);
     }
 
