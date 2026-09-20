@@ -9,7 +9,7 @@
  * 做法：只替换旧页面里「侧边栏 nav 的内容」与「#user-setting 的内容」，
  *      外层容器及其 data-main-target / webkit-transform-sidebar / pc-nav 全部保留，
  *      因此旧包的展开·收起逻辑（main_controller.js 的 toggleSidebar）继续生效。
- *      已经是新版外壳的页面（带 data-testid="new-shell-*"）跳过。
+ *      自带新版外壳的页面（Subscriptions.html）：左侧菜单同样统一成这一套，只保留它自己的顶栏。
  */
 (function () {
   'use strict'
@@ -420,8 +420,6 @@
 
   /* ---------- 渲染入口 ---------- */
   function render() {
-    if (document.querySelector('[data-testid="new-shell-closed-sidebar"]')) return false
-
     var closed = document.querySelector('[data-main-target="mainSidebarClosedContainer"]')
     var opened = document.querySelector('[data-main-target="mainSidebarOpenedContainer"]')
     var drawer = document.querySelector('[data-main-target="mainMobileSidebarContainer"]')
@@ -433,6 +431,9 @@
       drawer.classList.remove('mt-[64px]')
       drawer.innerHTML = mobileDrawer()
     }
+
+    // 自带新版外壳的页面（Subscriptions.html）：左侧菜单统一成上面这套，右上角保留它自己的实现
+    if (document.querySelector('[data-testid="new-shell-navbar"]')) return true
 
     // 顶栏右上角：统一成新版形态（并修正 #user-setting 落在顶栏之外的历史结构）
     var hamburger = document.getElementById('nav-hamburger')
