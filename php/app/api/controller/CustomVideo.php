@@ -41,6 +41,11 @@ final class CustomVideo extends BaseController
             'label' => 'Style 2',
             'desc'  => 'Describe this style here',
         ],
+        [
+            'key'   => 'cumfacial',
+            'label' => 'Style 3',
+            'desc'  => 'Describe this style here',
+        ],
     ];
 
     protected array $middleware = [
