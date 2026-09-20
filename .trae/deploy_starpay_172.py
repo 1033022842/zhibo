@@ -69,6 +69,8 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/Home.html",
     "ai-girl-malaysia.com/index.html",
     "ai-girl-malaysia.com/assets/fy.css",
+    "ai-girl-malaysia.com/assets/USDT-TRC20.png",
+    "ai-girl-malaysia.com/assets/USDT-ERC20.png",
     "ai-girl-malaysia.com/js/shell-new.js",
     "ai-girl-malaysia.com/js/purchasePoints.js",
     "ai-girl-malaysia.com/Subscriptions.html",
@@ -555,7 +557,7 @@ ls -la %s/taocan_files/jquery-3.6.0.min.js %s/taocan_files/application-3ff79f062
 echo "taocan_files 文件数: $(ls %s/taocan_files | wc -l)"
 echo "订阅页残留 candy.ai 引用数: $(grep -c 'candy.ai' %s/Subscriptions.html || true)"
 echo "--- 套餐接口 ---"
-curl -s -m 20 'http://127.0.0.1:%s/api/v1/recharge/packages' | head -c 300
+curl -s -m 20 'http://127.0.0.1:%s/api/v1/recharge/packages' | sed 's/},{"id"/}\n{"id"/g' | tail -n 2
 echo
 echo "--- 会员套餐接口 ---"
 curl -s -m 20 'http://127.0.0.1:%s/api/v1/vip/plans' | head -c 400

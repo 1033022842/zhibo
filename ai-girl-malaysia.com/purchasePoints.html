@@ -738,7 +738,7 @@
 				</div>
 			</div>
 
-			<!-- 支付方式弹窗（对应 candy.ai tokens 页 Choose payment method） -->
+			<!-- 支付方式弹窗（版式对齐 Subscriptions.html 的 payment-method-modal） -->
 			<div class="tk-modal" id="tk-payment-modal" style="display:none;">
 				<div class="tk-modal-backdrop" data-tk-close="1"></div>
 				<div class="tk-modal-box" role="dialog" aria-modal="true" aria-labelledby="tk-modal-title">
@@ -747,6 +747,10 @@
 					</button>
 					<h2 class="tk-modal-title" id="tk-modal-title">Choose payment method</h2>
 					<div class="tk-modal-body">
+						<div class="tk-pay-plan">
+							<span class="tk-pay-plan-title" id="tk-plan-title"></span>
+							<span class="tk-pay-plan-price" id="tk-plan-price"></span>
+						</div>
 						<div class="tk-modal-methods" id="tk-modal-methods"></div>
 						<p class="tk-modal-summary" id="tk-modal-summary"></p>
 					</div>
@@ -895,28 +899,34 @@
 					#token-container .tk-secure { margin-top: 48px; margin-bottom: 40px; }
 				}
 
-				/* 支付方式弹窗 */
-				#tk-payment-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+				/* 支付方式弹窗：尺寸与排版照 Subscriptions.html 的 payment-method-modal */
+				#tk-payment-modal { position: fixed; inset: 0; z-index: 60; display: none; align-items: flex-end; justify-content: center; }
 				#tk-payment-modal .tk-modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); }
-				#tk-payment-modal .tk-modal-box { position: relative; display: flex; flex-direction: column; width: 100vw; max-width: 100vw; margin-left: auto; margin-right: auto; padding: 20px; border: 1px solid #282828; border-radius: 12px 12px 0 0; background: #131313; }
-				#tk-payment-modal .tk-modal-close { position: absolute; top: 12px; right: 12px; width: 27px; height: 27px; padding: 0; border: 0; background: none; cursor: pointer; transition: opacity .2s; }
+				#tk-payment-modal .tk-modal-box { position: relative; display: flex; flex-direction: column; width: 100vw; max-width: 100vw; margin-left: auto; margin-right: auto; padding: 30px 20px 34px; border: 1px solid #282828; border-radius: 10px 10px 0 0; background: #1A1A1A; }
+				#tk-payment-modal .tk-modal-close { position: absolute; top: 33px; right: 20px; width: 27px; height: 27px; padding: 0; border: 0; background: none; cursor: pointer; transition: opacity .2s; }
 				#tk-payment-modal .tk-modal-close:hover { opacity: .8; }
 				#tk-payment-modal .tk-modal-close img { width: 100%; height: 100%; }
-				#tk-payment-modal .tk-modal-title { margin: 0; color: #e8e8e8; font-size: 16px; font-weight: 600; line-height: 24px; text-align: left; }
-				#tk-payment-modal .tk-modal-body { display: flex; flex: 1 1 auto; flex-direction: column; gap: 20px; align-items: center; margin-top: 20px; }
-				#tk-payment-modal .tk-modal-methods { display: flex; flex-direction: column; gap: 16px; width: 100%; }
-				#tk-payment-modal .tk-method { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 16px; border: 0; border-radius: 10px; background: #363636; cursor: pointer; transition: filter .2s; }
+				#tk-payment-modal .tk-modal-title { margin: 0; width: 100%; color: #fff; font-size: 20px; font-weight: 700; line-height: 34px; text-align: left; }
+				#tk-payment-modal .tk-modal-body { display: flex; flex-direction: column; margin-top: 25px; }
+				/* 类名前缀用 tk-pay-*，避开 tokens 页套餐卡自身的 .tk-plan / .tk-price */
+				#tk-payment-modal .tk-pay-plan { display: flex; flex-direction: row; flex-shrink: 0; align-items: center; justify-content: space-between; width: 100%; height: 52px; min-height: 0; padding: 0 16px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; background: none; cursor: default; }
+				#tk-payment-modal .tk-pay-plan-title { color: #fff; font-size: 14px; font-weight: 600; line-height: 20px; }
+				#tk-payment-modal .tk-pay-plan-price { color: #fff; font-size: 14px; font-weight: 500; line-height: 20px; }
+				#tk-payment-modal .tk-modal-methods { display: flex; flex-direction: column; gap: 16px; width: 100%; margin-top: 16px; }
+				#tk-payment-modal .tk-method { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 16px; border: 0; border-radius: 8px; background: #404040; cursor: pointer; transition: filter .2s; }
 				#tk-payment-modal .tk-method:hover { filter: brightness(1.1); }
 				#tk-payment-modal .tk-method[disabled] { opacity: .6; cursor: default; }
-				#tk-payment-modal .tk-method span { color: #fff; font-size: 14px; font-weight: 600; line-height: 20px; }
-				#tk-payment-modal .tk-modal-summary { margin: 0; color: rgba(205, 205, 205, .5); font-size: 12px; font-weight: 500; line-height: 21px; text-align: center; }
+				#tk-payment-modal .tk-method-text { color: #fff; font-size: 12px; font-weight: 500; line-height: 1.25; }
+				#tk-payment-modal .tk-method-icons { display: flex; flex-shrink: 0; gap: 4px; width: 20px; height: 20px; }
+				#tk-payment-modal .tk-method-icons img { width: 20px; height: 20px; object-fit: contain; }
+				#tk-payment-modal .tk-modal-summary { margin: 25px 0 0; width: 100%; color: #a4a4a4; font-size: 13px; font-weight: 500; line-height: 16px; text-align: center; }
 				@media (min-width: 640px) {
 					#tk-payment-modal { align-items: center; }
-					#tk-payment-modal .tk-modal-box { width: 535px; max-width: 535px; padding: 32px 28px; border-radius: 12px; }
-					#tk-payment-modal .tk-modal-close { top: 16px; right: 16px; }
-					#tk-payment-modal .tk-modal-title { font-size: 18px; line-height: 28px; text-align: center; }
-					#tk-payment-modal .tk-modal-body { gap: 28px; margin-top: 32px; }
-					#tk-payment-modal .tk-modal-summary { font-size: 12px; line-height: 23px; }
+					#tk-payment-modal .tk-modal-box { width: 456px; max-width: 456px; padding: 30px 40px 34px; border-radius: 10px; }
+					#tk-payment-modal .tk-modal-close { top: 14px; right: 12px; }
+					#tk-payment-modal .tk-modal-title { font-size: 24px; text-align: center; }
+					#tk-payment-modal .tk-pay-plan { height: 53px; }
+					#tk-payment-modal .tk-method-text { font-size: 14px; line-height: 20px; }
 				}
 			</style>
 		</div>
