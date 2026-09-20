@@ -24,6 +24,7 @@
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20260918b"></script>
+		<script src="./js/shell-new.js?v=20260920"></script>
 		<script src="./js/event.js"></script>
 
 		
@@ -458,32 +459,6 @@
 
 		<div class="cf-toast" id="cfToast"></div>
 
-		<script>
-		// 个人中心下拉（jQuery 实现，不依赖 Alpine）
-		(function() {
-			var menuOpen = false
-			function setMenu(v) {
-				menuOpen = v
-				var m = document.getElementById('profileDropdownMenu')
-				var b = document.getElementById('user-menu-button')
-				if (m) m.style.display = v ? 'block' : 'none'
-				if (b) b.setAttribute('aria-expanded', v ? 'true' : 'false')
-			}
-			document.addEventListener('click', function(e) {
-				var btn = document.getElementById('user-menu-button')
-				var menu = document.getElementById('profileDropdownMenu')
-				if (!btn || !menu) return
-				if (btn.contains(e.target)) {
-					setMenu(!menuOpen)
-				} else if (!menu.contains(e.target)) {
-					setMenu(false)
-				}
-			})
-			document.addEventListener('keydown', function(e) {
-				if (e.key === 'Escape') setMenu(false)
-			})
-		})();
-		</script>
 		<script>
 		(function() {
 			var base = '/api/v1'

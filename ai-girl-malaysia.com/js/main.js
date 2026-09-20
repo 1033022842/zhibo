@@ -93,6 +93,7 @@
         if(e.key !== 'Escape') return
         $('#navbar-tokens-dropdown').addClass('hidden')
         $('#token-chip-wrap').removeClass('open')
+        $('#token-chip-button').attr('aria-expanded', 'false')
     })
 
     // 事件委托：兼容 Turbo Frame 异步加载

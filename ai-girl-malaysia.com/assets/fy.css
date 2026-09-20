@@ -163,12 +163,17 @@ button.fy-chip{background-color:#2b2416;background-image:none;border:0;}
 .fy-chipwrap.open .fy-chip-arrow{transform:rotate(180deg);}
 .fy-chip-pop{position:absolute;right:0;top:100%;margin-top:10px;z-index:30;min-width:224px;max-width:calc(100vw - 16px);border:1px solid rgba(255,255,255,.15);border-radius:10px;background:#18181B;box-shadow:0 10px 15px -3px rgba(0,0,0,.45),0 4px 6px -4px rgba(0,0,0,.45);overflow:hidden;}
 .fy-chip-pop.hidden{display:none;}
-.fy-chip-pop-in{padding:12px 16px 8px;display:flex;flex-direction:column;gap:4px;}
-.fy-chip-pop-title{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;}
-.fy-chip-pop-note{font-size:12px;line-height:18px;color:#a4a4a4;}
-.fy-chip-pop-cta{display:flex;align-items:center;justify-content:center;gap:8px;height:32px;margin:4px 16px 12px;border-radius:10px;background:#E75275;color:#fff;font-size:14px;font-weight:600;text-decoration:none;}
+.fy-chip-pop-in{padding:0 16px;display:flex;flex-direction:column;}
+.fy-chip-pop-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;width:100%;}
+.fy-chip-pop-label{color:#fff;font-size:13px;font-weight:500;white-space:nowrap;}
+.fy-chip-pop-val{display:flex;align-items:center;gap:4px;color:#fff;font-size:13px;font-weight:700;}
+.fy-chip-pop-val img{width:16px;height:16px;}
+.fy-chip-pop-sep{display:block;height:1px;background:rgba(255,255,255,.15);}
+.fy-chip-pop-foot{padding:0 16px 12px;}
+.fy-chip-pop-cta{display:flex;align-items:center;justify-content:center;gap:8px;height:32px;border-radius:10px;background:#E75275;color:#fff;font-size:14px;font-weight:600;text-decoration:none;}
 .fy-chip-pop-cta:hover{background:#f0607f;color:#fff;}
 .fy-chip-pop-cta img{width:20px;height:20px;}
+.fy-chip-pop-foot .fy-chip-pop-cta{margin:0;width:100%;min-width:150px;}
 /* 头像按钮 + 下拉菜单 */
 .fy-profilewrap{position:relative;width:fit-content;}
 .fy-avatar-btn{position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:0;border-radius:9999px;background:#221c26;cursor:pointer;}
@@ -180,5 +185,76 @@ button.fy-avatar-btn{background-color:#221c26;background-image:none;border:0;}
 .fy-profile-menu a:hover,.fy-profile-menu button:hover{background:#374151;color:#fff;}
 .fy-profile-menu img,.fy-profile-menu svg{width:20px;height:20px;flex:0 0 auto;}
 .fy-profile-menu form{margin:0;}
+
+/* ---------------------------------------------------------------
+   侧边栏（新版形态）：角标 / NEW 标签 / 分隔线 / 语言切换 / 悬浮提示 / 移动端抽屉
+   取值照参考页（Subscriptions.html）实测排版；旧包缺少的工具类在这里补齐。
+   --------------------------------------------------------------- */
+/* 渲染前先藏起来，避免旧侧栏一闪而过 */
+html.fy-shell-pending [data-main-target="mainSidebarClosedContainer"] nav,
+html.fy-shell-pending [data-main-target="mainSidebarOpenedContainer"] nav,
+html.fy-shell-pending [data-main-target="mainMobileSidebarContainer"] nav{visibility:hidden;}
+
+/* Chat 未读角标 */
+.fy-badge{display:flex;width:20px;height:20px;justify-content:center;align-items:center;border-radius:9999px;background:#F51E1C;}
+.fy-badge span{color:#fff;font-size:13px;font-weight:400;line-height:1;}
+.fy-badge-abs{position:absolute;top:-6px;right:-9px;}
+.fy-badge-row{margin-left:auto;flex:0 0 auto;}
+
+/* Candy Shop 的 NEW 标签 */
+.fy-new{margin-left:auto;flex:0 0 auto;border-radius:100px;background:#f51e1c;padding:2px 5px;color:#fff;font-size:8px;line-height:11px;font-weight:700;text-transform:uppercase;}
+.fy-drawer .fy-new{padding:3px 8px;font-size:9.5px;line-height:12px;letter-spacing:.03em;}
+
+/* 分隔线（旧包没有 bg-white/10） */
+.fy-hr-li{position:relative;width:100%;height:1px;flex:0 0 auto;background:rgba(255,255,255,.1);}
+
+/* 展开态底部法务行 */
+.fy-legal{display:flex;align-items:center;width:100%;padding-top:12px;font-size:8px;line-height:1;color:#d1d1d1;}
+.fy-legal a{color:inherit;text-decoration:none;}
+.fy-legal a:hover{color:#fff;}
+.fy-legal-dot{display:inline-block;width:4px;height:4px;flex:0 0 auto;margin-right:8px;border-radius:9999px;background:#fff;}
+
+/* 语言切换：按钮 + 下拉 */
+.fy-langwrap{position:relative;width:100%;}
+.fy-langbtn{display:flex;gap:8px;align-items:center;justify-content:flex-start;width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;background-image:none;color:#d1d1d1;font-size:13px;font-weight:500;line-height:20px;cursor:pointer;}
+.fy-langbtn:hover{background-color:#3f3f46;}
+.fy-langbtn-sm{height:48px;padding:0 12px;}
+.fy-langbtn-label{color:#d1d1d1;font-size:13px;font-weight:500;}
+.fy-lang-menu{position:absolute;left:0;bottom:100%;margin-bottom:8px;z-index:60;min-width:160px;max-height:320px;overflow-y:auto;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:#18181B;box-shadow:0 10px 15px -3px rgba(0,0,0,.45),0 4px 6px -4px rgba(0,0,0,.45);padding:6px 0;}
+.fy-lang-menu.hidden{display:none;}
+.fy-lang-item{display:block;padding:8px 16px;color:#fff;font-size:13px;line-height:18px;text-decoration:none;cursor:pointer;}
+.fy-lang-item:hover{background-color:#374151;color:#fff;}
+
+/* 侧栏项悬浮提示（旧包没有 navbar-tooltip 控制器）
+   visibility/opacity 必须带 !important：页面加载 Google 翻译后，
+   #goog-gt-tt ~ div:not(.layui-layer) 规则会把后插入 body 的 div 强制隐藏。 */
+.fy-tip{position:fixed !important;z-index:9999 !important;visibility:visible !important;opacity:1 !important;display:none;padding:8px 12px;border-radius:8px;background:#616162;color:#fff;font-size:14px;font-weight:500;line-height:20px;white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.1);}
+
+/* 侧栏高度分配：旧包缺 min-h-0，列表撑高后底部会挤出视口且无法滚动 */
+[data-main-target="mainSidebarClosedContainer"]>nav,
+[data-main-target="mainSidebarOpenedContainer"]>nav{height:100%;}
+[data-main-target="mainSidebarClosedContainer"]>nav>div,
+[data-main-target="mainSidebarOpenedContainer"]>nav>div{flex:1 1 auto;min-height:0;}
+[data-main-target="mainSidebarClosedContainer"]>nav>div>ul,
+[data-main-target="mainSidebarOpenedContainer"]>nav>div>ul{flex:1 1 auto;min-height:0;overflow-y:auto;}
+[data-main-target="mainSidebarClosedContainer"]>nav>ul,
+[data-main-target="mainSidebarOpenedContainer"]>nav>ul{flex:0 0 auto;}
+
+/* 移动端抽屉 */
+.fy-drawer{padding-top:calc(1.25rem + env(safe-area-inset-top));}
+.fy-drawer-userbtn{display:flex;width:100%;align-items:center;gap:10px;border:0;background:transparent;background-image:none;padding:0;color:#d1d1d1;font-size:13px;cursor:pointer;}
+.fy-drawer-userlabel{display:flex;flex:1 1 auto;align-items:center;justify-content:space-between;}
+.fy-drawer-userlabel>span{color:#d1d1d1;font-size:13px;font-weight:600;}
+.fy-drawer-dot{position:absolute;right:-4px;bottom:-4px;width:12px;height:12px;border-radius:9999px;background:#ef4444;border:2px solid #131313;}
+.fy-drawer-menu{position:relative;z-index:10;margin-top:10px;border-radius:8px;background:#18181B;box-shadow:0 10px 15px -3px rgba(0,0,0,.45),0 4px 6px -4px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:16px;padding:16px 16px 8px;}
+.fy-drawer-menu.hidden{display:none;}
+.fy-drawer-menu a,.fy-drawer-menu button{display:flex;width:100%;align-items:center;gap:10px;border:0;background:transparent;background-image:none;padding:0;color:#d1d1d1;font-size:13px;font-weight:600;text-align:left;text-decoration:none;cursor:pointer;}
+.fy-drawer-menu a:hover,.fy-drawer-menu button:hover{color:#fff;}
+.fy-drawer-menu img,.fy-drawer-menu svg{width:20px;height:20px;flex:0 0 auto;}
+.fy-drawer-menu form{margin:0;}
+.fy-drawer-foot{display:flex;flex-direction:column;gap:10px;width:100%;padding:10px 0;border-top:1px solid #2F2F32;background:#1E1E1E;}
+.fy-drawer-foot-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;}
+.fy-dpill{display:flex;min-width:0;min-height:32px;align-items:center;justify-content:center;padding:6px 8px;border:1px solid #a4a4a4;border-radius:8px;text-decoration:none;}
+.fy-dpill span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;color:#e5e5e5;font-size:11px;font-weight:500;}
 
     
