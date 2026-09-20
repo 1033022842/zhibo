@@ -19,8 +19,12 @@
             .then(function(r){ return r.json() })
             .then(function(d){
                 var ok = d && (d.code === '00000' || d.code === 1)
-                isVipUser = !!(ok && d.data && d.data.is_vip)
+                var data = (ok && d.data) ? d.data : {}
+                isVipUser = !!data.is_vip
                 vipChecked = true
+                // 暴露给其它脚本：内容去模糊、聊天额度提示等
+                window.LIVE_VIP = data
+                document.dispatchEvent(new CustomEvent('live:vip', { detail: data }))
                 applyVipPromo()
             })
             .catch(function(){ /* 拉取失败则保持原样，不影响页面 */ })

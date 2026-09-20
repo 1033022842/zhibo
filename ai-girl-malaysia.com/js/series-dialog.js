@@ -28,6 +28,11 @@
     var SVG_VOLUME = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4z"/></svg>'
     var SVG_MUTE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm17.7 3 2.1-2.1-1.4-1.4-2.1 2.1-2.1-2.1-1.4 1.4 2.1 2.1-2.1 2.1 1.4 1.4 2.1-2.1 2.1 2.1 1.4-1.4-2.1-2.1z"/></svg>'
     var SVG_FULL = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>'
+
+    /* 会员「去模糊」由平台开关控制（window.LIVE_VIP.unblur_preview，默认关闭） */
+    function vipUnblur() {
+        return !!(window.LIVE_VIP && window.LIVE_VIP.is_vip && window.LIVE_VIP.unblur_preview)
+    }
     var SVG_LOCK = '<svg class="cs-lock" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2a2 2 0 0 0-1 1.7V19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8.3A2 2 0 0 0 17 9zm-8-2a3 3 0 0 1 6 0v2H9V7zm3 10a1.6 1.6 0 0 1-1-2.8V13a1 1 0 0 1 2 0v1.2A1.6 1.6 0 0 1 12 17z"/></svg>'
 
     var RATES = [1, 1.25, 1.5, 2]
@@ -324,7 +329,7 @@
             stageAttrs(true, false, false)
             stage.innerHTML =
                 '<div class="cs-locked">' +
-                  (ep.poster ? '<img class="cs-locked-poster" alt="" src="' + esc(ep.poster) + '">' : '') +
+                  (ep.poster ? '<img class="cs-locked-poster" style="' + (vipUnblur() ? 'filter:none;' : '') + '" alt="" src="' + esc(ep.poster) + '">' : '') +
                   '<div class="cs-locked-inner">' +
                     '<p class="cs-locked-text">' + esc(episodeLabel(ep)) + ' is locked' +
                       (ep.price > 0 ? ' · ' + ep.price + ' diamonds' : '') + '</p>' +

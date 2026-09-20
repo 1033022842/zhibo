@@ -5,6 +5,7 @@ namespace app\api\controller;
 
 use app\BaseController;
 use app\common\web\ResultCode;
+use app\live\service\VipService;
 use app\live\service\WalletService;
 use think\facade\Db;
 
@@ -96,13 +97,22 @@ final class PrivateContent extends BaseController
             ]);
         }
 
-        $price = max(0, (int) $row['price']);
-        $amount = (float) $price;
+        // 会员折扣（Premium 9 折 / Premium Plus 8 折）
+        $vipService  = new VipService();
+        $ent         = $vipService->entitlements($userId);
+        $discount    = (int) ($ent['discount_percent'] ?? 0);
+        $price       = max(0, (int) $row['price']);
+        $payDiamond  = $vipService->discounted($price, $discount);
+        $amount      = (float) $payDiamond;
 
         $db->startTrans();
         try {
             if ($amount > 0) {
-                $wallet->debit($userId, $amount, 'private_unlock', $id, '解锁私密内容：' . mb_substr((string) $row['title'], 0, 40));
+                $remark = '解锁私密内容：' . mb_substr((string) $row['title'], 0, 40);
+                if ($payDiamond < $price) {
+                    $remark .= '（' . $ent['level_name'] . ' 折扣 -' . $discount . '%）';
+                }
+                $wallet->debit($userId, $amount, 'private_unlock', $id, $remark);
             }
 
             $now = date('Y-m-d H:i:s');
@@ -123,11 +133,13 @@ final class PrivateContent extends BaseController
         }
 
         return $this->jsonSuccess([
-            'unlocked' => 1,
-            'charged'  => 1,
-            'amount'   => $amount,
-            'balance'  => $wallet->balance($userId),
-            'item'     => $this->formatItem($row, true),
+            'unlocked'         => 1,
+            'charged'          => 1,
+            'amount'           => $amount,
+            'original_amount'  => $price,
+            'discount_percent' => $price > $payDiamond ? $discount : 0,
+            'balance'          => $wallet->balance($userId),
+            'item'             => $this->formatItem($row, true),
         ]);
     }
 

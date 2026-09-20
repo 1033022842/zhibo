@@ -14,44 +14,155 @@ use think\facade\Db;
 final class VipService
 {
     /**
-     * 启用套餐列表（公开）
+     * 启用套餐列表（公开，含层级与权益）
      */
     public function plans(): array
     {
-        return Db::connect('live_mysql')->table('lp_vip_plan')
+        $rows = Db::connect('live_mysql')->table('lp_vip_plan')
             ->where('status', 1)
             ->order('sort', 'asc')
-            ->field('id, name, months, usd_price, diamond_price, daily_diamond')
+            ->field('id, name, level, months, usd_price, diamond_price, daily_diamond, benefits, chat_daily_limit, image_daily_limit, discount_percent, custom_video')
             ->select()->toArray();
+
+        foreach ($rows as &$row) {
+            $row['benefits'] = $this->decodeBenefits($row['benefits'] ?? '');
+        }
+        unset($row);
+
+        return $rows;
     }
 
     /**
-     * 我的会员状态（惰性判断到期）
+     * 我的会员状态（含权益与当日额度，惰性判断到期）
      */
     public function status(int $userId): array
     {
+        [$user, $isActive, $expireAt, $plan] = $this->resolve($userId);
+
+        $today     = date('Y-m-d');
+        $claimable = $isActive && $plan
+            && ($user['vip_last_claim_date'] ?? null) !== $today
+            && (float) ($plan['daily_diamond'] ?? 0) > 0;
+
+        return array_merge($this->buildEntitlements($userId, $isActive, $plan), [
+            'expire_at'       => $isActive ? $expireAt : null,
+            'remain_days'     => $isActive ? (int) ceil((strtotime($expireAt) - time()) / 86400) : 0,
+            'claimable_today' => $claimable,
+        ]);
+    }
+
+    /**
+     * 当前用户权益（聊天/生成额度、折扣、层级），供各业务校验复用
+     */
+    public function entitlements(int $userId): array
+    {
+        [, $isActive, , $plan] = $this->resolve($userId);
+
+        return $this->buildEntitlements($userId, $isActive, $plan);
+    }
+
+    /**
+     * 免费用户每日聊天条数（0=不限）
+     */
+    public function freeChatLimit(): int
+    {
+        return max(0, (int) WalletService::config('free_chat_daily_limit', '20'));
+    }
+
+    /**
+     * 会员折扣价（钻石数；无折扣返回原价）
+     */
+    public function discounted(int $price, int $discountPercent): int
+    {
+        if ($price <= 0 || $discountPercent <= 0) {
+            return max(0, $price);
+        }
+        $percent = max(0, min(90, $discountPercent));
+
+        return max(1, (int) round($price * (100 - $percent) / 100));
+    }
+
+    /**
+     * 读取用户与当前生效套餐
+     *
+     * @return array{0: array, 1: bool, 2: string, 3: ?array}
+     */
+    private function resolve(int $userId): array
+    {
         $user = Db::connect('live_mysql')->table('lp_user')
             ->where('id', $userId)
-            ->field('vip_expire_at, vip_last_claim_date')
+            ->field('id, vip_expire_at, vip_last_claim_date')
             ->find();
 
-        $expireAt = $user['vip_expire_at'] ?? null;
-        $isActive = $expireAt && strtotime((string)$expireAt) > time();
-        $claimable = false;
-        $today = date('Y-m-d');
+        $expireAt = (string) ($user['vip_expire_at'] ?? '');
+        $isActive = $expireAt !== '' && strtotime($expireAt) > time();
+        $plan     = $isActive ? $this->activePlan($userId) : null;
 
-        if ($isActive) {
-            $plan = $this->activePlanByExpire($userId, (string)$expireAt);
-            $claimable = ($user['vip_last_claim_date'] ?? null) !== $today && ($plan['daily_diamond'] ?? 0) > 0;
+        return [$user ?: [], $isActive, $expireAt, $plan];
+    }
+
+    /**
+     * 组装权益：会员按套餐层级，非会员按免费额度
+     */
+    private function buildEntitlements(int $userId, bool $isActive, ?array $plan): array
+    {
+        $quota = new QuotaService();
+
+        if (!$isActive) {
+            $freeLimit = $this->freeChatLimit();
+
+            return [
+                'is_vip'            => false,
+                'level'             => '',
+                'level_name'        => 'Free',
+                'plan_name'         => '',
+                'daily_diamond'     => 0,
+                'benefits'          => [],
+                'chat_daily_limit'  => $freeLimit,
+                'image_daily_limit' => 0,
+                'discount_percent'  => 0,
+                'custom_video'      => false,
+                'chat_quota'        => $quota->info($userId, 'chat', $freeLimit),
+            ];
         }
 
-        return [
-            'is_vip'          => (bool)$isActive,
-            'expire_at'       => $isActive ? (string)$expireAt : null,
-            'remain_days'     => $isActive ? (int)ceil((strtotime((string)$expireAt) - time()) / 86400) : 0,
-            'daily_diamond'   => $isActive ? (float)($plan['daily_diamond'] ?? 0) : 0,
-            'claimable_today' => $claimable,
+        // 会员到期时间被人工设置、查不到订单时按基础层兜底
+        $plan = $plan ?: [
+            'level' => 'premium', 'name' => 'Premium', 'daily_diamond' => 20, 'benefits' => '',
+            'chat_daily_limit' => 0, 'image_daily_limit' => 3, 'discount_percent' => 10, 'custom_video' => 1,
         ];
+
+        $level     = (string) ($plan['level'] ?? 'premium');
+        $chatLimit = (int) ($plan['chat_daily_limit'] ?? 0);
+
+        return [
+            'is_vip'            => true,
+            'level'             => $level,
+            'level_name'        => $level === 'premium_plus' ? 'Premium Plus' : 'Premium',
+            'plan_name'         => (string) ($plan['name'] ?? ''),
+            'daily_diamond'     => (float) ($plan['daily_diamond'] ?? 0),
+            'benefits'          => $this->decodeBenefits($plan['benefits'] ?? ''),
+            'chat_daily_limit'  => $chatLimit,
+            'image_daily_limit' => (int) ($plan['image_daily_limit'] ?? 0),
+            'discount_percent'  => max(0, min(90, (int) ($plan['discount_percent'] ?? 0))),
+            'custom_video'      => (bool) ($plan['custom_video'] ?? false),
+            // 解锁「未购买内容的封面去模糊」由平台开关控制（默认关闭，避免泄露付费内容）
+            'unblur_preview'    => WalletService::config('vip_unblur_locked_preview', '0') === '1',
+            'chat_quota'        => $quota->info($userId, 'chat', $chatLimit),
+        ];
+    }
+
+    /**
+     * 权益展示文案（JSON 数组）
+     */
+    private function decodeBenefits($raw): array
+    {
+        $list = is_string($raw) ? json_decode($raw, true) : $raw;
+        if (!is_array($list)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(static fn($v) => trim((string) $v), $list), static fn($v) => $v !== ''));
     }
 
     /**
@@ -173,17 +284,19 @@ final class VipService
     }
 
     /**
-     * 根据到期时间找当前有效套餐（取该用户最近一单）
+     * 当前生效套餐：有效期内层级最高的一单（Premium Plus 优先）
      */
-    private function activePlanByExpire(int $userId, string $expireAt): array
+    private function activePlan(int $userId): ?array
     {
         $rows = Db::connect('live_mysql')->query(
-            "SELECT p.daily_diamond FROM lp_vip_order o
+            "SELECT p.* FROM lp_vip_order o
              JOIN lp_vip_plan p ON p.id = o.plan_id
-             WHERE o.user_id = ? AND o.status = 1 AND o.expire_to = ?
-             ORDER BY o.id DESC LIMIT 1",
-            [$userId, $expireAt]
+             WHERE o.user_id = ? AND o.status = 1 AND o.expire_to >= ?
+             ORDER BY (p.level = 'premium_plus') DESC, o.id DESC
+             LIMIT 1",
+            [$userId, date('Y-m-d H:i:s')]
         );
-        return $rows[0] ?? ['daily_diamond' => 20];
+
+        return $rows[0] ?? null;
     }
 }
