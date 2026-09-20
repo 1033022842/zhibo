@@ -170,6 +170,74 @@
       '</div>'
   }
 
+  /* ---------- 语言切换 ----------
+     header/header.html 里那段 .lang-select 处理器只有它被注入进 .headerfy 时才存在，
+     而不少页面（Gallery / Chat / Login / Subscriptions 等）根本没有 .headerfy，
+     侧栏语言项点了就只改个 hash、不刷新也不翻译。这里自己兜底。 */
+  var TRANSLATE_SRC = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit'
+
+  function currentLang() {
+    var m = document.cookie.match(/(?:^|;\s*)googtrans=([^;]*)/)
+    if (!m) return 'en'
+    var parts = decodeURIComponent(m[1]).split('/')
+    return parts[parts.length - 1] || 'en'
+  }
+
+  function switchLang(code) {
+    var value = '/en/' + code
+    document.cookie = 'googtrans=' + value + ';path=/'
+    if (location.hostname.indexOf('.') > -1) {
+      document.cookie = 'googtrans=' + value + ';path=/;domain=.' + location.hostname
+    }
+    try {
+      localStorage.setItem('agigpt-lang', location.href.split('#')[0])
+      localStorage.setItem('agigpt-lang-href', '#googtrans(en|' + code + ')')
+    } catch (e) { /* 隐私模式忽略 */ }
+    location.hash = '#googtrans(en|' + code + ')'
+    location.reload()
+  }
+
+  // 选了语言之后才需要 Google 翻译组件来套用（等价于 header.html 末尾那两段）
+  function ensureTranslate() {
+    if (window.__fyTranslate || !document.body) return
+    window.__fyTranslate = true
+    if (!document.getElementById('google_translate_element')) {
+      var holder = document.createElement('div')
+      holder.id = 'google_translate_element'
+      holder.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden'
+      document.body.appendChild(holder)
+    }
+    window.googleTranslateElementInit = function () {
+      if (!window.google || !window.google.translate || window.__fyGte) return
+      window.__fyGte = true
+      new google.translate.TranslateElement({ pageLanguage: 'en', autoDisplay: false }, 'google_translate_element')
+      applyTranslated()
+    }
+    var s = document.createElement('script')
+    s.src = TRANSLATE_SRC
+    s.async = true
+    document.body.appendChild(s)
+  }
+
+  // 组件偶尔不会自己套用 cookie/hash（Home.html 上实测到过），等语言下拉就绪后手动选一次
+  function applyTranslated() {
+    var code = currentLang()
+    if (code === 'en') return
+    var tries = 0
+    var timer = setInterval(function () {
+      var combo = document.querySelector('.goog-te-combo')
+      if (combo && combo.options && combo.options.length) {
+        clearInterval(timer)
+        if (combo.value !== code) {
+          combo.value = code
+          combo.dispatchEvent(new Event('change', { bubbles: true }))
+        }
+      } else if (++tries > 40) {
+        clearInterval(timer)
+      }
+    }, 500)
+  }
+
   /* ---------- 移动端抽屉 ---------- */
   function drawerRows() {
     function row(n) {
@@ -355,6 +423,19 @@
       if (db && dm && db.contains(e.target)) dm.classList.toggle('hidden')
     })
 
+    // 语言项：自己完成切换（不依赖 header.html 的处理器是否注入成功）
+    document.addEventListener('click', function (e) {
+      var item = e.target.closest && e.target.closest('.lang-select')
+      if (!item) return
+      var m = /googtrans\([^|)]*\|([^)]+)\)/.exec(item.getAttribute('href') || '')
+      var code = m ? m[1] : (item.getAttribute('data-lang') || '')
+      if (!code) return
+      // 先阻止默认的 hash 跳转：Turbo 页面（Subscriptions）会把它当成一次访问，把侧栏整块换掉
+      e.preventDefault()
+      if (code === currentLang()) return
+      switchLang(code)
+    })
+
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return
       hideTip()
@@ -462,6 +543,7 @@
     try {
       if (render()) bind()
       syncAuth()
+      if (currentLang() !== 'en') ensureTranslate()
     } finally {
       document.documentElement.classList.remove('fy-shell-pending')
     }
