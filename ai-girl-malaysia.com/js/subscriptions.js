@@ -17,6 +17,8 @@
     var plans = []
     // 最近点选的卡片：{ level, months, tokens }
     var picked = null
+    // 会员状态（/vip/status）
+    var vipState = null
 
     var PANEL_LEVEL = { 'premium': 'premium', 'premium-plus': 'premium_plus' }
     var TYPE_MONTHS = { yearly: 12, quarterly: 3, monthly: 1 }
@@ -34,7 +36,44 @@
     function init() {
         bindEvents()
         loadPlans()
+        loadStatus()
         pollOrder(pendingOrderNo(), 12)
+    }
+
+    /** 会员状态：用于渲染卡片按钮文案（Select / Extend / Current Plan） */
+    function loadStatus() {
+        if (!token) { applyCardCta(); return }
+        $.ajax({
+            url: base + '/vip/status',
+            headers: h(),
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
+            if (r && r.code === '00000' && r.data) { vipState = r.data }
+            applyCardCta()
+        }).fail(function () { applyCardCta() })
+    }
+
+    /**
+     * 卡片底部按钮文案（参考页快照写死了抓取账号的订阅态，这里按真实状态渲染）
+     *   非会员 → Select；当前层级时长一致 → Current Plan；其它 → Extend
+     */
+    function applyCardCta() {
+        $('[data-tab-panel]').filter(function () {
+            return $(this).find('[data-plan-type]').length > 0
+        }).each(function () {
+            var level = PANEL_LEVEL[$.trim($(this).attr('data-tab-panel') || '')] || 'premium'
+            $(this).find('[data-plan-type]').each(function () {
+                var $wrap = $(this)
+                var months = TYPE_MONTHS[$wrap.attr('data-plan-type')] || 1
+                var label = 'Select'
+                if (vipState && vipState.is_vip) {
+                    label = (vipState.level === level && (parseInt(vipState.plan_months, 10) || 0) === months)
+                        ? 'Current Plan' : 'Extend'
+                }
+                // 卡片 CTA 文案的 span 统一带 text-[16px]（桌面/移动、两个层级都是）
+                $wrap.find('span[class*="text-[16px]"]').text(label)
+            })
+        })
     }
 
     // ===== 金额格式（整数金额不带小数，与参考页一致：$18 / $3.99）=====

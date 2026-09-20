@@ -137,6 +137,8 @@ html = html.replace("support@candymail.ai", "support@sugusmail.ai")
 html = sub(r'(<turbo-frame id="layout_extras")\s+src="/layout/extras"', r"\1", html)
 
 # ---------- E. 月付卡片：去掉「已是当前套餐」禁用态 ----------
+# 参考页快照里带的是抓取账号的订阅状态，这里改成「无当前套餐」，卡片 CTA 文案交给 subscriptions.js 按真实会员状态渲染
+html = html.replace('data-subscription-current-plan-value="monthly"', 'data-subscription-current-plan-value=""')
 html = html.replace('data-plan-type="monthly" data-plan-price="13.99" data-disabled="true"',
                     'data-plan-type="monthly" data-plan-price="13.99" data-disabled="false"')
 html = html.replace('data-plan-type="monthly" data-plan-price="13.99" data-disabled="true" data-scroll-snap-carousel-target="item"',
