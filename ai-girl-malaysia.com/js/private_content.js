@@ -149,6 +149,11 @@
           '</div>'
     }
 
+    /* 会员「去模糊」由平台开关控制（window.LIVE_VIP.unblur_preview，默认关闭） */
+    function vipUnblur() {
+        return !!(window.LIVE_VIP && window.LIVE_VIP.is_vip && window.LIVE_VIP.unblur_preview)
+    }
+
     /* ---------- 卡片（原站 lobby-card，class 逐字保留） ---------- */
     function cardHtml(item) {
         var videoCount = Number(item.video_count || 0)
@@ -159,8 +164,9 @@
         var isNew = String(item.badge || '').toLowerCase() === 'new'
         // 已解锁：不再打码，点卡片在本站弹窗观看
         var unlocked = Number(item.unlocked || 0) === 1
-        // 未解锁时封面是模糊的 teaser，解锁后展示原图
-        var posterClass = 'w-full h-full object-cover object-top pointer-events-none' + (unlocked ? '' : ' scale-110 blur-[7px]')
+        // 未解锁时封面是模糊的 teaser，解锁后展示原图；会员去模糊由平台开关控制
+        var posterClass = 'w-full h-full object-cover object-top pointer-events-none' +
+            ((unlocked || vipUnblur()) ? '' : ' scale-110 blur-[7px]')
 
         return '<div id="private-content-card-' + esc(item.id) + '" data-private-card="' + esc(item.id) + '" class="relative w-full aspect-[9/16] rounded-2xl overflow-hidden bg-[#14171B] group ">' +
             '<div id="content_pack_' + esc(item.id) + '" class="absolute inset-0">' +
@@ -468,5 +474,10 @@
         bindSearch()
         bindCards()
         load()
+    })
+
+    // 会员状态是异步拿到的，拿到后按需重绘一次（只影响封面是否模糊）
+    document.addEventListener('live:vip', function () {
+        try { render() } catch (e) {}
     })
 })()

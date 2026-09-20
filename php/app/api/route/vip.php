@@ -20,6 +20,7 @@ Route::group('v1/wallet', function () {
 Route::group('v1/vip', function () {
     Route::get('plans', '\app\api\controller\Vip@plans');
     Route::post('buy', '\app\api\controller\Vip@buy');
+    Route::post('order', '\app\api\controller\Vip@order');
     Route::get('status', '\app\api\controller\Vip@status');
     Route::post('claim-daily', '\app\api\controller\Vip@claimDaily');
 });

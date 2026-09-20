@@ -16,7 +16,7 @@ final class RechargeChannel extends Backend
     protected object $model;
 
     // 绕过登录检查（iframe 模式下 cookie 不共享）
-    protected array $noNeedLogin = ['index', 'editChannel', 'vipPlanSave', 'vipPlanToggle', 'editVip'];
+    protected array $noNeedLogin = ['index', 'editChannel', 'vipPlanSave', 'vipPlanToggle', 'editVip', 'editPackage', 'packageSave', 'packageToggle'];
 
     // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
     protected array $middleware = [
@@ -33,9 +33,103 @@ final class RechargeChannel extends Backend
     {
         $list = $this->model->order('sort', 'asc')->paginate(20);
         $vipPlans = Db::connect('live_mysql')->table('lp_vip_plan')->order('sort', 'asc')->select()->toArray();
-        $html = $this->renderPage($list, $vipPlans);
+        $packages = Db::connect('live_mysql')->table('lp_recharge_package')->order('sort', 'asc')->select()->toArray();
+        $html = $this->renderPage($list, $vipPlans, $packages);
         response($html)->send();
         exit;
+    }
+
+    /**
+     * 充值套餐编辑表单 + 保存入口（AI 女友端 Tokens 页）
+     */
+    public function editPackage(): void
+    {
+        $id  = (int) $this->request->param('id', 0);
+        $row = $id ? Db::connect('live_mysql')->table('lp_recharge_package')->where('id', $id)->find() : null;
+
+        $r      = $row ?: ['id' => '', 'tokens' => '100', 'price' => '9.99', 'bonus_percent' => '0', 'sort' => '0', 'status' => 1];
+        $pId    = (int) $r['id'];
+        $pToken = htmlspecialchars((string) $r['tokens'], ENT_QUOTES);
+        $pPrice = htmlspecialchars((string) $r['price'], ENT_QUOTES);
+        $pBonus = htmlspecialchars((string) $r['bonus_percent'], ENT_QUOTES);
+        $pSort  = (int) $r['sort'];
+        $hdr    = $pId ? '编辑充值套餐' : '新增充值套餐';
+
+        echo <<<HTML
+        <!DOCTYPE html><html lang="zh-CN">
+        <head><meta charset="UTF-8"><title>{$hdr}</title>
+        <style>
+            *{margin:0;padding:0;box-sizing:border-box}
+            body{font-family:-apple-system,sans-serif;background:#f5f7fa;color:#333;padding:20px}
+            .container{max-width:600px;margin:0 auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+            h2{margin-bottom:20px}
+            .field{margin-bottom:16px}
+            .field label{display:block;font-size:13px;color:#666;margin-bottom:4px}
+            .field input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+            .btn{padding:10px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+            .btn-primary{background:#409eff;color:#fff}
+            .btn-cancel{background:#eee;color:#666;margin-left:8px;text-decoration:none;display:inline-block}
+        </style></head>
+        <body><div class="container">
+            <h2>{$hdr}</h2>
+            <form method="post" action="/admin/live.RechargeChannel/packageSave">
+                <input type="hidden" name="id" value="{$pId}" />
+                <div class="field"><label>点数（到账钻石数）</label><input type="number" name="tokens" value="{$pToken}" min="1" required /></div>
+                <div class="field"><label>售价 USD</label><input type="number" step="0.01" name="price" value="{$pPrice}" min="0.01" required /></div>
+                <div class="field"><label>赠送比例（仅展示，如 10 = +10% bonus，填 0 不展示）</label><input type="number" name="bonus_percent" value="{$pBonus}" min="0" /></div>
+                <div class="field"><label>排序</label><input type="number" name="sort" value="{$pSort}" /></div>
+                <button class="btn btn-primary" type="submit">保存</button>
+                <a class="btn btn-cancel" href="/admin/live.RechargeChannel/index">取消</a>
+            </form>
+        </div></body></html>
+        HTML;
+        exit;
+    }
+
+    /**
+     * 充值套餐保存（新增/编辑）
+     */
+    public function packageSave(): void
+    {
+        $id   = (int) $this->request->post('id', 0);
+        $data = [
+            'tokens'        => (int) $this->request->post('tokens', 0),
+            'price'         => (float) $this->request->post('price', 0),
+            'bonus_percent' => (int) $this->request->post('bonus_percent', 0),
+            'sort'          => (int) $this->request->post('sort', 0),
+        ];
+        if ($data['tokens'] <= 0 || $data['price'] <= 0) {
+            $this->renderError('点数与售价必须大于0');
+            return;
+        }
+        try {
+            if ($id) {
+                Db::connect('live_mysql')->table('lp_recharge_package')->where('id', $id)->update($data);
+            } else {
+                $data['status'] = 1;
+                Db::connect('live_mysql')->table('lp_recharge_package')->insert($data);
+            }
+            $this->renderSuccess('套餐已保存');
+        } catch (\Exception $e) {
+            $this->renderError('保存失败: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 充值套餐上架/下架切换
+     */
+    public function packageToggle(): void
+    {
+        $id  = (int) $this->request->param('id', 0);
+        $row = Db::connect('live_mysql')->table('lp_recharge_package')->where('id', $id)->find();
+        if (!$row) {
+            $this->renderError('套餐不存在');
+            return;
+        }
+        Db::connect('live_mysql')->table('lp_recharge_package')
+            ->where('id', $id)
+            ->update(['status' => ((int) $row['status'] === 1) ? 0 : 1]);
+        $this->renderSuccess('状态已切换');
     }
 
     public function editChannel(): void
@@ -171,7 +265,8 @@ final class RechargeChannel extends Backend
         $id = (int) $this->request->param('id', 0);
         $row = $id ? Db::connect('live_mysql')->table('lp_vip_plan')->where('id', $id)->find() : null;
 
-        $r = $row ? $row : ['id' => '', 'name' => '', 'months' => '1', 'usd_price' => '', 'diamond_price' => '', 'daily_diamond' => '', 'sort' => '0'];
+        $r = $row ? $row : ['id' => '', 'name' => '', 'months' => '1', 'usd_price' => '', 'diamond_price' => '', 'daily_diamond' => '', 'sort' => '0',
+            'level' => 'premium', 'benefits' => '', 'chat_daily_limit' => '0', 'image_daily_limit' => '3', 'discount_percent' => '10', 'custom_video' => '1'];
         $vName = htmlspecialchars((string)$r['name'], ENT_QUOTES);
         $vMonths = (int)$r['months'];
         $vUsd = htmlspecialchars((string)$r['usd_price'], ENT_QUOTES);
@@ -179,6 +274,17 @@ final class RechargeChannel extends Backend
         $vDaily = htmlspecialchars((string)$r['daily_diamond'], ENT_QUOTES);
         $vSort = (int)$r['sort'];
         $vId = (int)$r['id'];
+        // 权益：库里存 JSON 数组，表单按「一行一条」编辑
+        $benefitList = json_decode((string)($r['benefits'] ?? ''), true);
+        $vBenefits = htmlspecialchars(implode("\n", is_array($benefitList) ? $benefitList : []), ENT_QUOTES);
+        $vLevel = htmlspecialchars((string)($r['level'] ?? 'premium'), ENT_QUOTES);
+        $vChat = (int)($r['chat_daily_limit'] ?? 0);
+        $vImage = (int)($r['image_daily_limit'] ?? 0);
+        $vDiscount = (int)($r['discount_percent'] ?? 0);
+        $vCustomVideo = (int)($r['custom_video'] ?? 1);
+        $selPremium = $vLevel === 'premium' ? ' selected' : '';
+        $selPlus = $vLevel === 'premium_plus' ? ' selected' : '';
+        $selCustomVideoOff = $vCustomVideo === 1 ? '' : ' selected';
         $hdr = $vId ? '编辑套餐' : '新增套餐';
 
         echo <<<HTML
@@ -191,7 +297,8 @@ final class RechargeChannel extends Backend
             h2{margin-bottom:20px}
             .field{margin-bottom:16px}
             .field label{display:block;font-size:13px;color:#666;margin-bottom:4px}
-            .field input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+            .field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+            .tip{font-size:12px;color:#999;margin-top:4px}
             .btn{padding:10px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
             .btn-primary{background:#409eff;color:#fff}
             .btn-cancel{background:#eee;color:#666;margin-left:8px;text-decoration:none;display:inline-block}
@@ -200,11 +307,25 @@ final class RechargeChannel extends Backend
             <h2>{$hdr}</h2>
             <form method="post" action="/admin/live.RechargeChannel/vipPlanSave">
                 <input type="hidden" name="id" value="{$vId}" />
+                <div class="field"><label>会员层级</label>
+                    <select name="level">
+                        <option value="premium"{$selPremium}>Premium（基础）</option>
+                        <option value="premium_plus"{$selPlus}>Premium Plus（高级）</option>
+                    </select>
+                    <div class="tip">前端按层级切换展示；同层级内选择 1/3/12 个月时长</div>
+                </div>
                 <div class="field"><label>套餐名称</label><input name="name" value="{$vName}" required /></div>
                 <div class="field"><label>月数</label><input type="number" name="months" value="{$vMonths}" min="1" required /></div>
                 <div class="field"><label>USDT 参考价（页面展示用）</label><input type="number" step="0.01" name="usd_price" value="{$vUsd}" required /></div>
                 <div class="field"><label>钻石支付价（购买实际扣钻）</label><input type="number" step="0.01" name="diamond_price" value="{$vDia}" required /></div>
                 <div class="field"><label>每日领取钻石</label><input type="number" step="0.01" name="daily_diamond" value="{$vDaily}" required /></div>
+                <div class="field"><label>权益列表（每行一条，展示在订阅页）</label><textarea name="benefits" rows="6">{$vBenefits}</textarea></div>
+                <div class="field"><label>每日聊天条数（0=不限）</label><input type="number" name="chat_daily_limit" value="{$vChat}" /></div>
+                <div class="field"><label>每日图片/视频生成次数</label><input type="number" name="image_daily_limit" value="{$vImage}" /></div>
+                <div class="field"><label>内容/商城折扣百分比（10=9折，20=8折）</label><input type="number" name="discount_percent" value="{$vDiscount}" min="0" max="90" /></div>
+                <div class="field"><label>可用定制视频/图片生成</label>
+                    <select name="custom_video"><option value="1">可用</option><option value="0"{$selCustomVideoOff}>不可用</option></select>
+                </div>
                 <div class="field"><label>排序</label><input type="number" name="sort" value="{$vSort}" /></div>
                 <button class="btn btn-primary" type="submit">保存</button>
                 <a class="btn btn-cancel" href="/admin/live.RechargeChannel/index">取消</a>
@@ -220,13 +341,24 @@ final class RechargeChannel extends Backend
     public function vipPlanSave(): void
     {
         $id   = (int) $this->request->post('id', 0);
+        $level = (string) $this->request->post('level', 'premium');
+        // 权益文案：表单每行一条，落库为 JSON 数组
+        $benefitRaw = str_replace(["\r\n", "\r"], "\n", (string) $this->request->post('benefits', ''));
+        $benefits   = array_values(array_filter(array_map('trim', explode("\n", $benefitRaw)), static fn($v) => $v !== ''));
+
         $data = [
-            'name'          => trim((string) $this->request->post('name', '')),
-            'months'        => max(1, (int) $this->request->post('months', 1)),
-            'usd_price'    => (float) $this->request->post('usd_price', 0),
-            'diamond_price' => (float) $this->request->post('diamond_price', 0),
-            'daily_diamond' => (float) $this->request->post('daily_diamond', 0),
-            'sort'          => (int) $this->request->post('sort', 0),
+            'name'              => trim((string) $this->request->post('name', '')),
+            'level'             => $level === 'premium_plus' ? 'premium_plus' : 'premium',
+            'months'            => max(1, (int) $this->request->post('months', 1)),
+            'usd_price'         => (float) $this->request->post('usd_price', 0),
+            'diamond_price'     => (float) $this->request->post('diamond_price', 0),
+            'daily_diamond'     => (float) $this->request->post('daily_diamond', 0),
+            'benefits'          => json_encode($benefits, JSON_UNESCAPED_UNICODE),
+            'chat_daily_limit'  => max(0, (int) $this->request->post('chat_daily_limit', 0)),
+            'image_daily_limit' => max(0, (int) $this->request->post('image_daily_limit', 0)),
+            'discount_percent'  => max(0, min(90, (int) $this->request->post('discount_percent', 0))),
+            'custom_video'      => (int) $this->request->post('custom_video', 1) === 1 ? 1 : 0,
+            'sort'              => (int) $this->request->post('sort', 0),
         ];
         if ($data['name'] === '' || $data['diamond_price'] <= 0) {
             $this->renderError('套餐名必填且钻石价必须大于0');
@@ -262,19 +394,33 @@ final class RechargeChannel extends Backend
         $this->renderSuccess('状态已切换');
     }
 
-    private function renderPage($list, array $vipPlans = []): string
+    private function renderPage($list, array $vipPlans = [], array $packages = []): string
     {
+        $pkgRows = '';
+        foreach ($packages as $p) {
+            $pid   = (int) $p['id'];
+            $pst   = ((int) $p['status'] === 1) ? '<span style="color:#00a870">上架</span>' : '<span style="color:#999">下架</span>';
+            $bonus = ((int) $p['bonus_percent'] > 0) ? '+' . (int) $p['bonus_percent'] . '%' : '-';
+            $pkgRows .= "<tr><td>{$pid}</td><td>" . (int) $p['tokens'] . "</td><td>" . htmlspecialchars((string) $p['price']) . "</td><td>{$bonus}</td><td>" . (int) $p['sort'] . "</td><td>{$pst}</td>"
+                . "<td><a class='btn-edit' href='/admin/live.RechargeChannel/editPackage?id={$pid}'>编辑</a> "
+                . "<a class='btn-edit' href='/admin/live.RechargeChannel/packageToggle?id={$pid}' onclick=\"return confirm('切换上下架?')\">切换</a></td></tr>";
+        }
+        if ($pkgRows === '') {
+            $pkgRows = '<tr><td colspan="7" style="text-align:center;color:#999">暂无套餐</td></tr>';
+        }
+
         $vipRows = '';
         foreach ($vipPlans as $v) {
             $v['usd_price'] = $v['usd_price'] ?? '0.00';
             $vid = (int)$v['id'];
             $vst = ((int)$v['status'] === 1) ? '<span style="color:#00a870">启用</span>' : '<span style="color:#999">禁用</span>';
-            $vipRows .= "<tr><td>{$vid}</td><td>" . htmlspecialchars((string)$v['name']) . "</td><td>{$v['months']}</td><td>{$v['usd_price']}</td><td>{$v['diamond_price']}</td><td>{$v['daily_diamond']}</td><td>{$v['sort']}</td><td>{$vst}</td>"
+            $vlevel = ((string)($v['level'] ?? 'premium') === 'premium_plus') ? 'Premium Plus' : 'Premium';
+            $vipRows .= "<tr><td>{$vid}</td><td>" . htmlspecialchars((string)$v['name']) . "</td><td>{$vlevel}</td><td>{$v['months']}</td><td>{$v['usd_price']}</td><td>{$v['diamond_price']}</td><td>{$v['daily_diamond']}</td><td>{$v['sort']}</td><td>{$vst}</td>"
                 . "<td><a class='btn-edit' href='/admin/live.RechargeChannel/editVip?id={$vid}'>编辑</a> "
                 . "<a class='btn-edit' href='/admin/live.RechargeChannel/vipPlanToggle?id={$vid}' onclick=\"return confirm('切换启用状态?')\">切换</a></td></tr>";
         }
         if ($vipRows === '') {
-            $vipRows = '<tr><td colspan="9" style="text-align:center;color:#999">暂无套餐</td></tr>';
+            $vipRows = '<tr><td colspan="10" style="text-align:center;color:#999">暂无套餐</td></tr>';
         }
 
         $rows = '';
@@ -316,7 +462,11 @@ final class RechargeChannel extends Backend
 
             <h1 style="margin-top:32px">VIP 会员套餐</h1>
             <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editVip">+ 新增套餐</a></div>
-            <table><thead><tr><th>ID</th><th>名称</th><th>月数</th><th>USDT价格</th><th>钻石价格</th><th>每日领取(钻)</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$vipRows}</tbody></table>
+            <table><thead><tr><th>ID</th><th>名称</th><th>层级</th><th>月数</th><th>USDT价格</th><th>钻石价格</th><th>每日领取(钻)</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$vipRows}</tbody></table>
+
+            <h1 style="margin-top:32px">充值套餐（AI 女友端 Tokens 页）</h1>
+            <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editPackage">+ 新增套餐</a></div>
+            <table><thead><tr><th>ID</th><th>点数</th><th>售价(USD)</th><th>赠送</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$pkgRows}</tbody></table>
         </div></body></html>
         HTML;
     }

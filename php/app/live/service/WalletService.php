@@ -139,8 +139,9 @@ final class WalletService
      */
     public static function config(string $key, string $default = ''): string
     {
+        // 字段名不加反引号：ThinkPHP 的字段解析器不接受，交由 ORM 自动加引号
         $row = Db::connect('live_mysql')->table('lp_platform_config')
-            ->where('`key`', $key)->value('`value`');
+            ->where('key', $key)->value('value');
         $v = trim((string)($row ?? ''));
         return $v !== '' ? $v : $default;
     }

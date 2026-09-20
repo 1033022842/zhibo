@@ -55,6 +55,7 @@
 		<script src="./Subscriptions_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20260918b"></script>
+		<script src="./js/shell-new.js?v=20260920"></script>
 		<!--<script src="./js/event.js"></script>-->
 		<script src="./js/purchasePoints.js"></script>
 
@@ -609,515 +610,325 @@
 			<div id="coingate-purchase-invalid"></div>
 			<turbo-cable-stream-source channel="Turbo::StreamsChannel" signed-stream-name="IloybGtPaTh2WTJoaGRDMWphR0YwTDFWelpYSXZPVEl4TnpBeE9ROnBob25lX2NhbGxfZmVlZGJhY2si--5addc517570033e7b807021049e0222c9ead6d5fb3230e3975846b23953b841f"></turbo-cable-stream-source>
 			<div id="phone-call-feedback"></div>
-			<div class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[56px] h-full" id="subscriptions-container">
-				<div class="overflow-auto">
-					<a class="w-full h-14 cursor-pointer z-10" href="javascript:;" onclick="location.reload()">
-						<div class="flex flex-row justify-center w-full red-gradient h-14 px-4 lg:pl-32">
-							<div class="flex mx-auto max-w-7xl w-full">
-								<div id="left-side" class="flex-1 hidden lg:flex items-center">
-									<div class="h-6 justify-start items-center gap-3 inline-flex">
-										<img src="./Subscriptions_files/crown-3cbc255259ef6a660a01b67c595ac1b1b3683a00ceda0f3fc10e9a7e960c05cb.svg" class="w-6 h-6 relative">
-										<div class="text-white text-base font-extrabold uppercase leading-tight tracking-widest">First Subscription</div>
+		<div class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[56px] h-full" id="token-container">
+			<div class="tk-page">
+				<div class="tk-head">
+					<div class="tk-title">Buy tokens</div>
+					<div class="tk-sub">Bonus offer ends soon. <span class="tk-sub-hl">Don't miss out!</span></div>
+					<div class="tk-balance blanceamount" id="tk-balance-row" style="display:none;">
+						Points: <span id="balance">0</span>
+					</div>
+				</div>
+
+				<div class="tk-wrap">
+					<div class="tk-mid">
+						<!-- Premium Plus 升级横幅 -->
+						<div class="tk-upsell">
+							<div class="tk-upsell-border">
+								<div class="tk-upsell-card">
+									<div class="tk-upsell-copy">
+										<span class="tk-upsell-brand tk-only-mobile">Premium Plus</span>
+										<span class="tk-upsell-brand-sub tk-only-mobile">Get +10% bonus tokens</span>
+										<span class="tk-upsell-headline tk-only-md">Get +10% bonus tokens on every purchase!</span>
+										<span class="tk-upsell-desc tk-only-md">Plus 130 extra tokens every month, and more benefits</span>
 									</div>
-								</div>
-								<div id="middle-side" class="flex-1 flex items-center justify-start lg:justify-center">
-									<div class="h-8 px-2.5 py-1.5 primary-gradient rounded-2xl justify-center items-center gap-1 inline-flex cursor-pointer">
-										<span class="text-white text-base font-medium leading-tight">Up to </span>
-										<span class="text-white text-base font-bold leading-tight">75%</span>
-										<span class="text-white text-base font-medium leading-tight"> Off</span>
-									</div>
-								</div>
-								<div id="right-side" class="flex-1 flex items-center justify-end" data-controller="subscription-timer">
-									<div class="h-11 px-3 py-2 bg-neutral-700 rounded-3xl justify-center items-start gap-1.5 inline-flex">
-										<!-- Minutes -->
-										<div class="flex-col justify-start items-start gap-0.5 inline-flex">
-											<div class="text-white text-base font-extrabold leading-[14px]" data-subscription-timer-target="minute">59</div>
-											<div class="text-neutral-400 text-xs font-medium leading-[14px]">Min</div>
-										</div>
-										<div class="text-white text-base font-extrabold leading-[14px]">:</div>
-										<!-- Seconds -->
-										<div class="flex-col justify-start items-start gap-0.5 inline-flex">
-											<div class="text-white text-base font-extrabold leading-[14px]" data-subscription-timer-target="second">23</div>
-											<div class="text-neutral-400 text-xs font-medium leading-[14px]">Sec</div>
-										</div>
-										<div class="text-white text-base font-extrabold leading-[14px]">:</div>
-										<!-- Milliseconds -->
-										<div class="w-5 flex-col justify-start items-start gap-0.5 inline-flex">
-											<div class="text-white text-base font-extrabold leading-[14px]" data-subscription-timer-target="millisecond">15</div>
-											<div class="text-neutral-400 text-xs font-medium leading-[14px]">Ms</div>
-										</div>
-									</div>
+									<a class="tk-upsell-btn" href="./Subscriptions.html">Upgrade</a>
 								</div>
 							</div>
+							<span class="tk-upsell-float tk-only-md"><span class="tk-upsell-float-text">Premium Plus</span></span>
 						</div>
-					</a>
-					<div class="ml-5 mr-5 lg:ml-48 lg:mr-28 lg:mt-10">
-						<div class="lg:flex hidden relative  justify-center items-center gap-6">
-							<div class="lg:flex hidden flex-col justify-start items-center gap-4">
-								<div class="text-white text-3xl font-bold font-[&#39;Poppins&#39;] leading-10">Purchase Points</div>
-								<div class="text-neutral-400 text-sm font-medium font-[&#39;Poppins&#39;] leading-tight">100% anonymous. You can cancel anytime.</div>
+
+						<!-- 自选数量购买卡（滑块按后台套餐档位） -->
+						<div class="tk-custom">
+							<div class="tk-custom-chip" id="tk-custom-chip" aria-hidden="true">
+								<div class="tk-custom-chip-text" id="tk-custom-chip-text">+10% bonus</div>
 							</div>
+
+							<h2 class="tk-sr">Choose your amount</h2>
+
+							<div class="tk-custom-head">
+								<div class="tk-custom-row">
+									<img class="tk-custom-coin" id="tk-custom-coin" alt="" src="./tokens_files/coin_1-20c5ab8c96a9268b33d18c0b6a2f00cc9aae9cf93484db35890df062588ce9ef.webp">
+									<span class="tk-custom-sizer" id="tk-custom-sizer" aria-hidden="true">100</span>
+									<input type="text" inputmode="numeric" autocomplete="off" value="100" aria-label="Choose token amount" class="tk-custom-input" id="tk-custom-input">
+								</div>
+								<div class="tk-custom-premium-row" id="tk-custom-premium-row">incl. +0 Premium Plus bonus tokens</div>
+							</div>
+
+							<div class="tk-custom-slider-wrap">
+								<div class="tk-custom-bubble" id="tk-custom-bubble" aria-hidden="true">0</div>
+								<input type="range" value="0" min="0" max="0" step="1" autocomplete="off" aria-label="Choose token amount" class="tk-custom-slider" id="tk-custom-slider" style="--token-slider-progress: 0%;">
+								<div class="tk-custom-range">
+									<span id="tk-custom-min">0</span>
+									<span id="tk-custom-max">0</span>
+								</div>
+							</div>
+
+							<button type="button" class="tk-custom-buy" id="tk-custom-buy">
+								<span>Buy</span>
+								<span class="tk-custom-buy-price" id="tk-custom-price">$0.00</span>
+							</button>
 						</div>
-						<div class="flex justify-center">
-							<div class="hidden lg:flex relative bg-zinc-900 rounded-lg border border-zinc-800 isolate  mt-12 grid max-w-md grid-cols-1 md:grid-cols-3 gap-10 md:max-w-2xl lg:max-w-4xl xl:mx-0 xl:max-w-none">
-								<div id="left-side" class="flex flex-col justify-between pt-12 pb-0 pl-12 max-w-[3200px] w-[320px]">
-									<div>
-										<span class="text-md font-semibold text-primary ">Get Exclusive
-											<br>
-											Discount Only Today!</span>
-										<div class="text-white text-sm mt-[10px]">Up to <span class="text-primary text-sm font-semibold ">75%</span> off for first subscription</div>
-									</div>
-									<div class="text-center">
-										<img class="w-full object-cover " src="./Subscriptions_files/left-8dbf98bc06fc38cb414a56bc6b1bab4fd00dcdf86e63b7b99d05f84fc8e5f2f9.webp">
-									</div>
-								</div>
-								<div id="middle" class="pt-12 pb-0 pr-0 pl-0 max-w-[500px] w-[500px]" data-controller="subscription">
-									<div class="flex flex-col gap-5">
-										<div class="text-neutral-400 text-xs leading-none  pt-1 ml-0    blanceamount" style="display:none;">
-											Points�?span id="balance"></span>
-										</div>
-										<fieldset class="flex flex-col mx-auto font-semibold" data-create-flow-target="fieldset" data-auto-submit="true">
-											<input type="hidden" name="hidtype" id="hidtype" value="1" />
-											<div id="hairColor" class="flex flex-wrap justify-start md:justify-center items-start mx-4 lg:mx-5 lg:gap-5 gap-[15px] font-medium ">
-												<div class="hairColor flex w-[88px] lg:h-10 lg:w-[120px] font-semibold justify-center items-center rounded-lg border border-gray-800 text-sm leading-[25px] cursor-pointer selected" style="background: #C8A27B; color: white;">
-													<input class="hidden" type="radio" value="3" name="pay_type">
-													<img src="./assets/images/easypay-logo.png" alt="" style="width: 100%;height: 100%;">
-												</div>
-												<div class="hairColor flex w-[88px] lg:h-10 lg:w-[120px] font-semibold justify-center items-center rounded-lg border border-gray-800 text-sm leading-[25px] cursor-pointer" style="background: #C8A27B; color: white;">
-													<input class="hidden" type="radio" value="1" name="pay_type">
-													<label for="hair_color_profile_53642089_Blonde" class="flex justify-center cursor-pointer items-center h-10 rounded-lg">
-														Crypto
-													</label>
-												</div>
-												<!-- <div class="hairColor flex w-[88px] lg:h-10 lg:w-[120px] font-semibold justify-center items-center rounded-lg border border-gray-800 text-sm leading-[25px] cursor-pointer " style="background: #C8A27B; color: white;">
-													<input class="hidden" type="radio" value="2" name="pay_type">
-													<label for="hair_color_profile_53642089_Brunette" class="flex justify-center cursor-pointer items-center h-10 rounded-lg">
-														Balance
-													</label>
-												</div> -->
 
-											</div>
-										</fieldset>
-
-										<div class="flex-col flex gap-3.5">
-
-										</div>
-										<div class="flex-col flex gap-3.5">
-											<div id="usdt-layout" style="display: none;flex-wrap: wrap;justify-content: space-between;">
-
-												<div style="margin-bottom: 20px; width: 19%;" class="usdt-group relative cursor-pointer sub-gradient" data-text="1" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/ETH.png" alt="" style="width:2.5rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate" style="text-align:center;">ETH</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-												<div style="margin-bottom: 20px; width: 19%;" class="usdt-group relative cursor-pointer sub-gradient" data-text="2" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/TRX.png" alt="" style="width:2.5rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate" style="text-align:center;">TRX</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-												<div style="margin-bottom: 20px; width: 19%;" class="usdt-group relative cursor-pointer sub-gradient" data-text="3" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/USDT-ERC20.png" alt="" style="width:2.5rem;margin-left:1.2rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate" style="text-align:center;">USDT-ERC20</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-												<div style="margin-bottom: 20px; width: 19%;" class="usdt-group relative cursor-pointer sub-gradient" data-text="4" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/USDT-TRC20.png" alt="" style="width:2.5rem;margin-left:1.2rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate">USDT-TRC20</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-												<div style="margin-bottom: 20px; width: 19%;" class="usdt-group relative cursor-pointer sub-gradient" data-text="5" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/BSC.png" alt="" style="width:2.5rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate">BSC</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-
-
-											</div>
-											<!--<div class="flex">-->
-											<!--	<img src="./Subscriptions_files/green_shield-f7397ac8fe4d87bb33e28e4e67e1a7c1620aa24f2802b6fbf8e4741f328d336b.svg" class="w-5 h-5 pr-1">-->
-											<!--	<div class="text-neutral-400 text-xs font-medium font-[&#39;Poppins&#39;] leading-none pt-1 ml-0">No adult transaction in your bank statement</div>-->
-											<!--</div>-->
-											
-
-											<div id="money-layout" style="display: flex;flex-wrap: wrap;justify-content: space-between;">
-												<script type="text/template" id="money-template">
-													<div style="margin-bottom: 20px; width: 47%;" class="money-group relative cursor-pointer sub-gradient" data-text="{{textLabel}}" data-plan-type="yearly">
-
-                                                    <div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex btnSelectAmount" data-amount="{{value}}" onclick="updateAmount({{value}})">
-                                                        <div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-                                                            <div class="flex items-center justify-center h-full">
-                                                            <div class="flex flex-col">
-                                                                <div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1 notranslate">${{textLabel}}=</div>
-                                                            </div>
-                                                            <div class="flex flex-col">
-                                                                <div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">{{value}}</div>
-                                                            </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    </div>
-                                                </script>
-											</div>
-
-
-										
-
-											<!-- <form id="buyPoint" class="button_to" method="post" onsubmit="return false"> -->
-												<button class="w-full px-4 py-3 primary-gradient rounded-lg justify-center items-center gap-2 inline-flex btnBuyPoint" type="button">
-													<img src="./Subscriptions_files/credit-card-963f7075e7929f4578c230ca8bd5f54cc6422449138649829cdbad7f37fc7936.svg" class="w-5 h-5 relative">
-													<div class="text-white text-sm font-semibold leading-tight">Buy Point</div>
-												</button>
-												<input type="hidden" name="authenticity_token" value="ufrlDcaJmjSw_nwm_Xbx2wqlHMQyR0AjXAfw6oC6b7vehaT_v8mWX3BNJXw-FP-1e0b1VRETsQsXQm7pRoB30g" autocomplete="off">
-											<!-- </form> -->
-
-											<div>
-
-											</div>
-
-
-										</div>
-									</div>
-
-
-
-								</div>
-								<div id="right" class="flex flex-col justify-between pt-12 pb-0 pr-0 pl-0 max-w-[360px] w-[360px]">
-									<div>
-										<div class="text-neutral-400 text-[20px] font-semibold mb-3">Points Benefits</div>
-										<div class="flex flex-col gap-4.5">
-											<div class="justify-start items-center gap-2 inline-flex">
-												<div class="text-white text-sm font-medium leading-tight flex">
-													<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Use points to unlock more features</div>
-											</div>
-											<div class="justify-start items-center gap-2 inline-flex">
-												<div class="text-white text-sm font-medium leading-tight flex">
-													<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Unlimited text messages</div>
-											</div>
-											<div class="justify-start items-center gap-2 inline-flex">
-												<div class="text-white text-sm font-medium leading-tight flex">
-													<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Remove image blur</div>
-											</div>
-											<div class="justify-start items-center gap-2 inline-flex">
-												<div class="text-white text-sm font-medium leading-tight flex">
-													<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Generate images</div>
-											</div>
-											<div class="justify-start items-center gap-2 inline-flex">
-												<div class="text-white text-sm font-medium leading-tight flex">
-													<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Make AI phone calls</div>
-											</div>
-											<div class="justify-start items-center gap-2 inline-flex">
-												<div class="text-white text-sm font-medium leading-tight flex">
-													<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Listen to voice messages</div>
-											</div>
-											<div class="justify-start items-center gap-2 inline-flex">
-												<div class="text-white text-sm font-medium leading-tight flex">
-													<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Fast response time</div>
-											</div>
-										</div>
-										<div class="absolute bottom-0 right-0">
-											<svg xmlns="http://www.w3.org/2000/svg" width="242" height="475" viewBox="0 0 242 475" fill="none">
-												<path opacity="0.05" fill-rule="evenodd" clip-rule="evenodd" d="M134.444 107.556C134.444 48.1543 182.599 0 242 0C301.401 0 349.556 48.1543 349.556 107.556V134.444H376.444C435.846 134.444 484 182.599 484 242C484 301.401 435.846 349.556 376.444 349.556H349.556V376.444C349.556 435.846 301.401 484 242 484C182.599 484 134.444 435.846 134.444 376.444V349.556H107.556C48.1543 349.556 0 301.401 0 242C0 182.599 48.1543 134.444 107.556 134.444H134.444V107.556ZM127.722 245.361C171.211 255.655 229.151 318.599 242 369.722C254.849 318.599 312.789 255.655 356.278 245.361C312.789 235.067 254.849 172.123 242 121C229.151 172.123 171.211 235.067 127.722 245.361Z" fill="url(#paint0_radial_4541_28606)"></path>
-												<defs>
-													<radialgradient id="paint0_radial_4541_28606" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(242 242) rotate(90) scale(242)">
-														<stop stop-color="white"></stop>
-														<stop offset="0.457376" stop-color="white" stop-opacity="0.991115"></stop>
-														<stop offset="1" stop-color="#131313"></stop>
-													</radialgradient>
-												</defs>
-											</svg>
-										</div>
-									</div>
-									<div class="text-center mt-6">
-										<img class="w-[80%] object-cover ml-[-30px]" src="./Subscriptions_files/right-671500e8a5b4de2be2f66c63f1db75d6b94465d8bbd2f88a9776e5de6b2f9cc2.webp">
-									</div>
-								</div>
-							</div>
+						<div class="tk-grid" id="tk-plan-grid">
+							<!-- 套餐卡片由 js/purchasePoints.js 按后端配置渲染 -->
 						</div>
-						<div class="flex lg:hidden relative bg-zinc-900 rounded-lg border border-zinc-800 isolate mt-[10px] grid w-full grid-cols-1 gap-6">
-							<!--<div id="left-side" class="px-2 pt-2">-->
-							<!--	<span class="text-[18px] font-semibold text-primary ">Get Exclusive Discount Only Today!</span>-->
-							<!--	<div class="text-white text-sm mt-[10px]">Up to <span class="text-primary text-sm font-semibold ">75%</span> off for first subscription</div>-->
-							<!--</div>-->
-							<div class="px-2 mt-2 pb-2" data-controller="subscription1">
-								<div class="flex flex-col gap-5">
-									
-									<div class="text-neutral-400 text-xs leading-none  pt-1 ml-0    blanceamount-yd" style="display:none;">
-											Balance�?span id="balance-yd"></span>
-										</div>
-										<fieldset class="flex flex-col mx-auto font-semibold" data-create-flow-target="fieldset" data-auto-submit="true">
-											<input type="hidden" name="hidtype-yd" id="hidtype-yd" value="1" />
-											<div id="hairColor-yd" class="flex flex-wrap justify-start md:justify-center items-start mx-4 lg:mx-5 lg:gap-5 gap-[15px] font-medium ">
-												<div class="hairColor-yd flex h-10 w-[120px] font-semibold justify-center items-center rounded-lg border border-gray-800 text-sm leading-[25px] cursor-pointer selected" style="background: #C8A27B; color: white;">
-													<input class="hidden" type="radio" value="3" name="pay_type-yd">
-													<img src="./assets/images/easypay-logo.png" alt="" style="width: 100%;height: 100%;">
-												</div>
-												<div class="hairColor-yd flex w-[88px] lg:h-10 lg:w-[120px] font-semibold justify-center items-center rounded-lg border border-gray-800 text-sm leading-[25px] cursor-pointer" style="background: #C8A27B; color: white;">
-													<input class="hidden" type="radio" value="1" name="pay_type-yd">
-													<label for="hair_color_profile_53642089_Blonde" class="flex justify-center cursor-pointer items-center h-10 rounded-lg">
-														Crypto
-													</label>
-												</div>
 
-											</div>
-										</fieldset>
-										
-											<div class="flex-col flex gap-3.5">
-											<div id="usdt-layout-yd" style="display: none;flex-wrap: wrap;justify-left: space-between;">
+						<div class="tk-benefits-wrap">
+							<div class="tk-benefits-title">Token Benefits</div>
 
-												<div style="margin-bottom: 20px; width: 33%;" class="usdt-group-yd relative cursor-pointer sub-gradient" data-text="1" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/ETH.png" alt="" style="width:2.5rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate" style="text-align:center;">ETH</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-												<div style="margin-bottom: 20px; width: 33%;" class="usdt-group-yd relative cursor-pointer sub-gradient" data-text="2" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/TRX.png" alt="" style="width:2.5rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate" style="text-align:center;">TRX</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-												<div style="margin-bottom: 20px; width: 33%;" class="usdt-group-yd relative cursor-pointer sub-gradient" data-text="3" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/USDT-ERC20.png" alt="" style="width:2.5rem;margin-left:1.2rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate" style="text-align:center;">USDT-ERC20</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-												<div style="margin-bottom: 20px; width: 33%;" class="usdt-group-yd relative cursor-pointer sub-gradient" data-text="4" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/USDT-TRC20.png" alt="" style="width:2.5rem;margin-left:1.2rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate">USDT-TRC20</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-												<div style="margin-bottom: 20px; width: 33%;" class="usdt-group-yd relative cursor-pointer sub-gradient" data-text="5" data-plan-type="yearly">
-
-													<div class="w-full px-4 pt-7 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex">
-														<div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-															<div class="flex items-center justify-center h-full">
-																<div class="flex flex-col">
-																	<div style="font-size:28px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">
-																		<img src="./assets/BSC.png" alt="" style="width:2.5rem;" />
-																	</div>
-																	<div class="text-white whitespace-nowrap opacity-60 text-xs font-medium font-['Poppins']  leading-normal notranslate">BSC</div>
-																</div>
-
-
-															</div>
-														</div>
-													</div>
-												</div>
-
-
-											</div>
-											<!--<div class="flex">-->
-											<!--	<img src="./Subscriptions_files/green_shield-f7397ac8fe4d87bb33e28e4e67e1a7c1620aa24f2802b6fbf8e4741f328d336b.svg" class="w-5 h-5 pr-1">-->
-											<!--	<div class="text-neutral-400 text-xs font-medium font-[&#39;Poppins&#39;] leading-none pt-1 ml-0">No adult transaction in your bank statement</div>-->
-											<!--</div>-->
-											
-											
-											
-											
-											<div id="money-layout-yd" style="display: flex;flex-wrap: wrap;justify-content: space-between;">
-												<script type="text/template" id="money-template-yd">
-													<div style="margin-bottom: 20px; width: 47%;height:60px;" class="money-group-yd relative cursor-pointer sub-gradient" data-text="{{textLabel}}" data-plan-type="yearly">
-
-                                                <div class="w-full px-4 pt-1 pb-5 h-20 bg-gradient-to-r from-pink-950 to-pink-950 rounded-lg justify-center items-center inline-flex btnSelectAmount-yd" data-amount="{{value}}" onclick="updateAmount({{value}})">
-                                                <div class="self-stretch justify-start items-center gap-4 lg:gap-12 inline-flex">
-                                                    <div class="flex items-center justify-center h-full">
-                                                    <div class="flex flex-col">
-                                                        <div style="font-size:22px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1 notranslate">${{textLabel}}=</div>
-                                                    </div>
-                                                    <div class="flex flex-col">
-                                                        <div style="font-size:22px" class="text-right text-white text-[42px] font-semibold font-[&#39;Poppins&#39;] leading-10 mr-1">{{value}}</div>
-                                                    </div>
-                                                    </div>
-                                                </div>
-                                                </div>
-                                                </div>
-                                                </script>
-											</div>
-
-
-											
-
-											
-												<button class="w-full px-4 py-3 primary-gradient rounded-lg justify-center items-center gap-2 inline-flex btnBuyPoint" type="button">
-													<img src="./Subscriptions_files/credit-card-963f7075e7929f4578c230ca8bd5f54cc6422449138649829cdbad7f37fc7936.svg" class="w-5 h-5 relative">
-													<div class="text-white text-sm font-semibold leading-tight">Buy Point</div>
-												</button>
-											
-										
-										
-										
+							<div class="tk-benefits-card-mobile">
+								<div class="tk-benefits-col">
+									<div class="tk-benefit-plain">
+										<img src="./tokens_files/spicy-d6c3b758dd5cf56b5a992f80228babedf9993ef2ac82c395bf7d5376ca41be57.webp" alt="">
+										<div>Generate spicy videos &amp; Images</div>
+									</div>
+									<div class="tk-benefit-plain">
+										<img src="./tokens_files/live_action-ebfc5c78549b23117b89027c26cc2cc4262bf508cfeb8611e4b86aa7de1a1ca8.webp" alt="">
+										<div>Live action &amp; live audio</div>
+									</div>
+									<div class="tk-benefit-plain">
+										<img src="./tokens_files/lock-3ebbdd567fcfe81907f46667424186157a573201f65957d5420c7d7190f8255a.webp" alt="">
+										<div>Unlock private content packs</div>
+									</div>
+									<div class="tk-benefit-plain">
+										<img src="./tokens_files/wand-1a28ddd7ea7cdbb195e5a188783005645709b6f4aaff89fee5c7d2291e1d5824.webp" alt="">
+										<div>Create Your Own AI Girlfriend</div>
+									</div>
 								</div>
-
-								<!--<div class="text-center text-neutral-400 text-sm font-medium leading-tight mt-2">-->
-								<!--	Cancel anytime-->
-								<!--</div>-->
-
 							</div>
-							<!--<div id="right" class="px-6 mb-5">-->
-							<!--	<div class="text-neutral-400 text-[16px] font-semibold mb-6">Premium Benefits</div>-->
-							<!--	<div class="flex flex-col gap-5">-->
-							<!--		<div class="justify-start items-center gap-2 inline-flex">-->
-							<!--			<div class="text-white text-sm font-medium leading-tight flex">-->
-							<!--				<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Create your own AI Boyfriend(s)</div>-->
-							<!--		</div>-->
-							<!--		<div class="justify-start items-center gap-2 inline-flex">-->
-							<!--			<div class="text-white text-sm font-medium leading-tight flex">-->
-							<!--				<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Unlimited text messages</div>-->
-							<!--		</div>-->
-							<!--		<div class="justify-start items-center gap-2 inline-flex">-->
-							<!--			<div class="text-white text-sm font-medium leading-tight flex">-->
-							<!--				<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Get 100 FREE tokens / month</div>-->
-							<!--		</div>-->
-							<!--		<div class="justify-start items-center gap-2 inline-flex">-->
-							<!--			<div class="text-white text-sm font-medium leading-tight flex">-->
-							<!--				<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Remove image blur</div>-->
-							<!--		</div>-->
-							<!--		<div class="justify-start items-center gap-2 inline-flex">-->
-							<!--			<div class="text-white text-sm font-medium leading-tight flex">-->
-							<!--				<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Generate images</div>-->
-							<!--		</div>-->
-							<!--		<div class="justify-start items-center gap-2 inline-flex">-->
-							<!--			<div class="text-white text-sm font-medium leading-tight flex">-->
-							<!--				<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Make AI phone calls</div>-->
-							<!--		</div>-->
-							<!--		<div class="justify-start items-center gap-2 inline-flex">-->
-							<!--			<div class="text-white text-sm font-medium leading-tight flex">-->
-							<!--				<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Listen to voice messages</div>-->
-							<!--		</div>-->
-							<!--		<div class="justify-start items-center gap-2 inline-flex">-->
-							<!--			<div class="text-white text-sm font-medium leading-tight flex">-->
-							<!--				<img src="./Subscriptions_files/check_circle-8bef1807002524e283a697e23b0d49f656c8479fd4e1c273f584a6162da8ead1.svg" class="mr-2"> Fast response time</div>-->
-							<!--		</div>-->
-							<!--	</div>-->
-							<!--</div>-->
+
+							<div class="tk-benefits-grid">
+								<div class="tk-benefit">
+									<img src="./tokens_files/spicy-d6c3b758dd5cf56b5a992f80228babedf9993ef2ac82c395bf7d5376ca41be57.webp" alt="">
+									<div>Generate spicy videos &amp; Images</div>
+								</div>
+								<div class="tk-benefit">
+									<img src="./tokens_files/live_action-ebfc5c78549b23117b89027c26cc2cc4262bf508cfeb8611e4b86aa7de1a1ca8.webp" alt="">
+									<div>Live action &amp; live audio</div>
+								</div>
+								<div class="tk-benefit">
+									<img src="./tokens_files/lock-3ebbdd567fcfe81907f46667424186157a573201f65957d5420c7d7190f8255a.webp" alt="">
+									<div>Unlock private content packs</div>
+								</div>
+								<div class="tk-benefit">
+									<img src="./tokens_files/wand-1a28ddd7ea7cdbb195e5a188783005645709b6f4aaff89fee5c7d2291e1d5824.webp" alt="">
+									<div>Create Your Own AI Girlfriend</div>
+								</div>
+							</div>
 						</div>
 					</div>
-					<div class="flex justify-center mb-0 lg:mb-10">
-						<div class="relative  mt-10">
-							<div class="w-80 h-9 justify-center items-center gap-12 inline-flex">
-								<div class="justify-start items-center gap-1 inline-flex">
-									<img src="./Subscriptions_files/shield-190459758afcc6bb4c7df21968354540da03d7e833aa55cfc17d5acb07cbafd1.svg" class="relative w-[30px] h-[36px]">
-									<div class="text-neutral-400 text-base font-semibold leading-none">Antivirus
-										<br>
-										Secured</div>
-								</div>
-								<div class="justify-start items-center gap-1 inline-flex">
-									<img src="./Subscriptions_files/privacy-61b2a7b6428df84413d307fe745b05f137c9259c84e2b4fe1b844d06bfd8788f.svg" class="w-9 h-9 relative">
-									<div class="text-neutral-400 text-base font-semibold leading-none">Privacy in bank
-										<br>
-										statement</div>
-								</div>
+
+					<div class="tk-secure">
+						<div class="tk-secure-inner">
+							<div class="tk-secure-item">
+								<img src="./Subscriptions_files/shield-190459758afcc6bb4c7df21968354540da03d7e833aa55cfc17d5acb07cbafd1.svg" alt="Shield">
+								<div>Antivirus<br>Secured</div>
 							</div>
+							<div class="tk-secure-item">
+								<img src="./Subscriptions_files/privacy-61b2a7b6428df84413d307fe745b05f137c9259c84e2b4fe1b844d06bfd8788f.svg" alt="Privacy">
+								<div>Privacy in bank<br>statement</div>
+							</div>
+						</div>
+
+						<div class="tk-entity">
+							<p>EverAI Limited, Nr. C107181, 56 Central Business Centre,<br>Triq is-Soil, Santa Venera SVR 1833, Malta</p>
 						</div>
 					</div>
 				</div>
 			</div>
+
+			<!-- 支付方式弹窗（版式对齐 Subscriptions.html 的 payment-method-modal） -->
+			<div class="tk-modal" id="tk-payment-modal" style="display:none;">
+				<div class="tk-modal-backdrop" data-tk-close="1"></div>
+				<div class="tk-modal-box" role="dialog" aria-modal="true" aria-labelledby="tk-modal-title">
+					<button type="button" class="tk-modal-close" data-tk-close="1" aria-label="Close">
+						<img src="./tokens_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" alt="Close">
+					</button>
+					<h2 class="tk-modal-title" id="tk-modal-title">Choose payment method</h2>
+					<div class="tk-modal-body">
+						<div class="tk-pay-plan">
+							<span class="tk-pay-plan-title" id="tk-plan-title"></span>
+							<span class="tk-pay-plan-price" id="tk-plan-price"></span>
+						</div>
+						<div class="tk-modal-methods" id="tk-modal-methods"></div>
+						<p class="tk-modal-summary" id="tk-modal-summary"></p>
+					</div>
+				</div>
+			</div>
+
+			<style>
+				/* ===== Tokens（充值）页样式：按 candy.ai tokens 页复刻 ===== */
+				#token-container { background: #131313; }
+				#token-container .tk-page { padding-bottom: 40px; }
+				#token-container .tk-head { margin-top: 24px; text-align: center; }
+				#token-container .tk-title { color: #fff; font-size: 22px; font-weight: 700; line-height: 42px; }
+				#token-container .tk-sub { margin-top: 8px; color: #a1a1aa; font-size: 14px; }
+				#token-container .tk-sub-hl { color: #f97187; }
+				#token-container .tk-balance { margin-top: 8px; color: #a4a4a4; font-size: 12px; line-height: 20px; }
+				#token-container .tk-wrap { display: flex; flex-direction: column; justify-content: center; margin: 24px auto 0; }
+				#token-container .tk-mid { width: 100%; max-width: 700px; margin: 0 auto; padding: 0 16px; }
+				#token-container .tk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+				#token-container .tk-only-mobile { display: block; }
+				#token-container .tk-only-md { display: none; }
+				@media (min-width: 1024px) {
+					#token-container .tk-head { margin-top: 40px; }
+					#token-container .tk-title { font-size: 32px; }
+				}
+				@media (min-width: 768px) {
+					#token-container .tk-wrap { margin-top: 32px; }
+					#token-container .tk-mid { max-width: 920px; padding: 0; }
+					#token-container .tk-only-mobile { display: none; }
+					#token-container .tk-only-md { display: block; }
+				}
+
+				/* Premium Plus 升级横幅 */
+				#token-container .tk-upsell { position: relative; height: 69px; max-width: 660px; margin: 0 auto 24px; }
+				#token-container .tk-upsell-border { height: 100%; padding: 1px; border-radius: 16px; background: linear-gradient(90deg, #4346E6 0%, #FC768A 100%); }
+				#token-container .tk-upsell-card { display: flex; height: 100%; align-items: center; justify-content: space-between; padding: 0 16px; border-radius: 15px; background-color: #131313; }
+				#token-container .tk-upsell-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; }
+				#token-container .tk-upsell-brand { font-size: 14px; font-weight: 600; line-height: 15px; background: linear-gradient(90deg, #A87CDB 0%, #FC768A 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+				#token-container .tk-upsell-brand-sub { margin-top: 8px; color: #fff; font-size: 13px; font-weight: 500; line-height: 1; }
+				#token-container .tk-upsell-headline { color: #fff; font-size: 16px; font-weight: 600; line-height: 20px; }
+				#token-container .tk-upsell-desc { margin-top: 4px; color: #a4a4a4; font-size: 14px; font-weight: 500; line-height: 20px; }
+				#token-container .tk-upsell-btn { display: flex; flex-shrink: 0; align-items: center; justify-content: center; min-width: 92px; height: 35px; padding: 0 12px; border-radius: 10px; color: #fff; font-size: 13px; font-weight: 600; line-height: 20px; white-space: nowrap; text-decoration: none; background: linear-gradient(244deg, #FC768A 8%, #4346E6 91%); transition: opacity .2s; }
+				#token-container .tk-upsell-btn:hover { opacity: .9; }
+				#token-container .tk-upsell-float { position: absolute; left: 20px; top: 0; z-index: 1; padding: 0 8px; background-color: #131313; }
+				#token-container .tk-upsell-float-text { font-size: 16px; font-weight: 600; line-height: 15px; background: linear-gradient(90deg, #A87CDB 0%, #FC768A 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+				@media (min-width: 768px) {
+					#token-container .tk-upsell { height: 99px; }
+					#token-container .tk-upsell-border { position: absolute; left: 0; right: 0; bottom: 0; height: 91px; }
+					#token-container .tk-upsell-card { padding: 0 28px; }
+					#token-container .tk-upsell-btn { font-size: 14px; }
+				}
+
+				/* 自选数量购买卡 */
+				#token-container .tk-custom { position: relative; width: 100%; max-width: 660px; margin: 0 auto 24px; padding: 32px 16px 16px; border-top: 1px solid rgba(255, 255, 255, .1); border-left: 1px solid rgba(255, 255, 255, .1); border-radius: 16px; background: linear-gradient(135deg, #28282899 0%, #1a1a1a99 100%); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); font-family: Roboto, -apple-system, "Segoe UI", sans-serif; }
+				#token-container .tk-custom-chip { position: absolute; top: -1px; left: 50%; display: flex; height: 22px; align-items: center; justify-content: center; padding: 0 12px; transform: translateX(-50%); border-radius: 0 0 12px 12px; background: linear-gradient(90deg, #6143e6 0%, #4346e6 100%); color: #fff; transition: opacity .3s ease-out; }
+				#token-container .tk-custom-chip[aria-hidden="true"] { opacity: 0; }
+				#token-container .tk-custom-chip-text { white-space: nowrap; font-size: 13px; font-weight: 700; line-height: 12px; font-variant-numeric: tabular-nums; }
+				#token-container .tk-custom-head { display: flex; flex-direction: column; align-items: center; text-align: center; }
+				#token-container .tk-custom-row { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; }
+				#token-container .tk-custom-coin { flex-shrink: 0; width: 28px; height: 28px; object-fit: contain; user-select: none; }
+				#token-container .tk-custom-sizer { position: absolute; visibility: hidden; white-space: pre; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+				#token-container .tk-custom-input { width: 7ch; min-width: 0; padding: 0; border: 0; border-bottom: 1px solid transparent; background: transparent; color: #fff; font-size: 26px; font-weight: 700; line-height: 1; text-align: center; caret-color: #6143E6; font-variant-numeric: tabular-nums; outline: none; }
+				#token-container .tk-custom-input:focus { border-bottom-color: rgba(255, 255, 255, .3); }
+				#token-container .tk-custom-premium-row { display: none; margin-top: 6px; color: #a4a4a4; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+				#token-container .tk-custom-slider-wrap { position: relative; margin-top: 24px; }
+				#token-container .tk-custom-bubble { position: absolute; bottom: 26px; left: 0; padding: 4px 10px; transform: translateX(-50%); border-radius: 8px; background: #6143E6; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; opacity: 0; pointer-events: none; transition: opacity .18s ease-out; }
+				#token-container .tk-custom-bubble::after { content: ""; position: absolute; left: 50%; bottom: -3px; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg); background: #6143E6; }
+				#token-container .tk-custom-bubble.is-visible { opacity: 1; }
+				@keyframes tk-chip-pulse { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.18); } }
+				#token-container .tk-custom-chip-text.is-pulse { animation: tk-chip-pulse .36s ease-out; }
+				@keyframes tk-value-pop { 0% { opacity: .45; transform: translateY(2px); } 100% { opacity: 1; transform: none; } }
+				#token-container .tk-custom-price-pop { animation: tk-value-pop .18s ease-out; }
+				@media (prefers-reduced-motion: reduce) {
+					#token-container .tk-custom-chip-text.is-pulse,
+					#token-container .tk-custom-price-pop { animation: none; }
+				}
+				#token-container .tk-custom-slider { --token-custom-amount-accent: #6143e6; --token-custom-amount-track: #2b2b2e; --token-custom-amount-dot: #ffffff59; --token-slider-progress: 0%; --token-slider-dots: radial-gradient(circle 2px at 6% 50%, var(--token-custom-amount-dot) 98%, transparent), radial-gradient(circle 2px at 28% 50%, var(--token-custom-amount-dot) 98%, transparent), radial-gradient(circle 2px at 50% 50%, var(--token-custom-amount-dot) 98%, transparent), radial-gradient(circle 2px at 72% 50%, var(--token-custom-amount-dot) 98%, transparent), radial-gradient(circle 2px at 94% 50%, var(--token-custom-amount-dot) 98%, transparent); width: 100%; height: 26px; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; }
+				#token-container .tk-custom-slider::-webkit-slider-runnable-track { height: 16px; border-radius: 9999px; background: var(--token-slider-dots), linear-gradient(to right, var(--token-custom-amount-accent) var(--token-slider-progress), var(--token-custom-amount-track) var(--token-slider-progress)); }
+				#token-container .tk-custom-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; margin-top: -5px; border-radius: 9999px; background: #fff; box-shadow: 0 2px 8px #00000073, 0 0 12px #6143e659; }
+				#token-container .tk-custom-slider::-moz-range-track { height: 16px; border-radius: 9999px; background: var(--token-slider-dots), var(--token-custom-amount-track); }
+				#token-container .tk-custom-slider::-moz-range-progress { height: 16px; border-radius: 9999px; background: var(--token-custom-amount-accent); }
+				#token-container .tk-custom-slider::-moz-range-thumb { box-sizing: border-box; width: 26px; height: 26px; border: 0; border-radius: 9999px; background: #fff; box-shadow: 0 2px 8px #00000073, 0 0 12px #6143e659; }
+				#token-container .tk-custom-range { display: flex; justify-content: space-between; margin-top: 6px; color: #a4a4a4; font-size: 11px; font-variant-numeric: tabular-nums; }
+				#token-container .tk-custom-buy { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; gap: 8px; margin-top: 20px; padding: 0 16px; border: 0; border-radius: 12px; background: #6143E6; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: filter .2s; }
+				#token-container .tk-custom-buy:hover { filter: brightness(1.1); }
+				#token-container .tk-custom-buy-price { font-variant-numeric: tabular-nums; }
+				@media (min-width: 640px) {
+					#token-container .tk-custom { padding: 36px 24px 24px; }
+				}
+				@media (min-width: 768px) {
+					#token-container .tk-custom-coin { width: 36px; height: 36px; }
+					#token-container .tk-custom-sizer { font-size: 38px; }
+					#token-container .tk-custom-input { font-size: 38px; }
+				}
+
+				/* 套餐卡片 */
+				#token-container .tk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 660px; margin: 0 auto 24px; }
+				#token-container .tk-plan { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 100%; min-height: 140px; padding: 24px 8px 12px; border-top: 1px solid rgba(255, 255, 255, .1); border-left: 1px solid rgba(255, 255, 255, .1); border-radius: 16px; background: linear-gradient(135deg, #28282899 0%, #1a1a1a99 100%); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); cursor: pointer; transition: background .3s, outline-color .3s; }
+				#token-container .tk-plan-top { display: flex; flex-direction: column; align-items: center; }
+				#token-container .tk-coin { position: relative; display: flex; align-items: center; justify-content: center; width: 95px; height: 95px; max-width: 100%; }
+				#token-container .tk-coin img { position: relative; max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; filter: drop-shadow(0 0 25px rgba(255, 170, 40, .6)); }
+				#token-container .tk-qty { margin-top: 4px; color: #fff; font-size: 16px; font-weight: 700; line-height: 1; }
+				#token-container .tk-bottom { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 8px; }
+				#token-container .tk-price { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 32px; padding: 0 20px; border-radius: 16px; background: #252525; overflow: clip; transition: background .3s; }
+				#token-container .tk-price span { color: #fff; font-size: 14px; font-weight: 500; letter-spacing: -.42px; }
+				#token-container .tk-bonus { position: absolute; top: -1px; left: 50%; display: flex; align-items: center; justify-content: center; height: 22px; padding: 0 12px; transform: translateX(-50%); border-radius: 0 0 12px 12px; background: linear-gradient(90deg, #6143e6 0%, #4346e6 100%); color: #fff; font-family: Roboto, -apple-system, "Segoe UI", sans-serif; font-size: 13px; font-weight: 700; line-height: 12px; white-space: nowrap; }
+				@media (min-width: 768px) {
+					#token-container .tk-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+					#token-container .tk-plan { grid-column: span 2; min-height: 190px; padding: 32px 12px 12px; }
+					#token-container .tk-plan:hover { outline: 2px solid #6143e6; background: linear-gradient(184deg, #5447dd00 24%, #4546e64d 100%); }
+					#token-container .tk-coin { width: 130px; height: 130px; }
+					#token-container .tk-coin img { transition: filter .3s; }
+					#token-container .tk-plan:hover .tk-coin img { filter: drop-shadow(0 0 25px rgba(97, 67, 230, .7)); }
+					#token-container .tk-qty { font-size: 20px; }
+					#token-container .tk-bottom { margin-top: 16px; padding-bottom: 8px; }
+					#token-container .tk-price { height: 38px; }
+					#token-container .tk-price span { font-size: 16px; }
+					#token-container .tk-plan:hover .tk-price { background: #6143e6; }
+				}
+
+				/* Token Benefits */
+				#token-container .tk-benefits-wrap { max-width: 660px; margin: 24px auto 0; }
+				#token-container .tk-benefits-title { margin-bottom: 12px; color: #a4a4a4; font-size: 14px; font-weight: 600; line-height: 26px; }
+				#token-container .tk-benefits-card-mobile { padding: 19px; border-top: 1px solid rgba(255, 255, 255, .1); border-left: 1px solid rgba(255, 255, 255, .1); border-radius: 16px; background: linear-gradient(135deg, #28282899 0%, #1a1a1a99 100%); }
+				#token-container .tk-benefits-col { display: flex; flex-direction: column; gap: 16px; }
+				#token-container .tk-benefit-plain { display: flex; align-items: center; gap: 6px; }
+				#token-container .tk-benefit-plain img { flex-shrink: 0; width: 32px; height: 32px; }
+				#token-container .tk-benefit-plain div { color: #fff; font-size: 14px; font-weight: 600; line-height: 20px; }
+				#token-container .tk-benefits-grid { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 19px; row-gap: 16px; }
+				#token-container .tk-benefit { display: flex; align-items: center; gap: 6px; height: 48px; padding: 0 10px; border: 1px solid rgba(255, 255, 255, .05); border-radius: 12px; background: linear-gradient(135deg, #28282899 0%, #1a1a1a99 100%); }
+				#token-container .tk-benefit img { flex-shrink: 0; width: 32px; height: 32px; }
+				#token-container .tk-benefit div { display: -webkit-box; overflow: hidden; color: #fff; font-size: 14px; font-weight: 600; line-height: 20px; word-break: break-word; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+				@media (min-width: 768px) {
+					#token-container .tk-benefits-card-mobile { display: none; }
+					#token-container .tk-benefits-grid { display: grid; }
+				}
+
+				/* 底部安全标识 + 主体信息 */
+				#token-container .tk-secure { display: flex; flex-direction: column; justify-content: center; margin-top: 40px; }
+				#token-container .tk-secure-inner { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 32px; row-gap: 8px; max-width: 100%; min-height: 36px; }
+				#token-container .tk-secure-item { display: inline-flex; align-items: center; gap: 4px; }
+				#token-container .tk-secure-item img { position: relative; width: 34px; height: 34px; }
+				#token-container .tk-secure-item div { color: #a4a4a4; font-size: 15px; font-weight: 600; line-height: 15px; }
+				#token-container .tk-entity { display: flex; justify-content: center; margin: 16px 0 32px; }
+				#token-container .tk-entity p { margin: 0; color: #a1a1aa; font-size: 12px; font-weight: 300; text-align: center; }
+				@media (min-width: 1024px) {
+					#token-container .tk-secure { margin-top: 48px; margin-bottom: 40px; }
+				}
+
+				/* 支付方式弹窗：尺寸与排版照 Subscriptions.html 的 payment-method-modal */
+				#tk-payment-modal { position: fixed; inset: 0; z-index: 60; display: none; align-items: flex-end; justify-content: center; }
+				#tk-payment-modal .tk-modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); }
+				#tk-payment-modal .tk-modal-box { position: relative; display: flex; flex-direction: column; width: 100vw; max-width: 100vw; margin-left: auto; margin-right: auto; padding: 30px 20px 34px; border: 1px solid #282828; border-radius: 10px 10px 0 0; background: #1A1A1A; }
+				#tk-payment-modal .tk-modal-close { position: absolute; top: 33px; right: 20px; width: 27px; height: 27px; padding: 0; border: 0; background: none; cursor: pointer; transition: opacity .2s; }
+				#tk-payment-modal .tk-modal-close:hover { opacity: .8; }
+				#tk-payment-modal .tk-modal-close img { width: 100%; height: 100%; }
+				#tk-payment-modal .tk-modal-title { margin: 0; width: 100%; color: #fff; font-size: 20px; font-weight: 700; line-height: 34px; text-align: left; }
+				#tk-payment-modal .tk-modal-body { display: flex; flex-direction: column; margin-top: 25px; }
+				/* 类名前缀用 tk-pay-*，避开 tokens 页套餐卡自身的 .tk-plan / .tk-price */
+				#tk-payment-modal .tk-pay-plan { display: flex; flex-direction: row; flex-shrink: 0; align-items: center; justify-content: space-between; width: 100%; height: 52px; min-height: 0; padding: 0 16px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; background: none; cursor: default; }
+				#tk-payment-modal .tk-pay-plan-title { color: #fff; font-size: 14px; font-weight: 600; line-height: 20px; }
+				#tk-payment-modal .tk-pay-plan-price { color: #fff; font-size: 14px; font-weight: 500; line-height: 20px; }
+				#tk-payment-modal .tk-modal-methods { display: flex; flex-direction: column; gap: 16px; width: 100%; margin-top: 16px; }
+				#tk-payment-modal .tk-method { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 16px; border: 0; border-radius: 8px; background: #404040; cursor: pointer; transition: filter .2s; }
+				#tk-payment-modal .tk-method:hover { filter: brightness(1.1); }
+				#tk-payment-modal .tk-method[disabled] { opacity: .6; cursor: default; }
+				#tk-payment-modal .tk-method-text { color: #fff; font-size: 12px; font-weight: 500; line-height: 1.25; }
+				#tk-payment-modal .tk-method-icons { display: flex; flex-shrink: 0; gap: 4px; width: 20px; height: 20px; }
+				#tk-payment-modal .tk-method-icons img { width: 20px; height: 20px; object-fit: contain; }
+				#tk-payment-modal .tk-modal-summary { margin: 25px 0 0; width: 100%; color: #a4a4a4; font-size: 13px; font-weight: 500; line-height: 16px; text-align: center; }
+				@media (min-width: 640px) {
+					#tk-payment-modal { align-items: center; }
+					#tk-payment-modal .tk-modal-box { width: 456px; max-width: 456px; padding: 30px 40px 34px; border-radius: 10px; }
+					#tk-payment-modal .tk-modal-close { top: 14px; right: 12px; }
+					#tk-payment-modal .tk-modal-title { font-size: 24px; text-align: center; }
+					#tk-payment-modal .tk-pay-plan { height: 53px; }
+					#tk-payment-modal .tk-method-text { font-size: 14px; line-height: 20px; }
+				}
+			</style>
 		</div>
 		<div id="redirect"></div>
 		<div class="relative z-50" aria-labelledby="paynt-checkout" role="dialog" aria-modal="true" id="paynt-modal">

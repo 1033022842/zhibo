@@ -11,7 +11,7 @@ use app\live\service\RechargeService;
 final class Recharge extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['channels', 'submit', 'orders', 'status', 'upload']],
+        \app\live\middleware\Auth::class => ['only' => ['channels', 'submit', 'orders', 'status', 'upload', 'createOrder']],
     ];
 
     private RechargeService $service;
@@ -36,6 +36,85 @@ final class Recharge extends BaseController
             }
         }
         return $this->jsonSuccess($list);
+    }
+
+    /**
+     * AI 女友端：充值套餐 + 可选支付方式（免登录）
+     */
+    public function packages()
+    {
+        $starPay = new \app\live\service\StarPayService();
+        return $this->jsonSuccess([
+            'list'     => $this->service->packages(),
+            'products' => $starPay->products(),
+        ]);
+    }
+
+    /**
+     * 自选点数报价（免登录，前端展示用）
+     */
+    public function quote()
+    {
+        $tokens = $this->request->param('tokens/d', 0);
+        if ($tokens <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '点数必须大于0');
+        }
+        return $this->jsonSuccess($this->service->quoteByTokens($tokens));
+    }
+
+    /**
+     * AI 女友端：star-pay 下单（固定套餐或自选点数），返回支付地址
+     */
+    public function createOrder()
+    {
+        $userId    = $this->getAuthUserId();
+        $packageId = $this->request->post('package_id/d', 0);
+        $tokens    = $this->request->post('tokens/d', 0);
+        $product   = trim((string) $this->request->post('product', ''));
+
+        if ($packageId > 0) {
+            $order = $this->service->submitPackageOrder($userId, $packageId, $product);
+        } elseif ($tokens > 0) {
+            $order = $this->service->submitCustomOrder($userId, $tokens, $product);
+        } else {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择充值套餐或点数');
+        }
+
+        return $this->jsonSuccess([
+            'order_no'       => $order['order_no'],
+            'pay_amount'     => $order['pay_amount'],
+            'diamond_amount' => $order['diamond_amount'],
+            'product'        => $order['product'] ?? '',
+            'pay_url'        => $order['pay_url'] ?? '',
+            'expire_at'      => $order['expire_at'] ?? '',
+        ], '订单已创建');
+    }
+
+    /**
+     * star-pay 异步通知（免登录，需验签）
+     */
+    public function notify()
+    {
+        $starPay = new \app\live\service\StarPayService();
+        try {
+            $params = $starPay->verifyNotify($this->request->post());
+        } catch (\Throwable $e) {
+            return response('FAIL', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $orderNo = (string) ($params['merchant_ref'] ?? '');
+        // 入金：0 Unpaid / 1 Paid
+        if ($orderNo === '' || (int) ($params['status'] ?? 0) !== 1) {
+            return response('SUCCESS', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        try {
+            $this->service->confirmByGateway($orderNo, (string) ($params['system_ref'] ?? ''), (string) ($params['product_ref'] ?? ''));
+        } catch (\Throwable $e) {
+            return response('FAIL', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        return response('SUCCESS', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
     }
 
     /**
@@ -80,6 +159,7 @@ final class Recharge extends BaseController
             'status'         => (int) $order['status'],
             'pay_amount'     => $order['pay_amount'],
             'diamond_amount' => $order['diamond_amount'],
+            'pay_url'        => (string) ($order['pay_url'] ?? ''),
             'expire_at'      => $order['expire_at'] ?? '',
         ]);
     }

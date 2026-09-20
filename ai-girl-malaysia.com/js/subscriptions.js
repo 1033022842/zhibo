@@ -1,217 +1,406 @@
 /**
- * Subscriptions 页（英文界面 · USDT 计价 · 钻石余额支付）
+ * Subscriptions 页（版式复刻 candy /payments · 套餐数据来自后台 · star-pay USDT 收款）
+ *
+ * 页面结构由参考页原样保留，本脚本只做三件事：
+ *   1) 用 /api/v1/vip/plans 的数据回填卡片价格、tokens 档位下拉与权益文案
+ *   2) 记录用户点选的（层级 · 时长 · tokens 档位）
+ *   3) 「Pay with」按钮 → /api/v1/vip/order 下单 → 跳转 star-pay 收银台，回跳后轮询到账
  */
-(()=>{
+;(function () {
     var base = '/api/v1'
     var token = localStorage.getItem('live_access_token')
-    var cacheTemplate = ''
+    // 收款地址类产品（商户仅启用 USDT 充值类，买币/刷卡类已下线）
+    var PRODUCT = 'USDT-TRC20Deposit'
+    var PENDING_KEY = 'vip_pending_order'
+    var API_TIMEOUT = 15000
+
     var plans = []
-    var vipStatus = null
+    // 最近点选的卡片：{ level, months, tokens }
+    var picked = null
+    // 会员状态（/vip/status）
+    var vipState = null
+
+    var PANEL_LEVEL = { 'premium': 'premium', 'premium-plus': 'premium_plus' }
+    var TYPE_MONTHS = { yearly: 12, quarterly: 3, monthly: 1 }
+    var MODAL_TITLE = { 'premium': '#sub-modal-plan-title', 'premium_plus': '#sub-modal-plan-title-premium-plus' }
+    var MODAL_PRICE = { 'premium': '#sub-modal-plan-price', 'premium_plus': '#sub-modal-plan-price-premium-plus' }
+
+    $(function () { setTimeout(init, 800) })
 
     function h() { return token ? { 'Authorization': 'Bearer ' + token } : {} }
 
-    setTimeout(init, 800)
+    function toast(msg) {
+        if (window.layer && layer.msg) { layer.msg(msg) } else { alert(msg) }
+    }
 
     function init() {
-        cacheTemplate = $('#vip-template').html()
         bindEvents()
         loadPlans()
-        loadVipStatus()
-        loadBalance()
+        loadStatus()
+        pollOrder(pendingOrderNo(), 12)
     }
 
-    function bindEvents() {
-        $('#vip-Layout').on('click', '.vip-group', function() {
-            $('#vip-Layout').find('.sub-gradient-active').each((i, d) => {
-                $(d).removeClass('sub-gradient-active')
-                $(d).addClass('sub-gradient')
+    /** 会员状态：用于渲染卡片按钮文案（Select / Extend / Current Plan） */
+    function loadStatus() {
+        if (!token) { applyCardCta(); return }
+        $.ajax({
+            url: base + '/vip/status',
+            headers: h(),
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
+            if (r && r.code === '00000' && r.data) { vipState = r.data }
+            applyCardCta()
+        }).fail(function () { applyCardCta() })
+    }
+
+    /**
+     * 卡片底部按钮文案（参考页快照写死了抓取账号的订阅态，这里按真实状态渲染）
+     *   非会员 → Select；当前层级时长一致 → Current Plan；其它 → Extend
+     */
+    function applyCardCta() {
+        $('[data-tab-panel]').filter(function () {
+            return $(this).find('[data-plan-type]').length > 0
+        }).each(function () {
+            var level = PANEL_LEVEL[$.trim($(this).attr('data-tab-panel') || '')] || 'premium'
+            $(this).find('[data-plan-type]').each(function () {
+                var $wrap = $(this)
+                var months = TYPE_MONTHS[$wrap.attr('data-plan-type')] || 1
+                var label = 'Select'
+                if (vipState && vipState.is_vip) {
+                    label = (vipState.level === level && (parseInt(vipState.plan_months, 10) || 0) === months)
+                        ? 'Current Plan' : 'Extend'
+                }
+                // 卡片 CTA 文案的 span 统一带 text-[16px]（桌面/移动、两个层级都是）
+                $wrap.find('span[class*="text-[16px]"]').text(label)
             })
-            $(this).removeClass('sub-gradient')
-            $(this).addClass('sub-gradient-active')
         })
-
-        $('#payment').on('click', function(e) { e.preventDefault(); buyVip() })
-        $('#payment-yd').on('click', function(e) { e.preventDefault(); buyVip() })
-        $('#buyPoint').on('click', goRecharge)
-        $('#buyPoint-yd').on('click', goRecharge)
-        $(document).on('click', '#vip-claim-btn:not(:disabled)', claimDaily)
-        $(document).on('click', '.vip-confirm-mask, .vip-confirm-cancel', closeConfirm)
-        $(document).on('click', '.vip-confirm-ok', function() { closeConfirm(); doBuy(pendingPlanId) })
     }
 
-    function goRecharge() {
-        var tk = localStorage.getItem('live_access_token') || ''
-        window.location.href = 'http://38.181.44.164/me/recharge#token=' + encodeURIComponent(tk)
+    // ===== 金额格式（整数金额不带小数，与参考页一致：$18 / $3.99）=====
+    function money(v) {
+        var n = Math.round((parseFloat(v) || 0) * 100) / 100
+        return '$' + (n % 1 === 0 ? n.toFixed(0) : n.toFixed(2))
     }
 
-    // ===== Plans =====
+    function monthLabel(months) {
+        return months === 1 ? '1 Month' : months + ' Months'
+    }
+
+    function tierTitle(months, tokens) {
+        return monthLabel(months) + ' · ' + tokens + ' tokens/mo'
+    }
+
+    // ===== 套餐数据回填 =====
     function loadPlans() {
         $.ajax({
             url: base + '/vip/plans',
             headers: h(),
-        }).done(function(r) {
-            if (r.code === '00000' && r.data) {
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
+            if (r && r.code === '00000' && r.data) {
                 plans = r.data
-                renderPlans(plans)
+                renderPlans()
             }
-        }).catch(function(){})
-    }
-
-    function renderPlans(list) {
-        if (!cacheTemplate || !list.length) return
-        var maxPerMonth = 0
-        list.forEach(function(p) {
-            var per = parseFloat(p.usdt_price) / (parseInt(p.months) || 1)
-            if (per > maxPerMonth) maxPerMonth = per
         })
-        $('#vip-Layout').empty()
-        list.forEach(function(p) {
-            var months = parseInt(p.months) || 1
-            var usdt = parseFloat(p.usdt_price)
-            var per = usdt / months
-            var off = maxPerMonth > 0 ? Math.round((1 - per / maxPerMonth) * 100) : 0
-            var html = cacheTemplate
-                .replace(/{{id}}/g, p.id)
-                .replace(/{{month}}/g, months)
-                .replace(/{{description}}/g, off)
-                .replace(/{{title}}/g, usdt.toFixed(2) + ' USDT')
-                .replace(/\${{unit}}/g, per.toFixed(2) + ' USDT')
-                .replace(/{{decimal}}/g, p.daily_diamond + '/day')
-            $('#vip-Layout').append(html)
+    }
+
+    function renderPlans() {
+        $.each(PANEL_LEVEL, function (tab, level) {
+            var $panels = $('[data-tab-panel="' + tab + '"]').filter(function () {
+                return $(this).find('[data-plan-type]').length > 0
+            })
+            if (!$panels.length) { return }
+
+            var list = plans.filter(function (p) { return (p.level || 'premium') === level })
+            if (!list.length) { return }
+
+            $panels.each(function () {
+                var $panel = $(this)
+                $panel.find('[data-plan-type]').each(function () {
+                    fillCard($(this), list)
+                })
+                fillPanelExtras($panel, level, list)
+            })
         })
-        $('#vip-Layout .vip-group').first().trigger('click')
     }
 
-    // ===== VIP status =====
-    function loadVipStatus() {
-        if (!token) return
-        $.ajax({ url: base + '/vip/status', headers: h() }).done(function(r) {
-            if (r.code === '00000' && r.data) {
-                vipStatus = r.data
-                renderStatus(vipStatus)
-            }
-        }).catch(function(){})
-    }
+    /** 单张卡片：写回档位属性、价格、折扣角标、tokens 下拉 */
+    function fillCard($wrap, list) {
+        var months = TYPE_MONTHS[$wrap.attr('data-plan-type')] || 1
+        var $card = $wrap.find('[data-token-tier-card]').first()
+        if (!$card.length) { return }
 
-    function renderStatus(s) {
-        var bar = $('#vip-status-bar')
-        if (bar.length === 0) {
-            $('#vip-Layout').before(
-                '<div id="vip-status-bar" style="margin-bottom:16px;padding:16px;border-radius:12px;border:1px solid rgba(255,154,68,.35);background:rgba(255,154,68,.08)">' +
-                '<div id="vip-status-text" style="font-size:14px;color:#fff;font-weight:600"></div>' +
-                '<button id="vip-claim-btn" style="margin-top:12px;display:none;width:100%;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:700;cursor:pointer"></button>' +
-                '</div>'
-            )
+        var byTokens = {}
+        list.forEach(function (p) {
+            if (parseInt(p.months, 10) === months) { byTokens[String(p.tokens_month)] = p }
+        })
+
+        // 清掉参考页写死的档位属性，避免残留
+        var attrs = $card[0].attributes
+        for (var i = attrs.length - 1; i >= 0; i--) {
+            if (attrs[i].name.indexOf('data-tier-') === 0) { $card.removeAttr(attrs[i].name) }
         }
-        var txt = $('#vip-status-text')
-        if (s.is_vip) {
-            txt.html('&#128081; Membership active &middot; <b style="color:#f59e0b">' + s.remain_days + '</b> days left (until ' + (s.expire_at || '').slice(0, 10) + ') &middot; ' + s.daily_diamond + ' diamonds daily')
-            var btn = $('#vip-claim-btn')
-            if (s.claimable_today) {
-                btn.show().text('Claim today\'s ' + s.daily_diamond + ' diamonds').prop('disabled', false).css('opacity', 1)
+
+        var keys = []
+        var base = null
+        $wrap.find('.token-tier-option').each(function () {
+            var n = String($(this).attr('data-tokens') || '')
+            if (!byTokens[n]) { $(this).hide(); return }
+            keys.push(n)
+            if (!base) { base = byTokens[n] }
+        })
+        if (!base) { return }
+
+        var basePer = parseFloat(base.price_per_month) || 0
+        var baseCmp = parseFloat(base.compare_price) || 0
+
+        keys.forEach(function (n) {
+            var p = byTokens[n]
+            var per = parseFloat(p.price_per_month) || 0
+            var amount = parseFloat(p.usd_price) || 0
+            var cmp = parseFloat(p.compare_price) || 0
+            $card.attr('data-tier-price' + n, money(per))
+            $card.attr('data-tier-amount' + n, amount.toFixed(2))
+            $card.attr('data-tier-modal-title' + n, tierTitle(months, n))
+            if (cmp > 0) { $card.attr('data-tier-compare-price' + n, money(cmp)) }
+            $card.attr('data-tier-benefit' + n, n + ' tokens per month')
+            $card.attr('data-tier-billing' + n, billText(months, amount))
+        })
+
+        // 卡片默认显示最低档
+        $wrap.find('[data-token-tier-price]').text(money(basePer))
+        $wrap.find('[data-token-tier-compare-price]')
+            .text(baseCmp > 0 ? money(baseCmp) : '')
+            .toggle(baseCmp > 0)
+
+        // 折扣角标：按 5% 向下取整（参考页 70% OFF / 35% OFF 同算法）
+        if (baseCmp > basePer && baseCmp > 0) {
+            var off = Math.floor((1 - basePer / baseCmp) * 100 / 5) * 5
+            $wrap.find('p').filter(function () { return /% OFF/.test($(this).text()) }).text(off + '% OFF')
+        }
+
+        // 弹窗取值用（candy 的控制器点击卡片时读这三个属性）
+        $card.attr('data-sub-card-button-plan-title-value', tierTitle(months, base.tokens_month))
+        $card.attr('data-sub-card-button-plan-price-value', money(basePer))
+        $card.attr('data-sub-card-button-plan-price-period-value', 'month')
+        $wrap.attr('data-plan-price', (parseFloat(base.usd_price) || 0).toFixed(2))
+
+        // tokens 下拉
+        var firstKey = keys[0]
+        $wrap.find('.token-tier-option').each(function () {
+            var $opt = $(this)
+            var n = String($opt.attr('data-tokens') || '')
+            var p = byTokens[n]
+            if (!p) { return }
+            var per = parseFloat(p.price_per_month) || 0
+            var cmp = parseFloat(p.compare_price) || 0
+            var label = n + ' tokens/month'
+            $opt.attr('data-label', label)
+            $opt.find('.token-tier-option-value').text(label)
+            if (n === firstKey) {
+                $opt.find('.token-tier-option-delta').text('Included')
+                $opt.find('.token-tier-option-savings').hide()
             } else {
-                btn.show().text('Already claimed today &#10003;').prop('disabled', true).css('opacity', .5)
+                var delta = per - basePer
+                $opt.find('.token-tier-option-delta').text('+$' + delta.toFixed(2) + '/mo')
+                if (cmp > per && cmp > 0) {
+                    $opt.find('.token-tier-option-savings')
+                        .text('Save ' + (Math.floor((1 - per / cmp) * 100 / 5) * 5) + '%').show()
+                } else {
+                    $opt.find('.token-tier-option-savings').hide()
+                }
             }
-        } else {
-            txt.html('Get membership: daily diamonds + exclusive badge')
-            $('#vip-claim-btn').hide()
+        })
+        $wrap.find('.token-tier-trigger-value span').last().text(firstKey + ' tokens/month')
+    }
+
+    /** 面板级：权益里的 tokens 文案 + 结算说明 + 弹窗默认值 */
+    function fillPanelExtras($panel, level, list) {
+        var base = null
+        list.forEach(function (p) {
+            if ((parseInt(p.months, 10) || 1) === 12) { base = base || p }
+        })
+        base = base || list[0]
+        var months = parseInt(base.months, 10) || 1
+        var tokens = String(base.tokens_month)
+
+        // 权益行里的「N tokens per month」
+        var benefitText = tokens + ' tokens per month'
+        $panel.find('[data-token-tier-benefit]').each(function () {
+            var $el = $(this)
+            $.each(list, function (_, p) {
+                var n = String(p.tokens_month)
+                $el.attr('data-tier-benefit' + n, n + ' tokens per month')
+            })
+            $el.text(benefitText)
+        })
+
+        // 「Annual payment billed as $47.88」等说明（按各时长的最低 tokens 档显示）
+        $panel.find('[data-token-tier-picker-target="billingText"]').each(function () {
+            var $el = $(this)
+            var period = $el.closest('[data-subscription-target]').attr('data-subscription-target') || ''
+            var m = /^annual/.test(period) ? 12 : (/^quarter/.test(period) ? 3 : 1)
+            var lowest = null
+            list.forEach(function (p) {
+                if ((parseInt(p.months, 10) || 1) !== m) { return }
+                var n = parseInt(p.tokens_month, 10) || 0
+                var text = billText(m, p.usd_price)
+                $el.attr('data-tier-billing' + n, text)
+                if (lowest === null || n < lowest) { lowest = n; $el.text(text) }
+            })
+        })
+
+        // 弹窗默认显示年付最低档
+        var title = $(MODAL_TITLE[level]).first()
+        var price = $(MODAL_PRICE[level]).first()
+        if (title.length) { title.text(tierTitle(months, tokens)) }
+        if (price.length) { price.text(money(base.price_per_month)) }
+    }
+
+    function billText(months, amount) {
+        var word = months === 12 ? 'Annual' : (months === 3 ? 'Quarterly' : 'Monthly')
+        return word + ' payment billed as $' + (parseFloat(amount) || 0).toFixed(2)
+    }
+
+    // ===== 点选记录 =====
+    function bindEvents() {
+        $(document).on('click', '[data-plan-type]', function () { remember($(this).closest('[data-plan-type]')) })
+        $(document).on('click', '.token-tier-option, .token-tier-trigger', function () {
+            var $w = $(this).closest('[data-plan-type]')
+            if ($w.length) { remember($w) }
+        })
+        $(document).on('click', '#sub-pay-crypto, #sub-pay-crypto-plus', function (e) {
+            e.preventDefault()
+            pay($(this).attr('id'))
+        })
+    }
+
+    function remember($w) {
+        if (!$w.length) { return }
+        var $panel = $w.closest('[data-tab-panel]')
+        var tab = $.trim($panel.first().attr('data-tab-panel') || '')
+        picked = {
+            level: PANEL_LEVEL[tab] || 'premium',
+            months: TYPE_MONTHS[$w.attr('data-plan-type')] || 1,
+            tokens: readTokens($w),
         }
     }
 
-    function claimDaily() {
-        $.ajax({
-            url: base + '/vip/claim-daily',
-            method: 'POST',
-            headers: h(),
-        }).done(function(r) {
-            if (r.code === '00000') {
-                layer.msg('Claimed +' + (r.data.claimed || 0) + ' diamonds')
-                loadVipStatus()
-                loadBalance()
-            } else {
-                layer.msg(r.msg || 'Failed')
-            }
-        }).catch(function(){ layer.msg('Network error') })
+    function readTokens($w) {
+        var $sel = $w.find('.token-tier-option[aria-selected="true"]').first()
+        var n = $sel.length ? String($sel.attr('data-tokens') || '') : ''
+        if (!n) {
+            var m = $.trim($w.find('.token-tier-trigger-value').text()).match(/(\d+)/)
+            n = m ? m[1] : ''
+        }
+        return n
     }
 
-    function loadBalance() {
-        if (!token) return
-        $.ajax({
-            url: '/api/live/userInfo',
-            method: 'POST',
-            headers: { 'token': token },
-        }).done(function(r) {
-            if (r.code === 1 || r.code === '00000') {
-                var money = (r.data && (r.data.money != null ? r.data.money : r.data.diamond_balance)) || 0
-                $(".blanceamount").css("display", "block")
-                $("#balance").html(money)
-                $(".blanceamount-yd").css("display", "block")
-                $("#balance-yd").html(money)
-            }
-        }).catch(function(){})
-    }
-
-    // ===== Purchase (styled English confirm) =====
-    var pendingPlanId = null
-
-    function buyVip() {
+    // ===== 下单 =====
+    function pay(btnId) {
         if (!token) {
-            layer.msg('Please log in first')
-            setTimeout(function(){ location.href = './Login.html' }, 900)
+            toast('Please log in first')
+            setTimeout(function () { location.href = './Login.html' }, 900)
             return
         }
-        var id = $('#vip-Layout .vip-group.sub-gradient-active').data('id')
-        if (!id) {
-            layer.msg('Please select a plan')
+
+        var level = btnId === 'sub-pay-crypto-plus' ? 'premium_plus' : 'premium'
+        var sel = readSelection(level)
+        var plan = findPlan(level, sel.months, sel.tokens)
+        if (!plan) {
+            toast('Please choose a plan first')
             return
         }
-        var plan = plans.find(function(p){ return p.id == id })
-        pendingPlanId = id
 
-        if ($('#vip-confirm-mask').length === 0) {
-            $('body').append(
-                '<div class="vip-confirm-mask" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;padding:20px">' +
-                '<div class="vip-confirm-box" style="width:100%;max-width:380px;background:linear-gradient(180deg,#1c1c26,#14141c);border:1px solid rgba(231,82,117,.35);border-radius:16px;padding:26px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">' +
-                '<div style="font-size:38px;margin-bottom:8px">&#128176;</div>' +
-                '<div id="vc-title" style="font-size:17px;font-weight:700;color:#fff;margin-bottom:4px"></div>' +
-                '<div id="vc-sub" style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:18px"></div>' +
-                '<div id="vc-price" style="font-size:26px;font-weight:800;color:#f59e0b;margin-bottom:22px"></div>' +
-                '<button class="vip-confirm-ok" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#E75275,#c73b5c);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">Confirm Payment</button>' +
-                '<button class="vip-confirm-cancel" style="width:100%;padding:11px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:transparent;color:rgba(255,255,255,.6);font-size:14px;cursor:pointer">Cancel</button>' +
-                '</div></div>'
-            )
-        }
-        $('#vc-title').text(plan ? plan.name : 'Membership')
-        $('#vc-sub').text((plan ? plan.months : '') + ' months membership')
-        $('#vc-price').html('<span style="font-size:15px;font-weight:400;color:rgba(255,255,255,.45)">pay with </span>' + (plan ? plan.diamond_price : '') + ' diamonds')
-        $('.vip-confirm-mask').css('display', 'flex')
-    }
-
-    function closeConfirm() { $('.vip-confirm-mask').css('display', 'none') }
-
-    function doBuy(planId) {
         var loadIdx = layer.load(1, { shade: [.1, '#fff'] })
         $.ajax({
-            url: base + '/vip/buy',
+            url: base + '/vip/order',
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, h()),
-            data: JSON.stringify({ plan_id: planId }),
+            data: JSON.stringify({ plan_id: plan.id, product: PRODUCT }),
             dataType: 'json',
-        }).done(function(r) {
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
             layer.close(loadIdx)
-            if (r.code === '00000') {
-                layer.msg('Activated! Expires ' + (r.data.expire_to || '').slice(0, 10))
-                loadVipStatus()
-                loadBalance()
-            } else if (r.msg && r.msg.indexOf('余额不足') >= 0) {
-                layer.msg('Insufficient diamonds')
-                setTimeout(goRecharge, 900)
+            if (r && (r.code === 'A0100' || r.code === 'A0101')) { backToLogin(r.msg); return }
+            if (r && r.code === '00000' && r.data && r.data.pay_url) {
+                try { localStorage.setItem(PENDING_KEY, r.data.order_no) } catch (e) {}
+                location.href = r.data.pay_url
             } else {
-                layer.msg(r.msg || 'Purchase failed')
+                toast((r && r.msg) || 'Create order failed')
             }
-        }).fail(function() {
+        }).fail(function (xhr) {
             layer.close(loadIdx)
-            layer.msg('Network error')
+            var res = xhr && xhr.responseJSON
+            if (res && (res.code === 'A0100' || res.code === 'A0101')) { backToLogin(res.msg); return }
+            toast((res && res.msg) || 'Network error')
+        })
+    }
+
+    /** 以弹窗标题为准（candy 的控制器会随档位实时改写），点选记录兜底 */
+    function readSelection(level) {
+        var txt = $.trim($(MODAL_TITLE[level]).first().text())
+        var mm = txt.match(/(\d+)\s*Month/i)
+        var tm = txt.match(/(\d+)\s*tokens/i)
+        var same = picked && picked.level === level
+        return {
+            months: mm ? parseInt(mm[1], 10) : (same ? picked.months : 0),
+            tokens: tm ? tm[1] : (same ? String(picked.tokens || '') : ''),
+        }
+    }
+
+    function findPlan(level, months, tokens) {
+        var hit = null
+        plans.forEach(function (p) {
+            if ((p.level || 'premium') !== level) { return }
+            if ((parseInt(p.months, 10) || 1) !== (parseInt(months, 10) || 0)) { return }
+            if (String(p.tokens_month) !== String(tokens)) { return }
+            hit = p
+        })
+        return hit
+    }
+
+    function backToLogin(msg) {
+        try { localStorage.removeItem('live_access_token') } catch (e) {}
+        toast(msg || 'Please log in again')
+        setTimeout(function () { location.href = './Login.html' }, 900)
+    }
+
+    // ===== 支付回跳轮询 =====
+    function pendingOrderNo() {
+        var search = window.location.search
+        if (search) {
+            var raw = new URLSearchParams(search).get('params')
+            if (raw) {
+                try {
+                    var p = JSON.parse(decodeURIComponent(raw))
+                    if (p && p.merchant_ref) { return p.merchant_ref }
+                } catch (e) {}
+            }
+        }
+        try { return localStorage.getItem(PENDING_KEY) || '' } catch (e) { return '' }
+    }
+
+    function pollOrder(orderNo, times) {
+        if (!orderNo || times <= 0 || !token) { return }
+        $.ajax({
+            url: base + '/recharge/status',
+            headers: h(),
+            data: { order_no: orderNo },
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
+            if (r && (r.code === 'A0100' || r.code === 'A0101')) {
+                try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
+                return
+            }
+            if (r && r.code === '00000' && r.data && parseInt(r.data.status, 10) === 1) {
+                try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
+                toast('Payment successful, membership activated')
+                return
+            }
+            setTimeout(function () { pollOrder(orderNo, times - 1) }, 5000)
+        }).fail(function () {
+            setTimeout(function () { pollOrder(orderNo, times - 1) }, 5000)
         })
     }
 })()

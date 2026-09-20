@@ -24,6 +24,7 @@
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20260918b"></script>
+		<script src="./js/shell-new.js?v=20260920"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20260920"></script>
 
@@ -420,61 +421,8 @@
 						</a>
 					</div>
 				</div>
-			</div>
-			<!-- 右侧：已登录（由 main.js 切换显示） -->
-			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main">
-				<form class="relative flex flex-1" action="#" method="GET"></form>
-				<div class="headerfy"></div>
-				<div class="flex items-center gap-x-4 lg:gap-x-6 nav-zk">
-					<a href="./Subscriptions.html" class="justify-center items-center primary-gradient flex max-w-full gap-2 px-2 py-1.5 rounded-xl">
-						<img src="./assets/olympic-sale/torch-62c1f4e586ca3ad6b1eadcb4457ba71edbe67652e8f775909a81c208c256996c.svg" class="object-cover object-center w-4 overflow-hidden shrink-0">
-						<div class="text-white text-xs font-semibold self-stretch">Subscribe 75% OFF</div>
-					</a>
-				</div>
-				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6">
-					<div class="lg:block lg:h-6 lg:w-px lg:bg-gray-900/10" aria-hidden="true"></div>
-					<div id="profileDropdownWrap" class="w-fit relative">
-						<button type="button" class="-m-1.5 flex items-center p-1.5" id="user-menu-button" aria-expanded="false">
-							<span class="sr-only">Open user menu</span>
-							<img src="./assets/user-icons/woman-875180869a83d543d3ac906ca91d24634cc13f486d5c2565ed2908927a1fc10e.svg" class="h-8 w-8 rounded-full">
-							<span class="hidden lg:flex lg:items-center">
-								<span class="ml-4 text-sm font-semibold leading-6 text-white" aria-hidden="true">My Profile</span>
-								<svg class="ml-2 h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-									<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>
-								</svg>
-							</span>
-						</button>
-						<div id="profileDropdownMenu" class="absolute right-0 z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none" style="display: none;">
-							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./charactersIndex.html">
-								<div class="w-5 h-5 relative">
-									<img src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg">
-								</div>
-								<div class="text-white text-sm font-semibold leading-normal">My AI</div>
-							</a>
-							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./upload_media.html">
-								<div class="w-5 h-5 relative">
-									<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-								</div>
-								<div class="text-white text-sm font-semibold leading-normal">Upload Media</div>
-							</a>
-							<a class="w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" href="./setting.html">
-								<div class="w-5 h-5 relative">
-									<img src="./assets/settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg">
-								</div>
-								<div class="text-white text-sm font-semibold leading-normal">Settings</div>
-							</a>
-							<form class="button_to" method="post" onsubmit="return false">
-								<button data-turbo="false" id="logout" class="rounded-b-lg w-full h-11 px-4 py-2.5 bg-zinc-900 hover:bg-gray-700 justify-start items-center gap-2 inline-flex" type="submit">
-									<div class="w-5 h-5 relative">
-										<img src="./assets/logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg">
-									</div>
-									<div class="text-white text-sm font-semibold leading-normal">Logout</div>
-								</button>
-							</form>
-						</div>
-					</div>
-				</div>
-			</div>
+			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js 渲染成新版导航形态） -->
+			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main"></div>
 		</div>
 
 		<!-- ===== 主内容区 ===== -->
@@ -705,32 +653,6 @@
 			</div>
 		</div>
 
-		<script>
-		// 个人中心下拉（与 index.html 一致，jQuery 实现）
-		(function() {
-			var menuOpen = false
-			function setMenu(v) {
-				menuOpen = v
-				var m = document.getElementById('profileDropdownMenu')
-				var b = document.getElementById('user-menu-button')
-				if (m) m.style.display = v ? 'block' : 'none'
-				if (b) b.setAttribute('aria-expanded', v ? 'true' : 'false')
-			}
-			document.addEventListener('click', function(e) {
-				var btn = document.getElementById('user-menu-button')
-				var menu = document.getElementById('profileDropdownMenu')
-				if (!btn || !menu) return
-				if (btn.contains(e.target)) {
-					setMenu(!menuOpen)
-				} else if (!menu.contains(e.target)) {
-					setMenu(false)
-				}
-			})
-			document.addEventListener('keydown', function(e) {
-				if (e.key === 'Escape') setMenu(false)
-			})
-		})();
-		</script>
 		<script>
 		(function() {
 			var base = '/api/v1'

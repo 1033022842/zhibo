@@ -2,10 +2,21 @@
 
 use think\facade\Route;
 
+// star-pay 异步通知（免登录，回调方为支付网关）
+Route::post('v1/recharge/notify', '\app\api\controller\Recharge@notify');
+
+// AI 女友端充值套餐 + 支付方式（免登录展示）
+Route::get('v1/recharge/packages', '\app\api\controller\Recharge@packages');
+
+// 自选点数报价（免登录，与下单同算法）
+Route::get('v1/recharge/quote', '\app\api\controller\Recharge@quote');
+
 Route::group('v1/recharge', function () {
     Route::get('channels', '\app\api\controller\Recharge@channels');
     Route::post('submit', '\app\api\controller\Recharge@submit');
     Route::get('orders', '\app\api\controller\Recharge@orders');
     Route::get('status', '\app\api\controller\Recharge@status');
     Route::post('upload', '\app\api\controller\Recharge@upload');
+    // star-pay 下单
+    Route::post('createOrder', '\app\api\controller\Recharge@createOrder');
 })->middleware(\app\live\middleware\Auth::class);

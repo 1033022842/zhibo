@@ -19,11 +19,28 @@
             .then(function(r){ return r.json() })
             .then(function(d){
                 var ok = d && (d.code === '00000' || d.code === 1)
-                isVipUser = !!(ok && d.data && d.data.is_vip)
+                var data = (ok && d.data) ? d.data : {}
+                isVipUser = !!data.is_vip
                 vipChecked = true
+                // 暴露给其它脚本：内容去模糊、聊天额度提示等
+                window.LIVE_VIP = data
+                document.dispatchEvent(new CustomEvent('live:vip', { detail: data }))
                 applyVipPromo()
             })
             .catch(function(){ /* 拉取失败则保持原样，不影响页面 */ })
+    }
+
+    // 顶栏 tokens 余额胶囊：右上角新版导航形态，余额取用户真实钻石数
+    function loadTokenBalance(token){
+        if(!token) return
+        fetch('/api/live/userInfo', { method: 'POST', headers: { token: token } })
+            .then(function(r){ return r.json() })
+            .then(function(d){
+                if(!d || (d.code !== 1 && d.code !== '00000')) return
+                var money = (d.data && (d.data.money != null ? d.data.money : d.data.diamond_balance)) || 0
+                $('[data-target="user-token-balance"]').text(money)
+            })
+            .catch(function(){ /* 拉取失败保持 0，不影响页面 */ })
     }
 
     function initMain() {
@@ -38,11 +55,15 @@
             $('#sign-in-modal').css('display', 'none')
             $('#user-setting').css('display', 'flex')
             $('.user-login').css('display', 'none')
+            // 已登录：隐藏顶栏 Register / Login（顶栏与侧栏两处）
+            $('.pc-rg-login').hide()
             $('.login-pf').css('display', 'block')
             checkVipStatus(token)
+            loadTokenBalance(token)
             applyVipPromo()
         } else {
             $('.user-login').css('display', 'flex')
+            $('.pc-rg-login').css('display', 'flex')
             $('#user-setting').css('display', 'none')
         }
         cacheTemplate = $('#profilesLayout').html();
@@ -52,6 +73,28 @@
     setTimeout(function() { initMain() }, 100)
     // Turbo 导航后重新初始化
     $(document).on('turbo:load turbo:render', function() { initMain() })
+
+    // 顶栏 tokens 胶囊下拉（新版导航形态，不依赖 Stimulus 控制器）
+    $(document).on('click', '#token-chip-button', function(e) {
+        e.stopPropagation()
+        var $pop = $('#navbar-tokens-dropdown')
+        var open = $pop.hasClass('hidden')
+        $pop.toggleClass('hidden', !open)
+        $('#token-chip-wrap').toggleClass('open', open)
+        $(this).attr('aria-expanded', open ? 'true' : 'false')
+    })
+    $(document).on('click', function(e) {
+        if($(e.target).closest('#token-chip-wrap').length) return
+        $('#navbar-tokens-dropdown').addClass('hidden')
+        $('#token-chip-wrap').removeClass('open')
+        $('#token-chip-button').attr('aria-expanded', 'false')
+    })
+    $(document).on('keydown', function(e) {
+        if(e.key !== 'Escape') return
+        $('#navbar-tokens-dropdown').addClass('hidden')
+        $('#token-chip-wrap').removeClass('open')
+        $('#token-chip-button').attr('aria-expanded', 'false')
+    })
 
     // 事件委托：兼容 Turbo Frame 异步加载
     $(document).on('click', '#signup-btn', function(e) {

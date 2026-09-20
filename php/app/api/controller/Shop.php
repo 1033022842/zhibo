@@ -5,6 +5,7 @@ namespace app\api\controller;
 
 use app\BaseController;
 use app\common\web\ResultCode;
+use app\live\service\VipService;
 use app\live\service\WalletService;
 use think\facade\Db;
 
@@ -181,14 +182,23 @@ final class Shop extends BaseController
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '商品不存在或已下架');
         }
 
-        $price = max(0, (int) $row['price']);
-        $amount = (float) ($price * $quantity);
+        // 会员折扣（Premium 9 折 / Premium Plus 8 折）
+        $vipService = new VipService();
+        $ent        = $vipService->entitlements($userId);
+        $discount   = (int) ($ent['discount_percent'] ?? 0);
+        $price      = max(0, (int) $row['price']);
+        $unitPay    = $vipService->discounted($price, $discount);
+        $amount     = (float) ($unitPay * $quantity);
         $wallet = new WalletService();
 
         $db->startTrans();
         try {
             if ($amount > 0) {
-                $wallet->debit($userId, $amount, 'shop_buy', $id, '购买商品：' . (string) $row['title']);
+                $remark = '购买商品：' . (string) $row['title'];
+                if ($unitPay < $price) {
+                    $remark .= '（' . $ent['level_name'] . ' 折扣 -' . $discount . '%）';
+                }
+                $wallet->debit($userId, $amount, 'shop_buy', $id, $remark);
             }
 
             $owned = $db->table('lp_user_item')
@@ -222,11 +232,13 @@ final class Shop extends BaseController
         }
 
         return $this->jsonSuccess([
-            'item_id'  => $id,
-            'quantity' => $quantity,
-            'owned'    => $ownedQty,
-            'amount'   => $amount,
-            'balance'  => $wallet->balance($userId),
+            'item_id'          => $id,
+            'quantity'         => $quantity,
+            'owned'            => $ownedQty,
+            'amount'           => $amount,
+            'original_amount'  => (float) ($price * $quantity),
+            'discount_percent' => $unitPay < $price ? $discount : 0,
+            'balance'          => $wallet->balance($userId),
         ]);
     }
 
