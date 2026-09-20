@@ -21,11 +21,25 @@ final class VipService
         $rows = Db::connect('live_mysql')->table('lp_vip_plan')
             ->where('status', 1)
             ->order('sort', 'asc')
-            ->field('id, name, level, months, usd_price, diamond_price, daily_diamond, benefits, chat_daily_limit, image_daily_limit, discount_percent, custom_video')
+            ->field('id, name, level, months, tokens_month, usd_price, diamond_price, daily_diamond, benefits, chat_daily_limit, image_daily_limit, discount_percent, custom_video')
             ->select()->toArray();
 
+        // 同层级同 tokens 档位的「1 个月价」：作为多月档的对比划线价
+        $monthly = [];
+        foreach ($rows as $row) {
+            if ((int) $row['months'] === 1) {
+                $monthly[$row['level'] . '|' . (int) $row['tokens_month']] = (float) $row['usd_price'];
+            }
+        }
+
         foreach ($rows as &$row) {
-            $row['benefits'] = $this->decodeBenefits($row['benefits'] ?? '');
+            $months = max(1, (int) $row['months']);
+            $row['benefits']        = $this->decodeBenefits($row['benefits'] ?? '');
+            $row['tokens_month']    = (int) $row['tokens_month'];
+            $row['price_per_month'] = round((float) $row['usd_price'] / $months, 2);
+            $row['compare_price']   = $months > 1
+                ? ($monthly[$row['level'] . '|' . (int) $row['tokens_month']] ?? 0)
+                : 0;
         }
         unset($row);
 

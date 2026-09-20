@@ -1,36 +1,29 @@
 /**
- * Subscriptions 页（英文界面 · USDT 计价 · star-pay 网关支付）
+ * Subscriptions 页（版式复刻 candy /payments · 套餐数据来自后台 · star-pay USDT 收款）
+ *
+ * 页面结构由参考页原样保留，本脚本只做三件事：
+ *   1) 用 /api/v1/vip/plans 的数据回填卡片价格、tokens 档位下拉与权益文案
+ *   2) 记录用户点选的（层级 · 时长 · tokens 档位）
+ *   3) 「Pay with」按钮 → /api/v1/vip/order 下单 → 跳转 star-pay 收银台，回跳后轮询到账
  */
-(()=>{
+;(function () {
     var base = '/api/v1'
     var token = localStorage.getItem('live_access_token')
-    var tmplPc = ''
-    var tmplYd = ''
-    var plans = []
-    var products = []
-    var product = 'TRC20Buy'
-    // 当前支付方式：card 卡支付（收银台内可选 Visa/MasterCard/Apple Pay 等）| crypto 币种
-    var method = 'card'
+    // 收款地址类产品（商户仅启用 USDT 充值类，买币/刷卡类已下线）
+    var PRODUCT = 'USDT-TRC20Deposit'
     var PENDING_KEY = 'vip_pending_order'
-    // 页面币种入口 → star-pay 产品（data-text：1 ETH / 2 TRX / 3 USDT-ERC20 / 4 USDT-TRC20 / 5 BSC）
-    // USDT 两个入口走「收款地址」类产品（自己钱包转账），ETH/TRX 走买币类产品（收银台刷卡）
-    var COIN_PRODUCT = {
-        '1': 'ERC20Buy',
-        '2': 'TRC20Buy',
-        '3': 'USDT-ERC20Deposit',
-        '4': 'USDT-TRC20Deposit'
-    }
-    // 卡支付下单使用的产品（默认与商户默认产品一致）
-    var CARD_PRODUCT = 'TRC20Buy'
-    // 会员层级（与后台 lp_vip_plan.level 对应）
-    var LEVELS = [
-        { code: 'premium', name: 'Premium' },
-        { code: 'premium_plus', name: 'Premium Plus' }
-    ]
-    var level = 'premium'
-    // 默认支付方式与默认币种：USDT-TRC20 收款地址（各网络均可用，不依赖第三方刷卡页）
-    var DEFAULT_METHOD = 'crypto'
-    var DEFAULT_PRODUCT = 'USDT-TRC20Deposit'
+    var API_TIMEOUT = 15000
+
+    var plans = []
+    // 最近点选的卡片：{ level, months, tokens }
+    var picked = null
+
+    var PANEL_LEVEL = { 'premium': 'premium', 'premium-plus': 'premium_plus' }
+    var TYPE_MONTHS = { yearly: 12, quarterly: 3, monthly: 1 }
+    var MODAL_TITLE = { 'premium': '#sub-modal-plan-title', 'premium_plus': '#sub-modal-plan-title-premium-plus' }
+    var MODAL_PRICE = { 'premium': '#sub-modal-plan-price', 'premium_plus': '#sub-modal-plan-price-premium-plus' }
+
+    $(function () { setTimeout(init, 800) })
 
     function h() { return token ? { 'Authorization': 'Bearer ' + token } : {} }
 
@@ -38,304 +31,245 @@
         if (window.layer && layer.msg) { layer.msg(msg) } else { alert(msg) }
     }
 
-    setTimeout(init, 800)
-
     function init() {
-        tmplPc = $('#vip-template').html()
-        tmplYd = $('#vip-template-yd').html()
-        setupPayMethods()
         bindEvents()
-        loadProducts()
         loadPlans()
-        loadVipStatus()
-        loadBalance()
         pollOrder(pendingOrderNo(), 12)
     }
 
-    // ===== 支付方式 =====
-    function setupPayMethods() {
-        // 网关不支持 BSC，隐藏该入口（保留原站 DOM 结构）
-        $('.usdt-group[data-text="5"], .usdt-group-yd[data-text="5"]').hide()
-        setMethod(DEFAULT_METHOD)
+    // ===== 金额格式（整数金额不带小数，与参考页一致：$18 / $3.99）=====
+    function money(v) {
+        var n = Math.round((parseFloat(v) || 0) * 100) / 100
+        return '$' + (n % 1 === 0 ? n.toFixed(0) : n.toFixed(2))
     }
 
-    // 切换「卡支付 / 币种支付」：卡支付收起币种列表，币种支付选中一个币种
-    function setMethod(next) {
-        method = next === 'crypto' ? 'crypto' : 'card'
-        var showCrypto = method === 'crypto'
-        $('#usdt-layout, #usdt-layout-yd').css('display', showCrypto ? 'flex' : 'none')
-        // 入口选中态跟随切换（带 easypay 图片的为卡支付）
-        $('#hairColor .hairColor, #hairColor-yd .hairColor-yd').each(function() {
-            $(this).toggleClass('selected', ($(this).find('img').length > 0) === !showCrypto)
-        })
-        if (!showCrypto) {
-            product = cardProduct()
-            return
-        }
-        var $active = $('#usdt-layout .usdt-group.sub-gradient-active').first()
-        if ($active.length) {
-            product = COIN_PRODUCT[String($active.data('text'))] || product
-        } else {
-            selectDefaultCoin()
-        }
+    function monthLabel(months) {
+        return months === 1 ? '1 Month' : months + ' Months'
     }
 
-    function cardProduct() {
-        var enabled = products.map(function(p) { return p.code })
-        if (enabled.indexOf(CARD_PRODUCT) >= 0) { return CARD_PRODUCT }
-        return enabled.length ? enabled[0] : CARD_PRODUCT
+    function tierTitle(months, tokens) {
+        return monthLabel(months) + ' · ' + tokens + ' tokens/mo'
     }
 
-    function bindEvents() {
-        $('#vip-Layout').on('click', '.vip-group', function() { selectPlan('#vip-Layout', $(this), 'vip-group') })
-        $('#vip-Layout-yd').on('click', '.vip-group-yd', function() { selectPlan('#vip-Layout-yd', $(this), 'vip-group-yd') })
-
-        $('#usdt-layout, #usdt-layout-yd').on('click', '.usdt-group, .usdt-group-yd', function() {
-            var $box = $(this).closest('#usdt-layout, #usdt-layout-yd')
-            $box.find('.sub-gradient-active').removeClass('sub-gradient-active').addClass('sub-gradient')
-            $(this).removeClass('sub-gradient').addClass('sub-gradient-active')
-            product = COIN_PRODUCT[String($(this).data('text'))] || product
-        })
-
-        // 带 easypay 图标的入口为卡支付，另一个为币种支付
-        $('#hairColor, #hairColor-yd').on('click', '.hairColor, .hairColor-yd', function() {
-            setMethod($(this).find('img').length ? 'card' : 'crypto')
-        })
-
-        $('#payment').on('click', function(e) { e.preventDefault(); pay() })
-        $('#payment-yd').on('click', function(e) { e.preventDefault(); pay() })
-        $('#buyPoint').on('click', goRecharge)
-        $('#buyPoint-yd').on('click', goRecharge)
-        $(document).on('click', '#vip-claim-btn:not(:disabled)', claimDaily)
-    }
-
-    function selectPlan(scope, $item, cls) {
-        $(scope).find('.' + cls).each(function() {
-            $(this).removeClass('sub-gradient-active').addClass('sub-gradient')
-        })
-        $item.removeClass('sub-gradient').addClass('sub-gradient-active')
-    }
-
-    function goRecharge() {
-        location.href = './purchasePoints.html'
-    }
-
-    // token 失效（A0100 Token无效 / A0101 Token已过期）：清登录态并回登录页
-    function backToLogin(msg) {
-        try { localStorage.removeItem('live_access_token') } catch (e) {}
-        toast(msg || 'Please log in again')
-        setTimeout(function(){ location.href = './Login.html' }, 900)
-    }
-
-    // ===== 支付方式可用性（以后台启用产品为准）=====
-    function loadProducts() {
-        $.ajax({ url: base + '/recharge/packages' }).done(function(r) {
-            if (r.code === '00000' && r.data && r.data.products) {
-                products = r.data.products || []
-                applyProductAvailability()
-            }
-            setMethod(method)
-        }).catch(function() { setMethod(method) })
-    }
-
-    function applyProductAvailability() {
-        var enabled = {}
-        products.forEach(function(p) { enabled[p.code] = true })
-        if (!Object.keys(enabled).length) return
-        $('#usdt-layout .usdt-group, #usdt-layout-yd .usdt-group-yd').each(function() {
-            var code = COIN_PRODUCT[String($(this).data('text'))]
-            if (!code || !enabled[code]) { $(this).hide() }
-        })
-        // 卡支付产品未启用时，整排「卡/币种」选择入口一并隐藏（只保留可支付的币种列表）
-        if (!enabled[CARD_PRODUCT]) {
-            $('#hairColor, #hairColor-yd').closest('fieldset').hide()
-            if (method === 'card') { setMethod('crypto') }
-        }
-    }
-
-    function selectDefaultCoin() {
-        var $target = $('#usdt-layout .usdt-group').filter(function() {
-            return COIN_PRODUCT[String($(this).data('text'))] === DEFAULT_PRODUCT
-        }).filter(':visible').first()
-        if (!$target.length) { $target = $('#usdt-layout .usdt-group:visible').first() }
-        if ($target.length) { $target.trigger('click') } else { product = cardProduct() }
-    }
-
-    // ===== Plans =====
+    // ===== 套餐数据回填 =====
     function loadPlans() {
         $.ajax({
             url: base + '/vip/plans',
             headers: h(),
-        }).done(function(r) {
-            if (r.code === '00000' && r.data) {
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
+            if (r && r.code === '00000' && r.data) {
                 plans = r.data
                 renderPlans()
             }
-        }).catch(function(){})
-    }
-
-    /** 当前层级下的时长档位（缺层级字段时按基础层处理） */
-    function levelPlans() {
-        var list = plans.filter(function(p) { return (p.level || 'premium') === level })
-        return list.length ? list : plans
-    }
-
-    function fill(tpl, p, list) {
-        var months = parseInt(p.months, 10) || 1
-        var usd = parseFloat(p.usd_price) || 0
-        var per = usd / months
-        var maxPerMonth = 0
-        list.forEach(function(item) {
-            var v = (parseFloat(item.usd_price) || 0) / (parseInt(item.months, 10) || 1)
-            if (v > maxPerMonth) maxPerMonth = v
         })
-        var off = maxPerMonth > 0 ? Math.round((1 - per / maxPerMonth) * 100) : 0
-        return tpl
-            .replace(/{{id}}/g, p.id)
-            .replace(/{{month}}/g, months)
-            .replace(/{{description}}/g, off)
-            .replace(/{{title}}/g, usd.toFixed(2) + ' USDT')
-            .replace(/\${{unit}}/g, per.toFixed(2))
-            .replace(/{{decimal}}/g, String(parseFloat(p.daily_diamond) || 0))
-    }
-
-    /** 层级切换条：Premium / Premium Plus（每次渲染刷新选中态） */
-    function ensureLevelBar(barId, layoutSel, yd) {
-        if (!$(barId).length) {
-            $(layoutSel).before('<div id="' + barId.replace('#', '') + '" style="display:flex;gap:10px;margin-bottom:14px"></div>')
-            $(barId).on('click', '[data-level]', function() {
-                level = String($(this).data('level'))
-                renderPlans()
-            })
-        }
-        $(barId).html(LEVELS.map(function(l) {
-            var on = l.code === level
-            return '<button type="button" data-level="' + l.code + '"' + (yd ? ' data-yd="1"' : '') +
-                ' style="flex:1;padding:11px 14px;border-radius:12px;font:600 14px Poppins,sans-serif;cursor:pointer;' +
-                (on
-                    ? 'border:0;color:#fff;background:linear-gradient(135deg,#E75275,#6143E6)'
-                    : 'border:1px solid rgba(255,255,255,.18);background:transparent;color:rgba(255,255,255,.72)') +
-                '">' + l.name + '</button>'
-        }).join(''))
-    }
-
-    /** 当前层级的权益列表 */
-    function renderBenefits(boxSel, layoutSel, list) {
-        var benefits = (list[0] && list[0].benefits) || []
-        var $box = $(boxSel)
-        if (!$box.length) {
-            $(layoutSel).before('<div id="' + boxSel.replace('#', '') +
-                '" style="margin-bottom:18px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)"></div>')
-            $box = $(boxSel)
-        }
-        if (!benefits.length) { $box.hide(); return }
-        $box.show().html(benefits.map(function(t) {
-            return '<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;font:500 13px/18px Poppins,sans-serif;color:#fff">' +
-                '<span style="color:#E75275;line-height:18px">&#10003;</span><span>' + t + '</span></div>'
-        }).join(''))
     }
 
     function renderPlans() {
-        var list = levelPlans()
-        if (!list.length) { return }
-        ensureLevelBar('#vip-level-bar', '#vip-Layout', false)
-        ensureLevelBar('#vip-level-bar-yd', '#vip-Layout-yd', true)
-        renderBenefits('#vip-benefits', '#vip-Layout', list)
-        renderBenefits('#vip-benefits-yd', '#vip-Layout-yd', list)
+        $.each(PANEL_LEVEL, function (tab, level) {
+            var $panels = $('[data-tab-panel="' + tab + '"]').filter(function () {
+                return $(this).find('[data-plan-type]').length > 0
+            })
+            if (!$panels.length) { return }
 
-        var htmlPc = ''
-        var htmlYd = ''
-        list.forEach(function(p) {
-            htmlPc += fill(tmplPc || '', p, list)
-            htmlYd += fill(tmplYd || '', p, list)
+            var list = plans.filter(function (p) { return (p.level || 'premium') === level })
+            if (!list.length) { return }
+
+            $panels.each(function () {
+                var $panel = $(this)
+                $panel.find('[data-plan-type]').each(function () {
+                    fillCard($(this), list)
+                })
+                fillPanelExtras($panel, level, list)
+            })
         })
-        $('#vip-Layout').empty().append(htmlPc)
-        $('#vip-Layout-yd').empty().append(htmlYd)
-        $('#vip-Layout .vip-group').first().trigger('click')
-        $('#vip-Layout-yd .vip-group-yd').first().trigger('click')
     }
 
-    // ===== VIP status =====
-    function loadVipStatus() {
-        if (!token) return
-        $.ajax({ url: base + '/vip/status', headers: h() }).done(function(r) {
-            if (r.code === '00000' && r.data) {
-                renderStatus(r.data)
-            }
-        }).catch(function(){})
-    }
+    /** 单张卡片：写回档位属性、价格、折扣角标、tokens 下拉 */
+    function fillCard($wrap, list) {
+        var months = TYPE_MONTHS[$wrap.attr('data-plan-type')] || 1
+        var $card = $wrap.find('[data-token-tier-card]').first()
+        if (!$card.length) { return }
 
-    function renderStatus(s) {
-        var bar = $('#vip-status-bar')
-        if (bar.length === 0) {
-            $('#vip-Layout').before(
-                '<div id="vip-status-bar" style="margin-bottom:16px;padding:16px;border-radius:12px;border:1px solid rgba(255,154,68,.35);background:rgba(255,154,68,.08)">' +
-                '<div id="vip-status-text" style="font-size:14px;color:#fff;font-weight:600"></div>' +
-                '<button id="vip-claim-btn" style="margin-top:12px;display:none;width:100%;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:700;cursor:pointer"></button>' +
-                '</div>'
-            )
+        var byTokens = {}
+        list.forEach(function (p) {
+            if (parseInt(p.months, 10) === months) { byTokens[String(p.tokens_month)] = p }
+        })
+
+        // 清掉参考页写死的档位属性，避免残留
+        var attrs = $card[0].attributes
+        for (var i = attrs.length - 1; i >= 0; i--) {
+            if (attrs[i].name.indexOf('data-tier-') === 0) { $card.removeAttr(attrs[i].name) }
         }
-        var txt = $('#vip-status-text')
-        if (s.is_vip) {
-            txt.html('&#128081; ' + (s.level_name || 'Premium') + ' active &middot; <b style="color:#f59e0b">' + s.remain_days + '</b> days left (until ' + (s.expire_at || '').slice(0, 10) + ') &middot; ' + s.daily_diamond + ' diamonds daily')
-            var btn = $('#vip-claim-btn')
-            if (s.claimable_today) {
-                btn.show().text('Claim today\'s ' + s.daily_diamond + ' diamonds').prop('disabled', false).css('opacity', 1)
+
+        var keys = []
+        var base = null
+        $wrap.find('.token-tier-option').each(function () {
+            var n = String($(this).attr('data-tokens') || '')
+            if (!byTokens[n]) { $(this).hide(); return }
+            keys.push(n)
+            if (!base) { base = byTokens[n] }
+        })
+        if (!base) { return }
+
+        var basePer = parseFloat(base.price_per_month) || 0
+        var baseCmp = parseFloat(base.compare_price) || 0
+
+        keys.forEach(function (n) {
+            var p = byTokens[n]
+            var per = parseFloat(p.price_per_month) || 0
+            var amount = parseFloat(p.usd_price) || 0
+            var cmp = parseFloat(p.compare_price) || 0
+            $card.attr('data-tier-price' + n, money(per))
+            $card.attr('data-tier-amount' + n, amount.toFixed(2))
+            $card.attr('data-tier-modal-title' + n, tierTitle(months, n))
+            if (cmp > 0) { $card.attr('data-tier-compare-price' + n, money(cmp)) }
+            $card.attr('data-tier-benefit' + n, n + ' tokens per month')
+            $card.attr('data-tier-billing' + n, billText(months, amount))
+        })
+
+        // 卡片默认显示最低档
+        $wrap.find('[data-token-tier-price]').text(money(basePer))
+        $wrap.find('[data-token-tier-compare-price]')
+            .text(baseCmp > 0 ? money(baseCmp) : '')
+            .toggle(baseCmp > 0)
+
+        // 折扣角标：按 5% 向下取整（参考页 70% OFF / 35% OFF 同算法）
+        if (baseCmp > basePer && baseCmp > 0) {
+            var off = Math.floor((1 - basePer / baseCmp) * 100 / 5) * 5
+            $wrap.find('p').filter(function () { return /% OFF/.test($(this).text()) }).text(off + '% OFF')
+        }
+
+        // 弹窗取值用（candy 的控制器点击卡片时读这三个属性）
+        $card.attr('data-sub-card-button-plan-title-value', tierTitle(months, base.tokens_month))
+        $card.attr('data-sub-card-button-plan-price-value', money(basePer))
+        $card.attr('data-sub-card-button-plan-price-period-value', 'month')
+        $wrap.attr('data-plan-price', (parseFloat(base.usd_price) || 0).toFixed(2))
+
+        // tokens 下拉
+        var firstKey = keys[0]
+        $wrap.find('.token-tier-option').each(function () {
+            var $opt = $(this)
+            var n = String($opt.attr('data-tokens') || '')
+            var p = byTokens[n]
+            if (!p) { return }
+            var per = parseFloat(p.price_per_month) || 0
+            var cmp = parseFloat(p.compare_price) || 0
+            var label = n + ' tokens/month'
+            $opt.attr('data-label', label)
+            $opt.find('.token-tier-option-value').text(label)
+            if (n === firstKey) {
+                $opt.find('.token-tier-option-delta').text('Included')
+                $opt.find('.token-tier-option-savings').hide()
             } else {
-                btn.show().text('Already claimed today &#10003;').prop('disabled', true).css('opacity', .5)
+                var delta = per - basePer
+                $opt.find('.token-tier-option-delta').text('+$' + delta.toFixed(2) + '/mo')
+                if (cmp > per && cmp > 0) {
+                    $opt.find('.token-tier-option-savings')
+                        .text('Save ' + (Math.floor((1 - per / cmp) * 100 / 5) * 5) + '%').show()
+                } else {
+                    $opt.find('.token-tier-option-savings').hide()
+                }
             }
-        } else {
-            var quota = s.chat_quota || {}
-            var freeTip = quota.limit > 0 ? ' &middot; ' + quota.remaining + ' free messages left today' : ''
-            txt.html('Get membership: unlimited chatting + daily diamonds' + freeTip)
-            $('#vip-claim-btn').hide()
+        })
+        $wrap.find('.token-tier-trigger-value span').last().text(firstKey + ' tokens/month')
+    }
+
+    /** 面板级：权益里的 tokens 文案 + 结算说明 + 弹窗默认值 */
+    function fillPanelExtras($panel, level, list) {
+        var base = null
+        list.forEach(function (p) {
+            if ((parseInt(p.months, 10) || 1) === 12) { base = base || p }
+        })
+        base = base || list[0]
+        var months = parseInt(base.months, 10) || 1
+        var tokens = String(base.tokens_month)
+
+        // 权益行里的「N tokens per month」
+        var benefitText = tokens + ' tokens per month'
+        $panel.find('[data-token-tier-benefit]').each(function () {
+            var $el = $(this)
+            $.each(list, function (_, p) {
+                var n = String(p.tokens_month)
+                $el.attr('data-tier-benefit' + n, n + ' tokens per month')
+            })
+            $el.text(benefitText)
+        })
+
+        // 「Annual payment billed as $47.88」等说明（按各时长的最低 tokens 档显示）
+        $panel.find('[data-token-tier-picker-target="billingText"]').each(function () {
+            var $el = $(this)
+            var period = $el.closest('[data-subscription-target]').attr('data-subscription-target') || ''
+            var m = /^annual/.test(period) ? 12 : (/^quarter/.test(period) ? 3 : 1)
+            var lowest = null
+            list.forEach(function (p) {
+                if ((parseInt(p.months, 10) || 1) !== m) { return }
+                var n = parseInt(p.tokens_month, 10) || 0
+                var text = billText(m, p.usd_price)
+                $el.attr('data-tier-billing' + n, text)
+                if (lowest === null || n < lowest) { lowest = n; $el.text(text) }
+            })
+        })
+
+        // 弹窗默认显示年付最低档
+        var title = $(MODAL_TITLE[level]).first()
+        var price = $(MODAL_PRICE[level]).first()
+        if (title.length) { title.text(tierTitle(months, tokens)) }
+        if (price.length) { price.text(money(base.price_per_month)) }
+    }
+
+    function billText(months, amount) {
+        var word = months === 12 ? 'Annual' : (months === 3 ? 'Quarterly' : 'Monthly')
+        return word + ' payment billed as $' + (parseFloat(amount) || 0).toFixed(2)
+    }
+
+    // ===== 点选记录 =====
+    function bindEvents() {
+        $(document).on('click', '[data-plan-type]', function () { remember($(this).closest('[data-plan-type]')) })
+        $(document).on('click', '.token-tier-option, .token-tier-trigger', function () {
+            var $w = $(this).closest('[data-plan-type]')
+            if ($w.length) { remember($w) }
+        })
+        $(document).on('click', '#sub-pay-crypto, #sub-pay-crypto-plus', function (e) {
+            e.preventDefault()
+            pay($(this).attr('id'))
+        })
+    }
+
+    function remember($w) {
+        if (!$w.length) { return }
+        var $panel = $w.closest('[data-tab-panel]')
+        var tab = $.trim($panel.first().attr('data-tab-panel') || '')
+        picked = {
+            level: PANEL_LEVEL[tab] || 'premium',
+            months: TYPE_MONTHS[$w.attr('data-plan-type')] || 1,
+            tokens: readTokens($w),
         }
     }
 
-    function claimDaily() {
-        $.ajax({
-            url: base + '/vip/claim-daily',
-            method: 'POST',
-            headers: h(),
-        }).done(function(r) {
-            if (r.code === '00000') {
-                toast('Claimed +' + (r.data.claimed || 0) + ' diamonds')
-                loadVipStatus()
-                loadBalance()
-            } else {
-                toast(r.msg || 'Failed')
-            }
-        }).catch(function(){ toast('Network error') })
+    function readTokens($w) {
+        var $sel = $w.find('.token-tier-option[aria-selected="true"]').first()
+        var n = $sel.length ? String($sel.attr('data-tokens') || '') : ''
+        if (!n) {
+            var m = $.trim($w.find('.token-tier-trigger-value').text()).match(/(\d+)/)
+            n = m ? m[1] : ''
+        }
+        return n
     }
 
-    function loadBalance() {
-        if (!token) return
-        $.ajax({
-            url: '/api/live/userInfo',
-            method: 'POST',
-            headers: { 'token': token },
-        }).done(function(r) {
-            if (r.code === 1 || r.code === '00000') {
-                var money = (r.data && (r.data.money != null ? r.data.money : r.data.diamond_balance)) || 0
-                $(".blanceamount").css("display", "block")
-                $("#balance").html(money)
-                $(".blanceamount-yd").css("display", "block")
-                $("#balance-yd").html(money)
-            }
-        }).catch(function(){})
-    }
-
-    // ===== 下单支付 =====
-    function pay() {
+    // ===== 下单 =====
+    function pay(btnId) {
         if (!token) {
             toast('Please log in first')
-            setTimeout(function(){ location.href = './Login.html' }, 900)
+            setTimeout(function () { location.href = './Login.html' }, 900)
             return
         }
-        var $sel = $('#vip-Layout .vip-group.sub-gradient-active, #vip-Layout-yd .vip-group-yd.sub-gradient-active').first()
-        var id = $sel.data('id')
-        if (!id) {
-            toast('Please select a plan')
+
+        var level = btnId === 'sub-pay-crypto-plus' ? 'premium_plus' : 'premium'
+        var sel = readSelection(level)
+        var plan = findPlan(level, sel.months, sel.tokens)
+        if (!plan) {
+            toast('Please choose a plan first')
             return
         }
 
@@ -344,9 +278,10 @@
             url: base + '/vip/order',
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, h()),
-            data: JSON.stringify({ plan_id: id, product: product }),
+            data: JSON.stringify({ plan_id: plan.id, product: PRODUCT }),
             dataType: 'json',
-        }).done(function(r) {
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
             layer.close(loadIdx)
             if (r && (r.code === 'A0100' || r.code === 'A0101')) { backToLogin(r.msg); return }
             if (r && r.code === '00000' && r.data && r.data.pay_url) {
@@ -355,12 +290,41 @@
             } else {
                 toast((r && r.msg) || 'Create order failed')
             }
-        }).fail(function(xhr) {
+        }).fail(function (xhr) {
             layer.close(loadIdx)
             var res = xhr && xhr.responseJSON
             if (res && (res.code === 'A0100' || res.code === 'A0101')) { backToLogin(res.msg); return }
             toast((res && res.msg) || 'Network error')
         })
+    }
+
+    /** 以弹窗标题为准（candy 的控制器会随档位实时改写），点选记录兜底 */
+    function readSelection(level) {
+        var txt = $.trim($(MODAL_TITLE[level]).first().text())
+        var mm = txt.match(/(\d+)\s*Month/i)
+        var tm = txt.match(/(\d+)\s*tokens/i)
+        var same = picked && picked.level === level
+        return {
+            months: mm ? parseInt(mm[1], 10) : (same ? picked.months : 0),
+            tokens: tm ? tm[1] : (same ? String(picked.tokens || '') : ''),
+        }
+    }
+
+    function findPlan(level, months, tokens) {
+        var hit = null
+        plans.forEach(function (p) {
+            if ((p.level || 'premium') !== level) { return }
+            if ((parseInt(p.months, 10) || 1) !== (parseInt(months, 10) || 0)) { return }
+            if (String(p.tokens_month) !== String(tokens)) { return }
+            hit = p
+        })
+        return hit
+    }
+
+    function backToLogin(msg) {
+        try { localStorage.removeItem('live_access_token') } catch (e) {}
+        toast(msg || 'Please log in again')
+        setTimeout(function () { location.href = './Login.html' }, 900)
     }
 
     // ===== 支付回跳轮询 =====
@@ -371,7 +335,7 @@
             if (raw) {
                 try {
                     var p = JSON.parse(decodeURIComponent(raw))
-                    if (p && p.merchant_ref) return p.merchant_ref
+                    if (p && p.merchant_ref) { return p.merchant_ref }
                 } catch (e) {}
             }
         }
@@ -379,12 +343,13 @@
     }
 
     function pollOrder(orderNo, times) {
-        if (!orderNo || times <= 0 || !token) return
+        if (!orderNo || times <= 0 || !token) { return }
         $.ajax({
             url: base + '/recharge/status',
             headers: h(),
             data: { order_no: orderNo },
-        }).done(function(r) {
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
             if (r && (r.code === 'A0100' || r.code === 'A0101')) {
                 try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
                 return
@@ -392,13 +357,11 @@
             if (r && r.code === '00000' && r.data && parseInt(r.data.status, 10) === 1) {
                 try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
                 toast('Payment successful, membership activated')
-                loadVipStatus()
-                loadBalance()
                 return
             }
-            setTimeout(function(){ pollOrder(orderNo, times - 1) }, 5000)
-        }).fail(function() {
-            setTimeout(function(){ pollOrder(orderNo, times - 1) }, 5000)
+            setTimeout(function () { pollOrder(orderNo, times - 1) }, 5000)
+        }).fail(function () {
+            setTimeout(function () { pollOrder(orderNo, times - 1) }, 5000)
         })
     }
 })()
