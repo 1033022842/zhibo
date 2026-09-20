@@ -1,11 +1,12 @@
 """AI 女友端充值（star-pay）发布到 172.81.98.55
 
-用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|tier|min|url|deposit|token|cleanvip|shell]
+用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|tier|min|url|deposit|token|cleanvip|shell|file]
 
 说明：
   - php    ：上传 star-pay 相关 PHP（配置/服务/控制器/路由/后台）并重载 php-fpm
   - static ：上传 purchasePoints.html / js/purchasePoints.js / Subscriptions.html / js/subscriptions.js 及其引用的 tokens 图标
   - shell  ：上传新版外壳（js/shell-new.js + assets/fy.css + js/main.js + 所有引用了 shell-new.js 的页面）
+  - file   ：只上传命令行里点名的文件（后接相对仓库根的路径，可多个）
   - sql    ：执行 php/sql/upgrade_recharge_starpay.sql、upgrade_vip_starpay.sql（幂等）
   - env    ：在服务器 php/.env 追加 [STARPAY] 段（已存在则替换）
   - verify ：线上校验（语法 / 文件 / 接口 / 表结构 / 公网路径）
@@ -877,7 +878,11 @@ def main():
     try:
         cli = connect()
         sftp = cli.open_sftp()
-        if action == "probe":
+        if action == "file":
+            # 只传指定文件：python .trae/deploy_starpay_172.py file ai-girl-malaysia.com/Subscriptions.html
+            for rel in sys.argv[2:]:
+                upload_file(sftp, buf, rel, REMOTE + "/" + rel, ".bak_starpay_" + STAMP)
+        elif action == "probe":
             run(cli, buf, "服务器环境探测", PROBE_STEP, timeout=120)
         elif action == "gateway":
             run(cli, buf, "star-pay 网关联调", GATEWAY_STEP, timeout=300)
