@@ -65,6 +65,8 @@ PHP_FILES = [
 
 STATIC_FILES = [
     "ai-girl-malaysia.com/purchasePoints.html",
+    "ai-girl-malaysia.com/Home.html",
+    "ai-girl-malaysia.com/assets/fy.css",
     "ai-girl-malaysia.com/js/purchasePoints.js",
     "ai-girl-malaysia.com/Subscriptions.html",
     "ai-girl-malaysia.com/js/subscriptions.js",
@@ -883,7 +885,7 @@ def main():
                 for name in TOKENS_ASSETS:
                     upload_file(sftp, buf, "ai-girl-malaysia.com/tokens_files/" + name,
                                 SITE + "/tokens_files/" + name, "")
-            if action in ("all", "static", "assets"):
+            if action in ("all", "assets"):
                 upload_dir(sftp, buf, "ai-girl-malaysia.com/taocan_files", SITE + "/taocan_files")
             if action in ("all", "env"):
                 ensure_env(sftp, buf, cli)

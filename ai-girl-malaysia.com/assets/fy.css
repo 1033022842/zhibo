@@ -141,4 +141,44 @@
     overflow: hidden;
 }
 
+/* ---------------------------------------------------------------
+   顶栏右上角（新版导航形态）：成就徽章 + tokens 胶囊 + 头像菜单
+   数值取自 candy /payments 新版导航实测排版，供各页面统一复用。
+   --------------------------------------------------------------- */
+.fy-navright{display:flex;align-items:center;flex:1 1 auto;justify-content:flex-end;gap:8px;}
+@media only screen and ((min-width: 1024px)){
+    .fy-navright{gap:16px;}
+}
+/* 成就徽章 */
+.fy-achv{position:relative;display:flex;width:34px;height:34px;flex:0 0 auto;align-items:center;justify-content:center;border-radius:9999px;border:1px solid #2e2e2e;background:#1f1f1f;color:#ffc24b;}
+.fy-achv svg{width:17px;height:17px;}
+.fy-achv-tag{position:absolute;right:-8px;top:-8px;border-radius:9999px;background:#E75275;padding:0 4px;font-size:9px;font-weight:700;line-height:14px;color:#fff;}
+/* tokens 余额胶囊 */
+.fy-chipwrap{position:relative;width:fit-content;}
+.fy-chip{display:flex;align-items:center;justify-content:center;gap:7px;padding:7px 13px;border-radius:100px;background:#2b2416;color:#fff;font-size:14px;font-weight:600;line-height:20px;border:0;cursor:pointer;}
+button.fy-chip{background-color:#2b2416;background-image:none;border:0;}
+.fy-chip:hover{background:#332a19;}
+.fy-chip-coin{width:18px;height:18px;}
+.fy-chip-arrow{width:16px;height:16px;opacity:.7;transition:transform .2s;}
+.fy-chipwrap.open .fy-chip-arrow{transform:rotate(180deg);}
+.fy-chip-pop{position:absolute;right:0;top:100%;margin-top:10px;z-index:30;min-width:224px;max-width:calc(100vw - 16px);border:1px solid rgba(255,255,255,.15);border-radius:10px;background:#18181B;box-shadow:0 10px 15px -3px rgba(0,0,0,.45),0 4px 6px -4px rgba(0,0,0,.45);overflow:hidden;}
+.fy-chip-pop.hidden{display:none;}
+.fy-chip-pop-in{padding:12px 16px 8px;display:flex;flex-direction:column;gap:4px;}
+.fy-chip-pop-title{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;}
+.fy-chip-pop-note{font-size:12px;line-height:18px;color:#a4a4a4;}
+.fy-chip-pop-cta{display:flex;align-items:center;justify-content:center;gap:8px;height:32px;margin:4px 16px 12px;border-radius:10px;background:#E75275;color:#fff;font-size:14px;font-weight:600;text-decoration:none;}
+.fy-chip-pop-cta:hover{background:#f0607f;color:#fff;}
+.fy-chip-pop-cta img{width:20px;height:20px;}
+/* 头像按钮 + 下拉菜单 */
+.fy-profilewrap{position:relative;width:fit-content;}
+.fy-avatar-btn{position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:0;border-radius:9999px;background:#221c26;cursor:pointer;}
+button.fy-avatar-btn{background-color:#221c26;background-image:none;border:0;}
+.fy-avatar-btn img{width:18px;height:18px;}
+.fy-avatar-dot{position:absolute;right:-4px;bottom:-4px;width:14px;height:14px;border-radius:9999px;background:#ef4444;border:2.5px solid #221c26;}
+.fy-profile-menu{position:absolute;right:0;top:100%;margin-top:10px;z-index:30;min-width:224px;border-radius:10px;background:#18181B;box-shadow:0 10px 15px -3px rgba(0,0,0,.45),0 4px 6px -4px rgba(0,0,0,.45);overflow:hidden;}
+.fy-profile-menu a,.fy-profile-menu button{display:flex;align-items:center;gap:8px;width:100%;height:44px;padding:12px 16px;border:0;background:#18181B;color:#fff;font-size:14px;font-weight:600;line-height:normal;text-decoration:none;text-align:left;cursor:pointer;}
+.fy-profile-menu a:hover,.fy-profile-menu button:hover{background:#374151;color:#fff;}
+.fy-profile-menu img,.fy-profile-menu svg{width:20px;height:20px;flex:0 0 auto;}
+.fy-profile-menu form{margin:0;}
+
     
