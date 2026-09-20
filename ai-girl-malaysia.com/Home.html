@@ -408,7 +408,10 @@
 			</a>
 			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
 
-			<!-- 频道按钮：Girls / Anime / Guys（由 main.js 渲染） -->
+			<!-- 未登录：注册 / 登录（与其它页面同一层结构：flex-1 撑开把按钮推到右侧） -->
+			<div class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">
+				<form class="relative flex flex-1" action="#" method="GET"></form>
+				<div class="headerfy"></div>
 				<div class="gap-x-2 flex pc-rg-login">
 					<div class="flex items-center gap-x-4 lg:gap-x-6">
 						<a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline">
@@ -421,6 +424,7 @@
 						</a>
 					</div>
 				</div>
+			</div>
 			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js 渲染成新版导航形态） -->
 			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main"></div>
 		</div>
