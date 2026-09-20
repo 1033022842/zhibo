@@ -258,26 +258,24 @@
     }
 
     // ---------- 支付弹窗 ----------
-    // 收款网络图标（地址类产品：USDT TRC20 / ERC20）
-    var METHOD_META = {
-        'USDT-TRC20Deposit': { label: 'USDT TRC20', icon: './assets/USDT-TRC20.png' },
-        'USDT-ERC20Deposit': { label: 'USDT ERC20', icon: './assets/USDT-ERC20.png' }
-    }
+    // 「Pay with」按钮里的币种图标：与 Subscriptions.html 支付弹窗同一组
+    var PAY_LOGOS = [
+        { src: './taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg', alt: 'Bitcoin' },
+        { src: './taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg', alt: 'Ethereum' },
+        { src: './taocan_files/litecoin-39b215ee717df466cd2599dc7a1f63ad0e05d619dca3a8b1a74be7112954086d.svg', alt: 'Litecoin' }
+    ]
 
     function renderMethods() {
-        var html = ''
-        products.forEach(function (m) {
-            var meta = METHOD_META[m.code] || {}
-            var label = meta.label || m.name
-            html += '<button type="button" class="tk-method" data-code="' + m.code + '">' +
-                '<span class="tk-method-text">Pay with ' + label + '</span>' +
-                (meta.icon ? '<span class="tk-method-icons"><img src="' + meta.icon + '" alt="' + label + '"></span>' : '') +
-                '</button>'
-        })
-        if (!products.length) {
-            html = '<button type="button" class="tk-method" disabled><span class="tk-method-text">Payment method unavailable</span></button>'
-        }
-        $('#tk-modal-methods').html(html)
+        var code = products.length ? products[0].code : ''
+        var logos = PAY_LOGOS.map(function (l) {
+            return '<img class="tk-method-logo" src="' + l.src + '" alt="' + l.alt + '">'
+        }).join('')
+        $('#tk-modal-methods').html(
+            '<button type="button" class="tk-method"' + (code ? ' data-code="' + code + '"' : ' disabled') + '>' +
+            '<span class="tk-method-text">Pay with</span>' +
+            '<span class="tk-method-icons">' + logos + '</span>' +
+            '</button>'
+        )
     }
 
     // sel: { tokens, price, packageId }
@@ -287,7 +285,7 @@
         renderMethods()
         $('#tk-plan-title').text(sel.tokens + ' tokens')
         $('#tk-plan-price').text(money(sel.price))
-        $('#tk-modal-summary').text('You are purchasing ' + sel.tokens + ' tokens for ' + money(sel.price))
+        $('#tk-modal-summary').text('One-time payment billed as ' + money(sel.price))
         $('#tk-payment-modal').css('display', 'flex')
         hideBubble()
     }
