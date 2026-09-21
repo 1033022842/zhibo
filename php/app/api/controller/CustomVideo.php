@@ -33,18 +33,18 @@ final class CustomVideo extends BaseController
     private const STYLES = [
         [
             'key'   => 'fingering',
-            'label' => 'Self Pleasure',
-            'desc'  => 'A slow, intimate moment all to herself — soft, unhurried, deeply satisfying.',
+            'label' => 'Style 1',
+            'desc'  => 'Describe this style here',
         ],
         [
             'key'   => 'mysticxxx',
-            'label' => 'Deep Throat',
-            'desc'  => 'Up close and intense — she gives herself completely and never breaks eye contact.',
+            'label' => 'Style 2',
+            'desc'  => 'Describe this style here',
         ],
         [
             'key'   => 'cumfacial',
-            'label' => 'Cum Facial',
-            'desc'  => 'The breathless finale — she lifts her chin and takes it all, just for you.',
+            'label' => 'Style 3',
+            'desc'  => 'Describe this style here',
         ],
     ];
 
@@ -63,11 +63,14 @@ final class CustomVideo extends BaseController
      */
     public function options()
     {
-        $ent = (new VipService())->entitlements($this->getAuthUserId());
-        $unlimited = in_array($this->getAuthUserId(), self::UNLIMITED_USER_IDS, true);
+        $userId = $this->getAuthUserId();
+        $ent = (new VipService())->entitlements($userId);
+        $unlimited = in_array($userId, self::UNLIMITED_USER_IDS, true);
 
         return $this->jsonSuccess([
             'styles' => self::STYLES,
+            // Outfit 模式的服装卡片 = 商店商品（owned=0 的前端提示去购买）
+            'image_presets' => $this->outfitPresets($userId),
             'quota'   => [
                 'daily_limit' => $unlimited ? '∞' : (int) ($ent['image_daily_limit'] ?? 0),
                 'level'       => (string) ($ent['level_name'] ?? 'Free'),
@@ -75,6 +78,57 @@ final class CustomVideo extends BaseController
                 'unlimited'   => $unlimited,
             ],
         ]);
+    }
+
+    /**
+     * Outfit（换装）可选服装：商店在售商品 + 当前用户已购标记
+     */
+    private function outfitPresets(int $userId): array
+    {
+        $db = Db::connect('live_mysql');
+        $items = $db->table('lp_shop_item')
+            ->where('status', 1)
+            ->field('id, title, description, cover_url, price')
+            ->order('weigh', 'desc')
+            ->order('id', 'asc')
+            ->limit(100)
+            ->select()->toArray();
+        if (!$items) {
+            return [];
+        }
+
+        $owned = [];
+        if ($userId > 0) {
+            $owned = array_column(
+                $db->table('lp_user_item')
+                    ->where('user_id', $userId)
+                    ->where('item_type', 'shop')
+                    ->field('item_id, quantity')
+                    ->select()->toArray(),
+                'quantity',
+                'item_id'
+            );
+        }
+
+        $list = [];
+        foreach ($items as $it) {
+            $id    = (int) $it['id'];
+            $cover = trim((string) $it['cover_url']);
+            if ($cover !== '' && !str_starts_with($cover, 'http') && !str_starts_with($cover, '//')) {
+                // 反代 / 非 80 端口部署：返回根相对路径，由浏览器按当前域名+端口解析
+                $cover = '/' . ltrim($cover, '/');
+            }
+            $list[] = [
+                'key'       => 'outfit_' . $id,
+                'item_id'   => $id,
+                'label'     => (string) $it['title'],
+                'desc'      => mb_substr(trim((string) $it['description']), 0, 48),
+                'cover_url' => $cover,
+                'price'     => max(0, (int) $it['price']),
+                'owned'     => (int) ($owned[$id] ?? 0),
+            ];
+        }
+        return $list;
     }
 
     /**
@@ -99,7 +153,38 @@ final class CustomVideo extends BaseController
             if (mb_strlen($prompt) > 500) {
                 return $this->jsonFail(ResultCode::PARAM_ERROR, 'Instruction is too long (max 500 characters).');
             }
-            $style = ['key' => 'image_edit', 'label' => 'AI Edit'];
+
+            // 选中商店里的服装：必须是已购商品，指令由商品描述拼装（不信任前端传的 prompt）
+            $itemId = (int) $this->request->post('item_id/d', 0);
+            $label  = 'AI Edit';
+            if ($itemId > 0) {
+                $db     = Db::connect('live_mysql');
+                $owns   = $db->table('lp_user_item')
+                    ->where('user_id', $userId)
+                    ->where('item_type', 'shop')
+                    ->where('item_id', $itemId)
+                    ->find();
+                if (!$owns) {
+                    return $this->jsonFail(ResultCode::NO_PERMISSION, 'Please buy this outfit in the Shop first.');
+                }
+                $item = $db->table('lp_shop_item')->where('id', $itemId)->where('status', 1)->find();
+                if (!$item) {
+                    return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Outfit not found or removed.');
+                }
+
+                $base = trim((string) $item['description']);
+                if ($base === '') {
+                    $base = 'Dress the person in the outfit "' . (string) $item['title']
+                        . '" — replace her current clothing with it, keep the same face, hairstyle, pose and background.';
+                }
+                $prompt = $base . ($prompt !== '' ? ' ' . $prompt : '');
+                if (mb_strlen($prompt) > 500) {
+                    $prompt = mb_substr($prompt, 0, 500);
+                }
+                $label = 'Outfit · ' . (string) $item['title'];
+            }
+
+            $style = ['key' => 'image_edit', 'label' => $label];
         } else {
             // 视频：style 选工作流（worker v5.0）；兼容旧前端传 preset
             $styleKey = strtolower(trim((string) ($this->request->post('style', '') ?: $this->request->post('preset', ''))));
