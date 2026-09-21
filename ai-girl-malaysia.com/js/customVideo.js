@@ -202,14 +202,49 @@
     }
 
     var pollTimer = null
+    var lastSig = ''
+    var lastList = null
+    var pendingRender = false
+
+    // 有视频正在播放时不重绘列表（避免 innerHTML 重建打断播放）
+    function anyVideoPlaying() {
+        var vs = $('cvWorksGrid') ? $('cvWorksGrid').querySelectorAll('video') : []
+        for (var i = 0; i < vs.length; i++) {
+            if (!vs[i].paused && !vs[i].ended) return true
+        }
+        return false
+    }
+
+    function tryPendingRender() {
+        if (pendingRender && !anyVideoPlaying() && lastList) {
+            pendingRender = false
+            renderWorks(lastList)
+        }
+    }
+
+    function renderWorks(list) {
+        lastList = list
+        // 数据没变化（id:状态:地址 签名一致）直接跳过，不重建 DOM
+        var sig = list.map(function (t) { return t.id + ':' + t.status + ':' + (t.video_url || '') }).join('|')
+        if (sig === lastSig) return
+        // 数据变了但有视频在播：挂起，等 pause/ended 再补刷
+        if (anyVideoPlaying()) { pendingRender = true; return }
+        lastSig = sig
+        var grid = $('cvWorksGrid'), empty = $('cvWorksEmpty')
+        empty.style.display = list.length ? 'none' : ''
+        grid.innerHTML = list.map(workCard).join('')
+        var vs = grid.querySelectorAll('video')
+        for (var i = 0; i < vs.length; i++) {
+            vs[i].addEventListener('pause', tryPendingRender)
+            vs[i].addEventListener('ended', tryPendingRender)
+        }
+    }
 
     function loadWorks(silent) {
         if (!token) return
         authJson(API + '/myList').then(function (d) {
             if (!d || d.code !== '00000' || !Array.isArray(d.data)) { if (!silent) toast((d && d.msg) || 'Load failed', 'error'); return }
-            var grid = $('cvWorksGrid'), empty = $('cvWorksEmpty')
-            empty.style.display = d.data.length ? 'none' : ''
-            grid.innerHTML = d.data.map(workCard).join('')
+            renderWorks(d.data)
             var active = d.data.some(function (t) { return ['pending', 'accepted', 'processing'].indexOf(t.status) >= 0 })
             if (active && !pollTimer) pollTimer = setInterval(function () { loadWorks(true) }, 10000)
             if (!active && pollTimer) { clearInterval(pollTimer); pollTimer = null }
