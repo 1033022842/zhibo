@@ -158,6 +158,17 @@ final class RechargeChannel extends Backend
                 if ($data['diamond_rate'] <= 0) {
                     throw new \InvalidArgumentException('汇率必须大于0');
                 }
+                // 链上收款渠道：启用时必须填收款地址，否则前端拿不到地址会直接不展示该渠道
+                $addr = trim((string) $data['address']);
+                if ((int) $data['status'] === 1 && in_array($data['type'], ['eth', 'usdt_trc20'], true) && $addr === '') {
+                    throw new \InvalidArgumentException('链上渠道启用前必须填写收款地址，否则前端不会展示');
+                }
+                if ($data['type'] === 'eth' && $addr !== '' && !preg_match('/^0x[0-9a-fA-F]{40}$/', $addr)) {
+                    throw new \InvalidArgumentException('ETH 收款地址格式不对（应为 0x 开头的 42 位）');
+                }
+                if ($data['type'] === 'eth' && preg_match('/^0x0{40}$/i', $addr)) {
+                    throw new \InvalidArgumentException('不能使用全 0 占位地址，请填真实 ETH 收款地址');
+                }
                 // 处理二维码图片上传（仅当确有文件被上传时才处理）
                 $hasUpload = !empty($_FILES['qr_image']['tmp_name'])
                     && $_FILES['qr_image']['error'] === UPLOAD_ERR_OK
