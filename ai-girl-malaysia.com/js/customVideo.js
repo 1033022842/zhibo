@@ -85,18 +85,30 @@
 
     function renderPresets(presets) {
         var box = $('cvPresets')
+        var isOutfit = mode === 'outfit'
         box.innerHTML = presets.map(function (p) {
             var sel = selPreset && selPreset.key === p.key
-            return '<div class="cv-preset' + (sel ? ' on' : '') + '" data-key="' + esc(p.key) + '">' +
-                '<div class="ic">' + ((mode === 'outfit' ? OUTFIT_ICONS : STYLE_ICONS)[p.key] || '✨') + '</div>' +
+            var locked = isOutfit && !p.owned
+            var thumb = p.cover_url
+                ? '<img class="ic-img" src="' + esc(p.cover_url) + '" alt="" loading="lazy">'
+                : '<div class="ic">' + ((isOutfit ? OUTFIT_ICONS : STYLE_ICONS)[p.key] || '✨') + '</div>'
+            return '<div class="cv-preset' + (sel ? ' on' : '') + (locked ? ' lock' : '') + '" data-key="' + esc(p.key) + '">' +
+                thumb +
                 '<div class="n">' + esc(p.label) + '</div>' +
-                '<div class="d">' + esc(p.desc || '') + '</div></div>'
+                '<div class="d">' + esc(locked ? ('💎 ' + p.price + ' · buy in Shop') : (p.desc || '')) + '</div></div>'
         }).join('')
         box.querySelectorAll('.cv-preset').forEach(function (card) {
             card.addEventListener('click', function () {
-                selPreset = presets.filter(function (p) { return p.key === card.getAttribute('data-key') })[0]
-                box.querySelectorAll('.cv-preset').forEach(function (c) { c.className = 'cv-preset' })
-                card.className = 'cv-preset on'
+                var item = presets.filter(function (p) { return p.key === card.getAttribute('data-key') })[0]
+                if (isOutfit && item && !item.owned) {
+                    toast('Buy this outfit in the Shop first', 'warn')
+                    setTimeout(function () { location.href = './shop.html' }, 900)
+                    return
+                }
+                selPreset = item
+                // 只切 on 类，别把未购卡片的 lock 类一起抹掉
+                box.querySelectorAll('.cv-preset').forEach(function (c) { c.classList.remove('on') })
+                card.classList.add('on')
             })
         })
     }
@@ -132,9 +144,10 @@
         $('cvModeOutfit').className = 'cv-mode' + (m === 'outfit' ? ' on' : '')
         var isEdit = m === 'outfit'
         $('cvPromptWrap').style.display = isEdit ? '' : 'none'
-        $('cvPresetWrap').style.display = isEdit ? 'none' : ''
+        // 两种模式都要卡片：视频=风格，图片=商店已购服装
+        $('cvPresetWrap').style.display = ''
         $('cvSubmit').textContent = isEdit ? '✨ Edit Image' : '✨ Generate Video'
-        if (!isEdit) renderPresets(currentPresets)
+        renderPresets(isEdit ? imagePresets : currentPresets)
     }
 
     /* ---------- 提交 ---------- */
@@ -155,6 +168,8 @@
         fd.append('type', mode === 'outfit' ? 'image' : 'video')
         fd.append('agreed_policy', '1')
         if (mode !== 'outfit') fd.append('style', selPreset.key)
+        // 换装：选了已购服装就把商品 id 带上（后端校验归属并用商品描述拼指令）
+        else if (selPreset && selPreset.item_id) fd.append('item_id', String(selPreset.item_id))
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             btn.disabled = false
