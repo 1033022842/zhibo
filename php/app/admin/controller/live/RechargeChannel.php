@@ -148,6 +148,8 @@ final class RechargeChannel extends Backend
                     'min_amount'   => $this->request->post('min_amount/f', 10),
                     'sort'         => $this->request->post('sort/d', 0),
                     'status'       => $this->request->post('status/d', 0),
+                    'confirm_mode' => $this->request->post('confirm_mode', 'auto') === 'manual' ? 'manual' : 'auto',
+                    'api_key'      => (string) $this->request->post('api_key', ''),
                 ];
                 // 服务端校验
                 if (empty(trim($data['name']))) {
@@ -176,6 +178,24 @@ final class RechargeChannel extends Backend
                 } else {
                     $this->model->save($data);
                 }
+
+                // ETH 渠道：同步 ETH 兑 USD 价格（链上充值按该价格折算应付 ETH）
+                $ethRate = $this->request->post('eth_usd_rate/f', 0);
+                if ($data['type'] === 'eth' && $ethRate > 0) {
+                    $cfg = Db::connect('live_mysql')->table('lp_platform_config')->where('key', 'eth_usd_rate')->find();
+                    if ($cfg) {
+                        Db::connect('live_mysql')->table('lp_platform_config')
+                            ->where('key', 'eth_usd_rate')
+                            ->update(['value' => (string) $ethRate, 'updated_at' => date('Y-m-d H:i:s')]);
+                    } else {
+                        Db::connect('live_mysql')->table('lp_platform_config')->insert([
+                            'key'        => 'eth_usd_rate',
+                            'value'      => (string) $ethRate,
+                            'remark'     => 'ETH 兑 USD 价格（ETH 充值换算用）',
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]);
+                    }
+                }
                 $this->renderSuccess('保存成功');
             } catch (\Exception $e) {
                 $this->renderError('保存失败: ' . $e->getMessage());
@@ -183,11 +203,17 @@ final class RechargeChannel extends Backend
             return;
         }
 
-        $r = $row ? $row->toArray() : ['id'=>'','name'=>'','type'=>'usdt_trc20','qr_code_url'=>'','address'=>'','diamond_rate'=>'100','min_amount'=>'10','sort'=>'0','status'=>'1'];
+        $r = $row ? $row->toArray() : ['id'=>'','name'=>'','type'=>'usdt_trc20','qr_code_url'=>'','address'=>'','diamond_rate'=>'100','min_amount'=>'10','sort'=>'0','status'=>'1','confirm_mode'=>'auto','api_key'=>''];
         $checked = ($r['status'] == 1) ? 'checked' : '';
         $hdrTitle = $r['id'] ? '编辑渠道' : '新增渠道';
         $selUsdt = ($r['type'] == 'usdt_trc20') ? 'selected' : '';
+        $selEth = ($r['type'] == 'eth') ? 'selected' : '';
         $selOther = ($r['type'] == 'other') ? 'selected' : '';
+        $selAuto = (($r['confirm_mode'] ?? 'auto') == 'auto') ? 'selected' : '';
+        $selManual = (($r['confirm_mode'] ?? 'auto') == 'manual') ? 'selected' : '';
+        $apiKey = htmlspecialchars((string) ($r['api_key'] ?? ''), ENT_QUOTES);
+        $ethRateCfg = (string) Db::connect('live_mysql')->table('lp_platform_config')->where('key', 'eth_usd_rate')->value('value');
+        $ethRate = htmlspecialchars($ethRateCfg, ENT_QUOTES);
         $name = htmlspecialchars((string)$r['name'], ENT_QUOTES);
         // 二维码预览：拼接完整URL确保在iframe中也能正常显示
         $qrRaw = (string)$r['qr_code_url'];
@@ -236,9 +262,12 @@ final class RechargeChannel extends Backend
             <h2>{$hdrTitle}</h2>
             <form method="post" enctype="multipart/form-data">
                 <div class="field"><label>名称</label><input name="name" value="{$name}" required /></div>
-                <div class="field"><label>类型</label><select name="type"><option value="usdt_trc20" {$selUsdt}>USDT-TRC20</option><option value="other" {$selOther}>其他</option></select></div>
+                <div class="field"><label>类型</label><select name="type"><option value="usdt_trc20" {$selUsdt}>USDT-TRC20</option><option value="eth" {$selEth}>ETH（以太坊主链）</option><option value="other" {$selOther}>其他</option></select></div>
                 <div class="field"><label>收款二维码图片</label><input type="file" name="qr_image" accept="image/*" />{$qrPreview}</div>
-                <div class="field"><label>收款地址</label><input name="address" value="{$addr}" placeholder="USDT地址 / 银行账号" /></div>
+                <div class="field"><label>收款地址</label><input name="address" value="{$addr}" placeholder="USDT地址（T开头）/ ETH地址（0x开头）/ 银行账号" /></div>
+                <div class="field"><label>链上确认方式</label><select name="confirm_mode"><option value="auto" {$selAuto}>自动（扫链到账：USDT-TRC20 走 TronGrid，ETH 走 Etherscan）</option><option value="manual" {$selManual}>人工审核</option></select></div>
+                <div class="field"><label>链上扫描 API Key（可选，自动确认时建议填）</label><input name="api_key" value="{$apiKey}" placeholder="TronGrid API Key / Etherscan API Key" /></div>
+                <div class="field"><label>ETH 兑 USD 价格（类型选 ETH 时生效，链上应付 ETH = USD ÷ 此价格）</label><input type="number" step="0.01" name="eth_usd_rate" value="{$ethRate}" placeholder="3000" /></div>
                 <div class="field"><label>汇率（1USDT=N钻石）</label><input type="number" step="0.01" name="diamond_rate" value="{$rate}" required /></div>
                 <div class="field"><label>最低充值金额</label><input type="number" step="0.01" name="min_amount" value="{$min}" required /></div>
                 <div class="field"><label>排序</label><input type="number" name="sort" value="{$sort}" /></div>
@@ -429,7 +458,7 @@ final class RechargeChannel extends Backend
             $qr = $r['qr_code_url'] ? '有' : '无';
             $rid = (int)$r['id'];
             $rname = htmlspecialchars((string)$r['name'], ENT_QUOTES);
-            $rtype = htmlspecialchars((string)$r['type'], ENT_QUOTES);
+            $rtype = htmlspecialchars(['usdt_trc20' => 'USDT-TRC20', 'eth' => 'ETH（主链）', 'other' => '其他'][(string)$r['type']] ?? (string)$r['type'], ENT_QUOTES);
             $raddr = htmlspecialchars((string)$r['address'], ENT_QUOTES);
             $rrate = htmlspecialchars((string)$r['diamond_rate'], ENT_QUOTES);
             $rmin  = htmlspecialchars((string)$r['min_amount'], ENT_QUOTES);

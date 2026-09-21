@@ -31,8 +31,10 @@ final class RechargeService
         if (!$channel || $channel->status != 1) {
             throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '充值渠道不可用');
         }
+        $type  = (string) $channel->type;
+        $isEth = $type === 'eth';
         if ($amount < (float)$channel->min_amount) {
-            throw new BusinessException(ResultCode::PARAM_ERROR, "最低充值 {$channel->min_amount} USDT");
+            throw new BusinessException(ResultCode::PARAM_ERROR, '最低充值 ' . $channel->min_amount . ($isEth ? ' USD' : ' USDT'));
         }
 
         $orderNo = StrHelper::orderNo('RC');
@@ -41,10 +43,15 @@ final class RechargeService
 
         $confirmMode = (string)($channel->confirm_mode ?? 'auto');
         if ($confirmMode === 'auto') {
-            $payAmount = $this->uniquePayAmount(floor($amount), $channelId);
+            $payAmount = $isEth
+                ? $this->uniqueEthPayAmount($amount, $channelId)
+                : $this->uniquePayAmount(floor($amount), $channelId);
             $expireAt = date('Y-m-d H:i:s', time() + 7200);
         } else {
-            $payAmount = number_format($amount, 2, '.', '');
+            // 人工审核：ETH 按当前汇率折算，不带识别尾数
+            $payAmount = $isEth
+                ? number_format((float)$this->usdToEth($amount), 8, '.', '')
+                : number_format($amount, 2, '.', '');
             $expireAt = date('Y-m-d H:i:s', time() + 86400);
         }
 
@@ -53,7 +60,7 @@ final class RechargeService
             'user_id'        => $userId,
             'pay_channel'    => $channel->type,
             'channel_id'     => $channelId,
-            'chain_type'     => 'TRC20',
+            'chain_type'     => $isEth ? 'ETH' : 'TRC20',
             'pay_amount'     => $payAmount,
             'diamond_amount' => $diamondAmount,
             'proof_image'    => $proofImage,
@@ -164,9 +171,52 @@ final class RechargeService
     }
 
     /**
-     * 链上自动确认入账（由 recharge:scan 扫描任务调用，幂等）
+     * ETH 兑 USD 汇率（后台 lp_platform_config.eth_usd_rate，缺省 3000）
      */
-    public function confirmByChain(int $orderId, array $tx): void
+    private function ethRate(): string
+    {
+        $rate = (float) WalletService::config('eth_usd_rate', '3000');
+        if ($rate <= 0) {
+            $rate = 3000.0;
+        }
+        return (string) $rate;
+    }
+
+    /**
+     * USD → ETH（保留 6 位小数，最后两位留给识别尾数）
+     */
+    private function usdToEth(float $usd): string
+    {
+        return bcdiv((string) $usd, $this->ethRate(), 6);
+    }
+
+    /**
+     * ETH 渠道的链上唯一应付金额：USD 折算成 ETH + 第 7/8 位随机尾数作识别标识
+     */
+    private function uniqueEthPayAmount(float $usd, int $channelId): string
+    {
+        $db   = Db::connect('live_mysql');
+        $base = $this->usdToEth($usd);
+
+        for ($i = 0; $i < 30; $i++) {
+            $amt = bcadd($base, sprintf('0.000000%02d', random_int(1, 99)), 8);
+            $exists = $db->table('lp_recharge_order')
+                ->where('channel_id', $channelId)
+                ->where('pay_amount', $amt)
+                ->where('status', 0)
+                ->where('expire_at', '>', date('Y-m-d H:i:s'))
+                ->count();
+            if (!$exists) {
+                return $amt;
+            }
+        }
+        throw new BusinessException(ResultCode::SERVER_ERROR, '下单繁忙请稍后再试');
+    }
+
+    /**
+     * 链上自动确认入账（由 recharge:scan / recharge:scan-eth 扫描任务调用，幂等）
+     */
+    public function confirmByChain(int $orderId, array $tx, string $label = 'USDT链上自动充值'): void
     {
         $db = Db::connect('live_mysql');
         $txId = (string)($tx['transaction_id'] ?? '');
@@ -188,7 +238,7 @@ final class RechargeService
                 'updated_at'   => $now,
             ]);
 
-            $this->creditDiamond($db, (int)$order['user_id'], (float)$order['diamond_amount'], (int)$order['id'], 'USDT链上自动充值');
+            $this->creditDiamond($db, (int)$order['user_id'], (float)$order['diamond_amount'], (int)$order['id'], $label);
 
             $db->commit();
         } catch (\Exception $e) {

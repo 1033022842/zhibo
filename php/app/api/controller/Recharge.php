@@ -147,7 +147,7 @@ final class Recharge extends BaseController
         if ($orderNo === '') {
             return $this->jsonFail(ResultCode::PARAM_ERROR, '参数错误');
         }
-        $order = \think\facade\Db::name('recharge_order')
+        $order = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
             ->where('order_no', $orderNo)
             ->where('user_id', $userId)
             ->find();

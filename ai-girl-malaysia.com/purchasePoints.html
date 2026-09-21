@@ -752,6 +752,7 @@
 							<span class="tk-pay-plan-price" id="tk-plan-price"></span>
 						</div>
 						<div class="tk-modal-methods" id="tk-modal-methods"></div>
+						<div class="tk-eth-panel" id="tk-eth-panel" style="display:none;"></div>
 						<div class="tk-modal-notes">
 							<div class="tk-note-block">
 								<p class="tk-note" id="tk-modal-summary"></p>
@@ -929,6 +930,22 @@
 				#tk-payment-modal .tk-note-block { text-align: center; }
 				#tk-payment-modal .tk-note { margin: 0; color: #a4a4a4; font-size: 13px; font-weight: 500; line-height: 16px; text-align: center; }
 				#tk-payment-modal .tk-note-second { margin-top: 12px; }
+				/* ===== ETH 链上转账面板 ===== */
+				#tk-payment-modal .tk-eth-panel { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 16px; padding: 16px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: #1F1F1F; text-align: left; }
+				#tk-payment-modal .tk-eth-head { color: #a4a4a4; font-size: 12px; }
+				#tk-payment-modal .tk-eth-amount { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 20px; font-weight: 700; line-height: 1.3; word-break: break-all; }
+				#tk-payment-modal .tk-eth-label { margin-top: 6px; color: #a4a4a4; font-size: 12px; }
+				#tk-payment-modal .tk-eth-addr { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 12px; font-weight: 500; line-height: 1.5; word-break: break-all; }
+				#tk-payment-modal .tk-eth-addr span { flex: 1; min-width: 0; }
+				#tk-payment-modal .tk-eth-copy { flex-shrink: 0; padding: 4px 10px; border: 1px solid rgba(255,255,255,.2); border-radius: 6px; background: none; color: #fff; font-size: 11px; cursor: pointer; transition: background .2s; }
+				#tk-payment-modal .tk-eth-copy:hover { background: rgba(255,255,255,.1); }
+				#tk-payment-modal .tk-eth-qr { display: flex; justify-content: center; margin-top: 8px; }
+				#tk-payment-modal .tk-eth-qr img { width: 148px; height: 148px; padding: 6px; border-radius: 8px; background: #fff; }
+				#tk-payment-modal .tk-eth-note { margin-top: 8px; color: #a4a4a4; font-size: 12px; line-height: 1.5; }
+				#tk-payment-modal .tk-eth-status { margin-top: 10px; color: #f97187; font-size: 13px; font-weight: 600; }
+				#tk-payment-modal .tk-eth-status.is-ok { color: #00d4aa; }
+				#tk-payment-modal .tk-eth-status.is-fail { color: #ff2d55; }
+				#tk-payment-modal .tk-eth-order { color: #6b6b6b; font-size: 11px; }
 				@media (min-width: 640px) {
 					#tk-payment-modal { align-items: center; }
 					#tk-payment-modal .tk-modal-box { width: 456px; max-width: 456px; padding: 30px 40px 34px; border-radius: 10px; }
