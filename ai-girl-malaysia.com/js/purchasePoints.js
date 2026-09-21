@@ -13,13 +13,17 @@
 
     var SLIDER_STEP = 50
     var DEFAULT_TOKENS = 550
+    var ETH_ICON = './taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg'
     var packages = []
     var products = []
+    var channels = []
     var selected = null
     var customTokens = 0
     var customTimer = null
     var bubbleTimer = null
     var loading = false
+    var ethPollTimer = null
+    var ethCountTimer = null
 
     function token() {
         return localStorage.getItem('live_access_token') || ''
@@ -237,6 +241,24 @@
             renderPlans()
             renderCustom(normalizeTokens(DEFAULT_TOKENS))
         })
+        loadChannels()
+    }
+
+    // ---------- 链上地址收款渠道（ETH 等） ----------
+    function loadChannels() {
+        if (!token()) return
+        api(RECHARGE_BASE + '/channels').done(function (res) {
+            if (typeof res === 'string') res = JSON.parse(res)
+            if (res.code !== '00000' || !res.data) return
+            channels = res.data || []
+            if ($('#tk-payment-modal').css('display') === 'flex') renderMethods()
+        })
+    }
+
+    function ethChannels() {
+        return channels.filter(function (c) {
+            return c && c.type === 'eth' && c.address
+        })
     }
 
     // ---------- 余额 ----------
@@ -270,12 +292,140 @@
         var logos = PAY_LOGOS.map(function (l) {
             return '<img class="tk-method-logo" src="' + l.src + '" alt="' + l.alt + '">'
         }).join('')
-        $('#tk-modal-methods').html(
+        var html =
             '<button type="button" class="tk-method"' + (code ? ' data-code="' + code + '"' : ' disabled') + '>' +
             '<span class="tk-method-text">Pay with</span>' +
             '<span class="tk-method-icons">' + logos + '</span>' +
             '</button>'
-        )
+        // ETH 地址收款：后台开启 eth 渠道后自动出现
+        ethChannels().forEach(function (ch) {
+            html +=
+                '<button type="button" class="tk-method" data-eth="' + ch.id + '">' +
+                '<span class="tk-method-text">Pay with ETH</span>' +
+                '<span class="tk-method-icons"><img class="tk-method-logo" src="' + ETH_ICON + '" alt="Ethereum"></span>' +
+                '</button>'
+        })
+        $('#tk-modal-methods').html(html)
+        $('#tk-eth-panel').hide().empty()
+    }
+
+    // http 非安全上下文下 navigator.clipboard 不可用，用临时 textarea + execCommand 兜底
+    function fallbackCopy(v) {
+        try {
+            var ta = document.createElement('textarea')
+            ta.value = v
+            ta.setAttribute('readonly', '')
+            ta.style.position = 'fixed'
+            ta.style.opacity = '0'
+            document.body.appendChild(ta)
+            ta.select()
+            var ok = document.execCommand('copy')
+            document.body.removeChild(ta)
+            toast(ok ? 'Copied' : v)
+        } catch (e) {
+            toast(v)
+        }
+    }
+
+    // ---------- ETH 链上转账下单 ----------
+    function submitEthOrder(channelId) {
+        if (loading || !selected) return
+        if (!token()) {
+            toast('Please log in first')
+            location.href = './Login.html'
+            return
+        }
+        loading = true
+        var $btn = $('#tk-payment-modal .tk-method[data-eth="' + channelId + '"]')
+        $btn.attr('disabled', true).css('opacity', .6)
+        api(RECHARGE_BASE + '/submit', {
+            method: 'POST',
+            data: { channel_id: channelId, amount: selected.price }
+        }).done(function (res) {
+            if (typeof res === 'string') res = JSON.parse(res)
+            if (res.code !== '00000' || !res.data) {
+                toast(res.msg || 'Create order failed')
+                return
+            }
+            showEthPanel(res.data)
+        }).fail(function () {
+            toast('Network error, please retry')
+        }).always(function () {
+            loading = false
+            $btn.removeAttr('disabled').css('opacity', 1)
+        })
+    }
+
+    function qrUrl(raw) {
+        if (!raw) return ''
+        return String(raw).indexOf('http') === 0 ? raw : location.origin + '/' + String(raw).replace(/^\/+/, '')
+    }
+
+    function showEthPanel(order) {
+        var ch = order.channel || {}
+        var addr = ch.address || ''
+        var qr = qrUrl(ch.qr_code_url || '')
+        var eth = String(order.pay_amount || '')
+        $('#tk-eth-panel').html(
+            '<div class="tk-eth-head">Send exactly</div>' +
+            '<div class="tk-eth-amount">' + eth + ' ETH' +
+            '<button type="button" class="tk-eth-copy" data-tk-copy="' + eth + '">Copy</button></div>' +
+            '<div class="tk-eth-label">to this ETH (Ethereum mainnet) address</div>' +
+            '<div class="tk-eth-addr"><span>' + addr + '</span>' +
+            '<button type="button" class="tk-eth-copy" data-tk-copy="' + addr + '">Copy</button></div>' +
+            (qr ? '<div class="tk-eth-qr"><img src="' + qr + '" alt="ETH address QR"></div>' : '') +
+            '<div class="tk-eth-note">Please send the exact amount — it is how we identify your order. Tokens are credited automatically after 1 confirmation (usually within 1 minute).</div>' +
+            '<div class="tk-eth-status" id="tk-eth-status">Waiting for payment…</div>' +
+            '<div class="tk-eth-order">Order ' + (order.order_no || '') + ' · expires in <span id="tk-eth-countdown">--:--</span></div>'
+        ).show()
+        startEthCountdown(order.expire_at)
+        startEthPoll(order.order_no)
+    }
+
+    function stopEthTimers() {
+        if (ethPollTimer) { clearInterval(ethPollTimer); ethPollTimer = null }
+        if (ethCountTimer) { clearInterval(ethCountTimer); ethCountTimer = null }
+    }
+
+    function startEthCountdown(expireAt) {
+        if (ethCountTimer) clearInterval(ethCountTimer)
+        var end = expireAt ? new Date(String(expireAt).replace(/-/g, '/')).getTime() : 0
+        function tick() {
+            var $el = $('#tk-eth-countdown')
+            if (!$el.length || !end) return
+            var left = Math.max(0, Math.floor((end - Date.now()) / 1000))
+            var m = Math.floor(left / 60)
+            var s = left % 60
+            $el.text(m + ':' + (s < 10 ? '0' : '') + s)
+        }
+        tick()
+        ethCountTimer = setInterval(tick, 1000)
+    }
+
+    function startEthPoll(orderNo) {
+        if (ethPollTimer) clearInterval(ethPollTimer)
+        if (!orderNo) return
+        ethPollTimer = setInterval(function () {
+            api(RECHARGE_BASE + '/status', { data: { order_no: orderNo } }).done(function (res) {
+                if (typeof res === 'string') res = JSON.parse(res)
+                if (res.code !== '00000' || !res.data) return
+                var st = parseInt(res.data.status, 10)
+                var $s = $('#tk-eth-status')
+                if (!$s.length) { stopEthTimers(); return }
+                if (st === 1) {
+                    stopEthTimers()
+                    $s.text('Payment confirmed — tokens credited').addClass('is-ok')
+                    toast('Payment successful, tokens credited')
+                    loadBalance()
+                    setTimeout(closeModal, 1500)
+                } else if (st === 2 || st === 3) {
+                    stopEthTimers()
+                    $s.text('Order closed, please create a new one').addClass('is-fail')
+                } else {
+                    $s.text('Waiting for payment…')
+                }
+            })
+        }, 5000)
     }
 
     // sel: { tokens, price, packageId }
@@ -292,6 +442,8 @@
 
     function closeModal() {
         $('#tk-payment-modal').css('display', 'none')
+        $('#tk-eth-panel').hide().empty()
+        stopEthTimers()
         selected = null
     }
 
@@ -380,8 +532,21 @@
             openModal({ tokens: parseInt(pkg.tokens, 10), price: parseFloat(pkg.price), packageId: pkg.id })
         })
         $(document).on('click', '#tk-payment-modal [data-tk-close]', closeModal)
-        $(document).on('click', '#tk-payment-modal .tk-method', function () {
+        $(document).on('click', '#tk-payment-modal .tk-method[data-code]', function () {
             submitOrder($(this).data('code'))
+        })
+        // ETH 地址收款
+        $(document).on('click', '#tk-payment-modal .tk-method[data-eth]', function () {
+            submitEthOrder(parseInt($(this).data('eth'), 10))
+        })
+        $(document).on('click', '#tk-eth-panel [data-tk-copy]', function () {
+            var v = String($(this).attr('data-tk-copy') || '')
+            if (!v) return
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(v).then(function () { toast('Copied') }, function () { fallbackCopy(v) })
+            } else {
+                fallbackCopy(v)
+            }
         })
         $(document).on('input', '#tk-custom-slider', function () {
             showBubble()

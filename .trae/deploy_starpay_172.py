@@ -1,6 +1,6 @@
 """AI 女友端充值（star-pay）发布到 172.81.98.55
 
-用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|tier|min|url|deposit|token|cleanvip|shell|file]
+用法：python .trae/deploy_starpay_172.py [probe|all|php|static|sql|env|verify|gateway|e2e|vip|tier|min|url|deposit|products|cron|token|cleanvip|shell|file]
 
 说明：
   - php    ：上传 star-pay 相关 PHP（配置/服务/控制器/路由/后台）并重载 php-fpm
@@ -15,6 +15,8 @@
   - tier   ：会员分层联调（免费额度 / Premium / Premium Plus 层级与折扣）
   - url    ：公网路径与 nginx 配置探测
   - deposit：地址类产品试单（收款地址与 payurl）
+  - products：网关产品能力探测（探测 ETH/BTC/LTC 等产品码是否被网关接受，只查询不建单）
+  - cron   ：查看/补齐链上扫描定时任务（recharge:scan、recharge:scan-eth）
   - token  ：生成测试用户登录 token（可带上 uid 参数）
   - cleanvip：清理订阅联调残留
 """
@@ -57,6 +59,9 @@ PHP_FILES = [
     "php/app/api/controller/Shorts.php",
     "php/app/api/controller/Shop.php",
     "php/app/api/route/recharge.php",
+    "php/app/command/EthRechargeScanCron.php",
+    "php/config/console.php",
+    "php/sql/upgrade_eth_recharge.sql",
     "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/sql/upgrade_recharge_starpay.sql",
@@ -116,6 +121,7 @@ mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_starpay.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_starpay.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_tier.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_plans_v2.sql
+mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_eth_recharge.sql
 echo "--- 迁移后校验 ---"
 mysql -h"$DBH" -u"$DBU" "$DBN" -e "
   SELECT COUNT(*) AS packages FROM lp_recharge_package;
@@ -124,8 +130,9 @@ mysql -h"$DBH" -u"$DBU" "$DBN" -e "
   SHOW COLUMNS FROM lp_recharge_order LIKE 'vip_plan_id';
   SELECT level, tokens_month, months, usd_price, LEFT(benefits, 60) AS benefits_head FROM lp_vip_plan WHERE status = 1 ORDER BY sort LIMIT 4;
   SELECT COUNT(*) AS active_plans FROM lp_vip_plan WHERE status = 1;
-  SELECT \`key\`, \`value\` FROM lp_platform_config WHERE \`key\` IN ('free_chat_daily_limit','vip_unblur_locked_preview');
-  SHOW COLUMNS FROM lp_user_quota;"
+  SELECT \`key\`, \`value\` FROM lp_platform_config WHERE \`key\` IN ('free_chat_daily_limit','vip_unblur_locked_preview','eth_usd_rate');
+  SHOW COLUMNS FROM lp_user_quota;
+  SELECT id, name, type, LEFT(address, 12) AS addr_head, diamond_rate, min_amount, confirm_mode, status FROM lp_recharge_channel ORDER BY sort;"
 """
 
 MIN_AMOUNT_STEP = DB_ENV + r"""
@@ -407,6 +414,80 @@ PHPEOF
 php /tmp/starpay_deposit.php USDT-TRC20Deposit 10.00
 php /tmp/starpay_deposit.php USDT-ERC20Deposit 10.00
 php /tmp/starpay_deposit.php USDCDeposit 10.00
+'''
+
+
+CRON_STEP = r'''
+echo "===== 现有调度 ====="
+cat /etc/cron.d/douyin 2>/dev/null || echo "(无 /etc/cron.d/douyin)"
+echo "--- root crontab ---"
+crontab -l 2>/dev/null || echo "(空)"
+echo "===== 归一化：ETH 扫链写进 /etc/cron.d/douyin（与 USDT 同风格）====="
+if crontab -l 2>/dev/null | grep -q 'recharge:scan-eth'; then
+    crontab -l 2>/dev/null | grep -v 'recharge:scan-eth' | crontab -
+    echo "已从 root crontab 移除误写的 scan-eth"
+fi
+if grep -q 'recharge:scan-eth' /etc/cron.d/douyin 2>/dev/null; then
+    echo "/etc/cron.d/douyin 已有 scan-eth，跳过"
+else
+    echo '* * * * * root cd /www/wwwroot/douyin/php && php think recharge:scan-eth >> /root/cron_recharge_eth.log 2>&1' >> /etc/cron.d/douyin
+    chmod 0644 /etc/cron.d/douyin
+    echo "已追加到 /etc/cron.d/douyin"
+fi
+echo "===== 写入后 ====="
+cat /etc/cron.d/douyin 2>/dev/null || true
+echo "--- root crontab ---"
+crontab -l 2>/dev/null || echo "(空)"
+echo "===== 手动跑一次 ETH 扫链（验证命令可用）====="
+cd /www/wwwroot/douyin/php && php think recharge:scan-eth 2>&1 | tail -n 5
+'''
+
+
+PRODUCT_PROBE_STEP = r'''
+cat > /tmp/starpay_product_probe.php <<'PHPEOF'
+<?php
+$env  = parse_ini_file('/www/wwwroot/douyin/php/.env', true, INI_SCANNER_RAW);
+$c    = $env['STARPAY'] ?? [];
+$base = rtrim((string) ($c['GATEWAY'] ?? ''), '/');
+$mno  = trim((string) ($c['MERCHANT_NO'] ?? ''));
+$key  = trim((string) ($c['KEY'] ?? ''));
+
+function probe_post($base, $mno, $key, $path, $biz) {
+    $ts     = (string) time();
+    $params = json_encode($biz, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $sign   = md5($mno . $params . 'MD5' . $ts . $key);
+    $ch = curl_init($base . $path);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'merchant_no' => $mno, 'timestamp' => $ts, 'sign_type' => 'MD5',
+            'params' => $params, 'sign' => $sign,
+        ]),
+    ]);
+    $raw  = (string) curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$http, $raw];
+}
+
+$candidates = ['TRC20Buy','ERC20Buy','USDT-TRC20Deposit','USDCDeposit','ETHBuy','ETHDeposit','ETH-ERC20Buy','ETH-ERC20Deposit','ETHERC20Buy','ETHERC20Deposit','ETHH5','ETH','BTCBuy','BTCDeposit','LTCBuy','LTCDeposit'];
+
+echo "########## amount/range 探测 ##########\n";
+foreach ($candidates as $p) {
+    [$http, $raw] = probe_post($base, $mno, $key, '/api/gateway/buy/coin/amount/range', ['product' => $p]);
+    $body = json_decode($raw, true);
+    printf("%-18s http=%s code=%s msg=%s params=%s\n", $p, $http,
+        (string) ($body['code'] ?? ''), (string) ($body['message'] ?? ''),
+        mb_substr((string) ($body['params'] ?? ''), 0, 200));
+}
+
+echo "\n########## 产品列表类接口探测 ##########\n";
+foreach (['/api/gateway/product/list', '/api/gateway/products', '/api/gateway/product', '/api/gateway/merchant/products'] as $path) {
+    [$http, $raw] = probe_post($base, $mno, $key, $path, []);
+    printf("%-34s http=%s raw=%s\n", $path, $http, mb_substr((string) $raw, 0, 220));
+}
+PHPEOF
+php /tmp/starpay_product_probe.php
 '''
 
 
@@ -896,6 +977,18 @@ def main():
             run(cli, buf, "公网路径与 nginx 配置探测", URL_STEP, timeout=180)
         elif action == "deposit":
             run(cli, buf, "地址类产品试单（确认收款地址与 payurl）", DEPOSIT_STEP, timeout=180)
+        elif action == "sh":
+            cmd = sys.argv[2] if len(sys.argv) > 2 else "echo hi"
+            run(cli, buf, "执行命令（诊断用）", cmd + "\n", timeout=180)
+        elif action == "sqlrun":
+            sql = sys.argv[2] if len(sys.argv) > 2 else "SELECT 1;"
+            run(cli, buf, "执行 SQL（临时，慎用）",
+                DB_ENV + "cat > /tmp/_sqlrun.sql <<'SQLEOF'\n" + sql + "\nSQLEOF\n"
+                + 'mysql -h"$DBH" -u"$DBU" "$DBN" < /tmp/_sqlrun.sql\n', timeout=120)
+        elif action == "cron":
+            run(cli, buf, "链上扫描定时任务（recharge:scan / recharge:scan-eth）", CRON_STEP, timeout=120)
+        elif action == "products":
+            run(cli, buf, "网关产品能力探测（是否支持 ETH 等）", PRODUCT_PROBE_STEP, timeout=180)
         elif action == "token":
             uid = sys.argv[2] if len(sys.argv) > 2 else "2"
             run(cli, buf, "生成测试用户 %s 的登录 token" % uid, TOKEN_STEP.replace("__UID__", uid), timeout=120)

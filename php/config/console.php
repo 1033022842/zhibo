@@ -11,5 +11,6 @@ return [
         \app\command\ResetStreams::class,
         \app\command\CrowdfundingCron::class,
         \app\command\RechargeScanCron::class,
+        \app\command\EthRechargeScanCron::class,
     ],
 ];
