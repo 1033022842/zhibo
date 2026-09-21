@@ -33,18 +33,18 @@ final class CustomVideo extends BaseController
     private const STYLES = [
         [
             'key'   => 'fingering',
-            'label' => 'Style 1',
-            'desc'  => 'Describe this style here',
+            'label' => 'Self Pleasure',
+            'desc'  => 'A slow, intimate moment all to herself — soft, unhurried, deeply satisfying.',
         ],
         [
             'key'   => 'mysticxxx',
-            'label' => 'Style 2',
-            'desc'  => 'Describe this style here',
+            'label' => 'Deep Throat',
+            'desc'  => 'Up close and intense — she gives herself completely and never breaks eye contact.',
         ],
         [
             'key'   => 'cumfacial',
-            'label' => 'Style 3',
-            'desc'  => 'Describe this style here',
+            'label' => 'Cum Facial',
+            'desc'  => 'The breathless finale — she lifts her chin and takes it all, just for you.',
         ],
     ];
 
