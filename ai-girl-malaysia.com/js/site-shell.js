@@ -29,6 +29,7 @@
   // 统一导航项：[key, href, 文字, 图标key, 附加属性]
   var NAV = [
     ['home', './Home.html', 'Home', 'home', ''],
+    ['crowdfunding', './index.html', 'Crowdfunding', 'crowdfunding', ''],
     ['explore', './Girls.html', 'Explore', 'explore', ''],
     ['chat', './Chat.html', 'Chat', 'chat', ''],
     ['gallery', './Gallery.html', 'Gallery', 'gallery', ''],
@@ -42,8 +43,7 @@
     ['posts', './posts.html', 'Posts', 'posts', ''],
     ['private', './private_content.html', 'Private Content', 'private', ''],
     ['tokens', './purchasePoints.html', 'Tokens', 'tokens', ''],
-    ['game', './Game.html', 'Games', 'game', ''],
-    ['crowdfunding', './index.html', 'Crowdfunding', 'crowdfunding', '']
+    ['game', './Game.html', 'Games', 'game', '']
   ];
   // 底部区（参考站结构：Contact / Affiliate / Premium）
   var BOTTOM = [
