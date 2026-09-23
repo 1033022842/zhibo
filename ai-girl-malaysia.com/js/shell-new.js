@@ -55,6 +55,7 @@
   // 侧边栏菜单：沿用站点原有菜单项与顺序
   var NAV = [
     { href: './Home.html', label: 'Home', icon: 'home' },
+    { href: './index.html', label: 'Crowdfunding', icon: 'crowd' },
     { href: './Girls.html', label: 'Explore', icon: 'explore' },
     { href: './Chat.html', label: 'Chat', icon: 'chat' },
     { href: './Gallery.html', label: 'Gallery', icon: 'gallery' },
@@ -68,8 +69,7 @@
     { href: './posts.html', label: 'Posts', icon: 'posts' },
     { href: './private_content.html', label: 'Private Content', icon: 'lock' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'token' },
-    { href: './Game.html', label: 'Games', icon: 'games' },
-    { href: './index.html', label: 'Crowdfunding', icon: 'crowd' }
+    { href: './Game.html', label: 'Games', icon: 'games' }
   ]
 
   // 侧边栏底部：沿用站点原有三项
