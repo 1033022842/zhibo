@@ -28,7 +28,7 @@ use think\facade\Db;
 final class Shorts extends BaseController
 {
     private const FIELDS = 'id, title, description, poster, video_url, href, section, rank, progress, spicy, '
-        . 'featured, new_episodes, free_episodes';
+        . 'featured, new_episodes, free_episodes, category, character_type';
 
     private const EPISODE_FIELDS = 'id, short_id, episode_no, title, poster, video_url, duration, price';
 
@@ -313,7 +313,25 @@ final class Shorts extends BaseController
             'episode_count' => $episodeCount,
             // 0 表示全免费；>0 表示最低付费集的钻石价
             'price_from'    => $stat ? (int) $stat['min_paid'] : 0,
+            // 前台筛选栏用：分类标签数组（逗号分隔存库）+ 角色类型（creator/character/other）
+            'category'      => $this->splitTags((string) ($row['category'] ?? '')),
+            'type'          => (string) ($row['character_type'] ?? ''),
         ];
+    }
+
+    /**
+     * 逗号分隔标签 → 去空去重的数组
+     */
+    private function splitTags(string $raw): array
+    {
+        $out = [];
+        foreach (explode(',', $raw) as $tag) {
+            $tag = trim($tag);
+            if ($tag !== '' && !in_array($tag, $out, true)) {
+                $out[] = $tag;
+            }
+        }
+        return $out;
     }
 
     /**

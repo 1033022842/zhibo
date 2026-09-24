@@ -29,6 +29,27 @@
                         :input-attr="{ min: 0 }"
                         tip="集号 ≤ N 的剧集免钻直接播放；0 表示没有免费集。剧集在「短剧剧集」菜单里配置"
                     />
+                    <FormItem
+                        label="分类标签"
+                        v-model="baTable.form.items!.category"
+                        type="string"
+                        :input-attr="{ placeholder: '逗号分隔，如：Stepsister,Milf' }"
+                        tip="对应前台分类筛选 pill；留空则该剧不参与分类筛选"
+                    />
+                    <FormItem
+                        label="角色类型"
+                        v-model="baTable.form.items!.character_type"
+                        type="select"
+                        :input-attr="{
+                            content: {
+                                '': '未设置（不参与角色类型筛选）',
+                                character: 'Candy characters',
+                                creator: 'Candy Creators',
+                                other: 'Other characters',
+                            },
+                        }"
+                        tip="对应前台顶部的角色类型 tab"
+                    />
                     <FormItem label="封面图" v-model="baTable.form.items!.poster" type="image" />
                     <FormItem
                         label="视频文件"
