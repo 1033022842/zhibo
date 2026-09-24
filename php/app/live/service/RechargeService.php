@@ -271,9 +271,9 @@ final class RechargeService
     }
 
     /**
-     * star-pay 网关下单（固定套餐）
+     * 网关下单（固定套餐）
      */
-    public function submitPackageOrder(int $userId, int $packageId, string $product = ''): array
+    public function submitPackageOrder(int $userId, int $packageId, string $product = '', string $gateway = 'starpay'): array
     {
         $pkg = Db::connect('live_mysql')->table('lp_recharge_package')
             ->where('id', $packageId)->where('status', 1)->find();
@@ -281,13 +281,13 @@ final class RechargeService
             throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '充值套餐不存在或已下架');
         }
 
-        return $this->createStarPayOrder(
-            $userId,
-            (int) $pkg['tokens'],
-            number_format((float) $pkg['price'], 2, '.', ''),
-            $product,
-            (int) $pkg['id']
-        );
+        $tokens = (int) $pkg['tokens'];
+        $amount = number_format((float) $pkg['price'], 2, '.', '');
+        if ($gateway === 'flowpay') {
+            return $this->createFlowPayOrder($userId, $tokens, $amount, (int) $pkg['id']);
+        }
+
+        return $this->createStarPayOrder($userId, $tokens, $amount, $product, (int) $pkg['id']);
     }
 
     /**
@@ -330,21 +330,25 @@ final class RechargeService
     }
 
     /**
-     * star-pay 网关下单（自选点数）
+     * 网关下单（自选点数）
      */
-    public function submitCustomOrder(int $userId, int $tokens, string $product = ''): array
+    public function submitCustomOrder(int $userId, int $tokens, string $product = '', string $gateway = 'starpay'): array
     {
         $quote = $this->quoteByTokens($tokens);
 
-        return $this->createStarPayOrder($userId, $quote['tokens'], $quote['price'], $product, null);
+        if ($gateway === 'flowpay') {
+            return $this->createFlowPayOrder($userId, (int) $quote['tokens'], $quote['price'], null);
+        }
+
+        return $this->createStarPayOrder($userId, (int) $quote['tokens'], $quote['price'], $product, null);
     }
 
     /**
-     * star-pay 网关下单（会员订阅）
+     * 网关下单（会员订阅）
      *
      * 与充值共用 lp_recharge_order（biz_type=vip 标记），回调时开通会员而非加钻
      */
-    public function submitVipOrder(int $userId, int $planId, string $product = ''): array
+    public function submitVipOrder(int $userId, int $planId, string $product = '', string $gateway = 'starpay'): array
     {
         $plan = Db::connect('live_mysql')->table('lp_vip_plan')
             ->where('id', $planId)->where('status', 1)->find();
@@ -353,16 +357,22 @@ final class RechargeService
         }
 
         $amount = number_format((float) $plan['usd_price'], 2, '.', '');
-        $min    = (float) config('starpay.min_amount');
+        $opt    = [
+            'biz_type'    => 'vip',
+            'vip_plan_id' => (int) $plan['id'],
+        ];
+
+        if ($gateway === 'flowpay') {
+            return $this->createFlowPayOrder($userId, 0, $amount, null, $opt);
+        }
+
+        $min = (float) config('starpay.min_amount');
         if ((float) $amount < $min) {
             throw new BusinessException(ResultCode::PARAM_ERROR, '该套餐金额低于网关最小支付金额 ' . number_format($min, 2));
         }
+        $opt['return_url'] = (string) config('starpay.return_url_vip');
 
-        return $this->createStarPayOrder($userId, 0, $amount, $product, null, [
-            'biz_type'    => 'vip',
-            'vip_plan_id' => (int) $plan['id'],
-            'return_url'  => (string) config('starpay.return_url_vip'),
-        ]);
+        return $this->createStarPayOrder($userId, 0, $amount, $product, null, $opt);
     }
 
     /**
@@ -421,9 +431,67 @@ final class RechargeService
     }
 
     /**
+     * FlowPay 网关下单（收银台模式，返回 pay_url）
+     *
+     * @param array $opt biz_type / vip_plan_id / return_url
+     */
+    private function createFlowPayOrder(int $userId, int $tokens, string $amount, ?int $packageId, array $opt = []): array
+    {
+        $db = Db::connect('live_mysql');
+        $flowPay = new FlowPayService();
+        if (!$flowPay->enabled()) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, 'FlowPay 支付方式未配置');
+        }
+        $min = (float) config('flowpay.min_amount');
+        if ((float) $amount < $min) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '订单金额低于网关最小支付金额 ' . number_format($min, 2));
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $order = [
+            'order_no'       => StrHelper::orderNo('RC'),
+            'user_id'        => $userId,
+            'pay_channel'    => 'flowpay',
+            'channel_id'     => 0,
+            'package_id'     => $packageId,
+            'biz_type'       => (string) ($opt['biz_type'] ?? 'coin'),
+            'vip_plan_id'    => $opt['vip_plan_id'] ?? null,
+            'chain_type'     => 'flowpay',
+            'pay_amount'     => number_format((float) $amount, 2, '.', ''),
+            'diamond_amount' => $tokens,
+            'proof_image'    => '',
+            'status'         => 0,
+            'expire_at'      => date('Y-m-d H:i:s', time() + ((int) (config('flowpay.expire_minutes') ?: 120)) * 60),
+            'created_at'     => $now,
+            'updated_at'     => $now,
+        ];
+        $db->table('lp_recharge_order')->insert($order);
+
+        try {
+            $gw = $flowPay->createOrder($order['order_no'], $order['pay_amount']);
+        } catch (\Throwable $e) {
+            $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update([
+                'status'       => 3,
+                'admin_remark' => '网关下单失败：' . $e->getMessage(),
+                'updated_at'   => date('Y-m-d H:i:s'),
+            ]);
+            throw $e;
+        }
+
+        $update = [
+            'system_ref' => (string) ($gw['order_sn'] ?? ''),
+            'pay_url'    => (string) ($gw['payurl'] ?? ''),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+        $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update($update);
+
+        return array_merge($order, $update, ['product' => 'flowpay']);
+    }
+
+    /**
      * star-pay 异步通知确认入账（幂等）
      */
-    public function confirmByGateway(string $orderNo, string $systemRef = '', string $productRef = ''): array
+    public function confirmByGateway(string $orderNo, string $systemRef = '', string $productRef = '', string $gateway = 'star-pay'): array
     {
         $db = Db::connect('live_mysql');
 
@@ -441,7 +509,7 @@ final class RechargeService
 
             $now    = date('Y-m-d H:i:s');
             $isVip  = (string) ($order['biz_type'] ?? 'coin') === 'vip';
-            $remark = ($isVip ? 'star-pay 订阅到账 system_ref=' : 'star-pay 自动到账 system_ref=')
+            $remark = ($isVip ? $gateway . ' 订阅到账 system_ref=' : $gateway . ' 自动到账 system_ref=')
                 . $systemRef . ($productRef !== '' ? ' product_ref=' . $productRef : '');
 
             $db->table('lp_recharge_order')->where('id', $order['id'])->update([

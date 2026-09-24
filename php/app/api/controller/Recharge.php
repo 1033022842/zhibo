@@ -44,9 +44,11 @@ final class Recharge extends BaseController
     public function packages()
     {
         $starPay = new \app\live\service\StarPayService();
+        $flowPay = new \app\live\service\FlowPayService();
         return $this->jsonSuccess([
             'list'     => $this->service->packages(),
             'products' => $starPay->products(),
+            'flowpay'  => $flowPay->enabled(),
         ]);
     }
 
@@ -63,7 +65,7 @@ final class Recharge extends BaseController
     }
 
     /**
-     * AI 女友端：star-pay 下单（固定套餐或自选点数），返回支付地址
+     * AI 女友端：网关下单（固定套餐或自选点数），返回收银台地址
      */
     public function createOrder()
     {
@@ -71,11 +73,12 @@ final class Recharge extends BaseController
         $packageId = $this->request->post('package_id/d', 0);
         $tokens    = $this->request->post('tokens/d', 0);
         $product   = trim((string) $this->request->post('product', ''));
+        $gateway   = strtolower(trim((string) $this->request->post('gateway', 'starpay')));
 
         if ($packageId > 0) {
-            $order = $this->service->submitPackageOrder($userId, $packageId, $product);
+            $order = $this->service->submitPackageOrder($userId, $packageId, $product, $gateway);
         } elseif ($tokens > 0) {
-            $order = $this->service->submitCustomOrder($userId, $tokens, $product);
+            $order = $this->service->submitCustomOrder($userId, $tokens, $product, $gateway);
         } else {
             return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择充值套餐或点数');
         }
@@ -115,6 +118,39 @@ final class Recharge extends BaseController
         }
 
         return response('SUCCESS', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+    }
+
+    /**
+     * FlowPay 异步通知（免登录，需验签）
+     */
+    public function notifyFlowPay()
+    {
+        $flowPay = new \app\live\service\FlowPayService();
+        // 网关以 application/json 推送，需读原始 body（全局输入过滤会破坏签名原文）
+        $post = json_decode((string) $this->request->getContent(), true);
+        if (!is_array($post)) {
+            $post = (array) $this->request->post();
+        }
+
+        try {
+            $params = $flowPay->verifyNotify($post);
+        } catch (\Throwable $e) {
+            return response('FAIL', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $orderNo = (string) ($params['orderid'] ?? '');
+        // trade_state：success 成功 / notpay 失败；务必判断状态
+        if ($orderNo === '' || (string) ($params['trade_state'] ?? '') !== 'success') {
+            return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        try {
+            $this->service->confirmByGateway($orderNo, (string) ($params['transaction_id'] ?? ''), '', 'FlowPay');
+        } catch (\Throwable $e) {
+            return response('FAIL', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
     }
 
     /**

@@ -273,6 +273,11 @@
             e.preventDefault()
             pay($(this).attr('id'))
         })
+        // 银行卡收银台（FlowPay）
+        $(document).on('click', '#sub-pay-card, #sub-pay-card-plus', function (e) {
+            e.preventDefault()
+            pay($(this).attr('id'), 'flowpay')
+        })
     }
 
     function remember($w) {
@@ -297,7 +302,7 @@
     }
 
     // ===== 下单 =====
-    function pay(btnId) {
+    function pay(btnId, gateway) {
         if (!token) {
             toast('Please log in first')
             setTimeout(function () { location.href = './Login.html' }, 900)
@@ -317,7 +322,7 @@
             url: base + '/vip/order',
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, h()),
-            data: JSON.stringify({ plan_id: plan.id, product: PRODUCT }),
+            data: JSON.stringify({ plan_id: plan.id, product: PRODUCT, gateway: gateway || 'starpay' }),
             dataType: 'json',
             timeout: API_TIMEOUT,
         }).done(function (r) {
