@@ -34,6 +34,21 @@ const baTable = new baTableClass(
             { label: '封面', prop: 'poster', align: 'center', width: 80, render: 'image', operator: false },
             { label: '标题', prop: 'title', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
             { label: '前N集免费', prop: 'free_episodes', align: 'center', width: 110, operator: 'RANGE' },
+            { label: '分类标签', prop: 'category', align: 'center', width: 150, operator: 'LIKE', showOverflowTooltip: true },
+            {
+                label: '角色类型',
+                prop: 'character_type',
+                align: 'center',
+                width: 130,
+                render: 'tag',
+                replaceValue: {
+                    '': '未设置',
+                    character: 'Candy characters',
+                    creator: 'Candy Creators',
+                    other: 'Other characters',
+                },
+                operator: '=',
+            },
             {
                 label: '分区',
                 prop: 'section',

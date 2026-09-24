@@ -281,17 +281,170 @@
         update()
     }
 
-    /* ---------- 筛选栏：只切换选中态（下划线 / 反白由原有 class 驱动），不做真实筛选 ---------- */
-    function bindFilterTabs() {
-        var lists = document.querySelectorAll('[role="tablist"]')
-        for (var i = 0; i < lists.length; i++) {
-            lists[i].addEventListener('click', function (e) {
-                var btn = e.target && e.target.closest ? e.target.closest('[role="tab"]') : null
-                if (!btn || !this.contains(btn)) return
-                var tabs = this.querySelectorAll('[role="tab"]')
-                for (var j = 0; j < tabs.length; j++) {
-                    tabs[j].setAttribute('aria-selected', tabs[j] === btn ? 'true' : 'false')
+    /* ---------- 筛选栏：真筛选 ----------
+     * 角色类型 tab（Character type）→ 按 item.type 过滤
+     * 分类 pill（Categories）→ All / New(new_episodes) / Spicy(spicy) / 数据里出现的 category 标签
+     * 选中态的视觉：存档页 Tailwind 包没编出 aria-selected 自身变体，由 shorts.html 里补的 CSS 负责
+     */
+    var allItems = []                 // 全量（不受筛选影响）
+    var filter = { type: 'all', category: 'all' }
+    var TYPE_ALL = 'all'
+    var TYPE_LABELS = {
+        'all': 'All',
+        'creator': 'Candy Creators',
+        'character': 'Candy characters',
+        'other': 'Other characters',
+    }
+    var CAT_ALL = 'all'
+    var CAT_NEW = '__new'
+    var CAT_SPICY = '__spicy'
+
+    var PILL_CLASS = 'inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-sm text-white/70 transition-all duration-200 cursor-pointer hover:bg-white/10 hover:text-white'
+
+    function itemType(item) {
+        return String((item && item.type) || '')
+    }
+
+    function itemCategories(item) {
+        var c = item && item.category
+        return Object.prototype.toString.call(c) === '[object Array]' ? c : []
+    }
+
+    function matchType(item) {
+        return filter.type === TYPE_ALL || itemType(item) === filter.type
+    }
+
+    function matchCategory(item) {
+        var key = filter.category
+        if (key === CAT_ALL) return true
+        if (key === CAT_NEW) return !!item.new_episodes
+        if (key === CAT_SPICY) return !!item.spicy
+        return itemCategories(item).indexOf(key) >= 0
+    }
+
+    function applyFilter() {
+        var list = []
+        for (var i = 0; i < allItems.length; i++) {
+            if (matchType(allItems[i]) && matchCategory(allItems[i])) list.push(allItems[i])
+        }
+        render(list)
+        renderEmptyState(list.length === 0)
+    }
+
+    /* 分类 pill 按数据生成：All / New / Spicy + 数据里出现的分类标签 */
+    function renderCategoryPills() {
+        var host = document.querySelector('[role="tablist"][aria-label="Categories"]')
+        if (!host) return
+
+        var cats = []
+        for (var i = 0; i < allItems.length; i++) {
+            var arr = itemCategories(allItems[i])
+            for (var j = 0; j < arr.length; j++) {
+                if (cats.indexOf(arr[j]) < 0) cats.push(arr[j])
+            }
+        }
+        cats.sort()
+
+        var defs = [
+            { key: CAT_ALL, label: 'All' },
+            { key: CAT_NEW, label: 'New' },
+            { key: CAT_SPICY, label: '🔥 Spicy' },
+        ]
+        for (var k = 0; k < cats.length; k++) defs.push({ key: cats[k], label: cats[k] })
+
+        var html = ''
+        for (var d = 0; d < defs.length; d++) {
+            if (defs[d].key !== CAT_ALL && !hasItemsFor(defs[d].key)) continue
+            html += '<button type="button" role="tab" data-filter="' + esc(defs[d].key) + '" aria-selected="' +
+                (filter.category === defs[d].key ? 'true' : 'false') + '" class="' + PILL_CLASS + '">' +
+                '<span>' + esc(defs[d].label) + '</span></button>'
+        }
+        host.innerHTML = html
+    }
+
+    /* 该分类下（在当前角色类型范围内）有没有内容，没有就不显示这个 pill */
+    function hasItemsFor(key) {
+        for (var i = 0; i < allItems.length; i++) {
+            if (!matchType(allItems[i])) continue
+            var saved = filter.category
+            filter.category = key
+            var hit = matchCategory(allItems[i])
+            filter.category = saved
+            if (hit) return true
+        }
+        return false
+    }
+
+    function renderEmptyState(isEmpty) {
+        var box = document.getElementById('cs-filter-empty')
+        if (!box) {
+            var grid = document.getElementById('candy-shorts-library-grid')
+            if (!grid || !grid.parentNode) return
+            box = document.createElement('div')
+            box.id = 'cs-filter-empty'
+            box.className = 'order-3 mb-5 text-center text-sm text-white/50'
+            box.style.display = 'none'
+            grid.parentNode.insertBefore(box, grid)
+        }
+        box.textContent = isEmpty ? 'No series match this filter yet — try another one.' : ''
+        box.style.display = isEmpty ? '' : 'none'
+    }
+
+    function selectType(key) {
+        filter.type = key
+        var host = document.querySelector('[role="tablist"][aria-label="Character type"]')
+        if (host) {
+            var tabs = host.querySelectorAll('[role="tab"]')
+            for (var i = 0; i < tabs.length; i++) {
+                var label = String(tabs[i].textContent || '').trim()
+                var key2 = TYPE_ALL
+                for (var k in TYPE_LABELS) {
+                    if (TYPE_LABELS[k] === label) key2 = k
                 }
+                tabs[i].setAttribute('aria-selected', key2 === key ? 'true' : 'false')
+            }
+        }
+        renderCategoryPills()   // 某些分类在该角色类型下可能没有内容
+        if (filter.category !== CAT_ALL && filter.category !== CAT_NEW && filter.category !== CAT_SPICY
+            && !hasItemsFor(filter.category)) {
+            filter.category = CAT_ALL
+            renderCategoryPills()
+        }
+        applyFilter()
+    }
+
+    function selectCategory(key) {
+        filter.category = key
+        var host = document.querySelector('[role="tablist"][aria-label="Categories"]')
+        if (host) {
+            var tabs = host.querySelectorAll('[role="tab"]')
+            for (var i = 0; i < tabs.length; i++) {
+                tabs[i].setAttribute('aria-selected', String(tabs[i].getAttribute('data-filter')) === key ? 'true' : 'false')
+            }
+        }
+        applyFilter()
+    }
+
+    function bindFilterTabs() {
+        var typeHost = document.querySelector('[role="tablist"][aria-label="Character type"]')
+        if (typeHost) {
+            typeHost.addEventListener('click', function (e) {
+                var btn = e.target && e.target.closest ? e.target.closest('[role="tab"]') : null
+                if (!btn || !typeHost.contains(btn)) return
+                var label = String(btn.textContent || '').trim()
+                var key = TYPE_ALL
+                for (var k in TYPE_LABELS) {
+                    if (TYPE_LABELS[k] === label) key = k
+                }
+                selectType(key)
+            })
+        }
+        var catHost = document.querySelector('[role="tablist"][aria-label="Categories"]')
+        if (catHost) {
+            catHost.addEventListener('click', function (e) {
+                var btn = e.target && e.target.closest ? e.target.closest('[role="tab"]') : null
+                if (!btn || !catHost.contains(btn)) return
+                selectCategory(String(btn.getAttribute('data-filter') || CAT_ALL))
             })
         }
     }
@@ -319,12 +472,16 @@
             .then(function (r) { return r.json() })
             .then(function (d) {
                 var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                allItems = list
                 indexItems(list)
-                render(list)
+                renderCategoryPills()
+                applyFilter()
             })
             .catch(function () {
+                allItems = []
                 indexItems([])
-                render([])
+                renderCategoryPills()
+                applyFilter()
             })
     }
 

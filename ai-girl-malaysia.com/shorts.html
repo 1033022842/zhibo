@@ -27,6 +27,11 @@
             /* 本页复用的 Tailwind 产物没编译这两个任意值类，顶栏 Login 按钮会退回黑字灰边，这里按原站补回 */
             .text-\[\#E75275\]{color:#E75275;}
             .border-\[\#E75275\]{border-color:#E75275;}
+            /* 筛选栏选中态：存档页的 Tailwind 产物没有 aria-selected 自身变体（只编了 group-aria-selected），
+               不补的话点 pill / tab 改了 aria-selected 却看不到任何变化 */
+            [role="tablist"][aria-label="Categories"] > [role="tab"][aria-selected="true"]{background:#fff;color:#000;font-weight:600;border-color:transparent;}
+            [role="tablist"][aria-label="Character type"] > [role="tab"][aria-selected="true"]{color:#fff;}
+            [role="tablist"][aria-label="Character type"] > [role="tab"][aria-selected="true"] > span[aria-hidden="true"]{opacity:1;}
 		</style>
 
 		<title>Candy Shorts - Sugus.ai</title>
@@ -46,7 +51,7 @@
 		<script src="./js/shell-new.js?v=20260921b"></script>
 		<script src="./js/watch-dialog.js?v=20260917"></script>
 		<script src="./js/series-dialog.js?v=20260918d"></script>
-		<script src="./js/shorts.js?v=20260921b"></script>
+		<script src="./js/shorts.js?v=20260922a"></script>
 
 			</head>
 	<body class="bg-main library index" id="app" data-controller="main" data-onesignal-enabled="true" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="#&lt;User:0x00007f3ba06e9c80&gt;">
