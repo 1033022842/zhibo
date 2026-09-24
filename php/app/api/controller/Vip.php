@@ -50,16 +50,17 @@ final class Vip extends BaseController
     }
 
     /**
-     * star-pay 订阅下单（返回收银台地址）
+     * 网关订阅下单（返回收银台地址）
      */
     public function order()
     {
         $planId  = (int) $this->request->post('plan_id', 0);
         $product = trim((string) $this->request->post('product', ''));
+        $gateway = strtolower(trim((string) $this->request->post('gateway', 'starpay')));
         if ($planId <= 0) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, '套餐ID无效');
         }
-        $order = $this->recharge->submitVipOrder($this->getAuthUserId(), $planId, $product);
+        $order = $this->recharge->submitVipOrder($this->getAuthUserId(), $planId, $product, $gateway);
         return $this->jsonSuccess([
             'order_no'   => $order['order_no'],
             'pay_amount' => $order['pay_amount'],

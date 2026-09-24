@@ -14,9 +14,15 @@
     var SLIDER_STEP = 50
     var DEFAULT_TOKENS = 550
     var ETH_ICON = './taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg'
+    // 「Pay with Card」按钮图标（FlowPay 收银台）
+    var CARD_ICONS = [
+        './taocan_files/visa-e1d8b03b25a5af3b8320ae609ba6331e0e1787c5d24d0bbcb9bfb8e88d5cdd42.svg',
+        './taocan_files/mastercard-a70ad911ccea0bdffda8287342443e4bb64898fecf51d8a4f86b1ecacf213e4a.svg'
+    ]
     var packages = []
     var products = []
     var channels = []
+    var flowpayEnabled = false
     var selected = null
     var customTokens = 0
     var customTimer = null
@@ -238,6 +244,7 @@
             if (res.code !== '00000' || !res.data) return
             packages = res.data.list || []
             products = res.data.products || []
+            flowpayEnabled = !!res.data.flowpay
             renderPlans()
             renderCustom(normalizeTokens(DEFAULT_TOKENS))
         })
@@ -305,6 +312,17 @@
                 '<span class="tk-method-icons"><img class="tk-method-logo" src="' + ETH_ICON + '" alt="Ethereum"></span>' +
                 '</button>'
         })
+        // 银行卡收银台：FlowPay 商户参数配置齐全后自动出现
+        if (flowpayEnabled) {
+            var cardLogos = CARD_ICONS.map(function (src) {
+                return '<img class="tk-method-logo" src="' + src + '" alt="Card">'
+            }).join('')
+            html +=
+                '<button type="button" class="tk-method" data-flowpay="1">' +
+                '<span class="tk-method-text">Pay with Card</span>' +
+                '<span class="tk-method-icons">' + cardLogos + '</span>' +
+                '</button>'
+        }
         $('#tk-modal-methods').html(html)
         $('#tk-eth-panel').hide().empty()
     }
@@ -447,7 +465,7 @@
         selected = null
     }
 
-    function submitOrder(code) {
+    function submitOrder(code, gateway) {
         if (loading || !selected) return
         if (!token()) {
             toast('Please log in first')
@@ -459,6 +477,7 @@
         var payload = selected.packageId
             ? { package_id: selected.packageId, product: code }
             : { tokens: selected.tokens, product: code }
+        if (gateway) payload.gateway = gateway
         api(RECHARGE_BASE + '/createOrder', {
             method: 'POST',
             data: payload
@@ -534,6 +553,10 @@
         $(document).on('click', '#tk-payment-modal [data-tk-close]', closeModal)
         $(document).on('click', '#tk-payment-modal .tk-method[data-code]', function () {
             submitOrder($(this).data('code'))
+        })
+        // 银行卡收银台（FlowPay）
+        $(document).on('click', '#tk-payment-modal .tk-method[data-flowpay]', function () {
+            submitOrder('', 'flowpay')
         })
         // ETH 地址收款
         $(document).on('click', '#tk-payment-modal .tk-method[data-eth]', function () {

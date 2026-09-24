@@ -16,6 +16,7 @@
   - url    ：公网路径与 nginx 配置探测
   - deposit：地址类产品试单（收款地址与 payurl）
   - products：网关产品能力探测（探测 ETH/BTC/LTC 等产品码是否被网关接受，只查询不建单）
+  - flowpay：写入 [FLOWPAY] 段并跑 FlowPay 联调（签名自检 + 下单 + 查单 + 回调 + 幂等）
   - cron   ：查看/补齐链上扫描定时任务（recharge:scan、recharge:scan-eth）
   - token  ：生成测试用户登录 token（可带上 uid 参数）
   - cleanvip：清理订阅联调残留
@@ -46,7 +47,9 @@ LOG = os.path.join(LOCAL, ".trae", "_deploy_starpay.log")
 
 PHP_FILES = [
     "php/config/starpay.php",
+    "php/config/flowpay.php",
     "php/app/live/service/StarPayService.php",
+    "php/app/live/service/FlowPayService.php",
     "php/app/live/service/RechargeService.php",
     "php/app/live/service/VipService.php",
     "php/app/live/service/QuotaService.php",
@@ -62,6 +65,7 @@ PHP_FILES = [
     "php/app/command/EthRechargeScanCron.php",
     "php/config/console.php",
     "php/sql/upgrade_eth_recharge.sql",
+    "php/sql/upgrade_short_filters.sql",
     "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/sql/upgrade_recharge_starpay.sql",
@@ -122,6 +126,7 @@ mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_starpay.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_tier.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_plans_v2.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_eth_recharge.sql
+mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_short_filters.sql
 echo "--- 迁移后校验 ---"
 mysql -h"$DBH" -u"$DBU" "$DBN" -e "
   SELECT COUNT(*) AS packages FROM lp_recharge_package;
@@ -694,6 +699,157 @@ curl -s -m 20 'http://127.0.0.1:8082/api/v1/recharge/packages' | head -c 200
 """ % (SITE, SITE, SITE)
 
 
+FLOWPAY_STEP = r'''
+cat > /tmp/flowpay_e2e.php <<'PHPEOF'
+<?php
+require '/www/wwwroot/douyin/php/vendor/autoload.php';
+$app = new \think\App();
+$app->initialize();
+
+use think\facade\Config;
+use think\facade\Db;
+
+$cfg = (array) Config::get('flowpay');
+printf("网关=%s\n商户号=%s  密钥长度=%d  产品编码=%s\n通知地址=%s  最小金额=%s\n\n",
+    $cfg['gateway'], $cfg['mchid'], strlen((string) $cfg['key']),
+    $cfg['gcode'] !== '' ? $cfg['gcode'] : '(空)', $cfg['notify_url'], $cfg['min_amount']);
+
+$svc = new \app\live\service\FlowPayService();
+echo 'enabled=' . ($svc->enabled() ? 'true' : 'false') . "\n\n";
+
+/* --- 验签自检（按文档规则本地重算，再喂给 verifyNotify） --- */
+$key = (string) $cfg['key'];
+$biz = [
+    'transaction_id' => 'TESTTX0001',
+    'orderid'        => 'RC202601010000000001',
+    'trade_state'    => 'success',
+    'amount'         => '10.00',
+    'amount_income'  => '9.50',
+    'amount_service' => '0.50',
+    'notice_time'    => time(),
+    'pay_time'       => time(),
+    'create_time'    => time(),
+    'mchid'          => (string) $cfg['mchid'],
+];
+$data = $biz;
+ksort($data, SORT_STRING);
+$pairs = [];
+foreach ($data as $k => $v) { if ((string) $v === '') { continue; } $pairs[] = $k . '=' . $v; }
+$expect = strtoupper(md5(implode('&', $pairs) . '&key=' . $key));
+$biz['sign'] = $expect;
+try {
+    $svc->verifyNotify($biz);
+    echo "verifyNotify 自检 = OK\n";
+} catch (\Throwable $e) {
+    echo 'verifyNotify 自检 = FAIL：' . get_class($e) . ' ' . $e->getMessage() . "\n";
+}
+$bad = $biz; $bad['sign'] = substr($expect, 0, -1) . (substr($expect, -1) === '0' ? '1' : '0');
+try {
+    $svc->verifyNotify($bad);
+    echo "verifyNotify 篡改签名 = 未拦截（异常！）\n\n";
+} catch (\Throwable $e) {
+    echo "verifyNotify 篡改签名 = 已拦截\n\n";
+}
+
+if (!$svc->enabled()) {
+    echo "！GCODE / MCHID / KEY 未配置齐全，跳过真实下单与回调联调\n";
+    exit;
+}
+
+/* --- 真实下单（走网关） --- */
+$db  = Db::connect('live_mysql');
+$uid = (int) $db->table('lp_recharge_order')->order('id desc')->value('user_id');
+if ($uid <= 0) { $uid = (int) $db->table('lp_user')->order('id asc')->value('id'); }
+$pkgId  = (int) $db->table('lp_recharge_package')->order('price asc')->value('id');
+$before = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
+printf("测试用户=%d 套餐=%d 充值前点数=%.2f\n", $uid, $pkgId, $before);
+
+$svc2   = new \app\live\service\RechargeService();
+$order  = $svc2->submitPackageOrder($uid, $pkgId, '', 'flowpay');
+$orderNo = (string) $order['order_no'];
+printf("下单: order_no=%s amount=%s 点数=%s system_ref=%s\npay_url=%s\n\n",
+    $orderNo, $order['pay_amount'], $order['diamond_amount'], $order['system_ref'], $order['pay_url']);
+
+if ((string) $order['pay_url'] === '') {
+    echo "！网关未返回 payurl，跳过回调联调\n";
+    $db->table('lp_recharge_order')->where('order_no', $orderNo)->delete();
+    exit;
+}
+
+/* --- 查单 --- */
+$q = $svc->queryOrder($orderNo);
+echo '查单: ' . json_encode($q, JSON_UNESCAPED_UNICODE) . "\n\n";
+
+/* --- 模拟异步通知入账 --- */
+$notify = [
+    'transaction_id' => 'TESTTX' . time(),
+    'orderid'        => $orderNo,
+    'trade_state'    => 'success',
+    'sms'            => base64_encode('test sms'),
+    'amount'         => number_format((float) $order['pay_amount'], 2, '.', ''),
+    'amount_income'  => number_format((float) $order['pay_amount'], 2, '.', ''),
+    'amount_service' => '0.00',
+    'notice_time'    => time(),
+    'pay_time'       => time(),
+    'create_time'    => time(),
+    'mchid'          => (string) $cfg['mchid'],
+];
+$d = $notify; ksort($d, SORT_STRING);
+$p = [];
+foreach ($d as $k => $v) { if ((string) $v === '') { continue; } $p[] = $k . '=' . $v; }
+$notify['sign'] = strtoupper(md5(implode('&', $p) . '&key=' . $key));
+
+function postJson($url, array $body) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    ]);
+    $r    = curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$http, trim((string) $r)];
+}
+
+$url = 'http://127.0.0.1:8082/api/v1/recharge/notifyFlowPay';
+
+$tampered = $notify;
+$tampered['sign'] = substr($notify['sign'], 0, -1) . (substr($notify['sign'], -1) === '0' ? '1' : '0');
+list($http, $resp) = postJson($url, $tampered);
+printf("回调(篡改签名): http=%d resp=%s   期望 FAIL\n", $http, $resp);
+
+list($http, $resp) = postJson($url, $notify);
+$o  = $db->table('lp_recharge_order')->where('order_no', $orderNo)->find();
+$b1 = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
+printf("回调(合法签名): http=%d resp=%s -> 订单状态=%d 点数=%.2f（期望 1 / %.2f）\n",
+    $http, $resp, (int) $o['status'], $b1, $before + (float) $order['diamond_amount']);
+
+list($http, $resp) = postJson($url, $notify);
+$b2 = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
+printf("回调(重复推送): http=%d resp=%s -> 点数=%.2f（应不变，幂等）\n", $http, $resp, $b2);
+
+$ledger = $db->table('lp_wallet_ledger')->where('biz_id', (int) $o['id'])->where('biz_type', 'recharge')->select()->toArray();
+echo '流水记录数=' . count($ledger) . "\n\n";
+
+$db->table('lp_wallet_ledger')->where('biz_id', (int) $o['id'])->where('biz_type', 'recharge')->delete();
+$db->table('lp_wallet_account')->where('user_id', $uid)->update(['diamond_balance' => $before, 'updated_at' => date('Y-m-d H:i:s')]);
+$db->table('lp_recharge_order')->where('order_no', $orderNo)->delete();
+printf("清理测试数据: 点数=%.2f 残留订单=%d 残留流水=%d\n",
+    (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance'),
+    $db->table('lp_recharge_order')->where('order_no', $orderNo)->count(),
+    $db->table('lp_wallet_ledger')->where('biz_id', (int) $o['id'])->where('biz_type', 'recharge')->count());
+PHPEOF
+php /tmp/flowpay_e2e.php
+echo "--- 前台接口 ---"
+curl -s -m 20 'http://127.0.0.1:8082/api/v1/recharge/packages' | head -c 320
+echo
+echo -n "Pay with Card 按钮(purchasePoints.js)="; grep -c 'data-flowpay' /www/wwwroot/douyin/ai-girl-malaysia.com/js/purchasePoints.js
+echo -n "Pay with Card 按钮(Subscriptions.html)="; grep -c 'sub-pay-card' /www/wwwroot/douyin/ai-girl-malaysia.com/Subscriptions.html
+echo -n "卡片图标存在="; ls /www/wwwroot/douyin/ai-girl-malaysia.com/taocan_files/ | grep -cE '^(visa|mastercard)-'
+'''
+
+
 def log_write(buf, text):
     buf.write(text.rstrip() + "\n")
     buf.flush()
@@ -801,8 +957,8 @@ def upload_dir(sftp, buf, local_rel, remote_dir):
     log_write(buf, "uploaded dir %s (%d files)" % (remote_dir, count))
 
 
-def local_starpay_env():
-    """从本地 php/.env 的 [STARPAY] 段读取密钥（php/.env 已被 git 忽略，不入库）"""
+def local_env(want):
+    """从本地 php/.env 指定段读取配置（php/.env 已被 git 忽略，不入库）"""
     cfg = {}
     try:
         with open(os.path.join(LOCAL, "php", ".env"), "r", encoding="utf-8", errors="replace") as f:
@@ -812,7 +968,7 @@ def local_starpay_env():
                 if line.startswith("[") and line.endswith("]"):
                     section = line[1:-1].strip().upper()
                     continue
-                if section != "STARPAY" or line.startswith("#") or "=" not in line:
+                if section != want.upper() or line.startswith("#") or "=" not in line:
                     continue
                 k, v = line.split("=", 1)
                 cfg[k.strip().upper()] = v.strip()
@@ -822,7 +978,7 @@ def local_starpay_env():
 
 
 def starpay_section():
-    c = local_starpay_env()
+    c = local_env("STARPAY")
     if not c.get("MERCHANT_NO") or not c.get("KEY"):
         raise SystemExit("本地 php/.env 缺少 [STARPAY] MERCHANT_NO / KEY")
     order = ["GATEWAY", "MERCHANT_NO", "KEY", "PRODUCT", "FIAT_CURRENCY", "PRODUCTS",
@@ -830,9 +986,38 @@ def starpay_section():
     return "[STARPAY]\n" + "".join("%s = %s\n" % (k, c[k]) for k in order if c.get(k))
 
 
+FLOWPAY_ORDER = ["GATEWAY", "MCHID", "KEY", "GCODE", "NOTIFY_URL",
+                 "RETURN_URL", "RETURN_URL_VIP", "MIN_AMOUNT"]
+
+
+def flowpay_section():
+    c = local_env("FLOWPAY")
+    if not c.get("MCHID") or not c.get("KEY"):
+        raise SystemExit("本地 php/.env 缺少 [FLOWPAY] MCHID / KEY")
+    if not c.get("GCODE"):
+        print("提示：[FLOWPAY] GCODE（产品编码）为空，前台不会展示 Pay with Card 按钮")
+    return "[FLOWPAY]\n" + "".join("%s = %s\n" % (k, c[k]) for k in FLOWPAY_ORDER if c.get(k))
+
+
 def ensure_env(sftp, buf, cli):
     """写入服务器 php/.env 的 [STARPAY] 段（已存在则替换）"""
     log_write(buf, "\n===== 服务器 .env [STARPAY] =====")
+    write_env_section(sftp, buf, "STARPAY", starpay_section())
+    log_write(buf, "[STARPAY] 已写入（MERCHANT_NO=%s / KEY 长度=%d / 产品=%s）"
+              % (local_env("STARPAY").get("MERCHANT_NO", ""), len(local_env("STARPAY").get("KEY", "")),
+                 local_env("STARPAY").get("PRODUCTS", "")))
+
+
+def ensure_flowpay_env(sftp, buf, cli):
+    """写入服务器 php/.env 的 [FLOWPAY] 段（已存在则替换）"""
+    log_write(buf, "\n===== 服务器 .env [FLOWPAY] =====")
+    write_env_section(sftp, buf, "FLOWPAY", flowpay_section())
+    c = local_env("FLOWPAY")
+    log_write(buf, "[FLOWPAY] 已写入（MCHID=%s / KEY 长度=%d / GCODE=%s）"
+              % (c.get("MCHID", ""), len(c.get("KEY", "")), c.get("GCODE", "") or "(空)"))
+
+
+def write_env_section(sftp, buf, name, section):
     remote = PHP_DIR + "/.env"
     try:
         with sftp.open(remote, "rb") as f:
@@ -842,11 +1027,10 @@ def ensure_env(sftp, buf, cli):
         return
     text = raw.decode("utf-8", "replace")
 
-    lines = text.split("\n")
     kept, skipping = [], False
-    for line in lines:
+    for line in text.split("\n"):
         stripped = line.strip()
-        if stripped == "[STARPAY]":
+        if stripped == "[%s]" % name:
             skipping = True
             continue
         if skipping:
@@ -856,13 +1040,9 @@ def ensure_env(sftp, buf, cli):
                 continue
         kept.append(line)
 
-    section = starpay_section()
     body = "\n".join(kept).rstrip("\n")
     upload_bytes(sftp, buf, remote, (body + "\n\n" + section).encode("utf-8"),
-                 ".bak_starpayenv_" + STAMP)
-    log_write(buf, "[STARPAY] 已写入（MERCHANT_NO=%s / KEY 长度=%d / 产品=%s）"
-              % (local_starpay_env().get("MERCHANT_NO", ""), len(local_starpay_env().get("KEY", "")),
-                 local_starpay_env().get("PRODUCTS", "")))
+                 ".bak_%senv_" % name.lower() + STAMP)
 
 
 GATEWAY_STEP = r'''
@@ -989,6 +1169,9 @@ def main():
             run(cli, buf, "链上扫描定时任务（recharge:scan / recharge:scan-eth）", CRON_STEP, timeout=120)
         elif action == "products":
             run(cli, buf, "网关产品能力探测（是否支持 ETH 等）", PRODUCT_PROBE_STEP, timeout=180)
+        elif action == "flowpay":
+            ensure_flowpay_env(sftp, buf, cli)
+            run(cli, buf, "FlowPay 联调（签名/下单/查单/回调/幂等）", FLOWPAY_STEP, timeout=300)
         elif action == "token":
             uid = sys.argv[2] if len(sys.argv) > 2 else "2"
             run(cli, buf, "生成测试用户 %s 的登录 token" % uid, TOKEN_STEP.replace("__UID__", uid), timeout=120)
@@ -1013,6 +1196,7 @@ def main():
                 upload_dir(sftp, buf, "ai-girl-malaysia.com/taocan_files", SITE + "/taocan_files")
             if action in ("all", "env"):
                 ensure_env(sftp, buf, cli)
+                ensure_flowpay_env(sftp, buf, cli)
             if action in ("all", "sql"):
                 run(cli, buf, "数据库迁移", SQL_STEP, timeout=300)
             if action in ("all", "min"):
