@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="./js/ui-dialog.js?v=20260927a"></script>
 		<link rel="icon" type="image/png" href="./sugus-favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1131,7 +1132,7 @@ var carouselData = getParam('data')
 							window.handlePurchaseSuccess();
 						}
 					}else{
-						alert(res.msg);
+						if (window.SugusDialog) { SugusDialog.alert(res.msg || 'Purchase failed', { title: 'Notice' }); } else { alert(res.msg); }
 					}
 				},
 				error: function(err){

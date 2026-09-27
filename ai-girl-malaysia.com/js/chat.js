@@ -31,8 +31,37 @@
         $(document).on('click', '#message-list a.chat-obj', function(){
             selectConversation(String($(this).data('id') || ''))
         })
+        // 重启会话按钮（原模板内联 confirm 已摘除，走美化确认框）
+        setupRebootDialog()
         channelDetail(id)
     }, 1000);
+
+    /* ---------- 重启会话：美化确认框替代原生 confirm ---------- */
+    function setupRebootDialog() {
+        // 必须绑在 #message-list 上：比 document 上的 a.chat-obj 选择会话处理器更近一层，
+        // stopPropagation 才能阻止冒泡触发切换会话（原模板内联 onclick 的 stopPropagation 已移除）
+        $('#message-list').off('click', '[data-reboot-conv]').on('click', '[data-reboot-conv]', function (e) {
+            e.preventDefault()
+            e.stopPropagation()
+            var a = $(this).closest('a.chat-obj')
+            var name = a.length ? (a.find('.chat-name').first().text() || a.find('div.text-white').first().text() || '').trim() : ''
+            var msg = name
+                ? 'Are you sure you want to reboot the conversation with ' + name + '? All messages will be lost.'
+                : 'Are you sure you want to reboot this conversation? All messages will be lost.'
+            function doReload() { location.reload() }
+            if (window.SugusDialog) {
+                SugusDialog.confirm({
+                    title: 'Reboot conversation',
+                    message: msg,
+                    confirmText: 'Reboot',
+                    cancelText: 'Cancel',
+                    icon: 'refresh'
+                }).then(function (ok) { if (ok) doReload() })
+            } else if (window.confirm(msg)) {
+                doReload()
+            }
+        })
+    }
 
     // 会话列表(id -> 角色对象)，点击时用它取右侧资料
     var convItems = {}
@@ -411,7 +440,22 @@
     function unlockChatMedia(media, node, mine) {
         if (!token) { goLoginPage(); return }
         var price = Number(media.unlock_price || 0)
+        // 付费内容先弹美化确认框，确认后再发起解锁请求
+        if (price > 0 && window.SugusDialog) {
+            SugusDialog.confirm({
+                title: 'Unlock message',
+                message: 'Unlock this message for ' + price + ' diamonds?',
+                confirmText: 'Unlock (' + price + ')',
+                cancelText: 'Cancel',
+                icon: 'lock'
+            }).then(function (ok) { if (ok) requestUnlockChatMedia(media, node, mine) })
+            return
+        }
         if (price > 0 && !window.confirm('Unlock this message for ' + price + ' diamonds?')) return
+        requestUnlockChatMedia(media, node, mine)
+    }
+
+    function requestUnlockChatMedia(media, node, mine) {
         fetch('/api/live/unlockChatMedia', {
             method: 'POST',
             headers: authHeaders(true),
