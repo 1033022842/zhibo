@@ -25615,7 +25615,7 @@ Please set ${Schema.reflexSerializeForm}="true" on your Reflex Controller Elemen
   // app/javascript/controllers/users_controller.js
   var users_controller_default = class extends Controller {
     connect() {
-      document.getElementById("payments-link").click();
+      var _pl=document.getElementById("payments-link");if(_pl)_pl.click();
     }
     changeTab(event) {
       var buttons = document.getElementsByClassName("navigation-buttons");
