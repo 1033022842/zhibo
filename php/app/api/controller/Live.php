@@ -22,7 +22,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
     ];
 
     private UserService $userService;
@@ -257,6 +257,30 @@ final class Live extends BaseController
         $userId  = $this->getAuthUserId();
         $persona = (new UserPersonaService())->save($userId, $this->request->param());
         return $this->jsonSuccess($persona, '已保存');
+    }
+
+    /**
+     * 订阅管理（设置页 Current plan / Payment date / Subscription renewal）
+     */
+    public function subscription()
+    {
+        $userId = $this->getAuthUserId();
+        return $this->jsonSuccess((new VipService())->subscription($userId));
+    }
+
+    /**
+     * 取消订阅（记录意图：到期后不再续订；权益保留到 vip_expire_at）
+     */
+    public function cancelSubscription()
+    {
+        $userId = $this->getAuthUserId();
+        $data   = $this->request->param();
+        $result = (new VipService())->cancel(
+            $userId,
+            (string) ($data['reason'] ?? ''),
+            (string) ($data['description'] ?? '')
+        );
+        return $this->jsonSuccess($result, '已取消订阅');
     }
 
     /**

@@ -21,6 +21,9 @@ Route::post('live/saveUserSettings', '\app\api\controller\Live@saveUserSettings'
 // 设置页「Your personas」的我的人格设定
 Route::get('live/userPersona',       '\app\api\controller\Live@userPersona')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/saveUserPersona',  '\app\api\controller\Live@saveUserPersona')->middleware(\app\live\middleware\Auth::class);
+// 设置页订阅管理（Current plan / Payment date / Subscription renewal / 取消订阅）
+Route::get('live/subscription',      '\app\api\controller\Live@subscription')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/cancelSubscription', '\app\api\controller\Live@cancelSubscription')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleCreate', '\app\api\controller\Live@customRoleCreate')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);

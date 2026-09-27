@@ -7,6 +7,7 @@ use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use app\common\util\StrHelper;
 use think\facade\Db;
+use think\facade\Log;
 
 /**
  * 会员订阅服务
@@ -184,6 +185,64 @@ final class VipService
     }
 
     /**
+     * 订阅管理（设置页 Current plan / Payment date / Subscription renewal）
+     */
+    public function subscription(int $userId): array
+    {
+        $status = $this->status($userId);
+        $db     = Db::connect('live_mysql');
+
+        $user = $db->table('lp_user')
+            ->where('id', $userId)
+            ->field('id, vip_auto_renew, vip_cancel_reason, vip_cancel_at')
+            ->find() ?: [];
+
+        // 当前生效订阅单的支付时间，对应设置页的「Payment date」
+        $order = $db->query(
+            "SELECT o.created_at FROM lp_vip_order o
+             WHERE o.user_id = ? AND o.status = 1 AND o.expire_to >= ?
+             ORDER BY o.id DESC LIMIT 1",
+            [$userId, date('Y-m-d H:i:s')]
+        );
+
+        return [
+            'level_name'    => (string) ($status['level_name'] ?? 'Free'),
+            'is_vip'        => (bool) ($status['is_vip'] ?? false),
+            'expire_at'     => $status['expire_at'] ?? null,
+            'remain_days'   => (int) ($status['remain_days'] ?? 0),
+            'paid_at'       => (string) ($order[0]['created_at'] ?? ''),
+            'auto_renew'    => (int) ($user['vip_auto_renew'] ?? 1) === 1,
+            'cancel_reason' => (string) ($user['vip_cancel_reason'] ?? ''),
+            'cancel_at'     => (string) ($user['vip_cancel_at'] ?? ''),
+        ];
+    }
+
+    /**
+     * 取消订阅：只记录意图（到期后不再续订），会员权益保留至 vip_expire_at
+     */
+    public function cancel(int $userId, string $reason = '', string $description = ''): array
+    {
+        $status = $this->status($userId);
+        if (empty($status['is_vip'])) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '当前没有生效中的订阅');
+        }
+
+        $reason      = mb_substr(trim($reason), 0, 32);
+        $description = mb_substr(trim($description), 0, 255);
+
+        Db::connect('live_mysql')->table('lp_user')->where('id', $userId)->update([
+            'vip_auto_renew'         => 0,
+            'vip_cancel_reason'      => $reason,
+            'vip_cancel_description' => $description,
+            'vip_cancel_at'          => date('Y-m-d H:i:s'),
+        ]);
+
+        Log::info('[vip] 用户取消订阅 uid=' . $userId . ' reason=' . $reason . ' desc=' . $description);
+
+        return $this->subscription($userId);
+    }
+
+    /**
      * 购买会员（钻石支付，到期顺延）
      */
     public function buy(int $userId, int $planId): array
@@ -258,7 +317,14 @@ final class VipService
                 'created_at'     => date('Y-m-d H:i:s'),
             ]);
             $db->table('lp_user')
-                ->where('id', $userId)->update(['vip_expire_at' => $expireTo]);
+                ->where('id', $userId)->update([
+                    'vip_expire_at'          => $expireTo,
+                    // 新购/续订后重置「取消订阅」意图
+                    'vip_auto_renew'         => 1,
+                    'vip_cancel_reason'      => '',
+                    'vip_cancel_description' => '',
+                    'vip_cancel_at'          => null,
+                ]);
 
             $db->commit();
         } catch (\Throwable $e) {
