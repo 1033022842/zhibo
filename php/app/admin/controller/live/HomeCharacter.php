@@ -13,6 +13,9 @@ use app\admin\model\live\HomeCharacter as CharacterModel;
 
 final class HomeCharacter extends Backend
 {
+    /** 首页分类（与前台 Tab 对应）：key => 展示名 */
+    public const CATEGORIES = ['girls' => 'Girls', 'anime' => 'Anime', 'guys' => 'Guys'];
+
     protected object $model;
 
     protected array $noNeedLogin = ['index', 'detailJson', 'add', 'edit', 'delete'];
@@ -35,7 +38,8 @@ final class HomeCharacter extends Backend
     {
         $keyword = trim((string)$this->request->param('search', ''));
         $status  = $this->request->param('status', '');
-        $section = trim((string)$this->request->param('section', ''));
+        $section  = trim((string)$this->request->param('section', ''));
+        $category = trim((string)$this->request->param('category', ''));
 
         $query = $this->model;
         if ($keyword !== '') {
@@ -53,6 +57,9 @@ final class HomeCharacter extends Backend
                 ? $query->where('section', '')
                 : $query->where('section', $section);
         }
+        if ($category !== '' && isset(self::CATEGORIES[$category])) {
+            $query = $query->where('category', $category);
+        }
 
         $list = $query->order('weigh', 'desc')->order('id', 'desc')->paginate(15);
 
@@ -67,7 +74,7 @@ final class HomeCharacter extends Backend
         $sections = $this->model->where('section', '<>', '')
             ->distinct(true)->order('section', 'asc')->column('section');
 
-        $html = $this->renderPage($list, $stats, $sections);
+        $html = $this->renderPage($list, $stats, $sections, $category);
         response($html)->send();
         exit;
     }
@@ -218,10 +225,20 @@ final class HomeCharacter extends Backend
             'tags'        => $tags,
             'section'     => trim((string)$this->request->post('section', '')),
             'link_url'    => $link,
+            'category'    => $this->categoryPost(),
             'is_adult'    => (int)$this->request->post('is_adult/d', 0) === 1 ? 1 : 0,
             'weigh'       => (int)$this->request->post('weigh/d', 0),
             'status'      => (int)$this->request->post('status/d', 1) === 1 ? 1 : 0,
         ];
+    }
+
+    /**
+     * 读取并校验表单分类（白名单外一律归入 girls）
+     */
+    private function categoryPost(): string
+    {
+        $category = strtolower(trim((string)$this->request->post('category', 'girls')));
+        return isset(self::CATEGORIES[$category]) ? $category : 'girls';
     }
 
     /**
@@ -237,7 +254,7 @@ final class HomeCharacter extends Backend
         return implode(',', array_unique($parts));
     }
 
-    private function renderPage($list, array $stats, array $sections = []): string
+    private function renderPage($list, array $stats, array $sections = [], string $category = ''): string
     {
         $rows = '';
         foreach ($list->items() as $row) {
@@ -248,6 +265,9 @@ final class HomeCharacter extends Backend
             $weigh   = (int)$row['weigh'];
             $adult   = (int)$row['is_adult'];
             $status  = (int)$row['status'];
+            $catRaw  = (string)($row['category'] ?? 'girls');
+            if (!isset(self::CATEGORIES[$catRaw])) { $catRaw = 'girls'; }
+            $catHtml = '<span class="cat-chip cat-' . $catRaw . '">' . self::CATEGORIES[$catRaw] . '</span>';
             $time    = $row['updated_at'] ? substr((string)$row['updated_at'], 0, 16) : '-';
 
             $tags = array_filter(array_map('trim', explode(',', (string)$row['tags'])), static fn($s) => $s !== '');
@@ -285,6 +305,7 @@ final class HomeCharacter extends Backend
                 </td>
                 <td><div class="cell-clamp">{$tagline}</div></td>
                 <td><div class="tag-list">{$tagsHtml}</div></td>
+                <td class="td-center">{$catHtml}</td>
                 <td>{$sectionHtml}</td>
                 <td class="td-center">{$adultHtml}</td>
                 <td class="td-center">{$weigh}</td>
@@ -305,7 +326,7 @@ final class HomeCharacter extends Backend
         }
 
         if ($rows === '') {
-            $rows = '<tr><td colspan="10"><div class="empty-tip">暂无推荐角色，点击右上角「新增角色」添加</div></td></tr>';
+            $rows = '<tr><td colspan="11"><div class="empty-tip">暂无推荐角色，点击右上角「新增角色」添加</div></td></tr>';
         }
 
         $pager = $list->render();
@@ -315,6 +336,11 @@ final class HomeCharacter extends Backend
         $statusAll  = $statusVal === '' ? 'selected' : '';
         $status1    = (string)$statusVal === '1' ? 'selected' : '';
         $status0    = (string)$statusVal === '0' ? 'selected' : '';
+        $catVals = array_fill_keys(['girls', 'anime', 'guys'], '');
+        if (isset($catVals[$category])) { $catVals[$category] = 'selected'; }
+        $catSelGirls = $catVals['girls'];
+        $catSelAnime = $catVals['anime'];
+        $catSelGuys  = $catVals['guys'];
 
         $sectionVal   = trim((string)$this->request->param('section', ''));
         $sectionAll   = $sectionVal === '' ? 'selected' : '';
@@ -397,6 +423,10 @@ final class HomeCharacter extends Backend
                 .tag-list{display:flex;flex-wrap:wrap;gap:5px}
                 .tag-chip{padding:3px 9px;border-radius:999px;background:#f4ecfe;border:1px solid #e4d4fb;color:#7c3aed;font-size:12px;white-space:nowrap}
                 .section-chip{padding:3px 9px;border-radius:999px;background:#eef0ff;border:1px solid #d9defb;color:#4f46e5;font-size:12px;white-space:nowrap}
+                .cat-chip{display:inline-flex;align-items:center;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:600}
+                .cat-girls{background:#fdeef2;color:#e11d48}
+                .cat-anime{background:#eef0ff;color:#4f46e5}
+                .cat-guys{background:#e6f7f1;color:#059669}
                 .adult-chip{padding:3px 10px;border-radius:999px;background:#fdeef2;border:1px solid #f7c9d6;color:#e11d48;font-size:12px;font-weight:600}
 
                 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600}
@@ -483,6 +513,12 @@ final class HomeCharacter extends Backend
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <input name="search" placeholder="搜索角色名 / 简介 / 标签" value="{$keywordVal}">
                     </div>
+                    <select name="category">
+                        <option value="">全部分类</option>
+                        <option value="girls" {$catSelGirls}>Girls（女生）</option>
+                        <option value="anime" {$catSelAnime}>Anime（动漫）</option>
+                        <option value="guys" {$catSelGuys}>Guys（男生）</option>
+                    </select>
                     <select name="status">
                         <option value="" {$statusAll}>全部状态</option>
                         <option value="1" {$status1}>启用</option>
@@ -501,7 +537,7 @@ final class HomeCharacter extends Backend
                     <div class="table-wrap">
                         <table>
                             <thead><tr>
-                                <th>ID</th><th>角色</th><th>简介</th><th>标签</th><th>板块</th><th>18+</th><th>权重</th><th>状态</th><th>更新时间</th><th>操作</th>
+                                <th>ID</th><th>角色</th><th>简介</th><th>标签</th><th>分类</th><th>板块</th><th>18+</th><th>权重</th><th>状态</th><th>更新时间</th><th>操作</th>
                             </tr></thead>
                             <tbody>{$rows}</tbody>
                         </table>
@@ -526,6 +562,15 @@ final class HomeCharacter extends Backend
                             <div class="form-field">
                                 <label>年龄</label>
                                 <input type="text" id="fAge" maxlength="20" placeholder="例如 22" />
+                            </div>
+                            <div class="form-field full">
+                                <label>所属分类</label>
+                                <select id="fCategory">
+                                    <option value="girls">Girls（女生）</option>
+                                    <option value="anime">Anime（动漫）</option>
+                                    <option value="guys">Guys（男生）</option>
+                                </select>
+                                <div class="hint">首页顶部 Tab 分类：Girls / Anime / Guys，角色只出现在对应 Tab</div>
                             </div>
                             <div class="form-field full">
                                 <label>一句话简介 <span class="req">*</span></label>
@@ -612,6 +657,7 @@ final class HomeCharacter extends Backend
                 document.getElementById('fDesc').value = '';
                 document.getElementById('fTags').value = '';
                 document.getElementById('fSection').value = '';
+                document.getElementById('fCategory').value = 'girls';
                 document.getElementById('fLink').value = '';
                 document.getElementById('fWeigh').value = '0';
                 document.getElementById('fAdult').value = '0';
@@ -639,6 +685,7 @@ final class HomeCharacter extends Backend
                         document.getElementById('fDesc').value = p.description || '';
                         document.getElementById('fTags').value = p.tags || '';
                         document.getElementById('fSection').value = p.section || '';
+                        document.getElementById('fCategory').value = p.category && ['girls','anime','guys'].indexOf(p.category) > -1 ? p.category : 'girls';
                         document.getElementById('fLink').value = p.link_url || '';
                         document.getElementById('fWeigh').value = p.weigh || 0;
                         document.getElementById('fAdult').value = String(p.is_adult || 0);
@@ -672,6 +719,7 @@ final class HomeCharacter extends Backend
                 fd.append('description', document.getElementById('fDesc').value.trim());
                 fd.append('tags', document.getElementById('fTags').value.trim());
                 fd.append('section', document.getElementById('fSection').value.trim());
+                fd.append('category', document.getElementById('fCategory').value);
                 fd.append('link_url', document.getElementById('fLink').value.trim());
                 fd.append('weigh', document.getElementById('fWeigh').value || 0);
                 fd.append('is_adult', document.getElementById('fAdult').value);
