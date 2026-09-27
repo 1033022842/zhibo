@@ -51,6 +51,7 @@ PHP_FILES = [
     "php/app/live/service/StarPayService.php",
     "php/app/live/service/FlowPayService.php",
     "php/app/live/service/RechargeService.php",
+    "php/app/live/service/UserService.php",
     "php/app/live/service/VipService.php",
     "php/app/live/service/QuotaService.php",
     "php/app/live/service/WalletService.php",
@@ -62,6 +63,7 @@ PHP_FILES = [
     "php/app/api/controller/Shorts.php",
     "php/app/api/controller/Shop.php",
     "php/app/api/route/recharge.php",
+    "php/route/live.php",
     "php/app/command/EthRechargeScanCron.php",
     "php/config/console.php",
     "php/sql/upgrade_eth_recharge.sql",
@@ -93,6 +95,7 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/js/shorts.js",
     "ai-girl-malaysia.com/setting.html",
     "ai-girl-malaysia.com/js/settings.js",
+    "ai-girl-malaysia.com/js/settings-page.js",
 ]
 
 # setting.html 新版式用到的存档资源目录（settings_files/ 为扁平目录，随 static 一起上传）
@@ -1170,12 +1173,16 @@ def main():
             cmd = sys.argv[2] if len(sys.argv) > 2 else "echo hi"
             run(cli, buf, "执行命令（诊断用）", cmd + "\n", timeout=180)
         elif action == "settings":
-            # 只部署设置页新版式：setting.html + js/settings.js + settings_files/
+            # 只部署设置页新版式：setting.html + js/settings*.js + settings_files/
             for rel in ["ai-girl-malaysia.com/setting.html",
-                        "ai-girl-malaysia.com/js/settings.js"]:
+                        "ai-girl-malaysia.com/js/settings.js",
+                        "ai-girl-malaysia.com/js/settings-page.js"]:
                 upload_file(sftp, buf, rel, REMOTE + "/" + rel, ".bak_settings_" + STAMP)
             for rel, remote_dir in STATIC_DIRS:
                 upload_dir(sftp, buf, rel, remote_dir)
+            run(cli, buf, "PHP 语法检查（设置页相关）",
+                "php -l %s/app/live/service/UserService.php; php -l %s/app/api/controller/Live.php; php -l %s/route/live.php\n"
+                % (PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
         elif action == "sqlrun":
             sql = sys.argv[2] if len(sys.argv) > 2 else "SELECT 1;"
             run(cli, buf, "执行 SQL（临时，慎用）",

@@ -11,6 +11,7 @@ use app\common\exception\BusinessException;
 use app\common\util\StrHelper;
 use app\common\web\ResultCode;
 use think\facade\Db;
+use think\facade\Log;
 
 final class UserService
 {
@@ -234,5 +235,127 @@ final class UserService
             }
             $profile->save();
         }
+    }
+
+    /**
+     * 修改密码（新版设置页 Edit Password）：需要校验原密码
+     */
+    public function changePassword(int $userId, string $currentPassword, string $newPassword): void
+    {
+        if ($currentPassword === '' || $newPassword === '') {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '原密码与新密码都不能为空');
+        }
+        $len = strlen($newPassword);
+        if ($len < 6 || $len > 20) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '新密码长度为6-20个字符');
+        }
+
+        $auths = UserAuth::where('user_id', $userId)->select();
+        if ($auths->isEmpty()) {
+            throw new BusinessException(ResultCode::USER_NOT_FOUND);
+        }
+
+        $matched = false;
+        foreach ($auths as $auth) {
+            if (verify_password($currentPassword, (string)$auth->password_hash)) {
+                $matched = true;
+                break;
+            }
+        }
+        if (!$matched) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, '原密码错误');
+        }
+
+        // 同一账号可能同时有邮箱与用户名两种认证，统一改成新密码
+        foreach ($auths as $auth) {
+            $auth->password_hash = hash_password($newPassword);
+            $auth->save();
+        }
+    }
+
+    /**
+     * 修改登录邮箱（新版设置页 Edit Email）：需要校验密码
+     */
+    public function changeEmail(int $userId, string $newEmail, string $password): void
+    {
+        $newEmail = trim($newEmail);
+        if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '邮箱格式错误');
+        }
+        if ($password === '') {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '密码不能为空');
+        }
+
+        $auths = UserAuth::where('user_id', $userId)->select();
+        if ($auths->isEmpty()) {
+            throw new BusinessException(ResultCode::USER_NOT_FOUND);
+        }
+
+        $matched = false;
+        foreach ($auths as $auth) {
+            if (verify_password($password, (string)$auth->password_hash)) {
+                $matched = true;
+                break;
+            }
+        }
+        if (!$matched) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, '密码错误');
+        }
+
+        $user = User::find($userId);
+        if (!$user) {
+            throw new BusinessException(ResultCode::USER_NOT_FOUND);
+        }
+
+        $exists = UserAuth::where('auth_type', 'email')->where('auth_key', $newEmail)->find();
+        if ($exists && (int)$exists->user_id !== $userId) {
+            throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
+        }
+
+        Db::startTrans();
+        try {
+            $emailAuth = UserAuth::where('user_id', $userId)->where('auth_type', 'email')->find();
+            if ($emailAuth) {
+                $emailAuth->auth_key = $newEmail;
+                $emailAuth->save();
+            } else {
+                // 之前只用用户名注册的账号：补一条邮箱认证，密码沿用当前密码
+                $emailAuth = new UserAuth();
+                $emailAuth->user_id       = $userId;
+                $emailAuth->auth_type     = 'email';
+                $emailAuth->auth_key      = $newEmail;
+                $emailAuth->password_hash = hash_password($password);
+                $emailAuth->save();
+            }
+
+            $user->email = $newEmail;
+            $user->save();
+
+            Db::commit();
+        } catch (\Throwable $e) {
+            Db::rollback();
+            throw $e;
+        }
+    }
+
+    /**
+     * 注销账户（新版设置页 Danger zone）：禁用登录，保留数据以便追溯
+     */
+    public function deleteAccount(int $userId, string $reason = '', string $description = ''): void
+    {
+        $user = User::find($userId);
+        if (!$user) {
+            throw new BusinessException(ResultCode::USER_NOT_FOUND);
+        }
+
+        $user->status = 0;
+        $user->save();
+
+        Log::info(sprintf(
+            'account deleted: user_id=%d reason=%s description=%s',
+            $userId,
+            $reason === '' ? '-' : $reason,
+            $description === '' ? '-' : $description
+        ));
     }
 }

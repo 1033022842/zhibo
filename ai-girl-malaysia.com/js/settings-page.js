@@ -1,0 +1,409 @@
+/**
+ * setting.html（新版设置页）功能适配
+ *
+ * 存档页原本由 candy.ai 服务端渲染、并把各种表单提交到 /current_user、/password_change、
+ * /delete_user、/user_locale/edit 等端点。这里是静态克隆，那些端点并不存在（点了只会 404），
+ * 所以统一改接到站点自己的接口：
+ *
+ *   回填资料   GET  /api/live/profile + POST /api/live/userInfo
+ *   昵称/性别  PUT  /api/live/updateProfile
+ *   改密码     POST /api/live/changePassword
+ *   改邮箱     POST /api/live/changeEmail
+ *   删除账户   POST /api/live/deleteAccount
+ *   退出登录   POST /api/live/logout
+ *   语言切换   写 googtrans cookie + Google 翻译（与 shell-new.js 的语言菜单同一套机制）
+ *
+ * 注意 1：这台服务器上带 "-" 的路由匹配不到（/api/live/update-profile 会 404），
+ *         所以接口路径全部用驼峰，写 PUT 时用 POST + _method=PUT 更稳妥。
+ * 注意 2：未登录时不动个人信息卡里的存档快照，只有在登录后才覆盖成真实资料。
+ */
+(function () {
+  'use strict'
+
+  var API = {
+    userInfo:       '/api/live/userInfo',
+    profile:        '/api/live/profile',
+    updateProfile:  '/api/live/updateProfile',
+    changePassword: '/api/live/changePassword',
+    changeEmail:    '/api/live/changeEmail',
+    deleteAccount:  '/api/live/deleteAccount',
+    logout:         '/api/live/logout'
+  }
+
+  // lp_user_profile.gender：0=未知 / 1=男 / 2=女
+  var GENDER_TEXT = { 1: 'Men', 2: 'Women', 0: '' }
+  var GENDER_CODE = { male: 1, female: 2 }
+
+  /* ---------------- 小工具 ---------------- */
+
+  function token() {
+    if (window.LiveAuth && LiveAuth.token) return LiveAuth.token()
+    try { return localStorage.getItem('live_access_token') || '' } catch (e) { return '' }
+  }
+
+  function readJson(key) {
+    try { return JSON.parse(localStorage.getItem(key) || 'null') } catch (e) { return null }
+  }
+
+  function writeJson(key, obj) {
+    try { localStorage.setItem(key, JSON.stringify(obj)) } catch (e) { /* 隐私模式忽略 */ }
+  }
+
+  function toast(msg, ok) {
+    if (window.layer && layer.msg) { layer.msg(msg); return }
+    var el = document.createElement('div')
+    el.textContent = msg
+    el.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);padding:10px 20px;' +
+      'border-radius:8px;font-size:14px;font-weight:600;z-index:99999;color:#fff;background:' +
+      (ok === false ? '#ef4444' : '#10b981')
+    document.body.appendChild(el)
+    setTimeout(function () { el.parentNode.removeChild(el) }, 2600)
+  }
+
+  function loading(on) {
+    if (!window.layer) return
+    if (on) { if (!loading.id) loading.id = layer.load(2) }
+    else if (loading.id) { layer.close(loading.id); loading.id = 0 }
+  }
+
+  /** 带登录态的 JSON 请求；PUT/DELETE 用 POST + _method 伪装，避免个别代理丢方法 */
+  function api(url, data, method) {
+    var m = (method || 'POST').toUpperCase()
+    var target = m === 'POST' ? url : url + '?_method=' + m
+    return fetch(target, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', token: token() },
+      body: JSON.stringify(data || {})
+    }).then(function (r) { return r.json() }).then(function (res) {
+      if (res && (res.code === '00000' || res.code === 1 || res.code === '1')) {
+        return { ok: true, data: res.data, msg: res.msg }
+      }
+      return { ok: false, msg: (res && res.msg) || 'Request failed', code: res && res.code }
+    })
+  }
+
+  function needLogin() {
+    if (token()) return false
+    toast('Please sign in first', false)
+    setTimeout(function () { location.href = './Login.html?redirect=' + encodeURIComponent('./setting.html') }, 800)
+    return true
+  }
+
+  /** 关闭弹窗：存档页里点 .toggle-popup 是"切换 .{名字} 上的 hidden"，这里直接置为隐藏 */
+  function closeModal(name) {
+    var els = document.querySelectorAll('.' + name)
+    for (var i = 0; i < els.length; i++) els[i].classList.add('hidden')
+  }
+
+  /** Save 按钮带着存档页的 loading-button-state 控制器，提交后会锁在 submitting 状态；
+      提交已被我们接管，Turbo 不会再回调，所以每次拿到结果都手动复位 */
+  function resetButton(form) {
+    if (!form) return
+    var btns = form.querySelectorAll('button')
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].setAttribute('data-loading-button-state-is-submitting-value', 'false')
+      btns[i].classList.remove('opacity-50', 'cursor-not-allowed')
+      btns[i].removeAttribute('disabled')
+    }
+  }
+
+  /* ---------------- 个人信息卡 ---------------- */
+
+  /** 按标签文字定位右侧的值节点（存档页这些值没有 id，只能按标签找） */
+  function valueOf(label) {
+    var labels = document.querySelectorAll('div.text-neutral-400')
+    for (var i = 0; i < labels.length; i++) {
+      if ((labels[i].textContent || '').trim() !== label) continue
+      var row = labels[i].parentElement                      // 标签 + 编辑按钮
+      var box = row && row.parentElement                     // 整块：标签行 + 值
+      if (!box) continue
+      var vs = box.querySelectorAll('div.text-white.truncate')
+      if (vs.length) return vs[vs.length - 1]
+      return box.lastElementChild
+    }
+    return null
+  }
+
+  function setValue(label, text) {
+    var el = valueOf(label)
+    if (el) el.textContent = text || ''
+  }
+
+  function avatarEl() {
+    var imgs = document.querySelectorAll('img.rounded-full')
+    for (var i = 0; i < imgs.length; i++) {
+      if ((imgs[i].className || '').indexOf('w-[100px]') >= 0) return imgs[i]
+    }
+    return imgs[0] || null
+  }
+
+  function fillProfile(d) {
+    d = d || {}
+    if (d.nickname) setValue('Nickname', d.nickname)
+    if (d.email) setValue('Email', d.email)
+    if (d.hasOwnProperty('gender')) setValue('Gender', GENDER_TEXT[parseInt(d.gender, 10)] || '')
+
+    var el = avatarEl()
+    if (el && d.avatar) el.src = d.avatar
+
+    var nick = document.getElementById('user_nickname')
+    if (nick && d.nickname) nick.value = d.nickname
+    var mail = document.getElementById('user_email')
+    if (mail && d.email) mail.value = d.email
+    var gender = document.getElementById('user_gender')
+    if (gender && d.hasOwnProperty('gender')) {
+      gender.value = parseInt(d.gender, 10) === 2 ? 'female' : 'male'
+    }
+  }
+
+  /** 把改完的结果同步进本地会话，其它页面不用重新登录就能拿到新昵称 */
+  function patchSession(patch) {
+    ['live_user_info', 'live_user'].forEach(function (k) {
+      var u = readJson(k)
+      if (!u || typeof u !== 'object') return
+      Object.keys(patch).forEach(function (f) { u[f] = patch[f] })
+      writeJson(k, u)
+    })
+  }
+
+  function loadUser() {
+    if (!token()) return
+    fetch(API.profile, { headers: { token: token() } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        if (!res || res.code !== '00000' || !res.data) return
+        fillProfile(res.data)
+      })
+      .catch(function () { /* 拉取失败保持原样 */ })
+
+    fetch(API.userInfo, { method: 'POST', headers: { token: token() } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        if (!res || res.code !== '00000' || !res.data) return
+        fillProfile({ nickname: res.data.username, email: res.data.email, avatar: res.data.avatar })
+      })
+      .catch(function () { /* 同上 */ })
+  }
+
+  /* ---------------- 昵称 / 性别 ----------------
+     注意：页面里有两个 id="edit_user"（另一个是开关表单），
+     所以必须用弹窗容器限定，不能 getElementById。 */
+
+  function bindNickname() {
+    var form = document.querySelector('#edit-nickname-form form')
+    if (!form) return
+    form.addEventListener('submit', function (e) {
+      e.preventDefault()
+      if (needLogin()) return
+
+      var nickname = (document.getElementById('user_nickname') || {}).value || ''
+      nickname = nickname.trim()
+      if (!nickname) { toast('Nickname is required', false); return }
+
+      var g = (document.getElementById('user_gender') || {}).value
+      var payload = { nickname: nickname, gender: GENDER_CODE[g] || 1 }
+
+      loading(true)
+      api(API.updateProfile, payload, 'PUT').then(function (r) {
+        loading(false)
+        resetButton(form)
+        if (!r.ok) { toast(r.msg, false); return }
+        toast('Saved', true)
+        fillProfile(payload)
+        patchSession({ username: nickname, gender: payload.gender })
+        closeModal('nickname-modal')
+      })
+    })
+  }
+
+  /* ---------------- 密码 ---------------- */
+
+  function bindPassword() {
+    var form = document.querySelector('#password-change-form form')
+    if (!form) return
+    form.addEventListener('submit', function (e) {
+      e.preventDefault()
+      if (needLogin()) return
+
+      var oldPwd = (document.getElementById('user_current_password') || {}).value || ''
+      var newPwd = (document.getElementById('user_password') || {}).value || ''
+      if (!oldPwd) { toast('Old password is required', false); return }
+      if (newPwd.length < 6 || newPwd.length > 20) { toast('New password must be 6-20 characters', false); return }
+
+      loading(true)
+      api(API.changePassword, { current_password: oldPwd, password: newPwd }).then(function (r) {
+        loading(false)
+        resetButton(form)
+        if (!r.ok) { toast(r.msg, false); return }
+        toast('Password updated', true)
+        document.getElementById('user_current_password').value = ''
+        document.getElementById('user_password').value = ''
+        closeModal('password-modal')
+      })
+    })
+  }
+
+  /* ---------------- 邮箱 ----------------
+     存档页的邮箱弹窗只有邮箱一个输入框，改登录邮箱不带密码确认不安全，
+     这里按页面既有的输入框样式补一个 Current Password 字段（只在点开弹窗后可见）。 */
+
+  function ensureEmailPasswordField() {
+    var email = document.getElementById('user_email')
+    if (!email || document.getElementById('fy_email_password')) return
+    var box = email.parentElement
+    if (!box) return
+    var wrap = document.createElement('div')
+    wrap.className = 'self-stretch flex-col justify-start items-start gap-1.5 flex relative mt-3'
+    wrap.innerHTML =
+      '<div class="w-5 h-5 absolute top-[13px] left-[10px]">' +
+      '<img src="./settings_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">' +
+      '</div>' +
+      '<input id="fy_email_password" type="password" placeholder="Current Password" required ' +
+      'class="w-full self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow-2xs border border-gray-300 ' +
+      'justify-start items-center gap-2 inline-flex text-white bg-stone-900">'
+    box.parentElement.appendChild(wrap)
+  }
+
+  function bindEmail() {
+    var form = document.querySelector('#email-edit-form form')
+    if (!form) return
+    ensureEmailPasswordField()
+    form.addEventListener('submit', function (e) {
+      e.preventDefault()
+      if (needLogin()) return
+
+      var email = ((document.getElementById('user_email') || {}).value || '').trim()
+      var pwd = (document.getElementById('fy_email_password') || {}).value || ''
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Email is invalid', false); return }
+      if (!pwd) { toast('Current password is required', false); return }
+
+      loading(true)
+      api(API.changeEmail, { email: email, password: pwd }).then(function (r) {
+        loading(false)
+        resetButton(form)
+        if (!r.ok) { toast(r.msg, false); return }
+        toast('Email updated', true)
+        setValue('Email', email)
+        patchSession({ email: email })
+        var pwdEl = document.getElementById('fy_email_password')
+        if (pwdEl) pwdEl.value = ''
+        closeModal('email-modal')
+      })
+    })
+  }
+
+  /* ---------------- 删除账户 ----------------
+     同样有两个 id="delete_account"（第二个才是最终确认表单），取带提交按钮的那个 */
+
+  function deleteForm() {
+    var forms = document.querySelectorAll('form#delete_account')
+    for (var i = 0; i < forms.length; i++) {
+      if (forms[i].querySelector('button[type="submit"]')) return forms[i]
+    }
+    return forms[forms.length - 1] || null
+  }
+
+  function bindDeleteAccount() {
+    var form = deleteForm()
+    if (!form) return
+    form.addEventListener('submit', function (e) {
+      e.preventDefault()
+      if (needLogin()) return
+
+      var reason = (document.getElementById('reason') || {}).value || ''
+      var desc = (document.getElementById('description') || {}).value || ''
+
+      loading(true)
+      api(API.deleteAccount, { reason: reason, description: desc }).then(function (r) {
+        loading(false)
+        resetButton(form)
+        if (!r.ok) { toast(r.msg, false); return }
+        toast('Account deleted', true)
+        if (window.LiveAuth && LiveAuth.clear) LiveAuth.clear()
+        setTimeout(function () { location.href = './Login.html' }, 900)
+      })
+    })
+  }
+
+  /* ---------------- 退出登录 ---------------- */
+
+  function logout() {
+    loading(true)
+    api(API.logout, {}).then(function () {
+      loading(false)
+      if (window.LiveAuth && LiveAuth.clear) LiveAuth.clear()
+      else {
+        try {
+          localStorage.removeItem('live_access_token')
+          localStorage.removeItem('live_refresh_token')
+          localStorage.removeItem('live_token_expires_at')
+          localStorage.removeItem('live_user_info')
+          localStorage.removeItem('live_user')
+        } catch (err) { /* 忽略 */ }
+      }
+      location.href = './Login.html'
+    })
+  }
+
+  function bindLogout() {
+    // 存档页的退出是 POST /users/sign_out；两侧边栏会被 shell-new.js 换掉，这里只是兜底
+    document.addEventListener('submit', function (e) {
+      var f = e.target
+      if (!f || f.tagName !== 'FORM') return
+      if ((f.getAttribute('action') || '') !== '/users/sign_out') return
+      e.preventDefault()
+      logout()
+    }, true)
+  }
+
+  /* ---------------- 语言切换 ---------------- */
+
+  function currentLang() {
+    var m = document.cookie.match(/(?:^|;\s*)googtrans=([^;]*)/)
+    if (!m) return 'en'
+    var parts = decodeURIComponent(m[1]).split('/')
+    return parts[parts.length - 1] || 'en'
+  }
+
+  function switchLang(code) {
+    var value = '/en/' + code
+    document.cookie = 'googtrans=' + value + ';path=/'
+    if (location.hostname.indexOf('.') > -1) {
+      document.cookie = 'googtrans=' + value + ';path=/;domain=.' + location.hostname
+    }
+    try { localStorage.setItem('agigpt-lang', location.href.split('#')[0]) } catch (e) { /* 忽略 */ }
+    location.hash = '#googtrans(en|' + code + ')'
+    location.reload()
+  }
+
+  function bindLanguage() {
+    document.addEventListener('submit', function (e) {
+      var f = e.target
+      if (!f || f.tagName !== 'FORM') return
+      if ((f.getAttribute('action') || '') !== '/user_locale/edit') return
+      e.preventDefault()
+      var input = f.querySelector('input[name="new_locale"]')
+      var code = input ? input.value : ''
+      if (!code || code === currentLang()) return
+      switchLang(code)
+    }, true)
+  }
+
+  /* ---------------- 启动 ---------------- */
+
+  function init() {
+    bindNickname()
+    bindPassword()
+    bindEmail()
+    bindDeleteAccount()
+    bindLogout()
+    bindLanguage()
+    loadUser()
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init)
+  } else {
+    init()
+  }
+})()
