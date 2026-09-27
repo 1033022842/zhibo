@@ -43,6 +43,19 @@
             .catch(function(){ /* 拉取失败保持 0，不影响页面 */ })
     }
 
+    /* 会话落地：access_token / refresh_token / 到期时间 一起存。
+       旧代码只存了 access_token，2 小时过期后无法续期，只能重新登录 */
+    function saveSession(data) {
+        if (window.LiveAuth) { LiveAuth.save(data, true); return }
+        if (data && data.access_token) { localStorage.setItem('live_access_token', data.access_token) }
+    }
+
+    function clearSession() {
+        if (window.LiveAuth) { LiveAuth.clear(); return }
+        localStorage.removeItem('live_access_token')
+        localStorage.removeItem('live_user_info')
+    }
+
     function initMain() {
         var token = localStorage.getItem('live_access_token')
         var usercode = localStorage.getItem('code')
@@ -106,8 +119,7 @@
       if (this.checkValidity()) { login() }
     })
     $(document).on('click', '.logout, #logout', function() {
-      localStorage.removeItem('live_access_token')
-      localStorage.removeItem('live_user_info')
+      clearSession()
       location.reload()
     })
 
@@ -185,7 +197,7 @@
               email: res.data.user.email || ''
             }
             localStorage.setItem('live_user_info', JSON.stringify(userinfo))
-            localStorage.setItem('live_access_token', res.data.access_token)
+            saveSession(res.data)
             token = res.data.access_token
            layer.msg('Registration successful')
             setTimeout(() => {
@@ -228,7 +240,7 @@
               email: res.data.user.email || ''
             }
             localStorage.setItem('live_user_info', JSON.stringify(userinfo))
-            localStorage.setItem('live_access_token', res.data.access_token)
+            saveSession(res.data)
             token = res.data.access_token
            layer.msg('Login successful')
             setTimeout(function() {
