@@ -486,13 +486,243 @@
     if (chipBtn) chipBtn.setAttribute('aria-expanded', 'false')
   }
 
+  /* ---------- 会话管理：token 续期 + 登录态同步 ----------
+   * 背景：access_token 只有 2 小时（服务端 JwtService ACCESS_TTL），
+   *      而前端一直没使用 7 天有效的 refresh_token 续期，
+   *      且登录态 UI 只看 localStorage 里有没有 token、不校验有效性，
+   *      结果就是「token 悄悄过期、界面还显示已登录，点什么都报 Session expired」。
+   */
+  var LiveAuth = (function () {
+    var K_TOKEN   = 'live_access_token'
+    var K_REFRESH = 'live_refresh_token'
+    var K_EXPIRE  = 'live_token_expires_at'
+    var REFRESH_URL = '/api/live/refreshToken'   // 注意是驼峰：下划线形式 /refresh_token 会 404
+    var THRESHOLD = 10 * 60 * 1000   // 剩余不足 10 分钟就提前续期
+    var RELOAD_WINDOW = 20 * 1000    // 自动重载的最小间隔
+    var MAX_RELOADS = 2              // 单个标签页内自动重载次数上限，避免个别接口持续报未登录时反复重载
+    var K_RELOAD_AT = 'live_auth_reload_at'
+    var K_RELOAD_CNT = 'live_auth_reload_cnt'
+    var pending = null
+
+    function read(k) { try { return localStorage.getItem(k) || '' } catch (e) { return '' } }
+    function write(k, v) { try { localStorage.setItem(k, v) } catch (e) { /* 隐私模式下忽略 */ } }
+    function drop(k) { try { localStorage.removeItem(k) } catch (e) { /* 隐私模式下忽略 */ } }
+    function readS(k) { try { return sessionStorage.getItem(k) || '' } catch (e) { return '' } }
+    function writeS(k, v) { try { sessionStorage.setItem(k, v) } catch (e) { /* 忽略 */ } }
+    function dropS(k) { try { sessionStorage.removeItem(k) } catch (e) { /* 忽略 */ } }
+
+    function token() { return read(K_TOKEN) }
+    function hasRefresh() { return !!read(K_REFRESH) }
+
+    function canReload() {
+      if ((parseInt(readS(K_RELOAD_CNT), 10) || 0) >= MAX_RELOADS) return false
+      return Date.now() - (parseInt(readS(K_RELOAD_AT), 10) || 0) > RELOAD_WINDOW
+    }
+
+    function markReload() {
+      writeS(K_RELOAD_AT, String(Date.now()))
+      writeS(K_RELOAD_CNT, String((parseInt(readS(K_RELOAD_CNT), 10) || 0) + 1))
+    }
+
+    function resetReloadGuard() {
+      dropS(K_RELOAD_AT)
+      dropS(K_RELOAD_CNT)
+    }
+
+    /** 从 JWT 自身解析 exp（毫秒）；解析失败返回 0 */
+    function tokenExp() {
+      var parts = read(K_TOKEN).split('.')
+      if (parts.length < 2) return 0
+      try {
+        var pad = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        while (pad.length % 4) pad += '='
+        var exp = parseInt(JSON.parse(atob(pad)).exp, 10)
+        return exp > 0 ? exp * 1000 : 0
+      } catch (e) {
+        return 0
+      }
+    }
+
+    /** 剩余有效毫秒；以 JWT 自身的 exp 为准，取不到再退回本地记录的时间；都没有返回 null */
+    function remain() {
+      var jwtExp = tokenExp()
+      if (jwtExp > 0) return jwtExp - Date.now()
+      var v = parseInt(read(K_EXPIRE), 10)
+      return v > 0 ? v - Date.now() : null
+    }
+
+    function expired() {
+      var r = remain()
+      return r !== null && r <= 0
+    }
+
+    /** 登录/注册成功后落地整个会话（含 refresh_token 与到期时间） */
+    function save(data, isLogin) {
+      if (!data || !data.access_token) return
+      write(K_TOKEN, data.access_token)
+      if (data.refresh_token) write(K_REFRESH, data.refresh_token)
+      var ttl = parseInt(data.expires_in, 10)
+      if (ttl > 0) write(K_EXPIRE, String(Date.now() + ttl * 1000))
+      else drop(K_EXPIRE)
+      if (isLogin) resetReloadGuard()   // 重新登录后清掉自动重载的节流计数
+    }
+
+    function clear() {
+      drop(K_TOKEN)
+      drop(K_REFRESH)
+      drop(K_EXPIRE)
+      drop('live_user_info')
+      drop('live_user')
+    }
+
+    /** 续期：同一标签页内单飞；跨标签页用 localStorage 锁避让，
+     *  因为服务端 refresh 会轮换 refresh_token，两个标签页同时刷会让其中一个失效 */
+    function refresh() {
+      if (pending) return pending
+      pending = doRefresh(false).then(function (ok) { pending = null; return ok })
+      return pending
+    }
+
+    var K_LOCK = 'live_token_refresh_lock'
+
+    function wait(ms) {
+      return new Promise(function (resolve) { setTimeout(resolve, ms) })
+    }
+
+    function doRefresh(retried) {
+      var rt = read(K_REFRESH)
+      if (!rt) return Promise.resolve(false)
+
+      var lockTs = parseInt(read(K_LOCK), 10)
+      if (!retried && lockTs > 0 && Date.now() - lockTs < 15000) {
+        // 另一个标签页正在续期：等它把新 token 写进来
+        return wait(1500).then(function () {
+          var r = remain()
+          if (r !== null && r > THRESHOLD) return true
+          return doRefresh(true)
+        })
+      }
+      write(K_LOCK, String(Date.now()))
+
+      return fetch(REFRESH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: rt })
+      }).then(function (r) { return r.json() }).then(function (res) {
+        if (res && res.code === '00000' && res.data && res.data.access_token) {
+          save(res.data)
+          return true
+        }
+        return false
+      }).catch(function () { return false })
+    }
+
+    /** 接口返回 A0100/A0101 时的统一处理 */
+    function onUnauthorized() {
+      if (!token()) return
+
+      // 本地已经是新鲜 token（刚被本页或其他标签页续过），只是本页脚本还在用旧的：直接重载
+      var r = remain()
+      if (r !== null && r > THRESHOLD) {
+        if (canReload()) { markReload(); location.reload() }
+        return
+      }
+
+      var before = token()
+      refresh().then(function (ok) {
+        if (!ok) {
+          // refresh_token 也过期/被吊销：清会话并把界面同步成未登录
+          clear()
+          syncAuth()
+          if (window.layer && layer.msg) layer.msg('Session expired. Please sign in again.')
+          return
+        }
+        if (token() === before) return          // 没换来新 token（别的标签页刚续过），无需重载
+        if (!canReload()) return                // 重载次数已达上限仍报未登录：不是 token 的问题，不再折腾
+        markReload()
+        location.reload()                       // 整页重载一次，让各页面脚本用新 token 重新取数
+      })
+    }
+
+    /** 页面加载与定时巡检：快到期就提前续，续不动就同步成未登录态 */
+    function ensureFresh() {
+      if (!token()) return
+      var r = remain()
+      if (r === null || r > THRESHOLD) return
+      refresh().then(function (ok) {
+        if (!ok) { clear(); syncAuth() }
+      })
+    }
+
+    return {
+      token: token,
+      hasRefresh: hasRefresh,
+      remain: remain,
+      expired: expired,
+      save: save,
+      clear: clear,
+      refresh: refresh,
+      onUnauthorized: onUnauthorized,
+      ensureFresh: ensureFresh
+    }
+  })()
+  window.LiveAuth = LiveAuth
+
+  /* ---------- 未登录统一拦截：任何 /api 响应带 A0100/A0101 都触发续期或同步 ---------- */
+  function isAuthError(res) {
+    if (!res || typeof res !== 'object') return false
+    var code = String(res.code || '')
+    return code === 'A0100' || code === 'A0101'
+  }
+
+  function inspectText(text) {
+    if (typeof text !== 'string' || text.indexOf('A010') < 0) return
+    try { if (isAuthError(JSON.parse(text))) LiveAuth.onUnauthorized() } catch (e) { /* 非 JSON 忽略 */ }
+  }
+
+  function bindAuthWatch() {
+    // jQuery 请求（站内绝大多数接口调用）
+    if (window.jQuery) {
+      jQuery(document).ajaxComplete(function (e, xhr) {
+        if (xhr && typeof xhr.responseText === 'string') inspectText(xhr.responseText)
+      })
+    }
+    // 原生 fetch（shorts.js / purchasePoints.js 等）
+    if (window.fetch && !window.__fyFetchWrapped) {
+      window.__fyFetchWrapped = true
+      var rawFetch = window.fetch.bind(window)
+      window.fetch = function () {
+        var p = rawFetch.apply(null, arguments)
+        p.then(function (resp) {
+          try {
+            if (!resp || !resp.url || resp.url.indexOf('/api/') < 0) return
+            resp.clone().text().then(inspectText).catch(function () { /* 忽略 */ })
+          } catch (e) { /* clone 失败忽略 */ }
+        }, function () { /* 网络错误忽略 */ })
+        return p
+      }
+    }
+  }
+
+  var authTimerStarted = false
+  function startAuthTimer() {
+    if (authTimerStarted) return
+    authTimerStarted = true
+    setInterval(function () { LiveAuth.ensureFresh() }, 5 * 60 * 1000)
+  }
+
   /* ---------- 登录态：与 js/main.js 的 initMain 一致（少数页面没有引 main.js） ---------- */
   function syncAuth() {
-    var token = null
-    try { token = localStorage.getItem('live_access_token') } catch (e) { /* 隐私模式下忽略 */ }
+    var token = LiveAuth.token()
+    // 已过期且没有 refresh_token 可续：直接按未登录渲染，避免「显示已登录但接口全失效」
+    if (token && LiveAuth.expired() && !LiveAuth.hasRefresh()) {
+      LiveAuth.clear()
+      token = ''
+    }
     each('.user-login', token ? 'none' : 'flex')
     each('.login-pf', token ? 'block' : 'none')
     each('.pc-rg-login', token ? 'none' : 'flex')
+
     // 少数页面（Gallery / create）顶栏没有未登录态的 Register/Login 块，右上角保持常显
     var boxes = document.querySelectorAll('.user-login, #user-login')
     var hasLoginBox = false
@@ -576,6 +806,9 @@
     try {
       if (render()) bind()
       syncAuth()
+      bindAuthWatch()
+      LiveAuth.ensureFresh()
+      startAuthTimer()
       if (currentLang() !== 'en') ensureTranslate()
     } finally {
       document.documentElement.classList.remove('fy-shell-pending')
