@@ -15,8 +15,9 @@ final class LlmService
      * 调用 OpenAI 兼容 Chat Completions 接口
      *
      * @param array<int, array{role:string, content:string}> $messages
+     * @param array{max_tokens?:int, temperature?:float, model?:string} $options 覆盖默认生成参数
      */
-    public function chat(array $messages): string
+    public function chat(array $messages, array $options = []): string
     {
         $apiKey = trim((string) config('llm.api_key', ''));
         if ($apiKey === '') {
@@ -24,7 +25,7 @@ final class LlmService
         }
 
         $baseUrl = rtrim((string) config('llm.base_url', 'https://api.openai.com/v1'), '/');
-        $model   = (string) config('llm.model', 'gpt-4o-mini');
+        $model   = (string) ($options['model'] ?? config('llm.model', 'gpt-4o-mini'));
 
         $client = new Client([
             'timeout'         => (int) config('llm.timeout', 60),
@@ -42,8 +43,8 @@ final class LlmService
                 'json' => [
                     'model'       => $model,
                     'messages'    => $messages,
-                    'temperature' => (float) config('llm.temperature', 0.8),
-                    'max_tokens'  => (int) config('llm.max_tokens', 500),
+                    'temperature' => (float) ($options['temperature'] ?? config('llm.temperature', 0.8)),
+                    'max_tokens'  => (int) ($options['max_tokens'] ?? config('llm.max_tokens', 500)),
                 ],
             ]);
         } catch (GuzzleException $e) {

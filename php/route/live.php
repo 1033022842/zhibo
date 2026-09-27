@@ -15,6 +15,9 @@ Route::put('live/update-profile',    '\app\api\controller\Live@updateProfile')->
 Route::post('live/changePassword',   '\app\api\controller\Live@changePassword')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/changeEmail',      '\app\api\controller\Live@changeEmail')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/deleteAccount',    '\app\api\controller\Live@deleteAccount')->middleware(\app\live\middleware\Auth::class);
+// 设置页「Global chat customization」的用户偏好
+Route::get('live/userSettings',      '\app\api\controller\Live@userSettings')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/saveUserSettings', '\app\api\controller\Live@saveUserSettings')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleCreate', '\app\api\controller\Live@customRoleCreate')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);

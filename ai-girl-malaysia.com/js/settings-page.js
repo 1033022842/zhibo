@@ -27,6 +27,9 @@
     changePassword: '/api/live/changePassword',
     changeEmail:    '/api/live/changeEmail',
     deleteAccount:  '/api/live/deleteAccount',
+    userSettings:   '/api/live/userSettings',
+    saveUserSettings: '/api/live/saveUserSettings',
+    vipStatus:      '/api/vip/status',
     logout:         '/api/live/logout'
   }
 
@@ -389,6 +392,144 @@
     }, true)
   }
 
+  /* ---------------- 全局聊天定制 ----------------
+     存档页这部分由 chat-customization 控制器管，保存时提交到 candy 的端点；
+     这里改成读页面控件当前值 → 存到站点 /api/live/saveUserSettings，
+     而站点聊天（Live::chat）会把这些设置真正落进提示词与 max_tokens。 */
+
+  var PREMIUM_PLUS = false
+  var CHAT_SETTINGS = null
+
+  function ccModal() {
+    return document.getElementById('chat-customization-global-modal')
+  }
+
+  function ccTarget(name) {
+    return document.querySelector('[data-chat-customization-target="' + name + '"]')
+  }
+
+  function ccTimezoneSelect() {
+    var m = ccModal()
+    return m ? m.querySelector('[data-action*="lockedTimezoneChange"]') : null
+  }
+
+  function closeChatModal() {
+    var m = ccModal()
+    if (!m) return
+    if (typeof m.close === 'function') {
+      try { m.close(); return } catch (e) { /* 不是 dialog 时退回加 hidden */ }
+    }
+    m.classList.add('hidden')
+  }
+
+  function applyChatSettings(s) {
+    var m = ccModal()
+    if (!m || !s) return
+
+    var model = ccTarget('modelInput')
+    if (model && s.chat_mode) {
+      model.value = s.chat_mode
+      var card = m.querySelector('[data-chat-customization-target="modelCard"][data-model-key="' + s.chat_mode + '"]')
+      // 存档页点卡片会顺带刷新选中态；被锁的卡片点了会弹兜售，跳过
+      if (card && card.dataset.locked !== 'true') card.click()
+    }
+
+    var len = ccTarget('lengthInput')
+    if (len && s.reply_length !== undefined) {
+      len.value = String(s.reply_length)
+      len.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    var nar = ccTarget('narrationInput')
+    if (nar) {
+      var want = Number(s.narration) === 1
+      if (nar.checked !== want) nar.click()
+    }
+
+    var tz = ccTimezoneSelect()
+    if (tz && s.timezone) {
+      // 不派发 change：存档页的 change 处理是 Premium+ 的兜售逻辑，会把值强行拉回 off
+      tz.value = s.timezone
+    }
+  }
+
+  function loadChatSettings() {
+    if (!token()) return
+    fetch(API.userSettings, { headers: { token: token() } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        if (res && res.code === '00000' && res.data) {
+          CHAT_SETTINGS = res.data
+          applyChatSettings(res.data)
+        }
+      })
+      .catch(function () { /* 拉取失败保持存档默认 */ })
+  }
+
+  /** 打开弹窗时补一次回填：chat-customization 控制器 connect 时会把值重置成存档默认 */
+  function bindChatOpen() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-toggle-dialog-dialog-outlet="#chat-customization-global-modal"]')
+      if (!btn || !CHAT_SETTINGS) return
+      setTimeout(function () { applyChatSettings(CHAT_SETTINGS) }, 80)
+    }, true)
+  }
+
+  function loadVipLevel() {
+    if (!token()) return
+    fetch(API.vipStatus, { headers: { token: token() } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        var d = res && (res.code === '00000' || res.code === 1) ? res.data : null
+        PREMIUM_PLUS = !!(d && d.level === 'premium_plus')
+      })
+      .catch(function () { /* 拉取失败按非会员处理 */ })
+  }
+
+  function bindChatSave() {
+    // 捕获阶段拦下存档页自己的保存行为，改成存站点
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-action*="chat-customization#save"]')
+      if (!btn) return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      if (needLogin()) return
+
+      var payload = {}
+      var model = ccTarget('modelInput')
+      if (model) payload.chat_mode = model.value
+      var len = ccTarget('lengthInput')
+      if (len) payload.reply_length = Number(len.value)
+      var nar = ccTarget('narrationInput')
+      if (nar) payload.narration = nar.checked ? 1 : 0
+      var tz = ccTimezoneSelect()
+      if (tz) payload.timezone = tz.value || 'off'
+
+      loading(true)
+      api(API.saveUserSettings, payload).then(function (r) {
+        loading(false)
+        resetButton(btn.parentNode)
+        if (!r.ok) { toast(r.msg, false); return }
+        toast('Saved', true)
+        // 回填服务端生效后的值：非会员选到的 Premium+ 项会被降级
+        if (r.data) {
+          CHAT_SETTINGS = r.data
+          applyChatSettings(r.data)
+        }
+        closeChatModal()
+      })
+    }, true)
+  }
+
+  function bindTimezonePremium() {
+    // 时区感知是 Premium Plus 专属：会员自己改就保留，非会员交给存档页的兜售逻辑
+    document.addEventListener('change', function (e) {
+      if (!PREMIUM_PLUS) return
+      var tz = ccTimezoneSelect()
+      if (tz && e.target === tz) e.stopImmediatePropagation()
+    }, true)
+  }
+
   /* ---------------- 启动 ---------------- */
 
   function init() {
@@ -398,7 +539,12 @@
     bindDeleteAccount()
     bindLogout()
     bindLanguage()
+    bindChatSave()
+    bindChatOpen()
+    bindTimezonePremium()
     loadUser()
+    loadChatSettings()
+    loadVipLevel()
   }
 
   if (document.readyState === 'loading') {
