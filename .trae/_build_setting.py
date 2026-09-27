@@ -417,7 +417,7 @@ NEW_HEAD = '''<!DOCTYPE html>
 <script src="./settings_files/voice_call_addon-da279304726038af10a93380997f2f630ac7817d459ac09f7e097ea0b428e5c1.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./settings_files/alpine-69b009b4309a19f099cf57a5f03edb7fbc7a130fdc6a2e9b34bb32a1ca3ef10d.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./assets/layer/3.1.1/layer.js"></script>
-<script src="./js/settings.js"></script>
+<script src="./js/settings-page.js"></script>
 <script src="./js/event.js"></script>
 <script src="./js/main.js?v=20260921b"></script>
 <script src="./js/shell-new.js?v=20260921b"></script>
@@ -509,10 +509,13 @@ URL_MAP = [
     ("https://candy.ai/characters", "./charactersIndex.html"),
     ("https://candy.ai/tokens", "./purchasePoints.html"),
     ("https://candy.ai/invite", "./Inviter.html"),
-    ("https://candy.ai/", "./index.html"),
 ]
 for a, b in URL_MAP:
     body = body.replace(a, b)
+# 裸根链接（https://candy.ai 或 https://candy.ai/ 后面紧跟引号/问号/井号）→ 站点首页。
+# 必须先于"去域名"，否则 /current_user 这类会被拼成 ./index.htmlcurrent_user
+body = re.sub(r"https://candy\.ai/?(?=[\"'?#])", "./index.html", body)
+# 其余一律去域名，留根相对路径（与旧版 setting.html 的做法一致）
 body = body.replace("https://candy.ai", "").replace("wss://candy.ai", "")
 
 out = NEW_HEAD + body

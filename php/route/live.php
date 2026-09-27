@@ -10,6 +10,11 @@ Route::post('live/logout',           '\app\api\controller\Live@logout')->middlew
 Route::get('live/profile',           '\app\api\controller\Live@profile')->middleware(\app\live\middleware\Auth::class);
 Route::get('live/userInfo',          '\app\api\controller\Live@userInfo')->middleware(\app\live\middleware\Auth::class);
 Route::put('live/update-profile',    '\app\api\controller\Live@updateProfile')->middleware(\app\live\middleware\Auth::class);
+// 新版设置页（setting.html）：改密码 / 改邮箱 / 注销账户
+// 注意这台服务器上带 "-" 的路由匹配不到，所以这里用驼峰
+Route::post('live/changePassword',   '\app\api\controller\Live@changePassword')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/changeEmail',      '\app\api\controller\Live@changeEmail')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/deleteAccount',    '\app\api\controller\Live@deleteAccount')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleCreate', '\app\api\controller\Live@customRoleCreate')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);

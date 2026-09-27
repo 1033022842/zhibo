@@ -9,6 +9,7 @@ use app\common\exception\BusinessException;
 use app\common\service\LlmService;
 use app\common\web\ResultCode;
 use app\live\service\AffectionService;
+use app\live\service\JwtService;
 use app\live\service\UserService;
 use app\live\service\PersonaService;
 use app\live\service\QuotaService;
@@ -19,7 +20,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
     ];
 
     private UserService $userService;
@@ -144,6 +145,51 @@ final class Live extends BaseController
         $this->validate($params, UserValidate::class . '.updateProfile');
         $this->userService->updateProfile($userId, $params);
         return $this->jsonSuccess(null, '更新成功');
+    }
+
+    /**
+     * 修改密码（新版设置页 Edit Password）
+     */
+    public function changePassword()
+    {
+        $userId  = $this->getAuthUserId();
+        $current = (string)$this->request->param('current_password', '');
+        $new     = (string)$this->request->param('password', '');
+        $this->userService->changePassword($userId, $current, $new);
+        return $this->jsonSuccess(null, '密码修改成功');
+    }
+
+    /**
+     * 修改登录邮箱（新版设置页 Edit Email）
+     */
+    public function changeEmail()
+    {
+        $userId   = $this->getAuthUserId();
+        $email    = (string)$this->request->param('email', '');
+        $password = (string)$this->request->param('password', '');
+        $this->userService->changeEmail($userId, $email, $password);
+        return $this->jsonSuccess(null, '邮箱修改成功');
+    }
+
+    /**
+     * 注销账户（新版设置页 Danger zone）：禁用账号并让当前 token 立即失效
+     */
+    public function deleteAccount()
+    {
+        $userId      = $this->getAuthUserId();
+        $reason      = (string)$this->request->param('reason', '');
+        $description = (string)$this->request->param('description', '');
+        $this->userService->deleteAccount($userId, $reason, $description);
+
+        $token = str_replace('Bearer ', '', (string)$this->request->header('Authorization', ''));
+        if ($token === '') {
+            $token = (string)$this->request->header('token', '');
+        }
+        if ($token !== '') {
+            JwtService::blacklist($token, 7200);
+        }
+
+        return $this->jsonSuccess(null, '账号已注销');
     }
 
     /**
