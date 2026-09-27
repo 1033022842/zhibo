@@ -130,17 +130,17 @@
 			.c-row.fade-left.fade-right,.c-chips.fade-left.fade-right{
 				-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%);
 				mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%)}
-			/* 分类 Tab（candy.ai 式：Girls / Anime / Guys） */
-			.c-tabs{position:relative;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 28px;margin:14px 0 10px;flex-wrap:wrap}
-			.c-tab{flex:0 0 auto;height:46px;padding:0 28px;border-radius:9999px;border:2px solid rgba(255,255,255,.14);
-				background:#202020;color:#c9c9c9;font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer;
-				display:inline-flex;align-items:center;gap:8px;transition:all .18s ease}
+						/* 分类 Tab（candy.ai 式：Girls / Anime / Guys，顶栏 logo 后；移动端单独一行） */
+			.c-tabs-h{align-items:center;gap:8px;margin-left:14px}
+			.c-tabs-m{align-items:center;gap:8px;padding:10px 20px 2px;overflow-x:auto;scrollbar-width:none}
+			.c-tabs-m::-webkit-scrollbar{display:none}
+			.c-tab{flex:0 0 auto;height:34px;padding:0 16px;border-radius:9999px;border:1.5px solid rgba(255,255,255,.16);
+				background:#202020;color:#c9c9c9;font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;
+				display:inline-flex;align-items:center;gap:6px;transition:all .18s ease}
 			.c-tab:hover{border-color:rgba(255,255,255,.34);color:#fff}
 			.c-tab.active{background:linear-gradient(135deg,#fc768a,#e65073);border-color:transparent;color:#fff;
-				box-shadow:0 8px 22px rgba(231,82,117,.35)}
-			.c-tab .c-tab-dot{width:8px;height:8px;border-radius:9999px;background:currentColor;opacity:.55;display:none}
-			.c-tab.active .c-tab-dot{display:block;opacity:1}
-			@media (max-width:640px){.c-tab{height:40px;padding:0 20px;font-size:13px}}
+				box-shadow:0 4px 14px rgba(231,82,117,.35)}
+			@media (min-width:1024px){.c-tab{height:38px;padding:0 20px;font-size:14px}}
 
 			/* 滚动箭头：标题行 / chips 行 / 卡片行 */
 			.c-arrow{width:24px;height:24px;padding:0;border:none;background:transparent;color:var(--h-grey);cursor:pointer;
@@ -418,6 +418,12 @@
 			<a href="./Home.html">
 				<img src="sugus-wordmark.png" class="h-[30px] md:h-[30px] w-[115px]">
 			</a>
+			<!-- 分类 Tab：Girls / Anime / Guys（candy.ai 式，logo 后） -->
+			<div class="c-tabs c-tabs-h hidden sm:flex" role="tablist">
+				<button class="c-tab active" type="button" data-cat="girls">Girls</button>
+				<button class="c-tab" type="button" data-cat="anime">Anime</button>
+				<button class="c-tab" type="button" data-cat="guys">Guys</button>
+			</div>
 			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
 
 			<!-- 未登录：注册 / 登录（与其它页面同一层结构：flex-1 撑开把按钮推到右侧） -->
@@ -445,9 +451,8 @@
 		<div class="main-content-container" data-main-target="contentContainer">
 			<main class="ml-0 lg:ml-[100px] mt-3 md:mt-16 lg:mb-0 mb-[76px] h-full">
 				<div class="c-home">
-
-					<!-- 分类 Tab：Girls / Anime / Guys（轮播/列表/板块按分类渲染，数据由后台「分类」字段维护） -->
-					<div class="c-tabs" id="catTabs">
+					<!-- 分类 Tab（移动端）：顶栏放不下，放内容区第一行 -->
+					<div class="c-tabs c-tabs-m sm:hidden" role="tablist">
 						<button class="c-tab active" type="button" data-cat="girls">Girls</button>
 						<button class="c-tab" type="button" data-cat="anime">Anime</button>
 						<button class="c-tab" type="button" data-cat="guys">Guys</button>
@@ -1147,15 +1152,15 @@
 				renderGrid()
 			}
 			CATS.forEach(function(cat) {
-				var tab = document.querySelector('#catTabs .c-tab[data-cat="' + cat + '"]')
-				if (!tab) return
-				tab.addEventListener('click', function() {
-					if (activeCat === cat) return
-					activeCat = cat
-					document.querySelectorAll('#catTabs .c-tab').forEach(function(b) {
-						b.classList.toggle('active', b.getAttribute('data-cat') === cat)
+				document.querySelectorAll('.c-tab[data-cat="' + cat + '"]').forEach(function(tab) {
+					tab.addEventListener('click', function() {
+						if (activeCat === cat) return
+						activeCat = cat
+						document.querySelectorAll('.c-tab[data-cat]').forEach(function(b) {
+							b.classList.toggle('active', b.getAttribute('data-cat') === cat)
+						})
+						renderAll()
 					})
-					renderAll()
 				})
 			})
 
