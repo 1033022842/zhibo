@@ -54,6 +54,8 @@ PHP_FILES = [
     "php/app/live/service/UserService.php",
     "php/app/live/service/UserSettingService.php",
     "php/app/live/model/UserSetting.php",
+    "php/app/live/service/UserPersonaService.php",
+    "php/app/live/model/UserPersona.php",
     "php/app/common/service/LlmService.php",
     "php/app/live/service/VipService.php",
     "php/app/live/service/QuotaService.php",
@@ -72,6 +74,7 @@ PHP_FILES = [
     "php/sql/upgrade_eth_recharge.sql",
     "php/sql/upgrade_short_filters.sql",
     "php/sql/upgrade_user_settings.sql",
+    "php/sql/upgrade_user_persona.sql",
     "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/sql/upgrade_recharge_starpay.sql",
@@ -1186,12 +1189,13 @@ def main():
             for rel, remote_dir in STATIC_DIRS:
                 upload_dir(sftp, buf, rel, remote_dir)
             run(cli, buf, "PHP 语法检查（设置页相关）",
-                "php -l %s/app/live/service/UserService.php; php -l %s/app/api/controller/Live.php; php -l %s/route/live.php\n"
-                % (PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
+                "php -l %s/app/live/service/UserService.php; php -l %s/app/live/service/UserPersonaService.php; php -l %s/app/live/model/UserPersona.php; php -l %s/app/api/controller/Live.php; php -l %s/route/live.php\n"
+                % (PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
         elif action == "sqluser":
-            # 只跑用户偏好设置表迁移（不动其它迁移，避免覆盖后台已调好的数据）
-            run(cli, buf, "用户偏好设置表迁移",
-                DB_ENV + 'set -e\nmysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_user_settings.sql\n',
+            # 只跑设置页相关的迁移（不动其它迁移，避免覆盖后台已调好的数据）
+            run(cli, buf, "用户偏好设置表 + 用户人格表迁移",
+                DB_ENV + 'set -e\nmysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_user_settings.sql\n'
+                + 'mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_user_persona.sql\n',
                 timeout=120)
         elif action == "sqlrun":
             sql = sys.argv[2] if len(sys.argv) > 2 else "SELECT 1;"
