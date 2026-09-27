@@ -214,7 +214,8 @@
     function renderExplore(items) {
         var frame = document.getElementById('candy-shorts-library-grid')
         if (!frame) return
-        var title = frame.previousElementSibling
+        // 用 id 取标题：空结果提示会插在 grid 前面，previousElementSibling 不再可靠
+        var title = document.getElementById('candy-shorts-explore-title')
         var grid = document.getElementById('candy-shorts-library-cards-all-all')
         if (!grid) return
         if (!items.length) {
