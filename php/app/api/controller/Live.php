@@ -11,6 +11,7 @@ use app\common\web\ResultCode;
 use app\live\service\AffectionService;
 use app\live\service\JwtService;
 use app\live\service\UserService;
+use app\live\service\UserSettingService;
 use app\live\service\PersonaService;
 use app\live\service\QuotaService;
 use app\live\service\VipService;
@@ -20,7 +21,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
     ];
 
     private UserService $userService;
@@ -190,6 +191,27 @@ final class Live extends BaseController
         }
 
         return $this->jsonSuccess(null, '账号已注销');
+    }
+
+    /**
+     * 读取用户偏好设置（设置页 Global chat customization）
+     */
+    public function userSettings()
+    {
+        $userId = $this->getAuthUserId();
+        return $this->jsonSuccess((new UserSettingService())->all($userId));
+    }
+
+    /**
+     * 保存用户偏好设置（聊天模式 / 回复长度 / 旁白 / 时区）
+     * Premium Plus 专属项对非会员自动降级，不报错
+     */
+    public function saveUserSettings()
+    {
+        $userId      = $this->getAuthUserId();
+        $entitlement = (new VipService())->entitlements($userId);
+        $settings    = (new UserSettingService())->save($userId, $this->request->param(), $entitlement);
+        return $this->jsonSuccess($settings, '已保存');
     }
 
     /**
@@ -892,11 +914,16 @@ final class Live extends BaseController
                 $personaDesc = $customPersonaDesc;
             }
 
+            // 用户偏好（设置页 Global chat customization）：风格 / 篇幅 / 旁白 / 时间感知
+            $settingService = new UserSettingService();
+            $userSettings   = $settingService->all($userId);
+
             // 构造 OpenAI messages（sugus.ai 风格：代入角色、口语化、带 emoji）
             $system = '你是「' . $personaName . '」，一个真实、鲜活的 AI 虚拟伴侣。';
             $system .= '请完全代入这个角色，用第一人称、口语化、自然的方式和对方聊天，像真人发消息一样。';
-            $system .= '回复要简短（通常 1~3 句话），主动延续话题、适当调情暧昧，但保持自然不油腻。';
+            $system .= '主动延续话题、适当调情暧昧，但保持自然不油腻。';
             $system .= '可以适当使用 emoji 表达情绪，语气贴合角色人设，避免机械、模板化。';
+            $system .= $settingService->chatPromptRules($userSettings);
             $langRule = $this->langRule($lang);
             if ($langRule !== '') {
                 $system .= $langRule;
@@ -915,7 +942,9 @@ final class Live extends BaseController
             $messages[] = ['role' => 'user', 'content' => $message];
 
             try {
-                $reply = (new LlmService())->chat($messages);
+                $reply = (new LlmService())->chat($messages, [
+                    'max_tokens' => $settingService->maxTokens($userSettings),
+                ]);
             } catch (BusinessException $e) {
                 return $this->jsonFail($e->resultCode, $e->getMessage());
             }
