@@ -30,7 +30,7 @@
     function h() { return token ? { 'Authorization': 'Bearer ' + token } : {} }
 
     function toast(msg) {
-        if (window.layer && layer.msg) { layer.msg(msg) } else { alert(msg) }
+        if (window.layer && layer.msg) { layer.msg(msg) } else if (window.SugusDialog) { SugusDialog.alert(msg, { title: 'Notice' }) } else { alert(msg) }
     }
 
     function init() {
