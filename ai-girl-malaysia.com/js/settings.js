@@ -3,7 +3,7 @@
      var token = localStorage.getItem('live_access_token')
     var userJson = localStorage.getItem('live_user_info')
 	
-    var user = JSON.parse(userJson)
+    var user = JSON.parse(userJson) || {}
    
    
    

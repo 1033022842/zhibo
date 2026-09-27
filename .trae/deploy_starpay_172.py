@@ -91,6 +91,13 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/js/series-dialog.js",
     "ai-girl-malaysia.com/shorts.html",
     "ai-girl-malaysia.com/js/shorts.js",
+    "ai-girl-malaysia.com/setting.html",
+    "ai-girl-malaysia.com/js/settings.js",
+]
+
+# setting.html 新版式用到的存档资源目录（settings_files/ 为扁平目录，随 static 一起上传）
+STATIC_DIRS = [
+    ("ai-girl-malaysia.com/settings_files", SITE + "/settings_files"),
 ]
 
 TOKENS_ASSETS = [
@@ -1162,6 +1169,13 @@ def main():
         elif action == "sh":
             cmd = sys.argv[2] if len(sys.argv) > 2 else "echo hi"
             run(cli, buf, "执行命令（诊断用）", cmd + "\n", timeout=180)
+        elif action == "settings":
+            # 只部署设置页新版式：setting.html + js/settings.js + settings_files/
+            for rel in ["ai-girl-malaysia.com/setting.html",
+                        "ai-girl-malaysia.com/js/settings.js"]:
+                upload_file(sftp, buf, rel, REMOTE + "/" + rel, ".bak_settings_" + STAMP)
+            for rel, remote_dir in STATIC_DIRS:
+                upload_dir(sftp, buf, rel, remote_dir)
         elif action == "sqlrun":
             sql = sys.argv[2] if len(sys.argv) > 2 else "SELECT 1;"
             run(cli, buf, "执行 SQL（临时，慎用）",
@@ -1194,6 +1208,8 @@ def main():
                 for name in TOKENS_ASSETS:
                     upload_file(sftp, buf, "ai-girl-malaysia.com/tokens_files/" + name,
                                 SITE + "/tokens_files/" + name, "")
+                for rel, remote_dir in STATIC_DIRS:
+                    upload_dir(sftp, buf, rel, remote_dir)
             if action in ("all", "assets"):
                 upload_dir(sftp, buf, "ai-girl-malaysia.com/taocan_files", SITE + "/taocan_files")
             if action in ("all", "env"):
