@@ -18,6 +18,9 @@ Route::post('live/deleteAccount',    '\app\api\controller\Live@deleteAccount')->
 // 设置页「Global chat customization」的用户偏好
 Route::get('live/userSettings',      '\app\api\controller\Live@userSettings')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/saveUserSettings', '\app\api\controller\Live@saveUserSettings')->middleware(\app\live\middleware\Auth::class);
+// 设置页「Your personas」的我的人格设定
+Route::get('live/userPersona',       '\app\api\controller\Live@userPersona')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/saveUserPersona',  '\app\api\controller\Live@saveUserPersona')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleCreate', '\app\api\controller\Live@customRoleCreate')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);
@@ -43,6 +46,8 @@ Route::post('customVideo/uploadVideo', '\app\api\controller\CustomVideo@uploadVi
 // 公开接口 - 显式注册
 Route::post('live/registerFromAi',   '\app\api\controller\Live@registerFromAi');
 Route::post('live/login',            '\app\api\controller\Live@login');
+Route::post('live/googleLogin',      '\app\api\controller\Live@googleLogin');
+Route::get('live/googleClientId',    '\app\api\controller\Live@googleClientId');
 Route::post('live/refresh_token',    '\app\api\controller\Live@refreshToken');
 Route::get('live/channelType',       '\app\api\controller\Live@channelType');
 Route::get('live/customPrice',       '\app\api\controller\Live@customPrice');

@@ -518,6 +518,13 @@ body = re.sub(r"https://candy\.ai/?(?=[\"'?#])", "./index.html", body)
 # 其余一律去域名，留根相对路径（与旧版 setting.html 的做法一致）
 body = body.replace("https://candy.ai", "").replace("wss://candy.ai", "")
 
+#  - Persona 弹窗底部保存按钮：存档页抓到的是「Archived personas」（抓取/翻译异常，英文语义也不通），
+#    按按钮真实行为（user-personas#save）改成 Save
+body = body.replace(
+    'data-user-personas-target="saveButton">Archived personas</button>',
+    'data-user-personas-target="saveButton">Save</button>',
+)
+
 out = NEW_HEAD + body
 io.open(DST, "w", encoding="utf-8", newline="").write(out)
 

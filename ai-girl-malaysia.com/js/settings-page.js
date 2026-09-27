@@ -11,6 +11,8 @@
  *   改邮箱     POST /api/live/changeEmail
  *   删除账户   POST /api/live/deleteAccount
  *   退出登录   POST /api/live/logout
+ *   聊天定制   GET  /api/live/userSettings + POST /api/live/saveUserSettings
+ *   我的人格   GET  /api/live/userPersona + POST /api/live/saveUserPersona
  *   语言切换   写 googtrans cookie + Google 翻译（与 shell-new.js 的语言菜单同一套机制）
  *
  * 注意 1：这台服务器上带 "-" 的路由匹配不到（/api/live/update-profile 会 404），
@@ -29,6 +31,8 @@
     deleteAccount:  '/api/live/deleteAccount',
     userSettings:   '/api/live/userSettings',
     saveUserSettings: '/api/live/saveUserSettings',
+    userPersona:    '/api/live/userPersona',
+    saveUserPersona: '/api/live/saveUserPersona',
     vipStatus:      '/api/vip/status',
     logout:         '/api/live/logout'
   }
@@ -530,6 +534,251 @@
     }, true)
   }
 
+  /* ---------------- 我的人格（Your personas 弹窗） ---------------- */
+
+  var PERSONA = null
+
+  function personaForm() {
+    return document.querySelector('[data-user-personas-target="form"]')
+  }
+
+  function personaField(f, field) {
+    return f.querySelector('.persona-field[data-field="' + field + '"]')
+  }
+
+  function fire(el) {
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+  }
+
+  function closePersonaModal() {
+    var m = document.getElementById('user-personas-modal-new')
+    if (!m) return
+    if (typeof m.close === 'function') {
+      try { m.close(); return } catch (e) { /* 不是 dialog 时退回加 hidden */ }
+    }
+    m.classList.add('hidden')
+  }
+
+  /** 读表单 -> 接口入参（多选字段的隐藏空值会被过滤掉） */
+  function collectPersona() {
+    var f = personaForm()
+    if (!f) return null
+
+    var out = {
+      name: '', age_bucket: '', gender: '', location: '', occupation: '',
+      height_cm: 0, body_type: '', ethnicity: '', hair_color: '', hair_length: '',
+      genders_liked: [], looking_for: [], hobby_types: [], active: 1
+    }
+
+    new FormData(f).forEach(function (value, key) {
+      var m = /^user_persona\[([a-z_]+)\](\[\])?$/.exec(key)
+      if (!m) return
+      var field = m[1]
+      var text = String(value)
+
+      if (m[2]) {
+        if (text !== '' && out[field].indexOf(text) < 0) out[field].push(text)
+      } else if (field === 'height_cm') {
+        out.height_cm = parseInt(text, 10) || 0
+      } else if (field === 'active') {
+        out.active = (text === 'true' || text === '1') ? 1 : 0
+      } else {
+        out[field] = text
+      }
+    })
+
+    return out
+  }
+
+  /** 下拉字段（年龄 / 所在地）：点中同值 option，由存档页的 persona-dropdown 控制器回填 */
+  function setPersonaDropdown(f, field, value) {
+    if (!value) return
+    var box = personaField(f, field)
+    if (!box) return
+    var options = box.querySelectorAll('[data-persona-dropdown-target="option"]')
+    for (var i = 0; i < options.length; i++) {
+      if (options[i].dataset.value === String(value)) { options[i].click(); return }
+    }
+  }
+
+  /**
+   * 同步胶囊的选中视觉态。
+   *
+   * 不用 label.click() 驱动：存档页 label 上挂着 pill-select#select，
+   * 它与浏览器对 label 的原生激活行为会各切一次 checkbox，互相抵消（时序还不稳定），
+   * 单选能歪打正着、多选就会全部回填失败。所以这里直接写 checked，再手工对齐样式。
+   */
+  function syncPills(box, selector) {
+    var list = box.querySelectorAll(selector)
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i]
+      var label = el.id ? document.querySelector('label[for="' + el.id + '"]') : null
+      if (!label) continue
+      label.setAttribute('data-selected', el.checked ? 'true' : 'false')
+      label.classList.toggle('border-white', el.checked)
+      label.classList.toggle('border-[rgba(255,255,255,0.15)]', !el.checked)
+    }
+  }
+
+  /** 单值胶囊字段：写 checked + 同步视觉 */
+  function setPersonaRadio(f, field, value) {
+    if (!value) return
+    var box = personaField(f, field)
+    if (!box) return
+    var selector = 'input[type="radio"][name="user_persona[' + field + ']"]'
+    var inputs = box.querySelectorAll(selector)
+    var hit = null
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].value !== String(value)) continue
+      inputs[i].checked = true
+      hit = inputs[i]
+      break
+    }
+    if (!hit) return
+    syncPills(box, selector)
+    fire(hit)
+  }
+
+  /** 多值胶囊字段：按选中集合逐项对齐勾选状态 */
+  function setPersonaChecks(f, field, values) {
+    var box = personaField(f, field)
+    if (!box) return
+    var wanted = (values || []).map(String)
+    var selector = 'input[type="checkbox"][name="user_persona[' + field + '][]"]'
+    var inputs = box.querySelectorAll(selector)
+    var first = null
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].checked = wanted.indexOf(inputs[i].value) >= 0
+      if (!first) first = inputs[i]
+    }
+    syncPills(box, selector)
+    if (first) fire(first)
+  }
+
+  function ftIn(cm) {
+    var inches = Math.round(Number(cm) / 2.54)
+    return Math.floor(inches / 12) + "'" + (inches % 12) + '"'
+  }
+
+  function setPersonaHeight(f, cm) {
+    cm = parseInt(cm, 10) || 0
+    if (cm <= 0) return
+    var box = personaField(f, 'height_cm')
+    if (!box) return
+    var slider = box.querySelector('[data-persona-height-target="slider"]')
+    if (slider) {
+      slider.value = String(cm)
+      fire(slider)
+    }
+    // 存档页的滑杆处理挂在 data-action 上（默认 click 事件），补一次兜底
+    var hidden = box.querySelector('[data-persona-height-target="input"]')
+    if (hidden && String(hidden.value) !== String(cm)) hidden.value = String(cm)
+    var display = box.querySelector('[data-persona-height-target="display"]')
+    if (display) display.textContent = ftIn(cm)
+  }
+
+  function applyPersona(p) {
+    var f = personaForm()
+    if (!f || !p) return
+
+    var name = f.querySelector('#persona-new-name')
+    if (name) { name.value = p.name || ''; fire(name) }
+
+    // 种族（Premium+ 专属，非会员是 disabled 输入框；disabled 不参与 FormData，所以不会误清）
+    var ethnicity = f.querySelector('#persona-new-ethnicity')
+    if (ethnicity && !ethnicity.disabled) { ethnicity.value = p.ethnicity || ''; fire(ethnicity) }
+
+    setPersonaDropdown(f, 'age_bucket', p.age_bucket)
+    setPersonaDropdown(f, 'location', p.location)
+
+    ;['gender', 'occupation', 'body_type', 'hair_color', 'hair_length'].forEach(function (field) {
+      setPersonaRadio(f, field, p[field])
+    })
+    ;['genders_liked', 'looking_for', 'hobby_types'].forEach(function (field) {
+      setPersonaChecks(f, field, p[field])
+    })
+
+    setPersonaHeight(f, p.height_cm)
+  }
+
+  /** 「Your personas」区块：有存档时在「Create your Persona」上方插一张可点击的卡片 */
+  function renderPersonaCard(p) {
+    var wrap = document.querySelector('[data-controller="persona-list"]')
+    if (!wrap) return
+    var card = wrap.querySelector('[data-fy-persona-card]')
+
+    if (!p || !p.name) {
+      if (card) card.parentNode.removeChild(card)
+      return
+    }
+
+    if (!card) {
+      card = document.createElement('button')
+      card.type = 'button'
+      card.setAttribute('data-fy-persona-card', '')
+      card.setAttribute('data-controller', 'toggle-dialog')
+      card.setAttribute('data-toggle-dialog-dialog-outlet', '#user-personas-modal-new')
+      card.setAttribute('data-action', 'click->toggle-dialog#open')
+      card.className = 'mb-3 flex w-full items-center gap-3 rounded-[12px] border border-white/15 p-4 text-left text-sm font-semibold text-white hover:bg-white/5'
+      card.innerHTML = '<span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-[#a855f7] to-[#f97187] text-lg font-semibold text-white"></span>'
+        + '<span class="min-w-0 flex-1 truncate"></span>'
+        + '<span class="shrink-0 text-xs font-medium text-white/40">Edit</span>'
+      wrap.insertBefore(card, wrap.firstChild)
+    }
+
+    card.children[0].textContent = String(p.name).charAt(0).toUpperCase()
+    card.children[1].textContent = p.name
+  }
+
+  function loadPersona() {
+    if (!token()) return
+    fetch(API.userPersona, { headers: { token: token() } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        if (res && res.code === '00000' && res.data) {
+          PERSONA = res.data
+          applyPersona(res.data)
+          renderPersonaCard(res.data)
+        }
+      })
+      .catch(function () { /* 拉取失败保持存档默认 */ })
+  }
+
+  function bindPersonaSave() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-action*="user-personas#save"]')
+      if (!btn) return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      if (needLogin()) return
+
+      var payload = collectPersona()
+      if (!payload) return
+      if (!payload.name) { toast('Please enter your name', false); return }
+
+      loading(true)
+      api(API.saveUserPersona, payload).then(function (r) {
+        loading(false)
+        resetButton(btn.parentNode)
+        if (!r.ok) { toast(r.msg, false); return }
+        toast('Saved', true)
+        PERSONA = r.data
+        if (r.data) { applyPersona(r.data); renderPersonaCard(r.data) }
+        closePersonaModal()
+      })
+    }, true)
+  }
+
+  /** 打开弹窗时补一次回填：user-personas 控制器 connect 时会把值重置成存档默认 */
+  function bindPersonaOpen() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-toggle-dialog-dialog-outlet="#user-personas-modal-new"]')
+      if (!btn || !PERSONA) return
+      setTimeout(function () { applyPersona(PERSONA) }, 80)
+    }, true)
+  }
+
   /* ---------------- 启动 ---------------- */
 
   function init() {
@@ -542,9 +791,12 @@
     bindChatSave()
     bindChatOpen()
     bindTimezonePremium()
+    bindPersonaSave()
+    bindPersonaOpen()
     loadUser()
     loadChatSettings()
     loadVipLevel()
+    loadPersona()
   }
 
   if (document.readyState === 'loading') {

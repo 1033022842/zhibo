@@ -12,6 +12,7 @@ use app\live\service\AffectionService;
 use app\live\service\JwtService;
 use app\live\service\UserService;
 use app\live\service\UserSettingService;
+use app\live\service\UserPersonaService;
 use app\live\service\PersonaService;
 use app\live\service\QuotaService;
 use app\live\service\VipService;
@@ -21,7 +22,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
     ];
 
     private UserService $userService;
@@ -76,6 +77,31 @@ final class Live extends BaseController
         $deviceId = $params['device_id'] ?? '';
         $result = $this->userService->login($params['username'], $params['password'], $ip, $deviceId);
         return $this->jsonSuccess($result);
+    }
+
+    /**
+     * Google 登录：前端用 GIS 拿到 google access_token，交后端校验并登录
+     */
+    public function googleLogin()
+    {
+        $accessToken = (string) $this->request->post('access_token', '');
+        if ($accessToken === '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'access_token不能为空');
+        }
+        $result = $this->userService->loginWithGoogle(
+            $accessToken,
+            $this->request->ip(),
+            (string) $this->request->post('device_id', '')
+        );
+        return $this->jsonSuccess($result);
+    }
+
+    /**
+     * Google 登录前端配置：Client ID 统一在后端 .env 维护
+     */
+    public function googleClientId()
+    {
+        return $this->jsonSuccess(['client_id' => (string) env('GOOGLE.CLIENT_ID', '')]);
     }
 
     public function refreshToken()
@@ -212,6 +238,25 @@ final class Live extends BaseController
         $entitlement = (new VipService())->entitlements($userId);
         $settings    = (new UserSettingService())->save($userId, $this->request->param(), $entitlement);
         return $this->jsonSuccess($settings, '已保存');
+    }
+
+    /**
+     * 读取「我的人格」设定（设置页 Your personas 弹窗）；未创建时 data 为 null
+     */
+    public function userPersona()
+    {
+        $userId = $this->getAuthUserId();
+        return $this->jsonSuccess((new UserPersonaService())->get($userId));
+    }
+
+    /**
+     * 保存「我的人格」设定（一个用户一条记录，整表覆盖式保存）
+     */
+    public function saveUserPersona()
+    {
+        $userId  = $this->getAuthUserId();
+        $persona = (new UserPersonaService())->save($userId, $this->request->param());
+        return $this->jsonSuccess($persona, '已保存');
     }
 
     /**
@@ -918,12 +963,16 @@ final class Live extends BaseController
             $settingService = new UserSettingService();
             $userSettings   = $settingService->all($userId);
 
+            // 我的人格（设置页 Your personas）：让角色知道「对面这个人是谁」
+            $userPersonaService = new UserPersonaService();
+
             // 构造 OpenAI messages（sugus.ai 风格：代入角色、口语化、带 emoji）
             $system = '你是「' . $personaName . '」，一个真实、鲜活的 AI 虚拟伴侣。';
             $system .= '请完全代入这个角色，用第一人称、口语化、自然的方式和对方聊天，像真人发消息一样。';
             $system .= '主动延续话题、适当调情暧昧，但保持自然不油腻。';
             $system .= '可以适当使用 emoji 表达情绪，语气贴合角色人设，避免机械、模板化。';
             $system .= $settingService->chatPromptRules($userSettings);
+            $system .= $userPersonaService->chatPromptRules($userPersonaService->get($userId));
             $langRule = $this->langRule($lang);
             if ($langRule !== '') {
                 $system .= $langRule;
