@@ -89,6 +89,8 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/js/customVideo.js",
     "ai-girl-malaysia.com/js/private_content.js",
     "ai-girl-malaysia.com/js/series-dialog.js",
+    "ai-girl-malaysia.com/shorts.html",
+    "ai-girl-malaysia.com/js/shorts.js",
 ]
 
 TOKENS_ASSETS = [
