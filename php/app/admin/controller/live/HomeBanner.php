@@ -22,6 +22,9 @@ final class HomeBanner extends Backend
         \app\admin\middleware\FloatAuth::class,
     ];
 
+    /** 首页分类（与前台 Tab 对应）：key => 展示名 */
+    public const CATEGORIES = ['girls' => 'Girls', 'anime' => 'Anime', 'guys' => 'Guys'];
+
     public function initialize(): void
     {
         parent::initialize();
@@ -33,8 +36,9 @@ final class HomeBanner extends Backend
      */
     public function index(): void
     {
-        $keyword = trim((string)$this->request->param('search', ''));
-        $status  = $this->request->param('status', '');
+        $keyword  = trim((string)$this->request->param('search', ''));
+        $status   = $this->request->param('status', '');
+        $category = trim((string)$this->request->param('category', ''));
 
         $query = $this->model;
         if ($keyword !== '') {
@@ -46,6 +50,9 @@ final class HomeBanner extends Backend
         if ($status !== '') {
             $query = $query->where('status', (int)$status);
         }
+        if ($category !== '' && isset(self::CATEGORIES[$category])) {
+            $query = $query->where('category', $category);
+        }
 
         $list = $query->order('weigh', 'desc')->order('id', 'desc')->paginate(15);
 
@@ -55,7 +62,7 @@ final class HomeBanner extends Backend
             'disabled' => (int)$this->model->where('status', 0)->count(),
         ];
 
-        $html = $this->renderPage($list, $stats);
+        $html = $this->renderPage($list, $stats, $category);
         response($html)->send();
         exit;
     }
@@ -198,18 +205,31 @@ final class HomeBanner extends Backend
             'title'     => $title,
             'cover_url' => $cover,
             'link_url'  => $link,
+            'category'  => $this->categoryPost(),
             'weigh'     => (int)$this->request->post('weigh/d', 0),
             'status'    => (int)$this->request->post('status/d', 1) === 1 ? 1 : 0,
         ];
     }
 
-    private function renderPage($list, array $stats): string
+    /**
+     * 读取并校验表单分类（白名单外一律归入 girls）
+     */
+    private function categoryPost(): string
+    {
+        $category = strtolower(trim((string)$this->request->post('category', 'girls')));
+        return isset(self::CATEGORIES[$category]) ? $category : 'girls';
+    }
+
+    private function renderPage($list, array $stats, string $category = ''): string
     {
         $rows = '';
         foreach ($list->items() as $row) {
             $id     = (int)$row['id'];
             $title  = htmlspecialchars((string)$row['title']);
             $link   = htmlspecialchars((string)$row['link_url']);
+            $catRaw = (string)($row['category'] ?? 'girls');
+            if (!isset(self::CATEGORIES[$catRaw])) { $catRaw = 'girls'; }
+            $catHtml = '<span class="cat-chip cat-' . $catRaw . '">' . self::CATEGORIES[$catRaw] . '</span>';
             $weigh  = (int)$row['weigh'];
             $status = (int)$row['status'];
             $time   = $row['updated_at'] ? substr((string)$row['updated_at'], 0, 16) : '-';
@@ -231,6 +251,7 @@ final class HomeBanner extends Backend
                 <td>{$id}</td>
                 <td>{$cover}</td>
                 <td><div class="proj-title">{$title}</div></td>
+                <td class="td-center">{$catHtml}</td>
                 <td>{$linkHtml}</td>
                 <td class="td-center">{$weigh}</td>
                 <td class="td-center">{$statusHtml}</td>
@@ -250,10 +271,16 @@ final class HomeBanner extends Backend
         }
 
         if ($rows === '') {
-            $rows = '<tr><td colspan="8"><div class="empty-tip">暂无轮播图；为空时首页 Hero 会用推荐角色的封面兜底，点击跳转该角色的链接</div></td></tr>';
+            $rows = '<tr><td colspan="9"><div class="empty-tip">暂无轮播图；为空时首页 Hero 会用推荐角色的封面兜底，点击跳转该角色的链接</div></td></tr>';
         }
 
         $pager = $list->render();
+
+        $catVals = array_fill_keys(['girls', 'anime', 'guys'], '');
+        if (isset($catVals[$category])) { $catVals[$category] = 'selected'; }
+        $catSelGirls = $catVals['girls'];
+        $catSelAnime = $catVals['anime'];
+        $catSelGuys  = $catVals['guys'];
 
         $keywordVal = htmlspecialchars((string)$this->request->param('search', ''));
         $statusVal  = $this->request->param('status', '');
@@ -329,6 +356,10 @@ final class HomeBanner extends Backend
                 .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
                 .badge-0{background:#eef2f7;color:#64748b}
                 .badge-1{background:#e6f7f1;color:#059669}
+                .cat-chip{display:inline-flex;align-items:center;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600}
+                .cat-girls{background:#fdeef2;color:#e11d48}
+                .cat-anime{background:#eef0ff;color:#4f46e5}
+                .cat-guys{background:#e6f7f1;color:#059669}
 
                 .op-group{display:flex;gap:6px}
                 .op-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid #e2e5ee;border-radius:8px;background:#fff;color:#5a6172;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
@@ -404,6 +435,12 @@ final class HomeBanner extends Backend
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <input name="search" placeholder="搜索备注名 / 跳转链接" value="{$keywordVal}">
                     </div>
+                    <select name="category">
+                        <option value="">全部分类</option>
+                        <option value="girls" {$catSelGirls}>Girls（女生）</option>
+                        <option value="anime" {$catSelAnime}>Anime（动漫）</option>
+                        <option value="guys" {$catSelGuys}>Guys（男生）</option>
+                    </select>
                     <select name="status">
                         <option value="" {$statusAll}>全部状态</option>
                         <option value="1" {$status1}>启用</option>
@@ -417,7 +454,7 @@ final class HomeBanner extends Backend
                     <div class="table-wrap">
                         <table>
                             <thead><tr>
-                                <th>ID</th><th>图片</th><th>备注名</th><th>跳转链接</th><th>权重</th><th>状态</th><th>更新时间</th><th>操作</th>
+                                <th>ID</th><th>图片</th><th>备注名</th><th>分类</th><th>跳转链接</th><th>权重</th><th>状态</th><th>更新时间</th><th>操作</th>
                             </tr></thead>
                             <tbody>{$rows}</tbody>
                         </table>
@@ -446,6 +483,22 @@ final class HomeBanner extends Backend
                                 <label>备注名</label>
                                 <input type="text" id="fTitle" maxlength="60" placeholder="仅后台显示，例如 6月活动banner" />
                             </div>
+                            <div class="form-field">
+                                <label>所属分类</label>
+                                <select id="fCategory">
+                                    <option value="girls">Girls（女生）</option>
+                                    <option value="anime">Anime（动漫）</option>
+                                    <option value="guys">Guys（男生）</option>
+                                </select>
+                                <div class="hint">首页顶部 Tab 分类，对应分类的轮播只在该 Tab 下展示</div>
+                            </div>
+                            <div class="form-field">
+                                <label>状态</label>
+                                <select id="fStatus" style="margin-top:0">
+                                    <option value="1">启用</option>
+                                    <option value="0">禁用</option>
+                                </select>
+                            </div>
                             <div class="form-field full">
                                 <label>点击跳转链接</label>
                                 <input type="text" id="fLink" maxlength="500" placeholder="例如 /Girls.html 或 https://..." />
@@ -454,13 +507,6 @@ final class HomeBanner extends Backend
                             <div class="form-field">
                                 <label>权重（越大越靠前）</label>
                                 <input type="number" id="fWeigh" step="1" value="0" />
-                            </div>
-                            <div class="form-field">
-                                <label>状态</label>
-                                <select id="fStatus">
-                                    <option value="1">启用</option>
-                                    <option value="0">禁用</option>
-                                </select>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -497,6 +543,7 @@ final class HomeBanner extends Backend
                 document.getElementById('fLink').value = '';
                 document.getElementById('fWeigh').value = '0';
                 document.getElementById('fStatus').value = '1';
+                document.getElementById('fCategory').value = 'girls';
                 document.getElementById('fCover').value = '';
                 document.getElementById('coverFile').value = '';
                 setCoverPreview('');
@@ -518,6 +565,7 @@ final class HomeBanner extends Backend
                         document.getElementById('fLink').value = p.link_url || '';
                         document.getElementById('fWeigh').value = p.weigh || 0;
                         document.getElementById('fStatus').value = String(p.status);
+                        document.getElementById('fCategory').value = p.category && ['girls','anime','guys'].indexOf(p.category) > -1 ? p.category : 'girls';
                         document.getElementById('fCover').value = p.cover_url || '';
                         setCoverPreview(p.cover_url);
                         document.getElementById('formTitle').textContent = '编辑轮播图';
@@ -543,6 +591,7 @@ final class HomeBanner extends Backend
                 fd.append('id', id);
                 fd.append('title', document.getElementById('fTitle').value.trim());
                 fd.append('link_url', document.getElementById('fLink').value.trim());
+                fd.append('category', document.getElementById('fCategory').value);
                 fd.append('weigh', document.getElementById('fWeigh').value || 0);
                 fd.append('status', document.getElementById('fStatus').value);
                 fd.append('cover_url', cover);

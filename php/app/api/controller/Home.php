@@ -9,8 +9,21 @@ use app\live\model\HomeBanner as BannerModel;
 
 final class Home extends BaseController
 {
+    /** 首页分类（candy.ai 式 Tab）：girls / anime / guys */
+    public const CATEGORIES = ['girls', 'anime', 'guys'];
+
+    /**
+     * 校验分类参数：合法返回小写值，非法/空返回 ''（不过滤，向后兼容）
+     */
+    private function categoryParam(): string
+    {
+        $category = strtolower(trim((string) $this->request->param('category', '')));
+        return in_array($category, self::CATEGORIES, true) ? $category : '';
+    }
+
     /**
      * 首页轮播图列表（无需登录）
+     * GET /api/v1/home/banners?limit=10&category=girls|anime|guys
      */
     public function banners()
     {
@@ -21,9 +34,13 @@ final class Home extends BaseController
         if ($limit > 20) {
             $limit = 20;
         }
+        $category = $this->categoryParam();
 
-        $list = BannerModel::where('status', BannerModel::STATUS_ENABLED)
-            ->order('weigh', 'desc')
+        $query = BannerModel::where('status', BannerModel::STATUS_ENABLED);
+        if ($category !== '') {
+            $query = $query->where('category', $category);
+        }
+        $list = $query->order('weigh', 'desc')
             ->order('id', 'desc')
             ->limit($limit)
             ->select();
@@ -35,6 +52,7 @@ final class Home extends BaseController
                 'title'     => (string) $row->title,
                 'cover_url' => (string) $row->cover_url,
                 'link_url'  => (string) $row->link_url,
+                'category'  => (string) ($row->category ?: 'girls'),
             ];
         }
 
@@ -43,6 +61,7 @@ final class Home extends BaseController
 
     /**
      * 首页推荐角色列表（无需登录）
+     * GET /api/v1/home/characters?limit=50&category=girls|anime|guys
      */
     public function characters()
     {
@@ -53,9 +72,13 @@ final class Home extends BaseController
         if ($limit > 50) {
             $limit = 50;
         }
+        $category = $this->categoryParam();
 
-        $list = CharacterModel::where('status', CharacterModel::STATUS_ENABLED)
-            ->order('weigh', 'desc')
+        $query = CharacterModel::where('status', CharacterModel::STATUS_ENABLED);
+        if ($category !== '') {
+            $query = $query->where('category', $category);
+        }
+        $list = $query->order('weigh', 'desc')
             ->order('id', 'desc')
             ->limit($limit)
             ->select();
@@ -77,6 +100,7 @@ final class Home extends BaseController
                 'section'     => (string) $row->section,
                 'link_url'    => (string) $row->link_url,
                 'is_adult'    => (int) $row->is_adult,
+                'category'    => (string) ($row->category ?: 'girls'),
             ];
         }
 

@@ -130,6 +130,18 @@
 			.c-row.fade-left.fade-right,.c-chips.fade-left.fade-right{
 				-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%);
 				mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%)}
+			/* 分类 Tab（candy.ai 式：Girls / Anime / Guys） */
+			.c-tabs{display:flex;align-items:center;justify-content:center;gap:10px;padding:0 28px;margin:26px 0 4px;flex-wrap:wrap}
+			.c-tab{flex:0 0 auto;height:46px;padding:0 28px;border-radius:9999px;border:2px solid rgba(255,255,255,.14);
+				background:#202020;color:#c9c9c9;font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer;
+				display:inline-flex;align-items:center;gap:8px;transition:all .18s ease}
+			.c-tab:hover{border-color:rgba(255,255,255,.34);color:#fff}
+			.c-tab.active{background:linear-gradient(135deg,#fc768a,#e65073);border-color:transparent;color:#fff;
+				box-shadow:0 8px 22px rgba(231,82,117,.35)}
+			.c-tab .c-tab-dot{width:8px;height:8px;border-radius:9999px;background:currentColor;opacity:.55;display:none}
+			.c-tab.active .c-tab-dot{display:block;opacity:1}
+			@media (max-width:640px){.c-tab{height:40px;padding:0 20px;font-size:13px}}
+
 			/* 滚动箭头：标题行 / chips 行 / 卡片行 */
 			.c-arrow{width:24px;height:24px;padding:0;border:none;background:transparent;color:var(--h-grey);cursor:pointer;
 				display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -450,6 +462,13 @@
 					</section>
 					</div>
 
+					<!-- 分类 Tab：Girls / Anime / Guys（轮播/列表/板块按分类渲染，数据由后台「分类」字段维护） -->
+					<div class="c-tabs" id="catTabs">
+						<button class="c-tab active" type="button" data-cat="girls">Girls</button>
+						<button class="c-tab" type="button" data-cat="anime">Anime</button>
+						<button class="c-tab" type="button" data-cat="guys">Guys</button>
+					</div>
+
 					<!-- 第一个列表：Explore Featured Characters（两排） -->
 					<section class="c-featured" id="featured">
 						<div class="c-sec-head">
@@ -660,7 +679,11 @@
 		<script>
 		(function() {
 			var base = '/api/v1'
-			var all = [], banners = [], slides = [], cur = 0, timer = null, activeChip = 'All', keyword = ''
+			var CATS = ['girls', 'anime', 'guys']
+			var store = {}, activeCat = 'girls'
+			var slides = [], cur = 0, timer = null, activeChip = 'All', keyword = ''
+			function curChars() { return (store[activeCat] && store[activeCat].chars) || [] }
+			function curBanners() { return (store[activeCat] && store[activeCat].banners) || [] }
 
 			function esc(s) {
 				return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -692,12 +715,15 @@
 			function renderHero() {
 				var wrap = document.getElementById('heroSlides')
 				var dots = document.getElementById('heroDots')
-				// 优先用后台「首页轮播图」；未配置时用推荐角色的封面 + 其跳转链接兜底
-				slides = banners.length
-					? banners.slice(0, 10)
-					: all.slice(0, 5).map(function(c) {
+				// 优先用后台该分类「首页轮播图」；未配置时用该分类推荐角色封面兜底，再空则回落 Girls
+				var b = curBanners().length ? curBanners() : (store.girls && store.girls.banners) || []
+				var pool = curChars().length ? curChars() : (store.girls && store.girls.chars) || []
+				slides = b.slice(0, 10)
+				if (!slides.length && pool.length) {
+					slides = pool.slice(0, 5).map(function(c) {
 						return { cover_url: c.cover_url, link_url: c.link_url || './Girls.html' }
 					})
+				}
 				if (!slides.length) { dots.innerHTML = ''; return }
 				wrap.innerHTML = slides.map(slideHtml).join('')
 				dots.innerHTML = slides.map(function(_, i){
@@ -762,7 +788,7 @@
 
 			// 第一个列表：板块为空（未分组）的角色
 			function sectionless() {
-				return all.filter(function(c) { return !String(c.section || '').trim() })
+				return curChars().filter(function(c) { return !String(c.section || '').trim() })
 			}
 
 			function filtered() {
@@ -777,7 +803,7 @@
 			function renderGrid() {
 				var grid = document.getElementById('rowGrid')
 				var list = filtered()
-				if (!all.length) {
+				if (!curChars().length) {
 					grid.innerHTML = '<li class="c-empty" style="width:auto">No characters yet</li>'
 				} else if (!list.length) {
 					grid.innerHTML = '<li class="c-empty" style="width:auto">No matching characters</li>'
@@ -785,7 +811,7 @@
 					grid.innerHTML = list.map(function(c) { return cardHtml(c) }).join('')
 				}
 				// 未分组角色全部被分到板块后，隐藏第一个列表（含搜索/chips）
-				var hideFeatured = all.length > 0 && sectionless().length === 0
+				var hideFeatured = curChars().length > 0 && sectionless().length === 0
 				document.getElementById('featured').style.display = hideFeatured ? 'none' : ''
 				var rowEl = document.getElementById('row')
 				if (rowEl && rowEl.__sync) rowEl.__sync()
@@ -794,7 +820,7 @@
 			function renderChips() {
 				var box = document.getElementById('heroChips')
 				var tags = []
-				all.forEach(function(c) {
+				curChars().forEach(function(c) {
 					(Array.isArray(c.tags) ? c.tags : []).forEach(function(t) {
 						if (tags.indexOf(t) === -1) tags.push(t)
 					})
@@ -817,7 +843,7 @@
 			function renderShelves() {
 				var box = document.getElementById('shelves')
 				var order = [], map = {}
-				all.forEach(function(c) {
+				curChars().forEach(function(c) {
 					var s = String(c.section || '').trim()
 					if (!s) return
 					if (!map[s]) { map[s] = []; order.push(s) }
@@ -990,6 +1016,7 @@
 
 			/* ---------- 卡片点击：把角色写入会话数据并跳到 Chat.html 对应聊天 ---------- */
 			function openChat(cid) {
+				var all = curChars()
 				var c = null
 				for (var i = 0; i < all.length; i++) {
 					if (String(all[i].id) === String(cid)) { c = all[i]; break }
@@ -1105,17 +1132,53 @@
 				})
 			})
 
-			Promise.all([
-				loadJson(base + '/home/characters?limit=50'),
-				loadJson(base + '/home/banners?limit=10')
-			]).then(function(res) {
-				var d = res[0], b = res[1]
-				all = (d && d.code === '00000' && d.data && d.data.list) || []
-				banners = (b && b.code === '00000' && b.data && b.data.list) || []
+			/* ---------- 分类 Tab：切换后按当前分类重渲染 ---------- */
+			function renderAll() {
+				activeChip = 'All'
+				keyword = ''
+				var si = document.getElementById('heroSearch')
+				if (si) si.value = ''
+				var sb = document.getElementById('searchBox')
+				if (sb) sb.classList.remove('expanded')
 				renderHero()
 				renderChips()
 				renderShelves()
 				renderGrid()
+			}
+			CATS.forEach(function(cat) {
+				var tab = document.querySelector('#catTabs .c-tab[data-cat="' + cat + '"]')
+				if (!tab) return
+				tab.addEventListener('click', function() {
+					if (activeCat === cat) return
+					activeCat = cat
+					document.querySelectorAll('#catTabs .c-tab').forEach(function(b) {
+						b.classList.toggle('active', b.getAttribute('data-cat') === cat)
+					})
+					renderAll()
+				})
+			})
+
+			// 三分类数据一次性并发拉取，切 Tab 零等待
+			Promise.all(CATS.map(function(cat) {
+				return loadJson(base + '/home/characters?limit=50&category=' + cat)
+			})).then(function(res) {
+				CATS.forEach(function(cat, i) {
+					var d = res[i]
+					if (!store[cat]) store[cat] = { chars: [], banners: [] }
+					store[cat].chars = (d && d.code === '00000' && d.data && d.data.list) || []
+				})
+				// 轮播独立加载（每分类 10 张）
+				return Promise.all(CATS.map(function(cat) {
+					return loadJson(base + '/home/banners?limit=10&category=' + cat)
+				})).then(function(res2) {
+					CATS.forEach(function(cat, i) {
+						var b = res2[i]
+						if (!store[cat]) store[cat] = { chars: [], banners: [] }
+						store[cat].banners = (b && b.code === '00000' && b.data && b.data.list) || []
+					})
+				})
+			}).then(function() {
+				renderAll()
 			})
 
 			// 短剧栏独立加载（有数据才显示）
