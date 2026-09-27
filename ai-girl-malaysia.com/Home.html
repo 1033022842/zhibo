@@ -131,7 +131,7 @@
 				-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%);
 				mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%)}
 			/* 分类 Tab（candy.ai 式：Girls / Anime / Guys） */
-			.c-tabs{display:flex;align-items:center;justify-content:center;gap:10px;padding:0 28px;margin:26px 0 4px;flex-wrap:wrap}
+			.c-tabs{position:relative;z-index:12;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 28px;margin:14px 0 10px;flex-wrap:wrap}
 			.c-tab{flex:0 0 auto;height:46px;padding:0 28px;border-radius:9999px;border:2px solid rgba(255,255,255,.14);
 				background:#202020;color:#c9c9c9;font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer;
 				display:inline-flex;align-items:center;gap:8px;transition:all .18s ease}
@@ -446,6 +446,14 @@
 			<main class="ml-0 lg:ml-[100px] mt-3 md:mt-16 lg:mb-0 mb-[76px] h-full">
 				<div class="c-home">
 
+					<!-- 分类 Tab：Girls / Anime / Guys（轮播/列表/板块按分类渲染，数据由后台「分类」字段维护） -->
+					<div class="c-tabs" id="catTabs">
+						<button class="c-tab active" type="button" data-cat="girls">Girls</button>
+						<button class="c-tab" type="button" data-cat="anime">Anime</button>
+						<button class="c-tab" type="button" data-cat="guys">Guys</button>
+					</div>
+
+
 					<!-- Hero 轮播：只展示图片，点击整张图跳转（图片与链接由后台「首页轮播图」维护） -->
 					<div class="c-hero-wrap">
 					<section class="c-hero" id="hero">
@@ -460,13 +468,6 @@
 						</button>
 						<div class="c-hero-dots" id="heroDots"></div>
 					</section>
-					</div>
-
-					<!-- 分类 Tab：Girls / Anime / Guys（轮播/列表/板块按分类渲染，数据由后台「分类」字段维护） -->
-					<div class="c-tabs" id="catTabs">
-						<button class="c-tab active" type="button" data-cat="girls">Girls</button>
-						<button class="c-tab" type="button" data-cat="anime">Anime</button>
-						<button class="c-tab" type="button" data-cat="guys">Guys</button>
 					</div>
 
 					<!-- 第一个列表：Explore Featured Characters（两排） -->
