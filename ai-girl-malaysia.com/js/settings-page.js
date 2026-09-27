@@ -13,6 +13,7 @@
  *   退出登录   POST /api/live/logout
  *   聊天定制   GET  /api/live/userSettings + POST /api/live/saveUserSettings
  *   我的人格   GET  /api/live/userPersona + POST /api/live/saveUserPersona
+ *   订阅管理   GET  /api/live/subscription + POST /api/live/cancelSubscription
  *   语言切换   写 googtrans cookie + Google 翻译（与 shell-new.js 的语言菜单同一套机制）
  *
  * 注意 1：这台服务器上带 "-" 的路由匹配不到（/api/live/update-profile 会 404），
@@ -33,6 +34,8 @@
     saveUserSettings: '/api/live/saveUserSettings',
     userPersona:    '/api/live/userPersona',
     saveUserPersona: '/api/live/saveUserPersona',
+    subscription:   '/api/live/subscription',
+    cancelSubscription: '/api/live/cancelSubscription',
     vipStatus:      '/api/vip/status',
     logout:         '/api/live/logout'
   }
@@ -779,6 +782,113 @@
     }, true)
   }
 
+  /* ---------------- 订阅管理（Current plan / 取消订阅） ---------------- */
+
+  var SUBS = null
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December']
+
+  /** 归档页用的日期格式 DD.MM.YYYY */
+  function dmy(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''))
+    return m ? (m[3] + '.' + m[2] + '.' + m[1]) : ''
+  }
+
+  /** 取消弹窗文案里用的长日期格式 October 03, 2026 */
+  function longDate(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''))
+    return m ? (MONTHS[parseInt(m[2], 10) - 1] + ' ' + m[3] + ', ' + m[1]) : ''
+  }
+
+  /** 「标签 → 值」这种两格布局：按标签文字找，改它下一个兄弟节点 */
+  function setAfterLabel(labelText, value) {
+    var divs = document.querySelectorAll('div')
+    var label = labelText.toLowerCase()
+    for (var i = 0; i < divs.length; i++) {
+      if ((divs[i].textContent || '').trim().toLowerCase() !== label) continue
+      var next = divs[i].nextElementSibling
+      if (!next) continue
+      next.textContent = value
+      return true
+    }
+    return false
+  }
+
+  function unsubscribeFlow() {
+    return document.getElementById('unsubscribe-flow')
+  }
+
+  function applySubscription(s) {
+    if (!s) return
+
+    setAfterLabel('Current plan', s.level_name || 'Free')
+    setAfterLabel('Payment date:', dmy(s.paid_at) || '—')
+
+    // 已取消续订、或本来就没有生效订阅时：不显示下一次续订日期，并收起取消入口
+    var cancelled = s.auto_renew === false
+    setAfterLabel('Subscription renewal:', cancelled ? '—' : (dmy(s.expire_at) || '—'))
+
+    var flow = unsubscribeFlow()
+    if (flow) flow.classList.toggle('hidden', !s.is_vip || cancelled)
+
+    // 取消弹窗里的兜底文案：把存档页那天的日期换成真实到期日
+    var expire = longDate(s.expire_at)
+    if (expire) {
+      var prompt = document.querySelector('#unsubscribe-flow [data-unsubscribe-flow-target="prompt"] p')
+      if (prompt) {
+        prompt.textContent = "This won't affect your current subscription. "
+          + "You'll still have access until " + expire + '.'
+      }
+    }
+  }
+
+  function closeUnsubscribe() {
+    var modal = document.querySelector('[data-unsubscribe-flow-target="cancelModal"]')
+    if (modal) modal.classList.add('hidden')
+  }
+
+  function loadSubscription() {
+    if (!token()) return
+    fetch(API.subscription, { headers: { token: token() } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        if (res && res.code === '00000' && res.data) {
+          SUBS = res.data
+          applySubscription(res.data)
+        }
+      })
+      .catch(function () { /* 拉取失败保持存档默认 */ })
+  }
+
+  function bindCancelSubscription() {
+    // 拦截存档页「Confirm unsubscribe」那一步（原始 action 是 POST /cancel_subscription，本站没有这个端点）
+    document.addEventListener('submit', function (e) {
+      var form = e.target
+      if (!form || form.getAttribute('action') !== '/cancel_subscription') return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      if (needLogin()) return
+
+      var reason = ''
+      var radios = document.querySelectorAll('#cancel-subscription-form input[name="feedback[reason]"]')
+      for (var i = 0; i < radios.length; i++) {
+        if (radios[i].checked) { reason = radios[i].value; break }
+      }
+      var descEl = document.getElementById('feedback_description')
+
+      loading(true)
+      api(API.cancelSubscription, { reason: reason, description: descEl ? descEl.value : '' })
+        .then(function (r) {
+          loading(false)
+          if (!r.ok) { toast(r.msg, false); return }
+          SUBS = r.data
+          applySubscription(r.data)
+          closeUnsubscribe()
+          toast('Subscription cancelled', true)
+        })
+    }, true)
+  }
+
   /* ---------------- 启动 ---------------- */
 
   function init() {
@@ -793,10 +903,12 @@
     bindTimezonePremium()
     bindPersonaSave()
     bindPersonaOpen()
+    bindCancelSubscription()
     loadUser()
     loadChatSettings()
     loadVipLevel()
     loadPersona()
+    loadSubscription()
   }
 
   if (document.readyState === 'loading') {
