@@ -33,6 +33,13 @@
                     <FormItem label="图片" v-model="baTable.form.items!.images" type="images" tip="解锁后在前台弹窗里查看，可多张" />
                     <FormItem label="角色头像" v-model="baTable.form.items!.avatar" type="image" />
                     <FormItem label="角色名" v-model="baTable.form.items!.creator" prop="creator" type="string" />
+                    <FormItem
+                        label="所属分类"
+                        v-model="baTable.form.items!.category"
+                        type="select"
+                        :input-attr="{ content: { girls: 'Girls（真人）', anime: 'Anime（动漫）' } }"
+                        tip="首页对应 Tab 下的 Private Content 栏展示"
+                    />
                     <FormItem label="价格" v-model="baTable.form.items!.price" type="number" :input-attr="{ min: 0 }" />
                     <FormItem
                         label="点赞率(%)"

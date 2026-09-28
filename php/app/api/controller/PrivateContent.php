@@ -21,7 +21,7 @@ use think\facade\Db;
 final class PrivateContent extends BaseController
 {
     private const FIELDS = 'id, title, poster, video_url, images, avatar, creator, price, like_rate, media_type, '
-        . 'video_count, duration, image_count, badge, purchase_url';
+        . 'video_count, duration, image_count, badge, purchase_url, category';
 
     private function table()
     {
@@ -34,10 +34,19 @@ final class PrivateContent extends BaseController
     public function items()
     {
         $tab = (string) $this->request->get('tab', 'all');
+        // 分类过滤：girls(真人) / anime(动漫)，对应首页 Tab；非法值忽略（返回全部）
+        $category = strtolower(trim((string) $this->request->get('category', '')));
+        if (!in_array($category, ['girls', 'anime'], true)) {
+            $category = '';
+        }
 
         $query = $this->table()->table('lp_private_item')
             ->where('status', 1)
             ->field(self::FIELDS);
+
+        if ($category !== '') {
+            $query = $query->where('category', $category);
+        }
 
         if ($tab === 'most_liked') {
             // 「Most liked」：点赞率降序，其次权重降序，最后 id 兜底

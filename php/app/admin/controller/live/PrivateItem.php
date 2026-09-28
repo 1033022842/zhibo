@@ -15,6 +15,9 @@ final class PrivateItem extends Backend
 {
     private const MEDIA_TYPES = ['video', 'image', 'mixed'];
 
+    /** 首页分类（girls=真人 / anime=动漫），对应首页 Tab */
+    private const CATEGORIES = ['girls', 'anime'];
+
     protected object $model;
     protected string|array $quickSearchField = ['title', 'creator', 'id'];
     protected bool $modelValidate = false;
@@ -107,6 +110,9 @@ final class PrivateItem extends Backend
         $data['image_count'] = max(0, (int) ($data['image_count'] ?? $existing['image_count'] ?? 0));
         $data['badge']       = $badge;
         $data['purchase_url'] = trim((string) ($data['purchase_url'] ?? $existing['purchase_url'] ?? ''));
+
+        $category = strtolower(trim((string) ($data['category'] ?? $existing['category'] ?? 'girls')));
+        $data['category'] = in_array($category, self::CATEGORIES, true) ? $category : 'girls';
         $data['weigh']       = (int) ($data['weigh'] ?? $existing['weigh'] ?? 0);
         $data['status']      = (int) ($data['status'] ?? $existing['status'] ?? 1);
 
@@ -121,6 +127,30 @@ final class PrivateItem extends Backend
         }
 
         return $data;
+    }
+
+    /**
+     * 统一价格：批量把价格设置为同一数值
+     * POST category=''|girls|anime  price=钻石数
+     */
+    public function unifyPrice(): void
+    {
+        if (!$this->request->isPost()) {
+            $this->error(__('Parameter error'));
+        }
+
+        $price = max(0, (int) $this->request->param('price/d', 0));
+        $category = strtolower(trim((string) $this->request->param('category', '')));
+
+        $query = $this->model;
+        if ($category !== '' && in_array($category, self::CATEGORIES, true)) {
+            $query = $query->where('category', $category);
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $updated = $query->update(['price' => $price, 'updated_at' => $now]);
+
+        $this->success('已统一价格：' . $updated . ' 个内容 → ' . $price . ' 钻石');
     }
 
     /**
