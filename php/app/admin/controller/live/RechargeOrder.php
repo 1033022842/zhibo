@@ -39,6 +39,7 @@ final class RechargeOrder extends Backend
             $status    = (string) $this->request->param('status', '');
             $channel   = (string) $this->request->param('channel', '');
             $bizType   = (string) $this->request->param('biz_type', '');
+            $payState  = (string) $this->request->param('pay_state', '');
             $dateFrom  = trim((string) $this->request->param('date_from', ''));
             $dateTo    = trim((string) $this->request->param('date_to', ''));
 
@@ -63,6 +64,9 @@ final class RechargeOrder extends Backend
             if ($bizType !== '') {
                 $query->where('o.biz_type', $bizType);
             }
+            if ($payState !== '') {
+                $query->where('o.pay_state', (int) $payState);
+            }
             if ($dateFrom !== '') {
                 $query->where('o.created_at', '>=', $dateFrom . ' 00:00:00');
             }
@@ -77,6 +81,7 @@ final class RechargeOrder extends Backend
                 'status'    => $status,
                 'channel'   => $channel,
                 'biz_type'  => $bizType,
+                'pay_state' => $payState,
                 'date_from' => $dateFrom,
                 'date_to'   => $dateTo,
             ]);
@@ -198,6 +203,8 @@ final class RechargeOrder extends Backend
         $todayCount     = (int) $db->table('lp_recharge_order')->where('status', 1)->whereLike('paid_at', $today . '%')->count();
         $todayAmount    = (float) $db->table('lp_recharge_order')->where('status', 1)->whereLike('paid_at', $today . '%')->sum('pay_amount');
         $unmatchedCount = (int) $db->table('lp_payment_callback_log')->where('verify_status', 0)->count();
+        // 已支付但订单没入账（关单后补偿失败等）：最需要人工介入的一类
+        $paidUncredited = (int) $db->table('lp_recharge_order')->where('status', 3)->where('pay_state', 1)->count();
 
         // ---- 渠道（筛选项 + 地址健康检查）----
         $channels = $db->table('lp_recharge_channel')->order('id', 'asc')->select()->toArray();
@@ -242,6 +249,13 @@ final class RechargeOrder extends Backend
             $bizLbl     = $isVip ? '会员订阅' : '充值钻石';
             // 已关闭的订单不参与审核
             $reviewable = in_array($st, [0, 3], true);
+
+            // 支付状态：与订单状态独立（未确认 / 已支付 / 未支付）
+            $paySt      = (int) ($r['pay_state'] ?? 0);
+            $payStName  = [0 => '未确认', 1 => '已支付', 2 => '未支付'][$paySt] ?? '未确认';
+            $payStCls   = [0 => 'ps-unknown', 1 => 'ps-paid', 2 => 'ps-unpaid'][$paySt] ?? 'ps-unknown';
+            // 钱已收到却没入账（订单已关）：后台要一眼看到
+            $needTopUp  = $st === 3 && $paySt === 1;
 
             $expired = $st === 0 && !empty($r['expire_at']) && strtotime((string) $r['expire_at']) < $now;
 
@@ -290,6 +304,8 @@ final class RechargeOrder extends Backend
                 . '<td>' . $proof . '</td>'
                 . '<td><span class="status-badge ' . $stCls . '">' . $stName . '</span>'
                 . ($expired ? ' <span class="status-badge pending">已过期</span>' : '') . '</td>'
+                . '<td><span class="status-badge ' . $payStCls . '">' . $payStName . '</span>'
+                . ($needTopUp ? ' <span class="status-badge rejected">待补单</span>' : '') . '</td>'
                 . '<td class="remark" title="' . htmlspecialchars((string) $r['admin_remark'], ENT_QUOTES) . '">'
                 . htmlspecialchars(mb_substr((string) $r['admin_remark'], 0, 24), ENT_QUOTES) . '</td>'
                 . '<td>' . htmlspecialchars((string) $r['created_at'], ENT_QUOTES) . '</td>'
@@ -309,6 +325,8 @@ final class RechargeOrder extends Backend
                 '网关/链上单号' => $ref !== '' ? $ref : '-',
                 '收银台链接' => (string) ($r['pay_url'] ?? '') !== '' ? (string) $r['pay_url'] : '-',
                 '状态'       => $stName . ($expired ? '（已过期，待关单）' : ''),
+                '支付状态'   => $payStName . ($needTopUp ? '（钱已收到但订单未入账，需要补单）' : ''),
+                '支付状态确认时间' => (string) ($r['pay_checked_at'] ?? '-'),
                 '创建时间'   => (string) $r['created_at'],
                 '过期时间'   => (string) ($r['expire_at'] ?? '-'),
                 '支付时间'   => (string) ($r['paid_at'] ?? '-'),
@@ -317,7 +335,7 @@ final class RechargeOrder extends Backend
             ];
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="14" style="text-align:center;color:#999;padding:26px">暂无符合条件的订单</td></tr>';
+            $rows = '<tr><td colspan="15" style="text-align:center;color:#999;padding:26px">暂无符合条件的订单</td></tr>';
         }
 
         // ---- 异常链上转账（扫链没匹配到订单的入账）----
@@ -367,6 +385,7 @@ final class RechargeOrder extends Backend
             . '<div class="stat"><span>待审核</span><strong class="c-orange">' . $pending . '</strong></div>'
             . '<div class="stat"><span>今日到账</span><strong class="c-green">' . $todayCount . ' 笔</strong></div>'
             . '<div class="stat"><span>今日金额</span><strong class="c-green">' . number_format($todayAmount, 2) . ' USD</strong></div>'
+            . '<div class="stat"><span>已支付未入账</span><strong class="' . ($paidUncredited > 0 ? 'c-red' : 'c-green') . '">' . $paidUncredited . '</strong></div>'
             . '<div class="stat"><span>异常链上转账</span><strong class="c-red">' . $unmatchedCount . '</strong></div>'
             . '</div>';
 
@@ -378,6 +397,10 @@ final class RechargeOrder extends Backend
         foreach (['' => '全部', 'coin' => '充值钻石', 'vip' => '会员订阅'] as $val => $label) {
             $selBiz .= '<option value="' . $val . '"' . ($f['biz_type'] === (string) $val ? ' selected' : '') . '>' . $label . '</option>';
         }
+        $selPay = '';
+        foreach (['' => '全部', 0 => '未确认', 1 => '已支付', 2 => '未支付'] as $val => $label) {
+            $selPay .= '<option value="' . $val . '"' . ($f['pay_state'] === (string) $val ? ' selected' : '') . '>' . $label . '</option>';
+        }
 
         return strtr(self::TEMPLATE, [
             '{{STATS}}'     => $statsHtml,
@@ -387,6 +410,7 @@ final class RechargeOrder extends Backend
             '{{SEL_STATUS}}' => $selStatus,
             '{{SEL_CHANNEL}}' => '<option value="">全部</option>' . $sels,
             '{{SEL_BIZ}}'   => $selBiz,
+            '{{SEL_PAY}}'   => $selPay,
             '{{DATE_FROM}}' => htmlspecialchars($f['date_from'], ENT_QUOTES),
             '{{DATE_TO}}'   => htmlspecialchars($f['date_to'], ENT_QUOTES),
             '{{ROWS}}'      => $rows,
@@ -451,6 +475,9 @@ final class RechargeOrder extends Backend
     .passed{background:rgba(0,212,170,.12);color:#00b894}
     .rejected{background:rgba(255,45,85,.12);color:#ff2d55}
     .closed{background:rgba(120,120,120,.12);color:#777}
+    .ps-paid{background:rgba(0,212,170,.14);color:#00a884}
+    .ps-unpaid{background:rgba(120,120,120,.14);color:#777}
+    .ps-unknown{background:rgba(245,158,11,.12);color:#f59e0b}
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center}
     .modal-overlay.active{display:flex}
     .modal{background:#fff;border-radius:12px;padding:24px;width:460px;max-width:92vw;max-height:88vh;overflow:auto}
@@ -483,6 +510,7 @@ final class RechargeOrder extends Backend
     <select name="status">{{SEL_STATUS}}</select>
     <select name="channel">{{SEL_CHANNEL}}</select>
     <select name="biz_type">{{SEL_BIZ}}</select>
+    <select name="pay_state" title="支付状态">{{SEL_PAY}}</select>
     <label>下单时间</label>
     <input type="date" name="date_from" value="{{DATE_FROM}}">
     <span>~</span>
@@ -499,7 +527,7 @@ final class RechargeOrder extends Backend
 <table><thead><tr>
     <th><input type="checkbox" id="chkAll" onclick="toggleAll(this)"></th>
     <th>ID</th><th>用户</th><th>订单号</th><th>渠道</th><th>业务</th><th>支付金额</th><th>到账</th>
-    <th>网关/链上单号</th><th>凭证</th><th>状态</th><th>备注</th><th>下单时间</th><th>操作</th>
+    <th>网关/链上单号</th><th>凭证</th><th>订单状态</th><th>支付状态</th><th>备注</th><th>下单时间</th><th>操作</th>
 </tr></thead><tbody>{{ROWS}}</tbody></table>
 </div>
 <div class="pager">{{PAGER}}</div>

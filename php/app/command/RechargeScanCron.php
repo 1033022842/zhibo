@@ -91,9 +91,9 @@ final class RechargeScanCron extends Command
                 ? sprintf(' | channel_skipped bad_addr=%d no_key=%d', $badAddress, $noKey)
                 : '';
             $line = sprintf(
-                '[recharge:scan] confirmed=%d pending_manual=%d expired=%d | gateway_reconcile checked=%d recovered=%d failed=%d%s',
+                '[recharge:scan] confirmed=%d pending_manual=%d expired=%d | gateway_reconcile checked=%d recovered=%d unpaid=%d failed=%d%s',
                 $confirmed, $pending, $expired,
-                $reconcile['checked'], $reconcile['recovered'], $reconcile['failed'],
+                $reconcile['checked'], $reconcile['recovered'], $reconcile['unpaid'], $reconcile['failed'],
                 $extra
             );
         } catch (\Throwable $e) {
