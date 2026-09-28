@@ -10,7 +10,7 @@
 <script src="./Guys_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./Girls_files/jquery-3.6.0.min.js"></script>
 <script src="./assets/layer/3.1.1/layer.js"></script>
-  <script src="./js/main.js?v=20260921b"></script>
+  <script src="./js/main.js?v=20260928a"></script>
 		<script src="./js/shell-new.js?v=20260921b"></script>
   <script src="./js/event.js"></script>
   <style>
@@ -38,9 +38,9 @@
       height: 600px;
       background: #222;
       flex-shrink: 0;
-      background-image: url('./Girls_files/image1-510c9159fd51d7802ef2de3bc1e6edcbd5c5dc0a87ef225a5871143c46eaba02.webp');
+      background-image: url('./assets/login-bg-full.jpg');
       background-size: cover;
-      background-position: center;
+      background-position: center top;
     }
     .form-area {
       flex: 1;
@@ -157,9 +157,26 @@
       color: #f35b7a;
     }
     @media (max-width: 800px) {
-      .container { flex-direction: column; }
-      .left-img { width: 100%; height: 220px; }
-      .form-area { min-width: unset; padding: 32px 16px 16px 16px; }
+      /* 手机端：背景图铺满整屏，登录卡片上下居中浮在背景之上 */
+      body {
+        min-height: 100dvh;
+        padding: 16px;
+        box-sizing: border-box;
+        background-image: url('./assets/login-bg-full.jpg');
+        background-size: cover;
+        background-position: center top;
+        background-repeat: no-repeat;
+      }
+      .container {
+        flex-direction: column;
+        max-width: 420px;
+      }
+      .left-img { display: none; }
+      .form-area { min-width: unset; padding: 28px 20px 20px 20px; }
+      .form-title { font-size: 1.6rem; margin-bottom: 22px; }
+      .input-group { margin-bottom: 14px; }
+      .switch-link { margin-top: 22px; }
+      .skip-link { margin-top: 14px; }
     }
   </style>
 </head>
