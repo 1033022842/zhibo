@@ -211,7 +211,15 @@ html.fy-shell-pending [data-main-target="mainMobileSidebarContainer"] nav{visibi
 .fy-lang-menu.hidden{display:none;}
 .fy-lang-item{display:block;padding:8px 16px;color:#fff;font-size:13px;line-height:18px;text-decoration:none;cursor:pointer;}
 .fy-lang-item:hover{background-color:#374151;color:#fff;}
-.fy-lang-item .fy-lang-flag{display:inline-block;margin-right:8px;font-size:15px;line-height:1;vertical-align:-2px;}
+.fy-lang-item{display:flex;align-items:center;gap:8px;}
+.fy-lang-item .fy-lang-flag{width:20px;height:14px;border-radius:2px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px rgba(255,255,255,.12);}
+/* 移动端抽屉语言区：按钮带文案，菜单内联展开 */
+.fy-langbtn-m{height:48px;padding:0 14px;justify-content:flex-start;}
+.fy-langbtn-m .fy-lang-cur{width:22px;height:16px;border-radius:2px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px rgba(255,255,255,.15);}
+.fy-langbtn-m .fy-langbtn-label{flex:1 1 auto;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fy-langbtn-m .fy-lang-caret{width:14px;height:14px;flex:0 0 auto;color:#9ca3af;transition:transform .18s ease;}
+.fy-langwrap-m.open .fy-lang-caret{transform:rotate(180deg);}
+.fy-langwrap-m .fy-lang-menu{position:static;width:100%;max-height:300px;margin:6px 0 2px;box-shadow:none;}
 
 /* 侧栏项悬浮提示（旧包没有 navbar-tooltip 控制器）
    visibility/opacity 必须带 !important：页面加载 Google 翻译后，

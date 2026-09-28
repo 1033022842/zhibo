@@ -83,17 +83,17 @@
 
   // 语言列表（与 header/header.html 的下拉一致，复用 .lang-select 的既有逻辑）；第三位为国旗 emoji
   var LANGS = [
-    ['vi', 'Tiếng Việt', '🇻🇳'],
-    ['ms', 'Melayu', '🇲🇾'],
-    ['th', 'แบบไทย', '🇹🇭'],
-    ['km', 'ភាសាខ្មែរ', '🇰🇭'],
-    ['lo', 'ພາສາລາວ', '🇱🇦'],
-    ['en', 'English', '🇺🇸'],
-    ['zh-CN', '中文', '🇨🇳'],
-    ['ja', '日本語', '🇯🇵'],
-    ['ko', '한국어', '🇰🇷'],
-    ['ru', 'Русский', '🇷🇺'],
-    ['es', 'español', '🇪🇸']
+    ['vi', 'Tiếng Việt', 'vn'],
+    ['ms', 'Melayu', 'my'],
+    ['th', 'แบบไทย', 'th'],
+    ['km', 'ភាសាខ្មែរ', 'kh'],
+    ['lo', 'ພາສາລາວ', 'la'],
+    ['en', 'English', 'us'],
+    ['zh-CN', '中文', 'cn'],
+    ['ja', '日本語', 'jp'],
+    ['ko', '한국어', 'kr'],
+    ['ru', 'Русский', 'ru'],
+    ['es', 'español', 'es']
   ]
 
   function esc(s) {
@@ -159,14 +159,22 @@
   }
 
   /* ---------- 语言切换按钮 + 下拉 ---------- */
-  function langButton(withLabel) {
+  function langButton(withLabel, mobile) {
+    var cur = currentLang()
+    var curRow = null
+    LANGS.forEach(function (l) { if (l[0] === cur) curRow = l })
+    if (!curRow) curRow = LANGS[5]
+    var curFlag = './assets/flags/' + curRow[2] + '.svg'
     var menu = LANGS.map(function (l) {
-      return '<a class="fy-lang-item lang-select notranslate" data-lang="' + l[0] + '" href="#googtrans(en|' + l[0] + ')"><span class="fy-lang-flag">' + (l[2] || '') + '</span>' + esc(l[1]) + '</a>'
+      return '<a class="fy-lang-item lang-select notranslate" data-lang="' + l[0] + '" href="#googtrans(en|' + l[0] + ')"><img class="fy-lang-flag" src="./assets/flags/' + l[2] + '.svg" alt="">' + esc(l[1]) + '</a>'
     }).join('')
-    return '<div class="fy-langwrap">' +
-      '<button type="button" class="fy-langbtn' + (withLabel ? '' : ' fy-langbtn-sm') + '" aria-expanded="false">' +
-      '<img class="' + (withLabel ? 'w-[14px]' : 'h-[24px]') + '" src="' + I.en.src + '" alt="en flag icon">' +
-      (withLabel ? '<span class="fy-langbtn-label">English</span>' : '') +
+    return '<div class="fy-langwrap' + (mobile ? ' fy-langwrap-m' : '') + '">' +
+      '<button type="button" class="fy-langbtn' + (mobile ? ' fy-langbtn-m' : (withLabel ? '' : ' fy-langbtn-sm')) + '" aria-expanded="false">' +
+      '<img class="' + (mobile ? 'fy-lang-cur' : (withLabel ? 'w-[14px]' : 'h-[24px]')) + '" src="' + (mobile ? curFlag : I.en.src) + '" alt="language flag">' +
+      (mobile
+        ? '<span class="fy-langbtn-label">Language · ' + esc(curRow[1]) + '</span>' +
+          '<svg class="fy-lang-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
+        : (withLabel ? '<span class="fy-langbtn-label">English</span>' : '')) +
       '</button>' +
       '<div class="fy-lang-menu hidden">' + menu + '</div>' +
       '</div>'
@@ -243,6 +251,7 @@
   // 语言弹层：按按钮位置算 fixed 坐标（侧栏 ul 的 overflow 会把 absolute 弹层裁成一条边）
   function placeLangMenu(menu, btn, wrap) {
     if (!menu || !btn) return
+    if (wrap.classList.contains('fy-langwrap-m')) return   // 移动端抽屉：菜单内联展开，不需要定位
     var r = btn.getBoundingClientRect()
     var mw = menu.offsetWidth
     var mh = menu.offsetHeight
@@ -258,6 +267,7 @@
   function hideLangMenus() {
     var menus = document.querySelectorAll('.fy-langwrap .fy-lang-menu')
     for (var i = 0; i < menus.length; i++) {
+      if (menus[i].closest('.fy-langwrap-m')) continue   // 内联菜单随抽屉滚动，不隐藏
       if (menus[i].classList.contains('hidden')) continue
       menus[i].classList.add('hidden')
       var b = menus[i].parentNode.querySelector('.fy-langbtn')
@@ -328,7 +338,7 @@
 
       '<li class="fy-hr-li"></li>' +
       drawerRows() +
-      '<li class="w-full">' + langButton(false) + '</li>' +
+      '<li class="w-full">' + langButton(false, true) + '</li>' +
 
       '</ul></div></nav>'
   }
@@ -417,8 +427,9 @@
     })
     document.addEventListener('scroll', function (e) {
       hideTip()
-      // 语言弹层自身是滚动容器（11 种语言超出高度），它内部滚动不该把它收起来
-      if (e.target && e.target.closest && e.target.closest('.fy-lang-menu')) return
+      // 语言弹层自身是滚动容器（11 种语言超出高度），它内部滚动不该把它收起来；
+      // 移动端抽屉里的语言菜单是内联展开的，抽屉滚动也不应收起（否则刚点开就被惯性滚动收掉）
+      if (e.target && e.target.closest && (e.target.closest('.fy-lang-menu') || e.target.closest('.fy-langwrap-m'))) return
       hideLangMenus()
     }, true)
 
@@ -449,6 +460,7 @@
         if (w === wrap && !e.target.closest('.fy-lang-menu')) {
           var opening = m.classList.contains('hidden')
           m.classList.toggle('hidden')
+          w.classList.toggle('open', opening)
           if (opening) placeLangMenu(m, b, w)   // 先显示再量高度，同一帧内不会闪
           if (b) b.setAttribute('aria-expanded', opening ? 'true' : 'false')
         } else if (!w.contains(e.target)) {
