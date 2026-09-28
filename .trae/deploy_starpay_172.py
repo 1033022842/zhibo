@@ -78,8 +78,10 @@ PHP_FILES = [
     "php/sql/upgrade_user_settings.sql",
     "php/sql/upgrade_user_persona.sql",
     "php/sql/upgrade_user_subscription.sql",
+    "php/sql/upgrade_recharge_callback_log.sql",
     "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
+    "php/app/admin/controller/live/RechargeOrder.php",
     "php/sql/upgrade_recharge_starpay.sql",
     "php/sql/upgrade_vip_starpay.sql",
     "php/sql/upgrade_vip_tier.sql",
@@ -1203,6 +1205,23 @@ def main():
             run(cli, buf, "PHP 语法检查（设置页相关）",
                 "php -l %s/app/live/service/UserService.php; php -l %s/app/live/service/UserPersonaService.php; php -l %s/app/live/model/UserPersona.php; php -l %s/app/live/service/PaymentOptionService.php; php -l %s/app/live/service/AchievementService.php; php -l %s/app/live/service/VipService.php; php -l %s/app/api/controller/Live.php; php -l %s/route/live.php\n"
                 % (PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
+        elif action == "recharge":
+            # 充值链路修复：扫链任务 + 网关查单补单 + 后台审核页 + 回调日志表补列
+            for rel in ["php/app/live/service/RechargeService.php",
+                        "php/app/command/RechargeScanCron.php",
+                        "php/app/command/EthRechargeScanCron.php",
+                        "php/app/admin/controller/live/RechargeOrder.php",
+                        "php/app/admin/controller/live/RechargeChannel.php"]:
+                upload_file(sftp, buf, rel, PHP_DIR + "/" + rel.split("/", 1)[1], ".bak_recharge_" + STAMP)
+            upload_file(sftp, buf, "php/sql/upgrade_recharge_callback_log.sql",
+                        PHP_DIR + "/sql/upgrade_recharge_callback_log.sql", "")
+            run(cli, buf, "PHP 语法检查（充值链路）",
+                "php -l %s/app/live/service/RechargeService.php; php -l %s/app/command/RechargeScanCron.php; php -l %s/app/command/EthRechargeScanCron.php; php -l %s/app/admin/controller/live/RechargeOrder.php; php -l %s/app/admin/controller/live/RechargeChannel.php\n"
+                % (PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
+            run(cli, buf, "执行迁移（回调日志表补列 + ETH 切链上自动确认）",
+                DB_ENV + 'mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_callback_log.sql\n',
+                timeout=120)
+            run(cli, buf, "重载 php-fpm", RELOAD_STEP, timeout=120)
         elif action == "sqluser":
             # 只跑设置页相关的迁移（不动其它迁移，避免覆盖后台已调好的数据）
             run(cli, buf, "用户偏好设置表 + 用户人格表 + 订阅字段迁移",

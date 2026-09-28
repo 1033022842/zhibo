@@ -8,6 +8,7 @@ use app\common\web\ResultCode;
 use app\live\model\RechargeChannel;
 use app\common\util\StrHelper;
 use think\facade\Db;
+use think\facade\Log;
 
 final class RechargeService
 {
@@ -83,7 +84,11 @@ final class RechargeService
         $db = Db::connect('live_mysql');
         $order = $db->table('lp_recharge_order')->where('id', $orderId)->find();
         if (!$order) throw new BusinessException(ResultCode::ORDER_NOT_FOUND);
-        if ((int)$order['status'] !== 0) throw new BusinessException(ResultCode::PARAM_ERROR, '订单状态不允许此操作');
+        // status=3 允许放行：链上转账迟到、订单已被 expireOrders() 关掉时，
+        // 运营核对到账后仍要能人工补单，否则用户的钱就白付了
+        if (!in_array((int)$order['status'], [0, 3], true)) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '订单状态不允许此操作');
+        }
 
         $db->startTrans();
         try {
@@ -117,7 +122,9 @@ final class RechargeService
         $order = Db::connect('live_mysql')->table('lp_recharge_order')
             ->where('id', $orderId)->find();
         if (!$order) throw new BusinessException(ResultCode::ORDER_NOT_FOUND);
-        if ((int)$order['status'] !== 0) throw new BusinessException(ResultCode::PARAM_ERROR, '订单状态不允许此操作');
+        if (!in_array((int)$order['status'], [0, 3], true)) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '订单状态不允许此操作');
+        }
 
         Db::connect('live_mysql')->table('lp_recharge_order')
             ->where('id', $orderId)->update([
@@ -489,7 +496,14 @@ final class RechargeService
     }
 
     /**
-     * star-pay 异步通知确认入账（幂等）
+     * star-pay / FlowPay 异步通知确认入账（幂等）
+     *
+     * 允许两种状态入账：
+     *   status=0 待支付 —— 正常路径
+     *   status=3 已关闭 —— 用户在有效期最后时刻付款、或回调/查单迟到时，订单已被
+     *                     expireOrders() 关闭；网关既然确认收到钱就必须补上，
+     *                     否则就是「用户付了钱不到账」
+     * status=1（已入账）幂等返回；status=2（人工拒绝）不放行。
      */
     public function confirmByGateway(string $orderNo, string $systemRef = '', string $productRef = '', string $gateway = 'star-pay'): array
     {
@@ -502,15 +516,22 @@ final class RechargeService
                 $db->commit();
                 throw new BusinessException(ResultCode::ORDER_NOT_FOUND);
             }
-            if ((int) $order['status'] !== 0) {
+
+            $status = (int) $order['status'];
+            if ($status === 1) {
                 $db->commit();
-                return $order; // 已处理，幂等返回
+                return $order; // 已入账，幂等返回
+            }
+            if ($status !== 0 && $status !== 3) {
+                $db->commit();
+                return $order; // 已拒绝等状态不自动放行
             }
 
             $now    = date('Y-m-d H:i:s');
             $isVip  = (string) ($order['biz_type'] ?? 'coin') === 'vip';
+            $late   = $status === 3 ? ' [订单已关闭后补单]' : '';
             $remark = ($isVip ? $gateway . ' 订阅到账 system_ref=' : $gateway . ' 自动到账 system_ref=')
-                . $systemRef . ($productRef !== '' ? ' product_ref=' . $productRef : '');
+                . $systemRef . ($productRef !== '' ? ' product_ref=' . $productRef : '') . $late;
 
             $db->table('lp_recharge_order')->where('id', $order['id'])->update([
                 'status'       => 1,
@@ -540,6 +561,230 @@ final class RechargeService
             $db->rollback();
             throw $e;
         }
+    }
+
+    /**
+     * 网关订单查单补单：回调丢失时的兜底
+     *
+     * 回调URL不通、网关重试耗尽、用户在收银台付完直接关页面……都会让订单停在待支付，
+     * 最后被 expireOrders() 关掉，用户钱付了不到账。这里周期性主动找网关对账：
+     * 网关确认已付款就补入账（confirmByGateway 幂等），否则什么都不做。
+     *
+     * 由 recharge:scan 每分钟调用。
+     *
+     * @return array{checked:int, recovered:int, failed:int, skipped:int}
+     */
+    public function reconcileGateway(int $staleMinutes = 5, int $limit = 50): array
+    {
+        $db  = Db::connect('live_mysql');
+        $now = time();
+
+        $rows = $db->table('lp_recharge_order')
+            ->whereIn('pay_channel', ['flowpay', 'starpay'])
+            ->whereIn('status', [0, 3])
+            // 刚下完单还没付款的不用查；超过 7 天的直接放弃，避免每分钟白查历史单
+            ->where('created_at', '<', date('Y-m-d H:i:s', $now - max(1, $staleMinutes) * 60))
+            ->where('created_at', '>', date('Y-m-d H:i:s', $now - 7 * 86400))
+            ->order('id', 'asc')
+            ->limit($limit)
+            ->select()->toArray();
+
+        $stat = ['checked' => 0, 'recovered' => 0, 'failed' => 0, 'skipped' => 0];
+        if (!$rows) {
+            return $stat;
+        }
+
+        // 下单就被网关拒掉的单（remark 里记了失败原因）不必再查
+        $rows = array_values(array_filter($rows, static function (array $r): bool {
+            return !str_starts_with((string) ($r['admin_remark'] ?? ''), '网关下单失败');
+        }));
+        if (!$rows) {
+            return $stat;
+        }
+
+        // star-pay 支持批量查单（一次最多 20 笔），先一次性拿回状态
+        $starPaid = [];
+        $starRefs = [];
+        foreach ($rows as $r) {
+            if ((string) $r['pay_channel'] === 'starpay') {
+                $starRefs[] = (string) $r['order_no'];
+            }
+        }
+        if ($starRefs) {
+            foreach (array_chunk($starRefs, 20) as $chunk) {
+                try {
+                    foreach ((new StarPayService())->queryOrders($chunk) as $item) {
+                        $ref = (string) ($item['merchant_ref'] ?? '');
+                        if ($ref !== '' && (int) ($item['status'] ?? 0) === 1) {
+                            $starPaid[$ref] = (string) ($item['system_ref'] ?? '');
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('[recharge:reconcile] star-pay 批量查单失败：' . $e->getMessage());
+                }
+            }
+        }
+
+        /** @var FlowPayService $flowPay */
+        $flowPay = null;
+        foreach ($rows as $r) {
+            $stat['checked']++;
+            $orderNo = (string) $r['order_no'];
+
+            try {
+                if ((string) $r['pay_channel'] === 'starpay') {
+                    if (!isset($starPaid[$orderNo])) {
+                        continue;
+                    }
+                    $this->confirmByGateway($orderNo, $starPaid[$orderNo], '', 'star-pay(查单补单)');
+                    $stat['recovered']++;
+                    Log::info('[recharge:reconcile] star-pay 补单成功 ' . $orderNo);
+                    continue;
+                }
+
+                $flowPay = $flowPay ?: new FlowPayService();
+                if (!$flowPay->enabled()) {
+                    $stat['skipped']++;
+                    continue;
+                }
+                $res = $flowPay->queryOrder($orderNo);
+                if ((string) ($res['trade_state'] ?? '') !== 'success') {
+                    continue;
+                }
+                $this->confirmByGateway($orderNo, (string) ($res['transaction_id'] ?? ''), '', 'FlowPay(查单补单)');
+                $stat['recovered']++;
+                Log::info('[recharge:reconcile] FlowPay 补单成功 ' . $orderNo);
+            } catch (\Throwable $e) {
+                $stat['failed']++;
+                Log::error('[recharge:reconcile] ' . $orderNo . ' 查单失败：' . $e->getMessage());
+            }
+        }
+
+        return $stat;
+    }
+
+    /**
+     * 未匹配（待人工处理）的链上转账
+     */
+    public function unmatchedCallbacks(int $limit = 50): array
+    {
+        return Db::connect('live_mysql')->table('lp_payment_callback_log')
+            ->where('verify_status', 0)
+            ->order('id', 'desc')
+            ->limit($limit)
+            ->select()->toArray();
+    }
+
+    /**
+     * 把某条链上回调标记为已人工处理（verify_status 2=已忽略）
+     */
+    public function markCallbackHandled(int $id): void
+    {
+        Db::connect('live_mysql')->table('lp_payment_callback_log')
+            ->where('id', $id)
+            ->update(['verify_status' => 2]);
+    }
+
+    /**
+     * 为一条未匹配的链上转账找「可能对应的订单」
+     *
+     * 匹配口径：同一渠道 + 金额完全相同 + 下单时间落在到账前 2 小时 ~ 到账后 1 小时，
+     * 且订单是待审核或已关闭（已关闭说明过期才到账，正是要补单的典型场景）。
+     * 只用于给运营提示，不做任何自动入账。
+     */
+    public function callbackCandidates(array $callback, int $limit = 3): array
+    {
+        $gateway = (string) ($callback['gateway'] ?? '');
+        $amount  = (string) ($callback['amount'] ?? '');
+        $ts      = (int) ($callback['block_timestamp'] ?? 0);
+        if ($gateway === '' || $amount === '' || $ts <= 0) {
+            return [];
+        }
+
+        $db = Db::connect('live_mysql');
+        $channelIds = $db->table('lp_recharge_channel')->where('type', $gateway)->column('id');
+        if (!$channelIds) {
+            return [];
+        }
+
+        return $db->table('lp_recharge_order')
+            ->whereIn('channel_id', $channelIds)
+            ->where('pay_amount', $amount)
+            ->whereIn('status', [0, 3])
+            ->where('created_at', '>=', date('Y-m-d H:i:s', $ts - 7200))
+            ->where('created_at', '<=', date('Y-m-d H:i:s', $ts + 3600))
+            ->field('id, order_no, user_id, status, pay_amount, diamond_amount, created_at')
+            ->order('id', 'asc')
+            ->limit($limit)
+            ->select()->toArray();
+    }
+
+    /**
+     * 收款地址合法性检查，返回错误原因（'' 表示合法）
+     *
+     * 线上就踩过这个坑：USDT-TRC20 渠道填了一个 base58check 校验和不通过的地址，
+     * 钱包会直接拒绝转账，链上扫链接口也一律报「not a valid address」，
+     * 但因为异常被吞掉，表面看不出问题——所以这里做前置校验。
+     */
+    public static function addressError(string $type, string $address): string
+    {
+        $addr = trim($address);
+        if ($addr === '') {
+            return '未填写收款地址';
+        }
+
+        if ($type === 'eth') {
+            if (!preg_match('/^0x[0-9a-fA-F]{40}$/', $addr)) {
+                return 'ETH 地址格式不对（应为 0x 开头的 42 位十六进制）';
+            }
+            if (preg_match('/^0x0{40}$/i', $addr)) {
+                return '不能使用全 0 占位地址';
+            }
+            return '';
+        }
+
+        if ($type === 'usdt_trc20') {
+            if (!str_starts_with($addr, 'T') || strlen($addr) !== 34) {
+                return 'TRON 地址应以 T 开头且共 34 位';
+            }
+            return self::base58checkValid($addr)
+                ? ''
+                : 'TRON 地址 base58 校验和不通过（地址被改动过），钱包会拒绝转账，请核对后重填';
+        }
+
+        return '';
+    }
+
+    /**
+     * TRON base58check 地址校验（25 字节：0x41 版本 + 20 字节地址 + 4 字节校验和）
+     */
+    private static function base58checkValid(string $s): bool
+    {
+        $alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        $num      = '0';
+        for ($i = 0, $n = strlen($s); $i < $n; $i++) {
+            $pos = strpos($alphabet, $s[$i]);
+            if ($pos === false) {
+                return false;
+            }
+            $num = bcadd(bcmul($num, '58'), (string) $pos);
+        }
+
+        $bin = '';
+        while (bccomp($num, '0') > 0) {
+            $bin = chr((int) bcmod($num, '256')) . $bin;
+            $num = bcdiv($num, '256', 0);
+        }
+        for ($i = 0, $n = strlen($s); $i < $n && $s[$i] === '1'; $i++) {
+            $bin = "\x00" . $bin;
+        }
+
+        if (strlen($bin) !== 25 || $bin[0] !== "\x41") {
+            return false;
+        }
+        $expect = substr(hash('sha256', hash('sha256', substr($bin, 0, 21), true), true), 0, 4);
+
+        return hash_equals($expect, substr($bin, 21));
     }
 
     private function creditDiamond($db, int $userId, float $amount, int $bizId, string $remark = '管理员审核充值'): void

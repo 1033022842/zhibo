@@ -34,18 +34,39 @@ final class RechargeScanCron extends Command
 
     protected function execute(Input $input, Output $output)
     {
-        $confirmed = 0;
-        $pending = 0;
-        $expired = 0;
+        $confirmed  = 0;
+        $pending    = 0;
+        $expired    = 0;
+        $badAddress = 0;
+        $noKey      = 0;
+        $reconcile  = ['checked' => 0, 'recovered' => 0, 'failed' => 0, 'skipped' => 0];
+
+        $service = new \app\live\service\RechargeService();
 
         try {
             $channels = Db::connect('live_mysql')->table('lp_recharge_channel')
                 ->where('status', 1)
+                ->where('type', 'usdt_trc20')   // 本任务只处理 TRC20，ETH 由 recharge:scan-eth 负责
                 ->where('confirm_mode', 'auto')
                 ->where('address', '<>', '')
                 ->select()->toArray();
 
             foreach ($channels as $ch) {
+                // 收款地址非法时扫链一定失败（接口会直接报 not a valid address），
+                // 这里先拦下来并明确报错，避免像之前那样「静默空转、用户充不进来也没人知道」
+                $addrErr = \app\live\service\RechargeService::addressError('usdt_trc20', (string) $ch['address']);
+                if ($addrErr !== '') {
+                    $badAddress++;
+                    $msg = sprintf('[recharge:scan] 渠道「%s」收款地址非法已跳过扫链：%s（address=%s）',
+                        (string) $ch['name'], $addrErr, (string) $ch['address']);
+                    $output->writeln($msg);
+                    \think\facade\Log::warning($msg);
+                    continue;
+                }
+                if (trim((string) ($ch['api_key'] ?? '')) === '') {
+                    $noKey++;
+                }
+
                 $txs = $this->fetchTrc20Transfers($ch['address'], (string)($ch['api_key'] ?? ''));
                 foreach ($txs as $tx) {
                     $to = (string)($tx['to'] ?? '');
@@ -59,10 +80,22 @@ final class RechargeScanCron extends Command
                 }
             }
 
-            // 过期订单关闭
-            $expired = (new \app\live\service\RechargeService())->expireOrders();
+            // 网关订单查单补单（回调丢失兜底），放在关单之前，
+            // 这样「刚好过期但用户已付款」的单能在同一轮里被补上
+            $reconcile = $service->reconcileGateway();
 
-            $line = sprintf('[recharge:scan] confirmed=%d pending_manual=%d expired=%d', $confirmed, $pending, $expired);
+            // 过期订单关闭
+            $expired = $service->expireOrders();
+
+            $extra = ($badAddress > 0 || $noKey > 0)
+                ? sprintf(' | channel_skipped bad_addr=%d no_key=%d', $badAddress, $noKey)
+                : '';
+            $line = sprintf(
+                '[recharge:scan] confirmed=%d pending_manual=%d expired=%d | gateway_reconcile checked=%d recovered=%d failed=%d%s',
+                $confirmed, $pending, $expired,
+                $reconcile['checked'], $reconcile['recovered'], $reconcile['failed'],
+                $extra
+            );
         } catch (\Throwable $e) {
             $line = '[recharge:scan] ERROR ' . $e->getMessage();
         }
@@ -134,7 +167,11 @@ final class RechargeScanCron extends Command
                 'created_at'       => date('Y-m-d H:i:s'),
             ]);
         } catch (\Throwable $e) {
-            // 唯一键冲突（并发重复）忽略
+            // 只有唯一键冲突（并发/重复扫描）才是正常的；其它错误（例如表结构缺列）
+            // 必须暴露出来，否则「未匹配的链上转账」会被静默丢掉、后台完全看不到
+            if (stripos($e->getMessage(), 'Duplicate') === false) {
+                \think\facade\Log::error('[recharge:scan] 回调日志写入失败：' . $e->getMessage());
+            }
         }
     }
 
