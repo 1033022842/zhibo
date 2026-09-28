@@ -169,6 +169,14 @@ final class RechargeChannel extends Backend
                 if ($data['type'] === 'eth' && preg_match('/^0x0{40}$/i', $addr)) {
                     throw new \InvalidArgumentException('不能使用全 0 占位地址，请填真实 ETH 收款地址');
                 }
+                // TRON 地址必须过 base58check 校验：线上就配过一个校验和不合法的地址，
+                // 钱包会直接拒绝转账、扫链接口也一律报 not a valid address，用户根本充不进来
+                if ($data['type'] === 'usdt_trc20' && $addr !== '') {
+                    $addrErr = \app\live\service\RechargeService::addressError('usdt_trc20', $addr);
+                    if ($addrErr !== '') {
+                        throw new \InvalidArgumentException($addrErr);
+                    }
+                }
                 // 处理二维码图片上传（仅当确有文件被上传时才处理）
                 $hasUpload = !empty($_FILES['qr_image']['tmp_name'])
                     && $_FILES['qr_image']['error'] === UPLOAD_ERR_OK
