@@ -275,6 +275,36 @@
     }
   }
 
+  /* ---------- 移动端抽屉语言区：元素级直绑（不依赖文档委托链） ----------
+     背景：抽屉容器上的 Stimulus 动作与部分脚本会吞掉冒泡，
+     文档级委托在抽屉内不可靠，这里把监听直接挂在按钮/菜单元素上。 */
+  function bindMobileLang(root) {
+    var wrap = root && root.querySelector ? root.querySelector('.fy-langwrap-m') : null
+    if (!wrap || wrap.__mBound) return
+    wrap.__mBound = true
+    var btn = wrap.querySelector('.fy-langbtn')
+    var menu = wrap.querySelector('.fy-lang-menu')
+    if (btn && menu) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault()
+        e.stopPropagation()
+        var opening = menu.classList.contains('hidden')
+        menu.classList.toggle('hidden')
+        wrap.classList.toggle('open', opening)
+        btn.setAttribute('aria-expanded', opening ? 'true' : 'false')
+      })
+      menu.addEventListener('click', function (e) {
+        var item = e.target.closest && e.target.closest('.lang-select')
+        if (!item) return
+        e.preventDefault()
+        e.stopPropagation()
+        var m = /googtrans\([^|)]*\|([^)]+)\)/.exec(item.getAttribute('href') || '')
+        var code = m ? m[1] : (item.getAttribute('data-lang') || '')
+        if (code && code !== currentLang()) switchLang(code)
+      })
+    }
+  }
+
   /* ---------- 移动端抽屉 ---------- */
   function drawerRows() {
     function row(n) {
@@ -420,6 +450,7 @@
   }
 
   function bind() {
+    window.__dbg.bindEntered = true
     document.addEventListener('mouseover', function (e) {
       var li = e.target.closest && e.target.closest('[data-fy-tip]')
       if (li) showTip(li)
@@ -457,6 +488,8 @@
     // 菜单项（.lang-select）不在拦截范围内，正常冒泡走文档级切换逻辑。
     document.addEventListener('click', function (e) {
       var w = e.target.closest && e.target.closest('.fy-langwrap-m')
+      window.__dbg.interruptSeen = (window.__dbg.interruptSeen || 0) + 1
+      window.__dbg.interruptWrap = !!w
       if (!w || (e.target.closest && e.target.closest('.fy-lang-menu'))) return
       e.stopPropagation()
       var m = w.querySelector('.fy-lang-menu')
@@ -809,6 +842,7 @@
     if (drawer) {
       drawer.classList.remove('mt-[64px]')
       drawer.innerHTML = mobileDrawer()
+      bindMobileLang(drawer)
     }
 
     // 自带新版外壳的页面（Subscriptions.html）：右上角也换成同一套，并摘掉它原本的成就徽章/胶囊/头像块
@@ -839,7 +873,12 @@
 
   function run() {
     try {
-      if (render()) bind()
+      window.__dbg = window.__dbg || {}
+      window.__dbg.runStart = true
+      var __bound = render()
+      window.__dbg.renderReturned = __bound
+      if (__bound) bind()
+      window.__dbg.bindCalled = __bound
       syncAuth()
       bindAuthWatch()
       LiveAuth.ensureFresh()
