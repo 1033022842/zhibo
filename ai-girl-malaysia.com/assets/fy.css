@@ -211,6 +211,7 @@ html.fy-shell-pending [data-main-target="mainMobileSidebarContainer"] nav{visibi
 .fy-lang-menu.hidden{display:none;}
 .fy-lang-item{display:block;padding:8px 16px;color:#fff;font-size:13px;line-height:18px;text-decoration:none;cursor:pointer;}
 .fy-lang-item:hover{background-color:#374151;color:#fff;}
+.fy-lang-item .fy-lang-flag{display:inline-block;margin-right:8px;font-size:15px;line-height:1;vertical-align:-2px;}
 
 /* 侧栏项悬浮提示（旧包没有 navbar-tooltip 控制器）
    visibility/opacity 必须带 !important：页面加载 Google 翻译后，

@@ -81,19 +81,19 @@
     { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' }
   ]
 
-  // 语言列表（与 header/header.html 的下拉一致，复用 .lang-select 的既有逻辑）
+  // 语言列表（与 header/header.html 的下拉一致，复用 .lang-select 的既有逻辑）；第三位为国旗 emoji
   var LANGS = [
-    ['vi', 'Tiếng Việt'],
-    ['ms', 'Melayu'],
-    ['th', 'แบบไทย'],
-    ['km', 'ភាសាខ្មែរ'],
-    ['lo', 'ພາສາລາວ'],
-    ['en', 'English'],
-    ['zh-CN', '中文'],
-    ['ja', '日本語'],
-    ['ko', '한국어'],
-    ['ru', 'Русский'],
-    ['es', 'español']
+    ['vi', 'Tiếng Việt', '🇻🇳'],
+    ['ms', 'Melayu', '🇲🇾'],
+    ['th', 'แบบไทย', '🇹🇭'],
+    ['km', 'ភាសាខ្មែរ', '🇰🇭'],
+    ['lo', 'ພາສາລາວ', '🇱🇦'],
+    ['en', 'English', '🇺🇸'],
+    ['zh-CN', '中文', '🇨🇳'],
+    ['ja', '日本語', '🇯🇵'],
+    ['ko', '한국어', '🇰🇷'],
+    ['ru', 'Русский', '🇷🇺'],
+    ['es', 'español', '🇪🇸']
   ]
 
   function esc(s) {
@@ -161,7 +161,7 @@
   /* ---------- 语言切换按钮 + 下拉 ---------- */
   function langButton(withLabel) {
     var menu = LANGS.map(function (l) {
-      return '<a class="fy-lang-item lang-select notranslate" data-lang="' + l[0] + '" href="#googtrans(en|' + l[0] + ')">' + esc(l[1]) + '</a>'
+      return '<a class="fy-lang-item lang-select notranslate" data-lang="' + l[0] + '" href="#googtrans(en|' + l[0] + ')"><span class="fy-lang-flag">' + (l[2] || '') + '</span>' + esc(l[1]) + '</a>'
     }).join('')
     return '<div class="fy-langwrap">' +
       '<button type="button" class="fy-langbtn' + (withLabel ? '' : ' fy-langbtn-sm') + '" aria-expanded="false">' +
