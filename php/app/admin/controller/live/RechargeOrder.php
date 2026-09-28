@@ -53,6 +53,10 @@ final class RechargeOrder extends Backend
                     $q->whereLike('o.order_no', "%{$keyword}%")
                       ->whereOr('o.system_ref', 'like', "%{$keyword}%")
                       ->whereOr('u.nickname', 'like', "%{$keyword}%");
+                    // 纯数字时再按用户 ID 精确匹配（列表有「用户ID」列，运营常直接拿 ID 捞单）
+                    if (ctype_digit($keyword)) {
+                        $q->whereOr('o.user_id', (int) $keyword);
+                    }
                 });
             }
             if ($status !== '') {
@@ -295,6 +299,7 @@ final class RechargeOrder extends Backend
                 . '<td>' . $chk . '</td>'
                 . '<td>' . $rid . '</td>'
                 . '<td>' . htmlspecialchars((string) ($r['nickname'] ?: '-'), ENT_QUOTES) . '</td>'
+                . '<td>' . (int) $r['user_id'] . '</td>'
                 . '<td><a href="javascript:void(0)" onclick="showDetail(' . $rid . ')" class="olink">' . htmlspecialchars((string) $r['order_no'], ENT_QUOTES) . '</a></td>'
                 . '<td>' . htmlspecialchars($channelLbl, ENT_QUOTES) . '</td>'
                 . '<td>' . htmlspecialchars($bizLbl, ENT_QUOTES) . '</td>'
@@ -335,7 +340,7 @@ final class RechargeOrder extends Backend
             ];
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="15" style="text-align:center;color:#999;padding:26px">暂无符合条件的订单</td></tr>';
+            $rows = '<tr><td colspan="16" style="text-align:center;color:#999;padding:26px">暂无符合条件的订单</td></tr>';
         }
 
         // ---- 异常链上转账（扫链没匹配到订单的入账）----
@@ -506,7 +511,7 @@ final class RechargeOrder extends Backend
 {{STATS}}
 {{ALERTS}}
 <form class="toolbar" method="get">
-    <input type="text" name="search" placeholder="搜索订单号 / 网关单号 / 昵称" value="{{KW}}">
+    <input type="text" name="search" placeholder="搜索订单号 / 网关单号 / 昵称 / 用户ID" value="{{KW}}">
     <select name="status">{{SEL_STATUS}}</select>
     <select name="channel">{{SEL_CHANNEL}}</select>
     <select name="biz_type">{{SEL_BIZ}}</select>
@@ -526,7 +531,7 @@ final class RechargeOrder extends Backend
 <div style="overflow-x:auto">
 <table><thead><tr>
     <th><input type="checkbox" id="chkAll" onclick="toggleAll(this)"></th>
-    <th>ID</th><th>用户</th><th>订单号</th><th>渠道</th><th>业务</th><th>支付金额</th><th>到账</th>
+    <th>ID</th><th>用户</th><th>用户ID</th><th>订单号</th><th>渠道</th><th>业务</th><th>支付金额</th><th>到账</th>
     <th>网关/链上单号</th><th>凭证</th><th>订单状态</th><th>支付状态</th><th>备注</th><th>下单时间</th><th>操作</th>
 </tr></thead><tbody>{{ROWS}}</tbody></table>
 </div>
