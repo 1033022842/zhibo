@@ -57,6 +57,7 @@ PHP_FILES = [
     "php/app/live/service/UserPersonaService.php",
     "php/app/live/model/UserPersona.php",
     "php/app/live/service/PaymentOptionService.php",
+    "php/app/live/service/AchievementService.php",
     "php/app/common/service/LlmService.php",
     "php/app/live/service/VipService.php",
     "php/app/live/service/QuotaService.php",
@@ -108,6 +109,8 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/setting.html",
     "ai-girl-malaysia.com/js/settings.js",
     "ai-girl-malaysia.com/js/settings-page.js",
+    "ai-girl-malaysia.com/achievements.html",
+    "ai-girl-malaysia.com/js/achievements.js",
     ETH_ICON,
 ]
 
@@ -1187,17 +1190,19 @@ def main():
             cmd = sys.argv[2] if len(sys.argv) > 2 else "echo hi"
             run(cli, buf, "执行命令（诊断用）", cmd + "\n", timeout=180)
         elif action == "settings":
-            # 只部署设置页新版式：setting.html + js/settings*.js + settings_files/
+            # 只部署设置页新版式：setting.html + achievements.html + js/settings*.js + js/achievements.js + settings_files/
             for rel in ["ai-girl-malaysia.com/setting.html",
+                        "ai-girl-malaysia.com/achievements.html",
                         "ai-girl-malaysia.com/js/settings.js",
                         "ai-girl-malaysia.com/js/settings-page.js",
+                        "ai-girl-malaysia.com/js/achievements.js",
                         ETH_ICON]:
                 upload_file(sftp, buf, rel, REMOTE + "/" + rel, ".bak_settings_" + STAMP)
             for rel, remote_dir in STATIC_DIRS:
                 upload_dir(sftp, buf, rel, remote_dir)
             run(cli, buf, "PHP 语法检查（设置页相关）",
-                "php -l %s/app/live/service/UserService.php; php -l %s/app/live/service/UserPersonaService.php; php -l %s/app/live/model/UserPersona.php; php -l %s/app/live/service/PaymentOptionService.php; php -l %s/app/live/service/VipService.php; php -l %s/app/api/controller/Live.php; php -l %s/route/live.php\n"
-                % (PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
+                "php -l %s/app/live/service/UserService.php; php -l %s/app/live/service/UserPersonaService.php; php -l %s/app/live/model/UserPersona.php; php -l %s/app/live/service/PaymentOptionService.php; php -l %s/app/live/service/AchievementService.php; php -l %s/app/live/service/VipService.php; php -l %s/app/api/controller/Live.php; php -l %s/route/live.php\n"
+                % (PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
         elif action == "sqluser":
             # 只跑设置页相关的迁移（不动其它迁移，避免覆盖后台已调好的数据）
             run(cli, buf, "用户偏好设置表 + 用户人格表 + 订阅字段迁移",

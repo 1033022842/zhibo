@@ -38,6 +38,7 @@
     subscription:   '/api/live/subscription',
     cancelSubscription: '/api/live/cancelSubscription',
     paymentOptions: '/api/live/paymentOptions',
+    achievements:   '/api/live/achievements',
     vipStatus:      '/api/vip/status',
     logout:         '/api/live/logout'
   }
@@ -958,6 +959,21 @@
       .catch(function () { /* 拉取失败保持空列表 */ })
   }
 
+  /* Achievements 卡：存档页是抓取账号的假进度，这里换成真实数据 */
+  function loadAchievementsSummary() {
+    var el = document.getElementById('fy-ach-summary')
+    if (!el) return
+
+    fetch(API.achievements, { headers: { token: token() } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        var d = res && res.code === '00000' && res.data ? res.data : null
+        if (!d || !d.total) return
+        el.textContent = d.unlocked + ' unlocked of ' + d.total + ' · ' + d.points + ' pts'
+      })
+      .catch(function () { /* 拉取失败保留原文案 */ })
+  }
+
   /* ---------------- 启动 ---------------- */
 
   function init() {
@@ -979,6 +995,7 @@
     loadPersona()
     loadSubscription()
     loadPaymentOptions()
+    loadAchievementsSummary()
   }
 
   if (document.readyState === 'loading') {

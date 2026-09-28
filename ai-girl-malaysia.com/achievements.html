@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="./js/ui-dialog.js?v=20260927a"></script>
+<link rel="icon" type="image/png" href="./sugus-favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Achievements · Sugus.ai</title>
+<style type="text/css">
+.turbo-progress-bar {
+  position: fixed;
+  display: block;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: #0076ff;
+  z-index: 2147483647;
+  transition: width 300ms ease-out, opacity 150ms 150ms ease-in;
+  transform: translate3d(0, 0, 0);
+}
+@media only screen and (max-width: 768px) { .pc-nav { display: none; } }
+.login-pf { display: none; }
+#user-login { display: none; }
+</style>
+<link rel="stylesheet" href="./assets/fy.css?v=20260921b" data-turbo-track="reload">
+<link rel="stylesheet" href="./settings_files/application-8ee8a481074c4025471514720f49a183b2d681ef94947cc96604f49cfcc404bd.css" data-turbo-track="reload">
+<link rel="stylesheet" href="./settings_files/css2" media="all" onload="this.media='all'">
+<script src="./settings_files/jquery-3.6.0.min.js"></script>
+<script src="./Guys_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
+<script src="./Guys_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
+<script src="./assets/layer/3.1.1/layer.js"></script>
+<script src="./js/main.js?v=20260928a"></script>
+<script src="./js/shell-new.js?v=20260921b"></script>
+<script src="./js/achievements.js?v=20260928a"></script>
+</head>
+<body class="bg bg-main pages home" id="app" data-controller="main" data-main-is-sidebar-opened-value="true">
+  <noscript>
+    <div style="padding:96px 24px;color:#fff">Achievements need JavaScript enabled.</div>
+  </noscript>
+
+  <div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+    <nav class="flex flex-col justify-between h-full"></nav>
+  </div>
+
+  <div data-main-target="mainSidebarOpenedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[220px] lg:pb-5 w-[220px] fixed top-0 left-0 h-full webkit-transition-sidebar pc-nav" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
+    <nav class="flex flex-col justify-between h-full"></nav>
+  </div>
+
+  <div data-main-target="mainMobileSidebarContainer" data-action="click-&gt;main#setMobileSidebarValueToDefault" class="inset-y-0 w-[100vw] mt-[64px] z-[100] pr-[40vw] no-scroll fixed left-0 webkit-transition-sidebar webkit-transform-sidebar">
+    <nav class="flex flex-col justify-between h-full w-[240px]" style="background: linear-gradient(0deg, #131313 0%, #131313 100%)"></nav>
+  </div>
+
+  <div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">
+    <button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger">
+      <span class="sr-only">Open sidebar</span>
+      <svg class="nav-hamburger h-8 w-8 mr-1 text-white" data-action="click-&gt;main#handleMenuClick" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+      </svg>
+    </button>
+    <a href="./Girls.html">
+      <img src="sugus-wordmark.png" class="h-[30px] md:h-[30px] w-[115px]" alt="Sugus.ai">
+    </a>
+    <div id="user-setting" style="margin-left:auto"></div>
+  </div>
+
+  <main class="achievement-lab achievement-lab--dashboard" tabindex="-1">
+    <div class="achievement-lab__inner" id="fy-ach-root">
+      <div class="achievement-lab__empty"><h2>Loading achievements…</h2></div>
+    </div>
+  </main>
+</body>
+</html>

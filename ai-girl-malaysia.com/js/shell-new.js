@@ -24,6 +24,7 @@
     explore: { src: T + 'explore-3a4a39d3c6126c743969aa14b3a4841763f5b600e0f77e317a32d7c30afbcc13.svg' },
     chat: { src: T + 'chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg' },
     gallery: { src: T + 'gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg' },
+    achv: { src: T + 'trophy-55ba15bcf830427b6fc776e11ff4465cce75c1c2a1a27ba0bd2eea0e5c03ff55.svg' },
     candy: { src: T + 'candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg' },
     shorts: { src: T + 'shorts-dd7eca01fe7f8a694cd100be90b5b6c20d241a5bf4c8b8c0f8633864125cffae.svg' },
     wand: { src: T + 'magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg' },
@@ -59,6 +60,7 @@
     { href: './Girls.html', label: 'Explore', icon: 'explore' },
     { href: './Chat.html', label: 'Chat', icon: 'chat' },
     { href: './Gallery.html', label: 'Gallery', icon: 'gallery' },
+    { href: './achievements.html', label: 'Achievements', icon: 'achv' },
     { href: './Image.html', label: 'Generate Image', icon: 'generate', top: true },
     { href: './characters.html', label: 'Create Character', icon: 'wand' },
     { href: './charactersIndex.html', label: 'My AI', icon: 'lady' },
@@ -288,6 +290,9 @@
       '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./upload_media.html">' +
       '<img class="w-5 h-5" src="' + I.wand.src + '" alt="Upload Media">' +
       '<span class="text-grey-medium text-xs font-semibold">Upload Media</span></a>' +
+      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./achievements.html">' +
+      '<img class="w-5 h-5" src="' + I.achv.src + '" alt="Achievements">' +
+      '<span class="text-grey-medium text-xs font-semibold">Achievements</span></a>' +
       '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./Inviter.html">' +
       '<img class="w-5 h-5" src="' + I.gift.src + '" alt="">' +
       '<span class="text-grey-medium text-xs font-semibold">Get 100 tokens</span></a>' +
@@ -369,7 +374,7 @@
       '<button data-turbo="false" id="logout" type="submit"><img src="' + I.logout.src + '" alt=""><span>Logout</span></button></form>'
 
     return '<div class="fy-navright">' +
-      '<a class="fy-achv" href="./Game.html" title="Achievements" aria-label="Achievements">' +
+      '<a class="fy-achv" href="./achievements.html" title="Achievements" aria-label="Achievements">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '<path d="M6 9a6 6 0 1 0 12 0V4H6z"></path>' +
       '<path d="M6 6H3v2a3 3 0 0 0 3 3M18 6h3v2a3 3 0 0 1-3 3"></path>' +

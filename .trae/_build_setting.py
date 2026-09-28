@@ -489,6 +489,11 @@ body = re.sub(r'src="\./settings_files/logo-navbar-[0-9a-f]+\.svg"', 'src="./sug
 #  - 站内链接本地化：candy.ai 的页面路径换成站点自己的页面；其余一律去掉域名留根相对路径
 #    （与 .trae/_build_subscriptions.py、旧版 setting.html 的做法一致：整页 0 处 candy.ai）
 URL_MAP = [
+    # 成就页：站点自己的 achievements.html（存档页指向 candy.ai/achievements）
+    ("https://candy.ai/achievements?src=settings", "./achievements.html"),
+    ("https://candy.ai/achievements?src=sidebar", "./achievements.html"),
+    ("https://candy.ai/achievements?src=navbar", "./achievements.html"),
+    ("https://candy.ai/achievements", "./achievements.html"),
     ("https://candy.ai/subscriptions?tab=premium-plus", "./Subscriptions.html"),
     ("https://candy.ai/ai-girlfriend/candy-assistant", "./Chat.html"),
     ("https://candy.ai/shop/items?src=menu", "./shop.html"),
@@ -544,6 +549,16 @@ body, n_pay = re.subn(
     body, count=1, flags=re.S,
 )
 log.append("Payment methods 区块替换 %d 处" % n_pay)
+
+#  - Achievements 卡：存档页里是抓取账号的假进度（2 unlocked of 72 · 15 pts），
+#    挂个 id 让 js/settings-page.js 拉 /api/live/achievements 填真实值
+ACH_SUMMARY_OLD = '<p class="text-[#8d8d8d] text-[13px] font-medium leading-5 mt-1">2 unlocked of 72 · 15 pts</p>'
+ACH_SUMMARY_NEW = '<p class="text-[#8d8d8d] text-[13px] font-medium leading-5 mt-1" id="fy-ach-summary">2 unlocked of 72 · 15 pts</p>'
+if ACH_SUMMARY_OLD in body:
+    body = body.replace(ACH_SUMMARY_OLD, ACH_SUMMARY_NEW)
+    log.append("Achievements 卡进度挂 id %d 处" % 1)
+else:
+    log.append("!! Achievements 卡进度文案没找到（0 处）")
 
 out = NEW_HEAD + body
 io.open(DST, "w", encoding="utf-8", newline="").write(out)
