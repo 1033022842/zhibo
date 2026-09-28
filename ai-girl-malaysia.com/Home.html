@@ -132,12 +132,27 @@
 				mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%)}
 						/* 分类 Tab（candy.ai 式：Girls / Anime / Guys，顶栏 logo 后；移动端单独一行） */
 			.c-tabs-h{align-items:center;gap:8px;margin-left:14px}
-			.c-tabs-m{align-items:center;gap:8px;padding:10px 20px 2px;overflow-x:auto;scrollbar-width:none}
-			.c-tabs-m::-webkit-scrollbar{display:none}
 			.c-tab{flex:0 0 auto;height:34px;padding:0 16px;border-radius:9999px;border:1.5px solid rgba(255,255,255,.16);
 				background:#202020;color:#c9c9c9;font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;
 				display:inline-flex;align-items:center;gap:6px;transition:all .18s ease}
 			.c-tab:hover{border-color:rgba(255,255,255,.34);color:#fff}
+			/* 移动端：logo 旁的分类下拉箭头 + 顶栏下滑面板 */
+			.c-cat-dd-btn{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 12px;margin-left:8px;
+				border-radius:9999px;border:1.5px solid rgba(255,255,255,.16);background:#202020;color:#e5e5e5;
+				font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:border-color .18s ease}
+			.c-cat-dd-btn:active{transform:scale(.97)}
+			.c-cat-dd-btn svg{width:14px;height:14px;transition:transform .2s ease}
+			.c-cat-dd-btn.open svg{transform:rotate(180deg)}
+			.c-cat-dd-panel{display:none;position:fixed;top:64px;left:0;right:0;z-index:39;flex-direction:column;gap:8px;
+				padding:12px 16px 14px;background:#141414;border-bottom:1px solid #363636;box-shadow:0 14px 30px rgba(0,0,0,.5);
+				transform:translateY(-8px);opacity:0;transition:transform .18s ease,opacity .18s ease}
+			.c-cat-dd-panel.open{display:flex;transform:translateY(0);opacity:1}
+			.c-dd-item{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 18px;
+				border-radius:14px;border:1.5px solid rgba(255,255,255,.12);background:#202020;color:#d4d4d4;
+				font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:all .15s ease}
+			.c-dd-item .c-dd-sub{font-size:12px;font-weight:500;color:#8a8a8a}
+			.c-dd-item.active{background:linear-gradient(135deg,#fc768a,#e65073);border-color:transparent;color:#fff}
+			.c-dd-item.active .c-dd-sub{color:rgba(255,255,255,.8)}
 			.c-tab.active{background:linear-gradient(135deg,#fc768a,#e65073);border-color:transparent;color:#fff;
 				box-shadow:0 4px 14px rgba(231,82,117,.35)}
 			@media (min-width:1024px){.c-tab{height:38px;padding:0 20px;font-size:14px}}
@@ -473,6 +488,11 @@
 			<a href="./Home.html">
 				<img src="sugus-wordmark.png" class="h-[30px] md:h-[30px] w-[115px]">
 			</a>
+			<!-- 移动端：分类下拉箭头（点开在顶栏下滑出分类菜单） -->
+			<button id="catDdBtn" type="button" class="c-cat-dd-btn sm:hidden" aria-expanded="false" aria-controls="catDdPanel">
+				<span id="catDdLabel">Girls</span>
+				<svg id="catDdChev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+			</button>
 			<!-- 分类 Tab：Girls / Anime / Guys（candy.ai 式，logo 后） -->
 			<div class="c-tabs c-tabs-h hidden sm:flex" role="tablist">
 				<button class="c-tab active" type="button" data-cat="girls">Girls</button>
@@ -502,17 +522,16 @@
 			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main"></div>
 		</div>
 
+		<!-- 移动端分类下拉面板（固定于顶栏下方） -->
+		<div id="catDdPanel" class="c-cat-dd-panel sm:hidden" role="menu">
+			<button class="c-dd-item active" type="button" data-cat="girls">Girls<span class="c-dd-sub">女生</span></button>
+			<button class="c-dd-item" type="button" data-cat="anime">Anime<span class="c-dd-sub">动漫</span></button>
+			<button class="c-dd-item" type="button" data-cat="guys">Guys<span class="c-dd-sub">男生</span></button>
+		</div>
 		<!-- ===== 主内容区 ===== -->
 		<div class="main-content-container" data-main-target="contentContainer">
 			<main class="ml-0 lg:ml-[100px] mt-3 md:mt-16 lg:mb-0 mb-[76px] h-full">
 				<div class="c-home">
-					<!-- 分类 Tab（移动端）：顶栏放不下，放内容区第一行 -->
-					<div class="c-tabs c-tabs-m sm:hidden" role="tablist">
-						<button class="c-tab active" type="button" data-cat="girls">Girls</button>
-						<button class="c-tab" type="button" data-cat="anime">Anime</button>
-						<button class="c-tab" type="button" data-cat="guys">Guys</button>
-					</div>
-
 
 					<!-- Hero 轮播：只展示图片，点击整张图跳转（图片与链接由后台「首页轮播图」维护） -->
 					<div class="c-hero-wrap">
@@ -1195,6 +1214,9 @@
 
 			/* ---------- 分类 Tab：切换后按当前分类重渲染 ---------- */
 			function renderAll() {
+				closeDd()
+				var lbl = document.getElementById('catDdLabel')
+				if (lbl) lbl.textContent = activeCat.charAt(0).toUpperCase() + activeCat.slice(1)
 				activeChip = 'All'
 				keyword = ''
 				var si = document.getElementById('heroSearch')
@@ -1207,17 +1229,37 @@
 				renderGrid()
 			}
 			CATS.forEach(function(cat) {
-				document.querySelectorAll('.c-tab[data-cat="' + cat + '"]').forEach(function(tab) {
+				document.querySelectorAll('[data-cat="' + cat + '"]').forEach(function(tab) {
 					tab.addEventListener('click', function() {
 						if (activeCat === cat) return
 						activeCat = cat
-						document.querySelectorAll('.c-tab[data-cat]').forEach(function(b) {
+						document.querySelectorAll('[data-cat]').forEach(function(b) {
 							b.classList.toggle('active', b.getAttribute('data-cat') === cat)
 						})
 						renderAll()
 					})
 				})
 			})
+
+			/* ---------- 移动端分类下拉：箭头开合 ---------- */
+			var ddBtn = document.getElementById('catDdBtn')
+			var ddPanel = document.getElementById('catDdPanel')
+			function closeDd() {
+				if (!ddPanel) return
+				ddPanel.classList.remove('open')
+				if (ddBtn) { ddBtn.classList.remove('open'); ddBtn.setAttribute('aria-expanded', 'false') }
+			}
+			if (ddBtn && ddPanel) {
+				ddBtn.addEventListener('click', function(e) {
+					e.stopPropagation()
+					var open = ddPanel.classList.toggle('open')
+					ddBtn.classList.toggle('open', open)
+					ddBtn.setAttribute('aria-expanded', open ? 'true' : 'false')
+				})
+				document.addEventListener('click', function(e) {
+					if (ddPanel.classList.contains('open') && !ddPanel.contains(e.target) && e.target !== ddBtn) closeDd()
+				})
+			}
 
 			// 三分类数据一次性并发拉取，切 Tab 零等待
 			Promise.all(CATS.map(function(cat) {
