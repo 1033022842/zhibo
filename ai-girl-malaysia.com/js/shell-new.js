@@ -450,7 +450,6 @@
   }
 
   function bind() {
-    window.__dbg.bindEntered = true
     document.addEventListener('mouseover', function (e) {
       var li = e.target.closest && e.target.closest('[data-fy-tip]')
       if (li) showTip(li)
@@ -488,8 +487,6 @@
     // 菜单项（.lang-select）不在拦截范围内，正常冒泡走文档级切换逻辑。
     document.addEventListener('click', function (e) {
       var w = e.target.closest && e.target.closest('.fy-langwrap-m')
-      window.__dbg.interruptSeen = (window.__dbg.interruptSeen || 0) + 1
-      window.__dbg.interruptWrap = !!w
       if (!w || (e.target.closest && e.target.closest('.fy-lang-menu'))) return
       e.stopPropagation()
       var m = w.querySelector('.fy-lang-menu')
@@ -873,12 +870,8 @@
 
   function run() {
     try {
-      window.__dbg = window.__dbg || {}
-      window.__dbg.runStart = true
       var __bound = render()
-      window.__dbg.renderReturned = __bound
       if (__bound) bind()
-      window.__dbg.bindCalled = __bound
       syncAuth()
       bindAuthWatch()
       LiveAuth.ensureFresh()
