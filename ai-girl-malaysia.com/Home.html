@@ -376,7 +376,9 @@
 <meta property="og:description" content="Your dream companion awaits! Chat, call and create your own AI girlfriend. Meet featured AI characters and start a conversation in seconds.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="/ai/sugus-wordmark@2x.png">
-</head>
+    <script src="./js/ui-dialog.js?v=20260928a"></script>
+    <script src="./js/watch-dialog.js?v=20260917"></script>
+    </head>
 	<body class="bg-main pages home" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
 
 		<!-- ===== 移动端：顶部「安装 App」提示条（添加到主屏幕，无需下载） ===== -->
@@ -636,6 +638,27 @@
 
 					<!-- 下方板块：按后台「所属板块」自动生成（单排、7/10 短卡） -->
 					<div id="shelves"></div>
+
+					<!-- Private Content 会员栏：仅会员可见，内容需钻石解锁（数据 /api/live/privateContents） -->
+					<section class="c-shelf" id="privateShelf" style="display:none">
+						<div class="c-shelf-head">
+							<h2 class="c-shelf-title"><em>Private</em> Content</h2>
+							<button class="c-arrow c-title-arrow" type="button" data-scroll="next" aria-label="Scroll right">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
+						</div>
+						<div class="c-row-wrap">
+							<div class="c-row" data-row>
+								<ul class="c-row-grid c-row-grid-short" id="privateGrid"></ul>
+							</div>
+							<button class="c-row-arrow left" type="button" data-scroll="prev" aria-label="Scroll left">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+							</button>
+							<button class="c-row-arrow right" type="button" data-scroll="next" aria-label="Scroll right">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
+						</div>
+					</section>
 
 					<!-- FAQ -->
 					<section class="c-faq">
@@ -1285,6 +1308,7 @@
 				renderChips()
 				renderShelves()
 				renderGrid()
+				renderPrivate()
 			}
 			CATS.forEach(function(cat) {
 				document.querySelectorAll('[data-cat="' + cat + '"]').forEach(function(tab) {
@@ -1320,6 +1344,137 @@
 			}
 
 			// 三分类数据一次性并发拉取，切 Tab 零等待
+			/* ---------- Private Content 会员栏（VIP 可见 · 钻石解锁） ---------- */
+			var privStore = {}, isVip = false
+			function privToken() { try { return localStorage.getItem('live_access_token') || '' } catch (e) { return '' } }
+			function privHeaders(extra) {
+				var h = extra || {}
+				var tk = privToken()
+				if (tk) h.Authorization = 'Bearer ' + tk
+				return h
+			}
+			function checkVip() {
+				var tk = privToken()
+				if (!tk) { isVip = false; renderPrivate(); return }
+				fetch('/api/vip/status', { headers: { Authorization: 'Bearer ' + tk } })
+					.then(function (r) { return r.json() })
+					.then(function (d) {
+						isVip = !!(d && d.data && (d.data.is_vip == 1 || d.data.is_vip === true))
+						renderPrivate()
+					})
+					.catch(function () { renderPrivate() })
+			}
+			function loadPrivate(cat) {
+				fetch('/api/live/privateContents?category=' + encodeURIComponent(cat), { headers: privHeaders() })
+					.then(function (r) { return r.json() })
+					.then(function (d) {
+						privStore[cat] = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+						renderPrivate()
+					})
+					.catch(function () { renderPrivate() })
+			}
+			function privCardHtml(item) {
+				var unlocked = Number(item.unlocked) === 1
+				var price = parseInt(item.price, 10) || 0
+				var cover = item.poster
+					? '<img class="cover" src="' + esc(fixUrl(item.poster)) + '" alt="' + esc(item.title) + '" loading="lazy" style="' + (unlocked ? '' : 'filter:blur(7px)') + '" onerror="this.style.display=\'none\'">'
+					: ''
+				var lockSvg = '<svg viewBox="0 0 24 24" fill="#fff"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8 0V7a3 3 0 0 1 6 0v2H9z"/></svg>'
+				var playSvg = '<svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>'
+				var badge = unlocked
+					? '<span class="c-card-badge">' + playSvg + 'Owned</span>'
+					: '<span class="c-card-badge">' + lockSvg + price + '</span>'
+				var meta = unlocked
+					? ''
+					: '<div class="c-s-meta"><span class="c-s-free">VIP</span><span class="c-s-eps">' + price + ' diamonds</span></div>'
+				return '<li><a class="c-card c-card-short" draggable="false" data-pid="' + esc(item.id) + '" href="javascript:void(0)" aria-label="' + esc(item.title) + '">' +
+					cover +
+					'<div class="c-card-scrim"></div>' +
+					badge +
+					'<div class="c-card-info">' +
+						'<div class="c-card-name"><b title="' + esc(item.title) + '">' + esc(item.title) + '</b></div>' +
+						meta +
+					'</div>' +
+				'</a></li>'
+			}
+			function renderPrivate() {
+				var sec = document.getElementById('privateShelf')
+				var grid = document.getElementById('privateGrid')
+				if (!sec || !grid) return
+				var list = (isVip && privStore[activeCat]) ? privStore[activeCat] : []
+				sec.style.display = list.length ? '' : 'none'
+				if (!list.length) return
+				grid.innerHTML = list.map(privCardHtml).join('')
+				initShelf(sec)
+			}
+			function watchPriv(item) {
+				if (!window.CandyWatch) { location.href = './private_content.html?id=' + encodeURIComponent(item.id); return }
+				var sub = []
+				if (item.creator) sub.push(item.creator)
+				var vc = Number(item.video_count || 0), ic = Number(item.image_count || 0)
+				if (vc > 0) sub.push(vc + (vc > 1 ? ' videos' : ' video') + (item.duration ? ' · ' + item.duration : ''))
+				if (ic > 0) sub.push(ic + (ic > 1 ? ' photos' : ' photo'))
+				window.CandyWatch.open({
+					title: item.title || '',
+					subtitle: sub.join(' · '),
+					videoUrl: item.video_url || '',
+					images: Array.isArray(item.images) ? item.images : [],
+					emptyText: 'This pack has no media yet.',
+				})
+			}
+			function unlockPriv(item) {
+				fetch('/api/live/privateUnlock', {
+					method: 'POST',
+					headers: privHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+					body: 'id=' + encodeURIComponent(item.id),
+				})
+					.then(function (r) { return r.json() })
+					.then(function (res) {
+						if (res && res.code === '00000') {
+							item.unlocked = 1
+							if (res.data && res.data.item) {
+								item.video_url = res.data.item.video_url || ''
+								item.images = Array.isArray(res.data.item.images) ? res.data.item.images : []
+							}
+							renderPrivate()
+							watchPriv(item)
+						} else if (window.SugusDialog) {
+							SugusDialog.alert((res && res.msg) || 'Unlock failed, please try again', { title: 'Notice' })
+						} else {
+							window.alert((res && res.msg) || 'Unlock failed, please try again')
+						}
+					})
+					.catch(function () {
+						if (window.SugusDialog) SugusDialog.alert('Network error, please try again', { title: 'Notice' })
+					})
+			}
+			document.addEventListener('click', function (e) {
+				var el = e.target.closest ? e.target.closest('[data-pid]') : null
+				if (!el) return
+				e.preventDefault()
+				var list = privStore[activeCat] || []
+				var item = null
+				for (var i = 0; i < list.length; i++) {
+					if (String(list[i].id) === String(el.getAttribute('data-pid'))) { item = list[i]; break }
+				}
+				if (!item) return
+				if (!privToken()) { location.href = './Login.html'; return }
+				if (Number(item.unlocked) === 1) { watchPriv(item); return }
+				var price = parseInt(item.price, 10) || 0
+				var msg = 'Unlock "' + (item.title || 'this pack') + '" for ' + price + ' diamonds?'
+				if (window.SugusDialog) {
+					SugusDialog.confirm({
+						title: 'Unlock private content',
+						message: msg,
+						confirmText: 'Unlock (' + price + ')',
+						cancelText: 'Cancel',
+						icon: 'lock'
+					}).then(function (ok) { if (ok) unlockPriv(item) })
+				} else if (window.confirm(msg)) {
+					unlockPriv(item)
+				}
+			})
+
 			Promise.all(CATS.map(function(cat) {
 				return loadJson(base + '/home/characters?limit=50&category=' + cat)
 			})).then(function(res) {
@@ -1341,6 +1496,10 @@
 			}).then(function() {
 				renderAll()
 			})
+
+			// Private Content：会员状态 + 各分类内容独立加载
+			checkVip()
+			CATS.forEach(function (cat) { loadPrivate(cat) })
 
 			// 短剧栏独立加载（有数据才显示）
 			loadJson('/api/live/shorts?limit=24').then(function(d) {
