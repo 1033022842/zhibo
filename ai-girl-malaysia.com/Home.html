@@ -23,7 +23,7 @@
 
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
-		<script src="./js/main.js?v=20260921b"></script>
+		<script src="./js/main.js?v=20260928a"></script>
 		<script src="./js/shell-new.js?v=20260921b"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20260920"></script>
@@ -300,6 +300,48 @@
 				.c-footer-inner{padding:28px 16px}
 				.c-footer-bottom{padding:16px 16px 22px}
 			}
+
+			/* ---------- 移动端：顶部「安装 App（添加到主屏幕）」提示条 ---------- */
+			.c-appdl{display:none}
+			.c-appdl-icon{flex:0 0 auto;width:34px;height:34px;border-radius:9px;display:block;object-fit:cover;background:#1f1f1f}
+			.c-appdl-txt{display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0}
+			.c-appdl-txt b{font-size:13px;font-weight:700;line-height:17px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+			.c-appdl-txt span{font-size:11px;font-weight:500;line-height:15px;color:var(--h-grey);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+			.c-appdl-btn{flex:0 0 auto;height:30px;padding:0 13px;border-radius:9999px;
+				font-size:12px;font-weight:700;line-height:30px;color:#fff;
+				background:linear-gradient(268deg,#fc768a,#e65073);box-shadow:0 4px 12px rgba(231,82,117,.35)}
+			.c-appdl-x{flex:0 0 auto;width:24px;height:24px;padding:0;border:none;background:transparent;cursor:pointer;
+				display:flex;align-items:center;justify-content:center;color:#8f8f8f}
+			.c-appdl-x svg{width:14px;height:14px;display:block}
+
+			/* ---------- 「添加到主屏幕」教程弹窗 ---------- */
+			.c-dl{display:none}
+			.c-dl.open{display:block}
+			.c-dl-mask{position:fixed;inset:0;z-index:110;background:rgba(0,0,0,.6)}
+			.c-dl-panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:111;box-sizing:border-box;
+				width:calc(100vw - 32px);max-width:400px;padding:22px 18px 20px;border-radius:12px;
+				border:1px solid rgba(255,255,255,.08);background:linear-gradient(163deg,#1A1A1A 6.61%,#2A1E21 88.06%);
+				font-family:Poppins,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}
+			.c-dl-panel h2{margin:0 0 6px;font-size:16px;font-weight:700;line-height:22px;color:#fff;text-align:center}
+			.c-dl-sub{margin:0 0 16px;font-size:12.5px;font-weight:500;line-height:18px;color:var(--h-grey);text-align:center}
+			.c-dl-steps{margin:0;padding:14px;list-style:none;display:flex;flex-direction:column;gap:12px;background:#2E2E2E;border-radius:8px}
+			.c-dl-steps li{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;line-height:19px;color:#fff}
+			.c-dl-steps li i{flex:0 0 auto;width:20px;height:20px;border-radius:9999px;background:#E75275;color:#fff;
+				font-style:normal;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+			.c-dl-steps li img{display:inline-block;height:15px;width:auto;vertical-align:-3px;margin:0 3px}
+			.c-dl-x{position:absolute;top:8px;right:8px;width:26px;height:26px;padding:0;border:none;background:transparent;
+				cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.75}
+			.c-dl-x:hover{opacity:1}
+			.c-dl-x img{width:16px;height:16px;display:block}
+
+			@media (max-width:768px){
+				body.home.c-appdl-on{padding-top:56px}
+				body.home.c-appdl-on .c-topbar{top:56px}
+				body.home.c-appdl-on .c-appdl{display:flex;position:fixed;left:0;right:0;top:0;z-index:45;height:56px;
+					align-items:center;gap:10px;padding:0 12px;cursor:pointer;background:#1b1b1b;
+					border-bottom:1px solid rgba(255,255,255,.12);
+					font-family:Poppins,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}
+			}
 		</style>
 	<meta property="og:title" content="Sugus.ai — Create Your AI Girlfriend & Start Chatting">
 <meta property="og:description" content="Your dream companion awaits! Chat, call and create your own AI girlfriend. Meet featured AI characters and start a conversation in seconds.">
@@ -307,6 +349,19 @@
 <meta property="og:image" content="/ai/sugus-wordmark@2x.png">
 </head>
 	<body class="bg-main pages home" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
+
+		<!-- ===== 移动端：顶部「安装 App」提示条（添加到主屏幕，无需下载） ===== -->
+		<div class="c-appdl" id="cAppDl" role="button" tabindex="0" aria-label="Install Sugus AI app">
+			<img class="c-appdl-icon" src="./sugus-favicon.png" alt="">
+			<div class="c-appdl-txt">
+				<b>Install Sugus AI</b>
+				<span>Add to Home Screen</span>
+			</div>
+			<span class="c-appdl-btn">Install</span>
+			<button class="c-appdl-x" id="cAppDlClose" type="button" aria-label="Close">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+			</button>
+		</div>
 
 		<!-- ===== 左侧 PC 侧边栏 - 收起态 100px ===== -->
 		<div data-main-target="mainSidebarClosedContainer" class="lg:fixed lg:pt-[63px] z-20 border-[#363636] border-r border-t lg:inset-y-0 lg:left-0 lg:w-[100px] lg:pb-5 w-[100px] fixed top-0 left-0 h-full webkit-transition-sidebar webkit-transform-sidebar" style="background: linear-gradient(0deg, #131313 0%, #131313 100%); max-height: 100vh">
@@ -408,7 +463,7 @@
 		</div>
 
 		<!-- ===== 顶部导航栏 ===== -->
-		<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">
+		<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8 c-topbar">
 			<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger">
 				<span class="sr-only">Open sidebar</span>
 				<svg class="nav-hamburger h-8 w-8 mr-1 text-white" data-action="click->main#handleMenuClick" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
@@ -1206,5 +1261,70 @@ document.addEventListener('click', function (e) {
   modal.style.display = 'block';
 }, true);
 </script>
+	<!-- ===== 添加到主屏幕教程弹窗 ===== -->
+	<div class="c-dl" id="cDl">
+		<div class="c-dl-mask" data-dl-close></div>
+		<div class="c-dl-panel" role="dialog" aria-modal="true" aria-labelledby="cDlTitle">
+			<button class="c-dl-x" type="button" data-dl-close aria-label="Close">
+				<img src="./tokens_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" alt="">
+			</button>
+			<h2 id="cDlTitle">Install to your Home Screen</h2>
+			<p class="c-dl-sub">No app to download &mdash; add Sugus AI to your home screen and open it with one tap.</p>
+			<ol class="c-dl-steps" id="cDlSteps"></ol>
+		</div>
+	</div>
+	<script>
+	/* 移动端顶部「安装 App」提示条：点击打开「添加到主屏幕」教程 */
+	(function () {
+		var KEY = 'sugus.appdl.dismissed';
+		var body = document.body;
+		var bar = document.getElementById('cAppDl');
+		var modal = document.getElementById('cDl');
+		var steps = document.getElementById('cDlSteps');
+		if (!bar || !modal) return;
+
+		function mq(q) { return !!(window.matchMedia && window.matchMedia(q).matches); }
+		function isStandalone() {
+			return mq('(display-mode: standalone)') || window.navigator.standalone === true;
+		}
+		function isDismissed() {
+			try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
+		}
+
+		// 仅手机端展示，且已安装 / 已关闭过的不再展示
+		if (!mq('(max-width: 768px)') || isStandalone() || isDismissed()) return;
+		body.classList.add('c-appdl-on');
+
+		// 按平台给出对应教程（iOS：Safari 分享菜单；其它：浏览器菜单）
+		var ua = navigator.userAgent;
+		var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+		steps.innerHTML = isIOS
+			? '<li><i>1</i><span>Tap the <img src="./tokens_files/share-51f21c50ebd8708b137170cfa439749d647335c9d19877b6741808fb566835f8.svg" alt="Share"> &ldquo;Share&rdquo; icon in Safari</span></li>'
+				+ '<li><i>2</i><span>Scroll down and tap &ldquo;Add to Home Screen&rdquo;<img src="./tokens_files/add-to-home-d9bf063fa60ea41fa35551f89de965f8afaad1139f6024f5bacc4d9bbae90ea2.svg" alt="Add to Home Screen"></span></li>'
+			: '<li><i>1</i><span>Tap the <img src="./tokens_files/dots-2a69a24f9e943ecc76c29829e83f34ea204254c54945cf142d3ddb9555aec149.svg" alt="Menu"> menu in your browser</span></li>'
+				+ '<li><i>2</i><span>Tap &ldquo;Add to Home Screen&rdquo;<img src="./tokens_files/add-to-home-android-a92441e4d8c5071e7327003c070dc41072370f91a4875b08f1f2d28b0daee6c2.svg" alt="Add to Home Screen"></span></li>';
+
+		function openModal() { modal.classList.add('open'); }
+		function closeModal() { modal.classList.remove('open'); }
+
+		bar.addEventListener('click', function (e) {
+			if (e.target.closest && e.target.closest('#cAppDlClose')) {
+				body.classList.remove('c-appdl-on');
+				try { localStorage.setItem(KEY, '1'); } catch (err) {}
+				return;
+			}
+			openModal();
+		});
+		bar.addEventListener('keydown', function (e) {
+			if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); }
+		});
+		modal.addEventListener('click', function (e) {
+			if (e.target.closest && e.target.closest('[data-dl-close]')) closeModal();
+		});
+		document.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+		});
+	})();
+	</script>
 </body>
 </html>

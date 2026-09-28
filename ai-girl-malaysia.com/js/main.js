@@ -471,5 +471,166 @@
             $('#profilesLayout').append(rendered);
           });
       }
-      
+
+      /* ==================== Google 登录（GIS 令牌模式） ====================
+         原站设计里登录/注册按钮下方就是「or sign in with」分割线 + 白色 Google 按钮，
+         这里按同款位置/样式注入；Client ID 由后端 /api/live/googleClientId 下发，
+         未配置时不出按钮，页面表现与之前一致。 */
+      var GOOGLE_GSI_SRC = 'https://accounts.google.com/gsi/client'
+      var googleClientId = ''
+      var googleTokenClient = null
+      var GOOGLE_BOX_SEL = '.google-login-box'
+      var GOOGLE_BOX_CSS = [
+        '.google-login-box{margin:32px 0 0;}',
+        '.google-login-box.is-signup{margin:24px 0 0;}',
+        '.google-login-divider{display:flex;flex-direction:row;align-items:center;}',
+        '.google-login-divider i{flex:1;height:1px;}',
+        '.google-login-divider i.l{background:linear-gradient(270deg,rgba(255,255,255,.30) 0%,rgba(255,255,255,0) 100%);}',
+        '.google-login-divider i.r{background:linear-gradient(270deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.30) 100%);}',
+        '.google-login-divider em{font-style:normal;color:#fff;font-size:14px;font-weight:500;margin:0 16px;}',
+        '.google-login-btn{display:inline-flex;align-items:center;justify-content:center;width:100%;margin:20px 0 0;padding:10px 16px;background:#fff;border:0;border-radius:10px;color:#344054;font-size:14px;font-weight:400;line-height:24px;cursor:pointer;}',
+        '.google-login-btn img{width:24px;height:24px;margin-right:12px;}',
+        '.google-login-btn:hover{background:#f2f2f2;}'
+      ].join('')
+
+      function googleMsg(text) {
+        if (window.layer && typeof layer.msg === 'function') { layer.msg(text) } else { alert(text) }
+      }
+
+      function googleAfterLogin(response) {
+        if (typeof(response) === 'string') { response = JSON.parse(response) }
+        var res = response
+        if (!res || res.code !== '00000' || !res.data || !res.data.access_token) {
+          googleMsg((res && res.msg) || 'Login failed')
+          return
+        }
+        var userinfo = {
+          token: res.data.access_token,
+          id: res.data.user.id,
+          username: res.data.user.nickname,
+          avatar: res.data.user.avatar,
+          email: res.data.user.email || ''
+        }
+        localStorage.setItem('live_user_info', JSON.stringify(userinfo))
+        saveSession(res.data)
+        token = res.data.access_token
+        googleMsg('Login successful')
+        setTimeout(function() {
+          var redirect = getUrlParam(window.location.href, 'redirect')
+          if (redirect && redirect !== 'null') {
+            window.location.replace(decodeURIComponent(redirect))
+          } else {
+            window.location.replace(backUrl())
+          }
+        }, 800)
+      }
+
+      function googleLogin(accessToken) {
+        const form = new FormData();
+        form.append("access_token", accessToken);
+
+        const settings = {
+          "async": true,
+          "crossDomain": true,
+          "url":  base + "/googleLogin",
+          "method": "POST",
+          "headers": {},
+          "processData": false,
+          "contentType": false,
+          "mimeType": "multipart/form-data",
+          "data": form
+        };
+
+        $.ajax(settings).done(function (response) {
+          googleAfterLogin(response)
+        }).catch(function (error) {
+          console.error(error)
+          googleMsg('Google login failed')
+        })
+      }
+
+      function initGoogleTokenClient() {
+        if (!(window.google && google.accounts && google.accounts.oauth2)) return false
+        googleTokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'openid email profile',
+          callback: function (tokenResponse) {
+            if (tokenResponse && tokenResponse.access_token) {
+              googleLogin(tokenResponse.access_token)
+            } else if (tokenResponse && tokenResponse.error && tokenResponse.error !== 'access_denied') {
+              googleMsg('Google login failed')
+            }
+          }
+        })
+        return true
+      }
+
+      function loadGoogleScript() {
+        return new Promise(function (resolve, reject) {
+          if (window.google && window.google.accounts) { resolve(); return }
+          var script = document.getElementById('google-gsi-script')
+          if (!script) {
+            script = document.createElement('script')
+            script.id = 'google-gsi-script'
+            script.src = GOOGLE_GSI_SRC
+            script.async = true
+            script.defer = true
+            document.head.appendChild(script)
+          }
+          script.addEventListener('load', function () { resolve() })
+          script.addEventListener('error', function () { reject(new Error('google gsi load failed')) })
+        })
+      }
+
+      function onGoogleButtonClick(e) {
+        e.preventDefault()
+        if (googleTokenClient) { googleTokenClient.requestAccessToken(); return }
+        loadGoogleScript().then(function () {
+          if (initGoogleTokenClient()) { googleTokenClient.requestAccessToken() }
+        }).catch(function () { googleMsg('Google login unavailable') })
+      }
+
+      function mountGoogleLogin() {
+        if (!googleClientId) return
+        if (!$('#google-login-style').length) {
+          var style = document.createElement('style')
+          style.id = 'google-login-style'
+          style.textContent = GOOGLE_BOX_CSS
+          document.head.appendChild(style)
+        }
+        $(GOOGLE_BOX_SEL).remove()
+        var targets = [
+          { btn: $('#signin-btn'), label: 'or sign in with', cls: '' },
+          { btn: $('#signup-btn'), label: 'or continue with', cls: ' is-signup' }
+        ]
+        targets.forEach(function (target) {
+          if (!target.btn.length) return
+          target.btn.after(
+            '<div class="google-login-box' + target.cls + '">' +
+              '<div class="google-login-divider"><i class="l"></i><em>' + target.label + '</em><i class="r"></i></div>' +
+              '<button type="button" class="google-login-btn"><img src="./assets/google-auth.png" alt="Google"><span>Google</span></button>' +
+            '</div>'
+          )
+        })
+      }
+
+      function initGoogleLogin() {
+        if (!$('#signin-btn').length && !$('#signup-btn').length) return
+        if (googleClientId) { mountGoogleLogin(); return }
+        $.get(base + '/googleClientId').done(function (response) {
+          if (typeof(response) === 'string') { response = JSON.parse(response) }
+          var res = response
+          if (!res || (res.code !== '00000' && res.code !== 1)) return
+          googleClientId = (((res.data || {}).client_id) || '').trim()
+          if (!googleClientId) return
+          mountGoogleLogin()
+          loadGoogleScript().then(initGoogleTokenClient).catch(function () { /* 脚本不可达时保留按钮，点击再试 */ })
+        }).catch(function () { /* 接口不可用时静默降级 */ })
+      }
+
+      $(document).on('click', '.google-login-btn', onGoogleButtonClick)
+      setTimeout(initGoogleLogin, 120)
+      $(document).on('turbo:load turbo:render', function () { initGoogleLogin() })
+      $(document).on('click', '[data-action*="openSignInModal"], [data-action*="openRegistrationModal"]', function () { initGoogleLogin() })
+
 })()

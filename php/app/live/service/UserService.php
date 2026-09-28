@@ -10,6 +10,7 @@ use app\live\model\UserDevice;
 use app\common\exception\BusinessException;
 use app\common\util\StrHelper;
 use app\common\web\ResultCode;
+use GuzzleHttp\Client;
 use think\facade\Db;
 use think\facade\Log;
 
@@ -112,6 +113,138 @@ final class UserService
             throw new BusinessException(ResultCode::USER_DISABLED);
         }
 
+        return $this->issueTokens($user, $ip, $deviceId);
+    }
+
+    /**
+     * Google 登录（Google Identity Services 令牌模式）
+     * 前端用 GIS 拿到 google access_token，后端校验后按 Google 邮箱找/建账号
+     */
+    public function loginWithGoogle(string $accessToken, string $ip = '', string $deviceId = ''): array
+    {
+        $clientId = trim((string) env('GOOGLE.CLIENT_ID', ''));
+        if ($clientId === '') {
+            throw new BusinessException(ResultCode::SERVER_ERROR, 'Google 登录未配置');
+        }
+
+        $info = $this->fetchGoogleTokenInfo($accessToken);
+        if (($info['aud'] ?? '') !== $clientId) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Google 令牌不属于本站');
+        }
+        if (!filter_var($info['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Google 邮箱未验证');
+        }
+
+        $email = trim((string) ($info['email'] ?? ''));
+        $sub   = trim((string) ($info['sub'] ?? ''));
+        if ($email === '' || $sub === '') {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Google 未返回邮箱');
+        }
+
+        $auth = UserAuth::where('auth_type', 'google')->where('auth_key', $sub)->find();
+        if ($auth) {
+            $user = User::find($auth->user_id);
+        } else {
+            // 同邮箱的已有账号：直接绑定 Google 后登录
+            $emailAuth = UserAuth::where('auth_type', 'email')->where('auth_key', $email)->find();
+            if ($emailAuth) {
+                $user = User::find($emailAuth->user_id);
+                if ($user) {
+                    $googleAuth = new UserAuth();
+                    $googleAuth->user_id       = (int)$user->id;
+                    $googleAuth->auth_type     = 'google';
+                    $googleAuth->auth_key      = $sub;
+                    $googleAuth->password_hash = '';
+                    $googleAuth->save();
+                }
+            } else {
+                $user = $this->createGoogleUser($email, $sub, $ip);
+            }
+        }
+
+        if (!$user || $user->status !== 1) {
+            throw new BusinessException(ResultCode::USER_DISABLED);
+        }
+
+        return $this->issueTokens($user, $ip, $deviceId);
+    }
+
+    /**
+     * 校验 google access_token（tokeninfo 同时返回 aud 与 email_verified）
+     */
+    private function fetchGoogleTokenInfo(string $accessToken): array
+    {
+        try {
+            $response = (new Client(['timeout' => 10, 'http_errors' => false]))->get(
+                'https://oauth2.googleapis.com/tokeninfo',
+                ['query' => ['access_token' => $accessToken]]
+            );
+        } catch (\Throwable $e) {
+            Log::error('google tokeninfo failed: ' . $e->getMessage());
+            throw new BusinessException(ResultCode::SERVER_ERROR, 'Google 校验失败，请重试');
+        }
+
+        if ($response->getStatusCode() !== 200) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Google 令牌无效');
+        }
+
+        $info = json_decode((string) $response->getBody(), true);
+        if (!is_array($info)) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Google 令牌无效');
+        }
+
+        return $info;
+    }
+
+    /**
+     * Google 首次登录：建用户 + 邮箱认证（随机密码）+ Google 认证 + 资料
+     */
+    private function createGoogleUser(string $email, string $sub, string $ip): User
+    {
+        Db::startTrans();
+        try {
+            $user = new User();
+            $user->user_no    = StrHelper::orderNo('U');
+            $user->nickname   = explode('@', $email)[0];
+            $user->email      = $email;
+            $user->status     = 1;
+            $user->level      = 1;
+            $user->created_at = date('Y-m-d H:i:s');
+            $user->save();
+
+            $emailAuth = new UserAuth();
+            $emailAuth->user_id       = (int)$user->id;
+            $emailAuth->auth_type     = 'email';
+            $emailAuth->auth_key      = $email;
+            $emailAuth->password_hash = hash_password(bin2hex(random_bytes(16)));
+            $emailAuth->save();
+
+            $googleAuth = new UserAuth();
+            $googleAuth->user_id       = (int)$user->id;
+            $googleAuth->auth_type     = 'google';
+            $googleAuth->auth_key      = $sub;
+            $googleAuth->password_hash = '';
+            $googleAuth->save();
+
+            $profile = new UserProfile();
+            $profile->user_id       = (int)$user->id;
+            $profile->last_login_ip = $ip;
+            $profile->save();
+
+            Db::commit();
+
+            return $user;
+        } catch (\Throwable $e) {
+            Db::rollback();
+            throw new BusinessException(ResultCode::SERVER_ERROR, 'Google 注册失败: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 登录成功后的统一收尾：更新最近登录、记录设备、签发双 token
+     */
+    private function issueTokens(User $user, string $ip = '', string $deviceId = ''): array
+    {
         $profile = UserProfile::find($user->id);
         if ($profile) {
             $profile->last_login_ip = $ip;
@@ -119,15 +252,15 @@ final class UserService
             $profile->save();
         }
 
-        if ($deviceId) {
+        if ($deviceId !== '') {
             $device = UserDevice::where('user_id', $user->id)
                 ->where('device_id', $deviceId)
                 ->find();
             if (!$device) {
-                $device           = new UserDevice();
-                $device->user_id  = (int)$user->id;
+                $device            = new UserDevice();
+                $device->user_id   = (int)$user->id;
                 $device->device_id = $deviceId;
-                $device->platform = 'web';
+                $device->platform  = 'web';
                 $device->save();
             }
         }
@@ -145,6 +278,7 @@ final class UserService
                 'nickname' => $user->nickname,
                 'avatar'   => $user->avatar,
                 'level'    => $user->level,
+                'email'    => $user->email,
             ],
         ];
     }
