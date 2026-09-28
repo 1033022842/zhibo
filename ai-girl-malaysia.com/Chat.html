@@ -55,7 +55,15 @@
     
   <link rel="stylesheet" href="./assets/fy.css?v=20260928a">
 		<script src="./js/shell-new.js?v=20260928a"></script>
-	</head>
+	
+
+	<style>
+	/* 手机端：去掉为桌面左侧会话列表预留的 440px 内边距，聊天区铺满全屏 */
+	@media (max-width:1023px){
+		#conversation-container{padding-left:0 !important;padding-right:0 !important;border-radius:0}
+	}
+	</style>
+</head>
   <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
     
           
