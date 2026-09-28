@@ -56,7 +56,7 @@
 			/* ---------- Hero：全宽 560px、无圆角、整图铺满 ---------- */
 			/* Hero：满内容列宽（左右比下方卡片各宽 28px）；桌面端用负 margin 让标题/搜索/标签压在图上 */
 			.c-hero-wrap{width:100%;max-width:1336px;margin:-16px auto 0;padding:0}
-			.c-hero{position:relative;height:190px;overflow:hidden;background:var(--h-page)}
+			.c-hero{position:relative;height:190px;overflow:hidden;background:var(--h-page);touch-action:pan-y;-webkit-user-select:none;user-select:none}
 			.c-hero-slide{position:absolute;inset:0;display:block;opacity:0;transition:opacity .5s ease;pointer-events:none}
 			.c-hero-slide.active{opacity:1;pointer-events:auto}
 			.c-hero-slide[data-link]{cursor:pointer}
@@ -271,6 +271,14 @@
 				display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
 				font-size:14px;font-weight:500;color:var(--h-grey)}
 			.c-footer-bottom a{color:var(--h-grey);text-decoration:underline}
+			.c-footer-badges{display:inline-flex;align-items:center;gap:10px;margin-left:auto}
+			.c-badge{display:inline-flex;border-radius:7px;overflow:hidden;opacity:.9;transition:opacity .15s ease;text-decoration:none}
+			.c-badge:hover{opacity:1}
+			.c-badge svg{display:block}
+			@media (max-width:768px){
+				.c-footer-legal{width:100%;order:3}
+				.c-footer-badges{margin-left:0}
+			}
 
 			@media (min-width:768px){
 				.c-footer-cols{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
@@ -279,7 +287,7 @@
 				.c-footer-inner{flex-direction:row;gap:86px}
 			}
 			@media (max-width:768px){
-				.c-hero{height:240px}
+				.c-hero{height:200px}
 				.c-hero-nav{display:none}
 				.c-hero-dots{bottom:14px}
 				.c-sec-head{padding:0 16px}
@@ -522,9 +530,9 @@
 			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main"></div>
 			<!-- 移动端分类下拉面板（absolute 贴 header 底沿，header 在哪它就在哪） -->
 			<div id="catDdPanel" class="c-cat-dd-panel sm:hidden" role="menu">
-				<button class="c-dd-item active" type="button" data-cat="girls">Girls<span class="c-dd-sub">女生</span></button>
-				<button class="c-dd-item" type="button" data-cat="anime">Anime<span class="c-dd-sub">动漫</span></button>
-				<button class="c-dd-item" type="button" data-cat="guys">Guys<span class="c-dd-sub">男生</span></button>
+				<button class="c-dd-item active" type="button" data-cat="girls">Girls</button>
+				<button class="c-dd-item" type="button" data-cat="anime">Anime</button>
+				<button class="c-dd-item" type="button" data-cat="guys">Guys</button>
 			</div>
 		</div>
 
@@ -722,7 +730,23 @@
 						</div>
 						<div class="c-footer-bottom">
 							<span>&copy; 2026 Sugus.ai. All Rights Reserved</span>
-							<span>18+ only · All characters are fictional and AI-generated</span>
+							<span class="c-footer-legal">18+ only · All characters are fictional and AI-generated</span>
+							<span class="c-footer-badges">
+								<a class="c-badge" href="https://www.rtalabel.org/" target="_blank" rel="noopener" title="Restricted To Adults - RTA label" aria-label="RTA">
+									<svg viewBox="0 0 52 32" width="52" height="32" role="img">
+										<rect x="1" y="1" width="50" height="30" rx="5" fill="#0b0b0b" stroke="rgba(255,255,255,.35)"/>
+										<text x="26" y="15" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="800" letter-spacing="1">RTA</text>
+										<text x="26" y="24" text-anchor="middle" fill="#9a9a9a" font-family="Arial,Helvetica,sans-serif" font-size="4.6" letter-spacing=".4">RESTRICTED TO ADULTS</text>
+									</svg>
+								</a>
+								<a class="c-badge" href="https://www.asacp.org/" target="_blank" rel="noopener" title="ASACP - Association of Sites Advocating Child Protection" aria-label="ASACP">
+									<svg viewBox="0 0 52 32" width="52" height="32" role="img">
+										<rect x="1" y="1" width="50" height="30" rx="5" fill="#fff" stroke="rgba(255,255,255,.2)"/>
+										<text x="26" y="15" text-anchor="middle" fill="#1d4ed8" font-family="Arial,Helvetica,sans-serif" font-size="10.5" font-weight="800" letter-spacing=".6">ASACP</text>
+										<text x="26" y="24" text-anchor="middle" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="4.6" letter-spacing=".2">PROTECTING CHILDREN</text>
+									</svg>
+								</a>
+							</span>
 						</div>
 					</footer>
 
@@ -856,6 +880,7 @@
 				// 判定为横向滑动后拦截，避免触发展示层的横向滚动或图片拖拽
 				if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) && e.cancelable) e.preventDefault()
 			}, { passive: false })
+			heroEl.addEventListener('touchcancel', function() { swiping = false })
 			heroEl.addEventListener('touchend', function(e) {
 				if (!swiping) return
 				swiping = false
