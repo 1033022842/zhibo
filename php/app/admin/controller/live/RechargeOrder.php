@@ -250,7 +250,7 @@ final class RechargeOrder extends Backend
             $unit       = $this->unitOf($payChannel);
             $channelLbl = $this->channelLabel($r);
             $isVip      = (string) ($r['biz_type'] ?? 'coin') === 'vip';
-            $bizLbl     = $isVip ? '会员订阅' : '充值钻石';
+            $bizLbl     = $isVip ? '会员订阅' : '充值代币';
             // 已关闭的订单不参与审核
             $reviewable = in_array($st, [0, 3], true);
 
@@ -304,7 +304,7 @@ final class RechargeOrder extends Backend
                 . '<td>' . htmlspecialchars($channelLbl, ENT_QUOTES) . '</td>'
                 . '<td>' . htmlspecialchars($bizLbl, ENT_QUOTES) . '</td>'
                 . '<td>' . htmlspecialchars((string) $r['pay_amount'], ENT_QUOTES) . ' ' . $unit . '</td>'
-                . '<td>' . htmlspecialchars((string) $r['diamond_amount'], ENT_QUOTES) . ($isVip ? '' : ' 钻') . '</td>'
+                . '<td>' . htmlspecialchars((string) $r['diamond_amount'], ENT_QUOTES) . ($isVip ? '' : ' 代币') . '</td>'
                 . '<td>' . $refCell . '</td>'
                 . '<td>' . $proof . '</td>'
                 . '<td><span class="status-badge ' . $stCls . '">' . $stName . '</span>'
@@ -326,7 +326,7 @@ final class RechargeOrder extends Backend
                 '业务'       => $bizLbl . ($isVip && !empty($r['vip_plan_id']) ? '（套餐 #' . (int) $r['vip_plan_id'] . '）' : '')
                     . ($r['package_id'] ? '（充值套餐 #' . (int) $r['package_id'] . '）' : ''),
                 '应付金额'   => (string) $r['pay_amount'] . ' ' . $unit,
-                '到账'       => (string) $r['diamond_amount'] . ($isVip ? '（会员天数按套餐）' : ' 钻'),
+                '到账'       => (string) $r['diamond_amount'] . ($isVip ? '（会员天数按套餐）' : ' 代币'),
                 '网关/链上单号' => $ref !== '' ? $ref : '-',
                 '收银台链接' => (string) ($r['pay_url'] ?? '') !== '' ? (string) $r['pay_url'] : '-',
                 '状态'       => $stName . ($expired ? '（已过期，待关单）' : ''),
@@ -399,7 +399,7 @@ final class RechargeOrder extends Backend
             $selStatus .= '<option value="' . $val . '"' . ($f['status'] === (string) $val ? ' selected' : '') . '>' . $label . '</option>';
         }
         $selBiz = '';
-        foreach (['' => '全部', 'coin' => '充值钻石', 'vip' => '会员订阅'] as $val => $label) {
+        foreach (['' => '全部', 'coin' => '充值代币', 'vip' => '会员订阅'] as $val => $label) {
             $selBiz .= '<option value="' . $val . '"' . ($f['biz_type'] === (string) $val ? ' selected' : '') . '>' . $label . '</option>';
         }
         $selPay = '';
@@ -590,7 +590,7 @@ function showApprove(id, batch) {
     if (!sel.length) { toast('请先勾选订单', 'error'); return; }
     approveTargets = sel;
     document.getElementById('approveTitle').textContent = batch ? '批量审核通过' : '审核通过';
-    document.getElementById('approveHint').textContent = '将对 ' + sel.length + ' 笔订单加钻/开通会员：' + sel.slice(0, 6).join('、') + (sel.length > 6 ? ' …' : '');
+    document.getElementById('approveHint').textContent = '将对 ' + sel.length + ' 笔订单加代币/开通会员：' + sel.slice(0, 6).join('、') + (sel.length > 6 ? ' …' : '');
     document.getElementById('approveRemark').value = '';
     document.getElementById('approveModal').classList.add('active');
 }

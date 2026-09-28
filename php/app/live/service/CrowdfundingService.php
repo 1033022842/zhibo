@@ -479,7 +479,7 @@ final class CrowdfundingService
         }
 
         if (bccomp((string)$balanceBefore, (string)$amount, 2) < 0) {
-            throw new BusinessException(ResultCode::BALANCE_NOT_ENOUGH, '钻石余额不足，请先充值');
+            throw new BusinessException(ResultCode::BALANCE_NOT_ENOUGH, '代币余额不足，请先充值');
         }
 
         $balanceAfter = bcsub((string)$balanceBefore, (string)$amount, 2);

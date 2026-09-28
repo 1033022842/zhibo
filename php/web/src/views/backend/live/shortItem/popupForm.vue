@@ -27,7 +27,7 @@
                         v-model="baTable.form.items!.free_episodes"
                         type="number"
                         :input-attr="{ min: 0 }"
-                        tip="集号 ≤ N 的剧集免钻直接播放；0 表示没有免费集。剧集在「短剧剧集」菜单里配置"
+                        tip="集号 ≤ N 的剧集免代币直接播放；0 表示没有免费集。剧集在「短剧剧集」菜单里配置"
                     />
                     <FormItem
                         label="分类标签"

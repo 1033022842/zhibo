@@ -74,7 +74,7 @@ final class RechargeChannel extends Backend
             <h2>{$hdr}</h2>
             <form method="post" action="/admin/live.RechargeChannel/packageSave">
                 <input type="hidden" name="id" value="{$pId}" />
-                <div class="field"><label>点数（到账钻石数）</label><input type="number" name="tokens" value="{$pToken}" min="1" required /></div>
+                <div class="field"><label>点数（到账代币数）</label><input type="number" name="tokens" value="{$pToken}" min="1" required /></div>
                 <div class="field"><label>售价 USD</label><input type="number" step="0.01" name="price" value="{$pPrice}" min="0.01" required /></div>
                 <div class="field"><label>赠送比例（仅展示，如 10 = +10% bonus，填 0 不展示）</label><input type="number" name="bonus_percent" value="{$pBonus}" min="0" /></div>
                 <div class="field"><label>排序</label><input type="number" name="sort" value="{$pSort}" /></div>
@@ -287,7 +287,7 @@ final class RechargeChannel extends Backend
                 <div class="field"><label>链上确认方式</label><select name="confirm_mode"><option value="auto" {$selAuto}>自动（扫链到账：USDT-TRC20 走 TronGrid，ETH 走 Etherscan）</option><option value="manual" {$selManual}>人工审核</option></select></div>
                 <div class="field"><label>链上扫描 API Key（可选，自动确认时建议填）</label><input name="api_key" value="{$apiKey}" placeholder="TronGrid API Key / Etherscan API Key" /></div>
                 <div class="field"><label>ETH 兑 USD 价格（类型选 ETH 时生效，链上应付 ETH = USD ÷ 此价格）</label><input type="number" step="0.01" name="eth_usd_rate" value="{$ethRate}" placeholder="3000" /></div>
-                <div class="field"><label>汇率（1USDT=N钻石）</label><input type="number" step="0.01" name="diamond_rate" value="{$rate}" required /></div>
+                <div class="field"><label>汇率（1USDT=N代币）</label><input type="number" step="0.01" name="diamond_rate" value="{$rate}" required /></div>
                 <div class="field"><label>最低充值金额</label><input type="number" step="0.01" name="min_amount" value="{$min}" required /></div>
                 <div class="field"><label>排序</label><input type="number" name="sort" value="{$sort}" /></div>
                 <div class="toggle-row">
@@ -365,8 +365,8 @@ final class RechargeChannel extends Backend
                 <div class="field"><label>套餐名称</label><input name="name" value="{$vName}" required /></div>
                 <div class="field"><label>月数</label><input type="number" name="months" value="{$vMonths}" min="1" required /></div>
                 <div class="field"><label>USDT 参考价（页面展示用）</label><input type="number" step="0.01" name="usd_price" value="{$vUsd}" required /></div>
-                <div class="field"><label>钻石支付价（购买实际扣钻）</label><input type="number" step="0.01" name="diamond_price" value="{$vDia}" required /></div>
-                <div class="field"><label>每日领取钻石</label><input type="number" step="0.01" name="daily_diamond" value="{$vDaily}" required /></div>
+                <div class="field"><label>代币支付价（购买实际扣代币）</label><input type="number" step="0.01" name="diamond_price" value="{$vDia}" required /></div>
+                <div class="field"><label>每日领取代币</label><input type="number" step="0.01" name="daily_diamond" value="{$vDaily}" required /></div>
                 <div class="field"><label>权益列表（每行一条，展示在订阅页）</label><textarea name="benefits" rows="6">{$vBenefits}</textarea></div>
                 <div class="field"><label>每日聊天条数（0=不限）</label><input type="number" name="chat_daily_limit" value="{$vChat}" /></div>
                 <div class="field"><label>每日图片/视频生成次数</label><input type="number" name="image_daily_limit" value="{$vImage}" /></div>
@@ -409,7 +409,7 @@ final class RechargeChannel extends Backend
             'sort'              => (int) $this->request->post('sort', 0),
         ];
         if ($data['name'] === '' || $data['diamond_price'] <= 0) {
-            $this->renderError('套餐名必填且钻石价必须大于0');
+            $this->renderError('套餐名必填且代币价必须大于0');
             return;
         }
         try {
@@ -510,7 +510,7 @@ final class RechargeChannel extends Backend
 
             <h1 style="margin-top:32px">VIP 会员套餐</h1>
             <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editVip">+ 新增套餐</a></div>
-            <table><thead><tr><th>ID</th><th>名称</th><th>层级</th><th>月数</th><th>USDT价格</th><th>钻石价格</th><th>每日领取(钻)</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$vipRows}</tbody></table>
+            <table><thead><tr><th>ID</th><th>名称</th><th>层级</th><th>月数</th><th>USDT价格</th><th>代币价格</th><th>每日领取(代币)</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$vipRows}</tbody></table>
 
             <h1 style="margin-top:32px">充值套餐（AI 女友端 Tokens 页）</h1>
             <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editPackage">+ 新增套餐</a></div>

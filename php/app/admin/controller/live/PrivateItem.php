@@ -150,7 +150,7 @@ final class PrivateItem extends Backend
         $now = date('Y-m-d H:i:s');
         $updated = $query->update(['price' => $price, 'updated_at' => $now]);
 
-        $this->success('已统一价格：' . $updated . ' 个内容 → ' . $price . ' 钻石');
+        $this->success('已统一价格：' . $updated . ' 个内容 → ' . $price . ' 代币');
     }
 
     /**

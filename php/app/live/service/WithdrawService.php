@@ -72,7 +72,7 @@ final class WithdrawService
 
         $p = $this->preview($userId, $diamonds);
         if ($diamonds < $p['min_diamonds']) {
-            throw new BusinessException(ResultCode::PARAM_ERROR, "最低提现 {$p['min_diamonds']} 钻");
+            throw new BusinessException(ResultCode::PARAM_ERROR, "最低提现 {$p['min_diamonds']} 代币");
         }
         if ($diamonds > $p['balance']) {
             throw new BusinessException(ResultCode::BALANCE_NOT_ENOUGH, '可提余额不足');

@@ -59,7 +59,7 @@ final class WalletService
             }
 
             if (bccomp((string)$balanceBefore, (string)$amount, 2) < 0) {
-                throw new BusinessException(ResultCode::BALANCE_NOT_ENOUGH, '钻石余额不足');
+                throw new BusinessException(ResultCode::BALANCE_NOT_ENOUGH, '代币余额不足');
             }
 
             $balanceAfter = bcsub((string)$balanceBefore, (string)$amount, 2);
@@ -72,7 +72,7 @@ final class WalletService
                 'user_id' => $userId, 'biz_type' => $bizType, 'direction' => 2,
                 'asset_type' => 'diamond', 'amount' => $amount,
                 'balance_before' => $balanceBefore, 'balance_after' => $balanceAfter,
-                'biz_id' => $bizId, 'remark' => $remark !== '' ? $remark : '钻石支出',
+                'biz_id' => $bizId, 'remark' => $remark !== '' ? $remark : '代币支出',
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
 
@@ -83,7 +83,7 @@ final class WalletService
             throw $e;
         } catch (\Exception $e) {
             $db->rollback();
-            throw new BusinessException(ResultCode::SERVER_ERROR, '扣减钻石失败: ' . $e->getMessage());
+            throw new BusinessException(ResultCode::SERVER_ERROR, '扣减代币失败: ' . $e->getMessage());
         }
     }
 
@@ -122,7 +122,7 @@ final class WalletService
                 'user_id' => $userId, 'biz_type' => $bizType, 'direction' => 1,
                 'asset_type' => 'diamond', 'amount' => $amount,
                 'balance_before' => $balanceBefore, 'balance_after' => $balanceAfter,
-                'biz_id' => $bizId, 'remark' => $remark !== '' ? $remark : '钻石收入',
+                'biz_id' => $bizId, 'remark' => $remark !== '' ? $remark : '代币收入',
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
 
@@ -130,7 +130,7 @@ final class WalletService
             return ['balance_before' => $balanceBefore, 'balance_after' => (float)$balanceAfter];
         } catch (\Exception $e) {
             $db->rollback();
-            throw new BusinessException(ResultCode::SERVER_ERROR, '增加钻石失败: ' . $e->getMessage());
+            throw new BusinessException(ResultCode::SERVER_ERROR, '增加代币失败: ' . $e->getMessage());
         }
     }
 

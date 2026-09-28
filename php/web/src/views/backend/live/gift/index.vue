@@ -36,7 +36,7 @@ const baTable = new baTableClass(
             },
             { label: '礼物编码', prop: 'gift_code', align: 'center', operator: 'LIKE' },
             { label: '礼物名称', prop: 'name', align: 'center', operator: 'LIKE' },
-            { label: '钻石价格', prop: 'price_diamond', align: 'center', operator: 'RANGE' },
+            { label: '代币价格', prop: 'price_diamond', align: 'center', operator: 'RANGE' },
             {
                 label: '触发模式',
                 prop: 'trigger_mode',

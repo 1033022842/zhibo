@@ -104,7 +104,7 @@ class LiveUser extends Backend
             $this->error('请选择用户');
         }
         if ($amount <= 0) {
-            $this->error('钻石数量必须大于 0');
+            $this->error('代币数量必须大于 0');
         }
         if (!in_array($type, ['credit', 'debit'], true)) {
             $this->error('操作类型无效');

@@ -62,7 +62,7 @@ enum ResultCode: string
             self::USER_NOT_FOUND => '用户不存在',
             self::USER_DISABLED => '用户已禁用',
             self::AUTH_FAILED => '认证失败',
-            self::BALANCE_NOT_ENOUGH => '钻石余额不足',
+            self::BALANCE_NOT_ENOUGH => '代币余额不足',
             self::WALLET_FROZEN => '钱包已冻结',
             self::ORDER_NOT_FOUND => '订单不存在',
             self::ORDER_EXPIRED => '订单已过期',

@@ -53,7 +53,7 @@
                         type="radio"
                         :input-attr="{ border: true, content: { chat: '聊天内容', binge: '追剧', affection: '好感度特殊视频' } }"
                     />
-                    <FormItem label="解锁价格(钻石)" v-model="baTable.form.items!.unlock_price" type="number" :input-attr="{ min: 0 }" />
+                    <FormItem label="解锁价格(代币)" v-model="baTable.form.items!.unlock_price" type="number" :input-attr="{ min: 0 }" />
                     <FormItem
                         label="触发关键词"
                         v-model="baTable.form.items!.keywords"

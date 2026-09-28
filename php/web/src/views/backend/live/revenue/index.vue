@@ -1,6 +1,6 @@
 <template>
     <div class="default-main ba-table-box">
-        <el-alert class="ba-table-alert" title="角色收益明细：按角色聚合的礼物钻石收入" type="info" show-icon />
+        <el-alert class="ba-table-alert" title="角色收益明细：按角色聚合的礼物代币收入" type="info" show-icon />
         <TableHeader :buttons="['refresh', 'comSearch', 'quickSearch', 'columnDisplay']" />
         <Table />
     </div>
@@ -24,7 +24,7 @@ const baTable = new baTableClass(
             { label: '角色名称', prop: 'persona_name', align: 'center', operator: 'LIKE' },
             { label: '房间号', prop: 'room_no', align: 'center', operator: 'LIKE', width: 150 },
             {
-                label: '累计礼物钻石',
+                label: '累计礼物代币',
                 prop: 'total_gift',
                 align: 'center',
                 operator: 'RANGE',

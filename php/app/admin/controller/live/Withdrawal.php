@@ -53,12 +53,12 @@ final class Withdrawal extends Backend
         $id = (int) $this->request->param('id', 0);
         $reason = trim((string) $this->request->param('reason', ''));
         if ($reason === '') {
-            echo json_encode(['code' => 0, 'msg' => '请填写拒绝原因（将退回钻石）'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['code' => 0, 'msg' => '请填写拒绝原因（将退回代币）'], JSON_UNESCAPED_UNICODE);
             exit;
         }
         try {
             (new WithdrawService())->reject($id, $reason);
-            echo json_encode(['code' => 1, 'msg' => '已拒绝并退钻'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['code' => 1, 'msg' => '已拒绝并退代币'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode(['code' => 0, 'msg' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
@@ -82,7 +82,7 @@ final class Withdrawal extends Backend
                 <td>{$r['id']}</td>
                 <td>" . htmlspecialchars((string)($r['nickname'] ?: '-')) . "</td>
                 <td>" . htmlspecialchars((string)$r['order_no']) . "</td>
-                <td>{$r['diamond_amount']} 钻</td>
+                <td>{$r['diamond_amount']} 代币</td>
                 <td>{$r['actual_usdt']} USDT</td>
                 <td title='" . htmlspecialchars((string)$r['address']) . "'>" . htmlspecialchars(substr((string)$r['address'], 0, 12)) . "…</td>
                 <td>{$r['network']}</td>
@@ -145,7 +145,7 @@ th{background:#191d32;color:#9aa}
     <button onclick="doSearch()">搜索</button>
 </div>
 <table>
-<thead><tr><th>ID</th><th>用户</th><th>订单号</th><th>钻石</th><th>实际到账</th><th>地址</th><th>网络</th><th>状态</th><th>TxHash</th><th>拒绝原因</th><th>申请时间</th><th>操作</th></tr></thead>
+<thead><tr><th>ID</th><th>用户</th><th>订单号</th><th>代币</th><th>实际到账</th><th>地址</th><th>网络</th><th>状态</th><th>TxHash</th><th>拒绝原因</th><th>申请时间</th><th>操作</th></tr></thead>
 <tbody>{$rows}</tbody>
 </table>
 <div class="page">{$pager}</div>
@@ -161,7 +161,7 @@ th{background:#191d32;color:#9aa}
 
 <div class="modal" id="rejectModal"><div class="modal-box">
 <h3>拒绝提现</h3>
-<p class="hint">拒绝后钻石自动退回用户钱包</p>
+<p class="hint">拒绝后代币自动退回用户钱包</p>
 <input type="hidden" id="rejectId">
 <textarea id="reason" rows="2" placeholder="拒绝原因"></textarea>
 <button class="btn btn-danger" onclick="doReject()">确认拒绝</button>

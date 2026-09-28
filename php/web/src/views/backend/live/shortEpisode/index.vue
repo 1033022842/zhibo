@@ -2,7 +2,7 @@
     <div class="default-main ba-table-box">
         <el-alert
             class="ba-table-alert"
-            title="配置短剧剧集：一部剧下可挂多集，每集单独定价、单独解锁；短剧卡片上的「前N集免费」会让集号 ≤ N 的集免钻"
+            title="配置短剧剧集：一部剧下可挂多集，每集单独定价、单独解锁；短剧卡片上的「前N集免费」会让集号 ≤ N 的集免代币"
             type="info"
             show-icon
         />
@@ -36,9 +36,9 @@ const baTable = new baTableClass(
             { label: '集号', prop: 'episode_no', align: 'center', width: 80, operator: 'RANGE', sortable: 'custom' },
             { label: '本集标题', prop: 'title', align: 'center', showOverflowTooltip: true, operator: 'LIKE' },
             { label: '封面', prop: 'poster', align: 'center', width: 80, render: 'image', operator: false },
-            { label: '价格(钻石)', prop: 'price', align: 'center', width: 110, operator: 'RANGE' },
+            { label: '价格(代币)', prop: 'price', align: 'center', width: 110, operator: 'RANGE' },
             {
-                label: '免钻',
+                label: '免代币',
                 prop: 'free_by_series',
                 align: 'center',
                 width: 80,
