@@ -141,6 +141,10 @@
 				border-radius:9999px;border:1.5px solid rgba(255,255,255,.16);background:#202020;color:#e5e5e5;
 				font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:border-color .18s ease}
 			.c-cat-dd-btn:active{transform:scale(.97)}
+			/* 桌面端强制隐藏移动端下拉（内联样式在后会覆盖外链 CSS 的 sm:hidden，这里显式兜底） */
+			@media (min-width:640px){
+				.c-cat-dd-btn,#catDdPanel{display:none !important}
+			}
 			.c-cat-dd-btn svg{width:14px;height:14px;transition:transform .2s ease}
 			.c-cat-dd-btn.open svg{transform:rotate(180deg)}
 			.c-cat-dd-panel{display:none;position:absolute;top:100%;left:150px;width:max-content;min-width:96px;max-width:calc(100vw - 162px);z-index:39;
