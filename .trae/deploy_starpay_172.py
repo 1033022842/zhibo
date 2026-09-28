@@ -79,6 +79,7 @@ PHP_FILES = [
     "php/sql/upgrade_user_persona.sql",
     "php/sql/upgrade_user_subscription.sql",
     "php/sql/upgrade_recharge_callback_log.sql",
+    "php/sql/upgrade_recharge_pay_state.sql",
     "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/app/admin/controller/live/RechargeOrder.php",
@@ -1215,11 +1216,14 @@ def main():
                 upload_file(sftp, buf, rel, PHP_DIR + "/" + rel.split("/", 1)[1], ".bak_recharge_" + STAMP)
             upload_file(sftp, buf, "php/sql/upgrade_recharge_callback_log.sql",
                         PHP_DIR + "/sql/upgrade_recharge_callback_log.sql", "")
+            upload_file(sftp, buf, "php/sql/upgrade_recharge_pay_state.sql",
+                        PHP_DIR + "/sql/upgrade_recharge_pay_state.sql", "")
             run(cli, buf, "PHP 语法检查（充值链路）",
                 "php -l %s/app/live/service/RechargeService.php; php -l %s/app/command/RechargeScanCron.php; php -l %s/app/command/EthRechargeScanCron.php; php -l %s/app/admin/controller/live/RechargeOrder.php; php -l %s/app/admin/controller/live/RechargeChannel.php\n"
                 % (PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
-            run(cli, buf, "执行迁移（回调日志表补列 + ETH 切链上自动确认）",
-                DB_ENV + 'mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_callback_log.sql\n',
+            run(cli, buf, "执行迁移（回调日志补列 + 充值订单支付状态 + ETH 切链上自动确认）",
+                DB_ENV + 'mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_callback_log.sql\n'
+                + 'mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_pay_state.sql\n',
                 timeout=120)
             run(cli, buf, "重载 php-fpm", RELOAD_STEP, timeout=120)
         elif action == "sqluser":

@@ -93,13 +93,15 @@ final class RechargeService
         $db->startTrans();
         try {
             $now = date('Y-m-d H:i:s');
-            // 更新订单状态
+            // 人工审核通过 = 人工已核对到账，支付状态一并置为已支付
             $db->table('lp_recharge_order')->where('id', $orderId)->update([
-                'status'       => 1,
-                'paid_at'      => $now,
-                'reviewed_at'  => $now,
-                'admin_remark' => $remark,
-                'updated_at'   => $now,
+                'status'         => 1,
+                'paid_at'        => $now,
+                'reviewed_at'    => $now,
+                'pay_state'      => 1,
+                'pay_checked_at' => $now,
+                'admin_remark'   => $remark,
+                'updated_at'     => $now,
             ]);
 
             // 给用户加钻
@@ -128,10 +130,14 @@ final class RechargeService
 
         Db::connect('live_mysql')->table('lp_recharge_order')
             ->where('id', $orderId)->update([
-                'status'       => 2,
-                'reviewed_at'  => date('Y-m-d H:i:s'),
-                'admin_remark' => $remark,
-                'updated_at'   => date('Y-m-d H:i:s'),
+                'status'         => 2,
+                'reviewed_at'    => date('Y-m-d H:i:s'),
+                'admin_remark'   => $remark,
+                // 人工拒绝通常就是「没收到钱/凭证不符」：把支付状态明确成未支付，
+                // 避免它一直挂在「未确认」上看不出结论
+                'pay_state'      => 2,
+                'pay_checked_at' => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s'),
             ]);
     }
 
@@ -238,11 +244,13 @@ final class RechargeService
 
             $now = date('Y-m-d H:i:s');
             $db->table('lp_recharge_order')->where('id', $orderId)->update([
-                'status'       => 1,
-                'paid_at'      => $now,
-                'reviewed_at'  => $now,
-                'admin_remark' => '链上自动确认 tx=' . $txId,
-                'updated_at'   => $now,
+                'status'         => 1,
+                'paid_at'        => $now,
+                'reviewed_at'    => $now,
+                'pay_state'      => 1,
+                'pay_checked_at' => $now,
+                'admin_remark'   => '链上自动确认 tx=' . $txId,
+                'updated_at'     => $now,
             ]);
 
             $this->creditDiamond($db, (int)$order['user_id'], (float)$order['diamond_amount'], (int)$order['id'], $label);
@@ -534,12 +542,14 @@ final class RechargeService
                 . $systemRef . ($productRef !== '' ? ' product_ref=' . $productRef : '') . $late;
 
             $db->table('lp_recharge_order')->where('id', $order['id'])->update([
-                'status'       => 1,
-                'paid_at'      => $now,
-                'reviewed_at'  => $now,
-                'system_ref'   => $systemRef !== '' ? $systemRef : (string) ($order['system_ref'] ?? ''),
-                'admin_remark' => $remark,
-                'updated_at'   => $now,
+                'status'         => 1,
+                'paid_at'        => $now,
+                'reviewed_at'    => $now,
+                'pay_state'      => 1,
+                'pay_checked_at' => $now,
+                'system_ref'     => $systemRef !== '' ? $systemRef : (string) ($order['system_ref'] ?? ''),
+                'admin_remark'   => $remark,
+                'updated_at'     => $now,
             ]);
 
             if ($isVip) {
@@ -572,7 +582,10 @@ final class RechargeService
      *
      * 由 recharge:scan 每分钟调用。
      *
-     * @return array{checked:int, recovered:int, failed:int, skipped:int}
+     * 顺带把网关查单结果写进 pay_state（1 已支付 / 2 未支付），
+     * 让后台能分清「未支付过期」和「已支付但没入账」。
+     *
+     * @return array{checked:int, recovered:int, failed:int, skipped:int, unpaid:int}
      */
     public function reconcileGateway(int $staleMinutes = 5, int $limit = 50): array
     {
@@ -589,7 +602,7 @@ final class RechargeService
             ->limit($limit)
             ->select()->toArray();
 
-        $stat = ['checked' => 0, 'recovered' => 0, 'failed' => 0, 'skipped' => 0];
+        $stat = ['checked' => 0, 'recovered' => 0, 'failed' => 0, 'skipped' => 0, 'unpaid' => 0];
         if (!$rows) {
             return $stat;
         }
@@ -603,8 +616,9 @@ final class RechargeService
         }
 
         // star-pay 支持批量查单（一次最多 20 笔），先一次性拿回状态
-        $starPaid = [];
-        $starRefs = [];
+        // $starStates[order_no] = ['paid' => bool, 'system_ref' => string]
+        $starStates = [];
+        $starRefs   = [];
         foreach ($rows as $r) {
             if ((string) $r['pay_channel'] === 'starpay') {
                 $starRefs[] = (string) $r['order_no'];
@@ -615,9 +629,13 @@ final class RechargeService
                 try {
                     foreach ((new StarPayService())->queryOrders($chunk) as $item) {
                         $ref = (string) ($item['merchant_ref'] ?? '');
-                        if ($ref !== '' && (int) ($item['status'] ?? 0) === 1) {
-                            $starPaid[$ref] = (string) ($item['system_ref'] ?? '');
+                        if ($ref === '') {
+                            continue;
                         }
+                        $starStates[$ref] = [
+                            'paid'       => (int) ($item['status'] ?? 0) === 1,
+                            'system_ref' => (string) ($item['system_ref'] ?? ''),
+                        ];
                     }
                 } catch (\Throwable $e) {
                     Log::error('[recharge:reconcile] star-pay 批量查单失败：' . $e->getMessage());
@@ -633,10 +651,18 @@ final class RechargeService
 
             try {
                 if ((string) $r['pay_channel'] === 'starpay') {
-                    if (!isset($starPaid[$orderNo])) {
+                    if (!isset($starStates[$orderNo])) {
+                        continue; // 网关没返回这笔，支付状态仍未知，不动
+                    }
+                    if (!$starStates[$orderNo]['paid']) {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
                         continue;
                     }
-                    $this->confirmByGateway($orderNo, $starPaid[$orderNo], '', 'star-pay(查单补单)');
+                    // 先把支付状态落成「已支付」再补单：万一补单抛错，
+                    // 后台也能看到「已支付但订单没入账」，而不是什么都查不到
+                    $this->markPayChecked((int) $r['id'], 1);
+                    $this->confirmByGateway($orderNo, $starStates[$orderNo]['system_ref'], '', 'star-pay(查单补单)');
                     $stat['recovered']++;
                     Log::info('[recharge:reconcile] star-pay 补单成功 ' . $orderNo);
                     continue;
@@ -647,10 +673,17 @@ final class RechargeService
                     $stat['skipped']++;
                     continue;
                 }
-                $res = $flowPay->queryOrder($orderNo);
-                if ((string) ($res['trade_state'] ?? '') !== 'success') {
+                $res   = $flowPay->queryOrder($orderNo);
+                $state = (string) ($res['trade_state'] ?? '');
+                if ($state === 'notpay') {
+                    $this->markPayChecked((int) $r['id'], 2);
+                    $stat['unpaid']++;
                     continue;
                 }
+                if ($state !== 'success') {
+                    continue; // 网关没给出明确结论，保持未知
+                }
+                $this->markPayChecked((int) $r['id'], 1);
                 $this->confirmByGateway($orderNo, (string) ($res['transaction_id'] ?? ''), '', 'FlowPay(查单补单)');
                 $stat['recovered']++;
                 Log::info('[recharge:reconcile] FlowPay 补单成功 ' . $orderNo);
@@ -661,6 +694,28 @@ final class RechargeService
         }
 
         return $stat;
+    }
+
+    /**
+     * 记录支付状态（0 未确认 / 1 已支付 / 2 未支付）
+     *
+     * 已是「已支付」的不允许被后续查单覆盖回未支付（钱到账是终态）。
+     */
+    public function markPayChecked(int $orderId, int $payState): void
+    {
+        $db    = Db::connect('live_mysql');
+        $order = $db->table('lp_recharge_order')->where('id', $orderId)->field('id, pay_state')->find();
+        if (!$order) {
+            return;
+        }
+        if ((int) $order['pay_state'] === 1 && $payState !== 1) {
+            return;
+        }
+
+        $db->table('lp_recharge_order')->where('id', $orderId)->update([
+            'pay_state'      => $payState,
+            'pay_checked_at' => date('Y-m-d H:i:s'),
+        ]);
     }
 
     /**
