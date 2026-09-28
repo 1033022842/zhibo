@@ -69,7 +69,6 @@
     { href: './shop.html', label: 'Shop', icon: 'candy' },
     { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
     { href: './posts.html', label: 'Posts', icon: 'posts' },
-    { href: './private_content.html', label: 'Private Content', icon: 'lock' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'token' },
     { href: './Game.html', label: 'Games', icon: 'games' }
   ]
