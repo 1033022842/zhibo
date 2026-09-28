@@ -450,6 +450,24 @@
       closePopovers(e)
     })
 
+    // 移动端抽屉语言区：捕获阶段拦截点击。
+    // 抽屉容器上挂着 Stimulus 动作（click->main#setMobileSidebarValueToDefault），
+    // 点语言按钮会把整个抽屉收起、菜单跟着消失（表现为"点不动"），
+    // 所以这里 stopPropagation 断掉冒泡，并手动执行同一套开合逻辑；
+    // 菜单项（.lang-select）不在拦截范围内，正常冒泡走文档级切换逻辑。
+    document.addEventListener('click', function (e) {
+      var w = e.target.closest && e.target.closest('.fy-langwrap-m')
+      if (!w || (e.target.closest && e.target.closest('.fy-lang-menu'))) return
+      e.stopPropagation()
+      var m = w.querySelector('.fy-lang-menu')
+      var b = w.querySelector('.fy-langbtn')
+      if (!m) return
+      var opening = m.classList.contains('hidden')
+      m.classList.toggle('hidden')
+      w.classList.toggle('open', opening)
+      if (b) b.setAttribute('aria-expanded', opening ? 'true' : 'false')
+    }, true)
+
     // 语言下拉 / 抽屉资料菜单
     document.addEventListener('click', function (e) {
       var wrap = e.target.closest && e.target.closest('.fy-langwrap')
