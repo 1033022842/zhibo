@@ -218,14 +218,17 @@
       '<div class="achievement-lab__status" role="group" aria-label="Filter achievements">' +
         f('all', 'All') + f('unlocked', 'Unlocked') + f('locked', 'Locked') +
       '</div>' +
-      '<div class="achievement-lab__category-picker">' +
+      // z-index：存档 CSS 里这个下拉是 position:fixed（配合 popover API 用，inset:auto），
+      // 我们改成相对选择器定位，就必须自己抬层——否则后面那些 position:relative 的成就卡片
+      // （.achievement-lab__tile）会盖在菜单上面，看起来像"下拉被遮住"
+      '<div class="achievement-lab__category-picker" style="position:relative;z-index:30">' +
         '<button type="button" class="achievement-lab__category-trigger" id="fy-ach-cat-trigger" ' +
           'aria-expanded="false" aria-haspopup="true">' +
           '<span id="fy-ach-cat-label">' + esc(current) + '</span>' +
           '<span class="achievement-lab__chevron" aria-hidden="true"></span>' +
         '</button>' +
         '<div class="achievement-lab__category-menu" id="fy-ach-cat-menu" role="menu" hidden ' +
-          'style="position:absolute;left:auto;right:0;top:calc(100% + 6px);min-width:220px;max-height:340px">' +
+          'style="position:absolute;left:auto;right:0;top:calc(100% + 6px);min-width:220px;max-height:340px;z-index:31">' +
           menu +
         '</div>' +
       '</div>' +
