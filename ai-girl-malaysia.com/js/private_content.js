@@ -217,8 +217,6 @@
                   '</span>' +
                 '</div>' +
 
-                '<div class="truncate-2-lines text-left text-white/80 text-[11px] md:text-xs font-medium leading-tight" data-mpc-card-description="">' + esc(item.title) + '</div>' +
-
                 (unlocked
                   // 绿色渐变用内联样式：Tailwind 是从原站编译的成品包，没有 #28A76B / #7EE2A8 这两个任意值
                   ? '<button type="button" data-content-pack-watch style="background:linear-gradient(90deg,#28A76B 0%,#7EE2A8 100%);" class="flex h-[38px] w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl px-0 transition-[filter] hover:brightness-110 md:h-[42px] md:px-3">' +
@@ -376,7 +374,7 @@
         if (ic > 0) sub.push(ic + (ic > 1 ? ' photos' : ' photo'))
 
         window.CandyWatch.open({
-            title: item.title || '',
+            title: item.creator || 'Private Content',
             subtitle: sub.join(' · '),
             videoUrl: item.video_url || '',
             images: Array.isArray(item.images) ? item.images : [],
