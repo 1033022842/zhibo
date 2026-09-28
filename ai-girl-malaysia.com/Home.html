@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<link rel="icon" type="image/png" href="./sugus-favicon.png">
+		<link rel="icon" type="image/png" href="./sugus-favicon-v2.png">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<style type="text/css">
 			@media only screen and (max-width: 768px) {
@@ -256,10 +256,12 @@
 			.c-footer-inner{display:flex;flex-direction:column-reverse;gap:32px;max-width:1280px;margin:0 auto;padding:40px 20px}
 			.c-footer-brand{flex:1;min-width:0}
 			.c-footer-brand .logo{font-size:24px;font-weight:800;line-height:1.2;color:#fff}
+			.c-footer-brand .logo em{font-style:normal;color:var(--h-primary)}
 			.c-footer-desc{margin:16px 0 0;max-width:360px;font-size:14px;font-weight:500;line-height:22px;color:#E1E1E1}
 			.c-footer-label{margin:20px 0 8px;font-size:14px;font-weight:500;color:var(--h-grey)}
 			.c-footer-addr{margin:0;font-size:14px;font-weight:500;line-height:22px;color:#E1E1E1}
-			.c-footer-cols{display:grid;grid-template-columns:1fr;gap:28px;flex:1;min-width:0}
+			/* 手机端页脚链接列排两列（≥768px 由下面的媒体查询改成四列） */
+			.c-footer-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 20px;flex:1;min-width:0}
 			.c-footer h4{margin:0 0 20px;font-size:14px;font-weight:500;color:var(--h-grey)}
 			.c-footer ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:20px}
 			.c-footer li a{font-size:14px;font-weight:500;color:#fff;text-decoration:none}
@@ -268,14 +270,13 @@
 				display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
 				font-size:14px;font-weight:500;color:var(--h-grey)}
 			.c-footer-bottom a{color:var(--h-grey);text-decoration:underline}
-			.c-footer-badges{display:inline-flex;align-items:center;gap:10px;margin-left:auto}
+			.c-footer-badges{display:inline-flex;align-items:center;gap:10px;margin-top:20px}
 			.c-badge{display:inline-flex;border-radius:7px;overflow:hidden;opacity:.9;transition:opacity .15s ease;text-decoration:none}
 			.c-badge:hover{opacity:1}
 			.c-badge svg{display:block}
-			.c-badge img{display:block;height:24px;width:auto}
+			img.c-badge{display:block;height:24px;width:auto}
 			@media (max-width:768px){
 				.c-footer-legal{width:100%;order:3}
-				.c-footer-badges{margin-left:0}
 			}
 
 			@media (min-width:768px){
@@ -286,6 +287,8 @@
 			}
 			@media (max-width:768px){
 				.c-hero{height:200px}
+				/* 手机端轮播只有 200px 高，原来的 240px 遮罩会把整张图压暗到看不清，这里收短放淡 */
+				.c-hero::after{height:120px;background:linear-gradient(to top,rgba(13,10,15,.9) 0%,rgba(13,10,15,.45) 45%,rgba(13,10,15,0) 100%)}
 				.c-hero-nav{display:none}
 				.c-hero-dots{bottom:14px}
 				.c-sec-head{padding:0 16px}
@@ -378,7 +381,7 @@
 
 		<!-- ===== 移动端：顶部「安装 App」提示条（添加到主屏幕，无需下载） ===== -->
 		<div class="c-appdl" id="cAppDl" role="button" tabindex="0" aria-label="Install Sugus AI app">
-			<img class="c-appdl-icon" src="./sugus-favicon.png" alt="">
+			<img class="c-appdl-icon" src="./sugus-favicon-v2.png" alt="">
 			<div class="c-appdl-txt">
 				<b>Install Sugus AI</b>
 				<span>Add to Home Screen</span>
@@ -692,7 +695,7 @@
 					<footer class="c-footer">
 						<div class="c-footer-inner">
 							<div class="c-footer-brand">
-								<div class="logo">Sugus.ai</div>
+								<div class="logo">Sugus<em>.ai</em></div>
 								<p class="c-footer-desc">Sugus.ai powers immersive experiences that feel real, allowing users to generate images and create AI characters.</p>
 								<p class="c-footer-label">Contacts:</p>
 								<p class="c-footer-addr">EverAI Limited, Nr. C107181 56 Central Business Centre, Triq Is-Soll, Santa Venera SVR 1833, Malta</p>
@@ -728,16 +731,16 @@
 									<ul>
 										<li><a href="./Inviter.html">Affiliate Program</a></li>
 									</ul>
+									<span class="c-footer-badges">
+										<img class="c-badge" src="./Girls_files/visa-e1d8b03b25a5af3b8320ae609ba6331e0e1787c5d24d0bbcb9bfb8e88d5cdd42.svg" alt="Visa">
+										<img class="c-badge" src="./Girls_files/mastercard-a70ad911ccea0bdffda8287342443e4bb64898fecf51d8a4f86b1ecacf213e4a.svg" alt="Mastercard">
+									</span>
 								</div>
 							</div>
 						</div>
 						<div class="c-footer-bottom">
 							<span>&copy; 2026 Sugus.ai. All Rights Reserved</span>
 							<span class="c-footer-legal">18+ only · All characters are fictional and AI-generated</span>
-							<span class="c-footer-badges">
-								<img class="c-badge" src="./Girls_files/visa-e1d8b03b25a5af3b8320ae609ba6331e0e1787c5d24d0bbcb9bfb8e88d5cdd42.svg" alt="Visa">
-								<img class="c-badge" src="./Girls_files/mastercard-a70ad911ccea0bdffda8287342443e4bb64898fecf51d8a4f86b1ecacf213e4a.svg" alt="Mastercard">
-							</span>
 						</div>
 					</footer>
 
