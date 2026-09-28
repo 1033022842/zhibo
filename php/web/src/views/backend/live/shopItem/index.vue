@@ -33,7 +33,7 @@ const baTable = new baTableClass(
             { label: 'ID', prop: 'id', align: 'center', width: 70, operator: '=' },
             { label: '封面', prop: 'cover_url', align: 'center', width: 80, render: 'image', operator: false },
             { label: '商品名称', prop: 'title', align: 'center', operator: 'LIKE', showOverflowTooltip: true },
-            { label: '价格(钻石)', prop: 'price', align: 'center', width: 110, operator: 'RANGE' },
+            { label: '价格(代币)', prop: 'price', align: 'center', width: 110, operator: 'RANGE' },
             { label: '评分', prop: 'rating', align: 'center', width: 80, operator: 'RANGE' },
             { label: '评价数', prop: 'reviews', align: 'center', width: 80, operator: 'RANGE' },
             { label: '权重', prop: 'weigh', align: 'center', width: 80, operator: 'RANGE' },

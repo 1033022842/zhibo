@@ -361,7 +361,7 @@ final class RoomService
         }
 
         return [
-            'currency_name' => '钻石',
+            'currency_name' => '代币',
             'quick_gifts' => $quickGifts,
         ];
     }

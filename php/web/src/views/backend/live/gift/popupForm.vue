@@ -18,7 +18,7 @@
                          label-width="120px" v-show="!baTable.form.loading">
                     <FormItem label="礼物编码" v-model="baTable.form.items!.gift_code" prop="gift_code" type="string" />
                     <FormItem label="礼物名称" v-model="baTable.form.items!.name" prop="name" type="string" />
-                    <FormItem label="钻石价格" v-model="baTable.form.items!.price_diamond" prop="price_diamond" type="number" :input-attr="{ precision: 2 }" />
+                    <FormItem label="代币价格" v-model="baTable.form.items!.price_diamond" prop="price_diamond" type="number" :input-attr="{ precision: 2 }" />
                     <FormItem
                         label="触发模式"
                         v-model="baTable.form.items!.trigger_mode"
@@ -83,6 +83,6 @@ const baTable = inject('baTable') as baTableClass
 const rules: Partial<Record<string, FormItemRule[]>> = reactive({
     gift_code: [{ required: true, message: '请输入礼物编码', trigger: 'blur' }],
     name: [{ required: true, message: '请输入礼物名称', trigger: 'blur' }],
-    price_diamond: [{ required: true, message: '请输入钻石价格', trigger: 'blur' }],
+    price_diamond: [{ required: true, message: '请输入代币价格', trigger: 'blur' }],
 })
 </script>

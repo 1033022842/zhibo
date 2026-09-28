@@ -46,7 +46,7 @@
                 </el-col>
                 <el-col :sm="12" :lg="6">
                     <div class="small-panel users">
-                        <div class="small-panel-title">今日送礼（钻石）</div>
+                        <div class="small-panel-title">今日送礼（代币）</div>
                         <div class="small-panel-content">
                             <div class="content-left">
                                 <Icon color="#74A8B5" size="20" name="fa fa-gift" />
@@ -79,13 +79,13 @@
         <!-- 次级指标 -->
         <div class="sub-stats">
             <span>累计充值：<b>${{ stats.recharge_total_usd }}</b></span>
-            <span>累计送礼：<b>{{ stats.gift_total_diamonds }} 钻</b></span>
-            <span>用户钱包钻石总量：<b>{{ stats.wallet_diamonds }} 钻</b></span>
+            <span>累计送礼：<b>{{ stats.gift_total_diamonds }} 代币</b></span>
+            <span>用户钱包代币总量：<b>{{ stats.wallet_diamonds }} 代币</b></span>
         </div>
 
         <!-- 7日趋势 -->
         <el-card shadow="never" class="chart-card">
-            <template #header>近 7 天：送礼钻石 / 充值金额</template>
+            <template #header>近 7 天：送礼代币 / 充值金额</template>
             <div ref="trendChartRef" class="trend-chart"></div>
         </el-card>
 
@@ -105,7 +105,7 @@
                         <el-table-column prop="pay_amount" label="USDT" width="80">
                             <template #default="s">${{ s.row.pay_amount }}</template>
                         </el-table-column>
-                        <el-table-column prop="diamond_amount" label="钻石" width="70" />
+                        <el-table-column prop="diamond_amount" label="代币" width="70" />
                         <el-table-column label="状态" width="80">
                             <template #default="s">
                                 <el-tag size="small" :type="s.row.status == 1 ? 'success' : s.row.status == 0 ? 'warning' : 'info'">
@@ -124,7 +124,7 @@
                         <el-table-column prop="nickname" label="用户" width="90" show-overflow-tooltip />
                         <el-table-column prop="gift_name" label="礼物" width="110" show-overflow-tooltip />
                         <el-table-column prop="quantity" label="数量" width="60" />
-                        <el-table-column label="钻石" width="80">
+                        <el-table-column label="代币" width="80">
                             <template #default="s">{{ s.row.total_price }}</template>
                         </el-table-column>
                         <el-table-column prop="room_title" label="直播间" show-overflow-tooltip />
@@ -177,15 +177,15 @@ const initTrendChart = () => {
     chart.setOption({
         grid: { top: 40, right: 20, bottom: 30, left: 50 },
         tooltip: { trigger: 'axis' },
-        legend: { data: ['送礼钻石', '充值USDT'] },
+        legend: { data: ['送礼代币', '充值USDT'] },
         xAxis: { type: 'category', data: trend.value.map((t) => t.date) },
         yAxis: [
-            { type: 'value', name: '钻石' },
+            { type: 'value', name: '代币' },
             { type: 'value', name: 'USDT' },
         ],
         series: [
             {
-                name: '送礼钻石',
+                name: '送礼代币',
                 type: 'bar',
                 data: trend.value.map((t) => t.gift_diamonds),
                 itemStyle: { color: '#8595F4' },

@@ -40,7 +40,7 @@
           '</div>' +
           '<div id="fin-wd-result" style="font-size:13px;color:#9a9a9a;margin-bottom:10px;display:none"></div>' +
           '<button id="fin-wd-submit" style="width:100%;padding:12px;border:none;border-radius:10px;background:#E75275;color:#fff;font-weight:700;font-size:14px;cursor:pointer">Submit withdrawal</button>' +
-          '<div style="font-size:11px;color:#666;margin-top:8px">人工打款，1-3 个工作日到账 · 需商家认证 · 最低 <span id="fin-wd-min">-</span> 钻</div>' +
+          '<div style="font-size:11px;color:#666;margin-top:8px">人工打款，1-3 个工作日到账 · 需商家认证 · 最低 <span id="fin-wd-min">-</span> 代币</div>' +
         '</div>' +
         '<div id="fin-wd-records" style="margin:0 auto 24px;width:350px" class="sm:w-[450px] md:w-[580px] lg:w-[846px] bg-zinc-900 rounded-[10px] border border-neutral-700 p-5" hidden>' +
           '<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:10px">Withdrawal records</div>' +
@@ -86,10 +86,10 @@
         // 提交
         $('#fin-wd-submit').on('click', function() {
             var d = parseFloat($('#fin-wd-amount').val())
-            if (!d || d <= 0) { layer.msg('请输入钻石数量'); return }
+            if (!d || d <= 0) { layer.msg('请输入代币数量'); return }
             preview(false, function(p) {
                 layer.confirm(
-                    '提现 <b style="color:#E75275">' + d + ' 钻</b> → 实际到账 <b style="color:#28c76f">' + p.actual + ' USDT</b>（手续费 ' + p.fee + '）',
+                    '提现 <b style="color:#E75275">' + d + ' 代币</b> → 实际到账 <b style="color:#28c76f">' + p.actual + ' USDT</b>（手续费 ' + p.fee + '）',
                     { btn: ['确认提交', '取消'] },
                     function(i) { layer.close(i); doApply(d) }
                 )
@@ -108,7 +108,7 @@
             var p = r.data
             $('#fin-wd-min').text(p.min_diamonds)
             $('#fin-wd-result').show().html(
-                '可提余额 <b style="color:#fff">' + p.balance + '</b> 钻 → ' +
+                '可提余额 <b style="color:#fff">' + p.balance + '</b> 代币 → ' +
                 '<b style="color:#28c76f">' + p.actual + ' USDT</b>' +
                 '（汇率 ' + p.rate + '，手续费率 ' + (p.fee_rate * 100).toFixed(1) + '%）'
             )
@@ -153,7 +153,7 @@
             r.data.list.forEach(function(w) {
                 rows += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #26262b;font-size:13px">' +
                     '<span style="color:#ccc">' + w.created_at.slice(0, 16) + '</span>' +
-                    '<span style="color:#fff">' + w.diamond_amount + ' 钻 → ' + w.actual_usdt + ' U</span>' +
+                    '<span style="color:#fff">' + w.diamond_amount + ' 代币 → ' + w.actual_usdt + ' U</span>' +
                     '<span style="color:' + (cls[w.status] || '#999') + '">' + w.status_text + '</span>' +
                 '</div>'
             })
@@ -174,7 +174,7 @@
                     .replace(/{{form_user_username}}/g, l.type_text)
                     .replace(/{{Lv}}/g, l.direction === 1 ? 'IN' : 'OUT')
                     .replace(/{{en_memo}}/g, (l.remark || '') + ' · ' + l.created_at.slice(5, 16))
-                    .replace(/{{money}}/g, (isIn ? '+' : '-') + l.amount + ' 钻')
+                    .replace(/{{money}}/g, (isIn ? '+' : '-') + l.amount + ' 代币')
                     .replace(/{{color}}/g, 'color:' + (isIn ? '#28c76f' : '#ff7b7b'))
                 $('#moneyLayout').append(html)
             })
@@ -183,11 +183,11 @@
                 $('#fin-withdraw-zone').prepend(
                     '<div id="fin-balance-bar" style="padding:12px 16px;margin-bottom:14px;border-radius:10px;background:rgba(231,82,117,.08);border:1px solid rgba(231,82,117,.25);display:flex;justify-content:space-between;align-items:center">' +
                     '<span style="font-size:13px;color:#bbb">Diamond balance</span>' +
-                    '<span style="font-size:20px;font-weight:800;color:#E75275">' + r.data.balance + ' 钻</span>' +
+                    '<span style="font-size:20px;font-weight:800;color:#E75275">' + r.data.balance + ' 代币</span>' +
                     '</div>'
                 )
             } else {
-                $('#fin-balance-bar').find('span:last').text(r.data.balance + ' 钻')
+                $('#fin-balance-bar').find('span:last').text(r.data.balance + ' 代币')
             }
         })
     }

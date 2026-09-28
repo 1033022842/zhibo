@@ -344,7 +344,7 @@ final class Crowdfunding extends Backend
                 <td>
                     <div class="amt-cell">
                         <div class="amt-raised">{$raised}</div>
-                        <div class="amt-target">/ {$target} 钻</div>
+                        <div class="amt-target">/ {$target} 代币</div>
                     </div>
                 </td>
                 <td class="td-center">{$scount}</td>
@@ -589,7 +589,7 @@ final class Crowdfunding extends Backend
                     </div>
                     <div class="stat-card sc-raised">
                         <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-                        <div><div class="stat-val">{$statRaised}</div><div class="stat-label">累计已筹（钻）</div></div>
+                        <div><div class="stat-val">{$statRaised}</div><div class="stat-label">累计已筹（代币）</div></div>
                     </div>
                 </div>
 
@@ -745,7 +745,7 @@ final class Crowdfunding extends Backend
                                 <div class="hint">点击上方区域选择图片，保存时自动上传</div>
                             </div>
                             <div class="form-field">
-                                <label>目标金额（钻） <span class="req">*</span></label>
+                                <label>目标金额（代币） <span class="req">*</span></label>
                                 <input type="number" id="editTarget" min="1" step="1" placeholder="例如 10000" />
                             </div>
                             <div class="form-field">
@@ -808,7 +808,7 @@ final class Crowdfunding extends Backend
                                 var w = pledges[i];
                                 pledgeRows += '<tr>' +
                                     '<td>' + (w.nickname ? htmlEscape(w.nickname) : '用户#' + w.id) + '</td>' +
-                                    '<td>' + fmt(w.amount) + ' 钻</td>' +
+                                    '<td>' + fmt(w.amount) + ' 代币</td>' +
                                     '<td>' + pledgeBadge(w.status, w.status_text) + '</td>' +
                                     '<td>' + htmlEscape(w.created_at || '-') + '</td>' +
                                     '</tr>';
@@ -830,8 +830,8 @@ final class Crowdfunding extends Backend
                                     '</div>' +
                                 '</div>' +
                                 '<div class="stat-mini-grid">' +
-                                    '<div class="stat-mini"><div class="v">' + fmt(p.target_amount) + '</div><div class="k">目标金额（钻）</div></div>' +
-                                    '<div class="stat-mini"><div class="v">' + fmt(p.raised_amount) + '</div><div class="k">已筹金额（钻）</div></div>' +
+                                    '<div class="stat-mini"><div class="v">' + fmt(p.target_amount) + '</div><div class="k">目标金额（代币）</div></div>' +
+                                    '<div class="stat-mini"><div class="v">' + fmt(p.raised_amount) + '</div><div class="k">已筹金额（代币）</div></div>' +
                                     '<div class="stat-mini"><div class="v">' + p.progress_percent + '%</div><div class="k">完成进度</div></div>' +
                                     '<div class="stat-mini"><div class="v">' + p.supporter_count + '</div><div class="k">支持人数</div></div>' +
                                 '</div>' +

@@ -9,13 +9,13 @@
 
         <Table />
 
-        <el-dialog v-model="rechargeState.visible" title="手动充值 / 扣减钻石" width="440px" :close-on-click-modal="false">
+        <el-dialog v-model="rechargeState.visible" title="手动充值 / 扣减代币" width="440px" :close-on-click-modal="false">
             <el-form label-width="90px">
                 <el-form-item label="用户">
                     <span>{{ rechargeState.nickname }}（ID: {{ rechargeState.userId }}）</span>
                 </el-form-item>
                 <el-form-item label="当前余额">
-                    <span>{{ rechargeState.balance }} 钻</span>
+                    <span>{{ rechargeState.balance }} 代币</span>
                 </el-form-item>
                 <el-form-item label="操作类型">
                     <el-radio-group v-model="rechargeState.type">
@@ -23,7 +23,7 @@
                         <el-radio value="debit">扣减（减少）</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="钻石数量">
+                <el-form-item label="代币数量">
                     <el-input-number v-model="rechargeState.amount" :min="0.01" :precision="2" :step="10" style="width: 180px" />
                 </el-form-item>
                 <el-form-item label="备注">
@@ -77,7 +77,7 @@ const openRecharge = (row: TableRow) => {
 
 const submitRecharge = () => {
     if (!rechargeState.amount || rechargeState.amount <= 0) {
-        ElMessage.warning('请输入大于 0 的钻石数量')
+        ElMessage.warning('请输入大于 0 的代币数量')
         return
     }
     rechargeState.loading = true
@@ -107,7 +107,7 @@ const baTable = new baTableClass(
             { label: 'ID', prop: 'id', align: 'center', operator: '=', width: 70 },
             { label: '用户编号', prop: 'user_no', align: 'center', operator: 'LIKE' },
             { label: '昵称', prop: 'nickname', align: 'center', operator: 'LIKE', show: true },
-            { label: '钻石余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
+            { label: '代币余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
             { label: '邮箱', prop: 'email', align: 'center', operator: 'LIKE', render: 'tag' },
             {
                 label: '认证方式',

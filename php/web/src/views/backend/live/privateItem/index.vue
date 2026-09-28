@@ -23,7 +23,7 @@
                         <el-option label="Anime（动漫）" value="anime" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="价格(钻石)">
+                <el-form-item label="价格(代币)">
                     <el-input-number v-model="priceValue" :min="0" :step="10" style="width: 100%" />
                 </el-form-item>
             </el-form>

@@ -54,7 +54,7 @@ final class Withdraw extends BaseController
     {
         $diamonds = (float) $this->request->param('diamonds', 0);
         if ($diamonds <= 0) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '钻石数量无效');
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '代币数量无效');
         }
         return $this->jsonSuccess($this->service->preview($this->getAuthUserId(), $diamonds));
     }
@@ -66,7 +66,7 @@ final class Withdraw extends BaseController
     {
         $diamonds = (float) $this->request->post('diamonds', 0);
         if ($diamonds <= 0) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '钻石数量无效');
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '代币数量无效');
         }
         $result = $this->service->apply($this->getAuthUserId(), $diamonds);
         return $this->jsonSuccess($result, '提现申请已提交，人工打款1-3个工作日');

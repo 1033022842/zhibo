@@ -55,11 +55,11 @@
                         :input-attr="{ placeholder: '如 03:12（可选，仅展示）' }"
                     />
                     <FormItem
-                        label="价格(钻石)"
+                        label="价格(代币)"
                         v-model="baTable.form.items!.price"
                         type="number"
                         :input-attr="{ min: 0 }"
-                        tip="0 = 免费；本集单独收费填正数。若集号 ≤ 短剧的「前N集免费」，本集实际免钻"
+                        tip="0 = 免费；本集单独收费填正数。若集号 ≤ 短剧的「前N集免费」，本集实际免代币"
                     />
                     <FormItem label="权重" v-model="baTable.form.items!.weigh" type="number" :input-attr="{ placeholder: '越大越靠前' }" />
                     <FormItem
