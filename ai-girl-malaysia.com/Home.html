@@ -272,6 +272,7 @@
 			.c-badge{display:inline-flex;border-radius:7px;overflow:hidden;opacity:.9;transition:opacity .15s ease;text-decoration:none}
 			.c-badge:hover{opacity:1}
 			.c-badge svg{display:block}
+			.c-badge img{display:block;height:24px;width:auto}
 			@media (max-width:768px){
 				.c-footer-legal{width:100%;order:3}
 				.c-footer-badges{margin-left:0}
@@ -319,6 +320,11 @@
 				.c-prose p{font-size:14px;line-height:24px}
 				.c-footer-inner{padding:28px 16px}
 				.c-footer-bottom{padding:16px 16px 22px}
+			}
+
+			/* 手机/平板：底部固定导航条(70px, lg:hidden)会盖住页脚最后一行，补足下内边距 */
+			@media (max-width:1023px){
+				.c-footer-bottom{padding-bottom:88px}
 			}
 
 			/* ---------- 移动端：顶部「安装 App（添加到主屏幕）」提示条 ---------- */
@@ -729,20 +735,8 @@
 							<span>&copy; 2026 Sugus.ai. All Rights Reserved</span>
 							<span class="c-footer-legal">18+ only · All characters are fictional and AI-generated</span>
 							<span class="c-footer-badges">
-								<a class="c-badge" href="https://www.rtalabel.org/" target="_blank" rel="noopener" title="Restricted To Adults - RTA label" aria-label="RTA">
-									<svg viewBox="0 0 52 32" width="52" height="32" role="img">
-										<rect x="1" y="1" width="50" height="30" rx="5" fill="#0b0b0b" stroke="rgba(255,255,255,.35)"/>
-										<text x="26" y="15" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="800" letter-spacing="1">RTA</text>
-										<text x="26" y="24" text-anchor="middle" fill="#9a9a9a" font-family="Arial,Helvetica,sans-serif" font-size="4.6" letter-spacing=".4">RESTRICTED TO ADULTS</text>
-									</svg>
-								</a>
-								<a class="c-badge" href="https://www.asacp.org/" target="_blank" rel="noopener" title="ASACP - Association of Sites Advocating Child Protection" aria-label="ASACP">
-									<svg viewBox="0 0 52 32" width="52" height="32" role="img">
-										<rect x="1" y="1" width="50" height="30" rx="5" fill="#fff" stroke="rgba(255,255,255,.2)"/>
-										<text x="26" y="15" text-anchor="middle" fill="#1d4ed8" font-family="Arial,Helvetica,sans-serif" font-size="10.5" font-weight="800" letter-spacing=".6">ASACP</text>
-										<text x="26" y="24" text-anchor="middle" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="4.6" letter-spacing=".2">PROTECTING CHILDREN</text>
-									</svg>
-								</a>
+								<img class="c-badge" src="./Girls_files/visa-e1d8b03b25a5af3b8320ae609ba6331e0e1787c5d24d0bbcb9bfb8e88d5cdd42.svg" alt="Visa">
+								<img class="c-badge" src="./Girls_files/mastercard-a70ad911ccea0bdffda8287342443e4bb64898fecf51d8a4f86b1ecacf213e4a.svg" alt="Mastercard">
 							</span>
 						</div>
 					</footer>
