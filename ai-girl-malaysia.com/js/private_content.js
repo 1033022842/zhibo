@@ -410,6 +410,7 @@
                     item.images = Array.isArray(fresh.images) ? fresh.images : []
                 }
                 render()
+                if (window.refreshTokenBalance) refreshTokenBalance()
                 if (window.layer) {
                     layer.msg(Number(res.data && res.data.charged) === 1 ? 'Unlocked!' : 'Already unlocked')
                 }

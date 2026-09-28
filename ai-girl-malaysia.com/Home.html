@@ -24,7 +24,7 @@
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20260928a"></script>
-		<script src="./js/shell-new.js?v=20260928b"></script>
+		<script src="./js/shell-new.js?v=20260928c"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20260920"></script>
 
@@ -1441,6 +1441,7 @@
 								item.images = Array.isArray(res.data.item.images) ? res.data.item.images : []
 							}
 							renderPrivate()
+							if (window.refreshTokenBalance) refreshTokenBalance()
 							watchPriv(item)
 						} else if (window.SugusDialog) {
 							SugusDialog.alert((res && res.msg) || 'Unlock failed, please try again', { title: 'Notice' })
