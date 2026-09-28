@@ -26,6 +26,9 @@ Route::post('live/saveUserPersona',  '\app\api\controller\Live@saveUserPersona')
 // 设置页订阅管理（Current plan / Payment date / Subscription renewal / 取消订阅）
 Route::get('live/subscription',      '\app\api\controller\Live@subscription')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/cancelSubscription', '\app\api\controller\Live@cancelSubscription')->middleware(\app\live\middleware\Auth::class);
+// 成就（设置页 Achievements / 顶栏奖杯徽章 / 侧边栏）
+// 公开接口：未登录也能拿到完整成就清单（全部未解锁），页面不会空白
+Route::get('live/achievements',      '\app\api\controller\Live@achievements');
 Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleCreate', '\app\api\controller\Live@customRoleCreate')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);

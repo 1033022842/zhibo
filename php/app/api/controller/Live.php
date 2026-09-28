@@ -14,6 +14,7 @@ use app\live\service\UserService;
 use app\live\service\UserSettingService;
 use app\live\service\UserPersonaService;
 use app\live\service\PaymentOptionService;
+use app\live\service\AchievementService;
 use app\live\service\PersonaService;
 use app\live\service\QuotaService;
 use app\live\service\VipService;
@@ -290,6 +291,18 @@ final class Live extends BaseController
     public function paymentOptions()
     {
         return $this->jsonSuccess((new PaymentOptionService())->list());
+    }
+
+    /**
+     * 成就（设置页 Achievements 卡 / 顶栏奖杯徽章 / 侧边栏入口）
+     *
+     * 公开接口：未登录返回全部「未解锁」的成就清单，页面照样有内容，
+     * 前端据此展示「登录后开始记录进度」的引导。
+     */
+    public function achievements()
+    {
+        $userId = $this->optionalAuthUserId();
+        return $this->jsonSuccess((new AchievementService())->forUser($userId));
     }
 
     /**
