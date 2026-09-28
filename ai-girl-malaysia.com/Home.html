@@ -824,20 +824,59 @@
 			}
 			function startAuto() {
 				if (timer) clearInterval(timer)
-				timer = setInterval(function(){ heroNext() }, 7000)
+				timer = setInterval(function(){ heroNext() }, 5000)
 			}
 			window.heroGo = function(i) { setActive(i); startAuto() }
 			window.heroNext = function() {
 				if (slides.length < 2) return
 				setActive((cur + 1) % slides.length)
+				startAuto()
 			}
 			window.heroPrev = function() {
 				if (slides.length < 2) return
 				setActive((cur - 1 + slides.length) % slides.length)
+				startAuto()
 			}
 			var heroEl = document.getElementById('hero')
 			heroEl.addEventListener('mouseenter', function(){ if (timer) clearInterval(timer) })
 			heroEl.addEventListener('mouseleave', function(){ if (slides.length > 1) startAuto() })
+
+			/* ---------- 手势：左右滑动切换（触屏滑动，横滑不干扰页面纵向滚动） ---------- */
+			var swX = 0, swY = 0, swiping = false
+			heroEl.addEventListener('touchstart', function(e) {
+				if (!e.touches || !e.touches.length) return
+				swX = e.touches[0].clientX
+				swY = e.touches[0].clientY
+				swiping = true
+			}, { passive: true })
+			heroEl.addEventListener('touchmove', function(e) {
+				if (!swiping || !e.touches || !e.touches.length) return
+				var dx = e.touches[0].clientX - swX
+				var dy = e.touches[0].clientY - swY
+				// 判定为横向滑动后拦截，避免触发展示层的横向滚动或图片拖拽
+				if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) && e.cancelable) e.preventDefault()
+			}, { passive: false })
+			heroEl.addEventListener('touchend', function(e) {
+				if (!swiping) return
+				swiping = false
+				var p = e.changedTouches && e.changedTouches[0]
+				if (!p) return
+				var dx = p.clientX - swX
+				var dy = p.clientY - swY
+				// 有效横滑：位移 >40px 且横向明显大于纵向
+				if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+					if (dx < 0) heroNext(); else heroPrev()
+				}
+			})
+			// 桌面端鼠标拖拽同样支持（按住拖动超过 60px 松开切换）
+			var mDown = false, mX = 0
+			heroEl.addEventListener('mousedown', function(e) { mDown = true; mX = e.clientX })
+			window.addEventListener('mouseup', function(e) {
+				if (!mDown) return
+				mDown = false
+				var dx = e.clientX - mX
+				if (Math.abs(dx) > 60) { if (dx < 0) heroNext(); else heroPrev() }
+			})
 
 			/* ---------- 卡片 ---------- */
 			function cardHtml(c, cls) {
