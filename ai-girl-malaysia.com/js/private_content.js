@@ -194,7 +194,6 @@
               '<!-- Top row -->' +
               '<div class="absolute top-3 inset-x-3 z-20 flex items-center justify-between gap-2 pointer-events-none" data-mpc-card-top="">' +
                 '<div class="flex items-center gap-2 min-w-0">' +
-                  '<img alt="' + esc(item.creator) + '" class="w-7 h-7 object-cover object-top rounded-full ring-1 ring-white/40 shrink-0" data-mpc-card-avatar="true" src="' + esc(item.avatar) + '">' +
                   '<span class="text-white text-sm font-semibold leading-tight truncate drop-shadow" data-mpc-card-name="">' + esc(item.creator) + '</span>' +
                 '</div>' +
                 (isNew ? badgeHtml() : '') +
