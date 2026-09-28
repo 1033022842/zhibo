@@ -56,6 +56,7 @@ PHP_FILES = [
     "php/app/live/model/UserSetting.php",
     "php/app/live/service/UserPersonaService.php",
     "php/app/live/model/UserPersona.php",
+    "php/app/live/service/PaymentOptionService.php",
     "php/app/common/service/LlmService.php",
     "php/app/live/service/VipService.php",
     "php/app/live/service/QuotaService.php",
@@ -84,6 +85,9 @@ PHP_FILES = [
     "php/sql/upgrade_vip_plans_v2.sql",
 ]
 
+# 设置页 Payment methods 区块的 ETH 图标（服务器上 tokens_files 里没有，单独补一份）
+ETH_ICON = "ai-girl-malaysia.com/tokens_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg"
+
 STATIC_FILES = [
     "ai-girl-malaysia.com/purchasePoints.html",
     "ai-girl-malaysia.com/Home.html",
@@ -104,6 +108,7 @@ STATIC_FILES = [
     "ai-girl-malaysia.com/setting.html",
     "ai-girl-malaysia.com/js/settings.js",
     "ai-girl-malaysia.com/js/settings-page.js",
+    ETH_ICON,
 ]
 
 # setting.html 新版式用到的存档资源目录（settings_files/ 为扁平目录，随 static 一起上传）
@@ -1185,13 +1190,14 @@ def main():
             # 只部署设置页新版式：setting.html + js/settings*.js + settings_files/
             for rel in ["ai-girl-malaysia.com/setting.html",
                         "ai-girl-malaysia.com/js/settings.js",
-                        "ai-girl-malaysia.com/js/settings-page.js"]:
+                        "ai-girl-malaysia.com/js/settings-page.js",
+                        ETH_ICON]:
                 upload_file(sftp, buf, rel, REMOTE + "/" + rel, ".bak_settings_" + STAMP)
             for rel, remote_dir in STATIC_DIRS:
                 upload_dir(sftp, buf, rel, remote_dir)
             run(cli, buf, "PHP 语法检查（设置页相关）",
-                "php -l %s/app/live/service/UserService.php; php -l %s/app/live/service/UserPersonaService.php; php -l %s/app/live/model/UserPersona.php; php -l %s/app/live/service/VipService.php; php -l %s/app/api/controller/Live.php; php -l %s/route/live.php\n"
-                % (PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
+                "php -l %s/app/live/service/UserService.php; php -l %s/app/live/service/UserPersonaService.php; php -l %s/app/live/model/UserPersona.php; php -l %s/app/live/service/PaymentOptionService.php; php -l %s/app/live/service/VipService.php; php -l %s/app/api/controller/Live.php; php -l %s/route/live.php\n"
+                % (PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR, PHP_DIR), timeout=120)
         elif action == "sqluser":
             # 只跑设置页相关的迁移（不动其它迁移，避免覆盖后台已调好的数据）
             run(cli, buf, "用户偏好设置表 + 用户人格表 + 订阅字段迁移",
