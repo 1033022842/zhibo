@@ -14,6 +14,7 @@
  *   聊天定制   GET  /api/live/userSettings + POST /api/live/saveUserSettings
  *   我的人格   GET  /api/live/userPersona + POST /api/live/saveUserPersona
  *   订阅管理   GET  /api/live/subscription + POST /api/live/cancelSubscription
+ *   支付方式   GET  /api/live/paymentOptions（公开；渲染真实可用渠道，不做假卡）
  *   语言切换   写 googtrans cookie + Google 翻译（与 shell-new.js 的语言菜单同一套机制）
  *
  * 注意 1：这台服务器上带 "-" 的路由匹配不到（/api/live/update-profile 会 404），
@@ -36,6 +37,7 @@
     saveUserPersona: '/api/live/saveUserPersona',
     subscription:   '/api/live/subscription',
     cancelSubscription: '/api/live/cancelSubscription',
+    paymentOptions: '/api/live/paymentOptions',
     vipStatus:      '/api/vip/status',
     logout:         '/api/live/logout'
   }
@@ -889,6 +891,73 @@
     }, true)
   }
 
+  /* ---------------- 支付方式（Payment methods 区块） ---------------- */
+
+  /* 站点没有卡 token 化能力，这里只如实列出可用的支付方式并给入口。
+     图标沿用站点已有的资源，未知渠道退回首枚金币图标。 */
+  var PAYMENT_ICON_DEFAULT = './settings_files/token-bd6936abf2035ff2e4304ca9c5d68b249ff8caeda952c11fd85ff70658419690.svg'
+  var PAYMENT_ICONS = {
+    card: './settings_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg',
+    eth: './tokens_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg',
+    usdt_trc20: PAYMENT_ICON_DEFAULT
+  }
+
+  function paymentRow(option) {
+    var row = document.createElement('div')
+    row.className = 'flex w-full flex-wrap items-center gap-2.5 py-3.5 sm:gap-3.5'
+
+    var left = document.createElement('div')
+    left.className = 'flex min-w-0 grow basis-0 items-center gap-3 sm:basis-44 sm:gap-3.5'
+
+    var iconBox = document.createElement('span')
+    iconBox.className = 'flex h-7 w-11 shrink-0 items-center justify-center rounded-[5px] bg-white'
+    var icon = document.createElement('img')
+    icon.className = 'h-5 w-[33px] object-contain'
+    icon.alt = ''
+    icon.src = PAYMENT_ICONS[option.key] || PAYMENT_ICON_DEFAULT
+    iconBox.appendChild(icon)
+
+    var textBox = document.createElement('span')
+    textBox.className = 'min-w-0 flex-1'
+    var name = document.createElement('span')
+    name.className = 'block min-w-0 truncate text-sm font-semibold text-white'
+    name.textContent = option.name || option.key || ''
+    var desc = document.createElement('span')
+    desc.className = 'mt-0.5 block truncate text-xs text-grey-default'
+    desc.textContent = option.desc || ''
+    textBox.appendChild(name)
+    textBox.appendChild(desc)
+
+    left.appendChild(iconBox)
+    left.appendChild(textBox)
+
+    var right = document.createElement('div')
+    right.className = 'ml-auto flex shrink-0 items-center justify-end gap-1 sm:gap-2'
+    var use = document.createElement('a')
+    use.className = 'shrink-0 rounded-lg border border-grey-control px-3 py-2 text-xs font-medium text-white transition-colors hover:border-grey-default'
+    use.href = option.url || './purchasePoints.html'
+    use.textContent = 'Use'
+    right.appendChild(use)
+
+    row.appendChild(left)
+    row.appendChild(right)
+    return row
+  }
+
+  function loadPaymentOptions() {
+    var box = document.getElementById('fy-payment-methods')
+    if (!box) return
+
+    fetch(API.paymentOptions)
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        var list = res && res.code === '00000' && res.data ? res.data : []
+        box.innerHTML = ''
+        list.forEach(function (option) { box.appendChild(paymentRow(option)) })
+      })
+      .catch(function () { /* 拉取失败保持空列表 */ })
+  }
+
   /* ---------------- 启动 ---------------- */
 
   function init() {
@@ -909,6 +978,7 @@
     loadVipLevel()
     loadPersona()
     loadSubscription()
+    loadPaymentOptions()
   }
 
   if (document.readyState === 'loading') {

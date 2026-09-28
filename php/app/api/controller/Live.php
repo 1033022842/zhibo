@@ -13,6 +13,7 @@ use app\live\service\JwtService;
 use app\live\service\UserService;
 use app\live\service\UserSettingService;
 use app\live\service\UserPersonaService;
+use app\live\service\PaymentOptionService;
 use app\live\service\PersonaService;
 use app\live\service\QuotaService;
 use app\live\service\VipService;
@@ -281,6 +282,14 @@ final class Live extends BaseController
             (string) ($data['description'] ?? '')
         );
         return $this->jsonSuccess($result, '已取消订阅');
+    }
+
+    /**
+     * 站点真实可用的支付方式（设置页 Payment methods 区块）
+     */
+    public function paymentOptions()
+    {
+        return $this->jsonSuccess((new PaymentOptionService())->list());
     }
 
     /**

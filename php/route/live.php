@@ -5,6 +5,8 @@ use think\facade\Route;
 // 公开接口 (无需路由显式注册，ThinkPHP 多应用模式自动由 URL 映射到控制器/方法)
 // URL: POST /api/live/register → Controller: Live, Action: register
 
+// 设置页「Payment methods」区块：站点真实可用的支付方式（公开）
+Route::get('live/paymentOptions',    '\app\api\controller\Live@paymentOptions');
 // 需登录接口 - 显式注册以附加中间件
 Route::post('live/logout',           '\app\api\controller\Live@logout')->middleware(\app\live\middleware\Auth::class);
 Route::get('live/profile',           '\app\api\controller\Live@profile')->middleware(\app\live\middleware\Auth::class);

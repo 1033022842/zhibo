@@ -525,6 +525,26 @@ body = body.replace(
     'data-user-personas-target="saveButton">Save</button>',
 )
 
+#  - Payment methods 区块：存档页里是抓取账号的一张假卡（Mastercard ····0000 / Default /
+#    Due date / Add backup card / 改默认卡&删卡弹窗）。站点没有卡 token 化能力，不做假卡展示，
+#    整段换成空容器，由 js/settings-page.js 拉 /api/live/paymentOptions 渲染真实可用的支付方式。
+PAYMENT_METHODS_BLOCK = '''<turbo-frame id="payment_methods">
+  <div class="px-8 py-6">
+    <div class="mb-2">
+      <h2 class="text-base font-medium text-white">Payment methods</h2>
+      <p class="mt-1 text-sm text-grey-default">Manage how your future charges are paid.</p>
+    </div>
+    <div class="divide-y divide-black-stroke" id="fy-payment-methods"></div>
+  </div>
+</turbo-frame>'''
+
+body, n_pay = re.subn(
+    r'<turbo-frame id="payment_methods">.*?</turbo-frame>',
+    lambda m: PAYMENT_METHODS_BLOCK,
+    body, count=1, flags=re.S,
+)
+log.append("Payment methods 区块替换 %d 处" % n_pay)
+
 out = NEW_HEAD + body
 io.open(DST, "w", encoding="utf-8", newline="").write(out)
 
