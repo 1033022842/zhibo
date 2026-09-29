@@ -1,0 +1,14 @@
+{
+  "name": "Sugus.ai",
+  "short_name": "Sugus",
+  "start_url": "./Home.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#18181b",
+  "icons": [
+    { "src": "./icon-192-v3.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./apple-touch-icon-v3.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "./sugus-favicon-v3.png", "sizes": "260x260", "type": "image/png" }
+  ]
+}
