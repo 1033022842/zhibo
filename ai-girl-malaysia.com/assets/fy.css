@@ -203,6 +203,15 @@ html.fy-shell-pending [data-main-target="mainMobileSidebarContainer"] nav{visibi
 /* 分隔线（旧包没有 bg-white/10） */
 .fy-hr-li{position:relative;width:100%;height:1px;flex:0 0 auto;background:rgba(255,255,255,.1);}
 
+/* Gallery 页（body.galleries）：该页是全屏画廊，不显示左侧导航
+   （桌面收起条 / 桌面展开栏 / 手机抽屉 + 顶栏汉堡），主体撤掉给导航留的 120px。
+   只在 Gallery.html 的 body 上出现 galleries 类，故用 body.galleries 限定。 */
+body.galleries [data-main-target="mainSidebarClosedContainer"],
+body.galleries [data-main-target="mainSidebarOpenedContainer"],
+body.galleries [data-main-target="mainMobileSidebarContainer"],
+body.galleries #nav-hamburger{display:none !important;}
+body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
+
 /* 语言切换：按钮 + 下拉 */
 .fy-langwrap{position:relative;width:100%;}
 .fy-langbtn{display:flex;gap:8px;align-items:center;justify-content:flex-start;width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;background-image:none;color:#d1d1d1;font-size:13px;font-weight:500;line-height:20px;cursor:pointer;}
