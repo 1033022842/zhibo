@@ -332,9 +332,10 @@
         '<a class="w-full flex justify-start items-center gap-2.5"' + linkAttr(n) + '>' +
         iconHtml(n.icon, 'w-5 h-5') +
         '<span class="text-start text-grey-medium text-xs font-semibold">' + esc(n.label) + '</span>' +
-        '</a></li><li class="fy-hr-li"></li>'
+        '</a></li>'
     }
-    return NAV.map(row).join('') + NAV_BOTTOM.map(row).join('')
+    // 参考站：分隔线只出现在两行之间，最后一行后面没有
+    return NAV.map(row).concat(NAV_BOTTOM.map(row)).join('<li class="fy-hr-li"></li>')
   }
 
   /* 头像下拉 / 移动端抽屉「我的资料」共用菜单（内容统一） */
@@ -353,6 +354,8 @@
       '<img src="' + I.logout.src + '" alt=""><span>Logout</span></button></form>'
   }
 
+  /* 结构照参考站新版外壳的 mobile drawer（Subscriptions.html 里保存的原始 DOM）：
+     nav > div.flex.flex-col.justify-between.h-full > [ ul 列表 , footer 底部固定栏 ] */
   function mobileDrawer() {
     var menu = profileMenu()
 
@@ -361,11 +364,12 @@
       '<ul role="list" class="fy-drawer flex flex-col items-center justify-start px-5 pb-5 gap-2.5 bg-zinc-900 h-screen overflow-auto">' +
 
       // 我的资料（已登录）
-      '<li class="fy-drawer-user login-pf relative w-full pt-2.5">' +
-      '<button type="button" class="fy-drawer-userbtn user-dropdown" id="fy-drawer-user-btn" aria-expanded="false">' +
+      '<li class="fy-drawer-user login-pf user-dropdown relative w-full pt-2.5">' +
+      '<button type="button" class="fy-drawer-userbtn user-dropdown w-full flex items-center gap-2.5 text-xs" id="fy-drawer-user-btn" aria-expanded="false">' +
       '<span class="relative"><img class="w-6 h-6 rounded-full user-dropdown" src="' + I.man.src + '" alt="Man profile icon">' +
       '<span class="fy-drawer-dot"></span></span>' +
-      '<span class="fy-drawer-userlabel user-dropdown"><span class="user-dropdown">My Profile</span>' +
+      '<span class="fy-drawer-userlabel user-dropdown flex items-center justify-between flex-1">' +
+      '<span class="user-dropdown text-xs font-semibold text-grey-medium">My Profile</span>' +
       '<svg class="user-dropdown w-6 h-6 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
       '<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>' +
       '</svg></span></button>' +
@@ -380,9 +384,12 @@
 
       '<li class="fy-hr-li"></li>' +
       drawerRows() +
-      '<li class="w-full">' + langButton(false, true) + '</li>' +
 
-      '</ul></div></nav>'
+      '</ul>' +
+      '<div class="fy-drawer-foot py-2.5 px-5 flex flex-col justify-center items-center gap-2.5 border-t border-[#2F2F32] bg-[#1E1E1E]">' +
+      langButton(false, true) +
+      '</div>' +
+      '</div></nav>'
   }
 
   /* ---------- 顶栏右上角：成就徽章 + tokens 胶囊 + 头像菜单 ---------- */
