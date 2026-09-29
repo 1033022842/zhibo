@@ -43,6 +43,25 @@
     settings: { src: T + 'settings-087d65eb2d9a7508f04c379467f39735f971ac6299872f159da8e6c1d735a710.svg' },
     logout: { src: T + 'logout-c5bab4efa12211db16618320220423a09cf3d7f5b562be32cdd5110df2a21c18.svg' },
 
+    // 手机端底部导航 / Create 面板（照参考站「图片/home.html」的新版底栏素材）
+    bHome: { src: T + 'home-07943db4fc88e0be4ac57c26c4968aee020ec6f2903009e2cc4d74beec45d2b9.svg' },
+    bHomeActive: { src: T + 'home-07943db4fc88e0be4ac57c26c4968aee020ec6f2903009e2cc4d74beec45d2b9.svg' },
+    bShorts: { src: T + 'shorts-dd7eca01fe7f8a694cd100be90b5b6c20d241a5bf4c8b8c0f8633864125cffae.svg' },
+    bShortsActive: { src: './candy-shorts_files/shorts-active-d87391fb4c634b244c7e1c80b1944af6d857c3b542ac401e1995d96e35e3e0ea.svg' },
+    bCreate: { src: './settings_files/nav-create-036106b767f610ef441faeb0d313e5e2e666ec71dd35bd4df95a36eccc82ff49.svg' },
+    bChat: { src: T + 'chat-dbf86a760f2ab098a3a5d34346fb0a7c8619ed5050e90bd062c835416f510a0f.svg' },
+    bChatActive: { src: './Chat_files/chat-active-72433ffefb1d56901c13b981a4e08104de6b14b49e04b80fbb1468f56aa68f44.svg' },
+    bTokens: { src: './settings_files/bottom_bar_tokens_default-273d841343a05f1ba983a3ee4f6ef88b7180effec130b26b7cbb8442c6fc6040.svg' },
+    bTokensActive: { src: T + 'bottom_bar_tokens_active-ac95a95e99f8c952759ad5c52b0d0fa17a37feebd3bf8b777be1cdfe65495244.svg' },
+    bExplore: { src: './Girls_files/explore-271b6507dab3d31b26d45e198ec8046b2b8f148862ca272167fb8ce5455002e8.svg' },
+    bGenerate: { src: './Girls_files/generate-e0a4445659c35cbc82e7046cf089cf881179d55eaa82d4bf32dae229a06666c1.svg' },
+    bWand: { src: './Girls_files/mobile-magic-wand-d445265367be8ddfbfe1c22810893d0ea4dbdaf1eadd7c4496861113d5388d78.svg' },
+    bPremium: { src: './Girls_files/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg' },
+    bGirlfriend: { src: T + 'cmai-56f830cb372139095fd5e9d4cd3c3a361cc6f1dfca2f172b8762199be44fa57d.svg' },
+    bDirector: { src: T + 'director-b863278cedaf35fdc858a917d422a23859467cf0a57b1f6bae1f51f42fef3638.svg' },
+    bGroup: { src: T + 'group-chats-a5bcd2972c364d94db640c13a7fc401b9bad495fccb2facf168333a5ecf5084a.svg' },
+    bClose: { src: './candy-shorts_files/close-82846767821d6ff36201253b1387b41e9a60573769fcd82c2985d153e9351594.svg' },
+
     // 内联图标（站点旧侧边栏同款形状）
     upload: { svg: '<svg viewBox="0 0 24 24" ' + S + '><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>' },
     faceswap: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="9" cy="8.5" r="4.5"/><circle cx="15" cy="15.5" r="4.5"/><path d="M7.6 7.9h.01M10.4 7.9h.01M8.2 10.6c.5.4 1.1.4 1.6 0"/></svg>' },
@@ -414,6 +433,134 @@
       '<span class="fy-avatar-dot"></span></button>' +
       '<div id="profileDropdownMenu" class="fy-profile-menu" style="display:none">' + menu + '</div>' +
       '</div></div>'
+  }
+
+  /* ---------- 手机端底部导航（≤1023px）----------
+     参考站：图片/home.html 的 mobile_bottom_bar（登录态）+ 本站页面自带的未登录版
+     登录态 5 格 Home/Shorts/Create/Chat/Tokens；未登录保持页面自带的 4 格 Explore/Generate/Create/Premium，
+     页面没有自带底栏时才新建 4 格。（Create 面板照参考站 create-menu） */
+  var BOTTOM_AUTH = [
+    { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
+    { href: './shorts.html', label: 'Shorts', icon: 'bShorts', activeIcon: 'bShortsActive', key: 'shorts' },
+    { create: true, label: 'Create', icon: 'bCreate' },
+    { href: './Chat.html', label: 'Chat', icon: 'bChat', activeIcon: 'bChatActive', key: 'chat' },
+    { href: './purchasePoints.html', label: 'Tokens', icon: 'bTokens', activeIcon: 'bTokensActive', key: 'tokens' }
+  ]
+
+  var BOTTOM_GUEST = [
+    { href: './Girls.html', label: 'Explore', icon: 'bExplore' },
+    { href: './Image.html', label: 'Generate', icon: 'bGenerate' },
+    { href: './characters.html', label: 'Create', icon: 'bWand' },
+    { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium' }
+  ]
+
+  var CREATE_MENU = [
+    { href: './characters.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
+    { href: './Image.html', icon: 'bDirector', title: 'Generate spicy videos', sub: 'Build your own spicy movie', badge: 'NEW' },
+    { href: './Chat.html', icon: 'bGroup', title: 'Group chat', sub: 'Start a chat with up to 3 characters' }
+  ]
+
+  /* 当前页面对应的底栏高亮项（只有 5 格里的 4 个页面会高亮） */
+  function activeBottomKey() {
+    var p = (location.pathname || '').toLowerCase()
+    if (/\/home\.html$/.test(p)) return 'home'
+    if (/shorts\.html$/.test(p)) return 'shorts'
+    if (/chat\.html$/.test(p)) return 'chat'
+    if (/purchasepoints\.html$|\/tokens\.html$/.test(p)) return 'tokens'
+    return ''
+  }
+
+  function bottomItemHtml(item, key) {
+    var isActive = item.key && item.key === key
+    var icon = isActive && item.activeIcon ? item.activeIcon : item.icon
+    var cls = 'fy-bnav-item' + (isActive ? ' is-active' : '')
+    if (item.create) {
+      return '<button type="button" class="fy-bnav-item fy-bnav-create" data-fy-createmenu-open aria-haspopup="dialog">' +
+        '<img alt="' + esc(item.label) + '" src="' + I[icon].src + '">' +
+        '<span class="fy-bnav-label">' + esc(item.label) + '</span></button>'
+    }
+    return '<a class="' + cls + '" href="' + item.href + '">' +
+      '<img alt="' + esc(item.label) + '" src="' + I[icon].src + '">' +
+      '<span class="fy-bnav-label">' + esc(item.label) + '</span></a>'
+  }
+
+  /* 页面自带的老版底栏（Explore/Generate/Create/Premium） */
+  function findBottomBar() {
+    var nodes = document.querySelectorAll('div')
+    for (var i = 0; i < nodes.length; i++) {
+      var c = nodes[i].classList
+      if (c && c.contains('fixed') && c.contains('bottom-0') && c.contains('h-[70px]')) return nodes[i]
+    }
+    return null
+  }
+
+  function createMenuHtml() {
+    var items = CREATE_MENU.map(function (m) {
+      return '<a class="fy-createmenu-item" href="' + m.href + '">' +
+        '<span class="fy-createmenu-tile"><img alt="" src="' + I[m.icon].src + '"></span>' +
+        '<span class="fy-createmenu-text">' +
+        '<span class="fy-createmenu-title">' + esc(m.title) +
+        (m.badge ? '<span class="fy-createmenu-badge">' + esc(m.badge) + '</span>' : '') +
+        '</span>' +
+        '<span class="fy-createmenu-sub">' + esc(m.sub) + '</span>' +
+        '</span></a>'
+    }).join('')
+
+    return '<div class="fy-createmenu" data-fy-createmenu>' +
+      '<div class="fy-createmenu-veil" data-fy-createmenu-close></div>' +
+      '<div class="fy-createmenu-card" role="dialog" aria-modal="true">' + items +
+      '<button type="button" class="fy-createmenu-close" data-fy-createmenu-close aria-label="Close">' +
+      '<img alt="" src="' + I.bClose.src + '"></button>' +
+      '</div></div>'
+  }
+
+  function openCreateMenu() {
+    var el = document.querySelector('[data-fy-createmenu]')
+    if (el) el.classList.add('is-open')
+  }
+
+  function closeCreateMenu() {
+    var el = document.querySelector('[data-fy-createmenu]')
+    if (el) el.classList.remove('is-open')
+  }
+
+  function renderBottomBar() {
+    var signedIn = !!LiveAuth.token()
+    var bar = findBottomBar()
+
+    // 未登录：保持页面自带的老版底栏不动
+    if (!signedIn && bar) return
+
+    if (!bar) {
+      bar = document.createElement('div')
+      document.body.appendChild(bar)
+    }
+
+    var key = activeBottomKey()
+    var items = signedIn ? BOTTOM_AUTH : BOTTOM_GUEST
+    bar.className = 'fy-bnav'
+    bar.setAttribute('data-variant', signedIn ? 'auth' : 'guest')
+    bar.innerHTML = items.map(function (it) { return bottomItemHtml(it, key) }).join('')
+  }
+
+  function bindBottomBar() {
+    if (!document.querySelector('[data-fy-createmenu]')) {
+      var holder = document.createElement('div')
+      holder.innerHTML = createMenuHtml()
+      document.body.appendChild(holder.firstChild)
+    }
+    if (document.__fyBnavBound) return
+    document.__fyBnavBound = true
+
+    document.addEventListener('click', function (e) {
+      var t = e.target
+      if (!t || !t.closest) return
+      if (t.closest('[data-fy-createmenu-open]')) { e.preventDefault(); openCreateMenu(); return }
+      if (t.closest('[data-fy-createmenu-close]')) { e.preventDefault(); closeCreateMenu() }
+    })
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeCreateMenu()
+    })
   }
 
   /* ---------- 悬浮提示（旧包没有 navbar-tooltip 控制器） ---------- */
@@ -859,6 +1006,8 @@
       var __bound = render()
       if (__bound) bind()
       syncAuth()
+      renderBottomBar()
+      bindBottomBar()
       bindAuthWatch()
       LiveAuth.ensureFresh()
       startAuthTimer()
