@@ -28,8 +28,23 @@
         }
     }
     @media only screen and (max-width: 1024px) {
+        /* 手机端未登录：注册/登录按钮移到顶栏右上角（原来被隐藏，只在左侧抽屉里显示） */
         .pc-rg-login{
-            display: none !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .pc-rg-login > div{
+            gap: 8px;
+        }
+        .pc-rg-login a{
+            width: auto;
+            height: 30px;
+            padding: 0 12px;
+        }
+        .pc-rg-login a div{
+            font-size: 12px;
         }
          .nav-zk{
             display: none !important;
