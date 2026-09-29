@@ -15,9 +15,9 @@ class LiveUser extends Backend
     protected object $model;
 
     /**
-     * 手动充值/扣减钻石无需单独配置权限节点（登录鉴权仍生效）
+     * 手动充值/扣减钻石、开通会员无需单独配置权限节点（登录鉴权仍生效）
      */
-    protected array $noNeedPermission = ['adjustDiamond'];
+    protected array $noNeedPermission = ['adjustDiamond', 'vipPlans', 'grantVip'];
 
     protected array $withJoinTable = [];
 
@@ -42,7 +42,7 @@ class LiveUser extends Backend
         $res = $this->model
             ->field('
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
-                live_user.email, live_user.status, live_user.level, live_user.created_at,
+                live_user.email, live_user.status, live_user.level, live_user.vip_expire_at, live_user.created_at,
                 IFNULL(wallet.diamond_balance, 0) as diamond_balance,
                 IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
@@ -131,6 +131,50 @@ class LiveUser extends Backend
         // 注意：success() 内部通过抛 HttpResponseException 输出响应，必须放在 try/catch 之外，
         // 否则会被 catch (\Throwable) 捕获而误报为失败（钻石已入账但前端收到错误提示）。
         $this->success($type === 'debit' ? '扣减成功' : '充值成功', $result);
+    }
+
+    /**
+     * 可开通的会员等级包（Premium / Premium Plus 各档，公开套餐表 status=1）
+     * POST /admin/user.LiveUser/vipPlans
+     */
+    public function vipPlans(): void
+    {
+        $plans = (new \app\live\service\VipService())->plans();
+        $this->success('', $plans);
+    }
+
+    /**
+     * 给用户开通/顺延会员等级包（后台手动，等效于用户购买：无扣费、到期顺延）
+     * POST /admin/user.LiveUser/grantVip
+     * @param int user_id 用户ID
+     * @param int plan_id 套餐ID
+     */
+    public function grantVip(): void
+    {
+        $userId = $this->request->post('user_id/d', 0);
+        $planId = $this->request->post('plan_id/d', 0);
+
+        if ($userId <= 0) {
+            $this->error('请选择用户');
+        }
+        if ($planId <= 0) {
+            $this->error('请选择要开通的等级包');
+        }
+        if (!$this->model->find($userId)) {
+            $this->error('用户不存在');
+        }
+
+        // 后台开通单号前缀 ADMIN，便于与用户自助购买区分
+        $orderNo = 'ADMIN' . date('YmdHis') . $userId;
+
+        try {
+            $result = (new \app\live\service\VipService())->activate($userId, $planId, $orderNo, 0);
+        } catch (\Throwable $e) {
+            $this->error($e->getMessage());
+            return;
+        }
+
+        $this->success('已开通「' . $result['plan_name'] . '」，到期时间 ' . $result['expire_to'], $result);
     }
 
     public function del(): void

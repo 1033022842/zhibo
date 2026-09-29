@@ -35,6 +35,34 @@
                 <el-button type="primary" :loading="rechargeState.loading" @click="submitRecharge">{{ t('Confirm') }}</el-button>
             </template>
         </el-dialog>
+
+        <el-dialog v-model="vipState.visible" title="开通会员等级包" width="460px" :close-on-click-modal="false">
+            <el-form label-width="90px">
+                <el-form-item label="用户">
+                    <span>{{ vipState.nickname }}（ID: {{ vipState.userId }}）</span>
+                </el-form-item>
+                <el-form-item label="当前到期">
+                    <span>{{ vipState.expireAt || '未开通' }}</span>
+                </el-form-item>
+                <el-form-item label="等级包">
+                    <el-select v-model="vipState.planId" placeholder="请选择" filterable :loading="vipState.plansLoading" style="width: 100%">
+                        <el-option
+                            v-for="p in vipState.plans"
+                            :key="p.id"
+                            :label="`${p.name}（${p.months}个月 / ${p.tokens_month} tokens）`"
+                            :value="p.id"
+                        />
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <span style="color: #909399; font-size: 12px">后台开通不扣费，到期时间在现有会员基础上顺延。</span>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="vipState.visible = false">{{ t('Cancel') }}</el-button>
+                <el-button type="primary" :loading="vipState.loading" @click="submitVip">{{ t('Confirm') }}</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -98,6 +126,59 @@ const submitRecharge = () => {
         })
 }
 
+const vipState = reactive({
+    visible: false,
+    loading: false,
+    plansLoading: false,
+    userId: 0,
+    nickname: '',
+    expireAt: '',
+    planId: 0,
+    plans: [] as any[],
+})
+
+const openVip = (row: TableRow) => {
+    vipState.userId = Number(row.id)
+    vipState.nickname = String(row.nickname ?? '')
+    vipState.expireAt = String(row.vip_expire_at ?? '')
+    vipState.planId = 0
+    vipState.visible = true
+    if (!vipState.plans.length) {
+        vipState.plansLoading = true
+        baTable.api
+            .postData('vipPlans', {})
+            .then((res: any) => {
+                const payload = res?.data
+                vipState.plans = Array.isArray(payload) ? payload : (payload?.data ?? [])
+                vipState.plansLoading = false
+            })
+            .catch(() => {
+                vipState.plansLoading = false
+            })
+    }
+}
+
+const submitVip = () => {
+    if (!vipState.planId) {
+        ElMessage.warning('请选择要开通的等级包')
+        return
+    }
+    vipState.loading = true
+    baTable.api
+        .postData('grantVip', {
+            user_id: vipState.userId,
+            plan_id: vipState.planId,
+        })
+        .then(() => {
+            vipState.loading = false
+            vipState.visible = false
+            baTable.getData()
+        })
+        .catch(() => {
+            vipState.loading = false
+        })
+}
+
 const baTable = new baTableClass(
     new baTableApi('/admin/user.LiveUser/'),
     {
@@ -144,6 +225,7 @@ const baTable = new baTableClass(
                 custom: { '0': 'danger', '1': 'success' },
             },
             { label: '等级', prop: 'level', align: 'center', operator: '=', width: 70 },
+            { label: '会员到期', prop: 'vip_expire_at', align: 'center', render: 'datetime', width: 160 },
             { label: '最后登录IP', prop: 'last_login_ip', align: 'center', operator: 'LIKE', render: 'tag' },
             {
                 label: '最后登录时间',
@@ -167,9 +249,17 @@ const baTable = new baTableClass(
             {
                 label: '操作',
                 align: 'center',
-                width: 220,
+                width: 320,
                 render: 'buttons',
                 buttons: [
+                    {
+                        render: 'basicButton',
+                        name: 'grantVip',
+                        text: '开通会员',
+                        type: 'primary',
+                        icon: 'fa fa-crown',
+                        click: (row: TableRow) => openVip(row),
+                    },
                     {
                         render: 'basicButton',
                         name: 'recharge',
