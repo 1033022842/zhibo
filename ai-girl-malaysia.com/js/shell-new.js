@@ -321,10 +321,11 @@
   /* 头像下拉 / 移动端抽屉「我的资料」共用菜单（内容统一） */
   function profileMenu() {
     function row(href, icon, label) {
-      return '<a href="' + href + '"><img src="' + I[icon].src + '" alt="' + esc(label) + '">' +
+      return '<a href="' + href + '">' + iconHtml(icon, '') +
         '<span>' + esc(label) + '</span></a>'
     }
-    return row('./Subscriptions.html', 'premium', 'Subscription') +
+    return row('./Home.html#install-app', 'appdl', 'Get Candy.ai app') +
+      row('./Subscriptions.html', 'premium', 'Subscription') +
       row('./purchasePoints.html', 'coin', 'Tokens') +
       row('./Inviter.html', 'gift', 'Get 100 tokens') +
       row('./setting.html', 'settings', 'Settings') +
@@ -359,12 +360,6 @@
       '<span class="text-sm font-semibold leading-tight">Login</span></a></li>' +
 
       '<li class="fy-hr-li"></li>' +
-      // 手机版专属：Get Candy.ai app（点击进入 Home 顶部「添加到主屏幕」安装教程）
-      '<li class="relative w-full">' +
-      '<a class="w-full flex justify-start items-center gap-2.5" href="./Home.html#install-app">' +
-      iconHtml('appdl', 'w-5 h-5') +
-      '<span class="text-start text-grey-medium text-xs font-semibold">Get Candy.ai app</span>' +
-      '</a></li><li class="fy-hr-li"></li>' +
       drawerRows() +
       '<li class="w-full">' + langButton(false, true) + '</li>' +
 
