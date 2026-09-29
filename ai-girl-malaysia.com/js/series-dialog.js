@@ -8,7 +8,11 @@
  *   右栏 481x626（圆角 12px、边框 #282828、可纵向滚动）：标题 24px/500 白、
  *   简介 14px/500 #828282、1px 分隔线（外距 22px）、剧集行 409x51
  *   （圆角 10px、padding 14px 20px、行距 12px、当前集粉边框 #E75275）。
- *   窄屏（<1024px）转上下堆叠：视频 75dvh 在上、文案与剧集在下，间距 18px。
+ *
+ * 手机端（<1024px）：一集一屏的竖向滑动播放器（像刷短视频一样上滑/下滑切集），
+ *   每屏铺满视口并 scroll-snap 吸附；滑到哪集就自动播哪集，其余暂停；
+ *   顶部关闭按钮 + 集数，底部标题/简介 + 进度条与播放控制；未解锁的集
+ *   显示模糊封面 + 解锁 CTA。
  *
  * 与原站的差异（本站是「按集收费」）：付费未解锁的剧集行右侧显示 白锁 + 价格
  * （原站只在 data 属性里存 token 成本，界面不显示价格）；点该集后视频区显示
@@ -28,6 +32,7 @@
     var SVG_VOLUME = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4z"/></svg>'
     var SVG_MUTE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm17.7 3 2.1-2.1-1.4-1.4-2.1 2.1-2.1-2.1-1.4 1.4 2.1 2.1-2.1 2.1 1.4 1.4 2.1-2.1 2.1 2.1 1.4-1.4-2.1-2.1z"/></svg>'
     var SVG_FULL = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>'
+    var SVG_BIG_PLAY = '<svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>'
 
     /* 会员「去模糊」由平台开关控制（window.LIVE_VIP.unblur_preview，默认关闭） */
     function vipUnblur() {
@@ -38,13 +43,15 @@
     var RATES = [1, 1.25, 1.5, 2]
 
     var dlg = null
+    var feedObserver = null
+    var lastMobile = null
     var state = {
         shortId: 0,
         title: '',
         description: '',
         freeEpisodes: 0,
         episodes: [],
-        currentId: 0,   // 视频区正在展示的剧集（已解锁集在播放，锁定集显示解锁 CTA）
+        currentId: 0,   // 正在展示的剧集（手机端=当前那一屏）
         confirmId: 0,   // CTA 已点过一次、等待二次确认的剧集
         rateIndex: 0,
         autoPlay: false, // 只有刚解锁成功那一集才自动播放，其余保持暂停待播（同原站）
@@ -54,6 +61,10 @@
         return String(s === null || s === undefined ? '' : s)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+    }
+
+    function isMobile() {
+        return window.matchMedia('(max-width:1023px)').matches
     }
 
     /* ---------- 登录态 / 请求头 ---------- */
@@ -126,7 +137,8 @@
             '#' + DIALOG_ID + '::backdrop{background:rgba(0,0,0,.8);}',
             '#' + DIALOG_ID + ' .cs-wrap{position:fixed;inset:0;display:flex;align-items:stretch;justify-content:center;padding:0;}',
             '#' + DIALOG_ID + ' .cs-panel{position:relative;display:flex;flex-direction:column;width:100%;height:100%;background:#131313;border:1px solid #282828;overflow:hidden;}',
-            '#' + DIALOG_ID + ' .cs-scroll{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;}',
+            // 桌面两栏布局容器：手机端整屏滑动切集时隐藏
+            '#' + DIALOG_ID + ' .cs-scroll{display:none;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;}',
             '#' + DIALOG_ID + ' .cs-inner{display:flex;flex-direction:column;align-items:center;gap:18px;min-height:100%;padding:16px 16px 28px;' +
                 'background:radial-gradient(at center top, rgba(236,74,125,.67) 0%, rgba(0,0,0,0) 35%);}',
             '#' + DIALOG_ID + ' .cs-head{position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-height:36px;}',
@@ -135,7 +147,7 @@
             '#' + DIALOG_ID + ' .cs-heading{margin:0;font-size:16px;font-weight:600;line-height:36px;color:#fff;}',
             '#' + DIALOG_ID + ' .cs-body{display:flex;flex-direction:column;align-items:stretch;gap:18px;width:100%;min-width:0;}',
 
-            // 左栏：视频
+            // 视频区（桌面左栏 / 手机整屏共用）
             '#' + DIALOG_ID + ' .cs-stage{position:relative;width:100%;height:75dvh;overflow:hidden;border-radius:8px;background:#000;}',
             '#' + DIALOG_ID + ' .cs-video{display:block;width:100%;height:100%;object-fit:cover;background:#000;}',
             '#' + DIALOG_ID + ' .cs-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;' +
@@ -192,8 +204,32 @@
             '#' + DIALOG_ID + ' .cs-free{font-size:13px;font-weight:600;color:#7EE2A8;white-space:nowrap;}',
             '#' + DIALOG_ID + ' .cs-skeleton{padding:0 20px;font-size:13px;color:#9aa0a6;}',
 
+            // ---------- 手机端：一集一屏的竖向滑动播放器 ----------
+            '#' + DIALOG_ID + ' .cs-feed{position:relative;flex:1 1 auto;height:100%;overflow-y:auto;overflow-x:hidden;' +
+                'scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;background:#000;scrollbar-width:none;}',
+            '#' + DIALOG_ID + ' .cs-feed::-webkit-scrollbar{display:none;}',
+            '#' + DIALOG_ID + ' .cs-slide{position:relative;width:100%;height:100%;overflow:hidden;background:#000;scroll-snap-align:start;scroll-snap-stop:always;}',
+            '#' + DIALOG_ID + ' .cs-slide .cs-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}',
+            '#' + DIALOG_ID + ' .cs-slide-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;}',
+            '#' + DIALOG_ID + ' .cs-slide .cs-controls{pointer-events:none;padding-bottom:calc(12px + env(safe-area-inset-bottom));z-index:7;}',
+            '#' + DIALOG_ID + ' .cs-slide .cs-progress,',
+            '#' + DIALOG_ID + ' .cs-slide .cs-btn{pointer-events:auto;}',
+            '#' + DIALOG_ID + ' .cs-slide .cs-center{z-index:6;}',
+            '#' + DIALOG_ID + ' .cs-slide[data-playing="1"] .cs-center{display:none;}',
+            '#' + DIALOG_ID + ' .cs-slide[data-locked="1"] .cs-locked{display:flex;}',
+            '#' + DIALOG_ID + ' .cs-slide-top{position:absolute;left:0;right:0;top:0;z-index:6;display:flex;align-items:center;justify-content:center;pointer-events:none;}',
+            '#' + DIALOG_ID + ' .cs-slide-top .cs-close{position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 14px);pointer-events:auto;}',
+            '#' + DIALOG_ID + ' .cs-slide-meta{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:36px 16px calc(80px + env(safe-area-inset-bottom));pointer-events:none;' +
+                'background:linear-gradient(to top, rgba(0,0,0,.8) 0%, rgba(0,0,0,.35) 45%, rgba(0,0,0,0) 100%);}',
+            '#' + DIALOG_ID + ' .cs-slide-ep{margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.02em;color:' + ACCENT + ';}',
+            '#' + DIALOG_ID + ' .cs-slide-title{margin:0;font-size:18px;font-weight:600;line-height:1.25;color:#fff;}',
+            '#' + DIALOG_ID + ' .cs-slide-desc{margin:6px 0 0;font-size:13px;line-height:1.5;color:rgba(255,255,255,.78);' +
+                'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}',
+
             // 桌面：左右两栏（尺寸对齐原站：面板 920x730、body 862、左栏 352x626、间距 29、右栏 481）
             '@media (min-width:1024px){',
+            '#' + DIALOG_ID + ' .cs-scroll{display:block;}',
+            '#' + DIALOG_ID + ' .cs-feed{display:none;}',
             '#' + DIALOG_ID + ' .cs-wrap{align-items:center;padding:0;}',
             '#' + DIALOG_ID + ' .cs-panel{width:920px;height:730px;max-height:calc(100dvh - 128px);border-radius:16px;}',
             '#' + DIALOG_ID + ' .cs-inner{gap:16px;padding:20px 28px 24px;}',
@@ -224,6 +260,7 @@
         dlg.innerHTML =
             '<div class="cs-wrap" data-cs-backdrop>' +
               '<div class="cs-panel">' +
+                // 桌面：左视频 / 右文案+剧集
                 '<div class="cs-scroll">' +
                   '<div class="cs-inner">' +
                     '<div class="cs-head">' +
@@ -246,6 +283,8 @@
                     '</div>' +
                   '</div>' +
                 '</div>' +
+                // 手机：一集一屏的竖向滑动播放器
+                '<div class="cs-feed" data-cs-feed></div>' +
               '</div>' +
             '</div>'
 
@@ -256,14 +295,16 @@
             // 点面板外的遮罩也关闭
             if (t.closest && t.closest('[data-cs-backdrop]') && !t.closest('.cs-panel')) { close(); return }
 
-            if (t.closest && t.closest('[data-cs-stage]')) {
+            // 控制条的作用域：桌面=左栏 .cs-stage，手机=当前那一屏 .cs-slide
+            var scope = t.closest ? (t.closest('[data-cs-stage]') || t.closest('[data-cs-slide]')) : null
+            if (scope) {
                 if (t.closest('[data-cs-cta]')) { onCtaClick(); return }
-                if (t.closest('[data-cs-center]')) { togglePlay(); return }
-                if (t.closest('[data-cs-play]')) { togglePlay(); return }
-                if (t.closest('[data-cs-rate]')) { cycleRate(); return }
-                if (t.closest('[data-cs-mute]')) { toggleMute(); return }
-                if (t.closest('[data-cs-full]')) { toggleFull(); return }
-                if (t.closest('[data-cs-progress]')) { seekFromEvent(e); return }
+                if (t.closest('[data-cs-center]')) { togglePlay(scope); return }
+                if (t.closest('[data-cs-play]')) { togglePlay(scope); return }
+                if (t.closest('[data-cs-rate]')) { cycleRate(scope); return }
+                if (t.closest('[data-cs-mute]')) { toggleMute(scope); return }
+                if (t.closest('[data-cs-full]')) { toggleFull(scope); return }
+                if (t.closest('[data-cs-progress]')) { seekFromEvent(e, scope); return }
             }
 
             var row = t.closest ? t.closest('[data-series-ep]') : null
@@ -282,12 +323,15 @@
         return null
     }
 
-    function current() {
-        return episodeById(state.currentId) || state.episodes[0] || null
+    function indexOfEpisode(id) {
+        for (var i = 0; i < state.episodes.length; i++) {
+            if (Number(state.episodes[i].id) === Number(id)) return i
+        }
+        return -1
     }
 
-    function videoEl() {
-        return dlg ? dlg.querySelector('[data-cs-video]') : null
+    function current() {
+        return episodeById(state.currentId) || state.episodes[0] || null
     }
 
     function episodeLabel(ep) {
@@ -301,22 +345,164 @@
         return m + ':' + (s < 10 ? '0' : '') + s
     }
 
-    /* ---------- 左栏：视频区 ---------- */
+    /* ---------- 视频控制（桌面左栏 / 手机整屏共用，作用域 scope 内查找元素） ---------- */
+    function centerHtml() {
+        return '<button type="button" class="cs-center" data-cs-center aria-label="Play">' + SVG_BIG_PLAY + '</button>'
+    }
+
+    function controlsHtml() {
+        return '<div class="cs-controls">' +
+              '<div class="cs-progress" data-cs-progress><div class="cs-progress-fill" data-cs-fill></div></div>' +
+              '<div class="cs-bar">' +
+                '<span class="cs-time"><span data-cs-cur>0:00</span> <i>/</i> <span data-cs-dur>0:00</span></span>' +
+                '<span class="cs-btns">' +
+                  '<button type="button" class="cs-btn" data-cs-play aria-label="Play">' + SVG_PLAY + '</button>' +
+                  '<button type="button" class="cs-btn" data-cs-rate aria-label="Speed">' + RATES[state.rateIndex] + '&times;</button>' +
+                  '<button type="button" class="cs-btn" data-cs-mute aria-label="Volume">' + SVG_VOLUME + '</button>' +
+                  '<button type="button" class="cs-btn" data-cs-full aria-label="Fullscreen">' + SVG_FULL + '</button>' +
+                '</span>' +
+              '</div>' +
+            '</div>'
+    }
+
+    function lockedCta(ep, confirming) {
+        return '<button type="button" class="cs-cta" data-cs-cta data-confirm="' + (confirming ? '1' : '0') + '">' +
+            (confirming
+                ? 'Confirm · ' + ep.price + ' 💎'
+                : 'Unlock ' + esc(episodeLabel(ep)) + (ep.price > 0 ? ' · ' + ep.price + ' 💎' : '')) +
+          '</button>'
+    }
+
+    function bindVideo(scope) {
+        var v = scope.querySelector('video')
+        if (!v) return
+        v.playbackRate = RATES[state.rateIndex]
+        var rateBtn = scope.querySelector('[data-cs-rate]')
+        if (rateBtn) rateBtn.innerHTML = RATES[state.rateIndex] + '&times;'
+        v.addEventListener('loadedmetadata', function () { syncTime(scope) })
+        v.addEventListener('timeupdate', function () { syncTime(scope) })
+        v.addEventListener('play', function () { setPlaying(scope, true) })
+        v.addEventListener('pause', function () { setPlaying(scope, false) })
+        v.addEventListener('ended', function () { setPlaying(scope, false) })
+        v.addEventListener('volumechange', function () { syncVolumeBtn(scope) })
+        syncVolumeBtn(scope)
+    }
+
+    // 自动播放：被浏览器拦截（无声音策略）时降级为静音播放，用户可再点音量键开声
+    function tryPlay(scope) {
+        var v = scope ? scope.querySelector('video') : null
+        if (!v) return
+        var p = v.play()
+        if (p && p.catch) {
+            p.catch(function () {
+                v.muted = true
+                var p2 = v.play()
+                if (p2 && p2.catch) p2.catch(function () { /* 仍被拦截则留待用户点播放 */ })
+                syncVolumeBtn(scope)
+            })
+        }
+    }
+
+    function setPlaying(scope, playing) {
+        if (scope) scope.setAttribute('data-playing', playing ? '1' : '0')
+        var btn = scope ? scope.querySelector('[data-cs-play]') : null
+        if (btn) {
+            btn.innerHTML = playing ? SVG_PAUSE : SVG_PLAY
+            btn.setAttribute('aria-label', playing ? 'Pause' : 'Play')
+        }
+    }
+
+    function syncTime(scope) {
+        var v = scope ? scope.querySelector('video') : null
+        if (!v) return
+        var fill = scope.querySelector('[data-cs-fill]')
+        var cur = scope.querySelector('[data-cs-cur]')
+        var dur = scope.querySelector('[data-cs-dur]')
+        var d = Number(v.duration) || 0
+        if (fill && d > 0) fill.style.width = Math.min(100, (v.currentTime / d) * 100) + '%'
+        if (cur) cur.textContent = fmtTime(v.currentTime)
+        if (dur) dur.textContent = fmtTime(d)
+    }
+
+    function syncVolumeBtn(scope) {
+        var v = scope ? scope.querySelector('video') : null
+        var btn = scope ? scope.querySelector('[data-cs-mute]') : null
+        if (!v || !btn) return
+        var muted = v.muted || v.volume === 0
+        btn.innerHTML = muted ? SVG_MUTE : SVG_VOLUME
+        btn.setAttribute('aria-label', muted ? 'Unmute' : 'Volume')
+    }
+
+    function togglePlay(scope) {
+        var v = scope ? scope.querySelector('video') : null
+        if (!v) return
+        if (v.paused) tryPlay(scope)
+        else v.pause()
+    }
+
+    function cycleRate(scope) {
+        state.rateIndex = (state.rateIndex + 1) % RATES.length
+        var btn = scope ? scope.querySelector('[data-cs-rate]') : null
+        if (btn) btn.innerHTML = RATES[state.rateIndex] + '&times;'
+        var v = scope ? scope.querySelector('video') : null
+        if (v) v.playbackRate = RATES[state.rateIndex]
+    }
+
+    function toggleMute(scope) {
+        var v = scope ? scope.querySelector('video') : null
+        if (!v) return
+        v.muted = !v.muted
+        syncVolumeBtn(scope)
+    }
+
+    function toggleFull(scope) {
+        var box = scope || dlg
+        if (!box || !box.requestFullscreen) return
+        if (document.fullscreenElement) {
+            if (document.exitFullscreen) document.exitFullscreen()
+        } else {
+            try { box.requestFullscreen() } catch (e) { /* 忽略 */ }
+        }
+    }
+
+    function seekFromEvent(e, scope) {
+        var v = scope ? scope.querySelector('video') : null
+        var bar = scope ? scope.querySelector('[data-cs-progress]') : null
+        if (!v || !bar) return
+        var r = bar.getBoundingClientRect()
+        if (r.width <= 0) return
+        var ratio = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
+        var d = Number(v.duration) || 0
+        if (d > 0) {
+            v.currentTime = ratio * d
+            syncTime(scope)
+        }
+    }
+
+    /* ---------- 桌面左栏：视频区 ---------- */
+    function stageScope() {
+        return dlg.querySelector('[data-cs-stage]')
+    }
+
     function stageAttrs(locked, empty, playing) {
-        var stage = dlg.querySelector('[data-cs-stage]')
+        var stage = stageScope()
+        if (!stage) return
         stage.setAttribute('data-locked', locked ? '1' : '0')
         stage.setAttribute('data-empty', empty ? '1' : '0')
         stage.setAttribute('data-playing', playing ? '1' : '0')
     }
 
     function stageEmpty(html) {
+        var stage = stageScope()
+        if (!stage) return
         stageAttrs(false, true, false)
-        dlg.querySelector('[data-cs-stage]').innerHTML = '<p class="cs-empty">' + html + '</p>'
+        stage.innerHTML = '<p class="cs-empty">' + html + '</p>'
     }
 
     function renderStage() {
-        var stage = dlg.querySelector('[data-cs-stage]')
+        var stage = stageScope()
         var ep = current()
+        if (!stage) return
 
         if (!ep) {
             stageEmpty('This series has no episode yet. Please add it in the admin panel.')
@@ -333,11 +519,7 @@
                   '<div class="cs-locked-inner">' +
                     '<p class="cs-locked-text">' + esc(episodeLabel(ep)) + ' is locked' +
                       (ep.price > 0 ? ' · ' + ep.price + ' diamonds' : '') + '</p>' +
-                    '<button type="button" class="cs-cta" data-cs-cta data-confirm="' + (confirming ? '1' : '0') + '">' +
-                      (confirming
-                        ? 'Confirm · ' + ep.price + ' 💎'
-                        : 'Unlock ' + esc(episodeLabel(ep)) + (ep.price > 0 ? ' · ' + ep.price + ' 💎' : '')) +
-                    '</button>' +
+                    lockedCta(ep, confirming) +
                   '</div>' +
                 '</div>'
             return
@@ -349,7 +531,7 @@
         }
 
         // 同一集复用播放器，避免重建打断播放进度
-        var existing = videoEl()
+        var existing = stage.querySelector('[data-cs-video]')
         if (existing && existing.getAttribute('src') === ep.video_url) {
             stageAttrs(false, false, !existing.paused)
             return
@@ -358,127 +540,150 @@
         stageAttrs(false, false, false)
         stage.innerHTML =
             '<video class="cs-video" data-cs-video src="' + esc(ep.video_url) + '" playsinline preload="metadata"></video>' +
-            '<button type="button" class="cs-center" data-cs-center aria-label="Play">' +
-              '<svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>' +
-            '</button>' +
-            '<div class="cs-controls">' +
-              '<div class="cs-progress" data-cs-progress><div class="cs-progress-fill" data-cs-fill></div></div>' +
-              '<div class="cs-bar">' +
-                '<span class="cs-time"><span data-cs-cur>0:00</span> <i>/</i> <span data-cs-dur>0:00</span></span>' +
-                '<span class="cs-btns">' +
-                  '<button type="button" class="cs-btn" data-cs-play aria-label="Play">' + SVG_PLAY + '</button>' +
-                  '<button type="button" class="cs-btn" data-cs-rate aria-label="Speed">' + RATES[state.rateIndex] + '&times;</button>' +
-                  '<button type="button" class="cs-btn" data-cs-mute aria-label="Volume">' + SVG_VOLUME + '</button>' +
-                  '<button type="button" class="cs-btn" data-cs-full aria-label="Fullscreen">' + SVG_FULL + '</button>' +
-                '</span>' +
-              '</div>' +
-            '</div>'
+            centerHtml() + controlsHtml()
 
-        var v = videoEl()
-        if (!v) return
-        v.playbackRate = RATES[state.rateIndex]
-        v.addEventListener('loadedmetadata', syncTime)
-        v.addEventListener('timeupdate', syncTime)
-        v.addEventListener('play', function () { setPlaying(true) })
-        v.addEventListener('pause', function () { setPlaying(false) })
-        v.addEventListener('ended', function () { setPlaying(false) })
-        v.addEventListener('volumechange', syncVolumeBtn)
-        syncVolumeBtn()
+        bindVideo(stage)
         // 原站打开弹窗时是暂停待播（显示 80px 播放圆钮），只有刚解锁成功的那一集才自动播
         if (state.autoPlay) {
             state.autoPlay = false
-            try { v.play() } catch (e) { /* 浏览器可能拦截自动播放，交给用户点播放 */ }
+            var v = stage.querySelector('video')
+            if (v) { try { v.play() } catch (e) { /* 浏览器可能拦截自动播放，交给用户点播放 */ } }
         }
     }
 
-    function setPlaying(playing) {
-        var stage = dlg.querySelector('[data-cs-stage]')
-        if (stage) stage.setAttribute('data-playing', playing ? '1' : '0')
-        var btn = dlg.querySelector('[data-cs-play]')
-        if (btn) {
-            btn.innerHTML = playing ? SVG_PAUSE : SVG_PLAY
-            btn.setAttribute('aria-label', playing ? 'Pause' : 'Play')
-        }
+    /* ---------- 手机端：一集一屏的竖向滑动播放器 ---------- */
+    function feedScope() {
+        return dlg.querySelector('[data-cs-feed]')
     }
 
-    function syncTime() {
-        var v = videoEl()
-        if (!v) return
-        var fill = dlg.querySelector('[data-cs-fill]')
-        var cur = dlg.querySelector('[data-cs-cur]')
-        var dur = dlg.querySelector('[data-cs-dur]')
-        var d = Number(v.duration) || 0
-        if (fill && d > 0) fill.style.width = Math.min(100, (v.currentTime / d) * 100) + '%'
-        if (cur) cur.textContent = fmtTime(v.currentTime)
-        if (dur) dur.textContent = fmtTime(d)
+    function feedTopHtml() {
+        return '<div class="cs-slide-top">' +
+            '<button type="button" class="cs-close" data-series-close aria-label="Close">&times;</button>' +
+          '</div>'
     }
 
-    function syncVolumeBtn() {
-        var v = videoEl()
-        var btn = dlg.querySelector('[data-cs-mute]')
-        if (!v || !btn) return
-        var muted = v.muted || v.volume === 0
-        btn.innerHTML = muted ? SVG_MUTE : SVG_VOLUME
-        btn.setAttribute('aria-label', muted ? 'Unmute' : 'Volume')
-    }
+    function feedSlideHtml(ep, index) {
+        var locked = !ep.unlocked
+        var hasVideo = !!ep.video_url
 
-    function togglePlay() {
-        var v = videoEl()
-        if (!v) return
-        if (v.paused) { try { v.play() } catch (e) { /* 忽略 */ } } else { v.pause() }
-    }
-
-    function cycleRate() {
-        state.rateIndex = (state.rateIndex + 1) % RATES.length
-        var btn = dlg.querySelector('[data-cs-rate]')
-        if (btn) btn.innerHTML = RATES[state.rateIndex] + '&times;'
-        var v = videoEl()
-        if (v) v.playbackRate = RATES[state.rateIndex]
-    }
-
-    function toggleMute() {
-        var v = videoEl()
-        if (!v) return
-        v.muted = !v.muted
-        syncVolumeBtn()
-    }
-
-    function toggleFull() {
-        var stage = dlg.querySelector('[data-cs-stage]')
-        if (!stage || !stage.requestFullscreen) return
-        if (document.fullscreenElement) {
-            if (document.exitFullscreen) document.exitFullscreen()
+        var body
+        if (locked) {
+            var confirming = Number(state.confirmId) === Number(ep.id)
+            body = '<div class="cs-locked">' +
+                (ep.poster ? '<img class="cs-locked-poster" style="' + (vipUnblur() ? 'filter:none;' : '') + '" alt="" src="' + esc(ep.poster) + '">' : '') +
+                '<div class="cs-locked-inner">' +
+                  '<p class="cs-locked-text">' + esc(episodeLabel(ep)) + ' is locked' +
+                    (ep.price > 0 ? ' · ' + ep.price + ' diamonds' : '') + '</p>' +
+                  lockedCta(ep, confirming) +
+                '</div>' +
+              '</div>'
+        } else if (hasVideo) {
+            body = '<video class="cs-slide-video" data-cs-video src="' + esc(ep.video_url) + '" playsinline preload="metadata"></video>' +
+                centerHtml() + controlsHtml()
         } else {
-            try { stage.requestFullscreen() } catch (e) { /* 忽略 */ }
+            body = '<p class="cs-empty">This episode has no video yet. Please add it in the admin panel.</p>'
         }
+
+        return '<div class="cs-slide" data-cs-slide data-slide-index="' + index + '" data-ep-id="' + esc(ep.id) + '"' +
+            ' data-locked="' + (locked ? '1' : '0') + '" data-empty="' + (hasVideo || locked ? '0' : '1') + '"' +
+            ' data-playing="0" data-active="0">' +
+            body +
+            feedTopHtml() +
+            '<div class="cs-slide-meta">' +
+              '<p class="cs-slide-ep">' + esc(episodeLabel(ep)) + ' · ' + (index + 1) + '/' + state.episodes.length + '</p>' +
+              '<h1 class="cs-slide-title">' + esc(state.title) + '</h1>' +
+              (state.description ? '<p class="cs-slide-desc">' + esc(state.description) + '</p>' : '') +
+            '</div>' +
+          '</div>'
     }
 
-    function seekFromEvent(e) {
-        var v = videoEl()
-        var bar = dlg.querySelector('[data-cs-progress]')
-        if (!v || !bar) return
-        var r = bar.getBoundingClientRect()
-        if (r.width <= 0) return
-        var ratio = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
-        var d = Number(v.duration) || 0
-        if (d > 0) {
-            v.currentTime = ratio * d
-            syncTime()
-        }
+    function feedMessage(html) {
+        var feed = feedScope()
+        if (!feed) return
+        feed.innerHTML = '<div class="cs-slide"><p class="cs-empty">' + html + '</p>' + feedTopHtml() + '</div>'
     }
 
-    /* ---------- 右栏：文案 + 剧集列表 ---------- */
+    function renderFeed() {
+        var feed = feedScope()
+        if (!feed) return
+
+        if (!state.episodes.length) {
+            feedMessage('This series has no episode yet. Please add it in the admin panel.')
+            return
+        }
+
+        var html = ''
+        for (var i = 0; i < state.episodes.length; i++) html += feedSlideHtml(state.episodes[i], i)
+        feed.innerHTML = html
+
+        var slides = feed.querySelectorAll('[data-cs-slide]')
+        for (var s = 0; s < slides.length; s++) {
+            if (slides[s].querySelector('video')) bindVideo(slides[s])
+        }
+
+        var idx = indexOfEpisode(state.currentId)
+        if (idx < 0) idx = 0
+        feed.scrollTop = slides[idx] ? slides[idx].offsetTop : 0
+        activateSlide(idx)
+        setupFeedObserver()
+    }
+
+    function setupFeedObserver() {
+        var feed = feedScope()
+        if (!feed) return
+        if (feedObserver) feedObserver.disconnect()
+        if (!('IntersectionObserver' in window)) return
+        feedObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.intersectionRatio < 0.6) return
+                var slide = entry.target
+                if (slide.getAttribute('data-active') === '1') return
+                activateSlide(Number(slide.getAttribute('data-slide-index')) || 0)
+            })
+        }, { root: feed, threshold: [0.6] })
+
+        var slides = feed.querySelectorAll('[data-cs-slide]')
+        for (var i = 0; i < slides.length; i++) feedObserver.observe(slides[i])
+    }
+
+    // 切换当前屏：滑到哪集就播哪集，其余暂停；同时把 state.currentId 同步过去
+    function activateSlide(index) {
+        var feed = feedScope()
+        if (!feed) return
+        var slides = feed.querySelectorAll('[data-cs-slide]')
+        if (!slides.length) return
+        index = Math.max(0, Math.min(slides.length - 1, index))
+
+        for (var i = 0; i < slides.length; i++) {
+            var on = (i === index)
+            slides[i].setAttribute('data-active', on ? '1' : '0')
+            var v = slides[i].querySelector('video')
+            if (!on && v && !v.paused) v.pause()
+        }
+
+        var ep = state.episodes[index]
+        if (ep) state.currentId = Number(ep.id)
+        state.autoPlay = false
+        tryPlay(slides[index])
+    }
+
+    /* ---------- 右栏：文案 + 剧集列表（仅桌面） ---------- */
     function renderHeader() {
         var count = state.episodes.length
-        dlg.querySelector('[data-series-title]').textContent = state.title
+
+        var titleEl = dlg.querySelector('[data-series-title]')
+        if (titleEl) titleEl.textContent = state.title
 
         var desc = dlg.querySelector('[data-series-desc]')
-        desc.textContent = state.description || ''
-        desc.style.display = state.description ? 'block' : 'none'
+        if (desc) {
+            desc.textContent = state.description || ''
+            desc.style.display = state.description ? 'block' : 'none'
+        }
 
         var meta = count + (count === 1 ? ' episode' : ' episodes')
         if (state.freeEpisodes > 0) meta += ' · first ' + state.freeEpisodes + ' free'
-        dlg.querySelector('[data-series-count]').textContent = meta
+        var countEl = dlg.querySelector('[data-series-count]')
+        if (countEl) countEl.textContent = meta
     }
 
     function renderList() {
@@ -502,13 +707,19 @@
                   '<span class="cs-ep-right">' + right + '</span>' +
                 '</button>'
         }
-        dlg.querySelector('[data-series-list]').innerHTML = html
+        var list = dlg.querySelector('[data-series-list]')
+        if (list) list.innerHTML = html
     }
 
     function render() {
+        lastMobile = isMobile()
         renderHeader()
-        renderStage()
-        renderList()
+        if (lastMobile) {
+            renderFeed()
+        } else {
+            renderStage()
+            renderList()
+        }
     }
 
     /* ---------- 行为 ---------- */
@@ -537,7 +748,8 @@
 
         if (Number(state.confirmId) !== Number(ep.id)) {
             state.confirmId = Number(ep.id)
-            renderStage()
+            if (isMobile()) renderFeed()
+            else renderStage()
             return
         }
         unlock(ep)
@@ -554,7 +766,8 @@
                 if (!res || res.code !== '00000') {
                     alertBox(errText(res))
                     state.confirmId = 0
-                    renderStage()
+                    if (isMobile()) renderFeed()
+                    else renderStage()
                     return
                 }
                 var fresh = res.data && res.data.episode ? res.data.episode : null
@@ -571,20 +784,23 @@
             .catch(function () {
                 alertBox('Network error, please try again')
                 state.confirmId = 0
-                renderStage()
+                if (isMobile()) renderFeed()
+                else renderStage()
             })
     }
 
     function load(shortId) {
-        dlg.querySelector('[data-series-list]').innerHTML = '<p class="cs-skeleton">Loading...</p>'
+        var list = dlg.querySelector('[data-series-list]')
+        if (list) list.innerHTML = '<p class="cs-skeleton">Loading...</p>'
 
         fetch(API_EPISODES + '?short_id=' + encodeURIComponent(shortId), { method: 'GET', headers: headers() })
             .then(function (r) { return r.json() })
             .then(function (res) {
                 if (!res || res.code !== '00000' || !res.data) {
                     var msg = esc((res && res.msg) || 'Failed to load episodes.')
-                    dlg.querySelector('[data-series-list]').innerHTML = '<p class="cs-skeleton">' + msg + '</p>'
-                    stageEmpty(msg)
+                    if (list) list.innerHTML = '<p class="cs-skeleton">' + msg + '</p>'
+                    if (isMobile()) feedMessage(msg)
+                    else stageEmpty(msg)
                     return
                 }
 
@@ -619,8 +835,9 @@
                 render()
             })
             .catch(function () {
-                dlg.querySelector('[data-series-list]').innerHTML = '<p class="cs-skeleton">Network error, please try again.</p>'
-                stageEmpty('Network error, please try again.')
+                if (list) list.innerHTML = '<p class="cs-skeleton">Network error, please try again.</p>'
+                if (isMobile()) feedMessage('Network error, please try again.')
+                else stageEmpty('Network error, please try again.')
             })
     }
 
@@ -636,9 +853,12 @@
         state.currentId = 0
         state.confirmId = 0
         state.rateIndex = 0
+        state.autoPlay = false
 
-        d.querySelector('[data-series-list]').innerHTML = '<p class="cs-skeleton">Loading...</p>'
-        stageEmpty('Loading...')
+        var list = d.querySelector('[data-series-list]')
+        if (list) list.innerHTML = '<p class="cs-skeleton">Loading...</p>'
+        if (isMobile()) feedMessage('Loading...')
+        else stageEmpty('Loading...')
         renderHeader()
 
         if (!d.open) {
@@ -650,17 +870,24 @@
 
     function close() {
         if (!dlg) return
-        var v = videoEl()
-        if (v) {
-            v.pause()
-            v.removeAttribute('src')
-            v.load()
+        var vids = dlg.querySelectorAll('video')
+        for (var i = 0; i < vids.length; i++) {
+            vids[i].pause()
+            vids[i].removeAttribute('src')
+            vids[i].load()
         }
+        if (feedObserver) { feedObserver.disconnect(); feedObserver = null }
         if (document.fullscreenElement && document.exitFullscreen) {
             try { document.exitFullscreen() } catch (e) { /* 忽略 */ }
         }
         if (dlg.open) dlg.close()
     }
+
+    // 断点切换（竖屏↔横屏 / 窗口缩放）时重排布局
+    window.addEventListener('resize', function () {
+        if (!dlg || !dlg.open) return
+        if (isMobile() !== lastMobile) render()
+    })
 
     window.CandySeries = { open: open, close: close }
 })()
