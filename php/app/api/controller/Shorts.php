@@ -45,9 +45,23 @@ final class Shorts extends BaseController
         $limit = (int) $this->request->get('limit/d', 200);
         $limit = max(1, min(500, $limit));
 
+        // 分区过滤：section=private 仅私人短剧栏（VIP 前端拉取）；不传时排除 private
+        $section = trim((string) $this->request->get('section', ''));
+        if ($section !== 'private' && $section !== '') {
+            $section = '';
+        }
+
         $rows = $this->table()->table('lp_short_item')
             ->where('status', 1)
-            ->field(self::FIELDS)
+            ->field(self::FIELDS);
+
+        if ($section === 'private') {
+            $rows = $rows->where('section', 'private');
+        } else {
+            $rows = $rows->where('section', '<>', 'private');
+        }
+
+        $rows = $rows
             // 分区顺序固定为 continue_watching -> top_series -> explore
             ->orderRaw("FIELD(`section`, 'continue_watching', 'top_series', 'explore') ASC")
             // 同一分区内：top_series 按 rank 升序，其它按 weigh 降序，最后用 id 兜底

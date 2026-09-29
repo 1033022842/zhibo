@@ -666,6 +666,27 @@
 						</div>
 					</section>
 
+					<!-- Private Shorts 私人短剧栏：仅会员可见（数据 /api/live/shorts?section=private） -->
+					<section class="c-shelf" id="privateShortsShelf" style="display:none">
+						<div class="c-shelf-head">
+							<h2 class="c-shelf-title"><em>Private</em> Shorts</h2>
+							<button class="c-arrow c-title-arrow" type="button" data-scroll="next" aria-label="Scroll right">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
+						</div>
+						<div class="c-row-wrap">
+							<div class="c-row" data-row>
+								<ul class="c-row-grid c-row-grid-short" id="privateShortsGrid"></ul>
+							</div>
+							<button class="c-row-arrow left" type="button" data-scroll="prev" aria-label="Scroll left">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+							</button>
+							<button class="c-row-arrow right" type="button" data-scroll="next" aria-label="Scroll right">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
+						</div>
+					</section>
+
 					<!-- FAQ -->
 					<section class="c-faq">
 						<h2><span>Sugus.ai </span>FAQ</h2>
@@ -1315,6 +1336,7 @@
 				renderShelves()
 				renderGrid()
 				renderPrivate()
+				renderPrivateShorts()
 			}
 			CATS.forEach(function(cat) {
 				document.querySelectorAll('[data-cat="' + cat + '"]').forEach(function(tab) {
@@ -1367,6 +1389,7 @@
 					.then(function (d) {
 						isVip = !!(d && d.data && (d.data.is_vip == 1 || d.data.is_vip === true))
 						renderPrivate()
+						if (isVip && !privateShorts.length) loadPrivateShorts()
 					})
 					.catch(function () { renderPrivate() })
 			}
@@ -1507,6 +1530,29 @@
 			// Private Content：会员状态 + 各分类内容独立加载
 			checkVip()
 			CATS.forEach(function (cat) { loadPrivate(cat) })
+
+			// Private Shorts 私人短剧：VIP 可见，卡片复用短剧播放弹窗
+			var privateShorts = []
+			function loadPrivateShorts() {
+				fetch('/api/live/shorts?section=private', { headers: privHeaders() })
+					.then(function (r) { return r.json() })
+					.then(function (d) {
+						privateShorts = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+						privateShorts.forEach(function (s) { shortsById[String(s.id)] = s })
+						renderPrivateShorts()
+					})
+					.catch(function () { renderPrivateShorts() })
+			}
+			function renderPrivateShorts() {
+				var sec = document.getElementById('privateShortsShelf')
+				var grid = document.getElementById('privateShortsGrid')
+				if (!sec || !grid) return
+				var show = isVip && privateShorts.length
+				sec.style.display = show ? '' : 'none'
+				if (!show) return
+				grid.innerHTML = privateShorts.map(shortCardHtml).join('')
+				initShelf(sec)
+			}
 
 			// 短剧栏独立加载（有数据才显示）
 			loadJson('/api/live/shorts?limit=24').then(function(d) {
