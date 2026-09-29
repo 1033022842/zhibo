@@ -26,7 +26,7 @@
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20260928d"></script>
-		<script src="./js/shell-new.js?v=20260929h"></script>
+		<script src="./js/shell-new.js?v=20260929i"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20260920"></script>
 
@@ -143,6 +143,10 @@
 				border-radius:9999px;border:1.5px solid rgba(255,255,255,.16);background:#202020;color:#e5e5e5;
 				font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:border-color .18s ease}
 			.c-cat-dd-btn:active{transform:scale(.97)}
+			/* 桌面端强制隐藏移动端下拉（内联样式在后会覆盖外链 CSS 的 sm:hidden，这里显式兜底） */
+			@media (min-width:640px){
+				.c-cat-dd-btn,#catDdPanel{display:none !important}
+			}
 			.c-cat-dd-btn svg{width:14px;height:14px;transition:transform .2s ease}
 			.c-cat-dd-btn.open svg{transform:rotate(180deg)}
 			.c-cat-dd-panel{display:none;position:absolute;top:100%;left:150px;width:max-content;min-width:96px;max-width:calc(100vw - 162px);z-index:39;
@@ -1439,6 +1443,7 @@
 								item.images = Array.isArray(res.data.item.images) ? res.data.item.images : []
 							}
 							renderPrivate()
+							if (window.refreshTokenBalance) refreshTokenBalance()
 							watchPriv(item)
 						} else if (window.SugusDialog) {
 							SugusDialog.alert((res && res.msg) || 'Unlock failed, please try again', { title: 'Notice' })
