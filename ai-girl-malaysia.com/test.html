@@ -47,7 +47,7 @@
             var image = document.getElementById('imagePreview');
             var submitButton = document.getElementById('submitButton');
             
-            // 使用 fetch API 上传图片到单独接�?
+            // 使用 fetch API 上传图片到单独接�?
             var headers = {}
             if(token) {
                 headers = {
@@ -79,7 +79,7 @@
                     image.src = data.fullurl;
                     image.style.display = 'block';  // 显示预览图片
 
-                    // 将上传后的图�?URL 填入隐藏字段�?
+                    // 将上传后的图�?URL 填入隐藏字段�?
                     document.getElementById('uploadedImageUrl').value = data.imageUrl;
 
                     // 启用提交按钮
@@ -90,5 +90,6 @@
             }).catch(error => console.error(error))
         }
     </script>
+	<script src="./js/promo-popup.js?v=20260929a"></script>
 </body>
 </html>

@@ -62,6 +62,12 @@
     bGroup: { src: T + 'group-chats-a5bcd2972c364d94db640c13a7fc401b9bad495fccb2facf168333a5ecf5084a.svg' },
     bClose: { src: './candy-shorts_files/close-82846767821d6ff36201253b1387b41e9a60573769fcd82c2985d153e9351594.svg' },
 
+    // 抽屉底部 Category 切换（照参考站 footer 的性别/分类图标）
+    catFemale: { src: T + 'female-white-b6edc81820cdf305c0e1644c0c5d2124b2aa2ecef701a01eff46baad9a05dd26.svg' },
+    catAnime: { src: T + 'anime-white-02986b4e7107a1be01a284a4818231a6edf19aa880d8a9680fb1a7874416f532.svg' },
+    catMale: { src: T + 'male-white-b1c60bef78d9065208e08ef4f03bea1d2d50bc8b33c3fb2fe9361a3c83646a92.svg' },
+    catChevron: { src: T + 'vector-down-grey-ac9e18f44b255e3510c3e32a682be2b5f5f736fb7b6c7df2d867107522ebdd5d.svg' },
+
     // 内联图标（站点旧侧边栏同款形状）
     upload: { svg: '<svg viewBox="0 0 24 24" ' + S + '><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>' },
     faceswap: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="9" cy="8.5" r="4.5"/><circle cx="15" cy="15.5" r="4.5"/><path d="M7.6 7.9h.01M10.4 7.9h.01M8.2 10.6c.5.4 1.1.4 1.6 0"/></svg>' },
@@ -179,7 +185,8 @@
   }
 
   /* ---------- 语言切换按钮 + 下拉 ---------- */
-  function langButton(withLabel, mobile) {
+  /* compact：抽屉底部那排小按钮里的紧凑形态（只显示语言代码，如 EN，照参考站） */
+  function langButton(withLabel, mobile, compact) {
     var cur = currentLang()
     var curRow = null
     LANGS.forEach(function (l) { if (l[0] === cur) curRow = l })
@@ -188,11 +195,11 @@
     var menu = LANGS.map(function (l) {
       return '<a class="fy-lang-item lang-select notranslate" data-lang="' + l[0] + '" href="#googtrans(en|' + l[0] + ')"><img class="fy-lang-flag" src="./assets/flags/' + l[2] + '.svg" alt="">' + esc(l[1]) + '</a>'
     }).join('')
-    return '<div class="fy-langwrap' + (mobile ? ' fy-langwrap-m' : '') + '">' +
+    return '<div class="fy-langwrap' + (mobile ? ' fy-langwrap-m' + (compact ? ' fy-langwrap-mc' : '') : '') + '">' +
       '<button type="button" class="fy-langbtn' + (mobile ? ' fy-langbtn-m' : (withLabel ? '' : ' fy-langbtn-sm')) + '" aria-expanded="false">' +
       '<img class="' + (mobile ? 'fy-lang-cur' : (withLabel ? 'w-[14px]' : 'h-[24px]')) + '" src="' + (mobile ? curFlag : I.en.src) + '" alt="language flag">' +
       (mobile
-        ? '<span class="fy-langbtn-label">Language · ' + esc(curRow[1]) + '</span>' +
+        ? '<span class="fy-langbtn-label">' + (compact ? esc(curRow[0].toUpperCase()) : 'Language · ' + esc(curRow[1])) + '</span>' +
           '<svg class="fy-lang-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
         : (withLabel ? '<span class="fy-langbtn-label">English</span>' : '')) +
       '</button>' +
@@ -354,6 +361,58 @@
       '<img src="' + I.logout.src + '" alt=""><span>Logout</span></button></form>'
   }
 
+  /* 抽屉底部（照参考站 footer 的排布）：上面一个大按钮「Category: Girls」，
+     下面四个小按钮两行两列（Discord / Contact Us / Affiliate / 语言）。
+     内容沿用本站既有去处：Discord 用站内旧页注释里的品牌邀请链接，
+     Contact Us 用 NAV 里的同款邮箱，Affiliate 指向 Inviter.html。 */
+  var CATEGORIES = [
+    { label: 'Girls', href: './Girls.html', icon: 'catFemale' },
+    { label: 'Anime', href: './Anime.html', icon: 'catAnime' },
+    { label: 'Guys', href: './Guys.html', icon: 'catMale' }
+  ]
+
+  function currentCategory() {
+    var p = location.pathname.toLowerCase()
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      if (p.indexOf(CATEGORIES[i].href.replace('./', '/').toLowerCase()) > -1) return CATEGORIES[i]
+    }
+    return CATEGORIES[0]
+  }
+
+  function drawerFooter() {
+    var cur = currentCategory()
+    var catMenu = CATEGORIES.map(function (c) {
+      return '<a class="fy-cat-item" href="' + c.href + '">' +
+        '<span class="fy-cat-icon">' + iconHtml(c.icon, '') + '</span>' +
+        '<span>' + c.label + '</span></a>'
+    }).join('')
+
+    return '<div class="fy-drawer-foot py-2.5 px-5 flex flex-col justify-center items-center gap-2.5 border-t border-[#2F2F32] bg-[#1E1E1E]">' +
+
+      // 大按钮：Category 切换
+      '<div class="fy-cat-wrap">' +
+      '<button type="button" class="fy-cat-btn" id="fy-cat-btn" aria-expanded="false" aria-haspopup="menu">' +
+      '<span class="fy-cat-icon">' + iconHtml(cur.icon, '') + '</span>' +
+      '<span class="fy-cat-text"><span class="fy-cat-k">Category:</span>' +
+      '<span class="fy-cat-v">' + cur.label + '</span></span>' +
+      '<span class="fy-cat-caret">' + iconHtml('catChevron', '') + '</span>' +
+      '</button>' +
+      '<div class="fy-cat-menu hidden" id="fy-cat-menu">' + catMenu + '</div>' +
+      '</div>' +
+
+      // 四个小按钮：一排两个
+      '<div class="fy-foot-grid">' +
+      '<a class="fy-foot-btn" href="https://discord.gg/sugusai" target="_blank" rel="noopener noreferrer">Discord</a>' +
+      '<a class="fy-foot-btn" href="mailto:support@sugusmail.ai">Contact Us</a>' +
+      '</div>' +
+      '<div class="fy-foot-grid">' +
+      '<a class="fy-foot-btn" href="./Inviter.html">Affiliate</a>' +
+      langButton(false, true, true) +
+      '</div>' +
+
+      '</div>'
+  }
+
   /* 结构照参考站新版外壳的 mobile drawer（Subscriptions.html 里保存的原始 DOM）：
      nav > div.flex.flex-col.justify-between.h-full > [ ul 列表 , footer 底部固定栏 ] */
   function mobileDrawer() {
@@ -386,9 +445,7 @@
       drawerRows() +
 
       '</ul>' +
-      '<div class="fy-drawer-foot py-2.5 px-5 flex flex-col justify-center items-center gap-2.5 border-t border-[#2F2F32] bg-[#1E1E1E]">' +
-      langButton(false, true) +
-      '</div>' +
+      drawerFooter() +
       '</div></nav>'
   }
 
@@ -638,6 +695,19 @@
       if (b) b.setAttribute('aria-expanded', opening ? 'true' : 'false')
     }, true)
 
+    // 抽屉底部的 Category 大按钮：同样要断冒泡（否则抽屉会被收起）
+    document.addEventListener('click', function (e) {
+      var w = e.target.closest && e.target.closest('.fy-cat-wrap')
+      if (!w || (e.target.closest && e.target.closest('.fy-cat-menu'))) return
+      e.stopPropagation()
+      var m = w.querySelector('.fy-cat-menu')
+      var b = w.querySelector('.fy-cat-btn')
+      if (!m) return
+      var opening = m.classList.contains('hidden')
+      m.classList.toggle('hidden')
+      if (b) b.setAttribute('aria-expanded', opening ? 'true' : 'false')
+    }, true)
+
     // 语言下拉 / 抽屉资料菜单
     document.addEventListener('click', function (e) {
       var wrap = e.target.closest && e.target.closest('.fy-langwrap')
@@ -659,6 +729,8 @@
       var db = document.getElementById('fy-drawer-user-btn')
       var dm = document.getElementById('fy-drawer-user-menu')
       if (db && dm && db.contains(e.target)) dm.classList.toggle('hidden')
+      var cm = document.getElementById('fy-cat-menu')
+      if (cm && !(e.target.closest && e.target.closest('.fy-cat-wrap'))) cm.classList.add('hidden')
     })
 
     // 语言项：自己完成切换（不依赖 header.html 的处理器是否注入成功）
@@ -769,7 +841,11 @@
       var ttl = parseInt(data.expires_in, 10)
       if (ttl > 0) write(K_EXPIRE, String(Date.now() + ttl * 1000))
       else drop(K_EXPIRE)
-      if (isLogin) resetReloadGuard()   // 重新登录后清掉自动重载的节流计数
+      if (isLogin) {
+        resetReloadGuard()   // 重新登录后清掉自动重载的节流计数
+        // 通知其它脚本「本次是重新登录」（进场弹窗据此清掉关闭标记，跳转后重新弹）
+        try { document.dispatchEvent(new CustomEvent('live:login')) } catch (e) { /* 忽略 */ }
+      }
     }
 
     function clear() {
