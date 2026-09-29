@@ -12,6 +12,10 @@ use app\live\service\InviteService;
  */
 final class Invite extends BaseController
 {
+    protected array $middleware = [
+        \app\live\middleware\Auth::class => ['only' => ['index', 'saveCode']],
+    ];
+
     private InviteService $service;
 
     public function __construct(App $app)
