@@ -24,7 +24,7 @@
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20260928d"></script>
-		<script src="./js/shell-new.js?v=20260928d"></script>
+		<script src="./js/shell-new.js?v=20260929a"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20260920"></script>
 
@@ -1533,14 +1533,14 @@ document.addEventListener('click', function (e) {
 		</div>
 	</div>
 	<script>
-	/* 移动端顶部「安装 App」提示条：点击打开「添加到主屏幕」教程 */
+	/* 「添加到主屏幕」安装教程：顶部提示条 或 抽屉「Get Candy.ai app」(#install-app) 打开 */
 	(function () {
 		var KEY = 'sugus.appdl.dismissed';
 		var body = document.body;
 		var bar = document.getElementById('cAppDl');
 		var modal = document.getElementById('cDl');
 		var steps = document.getElementById('cDlSteps');
-		if (!bar || !modal) return;
+		if (!modal) return;
 
 		function mq(q) { return !!(window.matchMedia && window.matchMedia(q).matches); }
 		function isStandalone() {
@@ -1549,10 +1549,6 @@ document.addEventListener('click', function (e) {
 		function isDismissed() {
 			try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
 		}
-
-		// 仅手机端展示，且已安装 / 已关闭过的不再展示
-		if (!mq('(max-width: 768px)') || isStandalone() || isDismissed()) return;
-		body.classList.add('c-appdl-on');
 
 		// 按平台给出对应教程（iOS：Safari 分享菜单；其它：浏览器菜单）
 		var ua = navigator.userAgent;
@@ -1566,23 +1562,38 @@ document.addEventListener('click', function (e) {
 		function openModal() { modal.classList.add('open'); }
 		function closeModal() { modal.classList.remove('open'); }
 
-		bar.addEventListener('click', function (e) {
-			if (e.target.closest && e.target.closest('#cAppDlClose')) {
-				body.classList.remove('c-appdl-on');
-				try { localStorage.setItem(KEY, '1'); } catch (err) {}
-				return;
-			}
-			openModal();
-		});
-		bar.addEventListener('keydown', function (e) {
-			if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); }
-		});
 		modal.addEventListener('click', function (e) {
 			if (e.target.closest && e.target.closest('[data-dl-close]')) closeModal();
 		});
 		document.addEventListener('keydown', function (e) {
 			if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
 		});
+
+		// 顶部提示条：仅手机端、未安装且未关闭时展示
+		if (bar && mq('(max-width: 768px)') && !isStandalone() && !isDismissed()) {
+			body.classList.add('c-appdl-on');
+			bar.addEventListener('click', function (e) {
+				if (e.target.closest && e.target.closest('#cAppDlClose')) {
+					body.classList.remove('c-appdl-on');
+					try { localStorage.setItem(KEY, '1'); } catch (err) {}
+					return;
+				}
+				openModal();
+			});
+			bar.addEventListener('keydown', function (e) {
+				if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); }
+			});
+		}
+
+		// 抽屉「Get Candy.ai app」深链：进入 Home.html#install-app 直接打开教程
+		function openFromHash() {
+			if (location.hash === '#install-app') {
+				openModal();
+				if (history.replaceState) history.replaceState(null, '', location.pathname + location.search);
+			}
+		}
+		openFromHash();
+		window.addEventListener('hashchange', openFromHash);
 	})();
 	</script>
 </body>

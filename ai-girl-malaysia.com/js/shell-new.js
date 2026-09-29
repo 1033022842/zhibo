@@ -50,7 +50,8 @@
     games: { svg: '<svg viewBox="0 0 24 24" ' + S + '><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>' },
     crowd: { svg: '<svg viewBox="0 0 24 24" ' + S + '><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
     contact: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>' },
-    affiliate: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>' }
+    affiliate: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>' },
+    appdl: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7.5v6m0 0l-2.4-2.4M12 13.5l2.4-2.4"/></svg>' }
   }
 
   // 侧边栏菜单：沿用站点原有菜单项与顺序
@@ -367,6 +368,12 @@
       '<span class="text-sm font-semibold leading-tight">Login</span></a></li>' +
 
       '<li class="fy-hr-li"></li>' +
+      // 手机版专属：Get Candy.ai app（点击进入 Home 顶部「添加到主屏幕」安装教程）
+      '<li class="relative w-full">' +
+      '<a class="w-full flex justify-start items-center gap-2.5" href="./Home.html#install-app">' +
+      iconHtml('appdl', 'w-5 h-5') +
+      '<span class="text-start text-grey-medium text-xs font-semibold">Get Candy.ai app</span>' +
+      '</a></li><li class="fy-hr-li"></li>' +
       drawerRows() +
       '<li class="w-full">' + langButton(false, true) + '</li>' +
 
