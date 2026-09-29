@@ -508,10 +508,10 @@
 
     return '<div class="fy-createmenu" data-fy-createmenu>' +
       '<div class="fy-createmenu-veil" data-fy-createmenu-close></div>' +
-      '<div class="fy-createmenu-card" role="dialog" aria-modal="true">' + items +
+      '<div class="fy-createmenu-card" role="dialog" aria-modal="true">' + items + '</div>' +
       '<button type="button" class="fy-createmenu-close" data-fy-createmenu-close aria-label="Close">' +
       '<img alt="" src="' + I.bClose.src + '"></button>' +
-      '</div></div>'
+      '</div>'
   }
 
   function openCreateMenu() {
