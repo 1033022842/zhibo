@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """把全站 favicon 换成新图标并发布到 172.81.98.55
 
-1) 上传 sugus-favicon-v2.png
-2) 远端把 *.html 里的 ./sugus-favicon.png 就地替换为 ./sugus-favicon-v2.png（只做字符串替换，不覆盖远端其它差异）
+1) 上传 sugus-favicon-v3.png
+2) 远端把 *.html 里的 ./sugus-favicon-v2.png 就地替换为 ./sugus-favicon-v3.png（只做字符串替换，不覆盖远端其它差异）
 3) 校验：新图可访问、页面引用已切换、旧引用清零
 
-用法：python .trae/deploy_favicon_172.py [deploy|verify]   默认 deploy
+用法：python .trae/deploy_favicon_172.py [deploy|verify|diag]   默认 deploy
 """
 import datetime
 import sys
@@ -24,10 +24,10 @@ PWD = "0wJfy`50tJQzG/0X"
 LOCAL = r"d:\phpstudy_pro\WWW\douyin"
 SITE = "/www/wwwroot/douyin/ai-girl-malaysia.com"
 
-NEW_PNG = (LOCAL + r"\ai-girl-malaysia.com\sugus-favicon-v2.png", SITE + "/sugus-favicon-v2.png")
+NEW_PNG = (LOCAL + r"\ai-girl-malaysia.com\sugus-favicon-v3.png", SITE + "/sugus-favicon-v3.png")
 
-OLD = "./sugus-favicon.png"
-NEW = "./sugus-favicon-v2.png"
+OLD = "./sugus-favicon-v2.png"
+NEW = "./sugus-favicon-v3.png"
 
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -42,14 +42,15 @@ def run(cmd):
 def verify():
     print("== 图标文件 ==")
     print(run(
-        "curl -s -o /dev/null -w 'favicon-v2 HTTP=%{http_code} SIZE=%{size_download} TYPE=%{content_type}\\n' "
-        "-H 'Host: ai-girl-malaysia.com' http://127.0.0.1:8082/sugus-favicon-v2.png; "
+        "curl -s -o /dev/null -w 'favicon-v3 HTTP=%{http_code} SIZE=%{size_download} TYPE=%{content_type}\\n' "
+        "-H 'Host: ai-girl-malaysia.com' http://127.0.0.1:8082/sugus-favicon-v3.png; "
         "ls -l --time-style=+%F_%T " + SITE + "/sugus-favicon*.png"
     ))
     print("== 页面引用 ==")
     print(run(
-        "cd " + SITE + " && echo -n '引用新图标页数: ' && grep -l '\\./sugus-favicon-v2\\.png' *.html 2>/dev/null | wc -l && "
-        "echo -n '仍引用旧图标页数: ' && grep -l '\\./sugus-favicon\\.png' *.html 2>/dev/null | wc -l && "
+        "cd " + SITE + " && echo -n '引用新图标(v3)页数: ' && grep -l '\\./sugus-favicon-v3\\.png' *.html 2>/dev/null | wc -l && "
+        "echo -n '仍引用上一版(v2)页数: ' && grep -l '\\./sugus-favicon-v2\\.png' *.html 2>/dev/null | wc -l && "
+        "echo -n '仍引用最初版页数: ' && grep -l '\\./sugus-favicon\\.png' *.html 2>/dev/null | wc -l && "
         "echo -n 'Login.html 里: ' && grep -o 'rel=\"icon\"[^>]*' Login.html"
     ))
 
