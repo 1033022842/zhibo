@@ -328,4 +328,49 @@ body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
 .fy-createmenu-close>img{width:19px;height:19px;}
 @media (min-width:1024px){.fy-createmenu{display:none !important;}}
 
+/* ---------------------------------------------------------------
+   语言选择大弹窗（原站 Select your language 同款）：
+   各页面自带的 Tailwind 构建不一定编译了这些自定义类/任意值类/配色变量，
+   这里按参考页（settings_files 的构建）取值兜底，保证每页弹窗外观一致。
+   另外两部分是非改不可的：
+     1) 注入的弹窗若排在 google 翻译的 #goog-gt-tt 之后，会命中站内
+        「#goog-gt-tt ~ div{display:none}」规则被整块隐藏 -> shell-new 会插到 body 最前面；
+     2) 手机抽屉是 z-100，弹窗原本 z-90 会被抽屉压住 -> 这里抬到 120。
+   --------------------------------------------------------------- */
+#language-select-modal{position:relative;z-index:120;}
+.text-1xl{font-size:24px;line-height:34px;}
+.border-3{border-style:solid;border-width:3px;}
+.border-primary{border-color:var(--primary-color,#E75275);}
+.text-grey-medium{color:#d1d1d1;}
+
+#language-select-modal .bg-neutral-800,
+#language-select-modal .hover\:bg-neutral-800:hover{background-color:#262626;}
+#language-select-modal .border-neutral-700{border-color:#404040;}
+#language-select-modal .border-neutral-400{border-color:#a3a3a3;}
+#language-select-modal .border-t-neutral-700{border-top-color:#404040;}
+#language-select-modal .text-neutral-400{color:#a3a3a3;}
+#language-select-modal .bg-\[\#131313\]{background-color:#131313;}
+#language-select-modal .border-white\/10{border-color:rgba(255,255,255,.1);}
+#language-select-modal .rounded-\[10px\]{border-radius:10px;}
+#language-select-modal .rounded-\[5px\]{border-radius:5px;}
+#language-select-modal .p-\[40px\]{padding:40px;}
+#language-select-modal .gap-\[40px\]{gap:40px;}
+#language-select-modal .pr-\[40px\]{padding-right:40px;}
+#language-select-modal .w-\[14px\]{width:14px;}
+#language-select-modal .w-\[24px\]{width:24px;}
+#language-select-modal .w-3\.5{width:.875rem;}
+
+/* 遮罩 + 面板：结构选择器兜底（不依赖 Tailwind 是否编译了那些任意值类） */
+#language-select-modal>[data-fy-lang-mask]{position:fixed;inset:0;z-index:120;display:block;overflow-y:auto;background-color:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
+#language-select-modal>[data-fy-lang-mask]>div{display:flex;align-items:center;width:100%;min-height:100svh;padding:0;text-align:center;}
+#language-select-modal>[data-fy-lang-mask]>div>div{position:relative;width:100%;overflow:hidden;text-align:left;background-color:#131313;box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);}
+#language-select-modal .w-full.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:1rem;width:100%;}
+@media (min-width:768px){
+  #language-select-modal>[data-fy-lang-mask]{padding:16px;}
+  #language-select-modal>[data-fy-lang-mask]>div{justify-content:center;}
+  #language-select-modal>[data-fy-lang-mask]>div>div{max-width:715px;border-radius:12px;}
+  #language-select-modal .w-full.grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+
+
     

@@ -106,20 +106,30 @@
     { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' }
   ]
 
-  // 语言列表（与 header/header.html 的下拉一致，复用 .lang-select 的既有逻辑）；第三位为国旗 emoji
-  var LANGS = [
-    ['vi', 'Tiếng Việt', 'vn'],
-    ['ms', 'Melayu', 'my'],
-    ['th', 'แบบไทย', 'th'],
-    ['km', 'ភាសាខ្មែរ', 'kh'],
-    ['lo', 'ພາສາລາວ', 'la'],
-    ['en', 'English', 'us'],
-    ['zh-CN', '中文', 'cn'],
-    ['ja', '日本語', 'jp'],
-    ['ko', '한국어', 'kr'],
-    ['ru', 'Русский', 'ru'],
-    ['es', 'español', 'es']
-  ]
+  /* 支持的语言：与 setting.html / Subscriptions.html / settings.html / taocan.html 等页面自带的
+     “Select your language” 大弹窗完全一致（13 种，分 Interface + Chat / Interface only 两组）。
+     约定：[显示名, 弹窗里的两位代码, assets/flags 下的旗标文件名] */
+  var LANG_META = {
+    'en': ['English', 'EN', 'us'],
+    'fr': ['Français', 'FR', 'fr'],
+    'de': ['Deutsch', 'DE', 'de'],
+    'es': ['Español', 'ES', 'es'],
+    'ja': ['日本語', 'JP', 'jp'],
+    'da': ['Dansk', 'DA', 'da'],
+    'fi': ['Suomi', 'FI', 'fi'],
+    'it': ['Italiano', 'IT', 'it'],
+    'nl': ['Nederlands', 'NL', 'nl'],
+    'no': ['Norsk', 'NO', 'no'],
+    'pl': ['Polski', 'PL', 'pl'],
+    'pt-BR': ['Português', 'BR', 'pt-BR'],
+    'sv': ['Svenska', 'SE', 'sv']
+  }
+  var LANG_CHAT = ['en', 'fr', 'de', 'es', 'ja']
+  var LANG_UI = ['da', 'fi', 'it', 'nl', 'no', 'pl', 'pt-BR', 'sv']
+
+  function langFlag(code) {
+    return './assets/flags/' + (LANG_META[code] || LANG_META.en)[2] + '.svg'
+  }
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -183,27 +193,87 @@
       '</ul></nav>'
   }
 
-  /* ---------- 语言切换按钮 + 下拉 ---------- */
-  /* compact：抽屉底部那排小按钮里的紧凑形态（只显示语言代码，如 EN，照参考站） */
-  function langButton(withLabel, mobile, compact) {
+  /* ---------- 语言切换按钮：点开原站那颗 “Select your language” 大弹窗 ---------- */
+  /* 类名/结构照参考页侧栏语言按钮：收起态只有旗标(h-24)，展开态=旗标(w-14)+语言名；
+     移动端抽屉底部那颗是 footer 版（旗标 + 语言名 + 箭头）。 */
+  function langButton(withLabel, mobile) {
     var cur = currentLang()
-    var curRow = null
-    LANGS.forEach(function (l) { if (l[0] === cur) curRow = l })
-    if (!curRow) curRow = LANGS[5]
-    var curFlag = './assets/flags/' + curRow[2] + '.svg'
-    var menu = LANGS.map(function (l) {
-      return '<a class="fy-lang-item lang-select notranslate" data-lang="' + l[0] + '" href="#googtrans(en|' + l[0] + ')"><img class="fy-lang-flag" src="./assets/flags/' + l[2] + '.svg" alt="">' + esc(l[1]) + '</a>'
-    }).join('')
-    return '<div class="fy-langwrap' + (mobile ? ' fy-langwrap-m' + (compact ? ' fy-langwrap-mc' : '') : '') + '">' +
-      '<button type="button" class="fy-langbtn' + (mobile ? ' fy-langbtn-m' : (withLabel ? '' : ' fy-langbtn-sm')) + '" aria-expanded="false">' +
-      '<img class="' + (mobile ? 'fy-lang-cur' : (withLabel ? 'w-[14px]' : 'h-[24px]')) + '" src="' + (mobile ? curFlag : I.en.src) + '" alt="language flag">' +
-      (mobile
-        ? '<span class="fy-langbtn-label">' + (compact ? esc(curRow[0].toUpperCase()) : 'Language · ' + esc(curRow[1])) + '</span>' +
-          '<svg class="fy-lang-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
-        : (withLabel ? '<span class="fy-langbtn-label">English</span>' : '')) +
+    var meta = LANG_META[cur] || LANG_META.en
+    var flag = langFlag(cur)
+    if (mobile) {
+      return '<button type="button" data-fy-lang-open class="flex gap-2 items-center border cursor-pointer text-grey-medium text-xs font-medium w-full justify-between px-2.5 py-1 rounded-[5px] border-neutral-400">' +
+        '<img class="w-[14px]" alt="Flag icon" src="' + flag + '">' +
+        '<div>' + esc(meta[0]) + '</div>' +
+        '<img class="w-3.5" src="' + T + 'ask-arrow-5e9e3d502459a09cc6f7a6face21c887f7e5ff747265bdf33f1cc5eb16098469.svg" alt="">' +
+        '</button>'
+    }
+    return '<button type="button" data-fy-lang-open class="flex gap-2 items-center border cursor-pointer text-grey-medium text-xs font-medium w-full' +
+      (withLabel ? '' : ' h-[40px]') + ' justify-start px-3 py-[9px] rounded-[10px] border-white/10 hover:bg-zinc-700">' +
+      '<img class="' + (withLabel ? 'w-[14px]' : 'h-[24px]') + '" alt="Flag icon" src="' + flag + '">' +
+      (withLabel ? '<div>' + esc(meta[0]) + '</div>' : '') +
+      '</button>'
+  }
+
+  /* ---------- 原站那颗 “Select your language” 大弹窗（内容/类名 1:1 照参考页） ---------- */
+  function langModalHtml() {
+    var cur = currentLang()
+    function rows(codes) {
+      return codes.map(function (code) {
+        var meta = LANG_META[code]
+        var active = code === cur
+        return '<form data-turbo="true" data-turbo-stream="true" class="button_to" method="get" action="/user_locale/edit">' +
+          '<button' + (active ? ' disabled="disabled"' : '') + ' data-fy-locale="' + code + '" class="w-full p-4 pr-[40px] relative hover:bg-neutral-800 rounded-[10px] cursor-pointer flex gap-2 justify-start items-center text-grey-medium text-sm font-medium ' +
+          (active ? 'border-3 border-primary' : 'border border-neutral-700') + '" type="submit">' +
+          '<img class="w-[14px]" alt="' + code + ' flag icon" src="' + langFlag(code) + '">' +
+          '<div>' + esc(meta[0]) + '</div>' +
+          '<div class="text-neutral-400">' + esc(meta[1]) + '</div>' +
+          (active ? '<img class="w-[24px] absolute right-[16px]" alt="" src="./assets/shell/check.svg">' : '') +
+          '</button><input type="hidden" name="new_locale" value="' + code + '"></form>'
+      }).join('')
+    }
+    return '<div class="hidden" id="language-select-modal" data-fy-langmodal="1">' +
+      '<div class="fixed inset-0 z-90 bg-black/50 backdrop-blur-sm overflow-y-auto" data-fy-lang-mask="1">' +
+      '<div class="md:justify-center p-0 md:p-4 flex items-center min-h-[100svh] text-center w-full">' +
+      '<div class="relative bg-[#131313] md:rounded-xl w-full md:max-w-[715px] overflow-hidden shadow-xl text-left">' +
+      '<button type="button" class="absolute right-4 top-4 w-4 h-4 z-50" data-fy-lang-close="1">' +
+      '<span class="sr-only">Close</span>' +
+      '<img alt="Close" class="w-full h-full" src="./assets/shell/close.svg">' +
       '</button>' +
-      '<div class="fy-lang-menu hidden">' + menu + '</div>' +
-      '</div>'
+      '<div class="p-[40px] w-full flex flex-col gap-[40px]">' +
+      '<div class="text-white font-bold text-1xl">Select your language</div>' +
+      '<div><div class="text-white font-semibold">Interface + Chat</div>' +
+      '<div class="text-neutral-400 font-medium text-sm mb-6">Website and chat fully supported</div>' +
+      '<div class="w-full grid grid-cols-1 md:grid-cols-3 gap-4">' + rows(LANG_CHAT) + '</div></div>' +
+      '<hr class="border-t-neutral-700">' +
+      '<div><div class="text-white font-semibold">Interface only</div>' +
+      '<div class="text-neutral-400 font-medium text-sm mb-6">Website available, chat not yet supported</div>' +
+      '<div class="w-full grid grid-cols-1 md:grid-cols-3 gap-4">' + rows(LANG_UI) + '</div></div>' +
+      '</div></div></div></div></div>'
+  }
+
+  /* 弹窗节点：页面自带同款大弹窗时换成同一份内容（保证各页一致、且高亮当前语言） */
+  function langModalEl() {
+    var m = document.getElementById('language-select-modal')
+    if (m && m.getAttribute('data-fy-langmodal') === '1') return m
+    var box = document.createElement('div')
+    box.innerHTML = langModalHtml()
+    var fresh = box.firstElementChild
+    if (m && m.parentNode) m.parentNode.replaceChild(fresh, m)
+    else document.body.insertBefore(fresh, document.body.firstChild)   // 放在最前：避开站内 #goog-gt-tt ~ div{display:none}
+    return fresh
+  }
+
+  function openLangModal() {
+    var m = langModalEl()
+    m.classList.remove('hidden')
+    m.style.display = 'block'
+  }
+
+  function closeLangModal() {
+    var m = document.getElementById('language-select-modal')
+    if (!m) return
+    m.classList.add('hidden')
+    m.style.display = 'none'
   }
 
   /* ---------- 语言切换 ----------
@@ -453,7 +523,7 @@
       '</div>' +
       '<div class="fy-foot-grid">' +
       '<a class="fy-foot-btn" href="./Inviter.html">Affiliate</a>' +
-      langButton(false, true, true) +
+      langButton(false, true) +
       '</div>' +
 
       '</div>'
@@ -728,6 +798,35 @@
   }
 
   function bind() {
+    // 语言：侧栏/抽屉按钮 -> 打开原站那颗 Select your language 大弹窗；弹窗里选语言 -> 走站内 switchLang
+    document.addEventListener('click', function (e) {
+      var t = e.target
+      if (!t || !t.closest) return
+      if (t.closest('[data-fy-lang-open]')) {
+        e.preventDefault()
+        e.stopPropagation()
+        openLangModal()
+        return
+      }
+      var modal = t.closest('#language-select-modal')
+      if (!modal) return
+      if (t.closest('[data-fy-lang-close]') ||
+        (t.getAttribute && (t.getAttribute('data-fy-lang-mask') || /closeModal/.test(t.getAttribute('data-action') || '')))) {
+        e.preventDefault()
+        closeLangModal()
+        return
+      }
+      var el = t.closest('[data-fy-locale]')
+      var form = t.closest('form')
+      var input = form ? form.querySelector('input[name="new_locale"]') : null
+      var code = el ? el.getAttribute('data-fy-locale') : (input ? input.value : '')
+      if (!code) return
+      e.preventDefault()
+      e.stopPropagation()
+      closeLangModal()
+      if (code !== currentLang()) switchLang(code)
+    }, true)
+
     document.addEventListener('mouseover', function (e) {
       var li = e.target.closest && e.target.closest('[data-fy-tip]')
       if (li) showTip(li)
