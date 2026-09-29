@@ -372,5 +372,9 @@ body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
   #language-select-modal .w-full.grid{grid-template-columns:repeat(3,minmax(0,1fr));}
 }
 
+/* 语言切换按钮里的旗标：与同排按钮的图标同尺寸，等比缩放不拉伸 */
+.fy-langflag{flex:0 0 auto;object-fit:contain;}
+.fy-foot-btn .fy-langflag{width:14px;height:14px;margin-right:6px;}
+
 
     

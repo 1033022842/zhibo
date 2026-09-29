@@ -194,23 +194,28 @@
   }
 
   /* ---------- 语言切换按钮：点开原站那颗 “Select your language” 大弹窗 ---------- */
-  /* 类名/结构照参考页侧栏语言按钮：收起态只有旗标(h-24)，展开态=旗标(w-14)+语言名；
-     移动端抽屉底部那颗是 footer 版（旗标 + 语言名 + 箭头）。 */
+  /* 外观与同排的其它按钮完全一致：
+     桌面收起栏 = 侧栏图标项（48x52，w-6 图标）
+     桌面展开栏 = 侧栏文字项（h-40，w-4 图标 + text-xxs 文案）
+     手机抽屉底部 = 那排小按钮的 .fy-foot-btn */
   function langButton(withLabel, mobile) {
     var cur = currentLang()
     var meta = LANG_META[cur] || LANG_META.en
     var flag = langFlag(cur)
     if (mobile) {
-      return '<button type="button" data-fy-lang-open class="flex gap-2 items-center border cursor-pointer text-grey-medium text-xs font-medium w-full justify-between px-2.5 py-1 rounded-[5px] border-neutral-400">' +
-        '<img class="w-[14px]" alt="Flag icon" src="' + flag + '">' +
-        '<div>' + esc(meta[0]) + '</div>' +
-        '<img class="w-3.5" src="' + T + 'ask-arrow-5e9e3d502459a09cc6f7a6face21c887f7e5ff747265bdf33f1cc5eb16098469.svg" alt="">' +
+      return '<button type="button" data-fy-lang-open class="fy-foot-btn">' +
+        '<img class="fy-langflag" alt="Flag icon" src="' + flag + '">' +
+        '<span>' + esc(meta[0]) + '</span>' +
         '</button>'
     }
-    return '<button type="button" data-fy-lang-open class="flex gap-2 items-center border cursor-pointer text-grey-medium text-xs font-medium w-full' +
-      (withLabel ? '' : ' h-[40px]') + ' justify-start px-3 py-[9px] rounded-[10px] border-white/10 hover:bg-zinc-700">' +
-      '<img class="' + (withLabel ? 'w-[14px]' : 'h-[24px]') + '" alt="Flag icon" src="' + flag + '">' +
-      (withLabel ? '<div>' + esc(meta[0]) + '</div>' : '') +
+    if (withLabel) {
+      return '<button type="button" data-fy-lang-open class="h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer">' +
+        '<img class="fy-langflag w-4 h-4" alt="Flag icon" src="' + flag + '">' +
+        '<span class="text-start text-grey-medium text-xxs font-medium leading-4">' + esc(meta[0]) + '</span>' +
+        '</button>'
+    }
+    return '<button type="button" data-fy-lang-open class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer">' +
+      '<img class="fy-langflag w-6 h-6" alt="Flag icon" src="' + flag + '">' +
       '</button>'
   }
 
