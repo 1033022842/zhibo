@@ -51,8 +51,8 @@
 		<!-- Facebook Open Graph data -->
 
 		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
-		<link rel="stylesheet" href="./assets/fy.css?v=20260928d" data-turbo-track="reload">
-	<link rel="stylesheet" href="./assets/fy.css?v=20260928d" data-turbo-track="reload">
+		<link rel="stylesheet" href="./assets/fy.css?v=20260929b" data-turbo-track="reload">
+	<link rel="stylesheet" href="./assets/fy.css?v=20260929b" data-turbo-track="reload">
 		<link rel="stylesheet" href="./settings_files/css2" media="all" onload="this.media='all'">
 		<link rel="stylesheet" href="./settings_files/application-8ee8a481074c4025471514720f49a183b2d681ef94947cc96604f49cfcc404bd.css" data-turbo-track="reload">
 		<script src="./setting_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
@@ -63,7 +63,7 @@
 		<script src="./js/settings.js"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/main.js?v=20260928d"></script>
-		<script src="./js/shell-new.js?v=20260929a"></script>
+		<script src="./js/shell-new.js?v=20260929b"></script>
 
 
 			
@@ -819,7 +819,7 @@
         <img class="size-7" src="./invite_files/icon_coin-530bfd4d597b590b4886add1dab108aa112e461f919b07daed26af0b7fbb9b9a.svg" onerror="this.style.visibility='hidden'">
       </div>
       <div class="flex flex-col">
-        <p class="font-poppins font-bold text-2xl text-white">
+        <p class="font-poppins font-bold text-2xl text-white" id="invite-total-earned">
           0
         </p>
         <p class="font-poppins font-medium text-sm text-grey-light/65">
@@ -1127,19 +1127,46 @@ document.addEventListener('click', function (e) {
 <script>
 /* Inviter：邀请链接展示、复制/分享、自定义邀请链接弹窗 */
 (function () {
-  var K_CODE = 'invite_code'
+  var API = '/api/live/invite'
+  var SAVE_API = '/api/live/saveInviteCode'
   var linkEl = document.getElementById('invite-link-display')
+  var prefixEl = document.getElementById('invite-link-prefix')
+  var totalEl = document.getElementById('invite-total-earned')
+  var friendsEl = document.getElementById('invite-premium-friends')
+  var errorEl = document.getElementById('invite-link-form-errors')
+  var code = ''
 
-  function code() {
-    try { return localStorage.getItem(K_CODE) || '' } catch (e) { return '' }
+  function token() {
+    return (window.LiveAuth && window.LiveAuth.token && window.LiveAuth.token()) || ''
   }
 
   function currentLink() {
-    return location.origin + '/?code=' + code()
+    return location.origin + '/?code=' + code
   }
 
   function renderLink() {
     if (linkEl) linkEl.textContent = currentLink()
+    if (prefixEl) prefixEl.textContent = location.origin + '/?code='
+  }
+
+  function setStats(data) {
+    if (totalEl) totalEl.textContent = String(data.total_earned != null ? data.total_earned : 0)
+    if (friendsEl) friendsEl.textContent = String(data.premium_friends != null ? data.premium_friends : 0)
+  }
+
+  /* 我的邀请码与收益统计（未登录 / 接口异常时保持空码与 0，不影响页面） */
+  function loadInvite() {
+    var t = token()
+    if (!t) { renderLink(); return }
+    fetch(API, { headers: { Authorization: 'Bearer ' + t } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        if (!res || res.code !== '00000' || !res.data) return
+        code = res.data.code || ''
+        renderLink()
+        setStats(res.data)
+      })
+      .catch(function () { /* 忽略 */ })
   }
 
   var toastTimer = null
@@ -1198,8 +1225,9 @@ document.addEventListener('click', function (e) {
 
   function openDialog() {
     if (!dlg) return
-    if (slugInput) slugInput.value = code()
+    if (slugInput) slugInput.value = code
     if (saveBtn) saveBtn.disabled = true
+    if (errorEl) errorEl.textContent = ''
     if (typeof dlg.showModal === 'function') dlg.showModal()
     else dlg.setAttribute('open', '')
   }
@@ -1220,9 +1248,25 @@ document.addEventListener('click', function (e) {
         e.preventDefault()
         var slug = slugInput.value.trim()
         if (!slug) return
-        try { localStorage.setItem(K_CODE, slug) } catch (err) { /* 忽略 */ }
-        renderLink()
-        closeDialog()
+        if (errorEl) errorEl.textContent = ''
+        saveBtn.disabled = true
+        fetch(SAVE_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() },
+          body: JSON.stringify({ slug: slug })
+        }).then(function (r) { return r.json() }).then(function (res) {
+          if (res && res.code === '00000' && res.data) {
+            code = res.data.code || slug
+            renderLink()
+            closeDialog()
+            return
+          }
+          if (errorEl) errorEl.textContent = (res && res.msg) ? res.msg : 'Save failed, please try again.'
+          saveBtn.disabled = false
+        }).catch(function () {
+          if (errorEl) errorEl.textContent = 'Save failed, please try again.'
+          saveBtn.disabled = false
+        })
       })
     }
   }

@@ -332,6 +332,13 @@ final class VipService
             throw $e;
         }
 
+        // 邀请奖励：被邀请人首次成为高级会员时，邀请人与他各得代币（失败不影响开通）
+        try {
+            (new InviteService())->onVipActivated($userId);
+        } catch (\Throwable $e) {
+            Log::error('[invite] 会员邀请奖励处理失败 uid=' . $userId . ' err=' . $e->getMessage());
+        }
+
         return [
             'order_no'  => $orderNo,
             'expire_to' => $expireTo,

@@ -41,6 +41,9 @@ Route::get('live/replayClips',       '\app\api\controller\Live@replayClips')->mi
 Route::get('live/affection',         '\app\api\controller\Live@affection')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/buyAffection',     '\app\api\controller\Live@buyAffection')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/unlockVideo',      '\app\api\controller\Live@unlockVideo')->middleware(\app\live\middleware\Auth::class);
+// 邀请好友（Affiliate Program / Inviter 页）：我的邀请码与收益统计 / 自定义邀请码
+Route::get('live/invite',            '\app\api\controller\Invite@index')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/saveInviteCode',   '\app\api\controller\Invite@saveCode')->middleware(\app\live\middleware\Auth::class);
 
 // VIP 定制角色视频（AI 电脑生成）
 Route::get('customVideo/options',    '\app\api\controller\CustomVideo@options')->middleware(\app\live\middleware\Auth::class);
