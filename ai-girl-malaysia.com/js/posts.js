@@ -141,7 +141,9 @@
         }
         var full = height + gap
         topSpacer.style.height = '0px'
-        bottomSpacer.style.height = (posts.length > 1 ? (posts.length - 1) * full : 0) + 'px'
+        // 手机端整屏卡片本身就是一屏一条，所有卡片都真实渲染了，再加撑高 spacer 会在末尾多出一段空白
+        var isMobile = window.matchMedia('(max-width: 1023px)').matches
+        bottomSpacer.style.height = (!isMobile && posts.length > 1 ? (posts.length - 1) * full : 0) + 'px'
     }
 
     /* ---------------- 播放控制 ---------------- */

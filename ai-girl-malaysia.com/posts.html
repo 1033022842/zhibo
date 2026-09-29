@@ -33,7 +33,7 @@
 		<meta name="description" content="Posts - watch the latest AI character posts and chat with them in Sugus.ai">
 		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
 
-		<link rel="stylesheet" href="./assets/fy.css?v=20260929d" data-turbo-track="reload">
+		<link rel="stylesheet" href="./assets/fy.css?v=20260929e" data-turbo-track="reload">
 		<link rel="stylesheet" href="./shop_files/css2" media="all">
 		<link rel="stylesheet" href="./posts_files/application-c9a80e6102195b41b493002bf9a0ab06ceb43fb6bcbf45cf6c1a4fd0f3b29ad1.css" data-turbo-track="reload">
 		<script src="./charactersIndex_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
@@ -43,8 +43,8 @@
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/main.js?v=20260928d"></script>
-		<script src="./js/shell-new.js?v=20260929e"></script>
-		<script src="./js/posts.js?v=20260917" defer></script>
+		<script src="./js/shell-new.js?v=20260929f"></script>
+		<script src="./js/posts.js?v=20260929a" defer></script>
 
 			<style>
   /* Desktop feed container - scroll-based navigation */
@@ -318,6 +318,81 @@
   /* Apply top offset only to the currently visible slide */
   .feed-desktop-video.is-visible .feed-desktop-media {
     margin-top: 75px;
+  }
+
+  /* ============================================================
+     手机端（<1024px，与全站 lg 断点一致）：一屏一条的整屏竖滑 feed
+     桌面端那套宽度/高度是按「左侧栏 + 右侧点赞列 + 4:5 竖版卡片」算的
+     （width: calc(100vw - 340px)），到手机上会塌成 46px 的细条，所以此处整体重排。
+     ============================================================ */
+  @media (max-width: 1023px) {
+    /* 主区落在固定顶栏(64px)与底部导航(70px)之间，一屏恰好一条卡片 */
+    main.bg-\[\#131313\] {
+      margin-top: 64px;
+      height: calc(100vh - 134px);
+      height: calc(100dvh - 134px);
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .feed-desktop-container {
+      height: 100%;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* 内容列独占一行；点赞 HUD 脱离文档流，浮在视频右下角。
+       row / column 必须显式 height:100%，否则下面卡片的 height:100% 因父级 auto 而解析为 0 */
+    .feed-desktop-row { display: block; height: 100%; }
+    .feed-desktop-content-column { width: 100%; height: 100%; }
+    .feed-desktop-actions-spacer { display: none; }
+
+    .feed-desktop-video,
+    .feed-desktop-content-column .feed-desktop-video {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border-radius: 0;
+      margin-left: 0;
+      margin-right: 0;
+      margin-bottom: 0;
+    }
+    .feed-desktop-video:not(:last-child) { margin-bottom: 0; }
+
+    .feed-desktop-media { border-radius: 0; }
+
+    /* 手机端卡片已从顶栏下方开始，不需要原站那条 75px 的“顶栏死区” */
+    .feed-desktop-video.is-visible .feed-desktop-media { margin-top: 0; }
+
+    .feed-desktop-skeleton {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      margin: 0;
+    }
+
+    .feed-desktop-overlay {
+      height: 240px;
+      padding: 24px 16px 20px;
+    }
+
+    /* 点赞按钮：贴在视频右侧、底部导航之上 */
+    .feed-desktop-actions-sidebar {
+      position: fixed;
+      left: auto;
+      right: 14px;
+      top: auto;
+      bottom: calc(70px + 20px);
+      width: auto;
+      height: auto;
+      min-height: 0;
+      padding-bottom: 0;
+      justify-content: flex-end;
+      z-index: 30;
+    }
+
+    /* 桌面那条底部渐隐会盖住底部导航，手机端去掉 */
+    .feed-desktop-container::after { content: none; }
   }
 </style>
 			</head>
