@@ -406,8 +406,6 @@
   function navRight() {
     var menu = '<a href="./Subscriptions.html"><img src="' + I.premium.src + '" alt=""><span>Subscription</span></a>' +
       '<a href="./purchasePoints.html"><img src="' + I.coin.src + '" alt=""><span>Tokens</span></a>' +
-      '<a href="./charactersIndex.html"><img src="' + I.lady.src + '" alt=""><span>My AI</span></a>' +
-      '<a href="./upload_media.html"><img src="' + I.wand.src + '" alt=""><span>Upload Media</span></a>' +
       '<a href="./Inviter.html"><img src="' + I.gift.src + '" alt=""><span>Get 100 tokens</span></a>' +
       '<a href="./setting.html"><img src="' + I.settings.src + '" alt=""><span>Settings</span></a>' +
       '<form method="post" onsubmit="return false">' +
