@@ -16,18 +16,21 @@ use think\facade\Log;
 
 final class UserService
 {
-    public function register(string $email, string $code, string $password, string $nickname, string $ip = ''): array
+    public function register(string $email, string $code, string $password, string $nickname, string $ip = '', string $inviteCode = ''): array
     {
         $verifyService = new EmailVerifyService();
         $verifyService->verify($email, $code);
 
-        return $this->createUser($email, $password, $nickname, $ip, 'email');
+        $user = $this->createUser($email, $password, $nickname, $ip, 'email');
+        $this->bindInviter((int) $user['id'], $inviteCode);
+
+        return $user;
     }
 
     /**
      * AI 前端注册（无需邮箱验证码）
      */
-    public function registerFromAi(string $username, string $email, string $password, string $ip = ''): array
+    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = ''): array
     {
         // 检查用户名/邮箱是否已存在
         $exists = UserAuth::where('auth_key', $email)
@@ -37,7 +40,25 @@ final class UserService
             throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
         }
 
-        return $this->createUser($email, $password, $username, $ip, 'username');
+        $user = $this->createUser($email, $password, $username, $ip, 'username');
+        $this->bindInviter((int) $user['id'], $inviteCode);
+
+        return $user;
+    }
+
+    /**
+     * 绑定邀请关系（邀请码无效不影响注册）
+     */
+    private function bindInviter(int $userId, string $inviteCode): void
+    {
+        if ($inviteCode === '') {
+            return;
+        }
+        try {
+            (new InviteService())->bind($userId, $inviteCode);
+        } catch (\Throwable $e) {
+            Log::warning('[invite] 绑定邀请关系失败 uid=' . $userId . ' err=' . $e->getMessage());
+        }
     }
 
     private function createUser(string $email, string $password, string $nickname, string $ip, string $authType): array

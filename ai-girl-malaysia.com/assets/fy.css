@@ -185,6 +185,10 @@ button.fy-avatar-btn{background-color:#221c26;background-image:none;border:0;}
 .fy-profile-menu a:hover,.fy-profile-menu button:hover{background:#374151;color:#fff;}
 .fy-profile-menu img,.fy-profile-menu svg{width:20px;height:20px;flex:0 0 auto;}
 .fy-profile-menu form{margin:0;}
+/* 手机端：头像入口已并入左侧抽屉，顶栏不再显示头像 */
+@media only screen and (max-width: 1023px){
+    .fy-profilewrap{display:none;}
+}
 
 /* ---------------------------------------------------------------
    侧边栏（新版外观）：分隔线 / 语言切换 / 悬浮提示 / 移动端抽屉

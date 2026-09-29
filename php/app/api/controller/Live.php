@@ -54,7 +54,7 @@ final class Live extends BaseController
         $params = $this->request->post();
         $this->validate($params, UserValidate::class . '.registerAi');
         $ip = $this->request->ip();
-        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip);
+        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''));
         // 注册成功后自动登录
         $result = $this->userService->login($params['email'], $params['password'], $ip);
         return $this->jsonSuccess($result);

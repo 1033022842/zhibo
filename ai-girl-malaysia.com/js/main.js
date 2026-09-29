@@ -165,11 +165,21 @@
         };
       }
      
+      // 邀请码：优先取注册表单里的「invitation Code」，否则用邀请链接带进来的 ?code（存在 localStorage）
+      function inviteCode() {
+        var code = $('#user_code_registration').val() || ''
+        if (!code) {
+          try { code = localStorage.getItem('code') || '' } catch (e) { code = '' }
+        }
+        return code
+      }
+
       function register() {
         const form = new FormData();
         form.append("username", $('#user_username_registration').val());
         form.append("email", $('#user_email_registration').val());
         form.append("password", $('#user_password_registration').val());
+        form.append("invite_code", inviteCode());
 
         const settings = {
           "async": true,

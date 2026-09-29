@@ -318,32 +318,23 @@
     return NAV.map(row).join('') + NAV_BOTTOM.map(row).join('')
   }
 
-  function mobileDrawer() {
-    var menu = '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./Subscriptions.html">' +
-      '<img class="w-5 h-5" src="' + I.premium.src + '" alt="Subscription">' +
-      '<span class="text-grey-medium text-xs font-semibold">Subscription</span></a>' +
-      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./purchasePoints.html">' +
-      '<img class="w-5 h-5" src="' + I.coin.src + '" alt="Tokens">' +
-      '<span class="text-grey-medium text-xs font-semibold">Tokens</span></a>' +
-      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./charactersIndex.html">' +
-      '<img class="w-5 h-5" src="' + I.lady.src + '" alt="My AI">' +
-      '<span class="text-grey-medium text-xs font-semibold">My AI</span></a>' +
-      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./upload_media.html">' +
-      '<img class="w-5 h-5" src="' + I.wand.src + '" alt="Upload Media">' +
-      '<span class="text-grey-medium text-xs font-semibold">Upload Media</span></a>' +
-      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./achievements.html">' +
-      '<img class="w-5 h-5" src="' + I.achv.src + '" alt="Achievements">' +
-      '<span class="text-grey-medium text-xs font-semibold">Achievements</span></a>' +
-      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./Inviter.html">' +
-      '<img class="w-5 h-5" src="' + I.gift.src + '" alt="">' +
-      '<span class="text-grey-medium text-xs font-semibold">Get 100 tokens</span></a>' +
-      '<a class="w-full justify-start items-center gap-2.5 inline-flex" href="./setting.html">' +
-      '<img class="w-5 h-5" src="' + I.settings.src + '" alt="Settings">' +
-      '<span class="text-grey-medium text-xs font-semibold">Settings</span></a>' +
+  /* 头像下拉 / 移动端抽屉「我的资料」共用菜单（内容统一） */
+  function profileMenu() {
+    function row(href, icon, label) {
+      return '<a href="' + href + '"><img src="' + I[icon].src + '" alt="' + esc(label) + '">' +
+        '<span>' + esc(label) + '</span></a>'
+    }
+    return row('./Subscriptions.html', 'premium', 'Subscription') +
+      row('./purchasePoints.html', 'coin', 'Tokens') +
+      row('./Inviter.html', 'gift', 'Get 100 tokens') +
+      row('./setting.html', 'settings', 'Settings') +
       '<form method="post" onsubmit="return false">' +
-      '<button type="submit" class="logout w-full justify-start items-center gap-2.5 inline-flex">' +
-      '<img class="w-5 h-5" src="' + I.logout.src + '" alt="Logout">' +
-      '<span class="text-grey-medium text-xs font-semibold">Logout</span></button></form>'
+      '<button data-turbo="false" class="logout" type="submit">' +
+      '<img src="' + I.logout.src + '" alt=""><span>Logout</span></button></form>'
+  }
+
+  function mobileDrawer() {
+    var menu = profileMenu()
 
     return '<nav class="flex flex-col justify-between h-full w-60">' +
       '<div class="flex flex-col justify-between h-full">' +
@@ -411,12 +402,7 @@
   }
 
   function navRight() {
-    var menu = '<a href="./Subscriptions.html"><img src="' + I.premium.src + '" alt=""><span>Subscription</span></a>' +
-      '<a href="./purchasePoints.html"><img src="' + I.coin.src + '" alt=""><span>Tokens</span></a>' +
-      '<a href="./Inviter.html"><img src="' + I.gift.src + '" alt=""><span>Get 100 tokens</span></a>' +
-      '<a href="./setting.html"><img src="' + I.settings.src + '" alt=""><span>Settings</span></a>' +
-      '<form method="post" onsubmit="return false">' +
-      '<button data-turbo="false" id="logout" type="submit"><img src="' + I.logout.src + '" alt=""><span>Logout</span></button></form>'
+    var menu = profileMenu()
 
     return '<div class="fy-navright">' +
       '<a class="fy-achv" href="./achievements.html" title="Achievements" aria-label="Achievements">' +
