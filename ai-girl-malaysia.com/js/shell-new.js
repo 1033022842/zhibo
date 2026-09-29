@@ -480,12 +480,13 @@
       '</svg></span></button>' +
       '<div class="fy-drawer-menu hidden" id="fy-drawer-user-menu">' + menu + '</div></li>' +
 
-      // 未登录：注册 / 登录
-      '<li class="user-login w-full py-4 gap-2.5">' +
-      '<a href="./Login.html" class="flex-1 h-8 px-2 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">' +
-      '<span class="text-white text-sm font-semibold leading-tight">Register</span></a>' +
-      '<a href="./Login.html" class="flex-1 h-8 px-2 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">' +
-      '<span class="text-sm font-semibold leading-tight">Login</span></a></li>' +
+      // 未登录：注册 / 登录（顶栏有登录块的页面已挪到右上角，这里只给没有顶栏登录块的页面兜底）
+      (document.querySelector('.pc-rg-login') ? '' :
+        '<li class="user-login w-full py-4 gap-2.5">' +
+        '<a href="./Login.html" class="flex-1 h-8 px-2 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">' +
+        '<span class="text-white text-sm font-semibold leading-tight">Register</span></a>' +
+        '<a href="./Login.html" class="flex-1 h-8 px-2 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">' +
+        '<span class="text-sm font-semibold leading-tight">Login</span></a></li>') +
 
       '<li class="fy-hr-li"></li>' +
       drawerRows() +
