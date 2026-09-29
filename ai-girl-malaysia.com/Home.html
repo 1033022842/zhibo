@@ -24,7 +24,7 @@
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20260928a"></script>
-		<script src="./js/shell-new.js?v=20260928c"></script>
+		<script src="./js/shell-new.js?v=20260928a"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20260920"></script>
 
@@ -141,10 +141,6 @@
 				border-radius:9999px;border:1.5px solid rgba(255,255,255,.16);background:#202020;color:#e5e5e5;
 				font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:border-color .18s ease}
 			.c-cat-dd-btn:active{transform:scale(.97)}
-			/* 桌面端强制隐藏移动端下拉（内联样式在后会覆盖外链 CSS 的 sm:hidden，这里显式兜底） */
-			@media (min-width:640px){
-				.c-cat-dd-btn,#catDdPanel{display:none !important}
-			}
 			.c-cat-dd-btn svg{width:14px;height:14px;transition:transform .2s ease}
 			.c-cat-dd-btn.open svg{transform:rotate(180deg)}
 			.c-cat-dd-panel{display:none;position:absolute;top:100%;left:150px;width:max-content;min-width:96px;max-width:calc(100vw - 162px);z-index:39;
@@ -1391,11 +1387,12 @@
 				var meta = unlocked
 					? ''
 					: '<div class="c-s-meta"><span class="c-s-free">VIP</span><span class="c-s-eps">' + price + ' diamonds</span></div>'
-				return '<li><a class="c-card c-card-short" draggable="false" data-pid="' + esc(item.id) + '" href="javascript:void(0)" aria-label="' + esc(item.creator || '') + '">' +
+				return '<li><a class="c-card c-card-short" draggable="false" data-pid="' + esc(item.id) + '" href="javascript:void(0)" aria-label="' + esc(item.title) + '">' +
 					cover +
 					'<div class="c-card-scrim"></div>' +
 					badge +
 					'<div class="c-card-info">' +
+						'<div class="c-card-name"><b title="' + esc(item.title) + '">' + esc(item.title) + '</b></div>' +
 						meta +
 					'</div>' +
 				'</a></li>'
@@ -1418,7 +1415,7 @@
 				if (vc > 0) sub.push(vc + (vc > 1 ? ' videos' : ' video') + (item.duration ? ' · ' + item.duration : ''))
 				if (ic > 0) sub.push(ic + (ic > 1 ? ' photos' : ' photo'))
 				window.CandyWatch.open({
-					title: item.creator || 'Private Content',
+					title: item.title || '',
 					subtitle: sub.join(' · '),
 					videoUrl: item.video_url || '',
 					images: Array.isArray(item.images) ? item.images : [],
@@ -1440,7 +1437,6 @@
 								item.images = Array.isArray(res.data.item.images) ? res.data.item.images : []
 							}
 							renderPrivate()
-							if (window.refreshTokenBalance) refreshTokenBalance()
 							watchPriv(item)
 						} else if (window.SugusDialog) {
 							SugusDialog.alert((res && res.msg) || 'Unlock failed, please try again', { title: 'Notice' })

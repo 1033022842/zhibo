@@ -194,6 +194,7 @@
               '<!-- Top row -->' +
               '<div class="absolute top-3 inset-x-3 z-20 flex items-center justify-between gap-2 pointer-events-none" data-mpc-card-top="">' +
                 '<div class="flex items-center gap-2 min-w-0">' +
+                  '<img alt="' + esc(item.creator) + '" class="w-7 h-7 object-cover object-top rounded-full ring-1 ring-white/40 shrink-0" data-mpc-card-avatar="true" src="' + esc(item.avatar) + '">' +
                   '<span class="text-white text-sm font-semibold leading-tight truncate drop-shadow" data-mpc-card-name="">' + esc(item.creator) + '</span>' +
                 '</div>' +
                 (isNew ? badgeHtml() : '') +
@@ -216,6 +217,8 @@
                     esc(item.like_rate) + '%' +
                   '</span>' +
                 '</div>' +
+
+                '<div class="truncate-2-lines text-left text-white/80 text-[11px] md:text-xs font-medium leading-tight" data-mpc-card-description="">' + esc(item.title) + '</div>' +
 
                 (unlocked
                   // 绿色渐变用内联样式：Tailwind 是从原站编译的成品包，没有 #28A76B / #7EE2A8 这两个任意值
@@ -374,7 +377,7 @@
         if (ic > 0) sub.push(ic + (ic > 1 ? ' photos' : ' photo'))
 
         window.CandyWatch.open({
-            title: item.creator || 'Private Content',
+            title: item.title || '',
             subtitle: sub.join(' · '),
             videoUrl: item.video_url || '',
             images: Array.isArray(item.images) ? item.images : [],
@@ -408,7 +411,6 @@
                     item.images = Array.isArray(fresh.images) ? fresh.images : []
                 }
                 render()
-                if (window.refreshTokenBalance) refreshTokenBalance()
                 if (window.layer) {
                     layer.msg(Number(res.data && res.data.charged) === 1 ? 'Unlocked!' : 'Already unlocked')
                 }

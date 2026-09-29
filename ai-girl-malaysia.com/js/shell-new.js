@@ -69,6 +69,7 @@
     { href: './shop.html', label: 'Shop', icon: 'candy' },
     { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
     { href: './posts.html', label: 'Posts', icon: 'posts' },
+    { href: './private_content.html', label: 'Private Content', icon: 'lock' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'token' },
     { href: './Game.html', label: 'Games', icon: 'games' }
   ]
@@ -373,40 +374,6 @@
   }
 
   /* ---------- 顶栏右上角：成就徽章 + tokens 胶囊 + 头像菜单 ---------- */
-  /* ---------- 顶栏余额刷新：扣钻石/金币后调用（解锁等） ---------- */
-  window.refreshTokenBalance = function () {
-    var tk = null
-    try { tk = localStorage.getItem('live_access_token') } catch (e) { return }
-    if (!tk) return
-    fetch('/api/live/userInfo', { method: 'POST', headers: { token: tk } })
-      .then(function (r) { return r.json() })
-      .then(function (d) {
-        if (!d || (d.code !== 1 && d.code !== '00000')) return
-        var money = (d.data && (d.data.money != null ? d.data.money : d.data.diamond_balance)) || 0
-        document.querySelectorAll('[data-target="user-token-balance"]').forEach(function (el) {
-          el.textContent = money
-        })
-      })
-      .catch(function () {})
-  }
-
-  // 解锁类接口（扣钻石）响应后自动刷新顶栏余额
-  ;(function () {
-    if (window.__fyFetchHooked) return
-    window.__fyFetchHooked = true
-    var orig = window.fetch
-    window.fetch = function () {
-      var p = orig.apply(this, arguments)
-      try {
-        var u = String((arguments[0] && (arguments[0].url || arguments[0])) || '')
-        if (/privateUnlock|unlockChatMedia/i.test(u)) {
-          p.then(function () { try { window.refreshTokenBalance() } catch (e) {} }).catch(function () {})
-        }
-      } catch (e) {}
-      return p
-    }
-  })()
-
   function tokenChip() {
     return '<div class="fy-chipwrap" id="token-chip-wrap">' +
       '<button type="button" class="fy-chip" id="token-chip-button" aria-expanded="false">' +

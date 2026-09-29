@@ -467,7 +467,6 @@
                     media.unlocked = true
                     media.url = d.data.video_url || d.data.url || ''
                     paintMedia(node, media, mine)
-                    if (window.refreshTokenBalance) refreshTokenBalance()
                 } else {
                     appendError((d && d.msg) ? ('解锁失败：' + d.msg) : '解锁失败，请稍后重试')
                 }
