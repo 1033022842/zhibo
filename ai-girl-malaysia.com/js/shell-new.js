@@ -366,12 +366,33 @@
      内容沿用本站既有去处：Discord 用站内旧页注释里的品牌邀请链接，
      Contact Us 用 NAV 里的同款邮箱，Affiliate 指向 Inviter.html。 */
   var CATEGORIES = [
-    { label: 'Girls', href: './Girls.html', icon: 'catFemale' },
-    { label: 'Anime', href: './Anime.html', icon: 'catAnime' },
-    { label: 'Guys', href: './Guys.html', icon: 'catMale' }
+    { key: 'girls', label: 'Girls', href: './Girls.html', icon: 'catFemale' },
+    { key: 'anime', label: 'Anime', href: './Anime.html', icon: 'catAnime' },
+    { key: 'guys', label: 'Guys', href: './Guys.html', icon: 'catMale' }
   ]
 
+  // Home.html 那个站内分类切换（顶栏 .c-tab / 移动端 #catDdPanel，都由 [data-cat] 驱动）
+  function pageCatBtn(key) {
+    var list = document.querySelectorAll('[data-cat="' + key + '"]')
+    for (var i = 0; i < list.length; i++) {
+      if (!(list[i].closest && list[i].closest('.fy-drawer-foot'))) return list[i]
+    }
+    return null
+  }
+
+  function pageCategory() {
+    var lbl = document.getElementById('catDdLabel')
+    var v = lbl ? String(lbl.textContent || '').trim().toLowerCase() : ''
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      if (CATEGORIES[i].key === v) return CATEGORIES[i]
+    }
+    return null
+  }
+
   function currentCategory() {
+    // 页面自带分类切换时以页面为准，否则按当前页面判断（Girls/Anime/Guys 三个列表页）
+    var fromPage = pageCategory()
+    if (fromPage) return fromPage
     var p = location.pathname.toLowerCase()
     for (var i = 0; i < CATEGORIES.length; i++) {
       if (p.indexOf(CATEGORIES[i].href.replace('./', '/').toLowerCase()) > -1) return CATEGORIES[i]
@@ -379,10 +400,36 @@
     return CATEGORIES[0]
   }
 
+  // 抽屉上显示的分类跟着页面走（页面上切分类 → 抽屉同步）
+  function setDrawerCat(key) {
+    var v = document.querySelector('.fy-cat-v')
+    if (!v) return
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      if (CATEGORIES[i].key !== key) continue
+      v.textContent = CATEGORIES[i].label
+      var ic = document.querySelector('#fy-cat-btn .fy-cat-icon img')
+      if (ic) ic.src = I[CATEGORIES[i].icon].src
+      return
+    }
+  }
+
+  function bindPageCatSync() {
+    var lbl = document.getElementById('catDdLabel')
+    if (!lbl || lbl.__fyCatSync) return
+    lbl.__fyCatSync = true
+    if (window.MutationObserver) {
+      new MutationObserver(function () {
+        var c = pageCategory()
+        if (c) setDrawerCat(c.key)
+      }).observe(lbl, { childList: true, characterData: true, subtree: true })
+    }
+    setDrawerCat(currentCategory().key)
+  }
+
   function drawerFooter() {
     var cur = currentCategory()
     var catMenu = CATEGORIES.map(function (c) {
-      return '<a class="fy-cat-item" href="' + c.href + '">' +
+      return '<a class="fy-cat-item" href="' + c.href + '" data-fy-cat="' + c.key + '">' +
         '<span class="fy-cat-icon">' + iconHtml(c.icon, '') + '</span>' +
         '<span>' + c.label + '</span></a>'
     }).join('')
@@ -693,6 +740,21 @@
       m.classList.toggle('hidden')
       w.classList.toggle('open', opening)
       if (b) b.setAttribute('aria-expanded', opening ? 'true' : 'false')
+    }, true)
+
+    // 抽屉底部的 Category 项：页面自带站内分类切换（Home.html 的顶栏 Tab / 移动端下拉）时
+    // 直接驱动它（不跳页），两处状态由 bindPageCatSync 保持同步；页面没有时才走链接跳转
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('.fy-cat-item')
+      if (!a) return
+      var btn = pageCatBtn(a.getAttribute('data-fy-cat'))
+      if (!btn) return
+      e.preventDefault()
+      btn.click()
+      var m = document.getElementById('fy-cat-menu')
+      if (m) m.classList.add('hidden')
+      var b = document.getElementById('fy-cat-btn')
+      if (b) b.setAttribute('aria-expanded', 'false')
     }, true)
 
     // 抽屉底部的 Category 大按钮：同样要断冒泡（否则抽屉会被收起）
@@ -1089,6 +1151,7 @@
       var __bound = render()
       if (__bound) bind()
       syncAuth()
+      bindPageCatSync()
       renderBottomBar()
       bindBottomBar()
       bindAuthWatch()
