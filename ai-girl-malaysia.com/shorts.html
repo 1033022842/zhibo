@@ -32,6 +32,12 @@
             [role="tablist"][aria-label="Categories"] > [role="tab"][aria-selected="true"]{background:#fff;color:#000;font-weight:600;border-color:transparent;}
             [role="tablist"][aria-label="Character type"] > [role="tab"][aria-selected="true"]{color:#fff;}
             [role="tablist"][aria-label="Character type"] > [role="tab"][aria-selected="true"] > span[aria-hidden="true"]{opacity:1;}
+            /* 手机端：顶栏是 fixed 的 64px 高（z-40），筛选栏原本 sticky 到 top:0 会被顶栏整条盖住。
+               存档页的 top-[env(safe-area-inset-top)] 只在原站「顶栏可隐藏」的布局下成立，
+               这里手机端直接吸在顶栏下方 64px（≥1024px 仍由 lg:top-16 控制）。 */
+            @media (max-width: 1023px){
+              .sticky.order-1{top:64px;}
+            }
 		</style>
 
 		<title>Candy Shorts - Sugus.ai</title>
@@ -50,7 +56,7 @@
 		<script src="./js/main.js?v=20260928a"></script>
 		<script src="./js/shell-new.js?v=20260928a"></script>
 		<script src="./js/watch-dialog.js?v=20260917"></script>
-		<script src="./js/series-dialog.js?v=20260918d"></script>
+		<script src="./js/series-dialog.js?v=20260929a"></script>
 		<script src="./js/shorts.js?v=20260927a"></script>
 
 			</head>
