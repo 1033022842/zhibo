@@ -389,6 +389,22 @@
         return './Home.html'
       }
 
+      // 关闭登录/注册页（点 ×）：退回进入登录页之前的那个页面
+      // 去向与登录成功后一致：?redirect= 优先，其次来源页(referrer)，最后 Home.html
+      function backFromLogin() {
+        var redirect = getUrlParam(window.location.href, 'redirect')
+        if (redirect && redirect !== 'null') {
+          try {
+            var to = new URL(redirect, window.location.href)
+            if (to.origin === window.location.origin && to.pathname.indexOf('Login.html') < 0) {
+              return to.pathname + to.search
+            }
+          } catch (e) { /* 非法 redirect 忽略，走兜底 */ }
+        }
+        return backUrl()
+      }
+      window.liveBackFromLogin = backFromLogin
+
       function changeChannelType () {
 		  var currentUrl = window.location.href;
 		 

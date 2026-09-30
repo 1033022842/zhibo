@@ -1,15 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 		<link rel="icon" type="image/png" href="./sugus-favicon-v3.png">
 		<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon-v3.png">
 		<meta name="apple-mobile-web-app-title" content="Sugus.ai">
-	  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0;url=./Financial.html">
-  <title>Withdrawal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <title>Withdrawal · Sugus.ai</title>
+    <link rel="stylesheet" href="./assets/fy.css?v=20260929j" data-turbo-track="reload">
+    <link rel="stylesheet" href="./Girls_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
+    <style>
+        @media only screen and (max-width: 768px){ .pc-nav{ display:none; } }
+        .login-pf{ display:none; }
+        #user-login{ display:none; }
+    </style>
+    <script src="./js/site-shell.js"></script>
+    <script src="./js/shell-new.js?v=20260930f"></script>
 </head>
-<body>
-  <p>Redirecting to <a href="./Financial.html">Financial</a>...</p>
-	<script src="./js/promo-popup.js?v=20260929a"></script>
+<body class="bg-main pages" id="app" data-controller="main" data-main-is-sidebar-opened-value="true">
+<script>window.SiteShell && SiteShell.render('withdrawal')</script>
+
+<div class="main-content-container">
+    <main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
+        <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pt-6 pb-20">
+
+            <h1 class="text-white text-2xl font-bold mb-6">Withdrawal</h1>
+
+            <!-- 提现表单 -->
+            <div id="fin-withdraw-zone" class="w-full bg-zinc-900 rounded-[10px] border border-neutral-700 p-5" style="margin-bottom:24px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                    <div style="font-size:16px;font-weight:700;color:#fff">Withdraw</div>
+                    <button id="fin-edit-account" type="button" style="padding:6px 14px;border:1px solid #E75275;border-radius:8px;background:transparent;color:#E75275;font-size:13px;cursor:pointer">Edit withdrawal account</button>
+                </div>
+
+                <div style="padding:12px 16px;margin-bottom:12px;border-radius:10px;background:rgba(231,82,117,.08);border:1px solid rgba(231,82,117,.25);display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-size:13px;color:#bbb">Diamond balance</span>
+                    <span id="fin-balance" style="font-size:20px;font-weight:800;color:#E75275">-</span>
+                </div>
+
+                <div id="fin-account-row" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;margin-bottom:12px;border-radius:10px;background:#18181b;border:1px solid #2c2c31;font-size:13px">
+                    <span style="color:#8a8a8a;flex:0 0 auto">Payout to</span>
+                    <span id="fin-account-text" style="color:#fff;font-weight:600;text-align:right;word-break:break-all">—</span>
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+                    <input id="fin-wd-amount" type="number" min="0" placeholder="Diamonds amount" style="flex:1;padding:10px 14px;border-radius:8px;border:1px solid #444;background:#18181b;color:#fff;font-size:15px;outline:none">
+                    <button id="fin-wd-max" type="button" style="padding:10px 16px;border:1px solid #444;border-radius:8px;background:transparent;color:#bbb;cursor:pointer;font-size:13px">Max</button>
+                </div>
+
+                <div id="fin-wd-est" style="margin-bottom:12px;border-radius:10px;background:#18181b;border:1px solid #2c2c31;overflow:hidden;display:none">
+                    <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;color:#8a8a8a;border-bottom:1px solid #26262b">
+                        <span>You receive</span><span id="fin-est-actual" style="color:#28c76f;font-weight:700">-</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;color:#8a8a8a;border-bottom:1px solid #26262b">
+                        <span>Service fee</span><span id="fin-est-fee" style="color:#ddd;font-weight:600">-</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;color:#8a8a8a">
+                        <span>Rate</span><span id="fin-est-rate" style="color:#ddd;font-weight:600">-</span></div>
+                </div>
+
+                <div id="fin-wd-msg" style="font-size:12.5px;line-height:1.6;margin-bottom:10px;padding:8px 12px;border-radius:8px;display:none"></div>
+
+                <button id="fin-wd-submit" type="button" disabled style="width:100%;padding:12px;border:none;border-radius:10px;background:#3a3a3f;color:#8a8a8a;font-weight:700;font-size:14px;cursor:not-allowed">Submit withdrawal</button>
+                <div style="font-size:11px;color:#666;margin-top:8px;line-height:1.7">Payout is sent on-chain automatically once approved — usually within minutes. Minimum <span id="fin-wd-min">-</span> diamonds.</div>
+            </div>
+
+            <!-- 提现记录 -->
+            <div class="w-full bg-zinc-900 rounded-[10px] border border-neutral-700 p-5">
+                <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:4px">Withdrawal records</div>
+                <div id="fin-wd-list"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- 收款账户弹窗 -->
+<div class="fixed top-0 left-0 right-0 bottom-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm hidden withdrawal-modal modal-backdrop" data-modal="withdrawal-modal" style="margin-top: 0px;"></div>
+<div data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex justify-center items-center hidden withdrawal-modal">
+    <div class="relative max-h-full">
+        <div class="relative rounded-lg shadow dark:bg-gray-700">
+            <div class="w-[356px] min-h-[330px] relative bg-stone-900 rounded-[10px] border border-neutral-700">
+                <div class="text-white text-[20px] font-semibold leading-[30px] ml-[33px] mt-2">Edit withdrawal account</div>
+                <img src="./setting_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="absolute top-[7px] right-[10px] cursor-pointer toggle-popup" data-modal="withdrawal-modal">
+                <div class="form-inputs text-center">
+                    <div class="mt-[25px] text-center">
+                        <div class="w-[287px] flex-col justify-start items-start gap-1.5 inline-flex">
+                            <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+                                <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+                                    <img src="./setting_files/user-136475e1e7120a61ab13061e84c88cdf96837d2fb8eafda7a8c5b73815512f42.svg">
+                                </div>
+                                <input placeholder="Enter TRC20 address (T...)" required="required" class="self-stretch pl-10 px-3.5 py-2.5 rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex text-white bg-stone-900" type="text" value="" name="user[withdrawal]" id="user_withdrawal">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="my-[25px] text-center">
+                        <div class="w-[287px] flex-col justify-start items-start inline-flex">
+                            <div class="self-stretch flex-col justify-start items-start gap-1.5 flex">
+                                <select class="self-stretch px-3.5 py-2.5 bg-stone-900 text-white rounded-lg shadow border border-gray-300 justify-start items-center gap-2 inline-flex" name="user[network]" id="user_network">
+                                    <option selected="selected" value="TRC20">TRC20</option>
+                                    <option value="ERC20">ERC20</option>
+                                    <option value="BEP20">BEP20</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="saveWithdrawal" type="button" class="w-[280px] px-4 py-3 mt-[25px] bg-[#E75275] rounded-[10px] border border-[#E75275] justify-center items-center gap-2 inline-flex text-white">
+                        Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="./settings_files/jquery-3.6.0.min.js"></script>
+<script src="./assets/layer/3.1.1/layer.js"></script>
+<script src="./js/withdrawal.js?v=20260930e"></script>
+<script src="./js/promo-popup.js?v=20260929a"></script>
 </body>
 </html>

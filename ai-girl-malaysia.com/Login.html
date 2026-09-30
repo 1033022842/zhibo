@@ -12,8 +12,8 @@
 <script src="./Guys_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./Girls_files/jquery-3.6.0.min.js"></script>
 <script src="./assets/layer/3.1.1/layer.js"></script>
-  <script src="./js/main.js?v=20260928d"></script>
-		<script src="./js/shell-new.js?v=20260930d"></script>
+  <script src="./js/main.js?v=20260930g"></script>
+		<script src="./js/shell-new.js?v=20260930f"></script>
   <script src="./js/event.js"></script>
   <style>
     body {
@@ -186,7 +186,7 @@
   <div class="container">
     <div class="left-img"></div>
     <div class="form-area">
-      <button class="close-btn" onclick="window.close()">&times;</button>
+      <button class="close-btn" onclick="closeLoginPage()">&times;</button>
       <!-- 登录表单 -->
       <form id="loginForm">
         <div class="form-title">Sign in</div>
@@ -256,7 +256,11 @@
         btn.textContent = '👁️';
       }
     }
-    
+    // × ：退回进入登录页之前的那个页面（?redirect= 优先，其次来源页，兜底 Home.html）
+    function closeLoginPage() {
+      var target = (typeof window.liveBackFromLogin === 'function') ? window.liveBackFromLogin() : './Home.html';
+      window.location.replace(target);
+    }
   </script>
 	<script src="./js/promo-popup.js?v=20260929a"></script>
 </body>

@@ -471,12 +471,24 @@ else
     chmod 0644 /etc/cron.d/douyin
     echo "已追加到 /etc/cron.d/douyin"
 fi
+echo "===== 提现打款确认：withdraw:payout（每分钟，链上确认 + 回收卡死的打款单）====="
+if grep -q 'withdraw:payout' /etc/cron.d/douyin 2>/dev/null; then
+    echo "/etc/cron.d/douyin 已有 withdraw:payout，跳过"
+else
+    echo '* * * * * root cd /www/wwwroot/douyin/php && php think withdraw:payout >> /root/cron_withdraw_payout.log 2>&1' >> /etc/cron.d/douyin
+    chmod 0644 /etc/cron.d/douyin
+    echo "已追加到 /etc/cron.d/douyin"
+fi
 echo "===== 写入后 ====="
 cat /etc/cron.d/douyin 2>/dev/null || true
 echo "--- root crontab ---"
 crontab -l 2>/dev/null || echo "(空)"
 echo "===== 手动跑一次 ETH 扫链（验证命令可用）====="
 cd /www/wwwroot/douyin/php && php think recharge:scan-eth 2>&1 | tail -n 5
+echo "===== 手动跑一次提现打款（验证命令可用）====="
+cd /www/wwwroot/douyin/php && php think withdraw:payout 2>&1 | tail -n 5
+echo "===== 提现打款配置自检 payout:info ====="
+cd /www/wwwroot/douyin/php && php think payout:info 2>&1 | tail -n 10
 '''
 
 

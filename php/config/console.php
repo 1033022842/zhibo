@@ -12,5 +12,7 @@ return [
         \app\command\CrowdfundingCron::class,
         \app\command\RechargeScanCron::class,
         \app\command\EthRechargeScanCron::class,
+        \app\command\WithdrawPayoutCron::class,
+        \app\command\PayoutInfo::class,
     ],
 ];
