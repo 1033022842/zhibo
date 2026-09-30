@@ -15,9 +15,33 @@
             .login-pf{display:none;}
             #user-login{display:none;}
 
-    /* 顶栏分类栏（照 candy.ai 原版 #head-btn-group）：当前分类高亮（底部粉条 + 粉字） */
+    /* 顶栏分类栏（照 candy.ai 原版 #head-btn-group）：当前分类高亮（底部粉条 + 粉字 + 粉图标） */
     .head-btn.active{border-bottom-color:#F97187;}
     .head-btn.active .text-white{color:#F97187;}
+    .head-btn.active svg path:not([stroke]){fill:#F97187;}
+    .head-btn.active svg path[stroke]{stroke:#F97187;}
+    /* 非当前分类：清掉切换时残留的粉色（Turbo 只换内容区、顶栏不重建，旧高亮类会残留） */
+    .head-btn:not(.active){border-bottom-color:transparent !important;}
+    .head-btn:not(.active) .text-white,
+    .head-btn:not(.active) div:last-child{color:#fff !important;}
+
+    /* 顶栏分类切换：只替换该 frame 的内容区（Turbo Frame），顶栏不重建 */
+    #main-content-frame{display:block;}
+
+    /* 手机端：分类栏收成 header 内的紧凑下拉（照 candy.ai 手机端 header：图标 + 下箭头 → 点开 Girls/Anime/Guys） */
+    .fy-catdd{display:none;}
+    @media only screen and (max-width: 767px){
+        #head-btn-group{display:none !important;}
+        .fy-catdd{display:flex;align-items:center;position:relative;margin-left:2px;}
+    }
+    .fy-catdd-btn{display:flex;align-items:center;gap:1px;height:24px;padding:0 4px;border:0;background:transparent;border-radius:10px;cursor:pointer;}
+    .fy-catdd-ic{width:24px;height:24px;display:block;}
+    .fy-catdd-chev{width:12px;height:12px;display:block;}
+    .fy-catdd-panel{position:absolute;left:0;top:100%;margin-top:12px;width:160px;background:#18181B;border-radius:6px;
+        box-shadow:0 0 24px 0 rgba(0,0,0,.45);z-index:60;padding:14px 16px;display:flex;flex-direction:column;gap:16px;}
+    .fy-catdd-panel a{display:flex;align-items:center;gap:7px;color:#fff;font-size:16px;font-weight:500;text-decoration:none;white-space:nowrap;}
+    .fy-catdd-panel a img{width:24px;height:24px;flex:0 0 auto;display:block;}
+    .fy-catdd-panel.hidden{display:none;}
     
     @media only screen and ((min-width: 1024px)){
         .van-popover--light{
