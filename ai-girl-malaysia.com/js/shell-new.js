@@ -72,6 +72,7 @@
     upload: { svg: '<svg viewBox="0 0 24 24" ' + S + '><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>' },
     faceswap: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="9" cy="8.5" r="4.5"/><circle cx="15" cy="15.5" r="4.5"/><path d="M7.6 7.9h.01M10.4 7.9h.01M8.2 10.6c.5.4 1.1.4 1.6 0"/></svg>' },
     posts: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.8" cy="9.8" r="1.5"/><path d="M4.2 18.2l4.6-4.6 3.6 3.6 2.8-2.4 4.6 3.4"/></svg>' },
+    private: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7.4a4 4 0 0 1 8 0V10"/></svg>' },
     games: { svg: '<svg viewBox="0 0 24 24" ' + S + '><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>' },
     crowd: { svg: '<svg viewBox="0 0 24 24" ' + S + '><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
     contact: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>' },
@@ -96,6 +97,7 @@
     { href: './shop.html', label: 'Shop', icon: 'candy' },
     { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
     { href: './posts.html', label: 'Posts', icon: 'posts' },
+    { href: './private_content.html', label: 'Private Content', icon: 'private' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'token' },
     { href: './Game.html', label: 'Games', icon: 'games' }
   ]
