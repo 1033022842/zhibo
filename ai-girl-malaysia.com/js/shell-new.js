@@ -76,7 +76,8 @@
     crowd: { svg: '<svg viewBox="0 0 24 24" ' + S + '><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
     contact: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>' },
     affiliate: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>' },
-    appdl: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7.5v6m0 0l-2.4-2.4M12 13.5l2.4-2.4"/></svg>' }
+    appdl: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7.5v6m0 0l-2.4-2.4M12 13.5l2.4-2.4"/></svg>' },
+    banknote: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2.5" y="6" width="19" height="12" rx="3"/><circle cx="12" cy="12" r="2.75"/><path d="M6 9.5v5M18 9.5v5"/></svg>' }
   }
 
   // 侧边栏菜单：沿用站点原有菜单项与顺序
@@ -428,6 +429,7 @@
     return row('./Home.html#install-app', 'appdl', 'Get Candy.ai app') +
       row('./Subscriptions.html', 'premium', 'Subscription') +
       row('./purchasePoints.html', 'coin', 'Tokens') +
+      row('./Financial.html', 'banknote', 'Financial details') +
       row('./Inviter.html', 'gift', 'Get 100 tokens') +
       row('./setting.html', 'settings', 'Settings') +
       '<form method="post" onsubmit="return false">' +
@@ -1244,6 +1246,85 @@
   }
 
   /* ---------- 渲染入口 ---------- */
+  /* ---------- 手机端分类下拉（照 candy.ai 手机端 header：图标 + 下箭头 → 点开 Girls/Anime/Guys） ---------- */
+  var CAT_ICONS = {
+    girls: { g: 'female-grey-f8778c0424271c5cb4b1b50b2e50d7e8d5a2c79851c6f905e5d3ef4069956bef.svg', w: 'female-white-b6edc81820cdf305c0e1644c0c5d2124b2aa2ecef701a01eff46baad9a05dd26.svg', label: 'Girls', href: './Girls.html' },
+    anime: { g: 'anime-grey-1f1c9de8c17364c1634470e5d2ab1d4d05109fa8e80c1e1b83ac0478eb2d5dac.svg', w: 'anime-white-02986b4e7107a1be01a284a4818231a6edf19aa880d8a9680fb1a7874416f532.svg', label: 'Anime', href: './Anime.html' },
+    guys: { g: 'male-grey-48c8b386c214b3f674b7ef04bc51c9f7e967c49023e308fc58032fa0cc10c2e7.svg', w: 'male-white-b1c60bef78d9065208e08ef4f03bea1d2d50bc8b33c3fb2fe9361a3c83646a92.svg', label: 'Guys', href: './Guys.html' }
+  }
+  var CAT_CHEV = './tokens_files/vector-down-grey-ac9e18f44b255e3510c3e32a682be2b5f5f736fb7b6c7df2d867107522ebdd5d.svg'
+
+  function currentCat() {
+    var p = (location.pathname || '').toLowerCase()
+    if (p.indexOf('anime') >= 0) return 'anime'
+    if (p.indexOf('guys') >= 0 || p.indexOf('boyfriend') >= 0) return 'guys'
+    return 'girls'
+  }
+
+  function injectCatDropdown() {
+    var group = document.getElementById('head-btn-group')
+    if (!group || document.getElementById('fyCatDd')) return
+    var cur = currentCat()
+    var ic = CAT_ICONS[cur]
+    function item(k) {
+      var c = CAT_ICONS[k]
+      return '<a href="' + c.href + '"><img src="./tokens_files/' + c.w + '" alt=""><span>' + c.label + '</span></a>'
+    }
+    var wrap = document.createElement('div')
+    wrap.className = 'fy-catdd'
+    wrap.id = 'fyCatDd'
+    wrap.innerHTML =
+      '<button type="button" class="fy-catdd-btn" id="fyCatDdBtn" aria-expanded="false" aria-label="Category">' +
+      '<img class="fy-catdd-ic" src="./tokens_files/' + ic.g + '" alt="">' +
+      '<img class="fy-catdd-chev" src="' + CAT_CHEV + '" alt="">' +
+      '</button>' +
+      '<div class="fy-catdd-panel hidden" id="fyCatDdPanel">' + item('girls') + item('anime') + item('guys') + '</div>'
+    group.parentNode.insertBefore(wrap, group)
+    var btn = document.getElementById('fyCatDdBtn')
+    var panel = document.getElementById('fyCatDdPanel')
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation()
+      var open = panel.classList.contains('hidden')
+      panel.classList.toggle('hidden', !open)
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false')
+    })
+    document.addEventListener('click', function (e) {
+      if (!panel.classList.contains('hidden') && !panel.contains(e.target) && !btn.contains(e.target)) {
+        panel.classList.add('hidden')
+        btn.setAttribute('aria-expanded', 'false')
+      }
+    })
+
+    // 分类切换只换内容区（Turbo Frame），顶栏不重建：这里同步高亮与下拉按钮图标
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest ? e.target.closest('a.head-btn') : null
+      if (!a) return
+      var href = a.getAttribute('href') || ''
+      var k = href.indexOf('Anime') >= 0 ? 'anime' : (href.indexOf('Guys') >= 0 ? 'guys' : 'girls')
+      var list = document.querySelectorAll('a.head-btn')
+      for (var i = 0; i < list.length; i++) {
+        if (list[i] === a) {
+          list[i].classList.add('active')
+        } else {
+          // 站点自带 main.js 会给被点的 tab 加 border-rose-400 / text-rose-400（含内层文字 div），
+          // Turbo 只换内容区、顶栏不重建，这里把旧 tab 的残留粉色清掉
+          list[i].classList.remove('active')
+          list[i].classList.remove('border-rose-400')
+          list[i].classList.remove('text-rose-400')
+          var inner = list[i].querySelectorAll('*')
+          for (var j = 0; j < inner.length; j++) {
+            inner[j].classList.remove('border-rose-400')
+            inner[j].classList.remove('text-rose-400')
+          }
+          var lbl = list[i].querySelector('div:last-child')
+          if (lbl) lbl.classList.add('text-white')
+        }
+      }
+      var ic = document.querySelector('#fyCatDd .fy-catdd-ic')
+      if (ic) ic.src = './tokens_files/' + CAT_ICONS[k].g
+    })
+  }
+
   function render() {
     var closed = document.querySelector('[data-main-target="mainSidebarClosedContainer"]')
     var opened = document.querySelector('[data-main-target="mainSidebarOpenedContainer"]')
@@ -1281,6 +1362,7 @@
       if (topbar && us.parentElement !== topbar) topbar.appendChild(us)
       us.innerHTML = navRight()
     }
+    injectCatDropdown()
     return true
   }
 
