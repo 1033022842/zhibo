@@ -45,7 +45,7 @@
 
     // 手机端底部导航 / Create 面板（照参考站「图片/home.html」的新版底栏素材）
     bHome: { src: T + 'home-07943db4fc88e0be4ac57c26c4968aee020ec6f2903009e2cc4d74beec45d2b9.svg' },
-    bHomeActive: { src: T + 'home-07943db4fc88e0be4ac57c26c4968aee020ec6f2903009e2cc4d74beec45d2b9.svg' },
+    bHomeActive: { src: T + 'home-active-3800812b352d1be9b9af117691cfab97a991dc10d1105e7be1774b832c7b8530.svg' },
     bShorts: { src: T + 'shorts-dd7eca01fe7f8a694cd100be90b5b6c20d241a5bf4c8b8c0f8633864125cffae.svg' },
     bShortsActive: { src: './candy-shorts_files/shorts-active-d87391fb4c634b244c7e1c80b1944af6d857c3b542ac401e1995d96e35e3e0ea.svg' },
     bCreate: { src: './settings_files/nav-create-036106b767f610ef441faeb0d313e5e2e666ec71dd35bd4df95a36eccc82ff49.svg' },
@@ -56,7 +56,8 @@
     bExplore: { src: './Girls_files/explore-271b6507dab3d31b26d45e198ec8046b2b8f148862ca272167fb8ce5455002e8.svg' },
     bGenerate: { src: './Girls_files/generate-e0a4445659c35cbc82e7046cf089cf881179d55eaa82d4bf32dae229a06666c1.svg' },
     bWand: { src: './Girls_files/mobile-magic-wand-d445265367be8ddfbfe1c22810893d0ea4dbdaf1eadd7c4496861113d5388d78.svg' },
-    bPremium: { src: './Girls_files/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg' },
+    bPremium: { src: T + 'premium-3fa8ec9f951178508109d03de202bc4a381ed87451b7dc9f8aa5a931bd485e02.svg' },
+    bPremiumStar: { src: T + 'icon-513af0057e4b673067a8049311ea31fe24a74b04337db95bf10d618a16abcfb7.svg' },
     bGirlfriend: { src: T + 'cmai-56f830cb372139095fd5e9d4cd3c3a361cc6f1dfca2f172b8762199be44fa57d.svg' },
     bDirector: { src: T + 'director-b863278cedaf35fdc858a917d422a23859467cf0a57b1f6bae1f51f42fef3638.svg' },
     bGroup: { src: T + 'group-chats-a5bcd2972c364d94db640c13a7fc401b9bad495fccb2facf168333a5ecf5084a.svg' },
@@ -672,10 +673,10 @@
   ]
 
   var BOTTOM_GUEST = [
-    { href: './Girls.html', label: 'Explore', icon: 'bExplore' },
-    { href: './Image.html', label: 'Generate', icon: 'bGenerate' },
-    { href: './characters.html', label: 'Create', icon: 'bWand' },
-    { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium' }
+    { href: './Girls.html', label: 'Explore', icon: 'bExplore', key: 'explore' },
+    { href: './Image.html', label: 'Generate', icon: 'bGenerate', key: 'generate' },
+    { href: './characters.html', label: 'Create', icon: 'bWand', key: 'create' },
+    { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium', key: 'premium', premium: true }
   ]
 
   var CREATE_MENU = [
@@ -684,13 +685,18 @@
     { href: './Chat.html', icon: 'bGroup', title: 'Group chat', sub: 'Start a chat with up to 3 characters' }
   ]
 
-  /* 当前页面对应的底栏高亮项（只有 5 格里的 4 个页面会高亮） */
-  function activeBottomKey() {
+  /* 当前页面对应的底栏高亮项（参考站：当前页那一格用激活版图标） */
+  function activeBottomKey(signedIn) {
     var p = (location.pathname || '').toLowerCase()
     if (/\/home\.html$/.test(p)) return 'home'
     if (/shorts\.html$/.test(p)) return 'shorts'
     if (/chat\.html$/.test(p)) return 'chat'
     if (/purchasepoints\.html$|\/tokens\.html$/.test(p)) return 'tokens'
+    /* Subscriptions 是会员/代币充值页：登录态对应第 5 格 Tokens，未登录对应 Premium 格 */
+    if (/\/subscriptions\.html$/.test(p)) return signedIn ? 'tokens' : 'premium'
+    if (/\/girls\.html$/.test(p)) return 'explore'
+    if (/\/image\.html$/.test(p)) return 'generate'
+    if (/\/characters\.html$/.test(p)) return 'create'
     return ''
   }
 
@@ -702,6 +708,16 @@
       return '<button type="button" class="fy-bnav-item fy-bnav-create" data-fy-createmenu-open aria-haspopup="dialog">' +
         '<img alt="' + esc(item.label) + '" src="' + I[icon].src + '">' +
         '<span class="fy-bnav-label">' + esc(item.label) + '</span></button>'
+    }
+    /* Premium 格：金色渐变底 + 左右两颗小星（照参考站底栏 Premium 页签） */
+    if (item.premium) {
+      return '<a class="' + cls + '" href="' + item.href + '">' +
+        '<span class="fy-bnav-premium">' +
+        '<img class="fy-bnav-star fy-bnav-star-l" alt="" src="' + I.bPremiumStar.src + '">' +
+        '<img class="fy-bnav-star fy-bnav-star-r" alt="" src="' + I.bPremiumStar.src + '">' +
+        '<img alt="' + esc(item.label) + '" src="' + I[icon].src + '">' +
+        '</span>' +
+        '<span class="fy-bnav-label">' + esc(item.label) + '</span></a>'
     }
     return '<a class="' + cls + '" href="' + item.href + '">' +
       '<img alt="' + esc(item.label) + '" src="' + I[icon].src + '">' +
@@ -760,7 +776,7 @@
       document.body.appendChild(bar)
     }
 
-    var key = activeBottomKey()
+    var key = activeBottomKey(signedIn)
     var items = signedIn ? BOTTOM_AUTH : BOTTOM_GUEST
     bar.className = 'fy-bnav'
     bar.setAttribute('data-variant', signedIn ? 'auth' : 'guest')
