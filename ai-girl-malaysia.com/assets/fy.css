@@ -337,6 +337,11 @@ body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
 .fy-bnav-label{margin-top:4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:1;color:#A1A1A1;}
 .fy-bnav-item.is-active .fy-bnav-label{color:var(--primary-color,#F97187);}
 .fy-bnav-create{display:flex;flex-direction:column;align-items:center;min-width:0;padding:0;border:0;background:transparent;background-image:none;font:inherit;cursor:pointer;}
+.fy-bnav-premium{position:relative;display:flex;align-items:center;justify-content:center;width:64px;height:48px;padding-top:2px;border-radius:10px;background:linear-gradient(to top,#5B4514 2%,rgba(91,69,20,0) 98%);}
+.fy-bnav-premium>img{width:24px;height:24px;flex:0 0 auto;}
+.fy-bnav-star,.fy-bnav-premium>img.fy-bnav-star{position:absolute;top:1px;width:10px;height:10px;}
+.fy-bnav-star-l{left:8px;}
+.fy-bnav-star-r{right:8px;transform:scaleX(-1);}
 @media (min-width:1024px){.fy-bnav{display:none !important;}}
 
 /* Create 底部面板（照参考站 create-menu 面板：位置/圆角/渐变/动效一致） */
