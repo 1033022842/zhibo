@@ -431,7 +431,7 @@
     return row('./Home.html#install-app', 'appdl', 'Get Candy.ai app') +
       row('./Subscriptions.html', 'premium', 'Subscription') +
       row('./purchasePoints.html', 'coin', 'Tokens') +
-      row('./Financial.html', 'banknote', 'Financial details') +
+      row('./Withdrawal.html', 'banknote', 'Withdraw') +
       row('./Inviter.html', 'gift', 'Get 100 tokens') +
       row('./setting.html', 'settings', 'Settings') +
       '<form method="post" onsubmit="return false">' +
