@@ -2644,6 +2644,7 @@
 
 
 
+
     <div class="mt-6 min-[780px]:hidden" data-subscription-social-proof>
   <h3 class="text-center text-[24px] font-bold leading-[34px] text-white">
     What users are saying
@@ -2990,6 +2991,48 @@
           </p>
         </article>
     </div>
+
+    <div
+      class="
+        pointer-events-none absolute inset-y-0 left-0 w-[72px] opacity-0 transition-opacity duration-200
+        bg-gradient-to-r from-black-default via-black-default/90 to-transparent
+      "
+      data-scroll-fade-target="leftFade"
+    ></div>
+
+    <button
+      type="button"
+      class="
+        absolute left-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center
+        rounded-full border border-white/80 bg-black-dark/55 text-white opacity-0 shadow-lg
+        backdrop-blur-sm transition-opacity duration-200 hover:bg-black-dark/75
+      "
+      data-scroll-fade-target="leftButton"
+      aria-label="Show previous customer reviews"
+    >
+      <span class="text-[28px] leading-none -translate-y-px">&#8249;</span>
+    </button>
+
+    <div
+      class="
+        pointer-events-none absolute inset-y-0 right-0 w-[120px] opacity-0 transition-opacity duration-200
+        bg-gradient-to-l from-black-default via-black-default/90 to-transparent
+      "
+      data-scroll-fade-target="rightFade"
+    ></div>
+
+    <button
+      type="button"
+      class="
+        absolute right-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center
+        rounded-full border border-white/80 bg-black-dark/55 text-white opacity-0 shadow-lg
+        backdrop-blur-sm transition-opacity duration-200 hover:bg-black-dark/75
+      "
+      data-scroll-fade-target="rightButton"
+      aria-label="Show more customer reviews"
+    >
+      <span class="text-[28px] leading-none -translate-y-px">&#8250;</span>
+    </button>
   </div>
 
   <div
@@ -3013,6 +3056,23 @@
     </div>
   </div>
 </div>
+
+<style>
+/* 评价行桌面端的左右遮罩 + 翻页圆箭头（参考页由 scroll-fade 控制器生成）。
+   部分页面的 Tailwind 构建没编译 candy 那套类，这里按参考页取值兜底，保证控件一定可见可用。 */
+[data-subscription-social-proof] [data-scroll-fade-target="leftFade"],
+[data-subscription-social-proof] [data-scroll-fade-target="rightFade"]{position:absolute;top:0;bottom:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .2s;}
+[data-subscription-social-proof] [data-scroll-fade-target="leftFade"]{left:0;width:72px;background-image:linear-gradient(to right,#0B0B0B 0%,rgba(11,11,11,.9) 55%,rgba(11,11,11,0) 100%);}
+[data-subscription-social-proof] [data-scroll-fade-target="rightFade"]{right:0;width:120px;background-image:linear-gradient(to left,#0B0B0B 0%,rgba(11,11,11,.9) 55%,rgba(11,11,11,0) 100%);}
+[data-subscription-social-proof] [data-scroll-fade-target="leftButton"],
+[data-subscription-social-proof] [data-scroll-fade-target="rightButton"]{position:absolute;top:50%;z-index:10;display:flex;align-items:center;justify-content:center;width:36px;height:36px;transform:translateY(-50%);border:1px solid rgba(255,255,255,.8);border-radius:9999px;background:rgba(0,0,0,.55);color:#fff;opacity:0;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);transition:opacity .2s,background-color .2s;cursor:pointer;}
+[data-subscription-social-proof] [data-scroll-fade-target="leftButton"]{left:12px;}
+[data-subscription-social-proof] [data-scroll-fade-target="rightButton"]{right:12px;}
+[data-subscription-social-proof] [data-scroll-fade-target="leftButton"]:hover,
+[data-subscription-social-proof] [data-scroll-fade-target="rightButton"]:hover{background:rgba(0,0,0,.75);}
+[data-subscription-social-proof] [data-scroll-fade-target="leftButton"] span,
+[data-subscription-social-proof] [data-scroll-fade-target="rightButton"] span{font-size:28px;line-height:1;transform:translateY(-1px);}
+</style>
 
     <div class="
         mt-8 flex flex-col items-start gap-[18px] min-[780px]:flex-row
@@ -3074,4 +3134,5 @@
     
 
     <script src="./js/promo-popup.js?v=20260929a"></script>
+<script src="./js/subscriptions-reviews.js?v=20260930a"></script>
 </body></html>
