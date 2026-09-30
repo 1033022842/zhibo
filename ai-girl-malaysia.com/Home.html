@@ -25,7 +25,7 @@
 
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
-		<script src="./js/main.js?v=20260930g"></script>
+		<script src="./js/main.js?v=20260930h"></script>
 		<script src="./js/shell-new.js?v=20260930f"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20260920"></script>
@@ -265,6 +265,14 @@
 			@media (min-width:1024px){
 				.c-footer-inner{flex-direction:row;gap:86px}
 			}
+			@media (max-width:767px){
+				/* 轮播紧贴固定顶栏：main 的 mt-[105px] 是按「顶栏 64px + 旧横幅 41px」写的，
+				   现在横幅走 body padding-top，这 41px 加上 .c-home 24px 与轮播 28px 会在轮播上方
+				   露出 93px 页面底色（黑色空白），这里三项一起归零 */
+				main[class~="mt-[105px]"]{margin-top:64px}
+				.c-home{padding-top:0}
+				.c-hero-wrap{margin-top:0}
+			}
 			@media (max-width:768px){
 				.c-hero{height:200px}
 				/* 手机端轮播只有 200px 高，原来的 240px 遮罩会把整张图压暗到看不清，这里收短放淡 */
@@ -358,7 +366,8 @@
 <meta property="og:image" content="/ai/sugus-wordmark@2x.png">
     <script src="./js/ui-dialog.js?v=20260928d"></script>
     <script src="./js/watch-dialog.js?v=20260917"></script>
-    </head>
+    <script src="./js/tracking.js?v=20260930h"></script>
+</head>
 	<body class="bg-main pages home" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
 
 		<!-- ===== 移动端：顶部「安装 App」提示条（添加到主屏幕，无需下载） ===== -->
