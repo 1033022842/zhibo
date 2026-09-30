@@ -51,6 +51,20 @@ final class Shorts extends BaseController
             $section = '';
         }
 
+        // owned=1：只返回当前用户已付费解锁过剧集的短剧（首页「我已解锁」栏）
+        $owned = (string) $this->request->get('owned', '') === '1';
+        $ownedCounts = [];
+        if ($owned) {
+            $userId = $this->optionalAuthUserId();
+            if ($userId <= 0) {
+                return $this->jsonSuccess(['list' => []]);
+            }
+            $ownedCounts = $this->ownedEpisodeCounts($userId);
+            if (!$ownedCounts) {
+                return $this->jsonSuccess(['list' => []]);
+            }
+        }
+
         $rows = $this->table()->table('lp_short_item')
             ->where('status', 1)
             ->field(self::FIELDS);
@@ -59,6 +73,10 @@ final class Shorts extends BaseController
             $rows = $rows->where('section', 'private');
         } else {
             $rows = $rows->where('section', '<>', 'private');
+        }
+
+        if ($owned) {
+            $rows = $rows->whereIn('id', array_keys($ownedCounts));
         }
 
         $rows = $rows
@@ -76,7 +94,12 @@ final class Shorts extends BaseController
 
         $list = [];
         foreach ($rows as $row) {
-            $list[] = $this->formatItem($row, $stats[(int) $row['id']] ?? null);
+            $item = $this->formatItem($row, $stats[(int) $row['id']] ?? null);
+            if ($owned) {
+                // 该剧已解锁的集数，前台卡片用「Owned N」
+                $item['owned_episodes'] = $ownedCounts[(int) $row['id']] ?? 0;
+            }
+            $list[] = $item;
         }
 
         return $this->jsonSuccess(['list' => $list]);
@@ -253,6 +276,36 @@ final class Shorts extends BaseController
             $set[(int) $row['item_id']] = true;
         }
         return $set;
+    }
+
+    /**
+     * 当前用户已解锁剧集数：按短剧聚合
+     * （lp_user_item.item_id 存的是剧集 id，item_type = 'short'）
+     *
+     * @return array<int,int> short_id => 已解锁集数
+     */
+    private function ownedEpisodeCounts(int $userId): array
+    {
+        $episodeIds = $this->table()->table('lp_user_item')
+            ->where('user_id', $userId)
+            ->where('item_type', 'short')
+            ->column('item_id');
+        if (!$episodeIds) {
+            return [];
+        }
+
+        $rows = $this->table()->table('lp_short_episode')
+            ->whereIn('id', array_map('intval', $episodeIds))
+            ->field('short_id, COUNT(*) AS c')
+            ->group('short_id')
+            ->select()
+            ->toArray();
+
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(int) $row['short_id']] = (int) $row['c'];
+        }
+        return $out;
     }
 
     /**
