@@ -132,33 +132,9 @@
 			.c-row.fade-left.fade-right,.c-chips.fade-left.fade-right{
 				-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%);
 				mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%)}
-						/* 分类 Tab（candy.ai 式：Girls / Anime / Guys，顶栏 logo 后；移动端单独一行） */
-			.c-tabs-h{align-items:center;gap:8px;margin-left:14px}
-			.c-tab{flex:0 0 auto;height:34px;padding:0 16px;border-radius:9999px;border:1.5px solid rgba(255,255,255,.16);
-				background:#202020;color:#c9c9c9;font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;
-				display:inline-flex;align-items:center;gap:6px;transition:all .18s ease}
-			.c-tab:hover{border-color:rgba(255,255,255,.34);color:#fff}
-			/* 移动端：logo 旁的分类下拉箭头 + 顶栏下滑面板 */
-			.c-cat-dd-btn{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 12px;margin-left:8px;
-				border-radius:9999px;border:1.5px solid rgba(255,255,255,.16);background:#202020;color:#e5e5e5;
-				font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:border-color .18s ease}
-			.c-cat-dd-btn:active{transform:scale(.97)}
-			/* 桌面端强制隐藏移动端下拉（内联样式在后会覆盖外链 CSS 的 sm:hidden，这里显式兜底） */
-			@media (min-width:640px){
-				.c-cat-dd-btn,#catDdPanel{display:none !important}
-			}
-			.c-cat-dd-btn svg{width:14px;height:14px;transition:transform .2s ease}
-			.c-cat-dd-btn.open svg{transform:rotate(180deg)}
-			.c-cat-dd-panel{display:none;position:absolute;top:100%;left:150px;width:max-content;min-width:96px;max-width:calc(100vw - 162px);z-index:39;
-				flex-direction:column;gap:2px;padding:5px;background:#0b0b0b;border:1px solid rgba(255,255,255,.16);border-radius:10px;
-				box-shadow:0 16px 40px rgba(0,0,0,.65);transform:translateY(-6px);opacity:0;transition:transform .16s ease,opacity .16s ease}
-			.c-cat-dd-panel.open{display:flex;transform:translateY(0);opacity:1}
-			.c-dd-item{display:flex;align-items:center;height:34px;padding:0 12px;
-				border-radius:7px;border:none;background:transparent;color:#fff;
-				font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer}
-			.c-tab.active{background:linear-gradient(135deg,#fc768a,#e65073);border-color:transparent;color:#fff;
-				box-shadow:0 4px 14px rgba(231,82,117,.35)}
-			@media (min-width:1024px){.c-tab{height:38px;padding:0 20px;font-size:14px}}
+			/* 顶栏分类栏（照 candy.ai 原版 #head-btn-group：PC 内联在 logo 后，手机端顶栏下方整条深色栏） */
+			.head-btn.active{border-bottom-color:#F97187}
+			.head-btn.active .text-white{color:#F97187}
 
 			/* 滚动箭头：标题行 / chips 行 / 卡片行 */
 			.c-arrow{width:24px;height:24px;padding:0;border:none;background:transparent;color:var(--h-grey);cursor:pointer;
@@ -510,18 +486,43 @@
 			<a href="./Home.html">
 				<img src="sugus-wordmark.png" class="h-[30px] md:h-[30px] w-[115px]">
 			</a>
-			<!-- 移动端：分类下拉箭头（点开在顶栏下滑出分类菜单） -->
-			<button id="catDdBtn" type="button" class="c-cat-dd-btn sm:hidden" aria-expanded="false" aria-controls="catDdPanel">
-				<span id="catDdLabel">Girls</span>
-				<svg id="catDdChev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-			</button>
-			<!-- 分类 Tab：Girls / Anime / Guys（candy.ai 式，logo 后） -->
-			<div class="c-tabs c-tabs-h hidden sm:flex" role="tablist">
-				<button class="c-tab active" type="button" data-cat="girls">Girls</button>
-				<button class="c-tab" type="button" data-cat="anime">Anime</button>
-				<button class="c-tab" type="button" data-cat="guys">Guys</button>
-			</div>
+			<!-- Separator -->
 			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
+			<!-- 分类栏（照 candy.ai 原版 #head-btn-group：PC 内联在 logo 后，手机端顶栏下方整条深色栏、带图标） -->
+			<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
+				<button type="button" data-cat="girls" class="head-btn active w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group">
+					<div class="flex items-center">
+						<div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+								<path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+							</svg>
+						</div>
+						<div class="text-white text-[13px] font-semibold leading-normal">Girls</div>
+					</div>
+				</button>
+				<button type="button" data-cat="anime" class="head-btn w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group">
+					<div class="flex items-center">
+						<div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none">
+								<path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path>
+							</svg>
+						</div>
+						<div class="text-white text-[13px] font-semibold leading-normal">Anime</div>
+					</div>
+				</button>
+				<button type="button" data-cat="guys" class="head-btn w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group">
+					<div class="flex items-center">
+						<div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+								<path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+								<path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+								<path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>
+							</svg>
+						</div>
+						<div class="text-white text-[13px] font-semibold leading-normal">Guys</div>
+					</div>
+				</button>
+			</div>
 
 			<!-- 未登录：注册 / 登录（与其它页面同一层结构：flex-1 撑开把按钮推到右侧） -->
 			<div class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">
@@ -542,17 +543,11 @@
 			</div>
 			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js 渲染成新版导航形态） -->
 			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main"></div>
-			<!-- 移动端分类下拉面板（absolute 贴 header 底沿，header 在哪它就在哪） -->
-			<div id="catDdPanel" class="c-cat-dd-panel sm:hidden" role="menu">
-				<button class="c-dd-item active" type="button" data-cat="girls">Girls</button>
-				<button class="c-dd-item" type="button" data-cat="anime">Anime</button>
-				<button class="c-dd-item" type="button" data-cat="guys">Guys</button>
-			</div>
 		</div>
 
 		<!-- ===== 主内容区 ===== -->
 		<div class="main-content-container" data-main-target="contentContainer">
-			<main class="ml-0 lg:ml-[100px] mt-3 md:mt-16 lg:mb-0 mb-[76px] h-full">
+			<main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
 				<div class="c-home">
 
 					<!-- Hero 轮播：只展示图片，点击整张图跳转（图片与链接由后台「首页轮播图」维护） -->
