@@ -14,6 +14,10 @@
             }
             .login-pf{display:none;}
             #user-login{display:none;}
+
+    /* 顶栏分类栏（照 candy.ai 原版 #head-btn-group）：当前分类高亮（底部粉条 + 粉字） */
+    .head-btn.active{border-bottom-color:#F97187;}
+    .head-btn.active .text-white{color:#F97187;}
     
     @media only screen and ((min-width: 1024px)){
         .van-popover--light{
