@@ -18,7 +18,7 @@
 
 		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
 
-		<link rel="stylesheet" href="./assets/fy.css?v=20260929m" data-turbo-track="reload">
+		<link rel="stylesheet" href="./assets/fy.css?v=20260930b" data-turbo-track="reload">
 		<link rel="stylesheet" href="./Girls_files/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
 		<script src="./Girls_files/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
 		<script src="./Girls_files/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
@@ -26,7 +26,7 @@
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20260928d"></script>
-		<script src="./js/shell-new.js?v=20260929l"></script>
+		<script src="./js/shell-new.js?v=20260930b"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20260920"></script>
 
@@ -545,7 +545,7 @@
 
 		<!-- ===== 主内容区 ===== -->
 		<div class="main-content-container" data-main-target="contentContainer">
-			<main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
+			<turbo-frame id="main-content-frame"><main class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[76px] h-full">
 				<div class="c-home">
 
 					<!-- Hero 轮播：只展示图片，点击整张图跳转（图片与链接由后台「首页轮播图」维护） -->
@@ -680,6 +680,27 @@
 						</div>
 					</section>
 
+					<!-- My Unlocked Shorts 已购短剧栏：仅展示当前用户已付费解锁过剧集的短剧（数据 /api/live/shorts?owned=1） -->
+					<section class="c-shelf" id="ownedShortsShelf" style="display:none">
+						<div class="c-shelf-head">
+							<h2 class="c-shelf-title"><em>My</em> Unlocked Shorts</h2>
+							<button class="c-arrow c-title-arrow" type="button" data-scroll="next" aria-label="Scroll right">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
+						</div>
+						<div class="c-row-wrap">
+							<div class="c-row" data-row>
+								<ul class="c-row-grid c-row-grid-short" id="ownedShortsGrid"></ul>
+							</div>
+							<button class="c-row-arrow left" type="button" data-scroll="prev" aria-label="Scroll left">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+							</button>
+							<button class="c-row-arrow right" type="button" data-scroll="next" aria-label="Scroll right">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
+						</div>
+					</section>
+
 					<!-- FAQ -->
 					<section class="c-faq">
 						<h2><span>Sugus.ai </span>FAQ</h2>
@@ -788,7 +809,7 @@
 					</footer>
 
 				</div>
-			</main>
+			</main></turbo-frame>
 		</div>
 
 		<!-- ===== 移动端底部导航 ===== -->
@@ -1547,11 +1568,58 @@
 				initShelf(sec)
 			}
 
+			/* ---------- My Unlocked Shorts 已购短剧栏（登录用户 · 已付费解锁过剧集的短剧） ---------- */
+			var ownedShorts = []
+			function loadOwnedShorts() {
+				if (!privToken()) { renderOwnedShorts(); return }
+				fetch('/api/live/shorts?owned=1', { headers: privHeaders() })
+					.then(function (r) { return r.json() })
+					.then(function (d) {
+						ownedShorts = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+						ownedShorts.forEach(function (s) { shortsById[String(s.id)] = s })
+						renderOwnedShorts()
+					})
+					.catch(function () { renderOwnedShorts() })
+			}
+			function ownedShortCardHtml(s) {
+				var poster = s.poster
+					? '<img class="cover" src="' + esc(fixUrl(s.poster)) + '" alt="' + esc(s.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'
+					: ''
+				var playSvg = '<svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>'
+				var n = parseInt(s.owned_episodes, 10) || 0
+				var badge = '<span class="c-card-badge">' + playSvg + 'Owned' + (n ? ' ' + n : '') + '</span>'
+				var total = parseInt(s.episode_count, 10) || 0
+				var eps = total ? total + (total > 1 ? ' Episodes' : ' Episode') : ''
+				var meta = eps ? '<div class="c-s-meta"><span class="c-s-eps">' + esc(eps) + '</span></div>' : ''
+				return '<li><a class="c-card c-card-short" draggable="false" data-short-id="' + esc(s.id) + '" href="javascript:void(0)" aria-label="' + esc(s.title) + '">' +
+					poster +
+					'<div class="c-card-scrim"></div>' +
+					badge +
+					'<div class="c-card-info">' +
+						'<div class="c-card-name"><b title="' + esc(s.title) + '">' + esc(s.title) + '</b></div>' +
+						meta +
+					'</div>' +
+				'</a></li>'
+			}
+			function renderOwnedShorts() {
+				var sec = document.getElementById('ownedShortsShelf')
+				var grid = document.getElementById('ownedShortsGrid')
+				if (!sec || !grid) return
+				var show = ownedShorts.length > 0
+				sec.style.display = show ? '' : 'none'
+				if (!show) return
+				grid.innerHTML = ownedShorts.map(ownedShortCardHtml).join('')
+				initShelf(sec)
+			}
+
 			// 短剧栏独立加载（有数据才显示）
 			loadJson('/api/live/shorts?limit=24').then(function(d) {
 				var list = (d && d.code === '00000' && d.data && d.data.list) || []
 				renderShorts(list)
 			})
+
+			// My Unlocked Shorts：已购私密短剧（登录用户，独立于会员状态）
+			loadOwnedShorts()
 		})();
 		</script>
 	<script>
