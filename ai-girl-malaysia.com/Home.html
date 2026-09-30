@@ -318,6 +318,12 @@
 				.c-footer-bottom{padding-bottom:88px}
 			}
 
+			/* 移动端底部导航 Premium 项：金色渐变底 + 左右两颗小星（对齐参考页 index44） */
+			.c-nav-premium{position:relative;display:flex;align-items:center;justify-content:center;width:64px;height:48px;padding-top:2px;border-radius:10px;background:linear-gradient(to top,#5B4514 2%,rgba(91,69,20,0) 98%)}
+			.c-nav-star{position:absolute;top:1px;width:10px;height:10px}
+			.c-nav-star-l{left:8px}
+			.c-nav-star-r{right:8px;transform:scaleX(-1)}
+
 			/* ---------- 移动端：顶部「安装 App（添加到主屏幕）」提示条 ---------- */
 			.c-appdl{display:none}
 			.c-appdl-icon{flex:0 0 auto;width:34px;height:34px;border-radius:9px;display:block;object-fit:cover;background:#1f1f1f}
@@ -825,7 +831,7 @@
 		<div>
 			<div class="flex px-5 py-2 justify-between w-full h-[70px] fixed bottom-0 z-50 border-t border-white border-opacity-20 bg-black-default lg:hidden">
 				<a href="./Home.html" class="flex flex-col items-center">
-					<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#F97187" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+					<img src="./tokens_files/home-active-3800812b352d1be9b9af117691cfab97a991dc10d1105e7be1774b832c7b8530.svg" class="w-6 h-6" alt="Home">
 					<span class="text-[#F97187] text-[10px] mt-1">Home</span>
 				</a>
 				<a href="./Girls.html" class="flex flex-col items-center">
@@ -841,7 +847,11 @@
 					<span class="text-[#A1A1A1] text-[10px] mt-1">Create</span>
 				</a>
 				<a href="./Subscriptions.html" class="flex flex-col items-center cursor-pointer">
-					<img src="./Girls_files/premium-bef4c0d01b6b99b6f2764cf40b755bd97debc307331857ca26f97628c6a38eec.svg">
+					<span class="c-nav-premium">
+						<img class="c-nav-star c-nav-star-l" src="./tokens_files/icon-513af0057e4b673067a8049311ea31fe24a74b04337db95bf10d618a16abcfb7.svg" alt="">
+						<img class="c-nav-star c-nav-star-r" src="./tokens_files/icon-513af0057e4b673067a8049311ea31fe24a74b04337db95bf10d618a16abcfb7.svg" alt="">
+						<img class="w-6 h-6" src="./tokens_files/premium-3fa8ec9f951178508109d03de202bc4a381ed87451b7dc9f8aa5a931bd485e02.svg" alt="Premium">
+					</span>
 					<span class="text-[#A1A1A1] text-[10px] mt-1">Premium</span>
 				</a>
 			</div>
