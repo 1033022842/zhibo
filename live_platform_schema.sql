@@ -356,7 +356,7 @@ CREATE TABLE `lp_ai_task` (
   `source_type` VARCHAR(32) NOT NULL COMMENT '来源类型:chat gift system',
   `source_ref_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '来源业务ID',
   `persona_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '人设ID',
-  `content` VARCHAR(1000) DEFAULT '' COMMENT '任务文本',
+  `content` TEXT COMMENT '任务文本（含定制视频预设结构化提示词，超 1000 字符）',
   `callback_mode` VARCHAR(32) NOT NULL DEFAULT 'file' COMMENT '回调模式:file stream',
   `status` VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT '任务状态',
   `worker_id` VARCHAR(64) DEFAULT '' COMMENT '处理客户端ID',

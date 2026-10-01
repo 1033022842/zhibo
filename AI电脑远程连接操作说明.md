@@ -257,9 +257,6 @@ ssh-keygen -R "[127.0.0.1]:12225"   # 隧道方式用
 
 **单例保护**：worker 绑定本地端口 47777，重复启动的进程自动退出（历史问题：计划任务+loop bat 叠加导致多进程抢任务）
 
-**图片编辑改自由提示词**：`type=image` 时前端传 `prompt`（3-500字），不再用固定服装预设。
-工作流 `qwenedit_api.json` 由同事的 `D:\工作流\qwenedit.json` 转换而来，**已移除 Remove-Clothes LoRA 及脱衣提示词**。
-
 **LoRA**：导演台串接 `soulmate_h3_v1.safetensors`（155MB，另存于 H3 models/loras），与 turbo LoRA 叠加使用。
 
 **运维**
