@@ -14,6 +14,9 @@ use GuzzleHttp\Client;
  *  - 下单  POST {gateway}/payment/create_order   返回 data.payurl 收银台地址
  *  - 查单  POST {gateway}/payment/query_order
  *  - 签名  非空字段按 key 升序拼成 k=v&k=v，末尾追加 &key=商户密钥，md5 后转大写
+ *
+ * 商户号下可开通多条收单通道（gcode），同一收银台上金额与费率一致、只差收单路由，
+ * 因此前台把通道平铺成多个支付按钮由用户自选，见 config('flowpay.channels')。
  */
 final class FlowPayService
 {
@@ -25,13 +28,32 @@ final class FlowPayService
     }
 
     /**
+     * 可行通道列表（gcode + 前台展示名），顺序即前台按钮顺序
+     *
+     * @return array<int, array{gcode:string, label:string}>
+     */
+    public function channels(): array
+    {
+        $out = [];
+        foreach ((array) ($this->cfg['channels'] ?? []) as $gcode => $label) {
+            $gcode = trim((string) $gcode);
+            if ($gcode === '') {
+                continue;
+            }
+            $label = trim((string) $label);
+            $out[] = ['gcode' => $gcode, 'label' => $label !== '' ? $label : $gcode];
+        }
+        return $out;
+    }
+
+    /**
      * 商户参数是否已配置齐全
      */
     public function enabled(): bool
     {
         return (string) $this->cfg['mchid'] !== ''
             && (string) $this->cfg['key'] !== ''
-            && (string) $this->cfg['gcode'] !== '';
+            && $this->defaultChannel() !== '';
     }
 
     /**
@@ -39,9 +61,10 @@ final class FlowPayService
      *
      * @param string $outTradeNo 商户订单号（10~50 位，唯一）
      * @param string $amount     下单金额（USD，保留两位小数）
+     * @param string $gcode      收单通道，留空走默认通道
      * @return array 网关业务参数：order_sn/out_trade_no/amount/truly_amount/payurl
      */
-    public function createOrder(string $outTradeNo, string $amount): array
+    public function createOrder(string $outTradeNo, string $amount, string $gcode = ''): array
     {
         return $this->request('/payment/create_order', [
             'mchid'        => (string) $this->cfg['mchid'],
@@ -49,7 +72,7 @@ final class FlowPayService
             'rand_str'     => $this->randStr(),
             'out_trade_no' => $outTradeNo,
             'amount'       => number_format((float) $amount, 2, '.', ''),
-            'gcode'        => (string) $this->cfg['gcode'],
+            'gcode'        => $this->resolveChannel($gcode),
             // 文档要求：notifyurl 参与签名和请求时都需要 URLENCODE
             'notifyurl'    => urlencode((string) $this->cfg['notify_url']),
         ]);
@@ -166,6 +189,53 @@ final class FlowPayService
         }
 
         return strtoupper(md5(implode('&', $parts) . '&key=' . (string) $this->cfg['key']));
+    }
+
+    /**
+     * 是否为已开通的通道
+     */
+    public function isChannel(string $gcode): bool
+    {
+        foreach ($this->channels() as $c) {
+            if ($c['gcode'] === $gcode) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 默认通道：.env 的 GCODE，未配置或不在 channels 里时取 channels 第一条
+     */
+    public function defaultChannel(): string
+    {
+        $channels = $this->channels();
+        if (!$channels) {
+            return '';
+        }
+        $configured = trim((string) $this->cfg['gcode']);
+        foreach ($channels as $c) {
+            if ($c['gcode'] === $configured) {
+                return $configured;
+            }
+        }
+        return $channels[0]['gcode'];
+    }
+
+    /**
+     * 归一化下单通道：留空走默认通道，传入未开通的 gcode 直接拒绝
+     * （避免前台传什么就用什么，把用户的钱打到陌生通道）
+     */
+    public function resolveChannel(string $gcode = ''): string
+    {
+        $gcode = trim($gcode);
+        if ($gcode === '') {
+            return $this->defaultChannel();
+        }
+        if (!$this->isChannel($gcode)) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '不支持的支付通道');
+        }
+        return $gcode;
     }
 
     /**

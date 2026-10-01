@@ -13,14 +13,128 @@ use think\facade\Log;
 final class RechargeService
 {
     /**
-     * 可用渠道列表
+     * 支持的币种/链（后台「充值渠道」type 的可选值，全部走后台配置，不接三方加密货币收单）
+     *
+     *  - pegged=true ：1 币 ≈ 1 美元，应付金额直接等于 USD 金额（USDT/USDC/DAI/TUSD 这类稳定币）
+     *  - pegged=false：按后台 lp_platform_config 的 <type>_usd_rate 折算，精度取 decimals
+     *  - scan=true   ：已有链上自动到账任务（recharge:scan 处理 usdt_trc20，recharge:scan-eth 处理 eth）；
+     *                  其余币种没有扫链实现，即使后台勾了「自动」也会退化成人工审核，避免订单永远不到账
+     */
+    public const COINS = [
+        // 稳定币 / 多链（1:1 美元）
+        'usdt_trc20'    => ['label' => 'USDT · TRON (TRC-20)',    'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'TRON (TRC-20)',   'scan' => true],
+        'usdt_erc20'    => ['label' => 'USDT · Ethereum (ERC-20)', 'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'Ethereum (ERC-20)', 'scan' => false],
+        'usdt_bep20'    => ['label' => 'USDT · BNB Chain (BEP-20)', 'unit' => 'USDT', 'decimals' => 2, 'pegged' => true, 'chain' => 'BNB Chain (BEP-20)', 'scan' => false],
+        'usdt_polygon'  => ['label' => 'USDT · Polygon',          'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'Polygon',         'scan' => false],
+        'usdt_sol'      => ['label' => 'USDT · Solana',           'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'Solana',          'scan' => false],
+        'usdc_erc20'    => ['label' => 'USDC · Ethereum (ERC-20)', 'unit' => 'USDC', 'decimals' => 2, 'pegged' => true, 'chain' => 'Ethereum (ERC-20)', 'scan' => false],
+        'usdc_sol'      => ['label' => 'USDC · Solana',           'unit' => 'USDC', 'decimals' => 2, 'pegged' => true,  'chain' => 'Solana',          'scan' => false],
+        'dai_erc20'     => ['label' => 'DAI · Ethereum (ERC-20)', 'unit' => 'DAI',  'decimals' => 2, 'pegged' => true,  'chain' => 'Ethereum (ERC-20)', 'scan' => false],
+        'tusd_erc20'    => ['label' => 'TUSD · Ethereum (ERC-20)', 'unit' => 'TUSD', 'decimals' => 2, 'pegged' => true, 'chain' => 'Ethereum (ERC-20)', 'scan' => false],
+        // 主流币（按后台汇率折算）
+        'btc'           => ['label' => 'BTC · Bitcoin',           'unit' => 'BTC',  'decimals' => 8, 'pegged' => false, 'chain' => 'Bitcoin',         'scan' => false],
+        'ltc'           => ['label' => 'LTC · Litecoin',          'unit' => 'LTC',  'decimals' => 8, 'pegged' => false, 'chain' => 'Litecoin',        'scan' => false],
+        'bch'           => ['label' => 'BCH · Bitcoin Cash',      'unit' => 'BCH',  'decimals' => 8, 'pegged' => false, 'chain' => 'Bitcoin Cash',    'scan' => false],
+        'doge'          => ['label' => 'DOGE · Dogecoin',         'unit' => 'DOGE', 'decimals' => 8, 'pegged' => false, 'chain' => 'Dogecoin',        'scan' => false],
+        // 公链原生币
+        'eth'           => ['label' => 'ETH · Ethereum',          'unit' => 'ETH',  'decimals' => 8, 'pegged' => false, 'chain' => 'Ethereum',        'scan' => true],
+        'trx'           => ['label' => 'TRX · TRON',              'unit' => 'TRX',  'decimals' => 6, 'pegged' => false, 'chain' => 'TRON',            'scan' => false],
+        'bnb'           => ['label' => 'BNB · BNB Chain',         'unit' => 'BNB',  'decimals' => 6, 'pegged' => false, 'chain' => 'BNB Chain',       'scan' => false],
+        'sol'           => ['label' => 'SOL · Solana',            'unit' => 'SOL',  'decimals' => 6, 'pegged' => false, 'chain' => 'Solana',          'scan' => false],
+        'ton'           => ['label' => 'TON · Toncoin',           'unit' => 'TON',  'decimals' => 6, 'pegged' => false, 'chain' => 'TON',             'scan' => false],
+        'xrp'           => ['label' => 'XRP · XRP Ledger',        'unit' => 'XRP',  'decimals' => 6, 'pegged' => false, 'chain' => 'XRP Ledger',      'scan' => false],
+    ];
+
+    /**
+     * 地址族：同族地址格式一致，校验规则共用（未登记的 type 不做格式校验）
+     */
+    private const ADDR_FAMILY = [
+        'usdt_trc20' => 'tron',   'trx' => 'tron',
+        'usdt_erc20' => 'evm',    'usdt_bep20' => 'evm', 'usdt_polygon' => 'evm',
+        'usdc_erc20' => 'evm',    'dai_erc20' => 'evm',  'tusd_erc20' => 'evm',
+        'eth' => 'evm',           'bnb' => 'evm',
+        'usdt_sol' => 'solana',   'usdc_sol' => 'solana', 'sol' => 'solana',
+        'btc' => 'bitcoin',       'ltc' => 'litecoin',    'bch' => 'bitcoincash',
+        'doge' => 'dogecoin',     'xrp' => 'xrp',         'ton' => 'ton',
+    ];
+
+    /**
+     * 币种规格：type 不在白名单里（后台选「其他」）时，用渠道名当币种代号，按稳定币处理
+     *
+     * @param array|object $channel 渠道数组或渠道模型（后台列表拿到的就是模型对象）
+     */
+    public static function specOf($channel): array
+    {
+        $channel = self::toRow($channel);
+        $type = (string) ($channel['type'] ?? '');
+        if (isset(self::COINS[$type])) {
+            return self::COINS[$type];
+        }
+
+        $name = trim((string) ($channel['name'] ?? ''));
+        // 渠道名形如「USDT (TRC-20)」，取第一个词当币种代号
+        $unit = strtoupper((string) preg_split('/[\s(（·\/|-]+/u', $name)[0]);
+        $unit = preg_replace('/[^A-Z0-9]/', '', $unit) ?: 'COIN';
+
+        return [
+            'label'    => $name !== '' ? $name : $type,
+            'unit'     => $unit,
+            'decimals' => 2,
+            'pegged'   => true,
+            'chain'    => $name !== '' ? $name : $type,
+            'scan'     => false,
+        ];
+    }
+
+    /**
+     * 可用渠道列表（附币种规格，前端不再靠渠道名猜币种/网络）
      */
     public function channels(): array
     {
-        return RechargeChannel::where('status', 1)
+        $rows = RechargeChannel::where('status', 1)
             ->order('sort', 'asc')
             ->select()
             ->toArray();
+
+        foreach ($rows as &$row) {
+            $spec            = self::specOf($row);
+            $row['unit']        = $spec['unit'];
+            $row['chain_label'] = $spec['chain'];
+            $row['decimals']    = $spec['decimals'];
+            $row['pegged']      = $spec['pegged'];
+            $row['scan']        = $spec['scan'];
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * 该渠道实际生效的确认方式：没扫链实现的币种一律按人工审核，
+     * 否则用户付了钱订单永远停在「待支付」，只能过期。
+     *
+     * @param array|object $channel
+     */
+    public static function effectiveConfirmMode($channel): string
+    {
+        $channel = self::toRow($channel);
+        $mode = (string) ($channel['confirm_mode'] ?? 'auto');
+        if ($mode === 'auto' && !self::specOf($channel)['scan']) {
+            return 'manual';
+        }
+        return $mode === 'manual' ? 'manual' : 'auto';
+    }
+
+    /** 渠道模型 / 数组统一成数组 */
+    private static function toRow($channel): array
+    {
+        if (is_array($channel)) {
+            return $channel;
+        }
+        if (is_object($channel) && method_exists($channel, 'toArray')) {
+            return $channel->toArray();
+        }
+        return (array) $channel;
     }
 
     /**
@@ -32,36 +146,25 @@ final class RechargeService
         if (!$channel || $channel->status != 1) {
             throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '充值渠道不可用');
         }
-        $type  = (string) $channel->type;
-        $isEth = $type === 'eth';
+        $row = $channel->toArray();
         if ($amount < (float)$channel->min_amount) {
-            throw new BusinessException(ResultCode::PARAM_ERROR, '最低充值 ' . $channel->min_amount . ($isEth ? ' USD' : ' USDT'));
+            throw new BusinessException(ResultCode::PARAM_ERROR, '最低充值 ' . $channel->min_amount . ' USD');
         }
 
         $orderNo = StrHelper::orderNo('RC');
         // 钻石按用户输入的整数基数计算（随机尾数仅作链上匹配标识）
         $diamondAmount = bcmul((string)floor($amount), (string)$channel->diamond_rate, 2);
 
-        $confirmMode = (string)($channel->confirm_mode ?? 'auto');
-        if ($confirmMode === 'auto') {
-            $payAmount = $isEth
-                ? $this->uniqueEthPayAmount($amount, $channelId)
-                : $this->uniquePayAmount(floor($amount), $channelId);
-            $expireAt = date('Y-m-d H:i:s', time() + 7200);
-        } else {
-            // 人工审核：ETH 按当前汇率折算，不带识别尾数
-            $payAmount = $isEth
-                ? number_format((float)$this->usdToEth($amount), 8, '.', '')
-                : number_format($amount, 2, '.', '');
-            $expireAt = date('Y-m-d H:i:s', time() + 86400);
-        }
+        $confirmMode = self::effectiveConfirmMode($row);
+        $payAmount   = $this->channelPayAmount($row, $amount, $confirmMode, $channelId, false);
+        $expireAt    = date('Y-m-d H:i:s', time() + ($confirmMode === 'auto' ? 7200 : 86400));
 
         $order = [
             'order_no'       => $orderNo,
             'user_id'        => $userId,
             'pay_channel'    => $channel->type,
             'channel_id'     => $channelId,
-            'chain_type'     => $isEth ? 'ETH' : 'TRC20',
+            'chain_type'     => (string) $channel->type === 'eth' ? 'ETH' : ((string) $channel->type === 'usdt_trc20' ? 'TRC20' : strtoupper((string) $channel->type)),
             'pay_amount'     => $payAmount,
             'diamond_amount' => $diamondAmount,
             'proof_image'    => $proofImage,
@@ -74,6 +177,45 @@ final class RechargeService
         Db::connect('live_mysql')->table('lp_recharge_order')->insert($order);
 
         return array_merge($order, ['channel' => $channel->toArray()]);
+    }
+
+    /**
+     * 渠道应付金额
+     *
+     * 自动确认（仅 usdt_trc20 / eth 有扫链实现）带唯一尾数，扫链按金额精确匹配；
+     * 人工审核不带尾数：稳定币直接用 USD 金额，其它币按后台汇率折算到该币精度。
+     *
+     * @param bool $vip 会员订单优先用原价当匹配标识（同金额才退化），充钻订单直接带随机尾数
+     */
+    private function channelPayAmount(array $channel, float $usd, string $confirmMode, int $channelId, bool $vip): string
+    {
+        $spec = self::specOf($channel);
+        $type = (string) ($channel['type'] ?? '');
+
+        if ($confirmMode === 'auto') {
+            if ($type === 'eth') {
+                return $this->uniqueEthPayAmount($usd, $channelId);
+            }
+            return $vip ? $this->vipPayAmount($usd, $channelId) : $this->uniquePayAmount(floor($usd), $channelId);
+        }
+
+        if ($spec['pegged']) {
+            return number_format($usd, 2, '.', '');
+        }
+
+        return $this->usdToCoin($usd, $type, $spec);
+    }
+
+    /**
+     * USD → 币：按后台 lp_platform_config 的 <type>_usd_rate 折算，保留该币精度
+     */
+    private function usdToCoin(float $usd, string $type, array $spec): string
+    {
+        $rate = (float) WalletService::config($type . '_usd_rate', '0');
+        if ($rate <= 0) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '后台未配置 ' . $spec['unit'] . ' 兑 USD 价格，请联系客服');
+        }
+        return number_format($usd / $rate, (int) $spec['decimals'], '.', '');
     }
 
     /**
@@ -104,16 +246,34 @@ final class RechargeService
                 'updated_at'     => $now,
             ]);
 
-            // 给用户加钻
-            $userId = (int)$order['user_id'];
-            $amount = (float)$order['diamond_amount'];
-            $this->creditDiamond($db, $userId, $amount, (int)$order['id']);
+            // 结算：订阅单开通/顺延会员，充值单加钻（与网关回调、链上自动确认同一套口径）
+            $this->settleOrder($db, $order, $remark !== '' ? $remark : '管理员审核充值');
 
             $db->commit();
         } catch (\Exception $e) {
             $db->rollback();
             throw $e;
         }
+    }
+
+    /**
+     * 订单结算：biz_type=vip 开通会员，否则加钻
+     *
+     * 人工审核 / 链上自动确认 / 网关回调三条入账路径共用，避免某条路径漏开会员。
+     */
+    private function settleOrder($db, array $order, string $remark): void
+    {
+        if ((string) ($order['biz_type'] ?? 'coin') === 'vip') {
+            (new VipService())->activate(
+                (int) $order['user_id'],
+                (int) $order['vip_plan_id'],
+                (string) $order['order_no'],
+                (float) $order['pay_amount']
+            );
+            return;
+        }
+
+        $this->creditDiamond($db, (int) $order['user_id'], (float) $order['diamond_amount'], (int) $order['id'], $remark);
     }
 
     /**
@@ -181,6 +341,25 @@ final class RechargeService
             }
         }
         throw new BusinessException(ResultCode::SERVER_ERROR, '下单繁忙请稍后再试');
+    }
+
+    /**
+     * 会员订单的链上收款金额：优先就用套餐原价（金额本身就是识别标识），
+     * 只有该渠道已有同金额的待支付单时才退化成带随机尾数的唯一金额。
+     */
+    private function vipPayAmount(float $amount, int $channelId): string
+    {
+        $exact  = number_format($amount, 2, '.', '');
+        $exists = Db::connect('live_mysql')->table('lp_recharge_order')
+            ->where('channel_id', $channelId)
+            ->where('pay_amount', $exact)
+            ->where('status', 0)
+            ->where('expire_at', '>', date('Y-m-d H:i:s'))
+            ->count();
+        if (!$exists) {
+            return $exact;
+        }
+        return $this->uniquePayAmount($amount, $channelId);
     }
 
     /**
@@ -253,7 +432,8 @@ final class RechargeService
                 'updated_at'     => $now,
             ]);
 
-            $this->creditDiamond($db, (int)$order['user_id'], (float)$order['diamond_amount'], (int)$order['id'], $label);
+            // 结算：订阅单开通/顺延会员，充值单加钻
+            $this->settleOrder($db, $order, $label);
 
             $db->commit();
         } catch (\Exception $e) {
@@ -287,8 +467,10 @@ final class RechargeService
 
     /**
      * 网关下单（固定套餐）
+     *
+     * @param string $gcode FlowPay 收单通道（用户在前台自选），非 FlowPay 忽略
      */
-    public function submitPackageOrder(int $userId, int $packageId, string $product = '', string $gateway = 'starpay'): array
+    public function submitPackageOrder(int $userId, int $packageId, string $product = '', string $gateway = 'starpay', string $gcode = ''): array
     {
         $pkg = Db::connect('live_mysql')->table('lp_recharge_package')
             ->where('id', $packageId)->where('status', 1)->find();
@@ -299,7 +481,7 @@ final class RechargeService
         $tokens = (int) $pkg['tokens'];
         $amount = number_format((float) $pkg['price'], 2, '.', '');
         if ($gateway === 'flowpay') {
-            return $this->createFlowPayOrder($userId, $tokens, $amount, (int) $pkg['id']);
+            return $this->createFlowPayOrder($userId, $tokens, $amount, (int) $pkg['id'], [], $gcode);
         }
 
         return $this->createStarPayOrder($userId, $tokens, $amount, $product, (int) $pkg['id']);
@@ -347,12 +529,12 @@ final class RechargeService
     /**
      * 网关下单（自选点数）
      */
-    public function submitCustomOrder(int $userId, int $tokens, string $product = '', string $gateway = 'starpay'): array
+    public function submitCustomOrder(int $userId, int $tokens, string $product = '', string $gateway = 'starpay', string $gcode = ''): array
     {
         $quote = $this->quoteByTokens($tokens);
 
         if ($gateway === 'flowpay') {
-            return $this->createFlowPayOrder($userId, (int) $quote['tokens'], $quote['price'], null);
+            return $this->createFlowPayOrder($userId, (int) $quote['tokens'], $quote['price'], null, [], $gcode);
         }
 
         return $this->createStarPayOrder($userId, (int) $quote['tokens'], $quote['price'], $product, null);
@@ -363,12 +545,17 @@ final class RechargeService
      *
      * 与充值共用 lp_recharge_order（biz_type=vip 标记），回调时开通会员而非加钻
      */
-    public function submitVipOrder(int $userId, int $planId, string $product = '', string $gateway = 'starpay'): array
+    public function submitVipOrder(int $userId, int $planId, string $product = '', string $gateway = 'starpay', string $gcode = '', int $channelId = 0): array
     {
         $plan = Db::connect('live_mysql')->table('lp_vip_plan')
             ->where('id', $planId)->where('status', 1)->find();
         if (!$plan) {
             throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '会员套餐不存在或已下架');
+        }
+
+        // 链上收款渠道（后台 lp_recharge_channel）：站内收款页直接用渠道地址收款
+        if ($channelId > 0) {
+            return $this->submitVipOrderByChannel($userId, $plan, $channelId);
         }
 
         $amount = number_format((float) $plan['usd_price'], 2, '.', '');
@@ -378,7 +565,7 @@ final class RechargeService
         ];
 
         if ($gateway === 'flowpay') {
-            return $this->createFlowPayOrder($userId, 0, $amount, null, $opt);
+            return $this->createFlowPayOrder($userId, 0, $amount, null, $opt, $gcode);
         }
 
         $min = (float) config('starpay.min_amount');
@@ -388,6 +575,56 @@ final class RechargeService
         $opt['return_url'] = (string) config('starpay.return_url_vip');
 
         return $this->createStarPayOrder($userId, 0, $amount, $product, null, $opt);
+    }
+
+    /**
+     * 链上渠道下单（会员订阅）
+     *
+     * 与充值共用 lp_recharge_order（biz_type=vip）：扫链确认后开通会员而非加钻。
+     * 金额识别尾数与充值渠道保持一致（自动模式带唯一尾数，人工审核按原价）。
+     */
+    private function submitVipOrderByChannel(int $userId, array $plan, int $channelId): array
+    {
+        $channel = RechargeChannel::find($channelId);
+        if (!$channel || $channel->status != 1) {
+            throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '收款渠道不可用');
+        }
+
+        $amount = (float) $plan['usd_price'];
+        if ($amount < (float) $channel->min_amount) {
+            throw new BusinessException(
+                ResultCode::PARAM_ERROR,
+                '该套餐金额低于 ' . $channel->name . ' 的最低收款金额 ' . $channel->min_amount
+            );
+        }
+
+        $row         = $channel->toArray();
+        $type        = (string) $channel->type;
+        $confirmMode = self::effectiveConfirmMode($row);
+        $payAmount   = $this->channelPayAmount($row, $amount, $confirmMode, $channelId, true);
+        $expireAt    = date('Y-m-d H:i:s', time() + ($confirmMode === 'auto' ? 7200 : 86400));
+
+        $chainType = ['eth' => 'ETH', 'usdt_trc20' => 'TRC20'][$type] ?? strtoupper($type);
+        $now       = date('Y-m-d H:i:s');
+        $order     = [
+            'order_no'       => StrHelper::orderNo('RC'),
+            'user_id'        => $userId,
+            'pay_channel'    => $type,
+            'channel_id'     => $channelId,
+            'biz_type'       => 'vip',
+            'vip_plan_id'    => (int) $plan['id'],
+            'chain_type'     => $chainType,
+            'pay_amount'     => $payAmount,
+            'diamond_amount' => 0,
+            'proof_image'    => '',
+            'status'         => 0,
+            'expire_at'      => $expireAt,
+            'created_at'     => $now,
+            'updated_at'     => $now,
+        ];
+        Db::connect('live_mysql')->table('lp_recharge_order')->insert($order);
+
+        return array_merge($order, ['channel' => $channel->toArray()]);
     }
 
     /**
@@ -448,9 +685,10 @@ final class RechargeService
     /**
      * FlowPay 网关下单（收银台模式，返回 pay_url）
      *
-     * @param array $opt biz_type / vip_plan_id / return_url
+     * @param array  $opt   biz_type / vip_plan_id / return_url
+     * @param string $gcode 收单通道（前台用户自选），留空走默认通道
      */
-    private function createFlowPayOrder(int $userId, int $tokens, string $amount, ?int $packageId, array $opt = []): array
+    private function createFlowPayOrder(int $userId, int $tokens, string $amount, ?int $packageId, array $opt = [], string $gcode = ''): array
     {
         $db = Db::connect('live_mysql');
         $flowPay = new FlowPayService();
@@ -462,6 +700,9 @@ final class RechargeService
             throw new BusinessException(ResultCode::PARAM_ERROR, '订单金额低于网关最小支付金额 ' . number_format($min, 2));
         }
 
+        // 先归一化通道（留空走默认，传入未开通的 gcode 直接拒绝），再落库
+        $gcode = $flowPay->resolveChannel($gcode);
+
         $now = date('Y-m-d H:i:s');
         $order = [
             'order_no'       => StrHelper::orderNo('RC'),
@@ -472,6 +713,7 @@ final class RechargeService
             'biz_type'       => (string) ($opt['biz_type'] ?? 'coin'),
             'vip_plan_id'    => $opt['vip_plan_id'] ?? null,
             'chain_type'     => 'flowpay',
+            'pay_gcode'      => $gcode,
             'pay_amount'     => number_format((float) $amount, 2, '.', ''),
             'diamond_amount' => $tokens,
             'proof_image'    => '',
@@ -483,7 +725,7 @@ final class RechargeService
         $db->table('lp_recharge_order')->insert($order);
 
         try {
-            $gw = $flowPay->createOrder($order['order_no'], $order['pay_amount']);
+            $gw = $flowPay->createOrder($order['order_no'], $order['pay_amount'], $gcode);
         } catch (\Throwable $e) {
             $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update([
                 'status'       => 3,
@@ -552,17 +794,8 @@ final class RechargeService
                 'updated_at'     => $now,
             ]);
 
-            if ($isVip) {
-                // 订阅订单：开通/顺延会员（同一订单号只生效一次）
-                (new VipService())->activate(
-                    (int) $order['user_id'],
-                    (int) $order['vip_plan_id'],
-                    (string) $order['order_no'],
-                    (float) $order['pay_amount']
-                );
-            } else {
-                $this->creditDiamond($db, (int) $order['user_id'], (float) $order['diamond_amount'], (int) $order['id'], 'star-pay充值');
-            }
+            // 结算：订阅单开通/顺延会员，充值单加钻
+            $this->settleOrder($db, $order, $remark);
 
             $db->commit();
             $order['status'] = 1;
@@ -788,23 +1021,58 @@ final class RechargeService
             return '未填写收款地址';
         }
 
-        if ($type === 'eth') {
-            if (!preg_match('/^0x[0-9a-fA-F]{40}$/', $addr)) {
-                return 'ETH 地址格式不对（应为 0x 开头的 42 位十六进制）';
-            }
-            if (preg_match('/^0x0{40}$/i', $addr)) {
-                return '不能使用全 0 占位地址';
-            }
-            return '';
-        }
+        switch (self::ADDR_FAMILY[$type] ?? '') {
+            case 'evm':
+                if (!preg_match('/^0x[0-9a-fA-F]{40}$/', $addr)) {
+                    return 'EVM 地址格式不对（应为 0x 开头的 42 位十六进制）';
+                }
+                if (preg_match('/^0x0{40}$/i', $addr)) {
+                    return '不能使用全 0 占位地址，请填真实收款地址';
+                }
+                return '';
 
-        if ($type === 'usdt_trc20') {
-            if (!str_starts_with($addr, 'T') || strlen($addr) !== 34) {
-                return 'TRON 地址应以 T 开头且共 34 位';
-            }
-            return self::base58checkValid($addr)
-                ? ''
-                : 'TRON 地址 base58 校验和不通过（地址被改动过），钱包会拒绝转账，请核对后重填';
+            case 'tron':
+                if (!str_starts_with($addr, 'T') || strlen($addr) !== 34) {
+                    return 'TRON 地址应以 T 开头且共 34 位';
+                }
+                return self::base58checkValid($addr)
+                    ? ''
+                    : 'TRON 地址 base58 校验和不通过（地址被改动过），钱包会拒绝转账，请核对后重填';
+
+            case 'solana':
+                return preg_match('/^[1-9A-HJ-NP-Za-km-z]{32,44}$/', $addr)
+                    ? ''
+                    : 'Solana 地址格式不对（应为 32~44 位 base58）';
+
+            case 'bitcoin':
+                return preg_match('/^(bc1[a-z0-9]{25,62}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$/', $addr)
+                    ? ''
+                    : 'BTC 地址格式不对（应为 bc1 开头或 1/3 开头）';
+
+            case 'litecoin':
+                return preg_match('/^(ltc1[a-z0-9]{25,62}|[LM3][1-9A-HJ-NP-Za-km-z]{25,34})$/', $addr)
+                    ? ''
+                    : 'LTC 地址格式不对（应为 ltc1 或 L/M 开头）';
+
+            case 'bitcoincash':
+                return preg_match('/^(bitcoincash:)?[qp][a-z0-9]{25,62}$/i', $addr)
+                    ? ''
+                    : 'BCH 地址格式不对（CashAddr 应以 bitcoincash: 或 q/p 开头）';
+
+            case 'dogecoin':
+                return preg_match('/^D[1-9A-HJ-NP-Za-km-z]{33}$/', $addr)
+                    ? ''
+                    : 'DOGE 地址格式不对（应以 D 开头且共 34 位）';
+
+            case 'xrp':
+                return preg_match('/^r[1-9A-HJ-NP-Za-km-z]{24,34}$/', $addr)
+                    ? ''
+                    : 'XRP 地址格式不对（应以 r 开头）';
+
+            case 'ton':
+                return preg_match('/^(EQ|UQ|kQ|0Q)[A-Za-z0-9_-]{46}$/', $addr)
+                    ? ''
+                    : 'TON 地址格式不对（应为 EQ/UQ 开头的 48 位）';
         }
 
         return '';

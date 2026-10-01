@@ -13,23 +13,35 @@
 
     var SLIDER_STEP = 50
     var DEFAULT_TOKENS = 550
-    var ETH_ICON = './taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg'
-    // 「Pay with Card」按钮图标（FlowPay 收银台）
-    var CARD_ICONS = [
-        './taocan_files/visa-e1d8b03b25a5af3b8320ae609ba6331e0e1787c5d24d0bbcb9bfb8e88d5cdd42.svg',
-        './taocan_files/mastercard-a70ad911ccea0bdffda8287342443e4bb64898fecf51d8a4f86b1ecacf213e4a.svg'
+    // 卡支付品牌标：与 Subscriptions.html 支付弹窗同一组素材（33x20 白底圆角，四个并排尺寸才齐）
+    var APPLE_PAY_ICON = './subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg'
+    var GOOGLE_PAY_ICON = './subscriptions2_files/google-pay-mark.svg'
+    var VISA_ICON = './subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg'
+    var MASTERCARD_ICON = './subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg'
+    // 渐变胶囊按钮上并排的四个标，顺序与 Subscriptions.html 一致
+    var CARD_PILL_ICONS = [
+        { src: APPLE_PAY_ICON, alt: 'Apple Pay' },
+        { src: GOOGLE_PAY_ICON, alt: 'Google Pay' },
+        { src: VISA_ICON, alt: 'Visa' },
+        { src: MASTERCARD_ICON, alt: 'Mastercard' }
+    ]
+    // 收单通道 → 品牌标：按通道名匹配，不在前端写死 gcode（与 Subscriptions.html 同一套规则）
+    var CHANNEL_LOGOS = [
+        { re: /apple/i, src: APPLE_PAY_ICON, alt: 'Apple Pay' },
+        { re: /google|gpay/i, src: GOOGLE_PAY_ICON, alt: 'Google Pay' },
+        { re: /visa/i, src: VISA_ICON, alt: 'Visa' },
+        { re: /master/i, src: MASTERCARD_ICON, alt: 'Mastercard' }
     ]
     var packages = []
-    var products = []
     var channels = []
     var flowpayEnabled = false
+    // FlowPay 可选收单通道：[{ gcode, label }]，点开卡按钮后就地展开成多个通道按钮
+    var flowpayChannels = []
     var selected = null
     var customTokens = 0
     var customTimer = null
     var bubbleTimer = null
     var loading = false
-    var ethPollTimer = null
-    var ethCountTimer = null
 
     function token() {
         return localStorage.getItem('live_access_token') || ''
@@ -245,8 +257,8 @@
             if (typeof res === 'string') res = JSON.parse(res)
             if (res.code !== '00000' || !res.data) return
             packages = res.data.list || []
-            products = res.data.products || []
-            flowpayEnabled = !!res.data.flowpay
+            flowpayEnabled = !!(res.data.flowpay && res.data.flowpay.enabled)
+            flowpayChannels = (res.data.flowpay && res.data.flowpay.channels) || []
             renderPlans()
             renderCustom(normalizeTokens(DEFAULT_TOKENS))
         })
@@ -261,12 +273,6 @@
             if (res.code !== '00000' || !res.data) return
             channels = res.data || []
             if ($('#tk-payment-modal').css('display') === 'flex') renderMethods()
-        })
-    }
-
-    function ethChannels() {
-        return channels.filter(function (c) {
-            return c && c.type === 'eth' && c.address
         })
     }
 
@@ -289,7 +295,7 @@
     }
 
     // ---------- 支付弹窗 ----------
-    // 「Pay with」按钮里的币种图标：与 Subscriptions.html 支付弹窗同一组
+    // 「Continue with」按钮里的币种图标：与 Subscriptions.html 支付弹窗同一组
     var PAY_LOGOS = [
         { src: './taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg', alt: 'Bitcoin' },
         { src: './taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg', alt: 'Ethereum' },
@@ -297,155 +303,53 @@
     ]
 
     function renderMethods() {
-        var code = products.length ? products[0].code : ''
+        // 加密货币走站内收款页（后台自持渠道），与 starpay 网关是否启用无关，始终可点
         var logos = PAY_LOGOS.map(function (l) {
             return '<img class="tk-method-logo" src="' + l.src + '" alt="' + l.alt + '">'
         }).join('')
         var html =
-            '<button type="button" class="tk-method"' + (code ? ' data-code="' + code + '"' : ' disabled') + '>' +
-            '<span class="tk-method-text">Pay with</span>' +
+            '<button type="button" class="tk-method" data-code="crypto">' +
+            '<span class="tk-method-text">Continue with</span>' +
             '<span class="tk-method-icons">' + logos + '</span>' +
             '</button>'
-        // ETH 地址收款：后台开启 eth 渠道后自动出现
-        ethChannels().forEach(function (ch) {
-            html +=
-                '<button type="button" class="tk-method" data-eth="' + ch.id + '">' +
-                '<span class="tk-method-text">Pay with ETH</span>' +
-                '<span class="tk-method-icons"><img class="tk-method-logo" src="' + ETH_ICON + '" alt="Ethereum"></span>' +
-                '</button>'
-        })
-        // 银行卡收银台：FlowPay 商户参数配置齐全后自动出现
+        // 银行卡收银台：FlowPay 商户参数配置齐全后自动出现。
+        // 形态与 Subscriptions.html 一致：一个渐变胶囊按钮，点开后就地展开各条收单通道
         if (flowpayEnabled) {
-            var cardLogos = CARD_ICONS.map(function (src) {
-                return '<img class="tk-method-logo" src="' + src + '" alt="Card">'
+            var pillIcons = CARD_PILL_ICONS.map(function (l) {
+                return '<img src="' + l.src + '" alt="' + l.alt + '">'
             }).join('')
             html +=
-                '<button type="button" class="tk-method" data-flowpay="1">' +
-                '<span class="tk-method-text">Pay with Card</span>' +
-                '<span class="tk-method-icons">' + cardLogos + '</span>' +
+                '<button type="button" class="tk-pay-pill">' +
+                '<span class="tk-pay-pill-bg"></span>' +
+                '<span class="tk-pay-pill-shine"></span>' +
+                '<span class="tk-pay-pill-content">' +
+                '<span class="tk-pay-pill-text">Continue with card</span>' +
+                '<span class="tk-pay-pill-icons">' + pillIcons + '</span>' +
+                '</span>' +
                 '</button>'
+            var cards = flowpayChannels.length ? flowpayChannels : [{ gcode: '', label: 'Card' }]
+            var subs = cards.map(function (ch) {
+                var logo = channelLogo(ch.label)
+                return (
+                    '<button type="button" class="tk-method tk-method-sub" data-flowpay="1" data-gcode="' +
+                    String(ch.gcode || '').replace(/"/g, '') + '">' +
+                    (logo ? '<img src="' + logo.src + '" alt="' + logo.alt + '">' : '') +
+                    '<span class="tk-method-text">' + ch.label + '</span>' +
+                    '</button>'
+                )
+            }).join('')
+            html += '<div class="tk-method-channels" style="display:none;">' + subs + '</div>'
         }
         $('#tk-modal-methods').html(html)
-        $('#tk-eth-panel').hide().empty()
     }
 
-    // http 非安全上下文下 navigator.clipboard 不可用，用临时 textarea + execCommand 兜底
-    function fallbackCopy(v) {
-        try {
-            var ta = document.createElement('textarea')
-            ta.value = v
-            ta.setAttribute('readonly', '')
-            ta.style.position = 'fixed'
-            ta.style.opacity = '0'
-            document.body.appendChild(ta)
-            ta.select()
-            var ok = document.execCommand('copy')
-            document.body.removeChild(ta)
-            toast(ok ? 'Copied' : v)
-        } catch (e) {
-            toast(v)
+    /** 通道名 → 品牌标（匹配不到就只显示文字） */
+    function channelLogo(label) {
+        var text = String(label || '')
+        for (var i = 0; i < CHANNEL_LOGOS.length; i++) {
+            if (CHANNEL_LOGOS[i].re.test(text)) { return CHANNEL_LOGOS[i] }
         }
-    }
-
-    // ---------- ETH 链上转账下单 ----------
-    function submitEthOrder(channelId) {
-        if (loading || !selected) return
-        if (!token()) {
-            toast('Please log in first')
-            location.href = './Login.html'
-            return
-        }
-        loading = true
-        var $btn = $('#tk-payment-modal .tk-method[data-eth="' + channelId + '"]')
-        $btn.attr('disabled', true).css('opacity', .6)
-        api(RECHARGE_BASE + '/submit', {
-            method: 'POST',
-            data: { channel_id: channelId, amount: selected.price }
-        }).done(function (res) {
-            if (typeof res === 'string') res = JSON.parse(res)
-            if (res.code !== '00000' || !res.data) {
-                toast(res.msg || 'Create order failed')
-                return
-            }
-            showEthPanel(res.data)
-        }).fail(function () {
-            toast('Network error, please retry')
-        }).always(function () {
-            loading = false
-            $btn.removeAttr('disabled').css('opacity', 1)
-        })
-    }
-
-    function qrUrl(raw) {
-        if (!raw) return ''
-        return String(raw).indexOf('http') === 0 ? raw : location.origin + '/' + String(raw).replace(/^\/+/, '')
-    }
-
-    function showEthPanel(order) {
-        var ch = order.channel || {}
-        var addr = ch.address || ''
-        var qr = qrUrl(ch.qr_code_url || '')
-        var eth = String(order.pay_amount || '')
-        $('#tk-eth-panel').html(
-            '<div class="tk-eth-head">Send exactly</div>' +
-            '<div class="tk-eth-amount">' + eth + ' ETH' +
-            '<button type="button" class="tk-eth-copy" data-tk-copy="' + eth + '">Copy</button></div>' +
-            '<div class="tk-eth-label">to this ETH (Ethereum mainnet) address</div>' +
-            '<div class="tk-eth-addr"><span>' + addr + '</span>' +
-            '<button type="button" class="tk-eth-copy" data-tk-copy="' + addr + '">Copy</button></div>' +
-            (qr ? '<div class="tk-eth-qr"><img src="' + qr + '" alt="ETH address QR"></div>' : '') +
-            '<div class="tk-eth-note">Please send the exact amount — it is how we identify your order. Tokens are credited automatically after 1 confirmation (usually within 1 minute).</div>' +
-            '<div class="tk-eth-status" id="tk-eth-status">Waiting for payment…</div>' +
-            '<div class="tk-eth-order">Order ' + (order.order_no || '') + ' · expires in <span id="tk-eth-countdown">--:--</span></div>'
-        ).show()
-        startEthCountdown(order.expire_at)
-        startEthPoll(order.order_no)
-    }
-
-    function stopEthTimers() {
-        if (ethPollTimer) { clearInterval(ethPollTimer); ethPollTimer = null }
-        if (ethCountTimer) { clearInterval(ethCountTimer); ethCountTimer = null }
-    }
-
-    function startEthCountdown(expireAt) {
-        if (ethCountTimer) clearInterval(ethCountTimer)
-        var end = expireAt ? new Date(String(expireAt).replace(/-/g, '/')).getTime() : 0
-        function tick() {
-            var $el = $('#tk-eth-countdown')
-            if (!$el.length || !end) return
-            var left = Math.max(0, Math.floor((end - Date.now()) / 1000))
-            var m = Math.floor(left / 60)
-            var s = left % 60
-            $el.text(m + ':' + (s < 10 ? '0' : '') + s)
-        }
-        tick()
-        ethCountTimer = setInterval(tick, 1000)
-    }
-
-    function startEthPoll(orderNo) {
-        if (ethPollTimer) clearInterval(ethPollTimer)
-        if (!orderNo) return
-        ethPollTimer = setInterval(function () {
-            api(RECHARGE_BASE + '/status', { data: { order_no: orderNo } }).done(function (res) {
-                if (typeof res === 'string') res = JSON.parse(res)
-                if (res.code !== '00000' || !res.data) return
-                var st = parseInt(res.data.status, 10)
-                var $s = $('#tk-eth-status')
-                if (!$s.length) { stopEthTimers(); return }
-                if (st === 1) {
-                    stopEthTimers()
-                    $s.text('Payment confirmed — tokens credited').addClass('is-ok')
-                    toast('Payment successful, tokens credited')
-                    loadBalance()
-                    setTimeout(closeModal, 1500)
-                } else if (st === 2 || st === 3) {
-                    stopEthTimers()
-                    $s.text('Order closed, please create a new one').addClass('is-fail')
-                } else {
-                    $s.text('Waiting for payment…')
-                }
-            })
-        }, 5000)
+        return null
     }
 
     // sel: { tokens, price, packageId }
@@ -462,12 +366,10 @@
 
     function closeModal() {
         $('#tk-payment-modal').css('display', 'none')
-        $('#tk-eth-panel').hide().empty()
-        stopEthTimers()
         selected = null
     }
 
-    function submitOrder(code, gateway) {
+    function submitOrder(code, gateway, gcode) {
         if (loading || !selected) return
         if (!token()) {
             toast('Please log in first')
@@ -480,6 +382,8 @@
             ? { package_id: selected.packageId, product: code }
             : { tokens: selected.tokens, product: code }
         if (gateway) payload.gateway = gateway
+        // FlowPay 收单通道（用户点了哪个按钮就走哪条）
+        if (gcode) payload.gcode = gcode
         api(RECHARGE_BASE + '/createOrder', {
             method: 'POST',
             data: payload
@@ -494,7 +398,7 @@
                 toast('Payment url unavailable')
                 return
             }
-            try { localStorage.setItem('tk_pending_order', res.data.order_no) } catch (e) {}
+            savePending(res.data.order_no)
             location.href = payUrl
         }).fail(function () {
             toast('Network error, please retry')
@@ -504,34 +408,100 @@
         })
     }
 
-    // ---------- 支付回跳轮询 ----------
+    // ---------- 支付回跳 ----------
+    var TK_PENDING_KEY = 'tk_pending_order'
+    // 网关回调是服务端即时推送，正常几秒内就到；连续几次还没支付就按失败提示
+    var TK_POLL_MS = 5000
+    var TK_POLL_TRIES = 4
+    // 待支付标记只当「刚支付回来」用，超过订单有效期（2 小时）就不再弹失败提示
+    var TK_PENDING_TTL = 2 * 60 * 60 * 1000
+
+    /** 记录待支付订单（含下单时间，用于判断是不是「刚支付回来」） */
+    function savePending(orderNo) {
+        try { localStorage.setItem(TK_PENDING_KEY, JSON.stringify({ o: orderNo, t: Date.now() })) } catch (e) {}
+    }
+
+    function readPending() {
+        var raw = ''
+        try { raw = localStorage.getItem(TK_PENDING_KEY) || '' } catch (e) { return null }
+        if (!raw) return null
+        try {
+            var p = JSON.parse(raw)
+            if (p && p.o) return { o: String(p.o), t: parseInt(p.t, 10) || 0 }
+        } catch (e) {}
+        return { o: raw, t: 0 } // 兼容旧格式（只存了订单号）
+    }
+
+    function clearPending() {
+        try { localStorage.removeItem(TK_PENDING_KEY) } catch (e) {}
+    }
+
+    /** 本次是否需要轮询到账：网关回跳带的单号优先，其次看本地待支付标记 */
     function orderNoFromReturn() {
-        var search = window.location.search
-        if (!search) return localStorage.getItem('tk_pending_order') || ''
-        var q = new URLSearchParams(search)
+        var q = new URLSearchParams(window.location.search || '')
         var raw = q.get('params')
         if (raw) {
             try {
                 var p = JSON.parse(raw)
-                if (p && p.merchant_ref) return p.merchant_ref
+                if (p && p.merchant_ref) return String(p.merchant_ref)
             } catch (e) {}
         }
-        return q.get('order_no') || localStorage.getItem('tk_pending_order') || ''
+        var fromUrl = q.get('order_no')
+        if (fromUrl) return String(fromUrl)
+        var pend = readPending()
+        if (!pend) return ''
+        if (pend.t > 0 && Date.now() - pend.t > TK_PENDING_TTL) {
+            clearPending()
+            return ''
+        }
+        return pend.o
     }
 
-    function pollOrder(orderNo, times) {
-        times = times === undefined ? 12 : times
-        if (!orderNo || times <= 0) return
+    /**
+     * 轮询订单状态：已支付 → 到账提示；网关明确回未支付 / 连续几次都没付成功 →
+     * 弹「Payment Unsuccessful」（与订阅页同一文案同一弹窗）
+     */
+    function pollOrder(orderNo, tries, known) {
+        tries = tries === undefined ? TK_POLL_TRIES : tries
+        if (!orderNo || tries <= 0) return
         api(RECHARGE_BASE + '/status', { data: { order_no: orderNo } }).done(function (res) {
             if (typeof res === 'string') res = JSON.parse(res)
-            if (res.code === '00000' && res.data && parseInt(res.data.status, 10) === 1) {
-                try { localStorage.removeItem('tk_pending_order') } catch (e) {}
-                toast('Payment successful, tokens credited')
-                loadBalance()
-                return
+            var d = (res && res.code === '00000' && res.data) ? res.data : null
+            if (d) {
+                known = true
+                if (parseInt(d.status, 10) === 1) { paySucceeded(d); return }
+                // 支付状态 2 = 网关已明确回未支付
+                if (parseInt(d.pay_state, 10) === 2) { payFailed(); return }
             }
-            setTimeout(function () { pollOrder(orderNo, times - 1) }, 5000)
+            // 订单号查不到（后台已清理等）不算支付失败，只有确认过这笔单确实未支付才提示
+            if (tries <= 1) { if (known) { payFailed() } return }
+            setTimeout(function () { pollOrder(orderNo, tries - 1, known) }, TK_POLL_MS)
+        }).fail(function () {
+            // 请求失败只是没查到，不代表支付失败：继续重试，用尽就保持沉默等下次进页面再查
+            if (tries <= 1) { if (known) { payFailed() } return }
+            setTimeout(function () { pollOrder(orderNo, tries - 1, known) }, TK_POLL_MS)
         })
+    }
+
+    function paySucceeded(d) {
+        clearPending()
+        toast('Payment successful, tokens credited')
+        loadBalance()
+        // 转化事件：充值成功（回跳后轮询到账）
+        try {
+            if (window.SugusTrack) SugusTrack.event('recharge', { value: d.pay_amount })
+        } catch (e) {}
+    }
+
+    /** 支付没成功：与参考站一致弹「Payment Unsuccessful」 */
+    function payFailed() {
+        clearPending()
+        var msg = "We're sorry, but your payment could not be processed. Please check your payment details and try again."
+        if (window.SugusDialog && SugusDialog.alert) {
+            SugusDialog.alert(msg, { title: 'Payment Unsuccessful', okText: 'OK', icon: 'warn' })
+            return
+        }
+        toast('Payment Unsuccessful')
     }
 
     function init() {
@@ -553,25 +523,20 @@
             openModal({ tokens: parseInt(pkg.tokens, 10), price: parseFloat(pkg.price), packageId: pkg.id })
         })
         $(document).on('click', '#tk-payment-modal [data-tk-close]', closeModal)
+        // 加密货币：跳站内收款页（后台链上渠道，自持地址，币种在那边选）
         $(document).on('click', '#tk-payment-modal .tk-method[data-code]', function () {
-            submitOrder($(this).data('code'))
+            if (!selected) return
+            location.href = './CryptoPay.html?kind=coin' +
+                '&tokens=' + encodeURIComponent(selected.tokens) +
+                '&price=' + encodeURIComponent(selected.price)
         })
-        // 银行卡收银台（FlowPay）
+        // 卡支付：点渐变胶囊按钮就地展开各条收单通道（与 Subscriptions.html 同一交互）
+        $(document).on('click', '#tk-payment-modal .tk-pay-pill', function () {
+            $('#tk-payment-modal .tk-method-channels').slideToggle(140)
+        })
+        // 银行卡收银台（FlowPay）· 展开后每条通道一个按钮
         $(document).on('click', '#tk-payment-modal .tk-method[data-flowpay]', function () {
-            submitOrder('', 'flowpay')
-        })
-        // ETH 地址收款
-        $(document).on('click', '#tk-payment-modal .tk-method[data-eth]', function () {
-            submitEthOrder(parseInt($(this).data('eth'), 10))
-        })
-        $(document).on('click', '#tk-eth-panel [data-tk-copy]', function () {
-            var v = String($(this).attr('data-tk-copy') || '')
-            if (!v) return
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(v).then(function () { toast('Copied') }, function () { fallbackCopy(v) })
-            } else {
-                fallbackCopy(v)
-            }
+            submitOrder('', 'flowpay', String($(this).attr('data-gcode') || ''))
         })
         $(document).on('input', '#tk-custom-slider', function () {
             showBubble()

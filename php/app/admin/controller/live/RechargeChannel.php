@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
+use app\live\service\RechargeService;
 use think\facade\Db;
 use app\admin\model\live\RechargeChannel as ChannelModel;
 
@@ -144,6 +145,7 @@ final class RechargeChannel extends Backend
                     'name'         => $this->request->post('name', ''),
                     'type'         => $this->request->post('type', 'usdt_trc20'),
                     'address'      => $this->request->post('address', ''),
+                    'memo'         => trim((string) $this->request->post('memo', '')),
                     'diamond_rate' => $this->request->post('diamond_rate/f', 100),
                     'min_amount'   => $this->request->post('min_amount/f', 10),
                     'sort'         => $this->request->post('sort/d', 0),
@@ -158,24 +160,31 @@ final class RechargeChannel extends Backend
                 if ($data['diamond_rate'] <= 0) {
                     throw new \InvalidArgumentException('汇率必须大于0');
                 }
+                // 币种白名单：不在白名单里的 type 一律按「其他」落库（币种代号取渠道名）
+                if ($data['type'] !== 'other' && !isset(RechargeService::COINS[$data['type']])) {
+                    throw new \InvalidArgumentException('币种类型不在支持列表内');
+                }
                 // 链上收款渠道：启用时必须填收款地址，否则前端拿不到地址会直接不展示该渠道
                 $addr = trim((string) $data['address']);
-                if ((int) $data['status'] === 1 && in_array($data['type'], ['eth', 'usdt_trc20'], true) && $addr === '') {
+                if ((int) $data['status'] === 1 && $addr === '') {
                     throw new \InvalidArgumentException('链上渠道启用前必须填写收款地址，否则前端不会展示');
                 }
-                if ($data['type'] === 'eth' && $addr !== '' && !preg_match('/^0x[0-9a-fA-F]{40}$/', $addr)) {
-                    throw new \InvalidArgumentException('ETH 收款地址格式不对（应为 0x 开头的 42 位）');
-                }
-                if ($data['type'] === 'eth' && preg_match('/^0x0{40}$/i', $addr)) {
-                    throw new \InvalidArgumentException('不能使用全 0 占位地址，请填真实 ETH 收款地址');
-                }
-                // TRON 地址必须过 base58check 校验：线上就配过一个校验和不合法的地址，
-                // 钱包会直接拒绝转账、扫链接口也一律报 not a valid address，用户根本充不进来
-                if ($data['type'] === 'usdt_trc20' && $addr !== '') {
-                    $addrErr = \app\live\service\RechargeService::addressError('usdt_trc20', $addr);
+                if ($addr !== '') {
+                    $addrErr = RechargeService::addressError((string) $data['type'], $addr);
                     if ($addrErr !== '') {
                         throw new \InvalidArgumentException($addrErr);
                     }
+                }
+                // XRP / TON 这类「必须带备注」的链：不填备注用户转币就认不出来
+                $needMemo = ['xrp', 'ton'];
+                if ((int) $data['status'] === 1 && in_array($data['type'], $needMemo, true) && trim((string) $data['memo']) === '') {
+                    throw new \InvalidArgumentException(strtoupper((string) $data['type']) . ' 必须填转账备注（Destination Tag / Comment），否则用户转币无法归属');
+                }
+                // 非稳定币要按后台汇率折算应付金额，没配汇率就别启用（否则用户下单会报错）
+                $spec = RechargeService::specOf($data);
+                $rate = $this->request->post('coin_usd_rate/f', 0);
+                if ((int) $data['status'] === 1 && !$spec['pegged'] && $rate <= 0 && $data['type'] !== 'other') {
+                    throw new \InvalidArgumentException('非稳定币必须填写「1 ' . $spec['unit'] . ' = ? USD」才能启用');
                 }
                 // 处理二维码图片上传（仅当确有文件被上传时才处理）
                 $hasUpload = !empty($_FILES['qr_image']['tmp_name'])
@@ -198,19 +207,20 @@ final class RechargeChannel extends Backend
                     $this->model->save($data);
                 }
 
-                // ETH 渠道：同步 ETH 兑 USD 价格（链上充值按该价格折算应付 ETH）
-                $ethRate = $this->request->post('eth_usd_rate/f', 0);
-                if ($data['type'] === 'eth' && $ethRate > 0) {
-                    $cfg = Db::connect('live_mysql')->table('lp_platform_config')->where('key', 'eth_usd_rate')->find();
+                // 非稳定币：记录该币种兑 USD 价格（链上充值按该价格折算应付金额）
+                $ethRate = $this->request->post('coin_usd_rate/f', 0);
+                if (!$spec['pegged'] && $data['type'] !== 'other' && $ethRate > 0) {
+                    $cfgKey = $data['type'] . '_usd_rate';
+                    $cfg = Db::connect('live_mysql')->table('lp_platform_config')->where('key', $cfgKey)->find();
                     if ($cfg) {
                         Db::connect('live_mysql')->table('lp_platform_config')
-                            ->where('key', 'eth_usd_rate')
+                            ->where('key', $cfgKey)
                             ->update(['value' => (string) $ethRate, 'updated_at' => date('Y-m-d H:i:s')]);
                     } else {
                         Db::connect('live_mysql')->table('lp_platform_config')->insert([
-                            'key'        => 'eth_usd_rate',
+                            'key'        => $cfgKey,
                             'value'      => (string) $ethRate,
-                            'remark'     => 'ETH 兑 USD 价格（ETH 充值换算用）',
+                            'remark'     => $spec['unit'] . ' 兑 USD 价格（' . $spec['unit'] . ' 充值换算用）',
                             'updated_at' => date('Y-m-d H:i:s'),
                         ]);
                     }
@@ -225,14 +235,35 @@ final class RechargeChannel extends Backend
         $r = $row ? $row->toArray() : ['id'=>'','name'=>'','type'=>'usdt_trc20','qr_code_url'=>'','address'=>'','diamond_rate'=>'100','min_amount'=>'10','sort'=>'0','status'=>'1','confirm_mode'=>'auto','api_key'=>''];
         $checked = ($r['status'] == 1) ? 'checked' : '';
         $hdrTitle = $r['id'] ? '编辑渠道' : '新增渠道';
-        $selUsdt = ($r['type'] == 'usdt_trc20') ? 'selected' : '';
-        $selEth = ($r['type'] == 'eth') ? 'selected' : '';
-        $selOther = ($r['type'] == 'other') ? 'selected' : '';
+        // 币种下拉：按分组列出后台支持的币种（与 RechargeService::COINS 同源，新增币种只改那一处）
+        $typeGroups = [
+            '稳定币（1:1 美元）' => ['usdt_trc20','usdt_erc20','usdt_bep20','usdt_polygon','usdt_sol','usdc_erc20','usdc_sol','dai_erc20','tusd_erc20'],
+            '主流币（按汇率折算）' => ['btc','ltc','bch','doge'],
+            '公链原生币（按汇率折算）' => ['eth','trx','bnb','sol','ton','xrp'],
+        ];
+        $typeOptions = '';
+        foreach ($typeGroups as $groupName => $types) {
+            $typeOptions .= '<optgroup label="' . $groupName . '">';
+            foreach ($types as $t) {
+                $spec = RechargeService::COINS[$t];
+                $sel  = ((string) $r['type'] === $t) ? ' selected' : '';
+                $suffix = $spec['scan'] ? '（支持自动扫链）' : '';
+                $typeOptions .= '<option value="' . $t . '"' . $sel . '>' . htmlspecialchars($spec['label'], ENT_QUOTES) . $suffix . '</option>';
+            }
+            $typeOptions .= '</optgroup>';
+        }
+        $typeOptions .= '<option value="other"' . (((string) $r['type'] === 'other') ? ' selected' : '') . '>其他（币种代号取渠道名，1:1 美元）</option>';
         $selAuto = (($r['confirm_mode'] ?? 'auto') == 'auto') ? 'selected' : '';
         $selManual = (($r['confirm_mode'] ?? 'auto') == 'manual') ? 'selected' : '';
         $apiKey = htmlspecialchars((string) ($r['api_key'] ?? ''), ENT_QUOTES);
-        $ethRateCfg = (string) Db::connect('live_mysql')->table('lp_platform_config')->where('key', 'eth_usd_rate')->value('value');
-        $ethRate = htmlspecialchars($ethRateCfg, ENT_QUOTES);
+        // 该币种兑 USD 价格（非稳定币才有），键名 <type>_usd_rate
+        $curType = (string) $r['type'];
+        $curSpec = RechargeService::specOf($r);
+        $coinRateCfg = (!$curSpec['pegged'] && $curType !== 'other')
+            ? (string) Db::connect('live_mysql')->table('lp_platform_config')->where('key', $curType . '_usd_rate')->value('value')
+            : '';
+        $ethRate = htmlspecialchars($coinRateCfg, ENT_QUOTES);
+        $rateLabel = '1 ' . $curSpec['unit'] . ' = ? USD（仅非稳定币生效，链上应付金额 = USD ÷ 此价格）';
         $name = htmlspecialchars((string)$r['name'], ENT_QUOTES);
         // 二维码预览：拼接完整URL确保在iframe中也能正常显示
         $qrRaw = (string)$r['qr_code_url'];
@@ -242,6 +273,7 @@ final class RechargeChannel extends Backend
         }
         $qr = htmlspecialchars($qrUrl, ENT_QUOTES);
         $addr = htmlspecialchars((string)$r['address'], ENT_QUOTES);
+        $memo = htmlspecialchars((string)($r['memo'] ?? ''), ENT_QUOTES);
         $rate = htmlspecialchars((string)$r['diamond_rate'], ENT_QUOTES);
         $min = htmlspecialchars((string)$r['min_amount'], ENT_QUOTES);
         $sort = htmlspecialchars((string)$r['sort'], ENT_QUOTES);
@@ -281,14 +313,15 @@ final class RechargeChannel extends Backend
             <h2>{$hdrTitle}</h2>
             <form method="post" enctype="multipart/form-data">
                 <div class="field"><label>名称</label><input name="name" value="{$name}" required /></div>
-                <div class="field"><label>类型</label><select name="type"><option value="usdt_trc20" {$selUsdt}>USDT-TRC20</option><option value="eth" {$selEth}>ETH（以太坊主链）</option><option value="other" {$selOther}>其他</option></select></div>
+                <div class="field"><label>类型（币种 / 链）</label><select name="type">{$typeOptions}</select></div>
                 <div class="field"><label>收款二维码图片</label><input type="file" name="qr_image" accept="image/*" />{$qrPreview}</div>
-                <div class="field"><label>收款地址</label><input name="address" value="{$addr}" placeholder="USDT地址（T开头）/ ETH地址（0x开头）/ 银行账号" /></div>
-                <div class="field"><label>链上确认方式</label><select name="confirm_mode"><option value="auto" {$selAuto}>自动（扫链到账：USDT-TRC20 走 TronGrid，ETH 走 Etherscan）</option><option value="manual" {$selManual}>人工审核</option></select></div>
+                <div class="field"><label>收款地址</label><input name="address" value="{$addr}" placeholder="按所选币种填对应链的收款地址" /></div>
+                <div class="field"><label>转账备注 / Memo / Tag（XRP、TON 必填，其它币种留空）</label><input name="memo" value="{$memo}" placeholder="如 XRP Destination Tag、TON Comment" /></div>
+                <div class="field"><label>链上确认方式</label><select name="confirm_mode"><option value="auto" {$selAuto}>自动（扫链到账，仅 USDT-TRC20 / ETH 支持）</option><option value="manual" {$selManual}>人工审核（后台订单列表核对后放行）</option></select></div>
                 <div class="field"><label>链上扫描 API Key（可选，自动确认时建议填）</label><input name="api_key" value="{$apiKey}" placeholder="TronGrid API Key / Etherscan API Key" /></div>
-                <div class="field"><label>ETH 兑 USD 价格（类型选 ETH 时生效，链上应付 ETH = USD ÷ 此价格）</label><input type="number" step="0.01" name="eth_usd_rate" value="{$ethRate}" placeholder="3000" /></div>
-                <div class="field"><label>汇率（1USDT=N代币）</label><input type="number" step="0.01" name="diamond_rate" value="{$rate}" required /></div>
-                <div class="field"><label>最低充值金额</label><input type="number" step="0.01" name="min_amount" value="{$min}" required /></div>
+                <div class="field"><label>{$rateLabel}</label><input type="number" step="0.01" name="coin_usd_rate" value="{$ethRate}" placeholder="非稳定币必填，如 BTC=65000" /></div>
+                <div class="field"><label>汇率（1USD=N代币）</label><input type="number" step="0.01" name="diamond_rate" value="{$rate}" required /></div>
+                <div class="field"><label>最低充值金额（USD）</label><input type="number" step="0.01" name="min_amount" value="{$min}" required /></div>
                 <div class="field"><label>排序</label><input type="number" name="sort" value="{$sort}" /></div>
                 <div class="toggle-row">
                     <span class="toggle-label">启用状态</span>
@@ -477,12 +510,14 @@ final class RechargeChannel extends Backend
             $qr = $r['qr_code_url'] ? '有' : '无';
             $rid = (int)$r['id'];
             $rname = htmlspecialchars((string)$r['name'], ENT_QUOTES);
-            $rtype = htmlspecialchars(['usdt_trc20' => 'USDT-TRC20', 'eth' => 'ETH（主链）', 'other' => '其他'][(string)$r['type']] ?? (string)$r['type'], ENT_QUOTES);
+            $rtype = htmlspecialchars(RechargeService::COINS[(string)$r['type']]['label'] ?? (string)$r['type'], ENT_QUOTES);
+            // 实际生效的确认方式：没扫链实现的币种即使后台选了「自动」也按人工审核跑
+            $rmode = RechargeService::effectiveConfirmMode($r) === 'auto' ? '<span style="color:#00a870">自动扫链</span>' : '<span style="color:#e6a23c">人工审核</span>';
             $raddr = htmlspecialchars((string)$r['address'], ENT_QUOTES);
             $rrate = htmlspecialchars((string)$r['diamond_rate'], ENT_QUOTES);
             $rmin  = htmlspecialchars((string)$r['min_amount'], ENT_QUOTES);
             $rsort = htmlspecialchars((string)$r['sort'], ENT_QUOTES);
-            $rows .= "<tr><td>{$rid}</td><td>{$rname}</td><td>{$rtype}</td><td>{$qr}</td><td>{$raddr}</td><td>{$rrate}</td><td>{$rmin}</td><td>{$rsort}</td><td>{$st}</td><td><a href='/admin/live.RechargeChannel/editChannel?id={$rid}' class='btn-edit'>编辑</a></td></tr>";
+            $rows .= "<tr><td>{$rid}</td><td>{$rname}</td><td>{$rtype}</td><td>{$rmode}</td><td>{$qr}</td><td>{$raddr}</td><td>{$rrate}</td><td>{$rmin}</td><td>{$rsort}</td><td>{$st}</td><td><a href='/admin/live.RechargeChannel/editChannel?id={$rid}' class='btn-edit'>编辑</a></td></tr>";
         }
         $pager = $list->render();
         return <<<HTML
@@ -505,7 +540,7 @@ final class RechargeChannel extends Backend
         <div class="container">
             <h1>充值渠道 & VIP 会员套餐</h1>
             <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editChannel">+ 新增渠道</a></div>
-            <table><thead><tr><th>ID</th><th>名称</th><th>类型</th><th>二维码</th><th>地址</th><th>汇率</th><th>最低(USDT)</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$rows}</tbody></table>
+            <table><thead><tr><th>ID</th><th>名称</th><th>类型</th><th>确认方式</th><th>二维码</th><th>地址</th><th>汇率</th><th>最低(USD)</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$rows}</tbody></table>
             <div class="pager">{$pager}</div>
 
             <h1 style="margin-top:32px">VIP 会员套餐</h1>

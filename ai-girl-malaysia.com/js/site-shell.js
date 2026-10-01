@@ -113,32 +113,57 @@
       '</ul></div></nav></div>';
   }
 
+  // 当前顶栏分类（与 shell-new.js 的 currentCat 一致：非分类页默认 girls）
+  function currentCategory() {
+    var p = (location.pathname || '').toLowerCase();
+    if (p.indexOf('anime') >= 0) return 'anime';
+    if (p.indexOf('guys') >= 0 || p.indexOf('boyfriend') >= 0) return 'guys';
+    return 'girls';
+  }
+
   // 顶部导航栏
   function topbar() {
-    function channel(href, label, svg) {
-      return '<form class="w-[93px] h-full inline-flex mr-5 md:mr-0" onsubmit="return false;" action="' + href + '" accept-charset="UTF-8" method="post">' +
-        '<button type="button" class="head-btn w-full h-full justify-center items-center inline-flex border-b-4 border-transparent group" onclick="location.href=\'' + href + '\'">' +
-        '<div class="flex items-center"><div class="w-4 h-4 relative mr-1">' + svg + '</div>' +
-        '<div class="text-white text-[13px] font-semibold leading-normal">' + label + '</div></div></button></form>';
+    // 与其它页面写死的静态顶栏逐节点一致：分类页签用 <a>，当前分类加 active
+    // （fy.css 里 .head-btn.active = 底部粉条；图标/文字 hover 变色靠下面的 group-hover 过渡类）
+    var activeCat = currentCategory()
+    // 当前分类要和其它页面「选中后」的样子完全一致：
+    // 其它页面的 main.js 会在加载时对当前分类 tab 触发一次 click，把下拉条/图标/文字都染成粉色，
+    // 这几个页面没引 main.js，所以在生成时直接把选中态写出来。
+    function channel(href, label, svg, key) {
+      var active = key === activeCat
+      if (active) {
+        svg = svg.replace('fill="#FFF"', 'fill="#F97187"').replace('stroke="#FFFFFF"', 'stroke="#F97187"');
+      }
+      var cls = 'head-btn' + (active ? ' active' : '') +
+        ' w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 ' +
+        (active ? 'group no-underline border-rose-400' : 'border-transparent group no-underline');
+      var labelCls = active
+        ? 'text-[13px] font-semibold leading-normal text-rose-400'
+        : 'text-white text-[13px] font-semibold leading-normal';
+      return '<a href="' + href + '" data-turbo-frame="main-content-frame" data-turbo-action="advance" class="' + cls + '">' +
+        '<div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">' + svg + '</div>' +
+        '<div class="' + labelCls + '">' + label + '</div></div></a>';
     }
-    var girls = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF"></path></svg>';
-    var anime = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF"></path></svg>';
-    var guys = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187"></path><path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187"></path><path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187"></path></svg>';
+    var girls = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg>';
+    var anime = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path></svg>';
+    var guys = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path><path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path><path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg>';
 
     return '' +
       '<div class="bg-main fixed w-full top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#363636] bg-main sm:px-4 px-2 shadow-sm sm:gap-x-2 lg:px-8">' +
-      '<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger"><span class="sr-only">Open sidebar</span>' +
+      '<button id="nav-hamburger" type="button" class="py-2 sm:mr-0 md:mr-[10px] mr-0 text-gray-700 nav-hamburger" data-action="click->main#handleMenuClick"><span class="sr-only">Open sidebar</span>' +
       '<svg class="nav-hamburger h-8 w-8 mr-1 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path></svg></button>' +
-      '<a href="./Girls.html"><img src="./Girls_files/sugusai-navbar-d321c31d58617371f7caf9e34a4e3f9624dce580afcceb6fecdf48c78beafd83.svg" class="h-[30px] md:h-[30px] w-[115px]"></a>' +
+      '<a href="./Girls.html"><img src="sugus-wordmark.png" class="h-[30px] md:h-[30px] w-auto"></a>' +
       '<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>' +
       '<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">' +
-      channel('./Girls.html', 'Girls', girls) + channel('./Anime.html', 'Anime', anime) + channel('./Guys.html', 'Guys', guys) +
+      channel('./Girls.html', 'Girls', girls, 'girls') + channel('./Anime.html', 'Anime', anime, 'anime') + channel('./Guys.html', 'Guys', guys, 'guys') +
       '</div>' +
-      '<div class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">' +
-      '<div class="gap-x-2 flex pc-rg-login ml-auto items-center">' +
+      '<div id="user-login" class="flex flex-1 self-stretch lg:gap-x-6 bg-main user-login pc-user-login">' +
+      '<form class="relative flex flex-1" action="/#" method="GET"></form>' +
+      '<div class="gap-x-2 flex pc-rg-login">' +
       '<div class="flex items-center gap-x-4 lg:gap-x-6"><a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline"><div class="text-white text-sm font-semibold leading-tight">Register</div></a></div>' +
       '<div class="flex items-center gap-x-4 lg:gap-x-6"><a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline"><div class="text-sm font-semibold leading-tight">Login</div></a></div>' +
-      '</div></div>' +
+      '</div>' +
+      '<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6"></div></div>' +
       '<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main">' +
       '<div class="flex items-center gap-x-4 lg:gap-x-6 ml-auto">' +
       '<a href="./charactersIndex.html" class="justify-center items-center flex gap-2 px-3 py-1.5 rounded-xl bg-[#1f1f1f] border border-white border-opacity-10 no-underline"><img src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg" class="w-5 h-5"><div class="text-white text-sm font-semibold">My AI</div></a>' +
@@ -234,6 +259,13 @@
 
     applyPc();
     applyDrawer();
+
+    // 顶栏 tokens 胶囊由 shell-new 渲染，这里等它渲染完再补一次真实余额（这些页面没引 main.js）
+    if (token) {
+      setTimeout(function () {
+        try { if (window.refreshTokenBalance) window.refreshTokenBalance() } catch (e) { /* 忽略 */ }
+      }, 1200)
+    }
   }
 
     // Contact Us：页面有联系弹窗则弹窗，没有则走 href（客服邮箱）
