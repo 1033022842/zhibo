@@ -18,14 +18,19 @@ namespace app\common\service;
  */
 final class SrsService
 {
-    /** SRS HTTP API 基址（默认本机 1985，可通过环境变量覆盖） */
+    /** SRS HTTP API 基址（默认本机 1986，可通过环境变量或 .env 覆盖） */
     private string $apiBase;
 
     public function __construct()
     {
-        $host = getenv('SRS_API_HOST') ?: '127.0.0.1';
-        $port = (string) (getenv('SRS_API_PORT') ?: '1986');
-        $this->apiBase = 'http://' . $host . ':' . $port;
+        // 优先系统环境变量；其次 ThinkPHP .env（「共用 CDN」模式下在 .env 指向远端 SRS）
+        $host = getenv('SRS_API_HOST');
+        $port = getenv('SRS_API_PORT');
+        if ((!$host || !$port) && function_exists('env')) {
+            $host = $host ?: (string) env('SRS_API_HOST', '');
+            $port = $port ?: (string) env('SRS_API_PORT', '');
+        }
+        $this->apiBase = 'http://' . ($host ?: '127.0.0.1') . ':' . ($port ?: '1986');
     }
 
     /**
