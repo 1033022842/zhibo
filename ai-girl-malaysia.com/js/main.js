@@ -209,6 +209,8 @@
             localStorage.setItem('live_user_info', JSON.stringify(userinfo))
             saveSession(res.data)
             token = res.data.access_token
+            // 转化事件：注册成功
+            try { if (window.SugusTrack) SugusTrack.event('register') } catch (e) {}
            layer.msg('Registration successful')
             setTimeout(() => {
             window.location.replace(backUrl())
@@ -252,6 +254,8 @@
             localStorage.setItem('live_user_info', JSON.stringify(userinfo))
             saveSession(res.data)
             token = res.data.access_token
+            // 转化事件：登录成功（FB 上报为 Lead）
+            try { if (window.SugusTrack) SugusTrack.event('login') } catch (e) {}
            layer.msg('Login successful')
             setTimeout(function() {
             var redirect = getUrlParam(window.location.href, 'redirect')
@@ -540,6 +544,8 @@
         localStorage.setItem('live_user_info', JSON.stringify(userinfo))
         saveSession(res.data)
         token = res.data.access_token
+        // 转化事件：Google 登录成功
+        try { if (window.SugusTrack) SugusTrack.event('login') } catch (e) {}
         googleMsg('Login successful')
         setTimeout(function() {
           var redirect = getUrlParam(window.location.href, 'redirect')

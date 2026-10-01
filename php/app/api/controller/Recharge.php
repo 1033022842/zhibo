@@ -48,7 +48,11 @@ final class Recharge extends BaseController
         return $this->jsonSuccess([
             'list'     => $this->service->packages(),
             'products' => $starPay->products(),
-            'flowpay'  => $flowPay->enabled(),
+            // 卡支付：是否可用 + 可选通道（前台平铺成多个按钮由用户自选）
+            'flowpay'  => [
+                'enabled'  => $flowPay->enabled(),
+                'channels' => $flowPay->channels(),
+            ],
         ]);
     }
 
@@ -74,11 +78,13 @@ final class Recharge extends BaseController
         $tokens    = $this->request->post('tokens/d', 0);
         $product   = trim((string) $this->request->post('product', ''));
         $gateway   = strtolower(trim((string) $this->request->post('gateway', 'starpay')));
+        // FlowPay 收单通道（前台用户自选，仅 gateway=flowpay 时有意义）
+        $gcode     = trim((string) $this->request->post('gcode', ''));
 
         if ($packageId > 0) {
-            $order = $this->service->submitPackageOrder($userId, $packageId, $product, $gateway);
+            $order = $this->service->submitPackageOrder($userId, $packageId, $product, $gateway, $gcode);
         } elseif ($tokens > 0) {
-            $order = $this->service->submitCustomOrder($userId, $tokens, $product, $gateway);
+            $order = $this->service->submitCustomOrder($userId, $tokens, $product, $gateway, $gcode);
         } else {
             return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择充值套餐或点数');
         }
@@ -167,7 +173,16 @@ final class Recharge extends BaseController
         if ($amount <= 0) return $this->jsonFail(ResultCode::PARAM_ERROR, '请输入充值金额');
 
         $order = $this->service->submitOrder($userId, $channelId, $amount, $proofImage);
-        return $this->jsonSuccess($order, '订单已提交，请等待审核');
+        $spec  = \app\live\service\RechargeService::specOf((array) ($order['channel'] ?? []));
+        return $this->jsonSuccess(array_merge($order, [
+            // 站内收款页用：币种/网络/精度都来自后台渠道配置，前端不猜
+            'confirm_mode' => \app\live\service\RechargeService::effectiveConfirmMode((array) ($order['channel'] ?? [])),
+            'unit'         => (string) $spec['unit'],
+            'chain_label'  => (string) $spec['chain'],
+            'pegged'       => (bool) $spec['pegged'],
+            'pay_address'  => (string) (($order['channel']['address'] ?? '')),
+            'memo'         => (string) (($order['channel']['memo'] ?? '')),
+        ]), '订单已提交，请等待审核');
     }
 
     /**
@@ -193,6 +208,9 @@ final class Recharge extends BaseController
         return $this->jsonSuccess([
             'order_no'       => $order['order_no'],
             'status'         => (int) $order['status'],
+            // 支付状态：0 未确认 / 1 已支付 / 2 未支付（网关查单或回调写入）
+            // 前台回跳后靠它区分「还没付成功」与「网关已明确回未支付」
+            'pay_state'      => (int) ($order['pay_state'] ?? 0),
             'pay_amount'     => $order['pay_amount'],
             'diamond_amount' => $order['diamond_amount'],
             'pay_url'        => (string) ($order['pay_url'] ?? ''),

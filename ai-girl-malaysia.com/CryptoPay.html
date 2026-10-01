@@ -1,0 +1,307 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Crypto payment | Sugus.ai</title>
+	<link rel="icon" type="image/png" href="./sugus-favicon-v3.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon-v3.png">
+	<!-- 加密货币收款页（版式参考 CoinGate 的 invoice 页）：浅灰底 + 居中卡片 + 灰头白身 -->
+	<style>
+		* { box-sizing: border-box; }
+		html, body { margin: 0; padding: 0; }
+		/* hidden 属性必须生效：.cp-net / .cp-equiv 自带 display:flex，
+		   会盖掉浏览器默认的 [hidden]{display:none}，导致「Network —」和等价金额行永远显示 */
+		[hidden] { display: none !important; }
+		body {
+			background: #F6F7F8;
+			color: #111827;
+			font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+			-webkit-font-smoothing: antialiased;
+		}
+		.cp-card {
+			width: 100%;
+			max-width: 448px;
+			min-height: 100vh;
+			margin: 0 auto;
+			background: #FFFFFF;
+			border-radius: 24px 24px 0 0;
+			overflow: hidden;
+			display: flex;
+			flex-direction: column;
+		}
+		/* 灰头：logo + 商家 + 订单描述 + 大字金额 */
+		.cp-head {
+			background: #E5E7EB;
+			padding: 18px 24px 22px;
+			text-align: center;
+		}
+		.cp-logo {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 34px;
+			height: 34px;
+			border-radius: 10px;
+			background: linear-gradient(135deg, #A87CDB 0%, #FC768A 100%);
+			color: #FFFFFF;
+			font-size: 17px;
+			font-weight: 700;
+			letter-spacing: -.3px;
+		}
+		.cp-merchant { margin-top: 16px; color: #6B7280; font-size: 12px; font-weight: 500; }
+		.cp-desc { margin-top: 4px; color: #4B5563; font-size: 13px; font-weight: 500; line-height: 18px; word-break: break-word; }
+		.cp-price { margin-top: 8px; color: #111827; font-size: 36px; font-weight: 600; line-height: 44px; letter-spacing: -.5px; }
+		.cp-equiv { margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; color: #4B5563; font-size: 14px; }
+		.cp-equiv img { width: 16px; height: 16px; border-radius: 50%; }
+		.cp-info {
+			margin-top: 14px;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			height: 28px;
+			padding: 0 12px;
+			border: 0;
+			border-radius: 999px;
+			background: #FFFFFF;
+			color: #374151;
+			font-size: 12px;
+			font-weight: 500;
+			font-family: inherit;
+			cursor: pointer;
+		}
+		.cp-info:hover { background: #F3F4F6; }
+		.cp-info i {
+			display: inline-flex; align-items: center; justify-content: center;
+			width: 14px; height: 14px; border-radius: 50%;
+			border: 1px solid #9CA3AF; color: #6B7280;
+			font-size: 9px; font-style: normal; font-weight: 700;
+		}
+		.cp-body { flex: 1; padding: 20px 24px 28px; }
+		.cp-panel {
+			border: 1px solid #E5E7EB;
+			border-radius: 16px;
+			background: #FFFFFF;
+			overflow: hidden;
+		}
+		.cp-select {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			width: 100%;
+			height: 56px;
+			padding: 0 16px;
+			border: 0;
+			background: none;
+			color: #111827;
+			font-size: 15px;
+			font-weight: 500;
+			font-family: inherit;
+			text-align: left;
+			cursor: pointer;
+		}
+		.cp-select:hover { background: #FAFAFA; }
+		.cp-select-ico {
+			display: inline-flex; align-items: center; justify-content: center;
+			width: 26px; height: 26px; border-radius: 50%; flex: 0 0 26px;
+			background: #F3F4F6; color: #9CA3AF;
+			font-size: 10px; font-weight: 700; overflow: hidden;
+		}
+		.cp-select-ico img { width: 100%; height: 100%; object-fit: contain; }
+		.cp-select-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.cp-select-name.is-placeholder { color: #9CA3AF; font-weight: 400; }
+		.cp-chevron { width: 18px; height: 18px; flex: 0 0 18px; color: #9CA3AF; }
+		.cp-net {
+			display: flex; align-items: center; justify-content: space-between;
+			height: 48px; padding: 0 16px;
+			border-top: 1px solid #E5E7EB;
+			color: #6B7280; font-size: 13px;
+		}
+		.cp-net b { color: #111827; font-weight: 500; }
+		.cp-primary {
+			width: 100%;
+			height: 48px;
+			margin-top: 16px;
+			border: 0;
+			border-radius: 12px;
+			background: linear-gradient(268deg, #FC768A 0%, #E65073 100%);
+			color: #FFFFFF;
+			font-size: 16px;
+			font-weight: 600;
+			font-family: inherit;
+			cursor: pointer;
+			transition: filter .15s ease;
+		}
+		.cp-primary:hover { filter: brightness(1.06); }
+		.cp-primary[disabled] { opacity: .55; cursor: default; filter: none; }
+		.cp-or { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: #9CA3AF; font-size: 12px; }
+		.cp-or::before, .cp-or::after { content: ""; flex: 1; height: 1px; background: #E5E7EB; }
+		.cp-alt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px; color: #111827; font-size: 14px; font-weight: 500; text-decoration: none; }
+		.cp-alt:hover { background: #FAFAFA; }
+		.cp-alt-icons { display: flex; align-items: center; gap: 6px; }
+		.cp-alt-icons img { width: 32px; height: 20px; }
+		.cp-foot { padding: 0 24px 26px; color: #9CA3AF; font-size: 12px; text-align: center; }
+
+		/* 付款信息（第二步） */
+		.cp-k { color: #6B7280; font-size: 12px; font-weight: 500; }
+		.cp-block { padding: 16px; }
+		.cp-block + .cp-block { border-top: 1px solid #E5E7EB; }
+		.cp-payamt { margin-top: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+		.cp-payamt b { color: #111827; font-size: 20px; font-weight: 700; }
+		.cp-addr { margin-top: 6px; display: flex; align-items: flex-start; gap: 10px; }
+		.cp-addr span { flex: 1; min-width: 0; color: #111827; font-size: 13px; font-weight: 500; line-height: 20px; word-break: break-all; }
+		.cp-copy {
+			flex: 0 0 auto;
+			height: 28px;
+			padding: 0 10px;
+			border: 1px solid #E5E7EB;
+			border-radius: 8px;
+			background: #FFFFFF;
+			color: #374151;
+			font-size: 12px;
+			font-weight: 500;
+			font-family: inherit;
+			cursor: pointer;
+		}
+		.cp-copy:hover { background: #F3F4F6; }
+		.cp-qr { display: flex; justify-content: center; margin-top: 16px; }
+		.cp-qr svg, .cp-qr img { width: 168px; height: 168px; padding: 8px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E5E7EB; }
+		.cp-note { margin: 14px 0 0; color: #6B7280; font-size: 12px; line-height: 18px; }
+		.cp-state { margin-top: 14px; color: #E65073; font-size: 14px; font-weight: 600; }
+		.cp-state.is-ok { color: #059669; }
+		.cp-meta { margin-top: 6px; color: #9CA3AF; font-size: 12px; }
+		.cp-back {
+			margin-top: 16px; width: 100%; height: 44px;
+			border: 1px solid #E5E7EB; border-radius: 12px; background: #FFFFFF;
+			color: #374151; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+		}
+		.cp-back:hover { background: #F9FAFB; }
+
+		/* 弹窗 */
+		.cp-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(17, 24, 39, .45); }
+		.cp-modal[hidden] { display: none; }
+		.cp-sheet { width: 100%; max-width: 400px; max-height: 80vh; display: flex; flex-direction: column; background: #FFFFFF; border-radius: 16px; overflow: hidden; }
+		.cp-sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid #E5E7EB; font-size: 15px; font-weight: 600; }
+		.cp-sheet-close { width: 24px; height: 24px; padding: 0; border: 0; background: none; color: #9CA3AF; font-size: 18px; line-height: 1; cursor: pointer; }
+		.cp-search { margin: 14px 18px 6px; height: 40px; padding: 0 12px; border: 1px solid #E5E7EB; border-radius: 10px; background: #F9FAFB; color: #111827; font-size: 14px; font-family: inherit; }
+		.cp-search:focus { outline: none; border-color: #E65073; }
+		.cp-list { padding: 8px 10px 14px; overflow-y: auto; }
+		.cp-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 0; border-radius: 10px; background: none; color: #111827; font-size: 14px; font-family: inherit; text-align: left; cursor: pointer; }
+		.cp-item:hover { background: #F3F4F6; }
+		.cp-item-ico { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%; background: #F3F4F6; color: #6B7280; font-size: 10px; font-weight: 700; overflow: hidden; }
+		.cp-item-ico img { width: 100%; height: 100%; object-fit: contain; }
+		/* 站内没有素材的币种：品牌色圆标 + 币种代号 */
+		.cp-coin-badge { color: #fff; letter-spacing: .2px; }
+		.cp-item-name { flex: 1; min-width: 0; }
+		.cp-item-sub { color: #9CA3AF; font-size: 12px; }
+		.cp-info-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid #F3F4F6; font-size: 13px; }
+		.cp-info-row:last-child { border-bottom: 0; }
+		.cp-info-key { color: #6B7280; }
+		.cp-info-val { color: #111827; font-weight: 500; text-align: right; word-break: break-all; }
+		@media (max-width: 420px) {
+			.cp-body { padding: 18px 16px 24px; }
+			.cp-head { padding: 16px 16px 20px; }
+			.cp-price { font-size: 32px; line-height: 40px; }
+		}
+	</style>
+<script src="./js/brand.js?v=20261001a"></script>
+</head>
+<body>
+	<div class="cp-card">
+		<header class="cp-head">
+			<div class="cp-logo" aria-label="Sugus.ai">S</div>
+			<div class="cp-merchant">Sugus.ai</div>
+			<div class="cp-desc" id="cp-desc">Loading…</div>
+			<div class="cp-price" id="cp-price">—</div>
+			<div class="cp-equiv" id="cp-equiv" hidden></div>
+			<button type="button" class="cp-info" id="cp-info-btn"><i>i</i> Order information</button>
+		</header>
+
+		<!-- 第一步：选币种 -->
+		<section class="cp-body" id="cp-step1">
+			<div class="cp-panel">
+				<button type="button" class="cp-select" id="cp-currency-btn">
+					<span class="cp-select-ico" id="cp-currency-ico"></span>
+					<span class="cp-select-name is-placeholder" id="cp-currency-name">Select currency</span>
+					<svg class="cp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+				</button>
+				<div class="cp-net" id="cp-net-row" hidden>
+					<span>Network</span>
+					<b id="cp-net-value">—</b>
+				</div>
+			</div>
+			<button type="button" class="cp-primary" id="cp-continue">Continue</button>
+			<div class="cp-or"><span>or choose other methods</span></div>
+			<div class="cp-panel">
+				<a class="cp-alt" id="cp-alt-card" href="./Subscriptions.html">
+					<span>Continue with card</span>
+					<span class="cp-alt-icons">
+						<img src="./subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg" alt="Visa">
+						<img src="./subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg" alt="Mastercard">
+					</span>
+				</a>
+			</div>
+		</section>
+
+		<!-- 第二步：按这个地址、这个金额转账 -->
+		<section class="cp-body" id="cp-step2" hidden>
+			<div class="cp-panel">
+				<div class="cp-block">
+					<div class="cp-k">Send exactly</div>
+					<div class="cp-payamt">
+						<b id="cp-exact">—</b>
+						<button type="button" class="cp-copy" data-copy="cp-exact">Copy</button>
+					</div>
+				</div>
+				<div class="cp-block">
+					<div class="cp-k">to this <span id="cp-chain">—</span> address</div>
+					<div class="cp-addr">
+						<span id="cp-address">—</span>
+						<button type="button" class="cp-copy" data-copy="cp-address">Copy</button>
+					</div>
+					<div class="cp-qr" id="cp-qr"></div>
+				</div>
+				<div class="cp-block" id="cp-memo-block" hidden>
+					<div class="cp-k">with this <span id="cp-memo-label">Memo / Tag</span></div>
+					<div class="cp-addr">
+						<span id="cp-memo">—</span>
+						<button type="button" class="cp-copy" data-copy="cp-memo">Copy</button>
+					</div>
+				</div>
+			</div>
+			<p class="cp-note" id="cp-note"></p>
+			<div class="cp-state" id="cp-state">Waiting for payment…</div>
+			<div class="cp-meta">Order <span id="cp-order">—</span> · expires in <span id="cp-timer">--:--</span></div>
+			<button type="button" class="cp-back" id="cp-back">Choose another currency</button>
+		</section>
+
+		<footer class="cp-foot">Additional local taxes may apply</footer>
+	</div>
+
+	<!-- 币种选择 -->
+	<div class="cp-modal" id="cp-cur-modal" hidden>
+		<div class="cp-sheet">
+			<div class="cp-sheet-head">
+				<span>Select currency</span>
+				<button type="button" class="cp-sheet-close" data-close="cp-cur-modal" aria-label="Close">&times;</button>
+			</div>
+			<input type="text" class="cp-search" id="cp-cur-search" placeholder="Search" autocomplete="off">
+			<div class="cp-list" id="cp-cur-list"></div>
+		</div>
+	</div>
+
+	<!-- 订单信息 -->
+	<div class="cp-modal" id="cp-info-modal" hidden>
+		<div class="cp-sheet">
+			<div class="cp-sheet-head">
+				<span>Order information</span>
+				<button type="button" class="cp-sheet-close" data-close="cp-info-modal" aria-label="Close">&times;</button>
+			</div>
+			<div class="cp-list" id="cp-info-list"></div>
+		</div>
+	</div>
+
+	<script src="./plugins/qrcode-generator.js"></script>
+	<script src="./js/crypto-pay.js?v=20261001f"></script>
+</body>
+</html>

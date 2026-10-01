@@ -247,7 +247,8 @@ final class RechargeOrder extends Backend
             $stCls  = [0 => 'pending', 1 => 'passed', 2 => 'rejected', 3 => 'closed'][$st] ?? '';
 
             $payChannel = (string) $r['pay_channel'];
-            $unit       = $this->unitOf($payChannel);
+            $payGcode   = trim((string) ($r['pay_gcode'] ?? ''));
+            $unit       = $this->unitOf($r);
             $channelLbl = $this->channelLabel($r);
             $isVip      = (string) ($r['biz_type'] ?? 'coin') === 'vip';
             $bizLbl     = $isVip ? '会员订阅' : '充值代币';
@@ -323,6 +324,9 @@ final class RechargeOrder extends Backend
                 '用户'       => ($r['nickname'] ?: '-') . ' (id=' . (int) $r['user_id'] . ')',
                 '渠道'       => $channelLbl,
                 '渠道类型'   => $payChannel . ($r['chain_type'] ? ' / ' . $r['chain_type'] : ''),
+                '支付通道'   => $payChannel === 'flowpay' && $payGcode !== ''
+                    ? $payGcode . '（' . (string) (config('flowpay.channels')[$payGcode] ?? '未收录') . '）'
+                    : '-',
                 '业务'       => $bizLbl . ($isVip && !empty($r['vip_plan_id']) ? '（套餐 #' . (int) $r['vip_plan_id'] . '）' : '')
                     . ($r['package_id'] ? '（充值套餐 #' . (int) $r['package_id'] . '）' : ''),
                 '应付金额'   => (string) $r['pay_amount'] . ' ' . $unit,
@@ -424,14 +428,18 @@ final class RechargeOrder extends Backend
         ]);
     }
 
-    /** 支付金额单位：链上按币种，网关按法币 */
-    private function unitOf(string $payChannel): string
+    /** 支付金额单位：链上按币种代号，网关按法币 USD */
+    private function unitOf(array $r): string
     {
-        return match ($payChannel) {
-            'usdt_trc20' => 'USDT',
-            'eth'        => 'ETH',
-            default      => 'USD',
-        };
+        $payChannel = (string) $r['pay_channel'];
+        if ($payChannel === '' || in_array($payChannel, ['starpay', 'flowpay'], true)) {
+            return 'USD';
+        }
+        // 币种清单统一维护在 RechargeService::COINS，后台新增币种这里不用改
+        return RechargeService::specOf([
+            'type' => $payChannel,
+            'name' => (string) ($r['channel_name'] ?? ''),
+        ])['unit'];
     }
 
     private function channelLabel(array $r): string
@@ -441,7 +449,10 @@ final class RechargeOrder extends Backend
             return 'star-pay（网关）';
         }
         if ($payChannel === 'flowpay') {
-            return 'FlowPay（网关）';
+            // FlowPay 下有多条收单通道，展示名见 config/flowpay.php 的 channels
+            $gcode = trim((string) ($r['pay_gcode'] ?? ''));
+            $label = $gcode !== '' ? (string) (config('flowpay.channels')[$gcode] ?? $gcode) : '';
+            return 'FlowPay（网关）' . ($label !== '' ? ' · ' . $label : '');
         }
         return (string) ($r['channel_name'] ?: $payChannel);
     }

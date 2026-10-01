@@ -70,7 +70,7 @@
 <script src="./js/main.js?v=20260930h"></script>
 <script src="./js/shell-new.js?v=20260930i"></script>
 <script src="./js/ui-dialog.js?v=20260927a"></script>
-<script src="./js/subscriptions.js?v=20260930m"></script>
+<script src="./js/subscriptions.js?v=20261001a"></script>
 <script src="./js/tracking.js?v=20260930h"></script>
 <!-- 未登录版式钩子：给 <html> 加 no-auth 类，未登录相关的差异全部由页面 CSS 控制
      （隐藏 Premium / Premium Plus 切换、卡片不带 tokens 档位下拉、卡片高度 250px）。
@@ -80,6 +80,7 @@
     document.documentElement.classList.add('no-auth');
   }
 </script>
+<script src="./js/brand.js?v=20261001a"></script>
 </head>
 
   <body class="bg-main-v2 payments index" id="app" data-controller="main mobile-scroll-behavior mobile-navbar-visibility modal pwa" data-mobile-scroll-behavior-current-page-name="payments" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="55965708" data-main-selected-character-id-from-generate-image="">
@@ -1595,7 +1596,7 @@
         
     <div>
           <button type="button" id="sub-pay-crypto" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex mb-3">
-          <div class="text-white text-xs sm:text-sm font-medium leading-tight">Pay with</div>
+          <div class="text-white text-xs sm:text-sm font-medium leading-tight">Continue with</div>
           <div class="w-16 h-5 flex gap-[4px]">
             <img class="w-16 h-5" alt="Bitcoin" src="./taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg">
             <img class="w-16 h-5" src="./taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg">
@@ -1608,7 +1609,7 @@
             <div class="animate-shine absolute h-14 w-[123px] left-[-123px] top-1/2 -translate-y-1/2 rounded-[10000px] opacity-20 bg-gradient-to-l from-transparent via-white/70 to-transparent"></div>
             <div class="relative flex items-center justify-center gap-3">
               <span class="text-white text-base leading-5 font-semibold whitespace-nowrap">
-                Pay with
+                Continue with card
               </span>
               <div class="flex items-center gap-1.5">
                 <img class="w-8 h-5" alt="Apple Pay" src="./subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg">
@@ -2320,7 +2321,7 @@
       <div class="flex flex-col gap-1 w-full sub-modal-buttons mt-4" data-controller="pix-modal">
           
       <button type="button" id="sub-pay-crypto-plus" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex mb-3">
-          <div class="text-white text-xs sm:text-sm font-medium leading-tight">Pay with</div>
+          <div class="text-white text-xs sm:text-sm font-medium leading-tight">Continue with</div>
           <div class="w-16 h-5 flex gap-[4px]">
             <img class="w-16 h-5" alt="Bitcoin" src="./taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg">
             <img class="w-16 h-5" src="./taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg">
@@ -2333,7 +2334,7 @@
             <div class="animate-shine absolute h-14 w-[123px] left-[-123px] top-1/2 -translate-y-1/2 rounded-[10000px] opacity-20 bg-gradient-to-l from-transparent via-white/70 to-transparent"></div>
             <div class="relative flex items-center justify-center gap-3">
               <span class="text-white text-base leading-5 font-semibold whitespace-nowrap">
-                Pay with
+                Continue with card
               </span>
               <div class="flex items-center gap-1.5">
                 <img class="w-8 h-5" alt="Apple Pay" src="./subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg">

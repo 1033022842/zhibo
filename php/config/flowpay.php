@@ -6,7 +6,7 @@
  *   GATEWAY = https://api.safepaycash.com
  *   MCHID = 商户号
  *   KEY = 商户密钥（签名末尾拼接）
- *   GCODE = 产品编码（商户后台查询）
+ *   GCODE = 默认产品编码（商户后台查询；不在 channels 里时以 channels 第一条为准）
  *   NOTIFY_URL = https://域名/api/v1/recharge/notifyFlowPay
  *   RETURN_URL = http://域名:8082/purchasePoints.html
  *   RETURN_URL_VIP = http://域名:8082/Subscriptions.html
@@ -18,6 +18,18 @@ return [
     'mchid'          => (string) env('flowpay.mchid', ''),
     'key'            => (string) env('flowpay.key', ''),
     'gcode'          => (string) env('flowpay.gcode', ''),
+    /*
+     * 前台可选支付通道：gcode => 前台展示名（数组顺序即前台按钮顺序）
+     *
+     * 网关同一个收银台（ramp.amopay.io）下挂了多套收单路由，每条 gcode 对应一套：
+     * 下单金额 / 到账金额 / 收银台地址完全一致，差别只在发卡行侧的收单通道。
+     * 所以前台把它们平铺成多个「Pay with xxx」按钮，由用户自选。
+     */
+    'channels'       => [
+        '666888' => 'Amopay-applepay',
+        '666777' => 'Amopay-GGPay',
+        '666999' => 'Amopay-Visa',
+    ],
     'notify_url'     => (string) env('flowpay.notify_url', ''),
     'return_url'     => (string) env('flowpay.return_url', ''),
     // 会员订阅页同步跳回地址

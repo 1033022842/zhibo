@@ -1,31 +1,43 @@
 /**
- * Subscriptions 页（版式复刻 candy /payments · 套餐数据来自后台 · star-pay USDT 收款）
+ * Subscriptions 页（版式复刻 candy /payments · 套餐数据来自后台）
  *
- * 页面结构由参考页原样保留，本脚本只做三件事：
+ * 页面结构由参考页原样保留，本脚本只做四件事：
  *   1) 用 /api/v1/vip/plans 的数据回填卡片价格、tokens 档位下拉与权益文案
  *   2) 记录用户点选的（层级 · 时长 · tokens 档位）
- *   3) 「Pay with」按钮 → /api/v1/vip/order 下单 → 跳转 star-pay 收银台，回跳后轮询到账
+ *   3) 卡支付走 FlowPay 收单；加密货币走站内收款页 CryptoPay.html（后台自持地址）
+ *   4) 按登录态切换版式：未登录不展示 Premium / Premium Plus 切换，卡片也不带 tokens 档位下拉
+ *   5) 支付回跳：付成功了提示到账；没付成功则弹「Payment Unsuccessful」
  */
 ;(function () {
     var base = '/api/v1'
     var token = localStorage.getItem('live_access_token')
-    // 收款地址类产品（商户仅启用 USDT 充值类，买币/刷卡类已下线）
-    var PRODUCT = 'USDT-TRC20Deposit'
+    // 登录态：token 过期（/vip/status 返回 A0100/A0101）时会翻成 false
+    var authed = !!token
     var PENDING_KEY = 'vip_pending_order'
     var API_TIMEOUT = 15000
+    // 回跳后轮询到账：网关回调是服务端即时推送，正常几秒内就到；
+    // 连续 POLL_TRIES 次（0/5/10/15 秒）还没支付就按失败弹提示。
+    var POLL_MS = 5000
+    var POLL_TRIES = 4
+    // 待支付标记只当「刚支付回来」用，超过订单有效期（2 小时）就不再弹失败提示
+    var PENDING_TTL = 2 * 60 * 60 * 1000
 
     var plans = []
     // 最近点选的卡片：{ level, months, tokens }
     var picked = null
     // 会员状态（/vip/status）
     var vipState = null
+    // FlowPay 可选收单通道：[{ gcode, label }]，点卡按钮后展开成多个通道按钮
+    var cardChannels = []
+    // 页面里两个弹窗各有一个卡支付按钮（保留原 id，校验脚本会数它）
+    var CARD_BUTTONS = ['#sub-pay-card', '#sub-pay-card-plus']
 
     var PANEL_LEVEL = { 'premium': 'premium', 'premium-plus': 'premium_plus' }
     var TYPE_MONTHS = { yearly: 12, quarterly: 3, monthly: 1 }
     var MODAL_TITLE = { 'premium': '#sub-modal-plan-title', 'premium_plus': '#sub-modal-plan-title-premium-plus' }
     var MODAL_PRICE = { 'premium': '#sub-modal-plan-price', 'premium_plus': '#sub-modal-plan-price-premium-plus' }
 
-    $(function () { setTimeout(init, 800) })
+    $(function () { bindGuestCardGuard(); setTimeout(init, 800) })
 
     function h() { return token ? { 'Authorization': 'Bearer ' + token } : {} }
 
@@ -37,25 +49,126 @@
         bindEvents()
         loadPlans()
         loadStatus()
-        pollOrder(pendingOrderNo(), 12)
+        loadCardChannels()
+        pollOrder(pendingOrderNo(), POLL_TRIES)
+    }
+
+    /**
+     * 未登录版式：给 <html> 加 no-auth 类，具体差异（切换器、卡片 tokens 档位下拉、卡片高度）
+     * 全部由页面 CSS 控制。首屏未登录的情况已在 head 的内联脚本里加过，这里只补 token 过期的情况。
+     */
+    function applyGuestLayout() {
+        document.documentElement.classList.add('no-auth')
+    }
+
+    /**
+     * 未登录点套餐卡片：与参考站一致，弹注册弹窗而不是支付方式弹窗。
+     * 监听挂在容器捕获阶段，早于卡片自身（以及文档级）的点击 handler，
+     * 拦下后 stopPropagation，避免支付方式弹窗被同时打开。
+     */
+    function bindGuestCardGuard() {
+        var host = document.getElementById('subscriptions-container')
+        if (!host) { return }
+        host.addEventListener('click', function (e) {
+            if (authed) { return }
+            var t = e.target
+            if (!t || typeof t.closest !== 'function' || !t.closest('[data-plan-type]')) { return }
+            e.preventDefault()
+            e.stopPropagation()
+            openRegisterModal()
+        }, true)
+    }
+
+    /** 打开注册弹窗（站内通用 markup，显示方式与 candy 的 main#openRegistrationModal 一致） */
+    function openRegisterModal() {
+        $('[data-main-target="registrationModal"]').css('display', 'flex')
+        $('[data-main-target="signInModal"]').css('display', 'none')
+    }
+
+    /**
+     * 卡支付通道：/recharge/packages 下发 FlowPay 已开通的收单通道
+     */
+    function loadCardChannels() {
+        $.ajax({
+            url: base + '/recharge/packages',
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
+            if (!r || r.code !== '00000' || !r.data || !r.data.flowpay) { return }
+            cardChannels = r.data.flowpay.channels || []
+            if (r.data.flowpay.enabled && cardChannels.length) { renderCardButtons() }
+        })
+    }
+
+    /**
+     * 收单通道对应的品牌标：按通道名匹配，不在前端写死 gcode，
+     * 后台加减通道或换 gcode 都不用改这里。匹配不到就只显示文字。
+     */
+    var CHANNEL_LOGOS = [
+        { re: /apple/i, src: './subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg', alt: 'Apple Pay' },
+        { re: /google|gpay/i, src: './subscriptions2_files/google-pay-mark.svg', alt: 'Google Pay' },
+        { re: /visa/i, src: './subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg', alt: 'Visa' },
+        { re: /master/i, src: './subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg', alt: 'Mastercard' }
+    ]
+
+    function channelLogo(label) {
+        var text = String(label || '')
+        for (var i = 0; i < CHANNEL_LOGOS.length; i++) {
+            if (CHANNEL_LOGOS[i].re.test(text)) { return CHANNEL_LOGOS[i] }
+        }
+        return null
+    }
+
+    /**
+     * 卡支付：上方是一个渐变胶囊按钮（Continue with card + Apple Pay / Google Pay / Visa / Mastercard，
+     * 与 candy 未登录版那个按钮同一形态），点它就地展开下方三条收单通道，选通道下单；
+     * 每条通道按钮前带自己的品牌标。
+     */
+    function renderCardButtons() {
+        CARD_BUTTONS.forEach(function (sel) {
+            var $btn = $(sel)
+            if (!$btn.length) { return }
+            var baseId = sel.replace('#', '')
+            var $box = $('<div class="sub-card-channels" style="display:none"></div>')
+            cardChannels.forEach(function (ch) {
+                var $b = $('<button type="button" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex mt-4"></button>')
+                    .attr('id', baseId + '-' + ch.gcode)
+                    .attr('data-gcode', ch.gcode)
+                var logo = channelLogo(ch.label)
+                if (logo) {
+                    $('<img class="w-8 h-5" alt="' + logo.alt + '" src="' + logo.src + '">').appendTo($b)
+                }
+                $b.append($('<div class="text-white text-xs sm:text-sm font-medium leading-tight"></div>').text(ch.label))
+                    .appendTo($box)
+            })
+            $btn.after($box)
+            $btn.on('click', function (e) {
+                e.preventDefault()
+                $box.slideToggle(140)
+            })
+        })
     }
 
     /** 会员状态：用于渲染卡片按钮文案（Select / Extend / Current Plan） */
     function loadStatus() {
-        if (!token) { applyCardCta(); return }
+        if (!authed) { applyCardCta(); return }
         $.ajax({
             url: base + '/vip/status',
             headers: h(),
             timeout: API_TIMEOUT,
         }).done(function (r) {
             if (r && r.code === '00000' && r.data) { vipState = r.data }
+            // 本地存了 token 但已失效：按未登录版渲染
+            if (r && (r.code === 'A0100' || r.code === 'A0101')) {
+                authed = false
+                applyGuestLayout()
+            }
             applyCardCta()
         }).fail(function () { applyCardCta() })
     }
 
     /**
      * 卡片底部按钮文案（参考页快照写死了抓取账号的订阅态，这里按真实状态渲染）
-     *   非会员 → Select；当前层级时长一致 → Current Plan；其它 → Extend
+     *   未登录 → Get Started；非会员 → Select；当前层级时长一致 → Current Plan；其它 → Extend
      */
     function applyCardCta() {
         $('[data-tab-panel]').filter(function () {
@@ -65,7 +178,7 @@
             $(this).find('[data-plan-type]').each(function () {
                 var $wrap = $(this)
                 var months = TYPE_MONTHS[$wrap.attr('data-plan-type')] || 1
-                var label = 'Select'
+                var label = authed ? 'Select' : 'Get Started'
                 if (vipState && vipState.is_vip) {
                     label = (vipState.level === level && (parseInt(vipState.plan_months, 10) || 0) === months)
                         ? 'Current Plan' : 'Extend'
@@ -269,14 +382,15 @@
             var $w = $(this).closest('[data-plan-type]')
             if ($w.length) { remember($w) }
         })
+        // 加密货币：跳站内收款页（后台链上渠道，自持地址）
         $(document).on('click', '#sub-pay-crypto, #sub-pay-crypto-plus', function (e) {
             e.preventDefault()
-            pay($(this).attr('id'))
+            cryptoPay($(this).attr('id'))
         })
-        // 银行卡收银台（FlowPay）
-        $(document).on('click', '#sub-pay-card, #sub-pay-card-plus', function (e) {
+        // 银行卡收银台（FlowPay）· 每个通道一个按钮，用户点哪个走哪条
+        $(document).on('click', '[data-gcode]', function (e) {
             e.preventDefault()
-            pay($(this).attr('id'), 'flowpay')
+            pay($(this).attr('id'), 'flowpay', String($(this).attr('data-gcode') || ''))
         })
     }
 
@@ -302,14 +416,27 @@
     }
 
     // ===== 下单 =====
-    function pay(btnId, gateway) {
+    /** 加密货币：跳站内收款页（后台链上收款渠道，金额取当前选中的套餐） */
+    function cryptoPay(btnId) {
+        var level = /-plus/.test(btnId || '') ? 'premium_plus' : 'premium'
+        var sel = readSelection(level)
+        var plan = findPlan(level, sel.months, sel.tokens)
+        if (!plan) {
+            toast('Please choose a plan first')
+            return
+        }
+        location.href = './CryptoPay.html?kind=vip&plan_id=' + encodeURIComponent(plan.id)
+    }
+
+    function pay(btnId, gateway, gcode) {
         if (!token) {
             toast('Please log in first')
             setTimeout(function () { location.href = './Login.html' }, 900)
             return
         }
 
-        var level = btnId === 'sub-pay-crypto-plus' ? 'premium_plus' : 'premium'
+        // 按钮 id 带 -plus 的属于 premium-plus 弹窗（否则会读到另一个弹窗的档位）
+        var level = /-plus/.test(btnId || '') ? 'premium_plus' : 'premium'
         var sel = readSelection(level)
         var plan = findPlan(level, sel.months, sel.tokens)
         if (!plan) {
@@ -317,19 +444,23 @@
             return
         }
 
+        // 卡支付走 FlowPay 收单通道（用户点了哪个按钮就走哪条）；加密货币不走这里，走站内收款页
+        var payload = { plan_id: plan.id, gateway: gateway }
+        if (gcode) { payload.gcode = gcode }
+
         var loadIdx = layer.load(1, { shade: [.1, '#fff'] })
         $.ajax({
             url: base + '/vip/order',
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, h()),
-            data: JSON.stringify({ plan_id: plan.id, product: PRODUCT, gateway: gateway || 'starpay' }),
+            data: JSON.stringify(payload),
             dataType: 'json',
             timeout: API_TIMEOUT,
         }).done(function (r) {
             layer.close(loadIdx)
             if (r && (r.code === 'A0100' || r.code === 'A0101')) { backToLogin(r.msg); return }
             if (r && r.code === '00000' && r.data && r.data.pay_url) {
-                try { localStorage.setItem(PENDING_KEY, r.data.order_no) } catch (e) {}
+                savePending(r.data.order_no)
                 location.href = r.data.pay_url
             } else {
                 toast((r && r.msg) || 'Create order failed')
@@ -371,41 +502,91 @@
         setTimeout(function () { location.href = './Login.html' }, 900)
     }
 
-    // ===== 支付回跳轮询 =====
-    function pendingOrderNo() {
-        var search = window.location.search
-        if (search) {
-            var raw = new URLSearchParams(search).get('params')
-            if (raw) {
-                try {
-                    var p = JSON.parse(decodeURIComponent(raw))
-                    if (p && p.merchant_ref) { return p.merchant_ref }
-                } catch (e) {}
-            }
-        }
-        try { return localStorage.getItem(PENDING_KEY) || '' } catch (e) { return '' }
+    // ===== 支付回跳 =====
+    /** 记录待支付订单（含下单时间，用于判断是不是「刚支付回来」） */
+    function savePending(orderNo) {
+        try { localStorage.setItem(PENDING_KEY, JSON.stringify({ o: orderNo, t: Date.now() })) } catch (e) {}
     }
 
-    function pollOrder(orderNo, times) {
-        if (!orderNo || times <= 0 || !token) { return }
+    function readPending() {
+        var raw = ''
+        try { raw = localStorage.getItem(PENDING_KEY) || '' } catch (e) { return null }
+        if (!raw) { return null }
+        try {
+            var p = JSON.parse(raw)
+            if (p && p.o) { return { o: String(p.o), t: parseInt(p.t, 10) || 0 } }
+        } catch (e) {}
+        return { o: raw, t: 0 } // 兼容旧格式（只存了订单号）
+    }
+
+    function clearPending() {
+        try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
+    }
+
+    /** 本次是否需要轮询到账：网关回跳带的单号优先，其次看本地待支付标记 */
+    function pendingOrderNo() {
+        var raw = new URLSearchParams(window.location.search || '').get('params')
+        if (raw) {
+            try {
+                var p = JSON.parse(decodeURIComponent(raw))
+                if (p && p.merchant_ref) { return String(p.merchant_ref) }
+            } catch (e) {}
+        }
+        var pend = readPending()
+        if (!pend) { return '' }
+        if (pend.t > 0 && Date.now() - pend.t > PENDING_TTL) {
+            clearPending()
+            return ''
+        }
+        return pend.o
+    }
+
+    /**
+     * 轮询订单状态：
+     *   已支付 → 成功提示；网关明确回未支付 / 连续几次都没付成功 → 弹「Payment Unsuccessful」
+     */
+    function pollOrder(orderNo, tries, known) {
+        if (!orderNo || tries <= 0 || !token) { return }
         $.ajax({
             url: base + '/recharge/status',
             headers: h(),
             data: { order_no: orderNo },
             timeout: API_TIMEOUT,
         }).done(function (r) {
-            if (r && (r.code === 'A0100' || r.code === 'A0101')) {
-                try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
-                return
+            if (r && (r.code === 'A0100' || r.code === 'A0101')) { clearPending(); return }
+            var d = (r && r.code === '00000' && r.data) ? r.data : null
+            if (d) {
+                known = true
+                if (parseInt(d.status, 10) === 1) { paySucceeded(d); return }
+                if (parseInt(d.pay_state, 10) === 2) { payFailed(); return }
             }
-            if (r && r.code === '00000' && r.data && parseInt(r.data.status, 10) === 1) {
-                try { localStorage.removeItem(PENDING_KEY) } catch (e) {}
-                toast('Payment successful, membership activated')
-                return
-            }
-            setTimeout(function () { pollOrder(orderNo, times - 1) }, 5000)
+            // 订单号查不到（后台已清理等）不算支付失败，只有确认过这笔单确实未支付才提示
+            if (tries <= 1) { if (known) { payFailed() } return }
+            setTimeout(function () { pollOrder(orderNo, tries - 1, known) }, POLL_MS)
         }).fail(function () {
-            setTimeout(function () { pollOrder(orderNo, times - 1) }, 5000)
+            // 请求失败只是没查到，不代表支付失败：继续重试，用尽就保持沉默等下次进页面再查
+            if (tries <= 1) { if (known) { payFailed() } return }
+            setTimeout(function () { pollOrder(orderNo, tries - 1, known) }, POLL_MS)
         })
+    }
+
+    function paySucceeded(d) {
+        clearPending()
+        toast('Payment successful, membership activated')
+        // 转化事件：订阅成功（金额取订单实付）
+        try {
+            if (window.SugusTrack) SugusTrack.event('subscribe', { value: d.pay_amount })
+        } catch (e) {}
+    }
+
+    /** 支付没成功：与参考站一致弹「Payment Unsuccessful」 */
+    function payFailed() {
+        clearPending()
+        var msg = "We're sorry, but your payment could not be processed. Please check your payment details and try again."
+        if (window.SugusDialog && SugusDialog.alert) {
+            SugusDialog.alert(msg, { title: 'Payment Unsuccessful', okText: 'OK', icon: 'warn' })
+            return
+        }
+        toast('Payment Unsuccessful')
     }
 })()
