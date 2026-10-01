@@ -79,7 +79,10 @@
     contact: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>' },
     affiliate: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>' },
     appdl: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7.5v6m0 0l-2.4-2.4M12 13.5l2.4-2.4"/></svg>' },
-    banknote: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2.5" y="6" width="19" height="12" rx="3"/><circle cx="12" cy="12" r="2.75"/><path d="M6 9.5v5M18 9.5v5"/></svg>' }
+    banknote: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2.5" y="6" width="19" height="12" rx="3"/><circle cx="12" cy="12" r="2.75"/><path d="M6 9.5v5M18 9.5v5"/></svg>' },
+
+    // 头像下拉「Notifications」：沿用原站 settings_files 里的铃铛
+    bell: { src: './settings_files/bell-5e96b0cd2e66a4ce6eb9b4f17fecd9f952a1780b89d2be511c619832e96f5897.png' }
   }
 
   // 侧边栏菜单：沿用站点原有菜单项与顺序
@@ -107,7 +110,9 @@
   var NAV_BOTTOM = [
     { href: 'mailto:support@sugusmail.ai', label: 'Contact Us', icon: 'contact', attr: ' data-contact-us="1"' },
     { href: './Inviter.html', label: 'Affiliate Program', icon: 'affiliate' },
-    { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' }
+    { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' },
+    // 安装教程入口：从头像下拉挪到左侧菜单栏最底部（Home.html#install-app 打开「添加到主屏幕」教程）
+    { href: './Home.html#install-app', label: 'Get Candy.ai app', icon: 'appdl' }
   ]
 
   /* 支持的语言：与 setting.html / Subscriptions.html / settings.html / taocan.html 等页面自带的
@@ -429,15 +434,101 @@
       return '<a href="' + href + '">' + iconHtml(icon, '') +
         '<span>' + esc(label) + '</span></a>'
     }
-    return row('./Home.html#install-app', 'appdl', 'Get Candy.ai app') +
-      row('./Subscriptions.html', 'premium', 'Subscription') +
+    return row('./Subscriptions.html', 'premium', 'Subscription') +
       row('./purchasePoints.html', 'coin', 'Tokens') +
       row('./Withdrawal.html', 'banknote', 'Withdraw') +
       row('./Inviter.html', 'gift', 'Get 100 tokens') +
       row('./setting.html', 'settings', 'Settings') +
+      // 消息通知：原站头像下拉里就有这一项，点开是通知面板
+      '<button type="button" class="fy-notif-btn">' + iconHtml('bell', '') +
+      '<span>' + esc('Notifications') + '</span></button>' +
       '<form method="post" onsubmit="return false">' +
       '<button data-turbo="false" class="logout" type="submit">' +
       '<img src="' + I.logout.src + '" alt=""><span>Logout</span></button></form>'
+  }
+
+  /* ---------- 消息通知面板 ----------
+     原站头像下拉里的「Notifications」由 account-notifications 控制器 + /account_notifications
+     驱动；本站后端没有该接口，这里照原站弹窗的样式做一个纯前端面板，
+     内容沿用站内既有的示例通知。 */
+  var NOTIFS = [
+    { tag: 'New character', datetime: '2026-09-26T02:54:04Z', time: '2:54 AM', text: 'Sadie Ashworth is now available.' },
+    { tag: 'New character', datetime: '2026-09-26T01:24:57Z', time: '1:24 AM', text: 'Lexi Luna is now available.' },
+    { tag: 'New character', datetime: '2026-09-24T04:15:42Z', time: '4:15 AM', text: 'Rosie Rios is now available.' },
+    { tag: 'New character', datetime: '2026-09-23T05:35:21Z', time: '5:35 AM', text: 'Alexis Ivyedge is now available.' }
+  ]
+
+  var NOTIF_CSS = '' +
+    '.fy-notif{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;}' +
+    '.fy-notif[hidden]{display:none;}' +
+    '.fy-notif-veil{position:absolute;inset:0;background:rgba(0,0,0,.65);}' +
+    '.fy-notif-card{position:relative;display:flex;flex-direction:column;width:100%;max-width:760px;max-height:calc(100dvh - 24px);padding:24px;border:1px solid #2b2b2b;border-radius:12px;background:#1A1A1A;box-shadow:0 20px 40px rgba(0,0,0,.5);}' +
+    '.fy-notif-x{position:absolute;right:16px;top:16px;width:27px;height:27px;padding:0;border:0;background:transparent;background-image:none;color:#fff;cursor:pointer;transition:opacity .2s;}' +
+    '.fy-notif-x:hover{opacity:.8;}' +
+    '.fy-notif-x svg{display:block;width:100%;height:100%;}' +
+    '.fy-notif-title{margin:0;font-size:24px;line-height:24px;font-weight:600;color:#fff;}' +
+    '.fy-notif-sub{margin:8px 0 0;font-size:14px;font-weight:500;line-height:20px;color:#a3a3a3;}' +
+    '.fy-notif-list{display:flex;flex-direction:column;gap:12px;margin-top:8px;padding-right:4px;max-height:calc(100dvh - 180px);overflow-y:auto;overscroll-behavior:contain;}' +
+    '.fy-notif-row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border:1px solid #2b2b2b;border-radius:10px;background:rgba(255,255,255,.03);}' +
+    '.fy-notif-dot{flex:0 0 auto;width:8px;height:8px;margin-top:8px;border-radius:9999px;background:#E75275;}' +
+    '.fy-notif-body{flex:1 1 auto;min-width:0;}' +
+    '.fy-notif-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;}' +
+    '.fy-notif-tag{padding:2px 6px;border-radius:4px;background:rgba(231,82,117,.2);color:#E75275;font-size:10px;font-weight:600;line-height:16px;}' +
+    '.fy-notif-time{color:#8a8a8a;font-size:11px;line-height:16px;}' +
+    '.fy-notif-text{margin:0;font-size:12px;font-weight:500;line-height:20px;color:#a3a3a3;}' +
+    '@media (min-width:640px){.fy-notif-list{max-height:520px;}}' +
+    '@media (max-width:639px){' +
+    '.fy-notif{align-items:flex-end;}' +
+    '.fy-notif-card{max-width:none;border-radius:12px 12px 0 0;border-bottom:0;}' +
+    '}'
+
+  function notifPanelHtml() {
+    function row(n) {
+      return '<div class="fy-notif-row">' +
+        '<span class="fy-notif-dot" aria-hidden="true"></span>' +
+        '<div class="fy-notif-body">' +
+        '<div class="fy-notif-meta">' +
+        '<span class="fy-notif-tag">' + esc(n.tag) + '</span>' +
+        '<time class="fy-notif-time" datetime="' + esc(n.datetime) + '">' + esc(n.time) + '</time>' +
+        '</div>' +
+        '<p class="fy-notif-text">' + esc(n.text) + '</p>' +
+        '</div></div>'
+    }
+    return '<div class="fy-notif" id="fyNotif" role="dialog" aria-modal="true" aria-label="Notifications" hidden>' +
+      '<div class="fy-notif-veil" data-fy-notif-close></div>' +
+      '<div class="fy-notif-card">' +
+      '<button type="button" class="fy-notif-x" aria-label="Close" data-fy-notif-close>' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
+      '<path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+      '<h2 class="fy-notif-title">Notifications</h2>' +
+      '<p class="fy-notif-sub">Important notifications from Sugus.ai.</p>' +
+      '<div class="fy-notif-list">' + NOTIFS.map(row).join('') + '</div>' +
+      '</div></div>'
+  }
+
+  function openNotifs() {
+    if (!document.getElementById('fyNotifStyle')) {
+      var st = document.createElement('style')
+      st.id = 'fyNotifStyle'
+      st.textContent = NOTIF_CSS
+      document.head.appendChild(st)
+    }
+    var el = document.getElementById('fyNotif')
+    if (!el) {
+      var box = document.createElement('div')
+      box.innerHTML = notifPanelHtml()
+      el = box.firstChild
+      document.body.appendChild(el)
+    }
+    el.hidden = false
+    document.body.style.overflow = 'hidden'
+  }
+
+  function closeNotifs() {
+    var el = document.getElementById('fyNotif')
+    if (!el || el.hidden) return
+    el.hidden = true
+    document.body.style.overflow = ''
   }
 
   /* 抽屉底部（照参考站 footer 的排布）：上面一个大按钮「Category: Girls」，
@@ -882,6 +973,26 @@
       closePopovers(e)
     })
 
+    // 消息通知：头像下拉 / 抽屉资料菜单里的「Notifications」打开面板
+    document.addEventListener('click', function (e) {
+      var t = e.target
+      if (t.closest && t.closest('.fy-notif-btn')) {
+        e.preventDefault()
+        var menu = document.getElementById('profileDropdownMenu')
+        var btn = document.getElementById('user-menu-button')
+        if (menu) menu.style.display = 'none'
+        if (btn) btn.setAttribute('aria-expanded', 'false')
+        var dm = document.getElementById('fy-drawer-user-menu')
+        if (dm) dm.classList.add('hidden')
+        openNotifs()
+        return
+      }
+      if (t.closest && t.closest('[data-fy-notif-close]')) {
+        e.preventDefault()
+        closeNotifs()
+      }
+    })
+
     // 移动端抽屉语言区：捕获阶段拦截点击。
     // 抽屉容器上挂着 Stimulus 动作（click->main#setMobileSidebarValueToDefault），
     // 点语言按钮会把整个抽屉收起、菜单跟着消失（表现为"点不动"），
@@ -970,6 +1081,7 @@
       if (e.key !== 'Escape') return
       hideTip()
       closePopovers()
+      closeNotifs()
     })
   }
 

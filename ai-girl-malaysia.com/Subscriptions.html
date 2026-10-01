@@ -67,10 +67,19 @@
 <script src="./taocan_files/alpine-69b009b4309a19f099cf57a5f03edb7fbc7a130fdc6a2e9b34bb32a1ca3ef10d.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./taocan_files/jquery-3.6.0.min.js"></script>
 <script src="./assets/layer/3.1.1/layer.js"></script>
-<script src="./js/main.js?v=20260930g"></script>
-<script src="./js/shell-new.js?v=20260930f"></script>
+<script src="./js/main.js?v=20260930h"></script>
+<script src="./js/shell-new.js?v=20260930i"></script>
 <script src="./js/ui-dialog.js?v=20260927a"></script>
-<script src="./js/subscriptions.js?v=20260923a"></script>
+<script src="./js/subscriptions.js?v=20260930m"></script>
+<script src="./js/tracking.js?v=20260930h"></script>
+<!-- 未登录版式钩子：给 <html> 加 no-auth 类，未登录相关的差异全部由页面 CSS 控制
+     （隐藏 Premium / Premium Plus 切换、卡片不带 tokens 档位下拉、卡片高度 250px）。
+     放在 head 里执行，保证首屏就按未登录版渲染，不会先亮出登录版再改回来。 -->
+<script>
+  if (!localStorage.getItem('live_access_token')) {
+    document.documentElement.classList.add('no-auth');
+  }
+</script>
 </head>
 
   <body class="bg-main-v2 payments index" id="app" data-controller="main mobile-scroll-behavior mobile-navbar-visibility modal pwa" data-mobile-scroll-behavior-current-page-name="payments" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="55965708" data-main-selected-character-id-from-generate-image="">
@@ -966,14 +975,14 @@
 				<div class="headerfy"></div>
 				<div class="gap-x-2 flex pc-rg-login">
 					<div class="flex items-center gap-x-4 lg:gap-x-6">
-						<a href="./Login.html" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline">
+						<div data-main-target="registerButton" data-action="click-&gt;main#openRegistrationModal" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
 							<div class="text-white text-sm font-semibold leading-tight">Register</div>
-						</a>
+						</div>
 					</div>
 					<div class="flex items-center gap-x-4 lg:gap-x-6">
-						<a href="./Login.html" style="border-color:#E75275;color:#E75275;" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer no-underline">
+						<div data-action="click-&gt;main#openSignInModal" style="border-color:#E75275;color:#E75275;" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
 							<div class="text-sm font-semibold leading-tight">Login</div>
-						</a>
+						</div>
 					</div>
 				</div>
 				<div class="hidden lg:flex items-center gap-x-4 lg:gap-x-6"></div>
@@ -1016,7 +1025,7 @@
     ">
 
 
-      <div class="flex justify-center mt-2 mb-8 relative z-10">
+      <div id="sub-tier-tabs" class="flex justify-center mt-2 mb-8 relative z-10">
         <div class="
             inline-flex items-center rounded-full border border-white/10
             bg-black-dark/60 backdrop-blur-sm p-1
@@ -1594,13 +1603,21 @@
           </div>
         </button>        </div>
     <div>
-          <button type="button" id="sub-pay-card" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex mb-3">
-          <div class="text-white text-xs sm:text-sm font-medium leading-tight">Pay with Card</div>
-          <div class="w-16 h-5 flex gap-[4px]">
-            <img class="w-16 h-5" alt="Visa" src="./taocan_files/visa-e1d8b03b25a5af3b8320ae609ba6331e0e1787c5d24d0bbcb9bfb8e88d5cdd42.svg">
-            <img class="w-16 h-5" alt="Mastercard" src="./taocan_files/mastercard-a70ad911ccea0bdffda8287342443e4bb64898fecf51d8a4f86b1ecacf213e4a.svg">
-          </div>
-        </button>        </div>
+          <button type="button" id="sub-pay-card" class="w-full h-14 rounded-full overflow-hidden relative group">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-brand to-pink-dark"></div>
+            <div class="animate-shine absolute h-14 w-[123px] left-[-123px] top-1/2 -translate-y-1/2 rounded-[10000px] opacity-20 bg-gradient-to-l from-transparent via-white/70 to-transparent"></div>
+            <div class="relative flex items-center justify-center gap-3">
+              <span class="text-white text-base leading-5 font-semibold whitespace-nowrap">
+                Pay with
+              </span>
+              <div class="flex items-center gap-1.5">
+                <img class="w-8 h-5" alt="Apple Pay" src="./subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg">
+                <img class="w-8 h-5" alt="Google Pay" src="./subscriptions2_files/google-pay-mark.svg">
+                <img class="w-8 h-5" alt="Visa" src="./subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg">
+                <img class="w-8 h-5" alt="Mastercard" src="./subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg">
+              </div>
+            </div>
+          </button></div>
     </div>
 
       <div class="flex flex-col gap-3 items-center mt-[25px] w-full">
@@ -2311,13 +2328,21 @@
           </div>
         </button>
 
-      <button type="button" id="sub-pay-card-plus" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex mb-3">
-          <div class="text-white text-xs sm:text-sm font-medium leading-tight">Pay with Card</div>
-          <div class="w-16 h-5 flex gap-[4px]">
-            <img class="w-16 h-5" alt="Visa" src="./taocan_files/visa-e1d8b03b25a5af3b8320ae609ba6331e0e1787c5d24d0bbcb9bfb8e88d5cdd42.svg">
-            <img class="w-16 h-5" alt="Mastercard" src="./taocan_files/mastercard-a70ad911ccea0bdffda8287342443e4bb64898fecf51d8a4f86b1ecacf213e4a.svg">
-          </div>
-        </button>
+      <button type="button" id="sub-pay-card-plus" class="w-full h-14 rounded-full overflow-hidden relative group">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-brand to-pink-dark"></div>
+            <div class="animate-shine absolute h-14 w-[123px] left-[-123px] top-1/2 -translate-y-1/2 rounded-[10000px] opacity-20 bg-gradient-to-l from-transparent via-white/70 to-transparent"></div>
+            <div class="relative flex items-center justify-center gap-3">
+              <span class="text-white text-base leading-5 font-semibold whitespace-nowrap">
+                Pay with
+              </span>
+              <div class="flex items-center gap-1.5">
+                <img class="w-8 h-5" alt="Apple Pay" src="./subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg">
+                <img class="w-8 h-5" alt="Google Pay" src="./subscriptions2_files/google-pay-mark.svg">
+                <img class="w-8 h-5" alt="Visa" src="./subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg">
+                <img class="w-8 h-5" alt="Mastercard" src="./subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg">
+              </div>
+            </div>
+          </button>
 
 
       </div>
@@ -3072,6 +3097,32 @@
 [data-subscription-social-proof] [data-scroll-fade-target="rightButton"]:hover{background:rgba(0,0,0,.75);}
 [data-subscription-social-proof] [data-scroll-fade-target="leftButton"] span,
 [data-subscription-social-proof] [data-scroll-fade-target="rightButton"] span{font-size:28px;line-height:1;transform:translateY(-1px);}
+
+/* ===== 未登录版式（<html class="no-auth">，由 head 里的内联脚本加；token 过期时由 subscriptions.js 补加）=====
+   与未登录参考页一致：不出 Premium / Premium Plus 切换，卡片不带 tokens 档位下拉，卡片高度 250px。
+   Premium Plus 面板与 Compare Plans 本来就默认 hidden，切换器藏掉后即未登录版。 */
+html.no-auth #sub-tier-tabs{display:none;}
+html.no-auth .token-tier-select{display:none;}
+html.no-auth .sub-card-yearly,
+html.no-auth .sub-card-default{height:250px;}
+
+/* ===== 登录 / 注册弹窗：补齐这版 Tailwind 产物缺的两个工具类 =====
+   本页 Tailwind 产物比其它页旧：.bg-black-default 是纯 #131313（不引用 --tw-bg-opacity），
+   也没有生成 .text-[#E75275]。照搬站内那套弹窗 markup 后会出现两处与其它页不一致：
+     1) 遮罩 bg-black-default bg-opacity-50 退化成全不透明，弹窗背后页面完全看不到；
+     2) 弹窗底部 Sign in / Sign up 链接应为粉色，实际继承成白色。
+   这里按其它页面的最终效果补上。 */
+.text-\[\#E75275\]{color:#E75275;}
+[data-main-target="registrationModal"].bg-opacity-50,
+[data-main-target="signInModal"].bg-opacity-50{background-color:rgba(19,19,19,.5);}
+
+/* ===== 银行卡「Pay with」渐变胶囊按钮（照 candy 未登录版那一个按钮）=====
+   同样的原因，这版 Tailwind 产物少生成了 4 个类，这里按 Tailwind 的规则补上，
+   让按钮 markup 与 candy 保持一致（渐变 #4346E6 → #E75275 + 流光扫过）。 */
+.gap-1\.5{gap:calc(var(--spacing) * 1.5);}
+.left-\[-123px\]{left:-123px;}
+.w-\[123px\]{width:123px;}
+.rounded-\[10000px\]{border-radius:10000px;}
 </style>
 
     <div class="
@@ -3132,6 +3183,161 @@
     
     
     
+
+    <!-- 登录 / 注册弹窗（与站内其它页面同一套 markup；提交逻辑由 js/main.js 接管，走 /api/live/registerFromAi 与 /api/live/login） -->
+    <turbo-frame id="registration-modal">
+      <div data-main-target="registrationModal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100">
+        <div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0">
+          <button type="button" class="absolute w-5 h-5 right-3 top-3 z-10" data-action="click-&gt;main#closeRegistrationModal">
+            <img class="w-auto" src="./Girls_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+          </button>
+          <div class="hidden lg:flex h-full relative">
+            <div id="user-signup-image">
+              <img class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top" src="./Girls_files/image5-bd5309d84f7f2bbd60a70e38d705f827c63611034bb3cce450b24d5ada8e4b4d.webp">
+            </div>
+          </div>
+          <div class="flex flex-col relative bg-black-dark rounded-tr-[10px] rounded-br-[10px] rounded-tl-[10px] rounded-bl-[10px] lg:rounded-tl-0 lg:rounded-bl-0 w-[335px] lg:w-[407px]">
+            <div id="user-signup-container" class="flex-1 mx-6 lg:mx-10 mt-6 lg:mt-10">
+              <div class="relative">
+                <form class="simple_form new_user" id="new_user_registration">
+                  <input type="hidden" name="profile_id" id="profile_id_registration" data-main-target="characterIDForGenerateImage" autocomplete="off">
+                  <input type="hidden" name="prompt" id="prompt_registration" data-main-target="promptForGenerateImage" autocomplete="off">
+                  <div class="form-inputs mb-3">
+                    <div class="text-[24px] text-white leading-7 lg:leading-8 font-bold mb-3 lg:mb-3">
+                      Create Account
+                    </div>
+                    <div class="w-full flex-col justify-start items-start gap-1.5 inline-flex">
+                      <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+                        <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+                          <img src="./Girls_files/username.svg">
+                        </div>
+                        <div class="input name required user_name w-full">
+                          <input class="string name required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="Username" type="username" value="" name="user[username]" id="user_username_registration">
+                        </div>
+                      </div>
+                    </div>
+                    <div class="w-full flex-col justify-start items-start gap-1.5 inline-flex mt-4">
+                      <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+                        <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+                          <img alt="Email icon" src="./Girls_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+                        </div>
+                        <div class="input email required user_email w-full">
+                          <input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_email_registration" required="required" aria-required="true" placeholder="E-mail" type="email" name="user[email]">
+                        </div>
+                      </div>
+                    </div>
+                    <div class="w-full flex-col justify-start items-start inline-flex mt-4">
+                      <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+                        <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+                          <img alt="Lock icon" src="./Girls_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+                        </div>
+                        <div class="w-5 h-5 absolute top-[13px] right-[10px]">
+                          <img alt="Visibility icon" src="./Girls_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+                        </div>
+                        <div class="input password required user_password field_with_hint w-full">
+                          <input class="password required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_password_registration" required="required" aria-required="true" placeholder="Password" type="password" name="user[password]">
+                          <span class="hint">
+                            <span style="color: gray; display: flex; font-size: 14px; margin-top: 5px;">Minimum 6 characters</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="w-full flex-col justify-start items-start inline-flex mt-4">
+                      <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+                        <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+                          <img alt="Lock icon" src="./assets/Invite.svg">
+                        </div>
+                        <div class="input email required user_email w-full">
+                          <input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_code_registration" required="required" aria-required="true" placeholder="invitation Code" type="text" name="user[Invite_code]">
+                          <span class="hint">
+                            <span style="color: gray; display: flex; font-size: 14px; margin-top: 5px;">Not required</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <button name="button" type="submit" class="flex w-full mt-4 px-4 py-3 bg-[#E75275] rounded-[10px] justify-center items-center text-white text-sm font-semibold" id="signup-btn" data-loading-button-state-target="submit">
+                      Create Account
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="flex-0 px-8" style="width: 100%; height: 0px; opacity: 0.20; border: 0.50px white solid"></div>
+            <div class="flex flex-0 mt-5 font-medium text-sm justify-center items-center text-white px-8 mb-5">
+              Already have an account yet? &nbsp;
+              <div data-action="click-&gt;main#closeRegistrationModal click-&gt;main#openSignInModal" class="text-[#E75275] text-sm font-semibold leading-normal cursor-pointer">
+                Sign in
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </turbo-frame>
+    <turbo-frame id="sign-in-modal">
+      <div data-main-target="signInModal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100">
+        <div class="flex relative bg-black-dark rounded-[10px]">
+          <div class="hidden lg:flex h-full relative">
+            <div id="user-login-image">
+              <img class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top" src="./Girls_files/image1-510c9159fd51d7802ef2de3bc1e6edcbd5c5dc0a87ef225a5871143c46eaba02.webp">
+            </div>
+          </div>
+          <div class="flex flex-col relative bg-black-dark rounded-tr-[10px] rounded-br-[10px] rounded-tl-[10px] rounded-bl-[10px] lg:rounded-tl-0 lg:rounded-bl-0 w-[335px] lg:w-[407px]">
+            <button type="button" class="absolute w-5 h-5 right-3 top-3" data-action="click-&gt;main#closeSignInModal">
+              <img class="w-auto" src="./Girls_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+            </button>
+            <div class="flex-1 px-6 lg:px-10 pt-0 lg:pt-5">
+              <div id="user-login-container">
+                <form data-turbo="true" class="simple_form mt-5" id="new_user" accept-charset="UTF-8" method="post">
+                  <input type="hidden" name="profile_id" id="profile_id" data-main-target="characterIDForGenerateImage" autocomplete="off">
+                  <input type="hidden" name="prompt" id="prompt" data-main-target="promptForGenerateImage" autocomplete="off">
+                  <div class="form-inputs mb-3">
+                    <div class="text-[24px] text-white leading-7 lg:leading-8 font-bold  mb-4 mb-3">
+                      Sign in
+                    </div>
+                    <div class="w-full flex-col justify-start items-start gap-1.5 inline-flex mt-5">
+                      <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+                        <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+                          <img src="./Girls_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+                        </div>
+                        <div class="input email required user_email w-full">
+                          <input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="E-mail" type="email" value="" name="user[email]" id="user_email">
+                        </div>
+                      </div>
+                    </div>
+                    <div class="w-full flex-col justify-start items-start gap-1.5 inline-flex mt-5">
+                      <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+                        <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+                          <img src="./Girls_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+                        </div>
+                        <div class="w-5 h-5 absolute top-[13px] right-[10px]">
+                          <img src="./Girls_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+                        </div>
+                        <div class="input password required user_password w-full">
+                          <input class="password required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="Password" type="password" name="user[password]" id="user_password">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <br>
+                  <button name="button" type="submit" class="flex w-full mt-6 px-4 py-3 bg-[#E75275] rounded-[10px] justify-center items-center text-white text-sm font-semibold" id="signin-btn" data-controller="loading-button-state" data-loading-button-state-target="submit">
+                    Sign in
+                  </button>
+                </form>
+              </div>
+            </div>
+            <div style="width: 100%; height: 0px; opacity: 0.20; border: 0.50px white solid"></div>
+            <div class="flex mt-5 font-medium text-sm justify-center items-center text-white px-6 lg:px-10 pb-5">
+              Don't have an account yet? &nbsp;
+              <div data-action="click-&gt;main#closeSignInModal click-&gt;main#openRegistrationModal" class="text-[#E75275] text-sm font-semibold leading-normal cursor-pointer">
+                Sign up
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </turbo-frame>
 
     <script src="./js/promo-popup.js?v=20260929a"></script>
 <script src="./js/subscriptions-reviews.js?v=20260930a"></script>
