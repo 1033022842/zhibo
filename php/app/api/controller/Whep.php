@@ -18,8 +18,11 @@ final class Whep extends BaseController
         $body = $this->request->getContent();
         $contentType = $this->request->header('Content-Type', 'application/sdp');
 
+        // mediamtx WHEP 端点（本机）。可用 env AI.MEDIAMTX_WHEP_BASE 覆盖，避免硬编码服务器 IP
+        $mediamtxBase = rtrim((string) env('AI.MEDIAMTX_WHEP_BASE', 'http://127.0.0.1:8889'), '/');
         $mediamtxUrl = sprintf(
-            'http://172.81.98.55:8889/%s/%s/whep',
+            '%s/%s/%s/whep',
+            $mediamtxBase,
             urlencode($app),
             urlencode($stream)
         );
