@@ -66,7 +66,7 @@
         .cf-chip:hover{border-color:rgba(255,255,255,.3)}
         .cf-chip.on{border-color:#E75275;background:rgba(231,82,117,.16);color:#F97187}
         .cf-chips.wide .cf-chip{flex:1;text-align:center}
-        .cf-upload{width:100%;aspect-ratio:16/9;border:2px dashed rgba(255,255,255,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color .2s}
+        .cf-upload{position:relative;width:100%;aspect-ratio:16/9;border:2px dashed rgba(255,255,255,.18);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color .2s}
         .cf-upload:hover{border-color:#E75275}
         .cf-upload img{width:100%;height:100%;object-fit:cover}
         .cf-upload-ph{display:flex;flex-direction:column;align-items:center;gap:8px;color:rgba(255,255,255,.35);font-size:13px}
@@ -82,9 +82,23 @@
         .cf-addbtn{width:100%;padding:14px;border:1px dashed rgba(255,255,255,.2);border-radius:12px;color:rgba(255,255,255,.6);font-size:13px;font-family:inherit;background:transparent;cursor:pointer;transition:all .15s}
         .cf-addbtn:hover{border-color:#E75275;color:#F97187}
         .cf-materials{display:flex;flex-direction:column;gap:10px;margin-top:12px}
-        .cf-mat{display:flex;align-items:center;gap:12px;background:#1d1d1d;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px}
+        .cf-mat{display:flex;align-items:center;gap:10px;background:#1d1d1d;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px}
+        .cf-mat.err{border-color:rgba(239,68,68,.5)}
         .cf-mat .nm{flex:1;font-size:13px;color:rgba(255,255,255,.75);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .cf-mat .rm{color:#f59e0b;font-size:12px;background:none;border:none;cursor:pointer;font-family:inherit}
+        .cf-mat .rm{color:#f59e0b;font-size:12px;background:none;border:none;cursor:pointer;font-family:inherit;flex-shrink:0}
+        .cf-mat .rt{color:#E75275;font-size:12px;background:none;border:none;cursor:pointer;font-family:inherit;flex-shrink:0}
+        .cf-mat .st{flex-shrink:0;width:16px;text-align:center;font-size:13px;line-height:1}
+        .cf-mat .st.ok{color:#34d399}
+        .cf-mat .st.err{color:#ef4444}
+        .cf-mat .pg{flex-shrink:0;font-size:11px;color:#A1A1A1;min-width:42px;text-align:right}
+        .cf-mat .pg.err{color:#ef4444;min-width:0}
+
+        /* ===== Upload loading states ===== */
+        .cf-spin-s{flex-shrink:0;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#E75275;border-radius:50%;animation:cfr .8s linear infinite}
+        .cf-upload-load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.55);color:#fff;font-size:13px}
+        .cf-upload-load .cf-spin-s{width:26px;height:26px;border-width:3px}
+        .cf-bar{width:70%;height:4px;border-radius:9999px;background:rgba(255,255,255,.18);overflow:hidden}
+        .cf-bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fc768a,#e65073);transition:width .2s}
 
         .cf-center{display:flex;justify-content:center;padding:60px 0}
         .cf-spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#E75275;border-radius:50%;animation:cfr .8s linear infinite}
@@ -351,49 +365,109 @@
         btn.classList.add('on')
     }
 
-    function uploadFile(file, cb, onFail) {
+    var materialSeq = 0
+
+    function escHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] })
+    }
+
+    // XHR upload with real progress + timeout, so the UI can show loading / failure clearly
+    function uploadFileXhr(file, onProgress, onDone, onFail) {
         var fd = new FormData()
         fd.append('file', file)
-        fetch(base + '/merchant/upload', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + token } })
-            .then(function(r){ return r.json() }).then(function(d){
-                if (d.data && d.data.url) { cb(d.data.url) } else if (onFail) { onFail() }
-            }).catch(function(){ if (onFail) onFail() })
+        var xhr = new XMLHttpRequest()
+        xhr.open('POST', base + '/merchant/upload')
+        xhr.setRequestHeader('Authorization', 'Bearer ' + token)
+        xhr.timeout = 120000
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable && onProgress) onProgress(Math.min(99, Math.round(e.loaded / e.total * 100)))
+        }
+        xhr.onload = function() {
+            var d = null
+            try { d = JSON.parse(xhr.responseText) } catch (err) {}
+            if (xhr.status === 200 && d && d.data && d.data.url) {
+                if (onProgress) onProgress(100)
+                onDone(d.data.url)
+            } else {
+                onFail(xhr.status === 413 ? 'File too large' : 'Upload failed')
+            }
+        }
+        xhr.onerror = function(){ onFail('Network error') }
+        xhr.ontimeout = function(){ onFail('Timed out') }
+        xhr.onabort = function(){ onFail('Cancelled') }
+        xhr.send(fd)
     }
 
     window.uploadCover = function(input) {
-        var file = input.files[0]
+        var file = input.files && input.files[0]
         if (!file) return
-        var btn = document.getElementById('submitBtn')
-        btn.disabled = true
-        btn.textContent = 'Uploading cover...'
-        uploadFile(file, function(url){
-            btn.disabled = false
-            btn.textContent = 'Submit for review'
+        var box = document.getElementById('coverUpload')
+        box.innerHTML = '<div class="cf-upload-load"><div class="cf-spin-s"></div><div class="cf-pct">Uploading 0%</div><div class="cf-bar"><i></i></div></div>'
+        uploadFileXhr(file, function(p){
+            var pct = box.querySelector('.cf-pct')
+            var bar = box.querySelector('.cf-bar > i')
+            if (pct) pct.textContent = 'Uploading ' + p + '%'
+            if (bar) bar.style.width = p + '%'
+        }, function(url){
             document.getElementById('coverUrl').value = url
-            document.getElementById('coverUpload').innerHTML = '<img src="' + url + '" alt="cover" />'
-        }, function(){
-            btn.disabled = false
-            btn.textContent = 'Submit for review'
-            showToast('Upload failed', 'error')
+            box.innerHTML = '<img src="' + url + '" alt="cover" />'
+            showToast('Cover uploaded', 'success')
+        }, function(msg){
+            box.innerHTML = '<div class="cf-upload-ph"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>Click to upload cover</span></div>'
+            showToast('Cover upload failed: ' + msg, 'error')
         })
+        input.value = ''
     }
 
     window.uploadMaterials = function(input) {
         var files = input.files
         if (!files || !files.length) return
+        // Snapshot the FileList BEFORE clearing the input: resetting input.value detaches
+        // the (live) FileList in Chromium, which would otherwise leave nothing to upload.
+        var picked = []
+        for (var k = 0; k < files.length; k++) picked.push(files[k])
         input.value = ''
-        var pending = files.length
-        for (var i = 0; i < files.length; i++) {
-            (function(file){
-                uploadFile(file, function(url){
-                    materials.push({ name: file.name, url: url })
-                    renderMaterials()
-                    if (--pending === 0) showToast('Upload complete', 'success')
-                }, function(){
-                    if (--pending === 0) showToast('Some uploads failed', 'error')
-                })
-            })(files[i])
+        for (var i = 0; i < picked.length; i++) {
+            var entry = { id: ++materialSeq, name: picked[i].name, url: '', status: 'uploading', progress: 0, error: '', file: picked[i] }
+            materials.push(entry)
+            renderMaterials()
+            startMaterialUpload(entry)
         }
+    }
+
+    function startMaterialUpload(entry) {
+        entry.status = 'uploading'
+        entry.progress = 0
+        entry.error = ''
+        renderMaterials()
+        uploadFileXhr(entry.file, function(p){
+            entry.progress = p
+            updateMaterialProgress(entry)
+        }, function(url){
+            entry.status = 'done'
+            entry.url = url
+            entry.progress = 100
+            renderMaterials()
+            showToast('Uploaded: ' + entry.name, 'success')
+        }, function(msg){
+            entry.status = 'error'
+            entry.error = msg
+            renderMaterials()
+            showToast('Upload failed: ' + entry.name + ' (' + msg + ')', 'error')
+        })
+    }
+
+    function updateMaterialProgress(entry) {
+        var row = document.querySelector('.cf-mat[data-mid="' + entry.id + '"]')
+        if (!row) return
+        var pg = row.querySelector('.pg')
+        if (pg) pg.textContent = entry.progress + '%'
+    }
+
+    window.retryMaterial = function(idx) {
+        var entry = materials[idx]
+        if (!entry || entry.status !== 'error') return
+        startMaterialUpload(entry)
     }
 
     window.removeMaterial = function(idx) {
@@ -406,7 +480,21 @@
         if (!list) return
         var html = ''
         for (var i = 0; i < materials.length; i++) {
-            html += '<div class="cf-mat"><span class="nm">' + materials[i].name + '</span>' +
+            var m = materials[i]
+            var st, mid
+            if (m.status === 'uploading') {
+                st = '<span class="cf-spin-s"></span>'
+                mid = '<span class="pg">' + (m.progress || 0) + '%</span>'
+            } else if (m.status === 'done') {
+                st = '<span class="st ok">&#10003;</span>'
+                mid = '<span class="pg">Done</span>'
+            } else {
+                st = '<span class="st err">&#9888;</span>'
+                mid = '<span class="pg err">' + escHtml(m.error || 'Failed') + '</span>'
+            }
+            var retry = m.status === 'error' ? '<button type="button" class="rt" onclick="retryMaterial(' + i + ')">Retry</button>' : ''
+            html += '<div class="cf-mat' + (m.status === 'error' ? ' err' : '') + '" data-mid="' + m.id + '">' +
+                st + '<span class="nm">' + escHtml(m.name) + '</span>' + mid + retry +
                 '<button type="button" class="rm" onclick="removeMaterial(' + i + ')">Remove</button></div>'
         }
         list.innerHTML = html
@@ -437,7 +525,15 @@
         if (!tags.length) { showToast('Please add at least one tag', 'warn'); return }
         if (tags.length > 10) { showToast('Up to 10 tags', 'warn'); return }
         if (!style) { showToast('Please choose a style', 'warn'); return }
-        if (!materials.length) { showToast('Please upload at least one asset', 'warn'); return }
+        var uploading = false, failedCount = 0, readyMaterials = []
+        for (var mi = 0; mi < materials.length; mi++) {
+            if (materials[mi].status === 'uploading') uploading = true
+            else if (materials[mi].status === 'error') failedCount++
+            else if (materials[mi].status === 'done' && materials[mi].url) readyMaterials.push({ name: materials[mi].name, url: materials[mi].url })
+        }
+        if (uploading) { showToast('Upload in progress, please wait', 'warn'); return }
+        if (failedCount) { showToast('Some uploads failed — retry or remove them', 'warn'); return }
+        if (!readyMaterials.length) { showToast('Please upload at least one asset', 'warn'); return }
         if (!publishChip) { showToast('Please select a publish type', 'warn'); return }
         if (!adultChip) { showToast('Please select whether it is 18+ content', 'warn'); return }
         if (referenceUrl && !/^https?:\/\//i.test(referenceUrl)) { showToast('Reference link must start with http(s)://', 'warn'); return }
@@ -456,7 +552,7 @@
                 publish_type: publishChip.getAttribute('data-v'),
                 is_adult: adultChip.getAttribute('data-v'),
                 highlights: highlights, reference_url: referenceUrl, cover_url: coverUrl,
-                materials: materials
+                materials: readyMaterials
             })
         }).then(function(r){ return r.json() }).then(function(d){
             btn.disabled = false
