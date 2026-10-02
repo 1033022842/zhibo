@@ -265,7 +265,7 @@ final class Creator extends BaseController
     }
 
     /**
-     * 收入排行榜（公开，无需登录）
+     * 收入排行榜：按平台用户累计到手收益降序（公开，无需登录）
      */
     public function leaderboard()
     {

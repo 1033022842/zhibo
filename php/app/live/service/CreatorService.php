@@ -166,36 +166,28 @@ final class CreatorService
     }
 
     /**
-     * 收入排行榜：全部角色按累计礼物收入降序（公开数据，用于创作中心展示）
+     * 收入排行榜：按平台用户累计到手收益降序（公开数据，用于创作中心展示）
+     * 数据源为钱包流水 gift_income（礼物分成后角色归属人实际入账的钻石）
      */
     public function leaderboard(int $limit = 10): array
     {
         $limit = max(1, min($limit, 50));
 
-        $subQuery = Db::connect('live_mysql')
-            ->table('lp_gift_order go')
-            ->field([
-                'go.room_id',
-                'SUM(go.total_price) AS total_gift',
-                'COUNT(DISTINCT go.user_id) AS donor_count',
-            ])
-            ->group('go.room_id')
-            ->buildSql();
-
         $rows = Db::connect('live_mysql')
-            ->table('lp_room r')
-            ->join('lp_persona p', 'r.persona_id = p.id')
-            ->join($subQuery . ' s', 's.room_id = r.id', 'LEFT')
+            ->table('lp_wallet_ledger l')
+            ->join('lp_user u', 'u.id = l.user_id')
+            ->where('l.biz_type', 'gift_income')
+            ->where('l.direction', 1)
+            ->where('l.user_id', '>', 0)
             ->field([
-                'p.id AS persona_id',
-                'p.name AS persona_name',
-                'p.cover_url',
-                'r.id AS room_id',
-                'r.room_no',
-                'IFNULL(s.total_gift, 0) AS total_gift',
-                'IFNULL(s.donor_count, 0) AS donor_count',
+                'l.user_id',
+                'u.user_no',
+                'u.nickname',
+                'u.avatar',
+                'SUM(l.amount) AS income',
             ])
-            ->order('total_gift', 'desc')
+            ->group('l.user_id')
+            ->order('income', 'desc')
             ->limit($limit)
             ->select()
             ->toArray();
@@ -204,14 +196,12 @@ final class CreatorService
         $rank = 1;
         foreach ($rows as $row) {
             $list[] = [
-                'rank'         => $rank++,
-                'persona_id'   => (int) $row['persona_id'],
-                'persona_name' => (string) $row['persona_name'],
-                'cover_url'    => (string) $row['cover_url'],
-                'room_id'      => (int) $row['room_id'],
-                'room_no'      => (string) $row['room_no'],
-                'total_gift'   => (float) $row['total_gift'],
-                'donor_count'  => (int) $row['donor_count'],
+                'rank'     => $rank++,
+                'user_id'  => (int) $row['user_id'],
+                'user_no'  => (string) $row['user_no'],
+                'nickname' => (string) $row['nickname'],
+                'avatar'   => (string) ($row['avatar'] ?? ''),
+                'income'   => (float) $row['income'],
             ];
         }
         return $list;
