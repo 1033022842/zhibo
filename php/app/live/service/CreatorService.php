@@ -78,6 +78,58 @@ final class CreatorService
     }
 
     /**
+     * 收入排行榜：全部角色按累计礼物收入降序（公开数据，用于创作中心展示）
+     */
+    public function leaderboard(int $limit = 10): array
+    {
+        $limit = max(1, min($limit, 50));
+
+        $subQuery = Db::connect('live_mysql')
+            ->table('lp_gift_order go')
+            ->field([
+                'go.room_id',
+                'SUM(go.total_price) AS total_gift',
+                'COUNT(DISTINCT go.user_id) AS donor_count',
+            ])
+            ->group('go.room_id')
+            ->buildSql();
+
+        $rows = Db::connect('live_mysql')
+            ->table('lp_room r')
+            ->join('lp_persona p', 'r.persona_id = p.id')
+            ->join($subQuery . ' s', 's.room_id = r.id', 'LEFT')
+            ->field([
+                'p.id AS persona_id',
+                'p.name AS persona_name',
+                'p.cover_url',
+                'r.id AS room_id',
+                'r.room_no',
+                'IFNULL(s.total_gift, 0) AS total_gift',
+                'IFNULL(s.donor_count, 0) AS donor_count',
+            ])
+            ->order('total_gift', 'desc')
+            ->limit($limit)
+            ->select()
+            ->toArray();
+
+        $list = [];
+        $rank = 1;
+        foreach ($rows as $row) {
+            $list[] = [
+                'rank'         => $rank++,
+                'persona_id'   => (int) $row['persona_id'],
+                'persona_name' => (string) $row['persona_name'],
+                'cover_url'    => (string) $row['cover_url'],
+                'room_id'      => (int) $row['room_id'],
+                'room_no'      => (string) $row['room_no'],
+                'total_gift'   => (float) $row['total_gift'],
+                'donor_count'  => (int) $row['donor_count'],
+            ];
+        }
+        return $list;
+    }
+
+    /**
      * 逗号分隔字符串 -> 数组
      */
     private static function splitList(string $value): array

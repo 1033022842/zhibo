@@ -176,6 +176,17 @@ final class Creator extends BaseController
     }
 
     /**
+     * 收入排行榜（公开，无需登录）
+     */
+    public function leaderboard()
+    {
+        $limit = (int) $this->request->get('limit/d', 10);
+        return $this->jsonSuccess([
+            'list' => $this->service->leaderboard($limit),
+        ]);
+    }
+
+    /**
      * 资料参数归一化：[{name,url}]
      */
     private function parseMaterials(mixed $raw): array
