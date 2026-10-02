@@ -14,7 +14,7 @@
         .login-pf{ display:none; }
         #user-login{ display:none; }
 
-        /* 众筹卡片（沿用站点配色） */
+        /* Crowdfunding cards (site palette) */
         .cf-card{background:#262626;border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;position:relative;transition:border-color .2s,transform .2s}
         .cf-card:hover{border-color:rgba(231,82,117,.4);transform:translateY(-2px)}
         .cf-cover-wrap{position:relative;height:190px;background:#161616}
@@ -38,7 +38,7 @@
         .cf-tag{font-size:10px;line-height:1;padding:4px 8px;border-radius:9999px;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7;white-space:nowrap}
         .cf-deadline{display:flex;align-items:center;justify-content:space-between;margin-top:10px;color:#A1A1A1;font-size:11px}
 
-        /* 状态徽章 */
+        /* Status badges */
         .st-badge{padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;flex-shrink:0}
         .st-b0{background:rgba(168,85,247,.15);color:#c9a6f7}
         .st-b1{background:rgba(16,185,129,.15);color:#34d399}
@@ -97,7 +97,7 @@
 
     var stMap = { 0: 'Active', 1: 'Funded', 2: 'Failed · Refunded' }
 
-    // 我的创作（独立完成）列表接口（待后端确认，如变更只需改这里）
+    // My creations (created on my own) list endpoint (pending backend confirmation; change here if needed)
     var CR_API = base + '/creator/my-creations'
     var crStMap = { 0: 'Pending review', 1: 'Live', 2: 'Rejected' }
     var pubMap = { live: 'Live streamer', chat: 'Chat companion', drama: 'Short drama' }
