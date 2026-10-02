@@ -100,20 +100,7 @@
         .cf-modal-box .desc{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
         .cf-modal-box .mbtn{display:inline-block;padding:11px 40px;border-radius:9999px;border:none;color:#fff;background:linear-gradient(268deg,#fc768a,#e65073);font-size:14px;font-weight:700;cursor:pointer}
 
-        /* ===== 赚钱指引：新手浮窗 ===== */
-        .nb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(6px);z-index:1001;align-items:center;justify-content:center;padding:16px}
-        .nb-overlay.show{display:flex}
-        .nb-box{position:relative;background:#1b1b1b;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:30px 26px 26px;width:420px;max-width:100%}
-        .nb-close{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.6);font-size:16px;line-height:1;cursor:pointer}
-        .nb-close:hover{color:#fff;border-color:rgba(255,255,255,.4)}
-        .nb-title{font-size:19px;font-weight:800;margin-bottom:6px}
-        .nb-sub{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
-        .nb-step{display:flex;gap:12px;margin-bottom:16px}
-        .nb-step .idx{flex:0 0 26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(268deg,#fc768a,#e65073)}
-        .nb-step .txt{font-size:13px;color:rgba(255,255,255,.78);line-height:1.6}
-        .nb-step .txt b{color:#fff}
-        .nb-cta{width:100%;padding:14px;margin-top:6px;border:none;border-radius:12px;background:linear-gradient(268deg,#fc768a,#e65073);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
-        .nb-later{display:block;width:100%;margin-top:10px;border:none;background:none;color:rgba(255,255,255,.4);font-size:13px;cursor:pointer;font-family:inherit}
+        /* ===== 赚钱指引：新手浮窗由全站指引脚本提供 ===== */
     </style>
     <script src="./js/site-shell.js?v=20260930l"></script>
 		<script src="./js/shell-new.js?v=20260930i"></script>
@@ -171,21 +158,6 @@
     </div>
 </div>
 
-<!-- 赚钱指引：新手浮窗 -->
-<div class="nb-overlay" id="guide">
-    <div class="nb-box">
-        <button class="nb-close" type="button" onclick="closeGuide()">&#10005;</button>
-        <div class="nb-title">创作者赚钱指引</div>
-        <div class="nb-sub">在 Sugus 建立你自己的 AI 角色并发布作品，通过作品收益赚钱。</div>
-        <div class="nb-step"><div class="idx">1</div><div class="txt"><b>建立角色</b><br>填写角色信息、上传资料</div></div>
-        <div class="nb-step"><div class="idx">2</div><div class="txt"><b>选择创作方式</b><br>独立完成，或发起众筹和大家一起共创</div></div>
-        <div class="nb-step"><div class="idx">3</div><div class="txt"><b>发布上线</b><br>直播角色 / 普通对话角色 / 短剧（单选）</div></div>
-        <div class="nb-step"><div class="idx">4</div><div class="txt"><b>获得收益</b><br>与直播一致，按后台设定比例分成（当前 5 : 5）</div></div>
-        <button class="nb-cta" type="button" onclick="startCreate()">开始创作</button>
-        <button class="nb-later" type="button" onclick="closeGuide()">稍后再说</button>
-    </div>
-</div>
-
 <script>
 (function() {
     var token = localStorage.getItem('live_access_token')
@@ -219,19 +191,9 @@
 
     if (!token) { location.href = './Login.html'; return }
 
-    // ===== 赚钱指引浮窗 =====
-    var GUIDE_KEY = 'creator_guide_seen'
-    window.openGuide = function(){ document.getElementById('guide').classList.add('show') }
-    window.closeGuide = function(){
-        document.getElementById('guide').classList.remove('show')
-        try { localStorage.setItem(GUIDE_KEY, '1') } catch (e) {}
-    }
-    window.startCreate = function(){
-        window.closeGuide()
-        window.switchTab('independent')
-    }
-    document.getElementById('openGuide').onclick = window.openGuide
-    try { if (!localStorage.getItem(GUIDE_KEY)) setTimeout(window.openGuide, 500) } catch (e) {}
+    // ===== 赚钱指引浮窗（由全站指引脚本提供） =====
+    var openGuideBtn = document.getElementById('openGuide')
+    if (openGuideBtn) openGuideBtn.onclick = function(){ window.CreatorGuide && window.CreatorGuide.open() }
 
     // ===== 创作方式切换 =====
     window.switchTab = function(tab) {
@@ -661,5 +623,6 @@
 })()
 </script>
 	<script src="./js/promo-popup.js?v=20260929a"></script>
+	<script src="./js/creator-guide.js?v=20261002a"></script>
 </body>
 </html>
