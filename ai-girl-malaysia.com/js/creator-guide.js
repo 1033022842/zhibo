@@ -3,7 +3,7 @@
  *
  * Behavior:
  *   · Auto-opens on every page load (1.2s delay); clicking "Don't show again" permanently disables it
- *     (localStorage: creator_guide_seen=1)
+ *     (localStorage: creator_guide_seen_v2=1)
  *   · Closing (X / Maybe later) does NOT persist, so it shows again on the next visit
  *   · "Start creating" goes to the Creator Center ./crowdfunding.html
  */
@@ -14,8 +14,11 @@
   // Skip inside admin iframes
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
-  var KEY = 'creator_guide_seen';
+  // v2 key: ignore the flag written by the older (Chinese) version, so it shows again
+  var KEY = 'creator_guide_seen_v2';
   var CENTER_URL = './crowdfunding.html';
+  // Force open via ?guide=1
+  var FORCE = /[?&]guide=1/.test(location.search);
 
   function isSeen() {
     try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
@@ -92,7 +95,9 @@
 
   function init() {
     ensure();
-    if (!isSeen()) {
+    if (FORCE) {
+      setTimeout(autoShow, 200);
+    } else if (!isSeen()) {
       // Small delay so it does not collide with the promo popup
       setTimeout(autoShow, 1200);
     }
