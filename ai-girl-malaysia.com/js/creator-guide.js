@@ -1,17 +1,17 @@
 /**
- * 创作者赚钱指引 - 全站新手浮窗
+ * Creator Earning Guide - site-wide onboarding popup
  *
- * 行为：
- *   · 每次进入页面自动弹出（延迟 1.2s），点「不再提示」后永久关闭（localStorage: creator_guide_seen=1）
- *   · 关闭 / 稍后再说 不写入记录，下次进入仍会弹出
- *   · 点「开始创作」跳转创作中心 ./crowdfunding.html
- *   · 需求：指引用户"建立角色 → 发布作品 → 获得收益"
+ * Behavior:
+ *   · Auto-opens on every page load (1.2s delay); clicking "Don't show again" permanently disables it
+ *     (localStorage: creator_guide_seen=1)
+ *   · Closing (X / Maybe later) does NOT persist, so it shows again on the next visit
+ *   · "Start creating" goes to the Creator Center ./crowdfunding.html
  */
 (function () {
   if (window.__creatorGuideLoaded) return;
   window.__creatorGuideLoaded = true;
 
-  // 后台 iframe 内不展示
+  // Skip inside admin iframes
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
   var KEY = 'creator_guide_seen';
@@ -25,7 +25,7 @@
   }
 
   var CSS = ''
-    + '.cg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}'
+    + '.cg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Poppins,Raleway,"PingFang SC","Microsoft YaHei",sans-serif}'
     + '.cg-overlay.cg-show{display:flex}'
     + '.cg-box{position:relative;background:#1b1b1b;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:30px 26px 26px;width:420px;max-width:100%;box-sizing:border-box;box-shadow:0 24px 60px rgba(0,0,0,.6)}'
     + '.cg-close{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.6);font-size:16px;line-height:1;cursor:pointer}'
@@ -45,15 +45,15 @@
     + '<div class="cg-overlay" id="cgOverlay">'
     + '  <div class="cg-box">'
     + '    <button class="cg-close" type="button" data-cg="close">&#10005;</button>'
-    + '    <div class="cg-title">创作者赚钱指引</div>'
-    + '    <div class="cg-sub">在 Sugus 建立你自己的 AI 角色并发布作品，通过作品收益赚钱。</div>'
-    + '    <div class="cg-step"><div class="cg-idx">1</div><div class="cg-txt"><b>建立角色</b><br>填写角色信息、上传资料</div></div>'
-    + '    <div class="cg-step"><div class="cg-idx">2</div><div class="cg-txt"><b>选择创作方式</b><br>独立完成，或发起众筹和大家一起共创</div></div>'
-    + '    <div class="cg-step"><div class="cg-idx">3</div><div class="cg-txt"><b>发布上线</b><br>直播角色 / 普通对话角色 / 短剧（单选）</div></div>'
-    + '    <div class="cg-step"><div class="cg-idx">4</div><div class="cg-txt"><b>获得收益</b><br>与直播一致，按后台设定比例分成（当前 5 : 5）</div></div>'
-    + '    <button class="cg-cta" type="button" data-cg="start">开始创作</button>'
-    + '    <button class="cg-later" type="button" data-cg="close">稍后再说</button>'
-    + '    <button class="cg-never" type="button" data-cg="never">不再提示</button>'
+    + '    <div class="cg-title">Creator Earning Guide</div>'
+    + '    <div class="cg-sub">Create your own AI characters on Sugus, publish them, and earn from their revenue.</div>'
+    + '    <div class="cg-step"><div class="cg-idx">1</div><div class="cg-txt"><b>Create a character</b><br>Fill in the character details and upload assets</div></div>'
+    + '    <div class="cg-step"><div class="cg-idx">2</div><div class="cg-txt"><b>Choose how to create</b><br>Do it on your own, or start a crowdfunding project with the community</div></div>'
+    + '    <div class="cg-step"><div class="cg-idx">3</div><div class="cg-txt"><b>Publish and go live</b><br>Live streamer / Chat companion / Short drama (single choice)</div></div>'
+    + '    <div class="cg-step"><div class="cg-idx">4</div><div class="cg-txt"><b>Earn revenue</b><br>Same as live streaming, split by the backend-configured ratio (currently 5 : 5)</div></div>'
+    + '    <button class="cg-cta" type="button" data-cg="start">Start creating</button>'
+    + '    <button class="cg-later" type="button" data-cg="close">Maybe later</button>'
+    + '    <button class="cg-never" type="button" data-cg="never">Don\'t show again</button>'
     + '  </div>'
     + '</div>';
 
@@ -93,7 +93,7 @@
   function init() {
     ensure();
     if (!isSeen()) {
-      // 稍微延迟，避免与进场弹窗同时出现
+      // Small delay so it does not collide with the promo popup
       setTimeout(autoShow, 1200);
     }
   }
