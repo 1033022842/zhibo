@@ -74,12 +74,13 @@
         <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 pb-20">
 
             <div class="flex items-center justify-between mb-6">
-                <h1 class="text-white text-2xl font-bold">My Crowdfunding</h1>
-                <a href="./index.html" class="text-[#E75275] text-sm font-semibold no-underline">&#8592; Back to Crowdfunding</a>
+                <h1 class="text-white text-2xl font-bold">My Creations</h1>
+                <a href="./crowdfunding.html" class="text-[#E75275] text-sm font-semibold no-underline">&#8592; Back to Creator Center</a>
             </div>
 
             <div class="flex gap-2 mb-7">
-                <button class="mc-tab on" data-t="projects" onclick="switchTab('projects')">我发起的</button>
+                <button class="mc-tab on" data-t="creations" onclick="switchTab('creations')">我的创作</button>
+                <button class="mc-tab" data-t="projects" onclick="switchTab('projects')">我发起的</button>
                 <button class="mc-tab" data-t="pledges" onclick="switchTab('pledges')">我支持的</button>
             </div>
 
@@ -95,6 +96,11 @@
     if (!token) { location.href = './Login.html'; return }
 
     var stMap = { 0: '进行中', 1: '已达标', 2: '未达标·已退款' }
+
+    // 我的创作（独立完成）列表接口（待后端确认，如变更只需改这里）
+    var CR_API = base + '/creator/my-creations'
+    var crStMap = { 0: '审核中', 1: '已上线', 2: '已驳回' }
+    var pubMap = { live: '直播角色', chat: '普通对话角色', drama: '短剧' }
 
     function pct(p) {
         var t = parseFloat(p.target_amount) || 0, r = parseFloat(p.raised_amount) || 0
@@ -113,6 +119,7 @@
 
     window.switchTab = function(t) {
         document.querySelectorAll('.mc-tab').forEach(function(el){ el.classList.toggle('on', el.getAttribute('data-t') === t) })
+        if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t)
         load(t)
     }
 
@@ -163,6 +170,34 @@
             '</div></div>'
     }
 
+    function creationCard(c) {
+        var st = c.status
+        var stTxt = crStMap[st] || '未知'
+        var stCls = st == 1 ? 'st-b1' : (st == 2 ? 'st-b2' : 'st-b0')
+        var typeTxt = pubMap[c.publish_type] || '角色'
+        var tags = Array.isArray(c.tags) ? c.tags : []
+        var tagsHtml = tags.length ? '<div class="cf-tags">' + tags.slice(0, 3).map(function(t){ return '<span class="cf-tag">' + esc(t) + '</span>' }).join('') + '</div>' : ''
+        var adult = parseInt(c.is_adult) === 1 ? '<div class="cf-adult">18+</div>' : ''
+        var cover = c.cover_url
+            ? '<img src="' + esc(fixUrl(c.cover_url)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />'
+            : ''
+        var reject = (st == 2 && c.reject_reason) ? '<div class="text-[#f59e0b] text-xs mt-2 leading-5">驳回原因：' + esc(c.reject_reason) + '</div>' : ''
+        return '<div class="cf-card">' +
+            '<div class="cf-cover-wrap">' + cover +
+            '<div class="cf-cover-fallback" style="' + (c.cover_url ? 'display:none' : '') + '"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><path d="M12 3v18M3 12h18"/></svg></div>' +
+            '<div class="cf-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.3 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg><span>' + esc(typeTxt) + '</span></div>' +
+            adult +
+            '<div class="cf-title-overlay"><div class="text-white text-sm font-semibold truncate">' + esc(c.persona_name) + '</div></div></div>' +
+            '<div class="cf-body">' +
+            tagsHtml +
+            '<div class="flex items-center justify-between mt-3 mb-2">' +
+            '<span class="st-badge ' + stCls + '">' + stTxt + '</span>' +
+            '<span class="text-[#A1A1A1] text-xs">' + esc((c.created_at || '').slice(0, 10)) + '</span></div>' +
+            reject +
+            '<div class="cf-deadline"><span>发布类型 · ' + esc(typeTxt) + '</span><span>#' + esc(c.id) + '</span></div>' +
+            '</div></div>'
+    }
+
     function emptyHtml(msg) {
         return '<div class="mc-fill"><div class="text-4xl mb-3">&#127775;</div><div class="text-white text-base font-bold mb-1">' + esc(msg) + '</div></div>'
     }
@@ -170,7 +205,12 @@
     function load(t) {
         var list = document.getElementById('list')
         list.innerHTML = '<div class="mc-load"><div class="mc-spin"></div></div>'
-        fetch(base + '/crowdfunding/' + (t === 'projects' ? 'my-projects' : 'my-pledges'), {
+        var cfg = {
+            creations: { url: CR_API, card: creationCard, empty: '还没有创作过角色' },
+            projects: { url: base + '/crowdfunding/my-projects', card: projectCard, empty: '还没有发起过众筹' },
+            pledges: { url: base + '/crowdfunding/my-pledges', card: pledgeCard, empty: '还没有支持过任何项目' }
+        }[t] || {}
+        fetch(cfg.url, {
             headers: { 'Authorization': 'Bearer ' + token }
         }).then(function(r){ return r.json() }).then(function(r) {
             if (r.code !== '00000') {
@@ -179,17 +219,19 @@
             }
             var data = r.data || []
             if (!data.length) {
-                list.innerHTML = emptyHtml(t === 'projects' ? '还没有发起过众筹' : '还没有支持过任何项目')
+                list.innerHTML = emptyHtml(cfg.empty)
                 return
             }
-            var html = '<div class="mc-grid">' + data.map(t === 'projects' ? projectCard : pledgeCard).join('') + '</div>'
+            var html = '<div class="mc-grid">' + data.map(cfg.card).join('') + '</div>'
             list.innerHTML = html
         }).catch(function() {
             list.innerHTML = emptyHtml('网络错误，请稍后重试')
         })
     }
 
-    load('projects')
+    var initTab = (location.hash || '').replace('#', '')
+    if (initTab !== 'creations' && initTab !== 'projects' && initTab !== 'pledges') initTab = 'creations'
+    window.switchTab(initTab)
 })()
 </script>
 	<script src="./js/promo-popup.js?v=20260929a"></script>

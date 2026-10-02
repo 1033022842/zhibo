@@ -14,6 +14,21 @@
         .login-pf{ display:none; }
         #user-login{ display:none; }
 
+        /* ===== 创作方式切换 ===== */
+        .cf-tabs{display:flex;gap:6px;background:#1d1d1d;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:6px;margin-bottom:24px}
+        .cf-tab{flex:1;text-align:center;padding:12px;border-radius:9px;font-size:14px;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:transparent;font-family:inherit;transition:all .15s}
+        .cf-tab:hover{color:rgba(255,255,255,.85)}
+        .cf-tab.on{background:linear-gradient(268deg,#fc768a -14.8%,#e65073 102.08%);color:#fff}
+
+        /* ===== 收益说明条 ===== */
+        .cf-earn{display:flex;align-items:center;gap:12px;background:rgba(231,82,117,.08);border:1px solid rgba(231,82,117,.28);border-radius:14px;padding:14px 16px;margin-bottom:20px}
+        .cf-earn-ic{font-size:22px;line-height:1;flex-shrink:0}
+        .cf-earn-txt{flex:1;min-width:0}
+        .cf-earn-txt .t{color:#fff;font-size:13px;font-weight:700;margin-bottom:2px}
+        .cf-earn-txt .d{color:rgba(255,255,255,.55);font-size:12px;line-height:1.6}
+        .cf-earn-btn{flex-shrink:0;padding:9px 18px;border-radius:9999px;background:linear-gradient(268deg,#fc768a,#e65073);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+        @media (max-width:520px){ .cf-earn{align-items:flex-start} }
+
         .cf-form{background:#262626;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px}
         .cf-field{margin-bottom:20px}
         .cf-label{display:block;font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px}
@@ -51,6 +66,14 @@
         .cf-submit{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(268deg,#fc768a -14.8%,#e65073 102.08%);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s}
         .cf-submit:disabled{opacity:.5;cursor:not-allowed}
 
+        /* ===== 资料上传（独立完成） ===== */
+        .cf-addbtn{width:100%;padding:14px;border:1px dashed rgba(255,255,255,.2);border-radius:12px;color:rgba(255,255,255,.6);font-size:13px;font-family:inherit;background:transparent;cursor:pointer;transition:all .15s}
+        .cf-addbtn:hover{border-color:#E75275;color:#F97187}
+        .cf-materials{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+        .cf-mat{display:flex;align-items:center;gap:12px;background:#1d1d1d;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px}
+        .cf-mat .nm{flex:1;font-size:13px;color:rgba(255,255,255,.75);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .cf-mat .rm{color:#f59e0b;font-size:12px;background:none;border:none;cursor:pointer;font-family:inherit}
+
         .cf-center{display:flex;justify-content:center;padding:60px 0}
         .cf-spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#E75275;border-radius:50%;animation:cfr .8s linear infinite}
         @keyframes cfr{to{transform:rotate(360deg)}}
@@ -76,6 +99,21 @@
         .cf-modal-box .ttl{font-size:18px;font-weight:700;margin-bottom:8px}
         .cf-modal-box .desc{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
         .cf-modal-box .mbtn{display:inline-block;padding:11px 40px;border-radius:9999px;border:none;color:#fff;background:linear-gradient(268deg,#fc768a,#e65073);font-size:14px;font-weight:700;cursor:pointer}
+
+        /* ===== 赚钱指引：新手浮窗 ===== */
+        .nb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(6px);z-index:1001;align-items:center;justify-content:center;padding:16px}
+        .nb-overlay.show{display:flex}
+        .nb-box{position:relative;background:#1b1b1b;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:30px 26px 26px;width:420px;max-width:100%}
+        .nb-close{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.6);font-size:16px;line-height:1;cursor:pointer}
+        .nb-close:hover{color:#fff;border-color:rgba(255,255,255,.4)}
+        .nb-title{font-size:19px;font-weight:800;margin-bottom:6px}
+        .nb-sub{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:20px}
+        .nb-step{display:flex;gap:12px;margin-bottom:16px}
+        .nb-step .idx{flex:0 0 26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(268deg,#fc768a,#e65073)}
+        .nb-step .txt{font-size:13px;color:rgba(255,255,255,.78);line-height:1.6}
+        .nb-step .txt b{color:#fff}
+        .nb-cta{width:100%;padding:14px;margin-top:6px;border:none;border-radius:12px;background:linear-gradient(268deg,#fc768a,#e65073);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+        .nb-later{display:block;width:100%;margin-top:10px;border:none;background:none;color:rgba(255,255,255,.4);font-size:13px;cursor:pointer;font-family:inherit}
     </style>
     <script src="./js/site-shell.js?v=20260930l"></script>
 		<script src="./js/shell-new.js?v=20260930i"></script>
@@ -93,8 +131,28 @@
         <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pt-6 pb-20">
 
             <div class="flex items-center justify-between mb-6">
-                <h1 class="text-white text-2xl font-bold">Start a Crowdfunding</h1>
-                <a href="./my-crowdfunding.html" class="text-[#E75275] text-sm font-semibold no-underline">My Projects &#8594;</a>
+                <div>
+                    <h1 class="text-white text-2xl font-bold">Creator Center</h1>
+                    <p class="text-[#A1A1A1] text-[13px] mt-1">用户创作中心 · 建立角色、发布作品、获得收益</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button type="button" id="openGuide" class="text-[#E75275] text-sm font-semibold bg-transparent border-none cursor-pointer">How to earn?</button>
+                    <a href="./my-crowdfunding.html#creations" class="text-[#E75275] text-sm font-semibold no-underline">My Creations &#8594;</a>
+                </div>
+            </div>
+
+            <div class="cf-earn">
+                <div class="cf-earn-ic">&#128176;</div>
+                <div class="cf-earn-txt">
+                    <div class="t">收益说明</div>
+                    <div class="d">角色上线后产生的收益与直播一致，按后台设定比例分成（当前 用户 50% : 平台 50%），用户所得为税后。</div>
+                </div>
+                <a href="./Withdrawal.html" class="cf-earn-btn">去提现</a>
+            </div>
+
+            <div class="cf-tabs" id="tabs">
+                <button type="button" class="cf-tab on" data-tab="independent" onclick="switchTab('independent')">独立完成</button>
+                <button type="button" class="cf-tab" data-tab="crowdfunding" onclick="switchTab('crowdfunding')">众筹</button>
             </div>
 
             <div id="content"><div class="cf-center"><div class="cf-spin"></div></div></div>
@@ -113,10 +171,30 @@
     </div>
 </div>
 
+<!-- 赚钱指引：新手浮窗 -->
+<div class="nb-overlay" id="guide">
+    <div class="nb-box">
+        <button class="nb-close" type="button" onclick="closeGuide()">&#10005;</button>
+        <div class="nb-title">创作者赚钱指引</div>
+        <div class="nb-sub">在 Sugus 建立你自己的 AI 角色并发布作品，通过作品收益赚钱。</div>
+        <div class="nb-step"><div class="idx">1</div><div class="txt"><b>建立角色</b><br>填写角色信息、上传资料</div></div>
+        <div class="nb-step"><div class="idx">2</div><div class="txt"><b>选择创作方式</b><br>独立完成，或发起众筹和大家一起共创</div></div>
+        <div class="nb-step"><div class="idx">3</div><div class="txt"><b>发布上线</b><br>直播角色 / 普通对话角色 / 短剧（单选）</div></div>
+        <div class="nb-step"><div class="idx">4</div><div class="txt"><b>获得收益</b><br>与直播一致，按后台设定比例分成（当前 5 : 5）</div></div>
+        <button class="nb-cta" type="button" onclick="startCreate()">开始创作</button>
+        <button class="nb-later" type="button" onclick="closeGuide()">稍后再说</button>
+    </div>
+</div>
+
 <script>
 (function() {
     var token = localStorage.getItem('live_access_token')
     var base = '/api/v1'
+    // 独立完成提交接口（待后端确认，如变更只需改这里）
+    var INDEPENDENT_API = base + '/creator/independent'
+    var currentTab = 'independent'
+    // 已上传资料：{ name, url }
+    var materials = []
 
     function showToast(msg, type) {
         var el = document.getElementById('toast')
@@ -141,7 +219,269 @@
 
     if (!token) { location.href = './Login.html'; return }
 
-    function loadStatus() {
+    // ===== 赚钱指引浮窗 =====
+    var GUIDE_KEY = 'creator_guide_seen'
+    window.openGuide = function(){ document.getElementById('guide').classList.add('show') }
+    window.closeGuide = function(){
+        document.getElementById('guide').classList.remove('show')
+        try { localStorage.setItem(GUIDE_KEY, '1') } catch (e) {}
+    }
+    window.startCreate = function(){
+        window.closeGuide()
+        window.switchTab('independent')
+    }
+    document.getElementById('openGuide').onclick = window.openGuide
+    try { if (!localStorage.getItem(GUIDE_KEY)) setTimeout(window.openGuide, 500) } catch (e) {}
+
+    // ===== 创作方式切换 =====
+    window.switchTab = function(tab) {
+        if (tab !== 'independent' && tab !== 'crowdfunding') tab = 'independent'
+        currentTab = tab
+        var tabs = document.getElementById('tabs').getElementsByClassName('cf-tab')
+        for (var i = 0; i < tabs.length; i++) {
+            tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab') === tab)
+        }
+        if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab)
+        if (tab === 'crowdfunding') {
+            document.getElementById('content').innerHTML = '<div class="cf-center"><div class="cf-spin"></div></div>'
+            loadCrowdfundingStatus()
+        } else {
+            renderIndependentForm()
+        }
+    }
+
+    if (location.hash === '#crowdfunding') { window.switchTab('crowdfunding') }
+    else { window.switchTab('independent') }
+
+    // ===================================================================
+    // 独立完成
+    // ===================================================================
+    function renderIndependentForm() {
+        materials = []
+        document.getElementById('content').innerHTML =
+            '<div class="cf-form">' +
+            '<div class="cf-section">基础信息</div>' +
+
+            '<div class="cf-field"><label class="cf-label">封面图</label>' +
+            '<div class="cf-upload" id="coverUpload" onclick="document.getElementById(\'coverInput\').click()">' +
+            '<div class="cf-upload-ph"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>点击上传封面</span></div>' +
+            '</div><input type="file" id="coverInput" accept="image/*" style="display:none" onchange="uploadCover(this)" /></div>' +
+            '<input type="hidden" id="coverUrl" />' +
+
+            '<div class="cf-field"><label class="cf-label">角色名称 <span class="req">*</span></label><input type="text" class="cf-input" id="personaName" placeholder="给你的角色起个名字" maxlength="50" /></div>' +
+            '<div class="cf-field"><label class="cf-label">角色描述 <span class="req">*</span></label>' +
+            '<textarea class="cf-input" id="description" rows="9" maxlength="5000" oninput="onDescInput()" placeholder="详细介绍角色：背景故事、性格人设、外观与穿搭、说话方式、日常互动场景、适合的玩法与受众…"></textarea>' +
+            '<div class="cf-counter" id="descCounter">0 / 200 字</div></div>' +
+
+            '<div class="cf-section">角色设定</div>' +
+            '<div class="cf-field"><label class="cf-label">标签 <span class="req">*</span></label>' +
+            '<input type="text" class="cf-input" id="tags" placeholder="逗号分隔，例如：御姐,甜美,高冷,粘人" />' +
+            '<div class="cf-hint">最多 10 个标签，中英文逗号均可</div></div>' +
+
+            '<div class="cf-grid2">' +
+            '<div class="cf-field"><label class="cf-label">风格 <span class="req">*</span></label><select class="cf-input" id="style">' +
+            '<option value="">请选择风格</option><option value="realistic">写实</option><option value="anime">二次元</option><option value="3d">3D</option><option value="cyberpunk">赛博朋克</option><option value="chinese">古风</option><option value="korean">韩系</option><option value="western">欧美</option>' +
+            '</select></div>' +
+            '<div class="cf-field"><label class="cf-label">角色性别</label><select class="cf-input" id="gender">' +
+            '<option value="">不限</option><option value="female">女性</option><option value="male">男性</option><option value="other">其他</option>' +
+            '</select></div></div>' +
+
+            '<div class="cf-grid2">' +
+            '<div class="cf-field"><label class="cf-label">年龄段</label><select class="cf-input" id="ageRange">' +
+            '<option value="">不限</option><option value="18-22">18-22 岁</option><option value="23-27">23-27 岁</option><option value="28-35">28-35 岁</option><option value="36-45">36-45 岁</option><option value="45+">45 岁以上</option>' +
+            '</select></div>' +
+            '<div class="cf-field"><label class="cf-label">语言</label><select class="cf-input" id="language">' +
+            '<option value="">不限</option><option value="zh-CN">中文</option><option value="en-US">英文</option><option value="ja-JP">日文</option><option value="ms-MY">马来语</option><option value="multi">多语言</option>' +
+            '</select></div></div>' +
+
+            '<div class="cf-field"><label class="cf-label">性格特点</label><input type="text" class="cf-input" id="personality" placeholder="逗号分隔，例如：温柔,幽默,小傲娇" /></div>' +
+            '<div class="cf-field"><label class="cf-label">语音风格</label><select class="cf-input" id="voiceStyle">' +
+            '<option value="">不限</option><option value="sweet">甜美</option><option value="mature">御姐</option><option value="magnetic">磁性</option><option value="loli">萝莉</option><option value="cold">冷艳</option><option value="gentle">温柔</option><option value="none">不涉及语音</option>' +
+            '</select></div>' +
+
+            '<div class="cf-section">资料上传</div>' +
+            '<div class="cf-field"><label class="cf-label">角色资料 <span class="req">*</span></label>' +
+            '<button type="button" class="cf-addbtn" onclick="document.getElementById(\'materialInput\').click()">+ 上传资料（立绘 / 语音 / 短视频等，可多选）</button>' +
+            '<input type="file" id="materialInput" multiple accept="image/*,video/*,audio/*" style="display:none" onchange="uploadMaterials(this)" />' +
+            '<div class="cf-materials" id="materialList"></div>' +
+            '<div class="cf-hint">提交后由平台后台审核</div></div>' +
+
+            '<div class="cf-section">发布设置</div>' +
+            '<div class="cf-field"><label class="cf-label">发布类型 <span class="req">*</span></label>' +
+            '<div class="cf-chips wide" id="publishRow">' +
+            '<button type="button" class="cf-chip" data-v="live" onclick="pickPublish(this)">直播角色</button>' +
+            '<button type="button" class="cf-chip" data-v="chat" onclick="pickPublish(this)">普通对话角色</button>' +
+            '<button type="button" class="cf-chip" data-v="drama" onclick="pickPublish(this)">短剧</button>' +
+            '</div><div class="cf-hint">单选</div></div>' +
+
+            '<div class="cf-field"><label class="cf-label">是否为 18+ 内容 <span class="req">*</span></label>' +
+            '<div class="cf-chips wide" id="adultRow">' +
+            '<button type="button" class="cf-chip on" data-v="0" onclick="pickAdult(this)">否 · 全年龄</button>' +
+            '<button type="button" class="cf-chip" data-v="1" onclick="pickAdult(this)">是 · 18+</button>' +
+            '</div><div class="cf-hint">18+ 内容仅对成年用户开放展示</div></div>' +
+
+            '<div class="cf-field"><label class="cf-label">项目亮点</label><textarea class="cf-input" id="highlights" rows="3" maxlength="500" placeholder="一句话卖点或差异化优势，可分行"></textarea></div>' +
+            '<div class="cf-field"><label class="cf-label">参考链接</label><input type="url" class="cf-input" id="referenceUrl" placeholder="https://... （可选，风格参考/作品集）" /></div>' +
+
+            '<div class="cf-agreement"><p>提交即表示同意：</p><ul><li>角色资料需符合平台内容规范</li><li>提交后由平台后台审核，通过后上线</li><li>上线产生的收益与直播一致，按后台设定比例分成（当前 5:5）</li></ul></div>' +
+            '<button class="cf-submit" id="submitBtn" onclick="doSubmitIndependent()">提交审核</button>' +
+            '</div>'
+
+        onDescInput()
+    }
+
+    function onDescInput() {
+        var el = document.getElementById('description')
+        var counter = document.getElementById('descCounter')
+        if (!el || !counter) return
+        var len = el.value.trim().length
+        counter.textContent = len + ' / 200 字'
+        counter.className = 'cf-counter' + (len >= 200 ? ' ok' : (len > 0 ? ' bad' : ''))
+    }
+    window.onDescInput = onDescInput
+
+    window.pickPublish = function(btn) {
+        var row = document.getElementById('publishRow')
+        var chips = row.getElementsByClassName('cf-chip')
+        for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on')
+        btn.classList.add('on')
+    }
+
+    window.pickAdult = function(btn) {
+        var row = document.getElementById('adultRow')
+        var chips = row.getElementsByClassName('cf-chip')
+        for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on')
+        btn.classList.add('on')
+    }
+
+    function uploadFile(file, cb, onFail) {
+        var fd = new FormData()
+        fd.append('file', file)
+        fetch(base + '/merchant/upload', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r){ return r.json() }).then(function(d){
+                if (d.data && d.data.url) { cb(d.data.url) } else if (onFail) { onFail() }
+            }).catch(function(){ if (onFail) onFail() })
+    }
+
+    window.uploadCover = function(input) {
+        var file = input.files[0]
+        if (!file) return
+        var btn = document.getElementById('submitBtn')
+        btn.disabled = true
+        btn.textContent = '上传封面中...'
+        uploadFile(file, function(url){
+            btn.disabled = false
+            btn.textContent = '提交审核'
+            document.getElementById('coverUrl').value = url
+            document.getElementById('coverUpload').innerHTML = '<img src="' + url + '" alt="封面" />'
+        }, function(){
+            btn.disabled = false
+            btn.textContent = '提交审核'
+            showToast('上传失败', 'error')
+        })
+    }
+
+    window.uploadMaterials = function(input) {
+        var files = input.files
+        if (!files || !files.length) return
+        input.value = ''
+        var pending = files.length
+        for (var i = 0; i < files.length; i++) {
+            (function(file){
+                uploadFile(file, function(url){
+                    materials.push({ name: file.name, url: url })
+                    renderMaterials()
+                    if (--pending === 0) showToast('资料上传完成', 'success')
+                }, function(){
+                    if (--pending === 0) showToast('部分资料上传失败', 'error')
+                })
+            })(files[i])
+        }
+    }
+
+    window.removeMaterial = function(idx) {
+        materials.splice(idx, 1)
+        renderMaterials()
+    }
+
+    function renderMaterials() {
+        var list = document.getElementById('materialList')
+        if (!list) return
+        var html = ''
+        for (var i = 0; i < materials.length; i++) {
+            html += '<div class="cf-mat"><span class="nm">' + materials[i].name + '</span>' +
+                '<button type="button" class="rm" onclick="removeMaterial(' + i + ')">移除</button></div>'
+        }
+        list.innerHTML = html
+    }
+
+    function splitList(v) {
+        return String(v || '').replace(/，/g, ',').split(',').map(function(s){ return s.trim() }).filter(function(s){ return s !== '' })
+    }
+
+    window.doSubmitIndependent = function() {
+        var personaName = document.getElementById('personaName').value.trim()
+        var description = document.getElementById('description').value.trim()
+        var tags = splitList(document.getElementById('tags').value)
+        var style = document.getElementById('style').value
+        var gender = document.getElementById('gender').value
+        var ageRange = document.getElementById('ageRange').value
+        var language = document.getElementById('language').value
+        var personality = splitList(document.getElementById('personality').value)
+        var voiceStyle = document.getElementById('voiceStyle').value
+        var publishChip = document.querySelector('#publishRow .cf-chip.on')
+        var adultChip = document.querySelector('#adultRow .cf-chip.on')
+        var highlights = document.getElementById('highlights').value.trim()
+        var referenceUrl = document.getElementById('referenceUrl').value.trim()
+        var coverUrl = document.getElementById('coverUrl').value
+
+        if (!personaName) { showToast('请输入角色名称', 'warn'); return }
+        if (description.length < 200) { showToast('角色描述不能少于200字（当前 ' + description.length + ' 字）', 'warn'); return }
+        if (!tags.length) { showToast('请至少填写一个标签', 'warn'); return }
+        if (tags.length > 10) { showToast('标签最多填写10个', 'warn'); return }
+        if (!style) { showToast('请选择角色风格', 'warn'); return }
+        if (!materials.length) { showToast('请至少上传一份角色资料', 'warn'); return }
+        if (!publishChip) { showToast('请选择发布类型', 'warn'); return }
+        if (!adultChip) { showToast('请选择是否为18+内容', 'warn'); return }
+        if (referenceUrl && !/^https?:\/\//i.test(referenceUrl)) { showToast('参考链接需以 http(s):// 开头', 'warn'); return }
+
+        var btn = document.getElementById('submitBtn')
+        btn.disabled = true
+        btn.textContent = '提交中...'
+
+        fetch(INDEPENDENT_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({
+                persona_name: personaName, description: description,
+                tags: tags.join(','), style: style, gender: gender, age_range: ageRange,
+                language: language, personality: personality.join(','), voice_style: voiceStyle,
+                publish_type: publishChip.getAttribute('data-v'),
+                is_adult: adultChip.getAttribute('data-v'),
+                highlights: highlights, reference_url: referenceUrl, cover_url: coverUrl,
+                materials: materials
+            })
+        }).then(function(r){ return r.json() }).then(function(d){
+            btn.disabled = false
+            btn.textContent = '提交审核'
+            if (d.code === '00000' || (d.data && d.data.id)) {
+                showModal('\u2728', '已提交审核', '你的角色已提交，平台后台审核通过后将上线，届时即可产生收益。', '查看我的创作', function(){
+                    location.href = './my-crowdfunding.html#creations'
+                })
+            } else {
+                showToast(d.msg || '提交失败', 'error')
+            }
+        }).catch(function(){
+            btn.disabled = false
+            btn.textContent = '提交审核'
+            showToast('网络错误，请稍后重试', 'error')
+        })
+    }
+
+    // ===================================================================
+    // 众筹
+    // ===================================================================
+    function loadCrowdfundingStatus() {
         fetch(base + '/merchant/status', { headers: { 'Authorization': 'Bearer ' + token } })
             .then(function(r){ return r.json() }).then(function(d){
                 if (d.code && d.code !== '00000') {
@@ -149,21 +489,21 @@
                     return
                 }
                 var status = d.data ? d.data.cert_status : -1
-                if (status === 1) { renderForm() } else { renderNeedCert() }
+                if (status === 1) { renderCrowdfundingForm() } else { renderNeedCert() }
             }).catch(function(){
-                document.getElementById('content').innerHTML = '<div class="cf-status cf-warn"><div class="ico">&#9888;</div><div class="ttl">网络错误</div><div class="desc">加载失败，请稍后重试</div><button class="cf-btn-o" onclick="loadStatus()">重试</button></div>'
+                document.getElementById('content').innerHTML = '<div class="cf-status cf-warn"><div class="ico">&#9888;</div><div class="ttl">网络错误</div><div class="desc">加载失败，请稍后重试</div><button class="cf-btn-o" onclick="loadCrowdfundingStatus()">重试</button></div>'
             })
     }
-
+    window.loadCrowdfundingStatus = loadCrowdfundingStatus
     function renderNeedCert() {
         document.getElementById('content').innerHTML =
             '<div class="cf-status cf-warn"><div class="ico">&#9888;</div><div class="ttl">需要商家认证</div>' +
             '<div class="desc">发起角色众筹需要先通过商家认证</div>' +
             '<div class="btn-line"><a class="cf-btn-s" href="./certification.html">去认证</a>' +
-            '<button class="cf-btn-o" onclick="history.back()">返回</button></div></div>'
+            '<button class="cf-btn-o" onclick="switchTab(\'independent\')">改为独立完成</button></div></div>'
     }
 
-    function renderForm() {
+    function renderCrowdfundingForm() {
         document.getElementById('content').innerHTML =
             '<div class="cf-form">' +
             '<div class="cf-section">基础信息</div>' +
@@ -232,22 +572,13 @@
             '<div class="cf-field"><label class="cf-label">截止时间 <span class="req">*</span></label><input type="datetime-local" class="cf-input cf-date" id="deadline" onclick="cfOpenPicker(this)" onfocus="cfOpenPicker(this)" /></div>' +
 
             '<div class="cf-agreement"><p>发起即表示同意：</p><ul><li>无法达标将全额退还支持者</li><li>达标后需手动创建角色并关联</li><li>18+ 内容需符合平台内容规范</li></ul></div>' +
-            '<button class="cf-submit" id="submitBtn" onclick="doSubmit()">发起众筹</button>' +
+            '<button class="cf-submit" id="submitBtn" onclick="doSubmitCrowdfunding()">发起众筹</button>' +
             '</div>'
 
         var now = new Date()
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
         document.getElementById('deadline').min = now.toISOString().slice(0, 16)
         onDescInput()
-    }
-
-    window.onDescInput = function() {
-        var el = document.getElementById('description')
-        var counter = document.getElementById('descCounter')
-        if (!el || !counter) return
-        var len = el.value.trim().length
-        counter.textContent = len + ' / 200 字'
-        counter.className = 'cf-counter' + (len >= 200 ? ' ok' : (len > 0 ? ' bad' : ''))
     }
 
     window.toggleDeliver = function(btn) { btn.classList.toggle('on') }
@@ -257,41 +588,6 @@
         try { if (el && typeof el.showPicker === 'function') el.showPicker() } catch (e) {}
     }
 
-    window.pickAdult = function(btn) {
-        var row = document.getElementById('adultRow')
-        var chips = row.getElementsByClassName('cf-chip')
-        for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on')
-        btn.classList.add('on')
-    }
-
-    window.uploadCover = function(input) {
-        var file = input.files[0]
-        if (!file) return
-        var fd = new FormData()
-        fd.append('file', file)
-        var btn = document.getElementById('submitBtn')
-        btn.disabled = true
-        btn.textContent = '上传封面中...'
-        fetch(base + '/merchant/upload', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + token } })
-            .then(function(r){ return r.json() }).then(function(d){
-                btn.disabled = false
-                btn.textContent = '发起众筹'
-                if (d.data && d.data.url) {
-                    document.getElementById('coverUrl').value = d.data.url
-                    document.getElementById('coverUpload').innerHTML = '<img src="' + d.data.url + '" alt="封面" />'
-                } else {
-                    showToast('上传失败', 'error')
-                }
-            }).catch(function(){
-                btn.disabled = false
-                btn.textContent = '发起众筹'
-                showToast('网络错误', 'error')
-            })
-    }
-
-    function splitList(v) {
-        return String(v || '').replace(/，/g, ',').split(',').map(function(s){ return s.trim() }).filter(function(s){ return s !== '' })
-    }
     function getDeliverables() {
         var chips = document.querySelectorAll('#deliverChips .cf-chip.on')
         var arr = []
@@ -299,7 +595,7 @@
         return arr
     }
 
-    window.doSubmit = function() {
+    window.doSubmitCrowdfunding = function() {
         var title = document.getElementById('title').value.trim()
         var personaName = document.getElementById('personaName').value.trim()
         var description = document.getElementById('description').value.trim()
@@ -362,8 +658,6 @@
             showToast('网络错误，请稍后重试', 'error')
         })
     }
-
-    loadStatus()
 })()
 </script>
 	<script src="./js/promo-popup.js?v=20260929a"></script>
