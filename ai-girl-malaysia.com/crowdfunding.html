@@ -97,6 +97,9 @@
         .cf-spin-s{flex-shrink:0;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#E75275;border-radius:50%;animation:cfr .8s linear infinite}
         .cf-upload-load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.55);color:#fff;font-size:13px}
         .cf-upload-load .cf-spin-s{width:26px;height:26px;border-width:3px}
+        .cf-editbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#fbbf24}
+        .cf-editbar b{color:#fbbf24}
+        .cf-editbar .cf-editcancel{margin-left:auto;background:none;border:1px solid rgba(245,158,11,.45);color:#fbbf24;font-size:12px;font-weight:600;padding:6px 12px;border-radius:9999px;cursor:pointer;font-family:inherit}
         .cf-bar{width:70%;height:4px;border-radius:9999px;background:rgba(255,255,255,.18);overflow:hidden}
         .cf-bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fc768a,#e65073);transition:width .2s}
 
@@ -247,6 +250,8 @@
 (function() {
     var token = localStorage.getItem('live_access_token')
     var base = '/api/v1'
+    // Edit mode: /crowdfunding.html?edit=<id> — the author edits their own creation
+    var editId = parseInt((location.search.match(/[?&]edit=(\d+)/) || [])[1], 10) || 0
     // Submit endpoint for "create on my own" (pending backend confirmation; change here if it changes)
     var INDEPENDENT_API = base + '/creator/independent'
     var currentTab = 'independent'
@@ -316,7 +321,10 @@
         }
     }
 
-    if (location.hash === '#crowdfunding') { window.switchTab('crowdfunding') }
+    if (editId) {
+        window.switchTab('independent')
+        loadForEdit(editId)
+    } else if (location.hash === '#crowdfunding') { window.switchTab('crowdfunding') }
     else { window.switchTab('independent') }
 
     // ===================================================================
@@ -326,6 +334,7 @@
         materials = []
         document.getElementById('content').innerHTML =
             '<div class="cf-form">' +
+            editBannerHtml() +
             '<div class="cf-section">Basic Info</div>' +
 
             '<div class="cf-field"><label class="cf-label">Cover image</label>' +
@@ -390,7 +399,7 @@
             '<div class="cf-field"><label class="cf-label">Reference link</label><input type="url" class="cf-input" id="referenceUrl" placeholder="https://... (optional, style reference / portfolio)" /></div>' +
 
             '<div class="cf-agreement"><p>By submitting you agree that:</p><ul><li>Character assets must comply with platform content rules</li><li>Submissions are reviewed by the platform before going live</li><li>Revenue after going live works the same as live streaming, split by the backend-configured ratio (currently 5:5)</li></ul></div>' +
-            '<button class="cf-submit" id="submitBtn" onclick="doSubmitIndependent()">Submit for review</button>' +
+            '<button class="cf-submit" id="submitBtn" onclick="doSubmitIndependent()">' + (editId ? 'Save changes' : 'Submit for review') + '</button>' +
             '</div>'
 
         onDescInput()
@@ -424,6 +433,77 @@
 
     function escHtml(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] })
+    }
+
+    // ===================================================================
+    // Edit mode (?edit=<id>): prefill the "create on my own" form
+    // ===================================================================
+    function editBannerHtml() {
+        if (!editId) return ''
+        return '<div class="cf-editbar"><span>Editing creation <b>#' + editId + '</b> — saving sends it back for review.</span>' +
+            '<button type="button" class="cf-editcancel" onclick="cancelEdit()">Cancel</button></div>'
+    }
+
+    window.cancelEdit = function() { location.href = './crowdfunding.html#independent' }
+
+    function setVal(id, v) {
+        var el = document.getElementById(id)
+        if (el) el.value = (v == null ? '' : v)
+    }
+
+    function pickChipValue(rowId, val) {
+        var row = document.getElementById(rowId)
+        if (!row) return
+        var chips = row.getElementsByClassName('cf-chip')
+        for (var i = 0; i < chips.length; i++) {
+            chips[i].classList.toggle('on', chips[i].getAttribute('data-v') === String(val))
+        }
+    }
+
+    function loadForEdit(id) {
+        fetch(base + '/creator/detail?id=' + encodeURIComponent(id), { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r){ return r.json() })
+            .then(function(d){
+                if (d.code !== '00000' || !d.data) { showToast(d.msg || 'Failed to load this creation', 'error'); return }
+                prefillIndependent(d.data)
+            })
+            .catch(function(){ showToast('Network error, please try again later', 'error') })
+    }
+
+    function prefillIndependent(d) {
+        setVal('personaName', d.persona_name)
+        setVal('description', d.description)
+        setVal('tags', (d.tags || []).join(','))
+        setVal('style', d.style)
+        setVal('gender', d.gender)
+        setVal('ageRange', d.age_range)
+        setVal('language', d.language)
+        setVal('personality', (d.personality || []).join(','))
+        setVal('voiceStyle', d.voice_style)
+        setVal('highlights', d.highlights)
+        setVal('referenceUrl', d.reference_url)
+        setVal('coverUrl', d.cover_url)
+        onDescInput()
+
+        if (d.cover_url) {
+            var box = document.getElementById('coverUpload')
+            if (box) box.innerHTML = '<img src="' + escHtml(d.cover_url) + '" alt="cover" />'
+        }
+        pickChipValue('publishRow', d.publish_type)
+        pickChipValue('adultRow', String(d.is_adult))
+
+        // Already-uploaded assets show up as done entries
+        materials = []
+        var mats = d.materials || []
+        for (var i = 0; i < mats.length; i++) {
+            materials.push({
+                id: ++materialSeq,
+                name: mats[i].name || ('asset-' + (i + 1)),
+                url: mats[i].url || '',
+                status: 'done', progress: 100, error: '', file: null
+            })
+        }
+        renderMaterials()
     }
 
     // XHR upload with real progress + timeout, so the UI can show loading / failure clearly
@@ -594,34 +674,45 @@
         if (referenceUrl && !/^https?:\/\//i.test(referenceUrl)) { showToast('Reference link must start with http(s)://', 'warn'); return }
 
         var btn = document.getElementById('submitBtn')
+        var label = editId ? 'Save changes' : 'Submit for review'
         btn.disabled = true
         btn.textContent = 'Submitting...'
 
-        fetch(INDEPENDENT_API, {
+        var payload = {
+            persona_name: personaName, description: description,
+            tags: tags.join(','), style: style, gender: gender, age_range: ageRange,
+            language: language, personality: personality.join(','), voice_style: voiceStyle,
+            publish_type: publishChip.getAttribute('data-v'),
+            is_adult: adultChip.getAttribute('data-v'),
+            highlights: highlights, reference_url: referenceUrl, cover_url: coverUrl,
+            materials: readyMaterials
+        }
+        var api = INDEPENDENT_API
+        if (editId) { payload.id = editId; api = base + '/creator/update' }
+
+        fetch(api, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({
-                persona_name: personaName, description: description,
-                tags: tags.join(','), style: style, gender: gender, age_range: ageRange,
-                language: language, personality: personality.join(','), voice_style: voiceStyle,
-                publish_type: publishChip.getAttribute('data-v'),
-                is_adult: adultChip.getAttribute('data-v'),
-                highlights: highlights, reference_url: referenceUrl, cover_url: coverUrl,
-                materials: readyMaterials
-            })
+            body: JSON.stringify(payload)
         }).then(function(r){ return r.json() }).then(function(d){
             btn.disabled = false
-            btn.textContent = 'Submit for review'
+            btn.textContent = label
             if (d.code === '00000' || (d.data && d.data.id)) {
-                showModal('\u2728', 'Submitted for review', 'Your character has been submitted. It will go live after platform review, and then start earning revenue.', 'View my creations', function(){
-                    location.href = './my-crowdfunding.html#creations'
-                })
+                if (editId) {
+                    showModal('\u2728', 'Changes submitted', 'Your changes have been saved and sent back for platform review.', 'View my creations', function(){
+                        location.href = './my-crowdfunding.html#creations'
+                    })
+                } else {
+                    showModal('\u2728', 'Submitted for review', 'Your character has been submitted. It will go live after platform review, and then start earning revenue.', 'View my creations', function(){
+                        location.href = './my-crowdfunding.html#creations'
+                    })
+                }
             } else {
-                showToast(d.msg || 'Submission failed', 'error')
+                showToast(d.msg || (editId ? 'Update failed' : 'Submission failed'), 'error')
             }
         }).catch(function(){
             btn.disabled = false
-            btn.textContent = 'Submit for review'
+            btn.textContent = label
             showToast('Network error, please try again later', 'error')
         })
     }

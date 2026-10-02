@@ -78,6 +78,94 @@ final class CreatorService
     }
 
     /**
+     * 我的创作详情（编辑回填）
+     */
+    public function detail(int $userId, int $id): array
+    {
+        $item = $this->findOwn($userId, $id);
+        $row  = $item->toArray();
+
+        $materials = json_decode((string) $item->materials, true);
+
+        return [
+            'id'            => (int) $row['id'],
+            'persona_name'  => (string) $row['persona_name'],
+            'description'   => (string) $row['description'],
+            'tags'          => self::splitList((string) $row['tags']),
+            'style'         => (string) $row['style'],
+            'gender'        => (string) $row['gender'],
+            'age_range'     => (string) $row['age_range'],
+            'language'      => (string) $row['language'],
+            'personality'   => self::splitList((string) $row['personality']),
+            'voice_style'   => (string) $row['voice_style'],
+            'publish_type'  => (string) $row['publish_type'],
+            'is_adult'      => (int) $row['is_adult'],
+            'highlights'    => (string) $row['highlights'],
+            'reference_url' => (string) $row['reference_url'],
+            'cover_url'     => (string) $row['cover_url'],
+            'materials'     => is_array($materials) ? $materials : [],
+            'status'        => (int) $row['status'],
+            'reject_reason' => (string) $row['reject_reason'],
+            'created_at'    => (string) $row['created_at'],
+        ];
+    }
+
+    /**
+     * 更新自己的创作（仅待审核 / 已驳回可改，改后重新进入待审核）
+     */
+    public function update(int $userId, int $id, array $data): CreatorSubmission
+    {
+        $item = $this->findOwn($userId, $id);
+        if ((int) $item->status === CreatorSubmission::STATUS_ONLINE) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '已上线的作品暂不支持修改');
+        }
+
+        $item->persona_name  = $data['persona_name'];
+        $item->description   = $data['description'] ?? '';
+        $item->tags          = $data['tags'] ?? '';
+        $item->style         = $data['style'] ?? '';
+        $item->gender        = $data['gender'] ?? '';
+        $item->age_range     = $data['age_range'] ?? '';
+        $item->language      = $data['language'] ?? '';
+        $item->personality   = $data['personality'] ?? '';
+        $item->voice_style   = $data['voice_style'] ?? '';
+        $item->publish_type  = $data['publish_type'] ?? 'chat';
+        $item->is_adult      = (int) ($data['is_adult'] ?? 0);
+        $item->highlights    = $data['highlights'] ?? '';
+        $item->reference_url = $data['reference_url'] ?? '';
+        $item->cover_url     = $data['cover_url'] ?? '';
+        $item->materials     = json_encode($data['materials'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        // 修改后重新进入待审核
+        $item->status        = CreatorSubmission::STATUS_PENDING;
+        $item->reject_reason = '';
+        $item->updated_at    = date('Y-m-d H:i:s');
+        $item->save();
+
+        return $item;
+    }
+
+    /**
+     * 删除自己的创作
+     */
+    public function remove(int $userId, int $id): void
+    {
+        $item = $this->findOwn($userId, $id);
+        $item->delete();
+    }
+
+    /**
+     * 按 ID + 归属人查询自己的创作
+     */
+    private function findOwn(int $userId, int $id): CreatorSubmission
+    {
+        $item = CreatorSubmission::where('id', $id)->where('user_id', $userId)->find();
+        if (!$item) {
+            throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '作品不存在');
+        }
+        return $item;
+    }
+
+    /**
      * 收入排行榜：全部角色按累计礼物收入降序（公开数据，用于创作中心展示）
      */
     public function leaderboard(int $limit = 10): array

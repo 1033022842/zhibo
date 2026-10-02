@@ -37,6 +37,11 @@
         .cf-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
         .cf-tag{font-size:10px;line-height:1;padding:4px 8px;border-radius:9999px;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c9a6f7;white-space:nowrap}
         .cf-deadline{display:flex;align-items:center;justify-content:space-between;margin-top:10px;color:#A1A1A1;font-size:11px}
+        .cf-actions{display:flex;gap:8px;margin-top:12px}
+        .cf-act{flex:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.8);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+        .cf-act:hover{border-color:#E75275;color:#F97187}
+        .cf-act.danger{color:#f59e0b;border-color:rgba(245,158,11,.35)}
+        .cf-act.danger:hover{background:rgba(245,158,11,.12);border-color:#f59e0b;color:#f59e0b}
 
         /* Status badges */
         .st-badge{padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;flex-shrink:0}
@@ -182,6 +187,10 @@
             ? '<img src="' + esc(fixUrl(c.cover_url)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />'
             : ''
         var reject = (st == 2 && c.reject_reason) ? '<div class="text-[#f59e0b] text-xs mt-2 leading-5">Rejected: ' + esc(c.reject_reason) + '</div>' : ''
+        // Only the author can edit/delete; live works can be deleted but not edited
+        var actions = '<div class="cf-actions">' +
+            ((st == 0 || st == 2) ? '<button type="button" class="cf-act" onclick="editCreation(' + c.id + ')">Edit</button>' : '') +
+            '<button type="button" class="cf-act danger" onclick="deleteCreation(' + c.id + ')">Delete</button></div>'
         return '<div class="cf-card">' +
             '<div class="cf-cover-wrap">' + cover +
             '<div class="cf-cover-fallback" style="' + (c.cover_url ? 'display:none' : '') + '"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><path d="M12 3v18M3 12h18"/></svg></div>' +
@@ -195,6 +204,7 @@
             '<span class="text-[#A1A1A1] text-xs">' + esc((c.created_at || '').slice(0, 10)) + '</span></div>' +
             reject +
             '<div class="cf-deadline"><span>Publish type &middot; ' + esc(typeTxt) + '</span><span>#' + esc(c.id) + '</span></div>' +
+            actions +
             '</div></div>'
     }
 
@@ -227,6 +237,23 @@
         }).catch(function() {
             list.innerHTML = emptyHtml('Network error, please try again later')
         })
+    }
+
+    // Author actions: edit (opens the Creator Center form prefilled) / delete
+    window.editCreation = function(id) {
+        location.href = './crowdfunding.html?edit=' + encodeURIComponent(id)
+    }
+
+    window.deleteCreation = function(id) {
+        if (!confirm('Delete this creation? This cannot be undone.')) return
+        fetch(base + '/creator/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ id: id })
+        }).then(function(r){ return r.json() }).then(function(d) {
+            if (d.code === '00000') { load('creations') }
+            else { alert(d.msg || 'Delete failed') }
+        }).catch(function() { alert('Network error, please try again later') })
     }
 
     var initTab = (location.hash || '').replace('#', '')
