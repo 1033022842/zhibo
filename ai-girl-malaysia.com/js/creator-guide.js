@@ -2,10 +2,13 @@
  * Creator Earning Guide - site-wide onboarding popup
  *
  * Behavior:
- *   · Auto-opens on every page load (1.2s delay); clicking "Don't show again" permanently disables it
- *     (localStorage: creator_guide_seen_v2=1)
- *   · Closing (X / Maybe later) does NOT persist, so it shows again on the next visit
+ *   · Shows once per login session: auto-opens 1.2s after load, then stays hidden on further page
+ *     views. It opens again when the login token changes (i.e. next login).
+ *   · First visit in a browser session (not logged in yet) also shows it once.
+ *   · Clicking "Don't show again" disables it permanently (localStorage: creator_guide_seen_v2=1)
+ *   · Closing (X / Maybe later) does not disable it
  *   · "Start creating" goes to the Creator Center ./crowdfunding.html
+ *   · The Creator Center page itself uses an inline tutorial instead of this popup
  */
 (function () {
   if (window.__creatorGuideLoaded) return;
@@ -22,11 +25,37 @@
   // Force open via ?guide=1
   var FORCE = /[?&]guide=1/.test(location.search);
 
+  // Track which login this guide was already shown for (per browser session)
+  var TOKEN_KEY = 'live_access_token';
+  var SESS_KEY = 'creator_guide_tok';
+
+  function getToken() {
+    try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
+  }
+  function shownToken() {
+    try { return sessionStorage.getItem(SESS_KEY); } catch (e) { return null; }
+  }
+  function markShown() {
+    try { sessionStorage.setItem(SESS_KEY, getToken()); } catch (e) {}
+  }
+
   function isSeen() {
     try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
   }
   function setSeen() {
     try { localStorage.setItem(KEY, '1'); } catch (e) {}
+  }
+
+  /**
+   * Once per login: show on the first page in a browser session, and again only when the
+   * login token changes (a new login). Same login + further page views -> hidden.
+   */
+  function shouldShow() {
+    if (isSeen()) return false;
+    var tok = getToken();
+    var prev = shownToken();
+    if (prev === null) return true;
+    return tok !== '' && tok !== prev;
   }
 
   var CSS = ''
@@ -99,9 +128,9 @@
     ensure();
     if (FORCE) {
       setTimeout(function(){ autoShow(true) }, 200);
-    } else if (!isSeen()) {
+    } else if (shouldShow()) {
       // Small delay so it does not collide with the promo popup
-      setTimeout(autoShow, 1200);
+      setTimeout(function(){ autoShow(true); markShown() }, 1200);
     }
   }
 
