@@ -88,15 +88,15 @@
   function show() { ensure().classList.add('cg-show'); }
   function hide() { if (overlay) overlay.classList.remove('cg-show'); }
 
-  function autoShow() {
-    if (isSeen()) return;
+  function autoShow(force) {
+    if (!force && isSeen()) return;
     show();
   }
 
   function init() {
     ensure();
     if (FORCE) {
-      setTimeout(autoShow, 200);
+      setTimeout(function(){ autoShow(true) }, 200);
     } else if (!isSeen()) {
       // Small delay so it does not collide with the promo popup
       setTimeout(autoShow, 1200);
