@@ -101,7 +101,8 @@
         .cf-bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fc768a,#e65073);transition:width .2s}
 
         /* ===== Income leaderboard ===== */
-        .cf-rank{margin-top:28px;background:#161616;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden}
+        .cf-rank{margin-top:28px;background:#161616;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;transition:box-shadow .25s}
+        .cf-rank.pulse{box-shadow:0 0 0 2px rgba(231,82,117,.55)}
         .cf-rank-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
         .cf-rank-ttl .t{font-size:15px;font-weight:800;color:#fff}
         .cf-rank-ttl .d{font-size:12px;color:#A1A1A1;margin-top:4px}
@@ -178,6 +179,7 @@
                     <p class="text-[#A1A1A1] text-[13px] mt-1">Create characters, publish your work and earn revenue</p>
                 </div>
                 <div class="flex items-center gap-4">
+                    <button type="button" id="openRank" class="text-[#E75275] text-sm font-semibold bg-transparent border-none cursor-pointer">Rankings</button>
                     <button type="button" id="openGuide" class="text-[#E75275] text-sm font-semibold bg-transparent border-none cursor-pointer">How it works?</button>
                     <a href="./my-crowdfunding.html#creations" class="text-[#E75275] text-sm font-semibold no-underline">My Creations &#8594;</a>
                 </div>
@@ -282,6 +284,19 @@
         g.scrollIntoView({ behavior: 'smooth', block: 'center' })
         g.classList.add('pulse')
         setTimeout(function(){ g.classList.remove('pulse') }, 1600)
+    }
+
+    // ===== Leaderboard entry: scroll to the leaderboard block and pulse it =====
+    var openRankBtn = document.getElementById('openRank')
+    if (openRankBtn) openRankBtn.onclick = function(){
+        var r = document.getElementById('cfRank')
+        if (!r) return
+        r.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        r.classList.add('pulse')
+        setTimeout(function(){ r.classList.remove('pulse') }, 1600)
+    }
+    if (location.hash === '#rankings') {
+        setTimeout(function(){ if (openRankBtn) openRankBtn.click() }, 300)
     }
 
     // ===== Creation mode switch =====
