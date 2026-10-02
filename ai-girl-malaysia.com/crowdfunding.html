@@ -29,6 +29,18 @@
         .cf-earn-btn{flex-shrink:0;padding:9px 18px;border-radius:9999px;background:linear-gradient(268deg,#fc768a,#e65073);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
         @media (max-width:520px){ .cf-earn{align-items:flex-start} }
 
+        /* ===== Inline how-it-works tutorial + pointer arrow ===== */
+        .cf-guide{position:relative;background:linear-gradient(180deg,rgba(231,82,117,.10),rgba(231,82,117,.02));border:1px solid rgba(231,82,117,.30);border-radius:14px;padding:16px 16px 4px;margin-bottom:0;transition:box-shadow .25s}
+        .cf-guide.pulse{box-shadow:0 0 0 2px rgba(231,82,117,.55)}
+        .cf-guide-head{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#F97187;margin-bottom:12px}
+        .cf-guide-steps{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+        .cf-gstep{padding:7px 12px;border-radius:9999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.85);font-size:12px;font-weight:600;white-space:nowrap}
+        .cf-gstep b{color:#F97187;margin-right:4px}
+        .cf-garrow{color:rgba(255,255,255,.3);font-size:12px}
+        .cf-guide-tip{font-size:12px;color:rgba(255,255,255,.55);margin-top:12px}
+        .cf-guide-arrow{display:flex;justify-content:center;margin-top:2px;animation:cfga 1.4s ease-in-out infinite}
+        @keyframes cfga{0%,100%{transform:translateY(0);opacity:.8}50%{transform:translateY(6px);opacity:1}}
+
         .cf-form{background:#262626;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px}
         .cf-field{margin-bottom:20px}
         .cf-label{display:block;font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px}
@@ -123,7 +135,7 @@
                     <p class="text-[#A1A1A1] text-[13px] mt-1">Create characters, publish your work and earn revenue</p>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button type="button" id="openGuide" class="text-[#E75275] text-sm font-semibold bg-transparent border-none cursor-pointer">How to earn?</button>
+                    <button type="button" id="openGuide" class="text-[#E75275] text-sm font-semibold bg-transparent border-none cursor-pointer">How it works?</button>
                     <a href="./my-crowdfunding.html#creations" class="text-[#E75275] text-sm font-semibold no-underline">My Creations &#8594;</a>
                 </div>
             </div>
@@ -135,6 +147,23 @@
                     <div class="d">Revenue from your published characters works the same as live streaming — split by the backend-configured ratio (currently 50% creator : 50% platform). Creator payouts are after tax.</div>
                 </div>
                 <a href="./Withdrawal.html" class="cf-earn-btn">Withdraw</a>
+            </div>
+
+            <div class="cf-guide" id="cfGuide">
+                <div class="cf-guide-head">How it works</div>
+                <div class="cf-guide-steps">
+                    <span class="cf-gstep"><b>1</b>Create a character</span>
+                    <span class="cf-garrow">&#8594;</span>
+                    <span class="cf-gstep"><b>2</b>Choose a mode below</span>
+                    <span class="cf-garrow">&#8594;</span>
+                    <span class="cf-gstep"><b>3</b>Publish it</span>
+                    <span class="cf-garrow">&#8594;</span>
+                    <span class="cf-gstep"><b>4</b>Earn revenue (5:5)</span>
+                </div>
+                <div class="cf-guide-tip">Pick a mode to start &#8595;</div>
+                <div class="cf-guide-arrow">
+                    <svg width="26" height="30" viewBox="0 0 26 30" fill="none" stroke="#E75275" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2v22"/><path d="M4 17l9 9 9-9"/></svg>
+                </div>
             </div>
 
             <div class="cf-tabs" id="tabs">
@@ -191,9 +220,15 @@
 
     if (!token) { location.href = './Login.html'; return }
 
-    // ===== Earning guide popup (provided site-wide by js/creator-guide.js) =====
+    // ===== How-it-works tutorial (no popup on this page; scroll to the inline tutorial and pulse it) =====
     var openGuideBtn = document.getElementById('openGuide')
-    if (openGuideBtn) openGuideBtn.onclick = function(){ window.CreatorGuide && window.CreatorGuide.open() }
+    if (openGuideBtn) openGuideBtn.onclick = function(){
+        var g = document.getElementById('cfGuide')
+        if (!g) return
+        g.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        g.classList.add('pulse')
+        setTimeout(function(){ g.classList.remove('pulse') }, 1600)
+    }
 
     // ===== Creation mode switch =====
     window.switchTab = function(tab) {
@@ -624,6 +659,6 @@
 })()
 </script>
 	<script src="./js/promo-popup.js?v=20260929a"></script>
-  <script src="./js/creator-guide.js?v=20261002d"></script>
+  <script src="./js/creator-guide.js?v=20261002e"></script>
 </body>
 </html>
