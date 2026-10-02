@@ -316,18 +316,34 @@
         startPoll(o.order_no)
     }
 
-    /** 二维码：后台上传了收款码就用它，否则按收款地址现场生成（始终与上方地址一致） */
+    /**
+     * 二维码：先用收款地址在本机生成（永远不会失败，且与上方地址一致），
+     * 后台上传了收款码再异步换成它——换图失败也不影响已经显示出来的二维码。
+     */
     function renderQr(o) {
+        var ch = o.channel || {}
         var box = $('cp-qr')
-        var custom = String(o.qr_code_url || (o.channel && o.channel.qr_code_url) || '')
-        if (custom) {
-            var url = /^https?:/i.test(custom)
-                ? custom
-                : location.origin + '/' + custom.replace(/^\/+/, '')
-            box.innerHTML = '<img src="' + url + '" alt="">'
-            return
-        }
-        var text = o.pay_address || ''
+        var text = String(o.pay_address || ch.address || '')
+        renderAddressQr(box, text)
+
+        var custom = String(o.qr_code_url || ch.qr_code_url || '')
+        if (!custom) { return }
+
+        // 站内的 /storage/ 资源一律走「当前页面同源」地址：后端下发的是它那个域名的
+        // 绝对地址（而且常被代理成 https://IP/…，证书只签了主域名），用户从别的域名、
+        // 端口或 IP 进来时那张图会静默加载失败，二维码就空在那里
+        var m = custom.match(/\/storage\/.*$/i)
+        var url = m
+            ? location.origin + m[0]
+            : (/^https?:/i.test(custom) ? custom : location.origin + '/' + custom.replace(/^\/+/, ''))
+        var img = new Image()
+        img.alt = ''
+        img.onload = function () { box.innerHTML = ''; box.appendChild(img) }
+        img.src = url
+    }
+
+    /** 按收款地址现场生成二维码（qrcode-generator 输出 SVG） */
+    function renderAddressQr(box, text) {
         if (!text || typeof window.qrcode !== 'function') { box.innerHTML = ''; return }
         try {
             var qr = window.qrcode(0, 'M')
