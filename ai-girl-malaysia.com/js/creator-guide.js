@@ -14,7 +14,9 @@
   // Skip inside admin iframes
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
-  // v2 key: ignore the flag written by the older (Chinese) version, so it shows again
+  // Creator Center has its own inline tutorial instead of this popup
+  if (/crowdfunding\.html$/i.test(location.pathname || '')) return;
+
   var KEY = 'creator_guide_seen_v2';
   var CENTER_URL = './crowdfunding.html';
   // Force open via ?guide=1
