@@ -79,9 +79,9 @@
             </div>
 
             <div class="flex gap-2 mb-7">
-                <button class="mc-tab on" data-t="creations" onclick="switchTab('creations')">我的创作</button>
-                <button class="mc-tab" data-t="projects" onclick="switchTab('projects')">我发起的</button>
-                <button class="mc-tab" data-t="pledges" onclick="switchTab('pledges')">我支持的</button>
+                <button class="mc-tab on" data-t="creations" onclick="switchTab('creations')">My Creations</button>
+                <button class="mc-tab" data-t="projects" onclick="switchTab('projects')">My Projects</button>
+                <button class="mc-tab" data-t="pledges" onclick="switchTab('pledges')">My Backed</button>
             </div>
 
             <div id="list"><div class="mc-load"><div class="mc-spin"></div></div></div>
@@ -95,12 +95,12 @@
     var token = localStorage.getItem('live_access_token')
     if (!token) { location.href = './Login.html'; return }
 
-    var stMap = { 0: '进行中', 1: '已达标', 2: '未达标·已退款' }
+    var stMap = { 0: 'Active', 1: 'Funded', 2: 'Failed · Refunded' }
 
     // 我的创作（独立完成）列表接口（待后端确认，如变更只需改这里）
     var CR_API = base + '/creator/my-creations'
-    var crStMap = { 0: '审核中', 1: '已上线', 2: '已驳回' }
-    var pubMap = { live: '直播角色', chat: '普通对话角色', drama: '短剧' }
+    var crStMap = { 0: 'Pending review', 1: 'Live', 2: 'Rejected' }
+    var pubMap = { live: 'Live streamer', chat: 'Chat companion', drama: 'Short drama' }
 
     function pct(p) {
         var t = parseFloat(p.target_amount) || 0, r = parseFloat(p.raised_amount) || 0
@@ -142,7 +142,7 @@
             '<div class="cf-body">' +
             tagsHtml +
             '<div class="flex items-center justify-between mt-3 mb-2">' +
-            '<span class="st-badge st-b' + p.status + '">' + (stMap[p.status] || '未知') + '</span>' +
+            '<span class="st-badge st-b' + p.status + '">' + (stMap[p.status] || 'Unknown') + '</span>' +
             '<span class="text-[#a855f7] text-sm font-extrabold">' + c + '%</span></div>' +
             '<div class="cf-progress-track"><div class="cf-progress-fill' + fillCls + '" style="width:' + c + '%"></div></div>' +
             '<div class="cf-stats">' +
@@ -157,31 +157,31 @@
     function pledgeCard(w) {
         var p = w.project || {}
         var st = w.status
-        var stTxt = st == 0 ? '冻结中' : (st == 1 ? '已划转' : '已退款')
+        var stTxt = st == 0 ? 'Frozen' : (st == 1 ? 'Transferred' : 'Refunded')
         var stCls = st == 1 ? 'st-b1' : (st == 2 ? 'st-b2' : 'st-b0')
         var c = p.target_amount ? Math.min(100, Math.round((p.raised_amount || 0) / p.target_amount * 100)) : 0
         return '<div class="cf-card"><div class="cf-body" style="padding:18px">' +
             '<div class="flex items-start justify-between mb-2">' +
-            '<div><div class="text-white text-base font-bold">' + esc(p.title || ('项目 #' + w.project_id)) + '</div>' +
-            '<div class="text-[#c9a6f7] text-xs mt-1">支持 ' + w.amount + ' 代币 · ' + (w.created_at || '').slice(0, 10) + '</div></div>' +
+            '<div><div class="text-white text-base font-bold">' + esc(p.title || ('Project #' + w.project_id)) + '</div>' +
+            '<div class="text-[#c9a6f7] text-xs mt-1">Backed ' + w.amount + ' tokens &middot; ' + (w.created_at || '').slice(0, 10) + '</div></div>' +
             '<span class="st-badge ' + stCls + '">' + stTxt + '</span></div>' +
             '<div class="cf-progress-track" style="margin:14px 0 6px"><div class="cf-progress-fill" style="width:' + c + '%"></div></div>' +
-            '<div class="cf-deadline"><span>项目进度 ' + c + '%</span><span>' + (stMap[p.status] != null ? '项目' + stMap[p.status] : '') + '</span></div>' +
+            '<div class="cf-deadline"><span>Progress ' + c + '%</span><span>' + (stMap[p.status] != null ? 'Project ' + stMap[p.status] : '') + '</span></div>' +
             '</div></div>'
     }
 
     function creationCard(c) {
         var st = c.status
-        var stTxt = crStMap[st] || '未知'
+        var stTxt = crStMap[st] || 'Unknown'
         var stCls = st == 1 ? 'st-b1' : (st == 2 ? 'st-b2' : 'st-b0')
-        var typeTxt = pubMap[c.publish_type] || '角色'
+        var typeTxt = pubMap[c.publish_type] || 'Character'
         var tags = Array.isArray(c.tags) ? c.tags : []
         var tagsHtml = tags.length ? '<div class="cf-tags">' + tags.slice(0, 3).map(function(t){ return '<span class="cf-tag">' + esc(t) + '</span>' }).join('') + '</div>' : ''
         var adult = parseInt(c.is_adult) === 1 ? '<div class="cf-adult">18+</div>' : ''
         var cover = c.cover_url
             ? '<img src="' + esc(fixUrl(c.cover_url)) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />'
             : ''
-        var reject = (st == 2 && c.reject_reason) ? '<div class="text-[#f59e0b] text-xs mt-2 leading-5">驳回原因：' + esc(c.reject_reason) + '</div>' : ''
+        var reject = (st == 2 && c.reject_reason) ? '<div class="text-[#f59e0b] text-xs mt-2 leading-5">Rejected: ' + esc(c.reject_reason) + '</div>' : ''
         return '<div class="cf-card">' +
             '<div class="cf-cover-wrap">' + cover +
             '<div class="cf-cover-fallback" style="' + (c.cover_url ? 'display:none' : '') + '"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><path d="M12 3v18M3 12h18"/></svg></div>' +
@@ -194,7 +194,7 @@
             '<span class="st-badge ' + stCls + '">' + stTxt + '</span>' +
             '<span class="text-[#A1A1A1] text-xs">' + esc((c.created_at || '').slice(0, 10)) + '</span></div>' +
             reject +
-            '<div class="cf-deadline"><span>发布类型 · ' + esc(typeTxt) + '</span><span>#' + esc(c.id) + '</span></div>' +
+            '<div class="cf-deadline"><span>Publish type &middot; ' + esc(typeTxt) + '</span><span>#' + esc(c.id) + '</span></div>' +
             '</div></div>'
     }
 
@@ -206,15 +206,15 @@
         var list = document.getElementById('list')
         list.innerHTML = '<div class="mc-load"><div class="mc-spin"></div></div>'
         var cfg = {
-            creations: { url: CR_API, card: creationCard, empty: '还没有创作过角色' },
-            projects: { url: base + '/crowdfunding/my-projects', card: projectCard, empty: '还没有发起过众筹' },
-            pledges: { url: base + '/crowdfunding/my-pledges', card: pledgeCard, empty: '还没有支持过任何项目' }
+            creations: { url: CR_API, card: creationCard, empty: 'No creations yet' },
+            projects: { url: base + '/crowdfunding/my-projects', card: projectCard, empty: 'No crowdfunding projects yet' },
+            pledges: { url: base + '/crowdfunding/my-pledges', card: pledgeCard, empty: 'You have not backed any projects yet' }
         }[t] || {}
         fetch(cfg.url, {
             headers: { 'Authorization': 'Bearer ' + token }
         }).then(function(r){ return r.json() }).then(function(r) {
             if (r.code !== '00000') {
-                list.innerHTML = emptyHtml(r.msg || '加载失败')
+                list.innerHTML = emptyHtml(r.msg || 'Failed to load')
                 return
             }
             var data = r.data || []
@@ -225,7 +225,7 @@
             var html = '<div class="mc-grid">' + data.map(cfg.card).join('') + '</div>'
             list.innerHTML = html
         }).catch(function() {
-            list.innerHTML = emptyHtml('网络错误，请稍后重试')
+            list.innerHTML = emptyHtml('Network error, please try again later')
         })
     }
 
@@ -235,6 +235,6 @@
 })()
 </script>
 	<script src="./js/promo-popup.js?v=20260929a"></script>
-	<script src="./js/creator-guide.js?v=20261002a"></script>
+	<script src="./js/creator-guide.js?v=20261002b"></script>
 </body>
 </html>
