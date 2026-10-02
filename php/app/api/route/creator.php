@@ -6,6 +6,10 @@ use think\facade\Route;
 Route::group('v1/creator', function () {
     Route::post('independent', '\app\api\controller\Creator@independent');
     Route::get('my-creations', '\app\api\controller\Creator@myCreations');
+    // 作品本人：查看详情（编辑回填）、修改、删除
+    Route::get('detail', '\app\api\controller\Creator@detail');
+    Route::post('update', '\app\api\controller\Creator@update');
+    Route::post('remove', '\app\api\controller\Creator@remove');
 })->middleware(\app\live\middleware\Auth::class);
 
 // 收入排行榜（公开）

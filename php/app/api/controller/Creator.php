@@ -5,6 +5,7 @@ namespace app\api\controller;
 
 use think\App;
 use app\BaseController;
+use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use app\live\service\CreatorService;
 
@@ -73,97 +74,185 @@ final class Creator extends BaseController
     public function independent()
     {
         $userId = $this->getAuthUserId();
-        $params = $this->request->post();
-
-        $personaName = trim((string) ($params['persona_name'] ?? ''));
-        if ($personaName === '') {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请输入角色名称');
+        $built  = $this->buildPayload($this->request->post());
+        if ($built['error'] !== '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, $built['error']);
         }
 
-        $description = trim((string) ($params['description'] ?? ''));
-        if (mb_strlen($description, 'UTF-8') < 200) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '角色描述不能少于200字');
+        try {
+            $item = $this->service->submit($userId, $built['payload']);
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
         }
-
-        $tags = $this->normalizeList((string) ($params['tags'] ?? ''));
-        if ($tags === '') {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请至少填写一个标签');
-        }
-        if (count(explode(',', $tags)) > 10) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '标签最多填写10个');
-        }
-
-        $style = trim((string) ($params['style'] ?? ''));
-        if (!isset(self::STYLE_MAP[$style])) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择角色风格');
-        }
-
-        $gender = trim((string) ($params['gender'] ?? ''));
-        if ($gender !== '' && !isset(self::GENDER_MAP[$gender])) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '角色性别不合法');
-        }
-
-        $ageRange = trim((string) ($params['age_range'] ?? ''));
-        if ($ageRange !== '' && !isset(self::AGE_MAP[$ageRange])) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '年龄段不合法');
-        }
-
-        $language = trim((string) ($params['language'] ?? ''));
-        if ($language !== '' && !isset(self::LANGUAGE_MAP[$language])) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '语种不合法');
-        }
-
-        $voiceStyle = trim((string) ($params['voice_style'] ?? ''));
-        if ($voiceStyle !== '' && !isset(self::VOICE_MAP[$voiceStyle])) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '语音风格不合法');
-        }
-
-        // 发布类型：必填且单选
-        $publishType = trim((string) ($params['publish_type'] ?? ''));
-        if (!isset(self::PUBLISH_MAP[$publishType])) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择发布类型');
-        }
-
-        // 是否 18+ 内容：必填 0/1
-        $isAdultRaw = $params['is_adult'] ?? '';
-        if ($isAdultRaw === '' || $isAdultRaw === null) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择是否为18+内容');
-        }
-        $isAdult = in_array((string) $isAdultRaw, ['1', 'true', 'on'], true) ? 1 : 0;
-
-        $referenceUrl = trim((string) ($params['reference_url'] ?? ''));
-        if ($referenceUrl !== '' && !preg_match('/^https?:\/\//i', $referenceUrl)) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '参考链接需以 http(s):// 开头');
-        }
-
-        // 资料：前端已开放上传，至少一份
-        $materials = $this->parseMaterials($params['materials'] ?? []);
-        if (count($materials) === 0) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请至少上传一份角色资料');
-        }
-
-        $item = $this->service->submit($userId, [
-            'persona_name'  => $personaName,
-            'description'   => $description,
-            'tags'          => $tags,
-            'style'         => $style,
-            'gender'        => $gender,
-            'age_range'     => $ageRange,
-            'language'      => $language,
-            'personality'   => $this->normalizeList((string) ($params['personality'] ?? '')),
-            'voice_style'   => $voiceStyle,
-            'publish_type'  => $publishType,
-            'is_adult'      => $isAdult,
-            'highlights'    => trim((string) ($params['highlights'] ?? '')),
-            'reference_url' => $referenceUrl,
-            'cover_url'     => trim((string) ($params['cover_url'] ?? '')),
-            'materials'     => $materials,
-        ]);
 
         return $this->jsonSuccess([
             'id'     => (int) $item->id,
             'status' => (int) $item->status,
         ], '已提交审核');
+    }
+
+    /**
+     * 我的创作详情（编辑回填，需登录且仅限本人）
+     */
+    public function detail()
+    {
+        $userId = $this->getAuthUserId();
+        $id     = (int) $this->request->get('id/d', 0);
+        if ($id <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '缺少作品ID');
+        }
+
+        try {
+            return $this->jsonSuccess($this->service->detail($userId, $id));
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+    }
+
+    /**
+     * 修改自己的创作（仅待审核 / 已驳回可改，改后重新进入待审核）
+     */
+    public function update()
+    {
+        $userId = $this->getAuthUserId();
+        $params = $this->request->post();
+        $id     = (int) ($params['id'] ?? 0);
+        if ($id <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '缺少作品ID');
+        }
+
+        $built = $this->buildPayload($params);
+        if ($built['error'] !== '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, $built['error']);
+        }
+
+        try {
+            $item = $this->service->update($userId, $id, $built['payload']);
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+
+        return $this->jsonSuccess([
+            'id'     => (int) $item->id,
+            'status' => (int) $item->status,
+        ], '已重新提交审核');
+    }
+
+    /**
+     * 删除自己的创作（需登录且仅限本人）
+     */
+    public function remove()
+    {
+        $userId = $this->getAuthUserId();
+        $id     = (int) $this->request->post('id/d', 0);
+        if ($id <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '缺少作品ID');
+        }
+
+        try {
+            $this->service->remove($userId, $id);
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+
+        return $this->jsonSuccess(null, '已删除');
+    }
+
+    /**
+     * 校验 + 归一化提交参数（independent / update 共用）
+     * 返回 ['payload' => array, 'error' => string]
+     */
+    private function buildPayload(array $params): array
+    {
+        $fail = static fn(string $msg): array => ['payload' => [], 'error' => $msg];
+
+        $personaName = trim((string) ($params['persona_name'] ?? ''));
+        if ($personaName === '') {
+            return $fail('请输入角色名称');
+        }
+
+        $description = trim((string) ($params['description'] ?? ''));
+        if (mb_strlen($description, 'UTF-8') < 200) {
+            return $fail('角色描述不能少于200字');
+        }
+
+        $tags = $this->normalizeList((string) ($params['tags'] ?? ''));
+        if ($tags === '') {
+            return $fail('请至少填写一个标签');
+        }
+        if (count(explode(',', $tags)) > 10) {
+            return $fail('标签最多填写10个');
+        }
+
+        $style = trim((string) ($params['style'] ?? ''));
+        if (!isset(self::STYLE_MAP[$style])) {
+            return $fail('请选择角色风格');
+        }
+
+        $gender = trim((string) ($params['gender'] ?? ''));
+        if ($gender !== '' && !isset(self::GENDER_MAP[$gender])) {
+            return $fail('角色性别不合法');
+        }
+
+        $ageRange = trim((string) ($params['age_range'] ?? ''));
+        if ($ageRange !== '' && !isset(self::AGE_MAP[$ageRange])) {
+            return $fail('年龄段不合法');
+        }
+
+        $language = trim((string) ($params['language'] ?? ''));
+        if ($language !== '' && !isset(self::LANGUAGE_MAP[$language])) {
+            return $fail('语种不合法');
+        }
+
+        $voiceStyle = trim((string) ($params['voice_style'] ?? ''));
+        if ($voiceStyle !== '' && !isset(self::VOICE_MAP[$voiceStyle])) {
+            return $fail('语音风格不合法');
+        }
+
+        // 发布类型：必填且单选
+        $publishType = trim((string) ($params['publish_type'] ?? ''));
+        if (!isset(self::PUBLISH_MAP[$publishType])) {
+            return $fail('请选择发布类型');
+        }
+
+        // 是否 18+ 内容：必填 0/1
+        $isAdultRaw = $params['is_adult'] ?? '';
+        if ($isAdultRaw === '' || $isAdultRaw === null) {
+            return $fail('请选择是否为18+内容');
+        }
+        $isAdult = in_array((string) $isAdultRaw, ['1', 'true', 'on'], true) ? 1 : 0;
+
+        $referenceUrl = trim((string) ($params['reference_url'] ?? ''));
+        if ($referenceUrl !== '' && !preg_match('/^https?:\/\//i', $referenceUrl)) {
+            return $fail('参考链接需以 http(s):// 开头');
+        }
+
+        // 资料：前端已开放上传，至少一份
+        $materials = $this->parseMaterials($params['materials'] ?? []);
+        if (count($materials) === 0) {
+            return $fail('请至少上传一份角色资料');
+        }
+
+        return [
+            'error'   => '',
+            'payload' => [
+                'persona_name'  => $personaName,
+                'description'   => $description,
+                'tags'          => $tags,
+                'style'         => $style,
+                'gender'        => $gender,
+                'age_range'     => $ageRange,
+                'language'      => $language,
+                'personality'   => $this->normalizeList((string) ($params['personality'] ?? '')),
+                'voice_style'   => $voiceStyle,
+                'publish_type'  => $publishType,
+                'is_adult'      => $isAdult,
+                'highlights'    => trim((string) ($params['highlights'] ?? '')),
+                'reference_url' => $referenceUrl,
+                'cover_url'     => trim((string) ($params['cover_url'] ?? '')),
+                'materials'     => $materials,
+            ],
+        ];
     }
 
     /**

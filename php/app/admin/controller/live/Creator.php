@@ -15,7 +15,7 @@ final class Creator extends Backend
 {
     protected object $model;
 
-    protected array $noNeedLogin = ['index', 'approve', 'reject', 'detailJson'];
+    protected array $noNeedLogin = ['index', 'approve', 'reject', 'detailJson', 'download', 'removeRecord'];
 
     // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
     protected array $middleware = [
@@ -159,6 +159,147 @@ final class Creator extends Backend
     }
 
     /**
+     * 删除创作提交 (AJAX)
+     */
+    public function removeRecord(): void
+    {
+        $id = $this->request->param('id/d', 0);
+        $item = $this->model->find($id);
+        if (!$item) { $this->error('记录不存在'); return; }
+
+        $item->delete();
+        $this->success('已删除');
+    }
+
+    /**
+     * 下载创作资料：打包 ZIP（info.json + 全部素材文件）
+     */
+    public function download(): void
+    {
+        $id = $this->request->param('id/d', 0);
+        $item = $this->model->find($id);
+        if (!$item) { http_response_code(404); echo '记录不存在'; exit; }
+
+        $materials = json_decode((string) $item->materials, true);
+        if (!is_array($materials)) {
+            $materials = [];
+        }
+
+        $user = \think\facade\Db::connect('live_mysql')
+            ->table('lp_user')
+            ->where('id', (int) $item->user_id)
+            ->field('nickname, user_no')
+            ->find();
+
+        $info = [
+            'id'            => (int) $item->id,
+            'user_id'       => (int) $item->user_id,
+            'nickname'      => $user['nickname'] ?? '',
+            'user_no'       => $user['user_no'] ?? '',
+            'persona_name'  => (string) $item->persona_name,
+            'description'   => (string) $item->description,
+            'tags'          => (string) $item->tags,
+            'style'         => (string) $item->style,
+            'gender'        => (string) $item->gender,
+            'age_range'     => (string) $item->age_range,
+            'language'      => (string) $item->language,
+            'personality'   => (string) $item->personality,
+            'voice_style'   => (string) $item->voice_style,
+            'publish_type'  => (string) $item->publish_type,
+            'is_adult'      => (int) $item->is_adult,
+            'highlights'    => (string) $item->highlights,
+            'reference_url' => (string) $item->reference_url,
+            'cover_url'     => (string) $item->cover_url,
+            'status'        => (int) $item->status,
+            'reject_reason' => (string) $item->reject_reason,
+            'created_at'    => (string) $item->created_at,
+            'reviewed_at'   => (string) $item->reviewed_at,
+            'materials'     => $materials,
+        ];
+
+        if (!class_exists('\ZipArchive')) {
+            http_response_code(500);
+            echo '服务器未启用 zip 扩展，无法打包下载';
+            exit;
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'creator_');
+        $zip = new \ZipArchive();
+        if ($zip->open($tmp, \ZipArchive::OVERWRITE) !== true) {
+            http_response_code(500);
+            echo '创建压缩包失败';
+            exit;
+        }
+
+        $zip->addFromString('info.json', (string) json_encode($info, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+
+        $used = [];
+        foreach ($materials as $i => $m) {
+            $url = trim((string) ($m['url'] ?? ''));
+            if ($url === '') {
+                continue;
+            }
+            $bin = $this->fetchMaterial($url);
+            if ($bin === null) {
+                continue;
+            }
+            $name = basename(str_replace('\\', '/', trim((string) ($m['name'] ?? ''))));
+            if ($name === '') {
+                $name = 'asset-' . ($i + 1);
+            }
+            $entry = $name;
+            $k     = 1;
+            while (isset($used[$entry])) {
+                $entry = $k . '_' . $name;
+                $k++;
+            }
+            $used[$entry] = true;
+            $zip->addFromString('assets/' . $entry, $bin);
+        }
+        $zip->close();
+
+        $filename = 'creation-' . $id . '-' . date('YmdHis') . '.zip';
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . (string) filesize($tmp));
+        readfile($tmp);
+        @unlink($tmp);
+        exit;
+    }
+
+    /**
+     * 读取素材内容：优先本地文件，其次 HTTP（15s 超时）
+     */
+    private function fetchMaterial(string $url): ?string
+    {
+        $path = (string) (parse_url($url, PHP_URL_PATH) ?: $url);
+        $rel  = ltrim($path, '/');
+
+        if ($rel !== '') {
+            foreach ([public_path() . $rel, root_path() . 'public' . DIRECTORY_SEPARATOR . $rel] as $local) {
+                if (is_file($local)) {
+                    $bin = @file_get_contents($local);
+                    if ($bin !== false) {
+                        return $bin;
+                    }
+                }
+            }
+        }
+
+        // 非 http 地址（如 /storage/xxx）兜底：按当前域名拼成完整地址再取
+        if (!preg_match('#^https?://#i', $url)) {
+            $url = rtrim($this->request->domain(), '/') . '/' . $rel;
+        }
+
+        $ctx = stream_context_create([
+            'http' => ['timeout' => 15, 'follow_location' => 1],
+            'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+        ]);
+        $bin = @file_get_contents($url, false, $ctx);
+        return $bin === false ? null : $bin;
+    }
+
+    /**
      * 逗号分隔字符串 -> 数组
      */
     private static function splitList(string $value): array
@@ -217,6 +358,8 @@ final class Creator extends Backend
                     <div class="op-group">
                         <button class="op-btn" onclick="showDetail({$row['id']})">查看</button>
                         {$actions}
+                        <button class="op-btn" onclick="doDownload({$row['id']})">下载</button>
+                        <button class="op-btn op-del" onclick="doDelete({$row['id']})">删除</button>
                     </div>
                 </td>
             </tr>
@@ -290,6 +433,8 @@ final class Creator extends Backend
                 .op-ok:hover{background:#e6f7f1}
                 .op-no{color:#e11d48;border-color:#f5c2c2}
                 .op-no:hover{background:#fef2f2}
+                .op-del{color:#e11d48;border-color:#f5c2c2}
+                .op-del:hover{background:#fef2f2}
                 .empty-tip{text-align:center;color:#9aa0b0;padding:40px 0}
                 .page-bar{text-align:center;margin-top:22px}
                 .page-bar ul{display:inline-flex;gap:6px;list-style:none}
@@ -411,7 +556,7 @@ final class Creator extends Backend
                         for (var i=0;i<mats.length;i++){
                             var m = mats[i] || {};
                             var isImg = /\.(png|jpe?g|gif|webp)$/i.test(m.url||'');
-                            matHtml += '<a class="mat-item" href="'+esc(m.url)+'" target="_blank">' +
+                            matHtml += '<a class="mat-item" href="'+esc(m.url)+'" target="_blank" download>' +
                                 (isImg ? '<img src="'+esc(m.url)+'" onerror="this.style.visibility=\'hidden\'">' : '<div style="height:82px;display:flex;align-items:center;justify-content:center;background:#f2f3f8;border-radius:6px">附件</div>') +
                                 '<span class="nm">'+esc(m.name || m.url || '')+'</span></a>';
                         }
@@ -420,6 +565,8 @@ final class Creator extends Backend
                     }
 
                     var footer = '<button class="btn btn-ghost" onclick="closeDetail()">关闭</button>';
+                    footer += '<button class="btn btn-ghost btn-sm" onclick="doDownload('+p.id+')">下载资料</button>';
+                    footer += '<button class="btn btn-danger btn-sm" onclick="doDelete('+p.id+')">删除</button>';
                     if (p.status === 0) {
                         footer += '<button class="btn btn-danger btn-sm" onclick="showReject('+p.id+')">驳回</button>';
                         footer += '<button class="btn btn-success btn-sm" onclick="doApprove('+p.id+',1)">通过</button>';
@@ -462,6 +609,23 @@ final class Creator extends Backend
                 if (!reason) { alert('请填写驳回原因'); return; }
                 fetch('/admin/live.Creator/reject?id=' + id + '&reason=' + encodeURIComponent(reason)).then(function(r){return r.json()}).then(function(d){
                     if (d.code === 1) { alert('已驳回'); location.reload(); }
+                    else { alert(d.msg || '操作失败'); }
+                }).catch(function(){ alert('网络错误'); });
+            }
+
+            function doDownload(id){
+                var a = document.createElement('a');
+                a.href = '/admin/live.Creator/download?id=' + id;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function(){ if (a.parentNode) a.parentNode.removeChild(a); }, 800);
+            }
+
+            function doDelete(id){
+                if (!confirm('确定删除这条创作提交？删除后不可恢复。')) return;
+                fetch('/admin/live.Creator/removeRecord?id=' + id).then(function(r){return r.json()}).then(function(d){
+                    if (d.code === 1) { alert('已删除'); location.reload(); }
                     else { alert(d.msg || '操作失败'); }
                 }).catch(function(){ alert('网络错误'); });
             }
