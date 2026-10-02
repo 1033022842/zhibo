@@ -225,7 +225,7 @@
                 <div class="cf-rank-head">
                     <div class="cf-rank-ttl">
                         <div class="t">Income Leaderboard</div>
-                        <div class="d">Top earning characters by total gift revenue</div>
+                        <div class="d">Top earning creators by total income</div>
                     </div>
                     <button type="button" class="cf-rank-refresh" onclick="loadLeaderboard()">Refresh</button>
                 </div>
@@ -916,8 +916,8 @@
     }
 
     function rankAvatar(row) {
-        if (row.cover_url) return '<img class="cf-rank-av" src="' + escHtml(row.cover_url) + '" alt="" />'
-        var ch = String(row.persona_name || '?').charAt(0).toUpperCase()
+        if (row.avatar) return '<img class="cf-rank-av" src="' + escHtml(row.avatar) + '" alt="" />'
+        var ch = String(row.nickname || '?').charAt(0).toUpperCase()
         return '<span class="cf-rank-ph">' + escHtml(ch) + '</span>'
     }
 
@@ -951,14 +951,12 @@
                 for (var i = 0; i < list.length; i++) {
                     var row = list[i]
                     var cls = 'cf-rank-row' + (row.rank <= 3 ? ' top' + row.rank : '')
-                    var dc = Number(row.donor_count) || 0
-                    var sub = (dc ? dc + (dc === 1 ? ' supporter' : ' supporters') : 'No supporters yet') +
-                        (row.room_no ? ' · Room ' + row.room_no : '')
+                    var sub = row.user_no ? 'Creator #' + row.user_no : 'Creator'
                     html += '<div class="' + cls + '">' +
                         '<span class="cf-rank-no">' + row.rank + '</span>' + rankAvatar(row) +
-                        '<div class="cf-rank-meta"><div class="nm">' + escHtml(row.persona_name) + '</div>' +
+                        '<div class="cf-rank-meta"><div class="nm">' + escHtml(row.nickname) + '</div>' +
                         '<div class="sub">' + escHtml(sub) + '</div></div>' +
-                        '<div class="cf-rank-amt"><div class="v">' + fmtNum(row.total_gift) + '</div><div class="u">COINS</div></div>' +
+                        '<div class="cf-rank-amt"><div class="v">' + fmtNum(row.income) + '</div><div class="u">DIAMONDS</div></div>' +
                         '</div>'
                 }
                 box.innerHTML = html
