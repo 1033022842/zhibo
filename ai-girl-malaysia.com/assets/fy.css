@@ -327,11 +327,11 @@ body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
 .fy-drawer-menu img,.fy-drawer-menu svg{width:20px;height:20px;flex:0 0 auto;}
 .fy-drawer-menu form{margin:0;}
 
-/* 手机端底部导航（≤1023px）：登录态 5 格（Home/Shorts/Create/Chat/Tokens）、未登录 4 格
-   （Explore/Generate/Create/Premium），内容由 js/shell-new.js 渲染；
+/* 手机端底部导航（≤1023px）：两种状态都是 5 格 —— 登录态 Home/Shorts/Create/Chat/Tokens、
+   未登录 Home/Explore/Generate/Create/Premium，内容由 js/shell-new.js 渲染；
    尺寸/间距/颜色照参考站「图片/home.html 的 mobile_bottom_bar」翻译 */
 .fy-bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;width:100%;height:70px;padding:8px 12px;background:#131313;border-top:1px solid rgba(255,255,255,.2);}
-.fy-bnav[data-variant="guest"]{grid-template-columns:repeat(4,minmax(0,1fr));}
+.fy-bnav[data-variant="guest"]{grid-template-columns:repeat(5,minmax(0,1fr));}
 .fy-bnav-item{display:flex;flex-direction:column;align-items:center;min-width:0;}
 .fy-bnav-item>img,.fy-bnav-item>svg{width:24px;height:24px;flex:0 0 auto;}
 .fy-bnav-label{margin-top:4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:1;color:#A1A1A1;}
