@@ -54,6 +54,7 @@
     bTokens: { src: './settings_files/bottom_bar_tokens_default-273d841343a05f1ba983a3ee4f6ef88b7180effec130b26b7cbb8442c6fc6040.svg' },
     bTokensActive: { src: T + 'bottom_bar_tokens_active-ac95a95e99f8c952759ad5c52b0d0fa17a37feebd3bf8b777be1cdfe65495244.svg' },
     bExplore: { src: './Girls_files/explore-271b6507dab3d31b26d45e198ec8046b2b8f148862ca272167fb8ce5455002e8.svg' },
+    bExploreActive: { src: './Image_files/explore-active-ca279297c446de8d9227ffbadf9fef01e001cd35d665ec3620b02c9c35cab08c.svg' },
     bGenerate: { src: './Girls_files/generate-e0a4445659c35cbc82e7046cf089cf881179d55eaa82d4bf32dae229a06666c1.svg' },
     bWand: { src: './Girls_files/mobile-magic-wand-d445265367be8ddfbfe1c22810893d0ea4dbdaf1eadd7c4496861113d5388d78.svg' },
     bPremium: { src: T + 'premium-3fa8ec9f951178508109d03de202bc4a381ed87451b7dc9f8aa5a931bd485e02.svg' },
@@ -752,9 +753,10 @@
   }
 
   /* ---------- 手机端底部导航（≤1023px）----------
-     参考站：图片/home.html 的 mobile_bottom_bar（登录态）+ 本站页面自带的未登录版
-     登录态 5 格 Home/Shorts/Create/Chat/Tokens；未登录保持页面自带的 4 格 Explore/Generate/Create/Premium，
-     页面没有自带底栏时才新建 4 格。（Create 面板照参考站 create-menu） */
+     参考站：图片/home.html 的 mobile_bottom_bar
+     登录态 5 格 Home/Shorts/Create/Chat/Tokens；未登录 5 格 Home/Explore/Generate/Create/Premium。
+     两种状态都只在这里渲染，页面自带的老版底栏会被就地替换，保证全站底栏完全一致。
+     （Create 面板照参考站 create-menu） */
   var BOTTOM_AUTH = [
     { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
     { href: './shorts.html', label: 'Shorts', icon: 'bShorts', activeIcon: 'bShortsActive', key: 'shorts' },
@@ -764,7 +766,8 @@
   ]
 
   var BOTTOM_GUEST = [
-    { href: './Girls.html', label: 'Explore', icon: 'bExplore', key: 'explore' },
+    { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
+    { href: './Girls.html', label: 'Explore', icon: 'bExplore', activeIcon: 'bExploreActive', key: 'explore' },
     { href: './Image.html', label: 'Generate', icon: 'bGenerate', key: 'generate' },
     { href: './characters.html', label: 'Create', icon: 'bWand', key: 'create' },
     { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium', key: 'premium', premium: true }
@@ -859,9 +862,7 @@
     var signedIn = !!LiveAuth.token()
     var bar = findBottomBar()
 
-    // 未登录：保持页面自带的老版底栏不动
-    if (!signedIn && bar) return
-
+    // 页面自带的老版底栏就地改造成统一版；登录/未登录都走同一套，保证全站底栏一致
     if (!bar) {
       bar = document.createElement('div')
       document.body.appendChild(bar)
@@ -1391,6 +1392,47 @@
     return 'girls'
   }
 
+  /* 顶栏分类栏（Girls/Anime/Guys）：页面自带的用页面自己的，没自带的统一在这里补一份。
+     内联 SVG 与 candy.ai 原版逐字一致，选中态由 fy.css 的 .head-btn.active 上粉。 */
+  var CAT_BTN_SVG = {
+    girls: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+      '<path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg>',
+    anime: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none">' +
+      '<path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path></svg>',
+    guys: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+      '<path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>' +
+      '<path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path>' +
+      '<path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg>'
+  }
+
+  function catBarHtml() {
+    var cur = currentCat()
+    function btn(k) {
+      return '<button type="button" data-cat="' + k + '" class="head-btn' + (k === cur ? ' active' : '') +
+        ' w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group">' +
+        '<div class="flex items-center">' +
+        '<div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300">' + CAT_BTN_SVG[k] + '</div>' +
+        '<div class="text-white text-[13px] font-semibold leading-normal">' + CAT_ICONS[k].label + '</div>' +
+        '</div></button>'
+    }
+    return '<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>' +
+      '<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">' +
+      btn('girls') + btn('anime') + btn('guys') + '</div>'
+  }
+
+  /* 顶栏缺分类栏的页面就地补一份。只补「内容按 顶栏64+分类栏41 预留了高度（mt-[105px]）」的页面，
+     即本来就是照原版结构做的、只是丢了这段 markup 的页面，避免影响没有该栏的定制页。 */
+  function ensureCatBar(topbar) {
+    if (!topbar || document.getElementById('head-btn-group')) return
+    if (!document.querySelector('[class~="mt-[105px]"]')) return
+    var anchor = null
+    for (var i = 0; i < topbar.children.length; i++) {
+      if (topbar.children[i].tagName === 'A') { anchor = topbar.children[i]; break }
+    }
+    if (!anchor) return
+    anchor.insertAdjacentHTML('afterend', catBarHtml())
+  }
+
   function injectCatDropdown() {
     var group = document.getElementById('head-btn-group')
     if (!group || document.getElementById('fyCatDd')) return
@@ -1492,6 +1534,7 @@
       if (topbar && us.parentElement !== topbar) topbar.appendChild(us)
       us.innerHTML = navRight()
     }
+    ensureCatBar(topbar)
     injectCatDropdown()
     return true
   }
