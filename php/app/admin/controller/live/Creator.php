@@ -15,7 +15,7 @@ final class Creator extends Backend
 {
     protected object $model;
 
-    protected array $noNeedLogin = ['index', 'approve', 'reject', 'detailJson', 'download', 'removeRecord'];
+    protected array $noNeedLogin = ['index', 'approve', 'reject', 'detailJson', 'download', 'removeRecord', 'linkPersona'];
 
     // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
     protected array $middleware = [
@@ -63,7 +63,25 @@ final class Creator extends Backend
             'rejected' => (int)$this->model->where('status', 2)->count(),
         ];
 
-        $html = $this->renderPage($list, $stats);
+        // 收入：按作品关联角色统计礼物收入（毛额/净额），并统计提交用户的累计到手收益
+        $items       = $list->items();
+        $personaIds  = [];
+        $userIds     = [];
+        foreach ($items as $row) {
+            $pid = (int)($row['persona_id'] ?? 0);
+            if ($pid > 0) {
+                $personaIds[] = $pid;
+            }
+            $uid = (int)($row['user_id'] ?? 0);
+            if ($uid > 0) {
+                $userIds[] = $uid;
+            }
+        }
+        $rate         = $this->commissionRate();
+        $personaIncome = $this->personaIncomeMap($personaIds, $rate);
+        $userIncome    = $this->userIncomeMap($userIds);
+
+        $html = $this->renderPage($list, $stats, $personaIncome, $userIncome, $rate);
         response($html)->send();
         exit;
     }
@@ -129,6 +147,29 @@ final class Creator extends Backend
             $materials = [];
         }
 
+        // 收入信息：作品关联角色的礼物收入 + 提交用户累计到手收益
+        $rate         = $this->commissionRate();
+        $personaId    = (int)($item->persona_id ?? 0);
+        $personaInc   = $personaId > 0 ? ($this->personaIncomeMap([$personaId], $rate)[$personaId] ?? null) : null;
+        $authorIncome = $this->userIncomeMap([(int)$item->user_id])[(int)$item->user_id] ?? 0.0;
+
+        // 可关联的角色列表（供后台手动关联）
+        $personas = \think\facade\Db::connect('live_mysql')
+            ->table('lp_persona p')
+            ->leftJoin('lp_user u', 'u.id = p.user_id')
+            ->field('p.id, p.name, p.user_id, u.nickname')
+            ->order('p.id', 'desc')
+            ->select()
+            ->toArray();
+        $personaOptions = array_map(static function (array $p): array {
+            return [
+                'id'         => (int) $p['id'],
+                'name'       => (string) $p['name'],
+                'user_id'    => (int) $p['user_id'],
+                'nickname'   => (string) ($p['nickname'] ?? ''),
+            ];
+        }, $personas);
+
         $this->success('', [
             'id'             => (int)$item->id,
             'user_id'        => (int)$item->user_id,
@@ -155,6 +196,13 @@ final class Creator extends Backend
             'reject_reason'  => (string)$item->reject_reason,
             'created_at'     => (string)$item->created_at,
             'reviewed_at'    => (string)$item->reviewed_at,
+            'persona_id'     => $personaId,
+            'income'         => [
+                'rate'         => $rate,
+                'persona'      => $personaInc,
+                'author_total' => $authorIncome,
+            ],
+            'persona_options' => $personaOptions,
         ]);
     }
 
@@ -169,6 +217,29 @@ final class Creator extends Backend
 
         $item->delete();
         $this->success('已删除');
+    }
+
+    /**
+     * 关联/解除关联角色：作品上线后在后台把提交与角色(lp_persona)绑定，用于统计作品收入
+     */
+    public function linkPersona(): void
+    {
+        $id        = $this->request->param('id/d', 0);
+        $personaId = $this->request->param('persona_id/d', 0);
+
+        $item = $this->model->find($id);
+        if (!$item) { $this->error('记录不存在'); return; }
+
+        if ($personaId > 0) {
+            $exists = \think\facade\Db::connect('live_mysql')
+                ->table('lp_persona')->where('id', $personaId)->value('id');
+            if (!$exists) { $this->error('角色不存在'); return; }
+        }
+
+        $item->persona_id = $personaId;
+        $item->updated_at = date('Y-m-d H:i:s');
+        $item->save();
+        $this->success($personaId > 0 ? '已关联角色' : '已解除关联');
     }
 
     /**
@@ -300,6 +371,87 @@ final class Creator extends Backend
     }
 
     /**
+     * 平台礼物抽成比例（0~0.9，默认 0.30）
+     */
+    private function commissionRate(): float
+    {
+        $rate = (float) \app\live\service\WalletService::config('gift_commission_rate', '0.30');
+        return max(0.0, min(0.9, $rate));
+    }
+
+    /**
+     * 角色礼物收入：按角色汇总其房间收到的礼物
+     * @return array<int,array{gross:float,net:float,donors:int}>
+     */
+    private function personaIncomeMap(array $personaIds, float $rate): array
+    {
+        $personaIds = array_values(array_unique(array_filter($personaIds)));
+        if (!$personaIds) {
+            return [];
+        }
+
+        $rows = \think\facade\Db::connect('live_mysql')
+            ->table('lp_room r')
+            ->join('lp_gift_order go', 'go.room_id = r.id')
+            ->whereIn('r.persona_id', $personaIds)
+            ->field([
+                'r.persona_id',
+                'SUM(go.total_price) AS gross',
+                'COUNT(DISTINCT go.user_id) AS donors',
+            ])
+            ->group('r.persona_id')
+            ->select()
+            ->toArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $gross = (float) $row['gross'];
+            $map[(int) $row['persona_id']] = [
+                'gross'  => $gross,
+                'net'    => round($gross * (1 - $rate), 2),
+                'donors' => (int) $row['donors'],
+            ];
+        }
+        return $map;
+    }
+
+    /**
+     * 用户累计到手收益：钱包流水 gift_income 汇总（与用户收入排行榜同口径）
+     * @return array<int,float>
+     */
+    private function userIncomeMap(array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_filter($userIds)));
+        if (!$userIds) {
+            return [];
+        }
+
+        $rows = \think\facade\Db::connect('live_mysql')
+            ->table('lp_wallet_ledger')
+            ->where('biz_type', 'gift_income')
+            ->where('direction', 1)
+            ->whereIn('user_id', $userIds)
+            ->field(['user_id', 'SUM(amount) AS income'])
+            ->group('user_id')
+            ->select()
+            ->toArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['user_id']] = (float) $row['income'];
+        }
+        return $map;
+    }
+
+    /**
+     * 数字展示：整数不带小数，否则保留两位
+     */
+    private static function fmtNum(float $n): string
+    {
+        return $n == floor($n) ? number_format($n) : number_format($n, 2);
+    }
+
+    /**
      * 逗号分隔字符串 -> 数组
      */
     private static function splitList(string $value): array
@@ -311,7 +463,7 @@ final class Creator extends Backend
         return array_values(array_filter(array_map('trim', explode(',', $value)), static fn($s) => $s !== ''));
     }
 
-    private function renderPage($list, array $stats): string
+    private function renderPage($list, array $stats, array $personaIncome = [], array $userIncome = [], float $rate = 0.3): string
     {
         $statusMap  = self::STATUS_MAP;
         $publishMap = self::PUBLISH_MAP;
@@ -338,6 +490,20 @@ final class Creator extends Backend
                 ACT;
             }
 
+            // 收入：作品(关联角色)礼物收入 毛额/净额 + 提交用户累计到手收益
+            $pid    = (int)($row['persona_id'] ?? 0);
+            $uid    = (int)($row['user_id'] ?? 0);
+            $pInc   = $pid > 0 ? ($personaIncome[$pid] ?? null) : null;
+            $uTotal = (float)($userIncome[$uid] ?? 0);
+            if ($pid <= 0) {
+                $workInc = '<div class="inc-none">未关联角色</div>';
+            } else {
+                $workInc = '<div class="inc-work">' . self::fmtNum((float)($pInc['net'] ?? 0)) . ' <span class="inc-cur">DIAMONDS</span></div>'
+                    . '<div class="inc-sub">毛额 ' . self::fmtNum((float)($pInc['gross'] ?? 0)) . '</div>';
+            }
+            $incomeCell = '<td class="td-income">' . $workInc
+                . '<div class="inc-owner">作者累计 ' . self::fmtNum($uTotal) . '</div></td>';
+
             $rows .= <<<ROW
             <tr>
                 <td>
@@ -354,6 +520,7 @@ final class Creator extends Backend
                 <td class="td-center">{$adult}</td>
                 <td><span class="badge badge-{$stNum}">{$st}</span></td>
                 <td>{$time}</td>
+                {$incomeCell}
                 <td>
                     <div class="op-group">
                         <button class="op-btn" onclick="showDetail({$row['id']})">查看</button>
@@ -367,7 +534,7 @@ final class Creator extends Backend
         }
 
         if ($rows === '') {
-            $rows = '<tr><td colspan="7" class="empty-tip">暂无创作提交</td></tr>';
+            $rows = '<tr><td colspan="8" class="empty-tip">暂无创作提交</td></tr>';
         }
 
         $pager = $list->render();
@@ -378,6 +545,9 @@ final class Creator extends Backend
         $status0    = (string)$statusVal === '0' ? 'selected' : '';
         $status1    = (string)$statusVal === '1' ? 'selected' : '';
         $status2    = (string)$statusVal === '2' ? 'selected' : '';
+
+        $ratePct  = number_format($rate * 100, 0);
+        $ownerPct = number_format((1 - $rate) * 100, 0);
 
         return <<<HTML
         <!DOCTYPE html>
@@ -426,6 +596,21 @@ final class Creator extends Backend
                 .badge-2{background:#fdeef2;color:#e11d48}
                 .adult-chip{padding:2px 9px;border-radius:999px;background:#fdeef2;color:#e11d48;font-size:11px;font-weight:700}
                 .na{color:#c0c4d0}
+                .td-income{white-space:nowrap}
+                .inc-work{font-size:13px;font-weight:700;color:#059669}
+                .inc-cur{font-size:10px;font-weight:600;color:#9aa0b0;letter-spacing:.03em}
+                .inc-sub{font-size:11px;color:#9aa0b0;margin-top:2px}
+                .inc-owner{font-size:11px;color:#7c3aed;margin-top:4px}
+                .inc-none{font-size:12px;color:#c0c4d0}
+                .inc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:8px 0 4px}
+                .inc-card{background:#fafbfe;border:1px solid #eef0f6;border-radius:12px;padding:12px 14px}
+                .inc-card .k{font-size:11px;color:#8a90a3}
+                .inc-card .v{font-size:17px;font-weight:800;color:#1a1f36;margin-top:4px}
+                .inc-card .v.green{color:#059669}
+                .inc-card .v.purple{color:#7c3aed}
+                .link-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+                .link-row select{flex:1;padding:9px 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:13px;background:#fff;color:#1f2430;outline:none}
+                .link-hint{font-size:12px;color:#8a90a3;margin-top:8px;line-height:1.6}
                 .op-group{display:flex;gap:6px}
                 .op-btn{display:inline-flex;align-items:center;padding:6px 12px;border:1px solid #e2e5ee;border-radius:8px;background:#fff;color:#5a6172;font-size:12px;font-weight:500;cursor:pointer}
                 .op-btn:hover{background:#f7f8fc}
@@ -475,7 +660,7 @@ final class Creator extends Backend
             <div class="container">
                 <div class="page-head">
                     <h1>创作审核</h1>
-                    <p class="sub">审核用户独立完成的角色创作 · 通过后角色上线并可产生收益（分成与直播一致，当前 5:5）</p>
+                    <p class="sub">审核用户独立完成的角色创作 · 通过后关联角色上线即可产生收益（平台抽成 {$ratePct}%，作者到手 {$ownerPct}%）</p>
                 </div>
 
                 <div class="stats-grid">
@@ -501,7 +686,7 @@ final class Creator extends Backend
                     <div class="table-wrap">
                         <table>
                             <thead><tr>
-                                <th>角色</th><th>提交用户</th><th>发布类型</th><th>18+</th><th>状态</th><th>提交时间</th><th>操作</th>
+                                <th>角色</th><th>提交用户</th><th>发布类型</th><th>18+</th><th>状态</th><th>提交时间</th><th>收入</th><th>操作</th>
                             </tr></thead>
                             <tbody>{$rows}</tbody>
                         </table>
@@ -524,6 +709,7 @@ final class Creator extends Backend
             function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
             function lbl(map,v){return v ? (map[v]||v) : '';}
             function kv(k,v){return '<div class="kv-item"><span class="k">'+k+'：</span>'+v+'</div>';}
+            function fmt(n){n=Number(n)||0;var s=(Math.round(n*100)/100).toString();var a=s.split('.');a[0]=a[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return a.join('.');}
 
             function showDetail(id){
                 document.getElementById('detailModal').classList.add('active');
@@ -564,6 +750,36 @@ final class Creator extends Backend
                         matHtml = '<div class="empty-tip">无资料</div>';
                     }
 
+                    // 收入：作品(关联角色)毛额/净额 + 作者累计到手
+                    var inc = p.income || {};
+                    var incPersona = inc.persona;
+                    var rate = Number(inc.rate) || 0;
+                    var grossVal = incPersona ? (Number(incPersona.gross) || 0) : 0;
+                    var netVal = incPersona ? (Number(incPersona.net) || 0) : 0;
+                    var donors = incPersona ? (Number(incPersona.donors) || 0) : 0;
+                    var authorTotal = Number(inc.author_total) || 0;
+
+                    var optHtml = '<option value="0">— 不关联 —</option>';
+                    var opts = p.persona_options || [];
+                    for (var oi = 0; oi < opts.length; oi++) {
+                        var o = opts[oi];
+                        var own = o.nickname ? (' · ' + esc(o.nickname)) : (o.user_id ? (' · user#' + o.user_id) : '');
+                        optHtml += '<option value="' + o.id + '"' + (String(o.id) === String(p.persona_id) ? ' selected' : '') + '>#' + o.id + ' ' + esc(o.name) + own + '</option>';
+                    }
+
+                    var incHtml =
+                        '<div class="sec-title">收入</div>' +
+                        '<div class="inc-grid">' +
+                            '<div class="inc-card"><div class="k">作品礼物毛额</div><div class="v">' + (incPersona ? fmt(grossVal) : '—') + '</div></div>' +
+                            '<div class="inc-card"><div class="k">作品净收入（抽成 ' + (rate * 100).toFixed(0) + '%）</div><div class="v green">' + (incPersona ? fmt(netVal) : '—') + '</div></div>' +
+                            '<div class="inc-card"><div class="k">作者累计到手</div><div class="v purple">' + fmt(authorTotal) + '</div></div>' +
+                        '</div>' +
+                        '<div class="link-hint">' + (incPersona ? ('送礼人数 ' + donors + ' 人 · 已关联角色 #' + p.persona_id) : '该作品尚未关联角色，暂无法统计作品收入；请在下方关联对应角色。') + '</div>' +
+                        '<div class="link-row">' +
+                            '<select id="personaSel">' + optHtml + '</select>' +
+                            '<button class="btn btn-primary btn-sm" onclick="doLinkPersona(' + p.id + ')">保存关联</button>' +
+                        '</div>';
+
                     var footer = '<button class="btn btn-ghost" onclick="closeDetail()">关闭</button>';
                     footer += '<button class="btn btn-ghost btn-sm" onclick="doDownload('+p.id+')">下载资料</button>';
                     footer += '<button class="btn btn-danger btn-sm" onclick="doDelete('+p.id+')">删除</button>';
@@ -581,6 +797,7 @@ final class Creator extends Backend
                                 '<div class="detail-owner">提交时间：'+esc(p.created_at||'-')+(p.reviewed_at?'<br>审核时间：'+esc(p.reviewed_at):'')+'</div>' +
                                 '<div class="detail-owner" style="margin-top:8px"><span class="badge badge-'+p.status+'">'+esc(p.status_text||'')+'</span></div></div>' +
                             '</div>' +
+                            incHtml +
                             (info ? '<div class="kv-list">'+info+'</div>' : '') +
                             (p.highlights ? '<div class="sec-title">项目亮点</div><div class="detail-desc">'+esc(p.highlights)+'</div>' : '') +
                             '<div class="sec-title">角色描述</div><div class="detail-desc">'+(p.description?esc(p.description):'暂无描述')+'</div>' +
@@ -628,6 +845,16 @@ final class Creator extends Backend
                     if (d.code === 1) { alert('已删除'); location.reload(); }
                     else { alert(d.msg || '操作失败'); }
                 }).catch(function(){ alert('网络错误'); });
+            }
+
+            function doLinkPersona(id){
+                var sel = document.getElementById('personaSel');
+                if (!sel) return;
+                fetch('/admin/live.Creator/linkPersona?id=' + id + '&persona_id=' + encodeURIComponent(sel.value))
+                    .then(function(r){return r.json()}).then(function(d){
+                        if (d.code === 1) { alert(d.msg || '已保存'); location.reload(); }
+                        else { alert(d.msg || '操作失败'); }
+                    }).catch(function(){ alert('网络错误'); });
             }
 
             document.getElementById('detailModal').addEventListener('click', function(e){ if (e.target === this) closeDetail(); });
