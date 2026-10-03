@@ -4,8 +4,11 @@ declare(strict_types=1);
 namespace app\live\service;
 
 use app\common\exception\BusinessException;
+use app\common\util\StrHelper;
 use app\common\web\ResultCode;
 use app\live\model\CreatorSubmission;
+use app\room\model\Persona;
+use app\room\model\Room;
 use think\facade\Db;
 
 final class CreatorService
@@ -163,6 +166,134 @@ final class CreatorService
             throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '作品不存在');
         }
         return $item;
+    }
+
+    /**
+     * 作品上架站内（幂等，审核通过后由后台调用）
+     *  1) 还没角色的，按提交内容创建 lp_persona（归属提交用户，可聊天）；
+     *     publish_type=live 的再补一个维护态直播间（等运营上传素材后开播）
+     *  2) 上架首页推荐角色 lp_home_character，分类按性别/风格落到 girls / anime / guys
+     * 返回 ['persona_id' => int, 'home_character_id' => int]
+     */
+    public function publish(int $id): array
+    {
+        $item = CreatorSubmission::find($id);
+        if (!$item) {
+            throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '创作不存在');
+        }
+        if ((int) $item->status !== CreatorSubmission::STATUS_ONLINE) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '作品还没上线，请先审核通过');
+        }
+
+        Db::startTrans();
+        try {
+            // 1) 角色：没有就按提交内容建一个（可聊天）
+            $personaId = (int) $item->persona_id;
+            if ($personaId <= 0) {
+                $persona = new Persona();
+                $persona->code      = StrHelper::orderNo('P');
+                $persona->user_id   = (int) $item->user_id;
+                $persona->name      = mb_substr((string) $item->persona_name, 0, 64);
+                $persona->tags      = (string) $item->tags;
+                $persona->cover_url = (string) $item->cover_url;
+                $persona->status    = 1; // 1=可直接使用
+                $persona->source_fields = json_encode([
+                    'creator_submission_id' => (int) $item->id,
+                    'publish_type' => (string) $item->publish_type,
+                    'style'        => (string) $item->style,
+                    'gender'       => (string) $item->gender,
+                    'age_range'    => (string) $item->age_range,
+                    'language'     => (string) $item->language,
+                    'personality'  => (string) $item->personality,
+                    'voice_style'  => (string) $item->voice_style,
+                    'highlights'   => (string) $item->highlights,
+                    'description'  => (string) $item->description,
+                ], JSON_UNESCAPED_UNICODE);
+                $persona->created_at = date('Y-m-d H:i:s');
+                $persona->updated_at = date('Y-m-d H:i:s');
+                $persona->save();
+                $personaId = (int) $persona->id;
+                $item->persona_id = $personaId;
+            }
+
+            // 直播型作品：补维护态直播间（没有才建，避免重复）
+            if ((string) $item->publish_type === 'live' && $personaId > 0) {
+                if (!Room::where('persona_id', $personaId)->find()) {
+                    $room = new Room();
+                    $room->room_no    = StrHelper::orderNo('R');
+                    $room->title      = mb_substr((string) $item->persona_name, 0, 64) . '的直播间';
+                    $room->persona_id = $personaId;
+                    $room->room_type  = 'live';
+                    $room->status     = 2; // 2=维护中
+                    $room->cover_url  = (string) $item->cover_url;
+                    $room->created_at = date('Y-m-d H:i:s');
+                    $room->updated_at = date('Y-m-d H:i:s');
+                    $room->save();
+                }
+            }
+
+            // 2) 首页推荐角色卡（没有才上架，避免重复）
+            $homeId = (int) $item->home_character_id;
+            if ($homeId <= 0) {
+                $now = date('Y-m-d H:i:s');
+                $homeId = (int) Db::connect('live_mysql')->table('lp_home_character')->insertGetId([
+                    'name'        => mb_substr((string) $item->persona_name, 0, 60),
+                    'age'         => (string) $item->age_range,
+                    'tagline'     => $this->taglineOf($item),
+                    'description' => (string) $item->description,
+                    'cover_url'   => (string) $item->cover_url,
+                    'tags'        => (string) $item->tags,
+                    'link_url'    => './Chat.html?id=my-' . $personaId,
+                    'is_adult'    => (int) $item->is_adult,
+                    'category'    => $this->homeCategory($item),
+                    'weigh'       => 0,
+                    'status'      => 1,
+                    'created_at'  => $now,
+                    'updated_at'  => $now,
+                ]);
+                $item->home_character_id = $homeId;
+            }
+
+            $item->updated_at = date('Y-m-d H:i:s');
+            $item->save();
+
+            Db::commit();
+        } catch (BusinessException $e) {
+            Db::rollback();
+            throw $e;
+        } catch (\Exception $e) {
+            Db::rollback();
+            throw new BusinessException(ResultCode::SERVER_ERROR, '上架失败: ' . $e->getMessage());
+        }
+
+        return ['persona_id' => $personaId, 'home_character_id' => $homeId];
+    }
+
+    /**
+     * 首页卡片一句话简介：优先作者填的亮点，其次描述前 160 字
+     */
+    private function taglineOf(CreatorSubmission $item): string
+    {
+        $text = trim((string) $item->highlights);
+        if ($text === '') {
+            $text = trim((string) $item->description);
+        }
+        $text = (string) preg_replace('/\s+/u', ' ', $text);
+        return mb_substr($text, 0, 160);
+    }
+
+    /**
+     * 作品落到首页哪个分类：男→guys，二次元风格→anime，其余→girls
+     */
+    private function homeCategory(CreatorSubmission $item): string
+    {
+        if ((string) $item->gender === 'male') {
+            return 'guys';
+        }
+        if ((string) $item->style === 'anime') {
+            return 'anime';
+        }
+        return 'girls';
     }
 
     /**
