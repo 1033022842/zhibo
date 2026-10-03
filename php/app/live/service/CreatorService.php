@@ -249,8 +249,11 @@ final class CreatorService
             // 短剧型作品：上架 Candy Shorts（lp_short_item + 剧集），没有才建避免重复
             $shortId = (int) ($item->short_id ?? 0);
             if ((string) $item->publish_type === 'drama' && $shortId <= 0) {
-                $shortId = $this->publishShort($item);
-                $item->short_id = $shortId;
+                $newShortId = $this->publishShort($item);
+                if ($newShortId > 0) {
+                    $shortId = $newShortId;
+                    $item->short_id = $shortId;
+                }
             }
 
             // 2) 首页推荐角色卡（没有才上架，避免重复）
@@ -307,6 +310,9 @@ final class CreatorService
         $episodes = json_decode((string) $item->episodes, true);
         if (!is_array($episodes)) {
             $episodes = [];
+        }
+        if (!$episodes) {
+            return 0; // 没有剧集不建空短剧（否则前台出现无内容的卡片）
         }
 
         $shortId = (int) $db->table('lp_short_item')->insertGetId([
