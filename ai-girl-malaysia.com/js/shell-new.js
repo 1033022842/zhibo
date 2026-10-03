@@ -532,9 +532,9 @@
   }
 
   /* 抽屉底部（照参考站 footer 的排布）：上面一个大按钮「Category: Girls」，
-     下面小按钮一排放两个（Contact Us / Affiliate），语言按钮占满第二行。
-     内容沿用本站既有去处：Contact Us 用 NAV 里的同款邮箱，Affiliate 指向 Inviter.html。
-     Discord 入口已下线（本站没有 Discord）。 */
+     下面四个小按钮两行两列（Contact Us / Affiliate / Get App / 语言）。
+     内容沿用本站既有去处：Contact Us 用 NAV 里的同款邮箱，Affiliate 指向 Inviter.html，
+     Get App 指向 Home.html 的「添加到主屏幕」教程（原 Discord 位，本站没有 Discord）。 */
   var CATEGORIES = [
     { key: 'girls', label: 'Girls', href: './Girls.html', icon: 'catFemale' },
     { key: 'anime', label: 'Anime', href: './Anime.html', icon: 'catAnime' },
@@ -617,10 +617,11 @@
       '<div class="fy-cat-menu hidden" id="fy-cat-menu">' + catMenu + '</div>' +
       '</div>' +
 
-      // 小按钮：Contact Us / Affiliate 一排，语言按钮占满第二行
+      // 四个小按钮：两行两列（Contact Us / Affiliate / Get App / 语言）
       '<div class="fy-foot-grid">' +
       '<a class="fy-foot-btn" href="mailto:support@sugusmail.ai">Contact Us</a>' +
       '<a class="fy-foot-btn" href="./Inviter.html">Affiliate</a>' +
+      '<a class="fy-foot-btn" href="./Home.html#install-app">Get App</a>' +
       langButton(false, true) +
       '</div>' +
 
