@@ -1448,7 +1448,7 @@
 					: '<span class="c-card-badge">' + lockSvg + price + '</span>'
 				var meta = unlocked
 					? ''
-					: '<div class="c-s-meta"><span class="c-s-free">VIP</span><span class="c-s-eps">' + price + ' diamonds</span></div>'
+					: '<div class="c-s-meta"><span class="c-s-free">VIP</span><span class="c-s-eps">' + price + ' tokens</span></div>'
 				return '<li><a class="c-card c-card-short" draggable="false" data-pid="' + esc(item.id) + '" href="javascript:void(0)" aria-label="' + esc(item.title) + '">' +
 					cover +
 					'<div class="c-card-scrim"></div>' +
@@ -1524,7 +1524,7 @@
 				if (!privToken()) { location.href = './Login.html'; return }
 				if (Number(item.unlocked) === 1) { watchPriv(item); return }
 				var price = parseInt(item.price, 10) || 0
-				var msg = 'Unlock "' + (item.title || 'this pack') + '" for ' + price + ' diamonds?'
+				var msg = 'Unlock "' + (item.title || 'this pack') + '" for ' + price + ' tokens?'
 				if (window.SugusDialog) {
 					SugusDialog.confirm({
 						title: 'Unlock private content',

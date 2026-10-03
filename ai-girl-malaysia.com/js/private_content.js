@@ -69,7 +69,7 @@
      */
     function errText(res) {
         var code = res && res.code
-        if (code === 'C0100') return 'Not enough diamonds. Please top up first.'
+        if (code === 'C0100') return 'Not enough tokens. Please top up first.'
         if (code === 'C0101') return 'Your wallet is frozen. Please contact support.'
         if (code === 'A0100' || code === 'A0101') return 'Session expired. Please sign in again.'
         return (res && res.msg) || 'Something went wrong. Please try again.'

@@ -444,14 +444,14 @@
         if (price > 0 && window.SugusDialog) {
             SugusDialog.confirm({
                 title: 'Unlock message',
-                message: 'Unlock this message for ' + price + ' diamonds?',
+                message: 'Unlock this message for ' + price + ' tokens?',
                 confirmText: 'Unlock (' + price + ')',
                 cancelText: 'Cancel',
                 icon: 'lock'
             }).then(function (ok) { if (ok) requestUnlockChatMedia(media, node, mine) })
             return
         }
-        if (price > 0 && !window.confirm('Unlock this message for ' + price + ' diamonds?')) return
+        if (price > 0 && !window.confirm('Unlock this message for ' + price + ' tokens?')) return
         requestUnlockChatMedia(media, node, mine)
     }
 

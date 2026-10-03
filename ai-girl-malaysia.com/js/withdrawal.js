@@ -115,16 +115,16 @@
         // 提交
         $('#fin-wd-submit').on('click', function() {
             var d = parseFloat($('#fin-wd-amount').val())
-            if (!d || d <= 0) { msg('Please enter the amount of diamonds.', 'warn'); return }
-            if (d < minDiamonds) { msg('Minimum withdrawal is ' + num(minDiamonds) + ' diamonds' + minUsdtText() + '.', 'warn'); return }
-            if (d > balance) { msg('Amount exceeds your withdrawable balance (' + num(balance) + ' diamonds' + usdtText(balance) + ').', 'warn'); return }
+            if (!d || d <= 0) { msg('Please enter the amount of tokens.', 'warn'); return }
+            if (d < minDiamonds) { msg('Minimum withdrawal is ' + num(minDiamonds) + ' tokens' + minUsdtText() + '.', 'warn'); return }
+            if (d > balance) { msg('Amount exceeds your withdrawable balance (' + num(balance) + ' tokens' + usdtText(balance) + ').', 'warn'); return }
             if (!account.address) { msg('Add a payout address first.', 'warn'); return }
 
             var usdt = d * rate
             var fee = usdt * feeRate
             layer.confirm(
                 '<div style="line-height:2;font-size:14px">' +
-                '提现 <b style="color:#E75275">' + num(d) + ' diamonds</b><br>' +
+                '提现 <b style="color:#E75275">' + num(d) + ' tokens</b><br>' +
                 '到账 <b style="color:#28c76f">' + num(usdt - fee, 6) + ' USDT</b>（手续费 ' + num(fee, 6) + '）<br>' +
                 '网络 <b style="color:#fff">' + esc(account.network) + '</b> · 地址 <span style="color:#bbb">' + esc(short(account.address)) + '</span>' +
                 '</div>',
@@ -176,13 +176,13 @@
         var fee = usdt * feeRate
         $('#fin-est-actual').text(num(usdt - fee, 6) + ' USDT')
         $('#fin-est-fee').text(num(fee, 6) + ' USDT (' + num(feeRate * 100, 2) + '%)')
-        $('#fin-est-rate').text('1 diamond = ' + num(rate, 6) + ' USDT')
+        $('#fin-est-rate').text('1 token = ' + num(rate, 6) + ' USDT')
         showEl('#fin-wd-est', 'block')
 
         if (d < minDiamonds) {
-            msg('Minimum withdrawal is ' + num(minDiamonds) + ' diamonds' + minUsdtText() + '.', 'warn')
+            msg('Minimum withdrawal is ' + num(minDiamonds) + ' tokens' + minUsdtText() + '.', 'warn')
         } else if (d > balance) {
-            msg('Amount exceeds your withdrawable balance (' + num(balance) + ' diamonds' + usdtText(balance) + ').', 'warn')
+            msg('Amount exceeds your withdrawable balance (' + num(balance) + ' tokens' + usdtText(balance) + ').', 'warn')
         } else {
             hideMsg()
         }
@@ -327,7 +327,7 @@
 
     function setBalance(v) {
         balance = parseFloat(v) || 0
-        $('#fin-balance').text(num(balance) + ' diamonds')
+        $('#fin-balance').text(num(balance) + ' tokens')
         syncSubmitState()
     }
 
