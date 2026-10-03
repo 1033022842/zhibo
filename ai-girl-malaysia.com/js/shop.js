@@ -3,7 +3,7 @@
  * 商品数据来自后台「直播运营 → 商品管理」（GET /api/live/shopItems），
  * DOM 结构 / class 与原站 candy.ai/shop/items 保持一致。
  *
- * 购买：Buy now → Confirm → POST /api/live/shopBuy（扣钻石，需登录），
+ * 购买：Buy now → Confirm → POST /api/live/shopBuy（扣代币，需登录），
  *       买到的商品进入 Inventory（GET /api/live/inventory）。
  */
 (() => {
@@ -483,7 +483,7 @@
             if (qty < MAX_QTY) { qty++; updateTotal() }
         })
 
-        // 两步下单：Buy now 先展开 Confirm（与原站一致），Confirm 真正下单扣钻石
+        // 两步下单：Buy now 先展开 Confirm（与原站一致），Confirm 真正下单扣代币
         document.getElementById('shop-buy-btn').addEventListener('click', function () {
             if (needLogin()) return
             document.getElementById('shop-buy-btn').classList.add('hidden')

@@ -3,7 +3,7 @@
 --
 -- 在 upgrade_withdraw.sql 基础上，为 lp_withdrawal 增加「打款」子状态：
 --   pay_state 0待打款 1已广播待确认 2已确认到账 3打款失败 4打款处理中(并发占位)
--- status 语义保持不变：0待审核/处理中 1打款完成 2已拒绝(退钻)
+-- status 语义保持不变：0待审核/处理中 1打款完成 2已拒绝(退代币)
 
 ALTER TABLE lp_withdrawal
     ADD COLUMN pay_state TINYINT NOT NULL DEFAULT 0 COMMENT '打款状态 0待打款 1已广播 2已确认 3失败 4处理中' AFTER status,

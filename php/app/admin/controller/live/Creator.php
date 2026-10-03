@@ -498,7 +498,7 @@ final class Creator extends Backend
             if ($pid <= 0) {
                 $workInc = '<div class="inc-none">未关联角色</div>';
             } else {
-                $workInc = '<div class="inc-work">' . self::fmtNum((float)($pInc['net'] ?? 0)) . ' <span class="inc-cur">DIAMONDS</span></div>'
+                $workInc = '<div class="inc-work">' . self::fmtNum((float)($pInc['net'] ?? 0)) . ' <span class="inc-cur">代币</span></div>'
                     . '<div class="inc-sub">毛额 ' . self::fmtNum((float)($pInc['gross'] ?? 0)) . '</div>';
             }
             $incomeCell = '<td class="td-income">' . $workInc

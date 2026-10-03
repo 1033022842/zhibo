@@ -37,7 +37,7 @@ if ($path === '/api/v1/crowdfunding/pledge') {
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
     $amount = floatval($body['amount'] ?? 0);
     if ($amount > 2333.5) {
-        echo json_encode(['code'=>'G0302','msg'=>'钻石余额不足，请先充值','data'=>null]);
+        echo json_encode(['code'=>'G0302','msg'=>'代币余额不足，请先充值','data'=>null]);
         exit;
     }
     echo json_encode(['code'=>'00000','msg'=>'支持成功','data'=>null]);

@@ -15,10 +15,10 @@ use think\facade\Db;
  * 卡片由后台「直播运营 → 短剧管理」配置，剧集由「短剧剧集」配置：
  *   GET  /api/live/shorts                            卡片列表（公开，带集数/起售价）
  *   GET  /api/live/shortEpisodes?short_id=x          某部剧的剧集列表（公开，未解锁集不下发视频）
- *   POST /api/live/shortUnlock                       解锁某一集（扣钻石，需登录）
+ *   POST /api/live/shortUnlock                       解锁某一集（扣代币，需登录）
  *
  * 收费规则（按集解锁）：
- *   1) 剧上 free_episodes = N：集号 <= N 的集免钻；
+ *   1) 剧上 free_episodes = N：集号 <= N 的集免代币；
  *   2) 单集 price = 0 也算免费；
  *   3) 其余集要解锁（写入 lp_user_item，item_type = 'short'，item_id = 剧集 id），
  *      未解锁的集不下发 video_url，保证「付费才能看」。
@@ -155,7 +155,7 @@ final class Shorts extends BaseController
     }
 
     /**
-     * 解锁某一集：扣钻石 → 记录已购（需登录）
+     * 解锁某一集：扣代币 → 记录已购（需登录）
      *
      * 已购/免费集直接放行不扣费（幂等）；扣费与入库在同一事务内，
      * 唯一键 uk_user_item 兜住并发重复解锁。
@@ -181,7 +181,7 @@ final class Shorts extends BaseController
 
         $freeEpisodes = max(0, (int) ($short['free_episodes'] ?? 0));
         $price = max(0, (int) $episode['price']);
-        // 前 N 集免费 or 单集价格 0 → 免钻
+        // 前 N 集免费 or 单集价格 0 → 免代币
         $isFree = (int) $episode['episode_no'] <= $freeEpisodes || $price === 0;
 
         // 会员折扣（Premium 9 折 / Premium Plus 8 折）
@@ -378,7 +378,7 @@ final class Shorts extends BaseController
             'free_episodes' => max(0, (int) ($row['free_episodes'] ?? 0)),
             'has_episodes'  => $hasEpisodes,
             'episode_count' => $episodeCount,
-            // 0 表示全免费；>0 表示最低付费集的钻石价
+            // 0 表示全免费；>0 表示最低付费集的代币价
             'price_from'    => $stat ? (int) $stat['min_paid'] : 0,
             // 前台筛选栏用：分类标签数组（逗号分隔存库）+ 角色类型（creator/character/other）
             'category'      => $this->splitTags((string) ($row['category'] ?? '')),

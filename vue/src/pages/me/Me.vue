@@ -34,7 +34,7 @@
       <div class="diamond-card" @click="goRecharge">
         <div class="diamond-icon">💎</div>
         <div class="diamond-info">
-          <div class="diamond-label">钻石余额</div>
+          <div class="diamond-label">代币余额</div>
           <div class="diamond-amount">{{ diamondBalance }}</div>
         </div>
         <div class="diamond-action">充值<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
@@ -66,7 +66,7 @@
           <span class="menu-icon menu-icon--amber">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </span>
-          <span class="menu-label">钻石充值</span>
+          <span class="menu-label">代币充值</span>
           <svg class="menu-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
         <button class="menu-row" @click="goSetting">

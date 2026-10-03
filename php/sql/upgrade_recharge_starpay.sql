@@ -9,7 +9,7 @@
 -- 1) 充值套餐表
 CREATE TABLE IF NOT EXISTS `lp_recharge_package` (
   `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-  `tokens` int(11) NOT NULL DEFAULT 0 COMMENT '到账钻石/点数',
+  `tokens` int(11) NOT NULL DEFAULT 0 COMMENT '到账代币/点数',
   `price` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '售价（USD）',
   `bonus_percent` int(11) NOT NULL DEFAULT 0 COMMENT '赠送比例（仅展示，如 10 表示 +10% bonus）',
   `sort` int(11) NOT NULL DEFAULT 0 COMMENT '排序',

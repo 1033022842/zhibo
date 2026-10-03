@@ -415,7 +415,7 @@ GET /api/v1/rooms/{room_id}
 | preview\_video\_url | string | 预览视频 URL                                                                  |
 | play                | object | `{ stream_alias, webrtc_url, hls_url, play_token, expire_at }`            |
 | interaction         | object | `{ allow_chat: true, allow_like: true, allow_gift: true }`                |
-| gift\_panel         | object | `{ currency_name: "钻石", quick_gifts: [...] }`                             |
+| gift\_panel         | object | `{ currency_name: "代币", quick_gifts: [...] }`                             |
 | binding             | object | `{ room_group_code, room_group_name, playlist_name, srs_enabled }` 后端绑定信息 |
 
 **礼物列表项 (quick\_gifts)：**
@@ -424,7 +424,7 @@ GET /api/v1/rooms/{room_id}
 | ---------------------- | ------ | ----------------------------------------- |
 | gift\_id               | int    | 礼物 ID                                     |
 | name                   | string | 礼物名称（如"玫瑰"、"专属礼物"）                        |
-| price                  | number | 价格（钻石）                                    |
+| price                  | number | 价格（代币）                                    |
 | trigger\_mode          | string | 触发模式：`none` / `privilege` / `interaction` |
 | trigger\_duration\_sec | int    | 触发时长（秒），如 `30`                            |
 
@@ -608,7 +608,7 @@ GET /api/v1/rooms/{room_id}
 | ---------------------- | ------------- | -- | -------------------------------------------------------------- |
 | gift\_code             | string(32)    | 是  | 礼物编码，唯一（如 `rose`、`vip_30s`）                                    |
 | name                   | string(64)    | 是  | 礼物名称（如"玫瑰"、"专属礼物"）                                             |
-| price\_diamond         | decimal(18,2) | 是  | 价格（钻石数）                                                        |
+| price\_diamond         | decimal(18,2) | 是  | 价格（代币数）                                                        |
 | trigger\_mode          | string(32)    | 是  | 触发模式：`none`(普通礼物) / `privilege`(触发特权流) / `interaction`(触发互动插播) |
 | trigger\_duration\_sec | int           | 否  | 触发时长（秒），trigger\_mode 不为 none 时填写                              |
 | effect\_code           | string(64)    | 否  | 特效编码（前端动效匹配用）                                                  |

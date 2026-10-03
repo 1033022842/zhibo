@@ -51,7 +51,7 @@ final class AffectionService
     }
 
     /**
-     * 钻石购买好感度（1:1）
+     * 代币购买好感度（1:1）
      */
     public function buy(int $userId, int $contentId, int $amount): array
     {
@@ -64,11 +64,11 @@ final class AffectionService
             throw new BusinessException(ResultCode::PARAM_ERROR, '好感度已满');
         }
 
-        // 1:1 兑换，最多买到 100，避免超出部分仍被扣钻石
+        // 1:1 兑换，最多买到 100，避免超出部分仍被扣代币
         $remaining = self::MAX_AFFECTION - (int) $row['affection'];
         $amount = min($amount, $remaining);
 
-        // 1:1 扣钻石
+        // 1:1 扣代币
         $wallet = new WalletService();
         $debit  = $wallet->debit($userId, (float) $amount, 'affection_buy', $contentId, '购买角色好感度');
 

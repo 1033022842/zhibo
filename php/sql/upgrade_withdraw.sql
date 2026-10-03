@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS lp_withdrawal (
     actual_usdt DECIMAL(18,6) NOT NULL DEFAULT 0 COMMENT '实际到账',
     network VARCHAR(32) NOT NULL DEFAULT 'TRC20',
     address VARCHAR(128) NOT NULL,
-    status TINYINT NOT NULL DEFAULT 0 COMMENT '0待审核 1已打款 2已拒绝(退钻)',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '0待审核 1已打款 2已拒绝(退代币)',
     tx_hash VARCHAR(128) NOT NULL DEFAULT '' COMMENT '人工打款链上哈希',
     reject_reason VARCHAR(255) NOT NULL DEFAULT '',
     paid_at DATETIME NULL,

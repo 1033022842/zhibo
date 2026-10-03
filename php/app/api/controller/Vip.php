@@ -37,7 +37,7 @@ final class Vip extends BaseController
     }
 
     /**
-     * 购买会员（钻石支付）
+     * 购买会员（代币支付）
      */
     public function buy()
     {
@@ -109,7 +109,7 @@ final class Vip extends BaseController
     }
 
     /**
-     * 每日领取钻石
+     * 每日领取代币
      */
     public function claimDaily()
     {

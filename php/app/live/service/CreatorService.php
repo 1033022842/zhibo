@@ -167,7 +167,7 @@ final class CreatorService
 
     /**
      * 收入排行榜：按平台用户累计到手收益降序（公开数据，用于创作中心展示）
-     * 数据源为钱包流水 gift_income（礼物分成后角色归属人实际入账的钻石）
+     * 数据源为钱包流水 gift_income（礼物分成后角色归属人实际入账的代币）
      */
     public function leaderboard(int $limit = 10): array
     {

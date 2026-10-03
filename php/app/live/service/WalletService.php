@@ -8,7 +8,7 @@ use app\common\web\ResultCode;
 use think\facade\Db;
 
 /**
- * 钻石钱包公共服务（行锁 + 双录流水）
+ * 代币钱包公共服务（行锁 + 双录流水）
  *
  * 所有资金变动（充值/送礼/众筹/会员/提现）统一走这里，
  * 保证 lp_wallet_account 与 lp_wallet_ledger 强一致。
@@ -29,7 +29,7 @@ final class WalletService
     }
 
     /**
-     * 扣减钻石（支出）
+     * 扣减代币（支出）
      * @param string $bizType recharge/gift/crowdfunding_pledge/vip_buy/withdraw/adjust
      * @param string $remark 流水备注
      */
@@ -88,7 +88,7 @@ final class WalletService
     }
 
     /**
-     * 增加钻石（收入）
+     * 增加代币（收入）
      */
     public function credit(int $userId, float $amount, string $bizType, int $bizId = 0, string $remark = ''): array
     {

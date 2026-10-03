@@ -63,8 +63,8 @@
                 <div class="progress-fill" :style="{ width: p.progress_percent + '%' }"></div>
               </div>
               <div class="progress-stats">
-                <span class="progress-raised">{{ fmtNum(p.raised_amount) }} 钻</span>
-                <span class="progress-target">/ {{ fmtNum(p.target_amount) }} 钻</span>
+                <span class="progress-raised">{{ fmtNum(p.raised_amount) }} 代币</span>
+                <span class="progress-target">/ {{ fmtNum(p.target_amount) }} 代币</span>
                 <span class="progress-pct">{{ p.progress_percent }}%</span>
               </div>
             </div>
@@ -95,7 +95,7 @@
         <div class="pledge-row" v-for="p in myPledges" :key="p.id" @click="goDetail(p.project_id)">
           <div class="pledge-info">
             <span class="pledge-project">{{ p.project?.title || '项目 #' + p.project_id }}</span>
-            <span class="pledge-amount">{{ fmtNum(p.amount) }} 钻</span>
+            <span class="pledge-amount">{{ fmtNum(p.amount) }} 代币</span>
           </div>
           <div class="pledge-status">
             <span class="status-tag" :class="pledgeStatusClass(p.status)">{{ pledgeStatusText(p.status) }}</span>
@@ -127,7 +127,7 @@
           <div class="pledge-info">
             <span class="pledge-project">{{ p.title }}</span>
             <span class="pledge-amount">
-              {{ fmtNum(p.raised_amount) }} / {{ fmtNum(p.target_amount) }} 钻
+              {{ fmtNum(p.raised_amount) }} / {{ fmtNum(p.target_amount) }} 代币
               <span class="pledge-pct">({{ p.progress_percent || calcProgress(p) }}%)</span>
             </span>
           </div>

@@ -7,7 +7,7 @@
       <button class="btn-back" @click="$router.back()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
-      <span class="top-title">钻石充值</span>
+      <span class="top-title">代币充值</span>
     </div>
 
     <!-- Loading -->
@@ -28,7 +28,7 @@
             @click="selectChannel(ch)"
           >
             <div class="channel-name">{{ ch.name }}</div>
-            <div class="channel-rate">1 USDT = {{ ch.diamond_rate }} 钻</div>
+            <div class="channel-rate">1 USDT = {{ ch.diamond_rate }} 代币</div>
             <div class="channel-min">最低 {{ ch.min_amount }} USDT</div>
           </div>
         </div>
@@ -61,7 +61,7 @@
             <input v-model.number="amount" type="number" class="amount-input" placeholder="最低 {{ selectedChannel?.min_amount }}" :min="selectedChannel?.min_amount" />
             <span class="amount-unit">USDT</span>
           </div>
-          <div class="amount-estimate">预计到账 <strong>{{ estimatedDiamonds }}</strong> 钻</div>
+          <div class="amount-estimate">预计到账 <strong>{{ estimatedDiamonds }}</strong> 代币</div>
         </div>
 
         <!-- 上传凭证（仅人工审核渠道） -->
@@ -81,7 +81,7 @@
         <button class="btn-submit" @click="doSubmit" :disabled="submitting || amount <= 0">
           {{ submitting ? '提交中...' : (isAutoChannel ? '生成付款订单' : '我已支付，提交审核') }}
         </button>
-        <p class="submit-hint" v-if="!isAutoChannel">提交后需等待管理员审核，审核通过后钻石自动到账</p>
+        <p class="submit-hint" v-if="!isAutoChannel">提交后需等待管理员审核，审核通过后代币自动到账</p>
         <p class="submit-hint" v-else>生成订单后按精确金额转账，链上确认后自动到账</p>
       </div>
     </template>
@@ -118,7 +118,7 @@
 
         <div class="wait-meta">
           <span>订单号 {{ lastOrder?.order_no }}</span>
-          <span>预计到账 <strong>{{ lastOrder?.diamond_amount }}</strong> 钻</span>
+          <span>预计到账 <strong>{{ lastOrder?.diamond_amount }}</strong> 代币</span>
           <span>剩余时间 <strong :class="{ warn: countdownSec <= 300 }">{{ countdownText }}</strong></span>
         </div>
 
@@ -132,8 +132,8 @@
       <div class="result-card result-card--success" v-anim>
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         <h2>充值成功</h2>
-        <p>{{ lastOrder?.pay_amount }} USDT → <strong class="hl">{{ lastOrder?.diamond_amount }} 钻</strong></p>
-        <p class="result-sub">链上已确认，钻石已到账</p>
+        <p>{{ lastOrder?.pay_amount }} USDT → <strong class="hl">{{ lastOrder?.diamond_amount }} 代币</strong></p>
+        <p class="result-sub">链上已确认，代币已到账</p>
         <button class="btn-done" @click="goOrders">查看充值记录</button>
         <button class="btn-back-channel" @click="step = 'channel'">继续充值</button>
       </div>
@@ -145,7 +145,7 @@
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         <h2>充值申请已提交</h2>
         <p>订单号: {{ lastOrder?.order_no }}</p>
-        <p class="result-sub">请等待管理员审核，审核通过后钻石自动到账</p>
+        <p class="result-sub">请等待管理员审核，审核通过后代币自动到账</p>
         <button class="btn-done" @click="goOrders">查看充值记录</button>
       </div>
     </template>
@@ -162,7 +162,7 @@
               <span class="order-time">{{ o.created_at?.slice(0, 16) }}</span>
             </div>
             <div class="order-amount">
-              <span>{{ o.pay_amount }} USDT → {{ o.diamond_amount }} 钻</span>
+              <span>{{ o.pay_amount }} USDT → {{ o.diamond_amount }} 代币</span>
             </div>
             <div class="order-status">
               <span class="status-tag" :class="statusClass(o.status)">{{ o.status_text }}</span>

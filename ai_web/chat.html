@@ -490,7 +490,7 @@ img{display:block}
       affection_locked: "未解锁特殊视频", affection_unlocked: "已解锁特殊视频",
       buy_affection: "购买好感度", affection_hint: "每天对话 +1，满 100 解锁特殊视频", affection_view: "查看特殊视频",
       voice_calling: "语音中", voice_tag: "语音", call_hangup: "挂断", call_mute: "静音", call_unmute: "开麦",
-      need_login: "登录后查看好感度", no_media: "暂无视频素材", no_conversations: "暂无会话", episode: "第{n}集", episode_pos: "第 {cur} / {total} 集", episodes_title: "的剧集", prev_ep: "上一集", next_ep: "下一集", choose_ep: "选择剧集", unlock_price: "解锁 {n} 钻石", unlock_confirm: "确定花 {n} 钻石解锁该视频？", buy_ok: "购买成功", buy_fail: "购买失败"
+      need_login: "登录后查看好感度", no_media: "暂无视频素材", no_conversations: "暂无会话", episode: "第{n}集", episode_pos: "第 {cur} / {total} 集", episodes_title: "的剧集", prev_ep: "上一集", next_ep: "下一集", choose_ep: "选择剧集", unlock_price: "解锁 {n} 代币", unlock_confirm: "确定花 {n} 代币解锁该视频？", buy_ok: "购买成功", buy_fail: "购买失败"
     },
     en: {
       back: "Back", online: "Online now", call: "Voice Call", gen: "Generate Image", binge: "Binge", chats: "Chats",
@@ -609,7 +609,7 @@ img{display:block}
       .catch(function () {});
   }
 
-  // 钻石余额（复用直播端账户）
+  // 代币余额（复用直播端账户）
   var token = localStorage.getItem("live_access_token");
 
   // 设备标识：未登录时也用于保存/读取聊天记录

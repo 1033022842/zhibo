@@ -131,7 +131,7 @@ final class PrivateItem extends Backend
 
     /**
      * 统一价格：批量把价格设置为同一数值
-     * POST category=''|girls|anime  price=钻石数
+     * POST category=''|girls|anime  price=代币数
      */
     public function unifyPrice(): void
     {

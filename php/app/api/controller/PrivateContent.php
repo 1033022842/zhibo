@@ -14,7 +14,7 @@ use think\facade\Db;
  *
  * 卡片由后台「直播运营 → 私密内容管理」配置，前台 Private Content 页读取：
  *   GET  /api/live/privateContents?tab=all|most_liked  卡片列表（公开，带 unlocked 标记）
- *   POST /api/live/privateUnlock  解锁（扣钻石，需登录），返回可观看的媒体地址
+ *   POST /api/live/privateUnlock  解锁（扣代币，需登录），返回可观看的媒体地址
  *
  * 未解锁的卡片不下发 video_url / images，解锁后才下发，保证「付费才能看」。
  */
@@ -72,7 +72,7 @@ final class PrivateContent extends BaseController
     }
 
     /**
-     * 解锁私密内容：扣钻石 → 记录已购（需登录）
+     * 解锁私密内容：扣代币 → 记录已购（需登录）
      *
      * 已解锁的直接返回，不重复扣费（幂等）。
      * 扣费与入库在同一事务内，唯一键 uk_user_item 兜住并发重复解锁。

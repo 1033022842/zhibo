@@ -194,7 +194,7 @@
         return (minDiamonds > 0 && rate > 0) ? ' (≈ ' + num(minDiamonds * rate, 2) + ' USDT)' : ''
     }
 
-    // 任意钻石数的 USDT 换算文案，如 " ≈ 123.45 USDT"
+    // 任意代币数的 USDT 换算文案，如 " ≈ 123.45 USDT"
     function usdtText(diamonds) {
         return (diamonds > 0 && rate > 0) ? ' ≈ ' + num(diamonds * rate, 2) + ' USDT' : ''
     }

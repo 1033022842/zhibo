@@ -275,7 +275,7 @@ Authorization: Bearer {access_token}
           "allow_gift": true
         },
         "gift_panel": {
-          "currency_name": "钻石",
+          "currency_name": "代币",
           "quick_gifts": [
             {"gift_id": 1, "name": "玫瑰", "price": 10},
             {"gift_id": 12, "name": "特权礼物", "price": 199, "trigger_mode": "privilege", "trigger_duration_sec": 30}
@@ -338,7 +338,7 @@ Authorization: Bearer {access_token}
       "allow_gift": true
     },
     "gift_panel": {
-      "currency_name": "钻石",
+      "currency_name": "代币",
       "quick_gifts": [
         {"gift_id": 1, "name": "玫瑰", "price": 10},
         {"gift_id": 12, "name": "特权礼物", "price": 199, "trigger_mode": "privilege", "trigger_duration_sec": 30}

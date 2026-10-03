@@ -10,7 +10,7 @@ CREATE TABLE `lp_recharge_channel` (
   `type` varchar(32) NOT NULL DEFAULT 'usdt_trc20' COMMENT '渠道类型:usdt_trc20 other',
   `qr_code_url` varchar(512) NOT NULL DEFAULT '' COMMENT '收款二维码图片URL',
   `address` varchar(255) NOT NULL DEFAULT '' COMMENT '收款地址/账号',
-  `diamond_rate` decimal(18, 2) NOT NULL DEFAULT 100.00 COMMENT '汇率：1单位法币 = N钻石',
+  `diamond_rate` decimal(18, 2) NOT NULL DEFAULT 100.00 COMMENT '汇率：1单位法币 = N代币',
   `min_amount` decimal(18, 2) NOT NULL DEFAULT 10.00 COMMENT '最低充值金额',
   `sort` int(11) NOT NULL DEFAULT 0 COMMENT '排序',
   `status` tinyint(4) NOT NULL DEFAULT 1 COMMENT '状态:0禁用 1启用',

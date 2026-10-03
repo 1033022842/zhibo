@@ -194,7 +194,7 @@ const avatarUrl = computed(() => room.value?.cover_url || '')
 const currentNickname = computed(() => baseStore.userinfo.nickname || '现场观众')
 const badgeText = computed(() => room.value?.display?.badge_text || '直播中')
 const giftList = computed(() => room.value?.gift_panel?.quick_gifts || [])
-const giftCurrencyName = computed(() => room.value?.gift_panel?.currency_name || '钻石')
+const giftCurrencyName = computed(() => room.value?.gift_panel?.currency_name || '代币')
 const onlineText = computed(() =>
   realtimeOnlineCount.value !== null
     ? normalizeCountText(realtimeOnlineCount.value, '实时在线')

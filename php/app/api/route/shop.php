@@ -10,6 +10,6 @@ Route::get('live/shopItem',  '\app\api\controller\Shop@item');
 Route::get('live/inventory', '\app\api\controller\Shop@inventory')
     ->middleware(\app\live\middleware\Auth::class);
 
-// 购买商品（扣钻石，需登录）
+// 购买商品（扣代币，需登录）
 Route::post('live/shopBuy', '\app\api\controller\Shop@buy')
     ->middleware(\app\live\middleware\Auth::class);

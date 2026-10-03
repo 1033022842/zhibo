@@ -85,7 +85,7 @@ final class VipService
     }
 
     /**
-     * 会员折扣价（钻石数；无折扣返回原价）
+     * 会员折扣价（代币数；无折扣返回原价）
      */
     public function discounted(int $price, int $discountPercent): int
     {
@@ -243,7 +243,7 @@ final class VipService
     }
 
     /**
-     * 购买会员（钻石支付，到期顺延）
+     * 购买会员（代币支付，到期顺延）
      */
     public function buy(int $userId, int $planId): array
     {
@@ -274,7 +274,7 @@ final class VipService
      * 开通/顺延会员（到期时间在现有会员基础上顺延）
      *
      * @param string $orderNo 外部订单号（star-pay 订阅单；为空则新建）
-     * @param float  $paid    实付钻石数（网关订阅单为 0）
+     * @param float  $paid    实付代币数（网关订阅单为 0）
      */
     public function activate(int $userId, int $planId, string $orderNo = '', float $paid = 0): array
     {
@@ -348,7 +348,7 @@ final class VipService
     }
 
     /**
-     * 会员每日领取钻石
+     * 会员每日领取代币
      */
     public function claimDaily(int $userId): array
     {

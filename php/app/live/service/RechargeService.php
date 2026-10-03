@@ -152,7 +152,7 @@ final class RechargeService
         }
 
         $orderNo = StrHelper::orderNo('RC');
-        // 钻石按用户输入的整数基数计算（随机尾数仅作链上匹配标识）
+        // 代币按用户输入的整数基数计算（随机尾数仅作链上匹配标识）
         $diamondAmount = bcmul((string)floor($amount), (string)$channel->diamond_rate, 2);
 
         $confirmMode = self::effectiveConfirmMode($row);
@@ -185,7 +185,7 @@ final class RechargeService
      * 自动确认（仅 usdt_trc20 / eth 有扫链实现）带唯一尾数，扫链按金额精确匹配；
      * 人工审核不带尾数：稳定币直接用 USD 金额，其它币按后台汇率折算到该币精度。
      *
-     * @param bool $vip 会员订单优先用原价当匹配标识（同金额才退化），充钻订单直接带随机尾数
+     * @param bool $vip 会员订单优先用原价当匹配标识（同金额才退化），充代币订单直接带随机尾数
      */
     private function channelPayAmount(array $channel, float $usd, string $confirmMode, int $channelId, bool $vip): string
     {
@@ -246,7 +246,7 @@ final class RechargeService
                 'updated_at'     => $now,
             ]);
 
-            // 结算：订阅单开通/顺延会员，充值单加钻（与网关回调、链上自动确认同一套口径）
+            // 结算：订阅单开通/顺延会员，充值单加代币（与网关回调、链上自动确认同一套口径）
             $this->settleOrder($db, $order, $remark !== '' ? $remark : '管理员审核充值');
 
             $db->commit();
@@ -257,7 +257,7 @@ final class RechargeService
     }
 
     /**
-     * 订单结算：biz_type=vip 开通会员，否则加钻
+     * 订单结算：biz_type=vip 开通会员，否则加代币
      *
      * 人工审核 / 链上自动确认 / 网关回调三条入账路径共用，避免某条路径漏开会员。
      */
@@ -432,7 +432,7 @@ final class RechargeService
                 'updated_at'     => $now,
             ]);
 
-            // 结算：订阅单开通/顺延会员，充值单加钻
+            // 结算：订阅单开通/顺延会员，充值单加代币
             $this->settleOrder($db, $order, $label);
 
             $db->commit();
@@ -543,7 +543,7 @@ final class RechargeService
     /**
      * 网关下单（会员订阅）
      *
-     * 与充值共用 lp_recharge_order（biz_type=vip 标记），回调时开通会员而非加钻
+     * 与充值共用 lp_recharge_order（biz_type=vip 标记），回调时开通会员而非加代币
      */
     public function submitVipOrder(int $userId, int $planId, string $product = '', string $gateway = 'starpay', string $gcode = '', int $channelId = 0): array
     {
@@ -580,7 +580,7 @@ final class RechargeService
     /**
      * 链上渠道下单（会员订阅）
      *
-     * 与充值共用 lp_recharge_order（biz_type=vip）：扫链确认后开通会员而非加钻。
+     * 与充值共用 lp_recharge_order（biz_type=vip）：扫链确认后开通会员而非加代币。
      * 金额识别尾数与充值渠道保持一致（自动模式带唯一尾数，人工审核按原价）。
      */
     private function submitVipOrderByChannel(int $userId, array $plan, int $channelId): array
@@ -794,7 +794,7 @@ final class RechargeService
                 'updated_at'     => $now,
             ]);
 
-            // 结算：订阅单开通/顺延会员，充值单加钻
+            // 结算：订阅单开通/顺延会员，充值单加代币
             $this->settleOrder($db, $order, $remark);
 
             $db->commit();

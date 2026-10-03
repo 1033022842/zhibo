@@ -156,10 +156,10 @@
 
       <!-- 目标金额 -->
       <div class="form-group">
-        <label class="form-label">目标金额（钻石）<span class="required">*</span></label>
+        <label class="form-label">目标金额（代币）<span class="required">*</span></label>
         <div class="amount-row">
           <input v-model.number="form.target_amount" type="number" class="form-input" placeholder="例如：10000" min="1" />
-          <span class="amount-unit">钻</span>
+          <span class="amount-unit">代币</span>
         </div>
         <p class="form-hint">设置一个合理的目标金额，这将决定你的角色能否创建</p>
       </div>

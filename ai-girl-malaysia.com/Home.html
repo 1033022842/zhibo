@@ -653,7 +653,7 @@
 					<!-- 下方板块：按后台「所属板块」自动生成（单排、7/10 短卡） -->
 					<div id="shelves"></div>
 
-					<!-- Private Content 会员栏：仅会员可见，内容需钻石解锁（数据 /api/live/privateContents） -->
+					<!-- Private Content 会员栏：仅会员可见，内容需代币解锁（数据 /api/live/privateContents） -->
 					<section class="c-shelf" id="privateShelf" style="display:none">
 						<div class="c-shelf-head">
 							<h2 class="c-shelf-title"><em>Private</em> Content</h2>
@@ -1405,7 +1405,7 @@
 			}
 
 			// 三分类数据一次性并发拉取，切 Tab 零等待
-			/* ---------- Private Content 会员栏（VIP 可见 · 钻石解锁） ---------- */
+			/* ---------- Private Content 会员栏（VIP 可见 · 代币解锁） ---------- */
 			var privStore = {}, isVip = false
 			function privToken() { try { return localStorage.getItem('live_access_token') || '' } catch (e) { return '' } }
 			function privHeaders(extra) {

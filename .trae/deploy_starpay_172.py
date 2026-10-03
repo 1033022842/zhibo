@@ -80,6 +80,7 @@ PHP_FILES = [
     "php/sql/upgrade_user_subscription.sql",
     "php/sql/upgrade_recharge_callback_log.sql",
     "php/sql/upgrade_recharge_pay_state.sql",
+    "php/sql/upgrade_recharge_channel_memo.sql",
     "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/app/admin/controller/live/RechargeOrder.php",
@@ -157,6 +158,7 @@ mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_starpay.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_tier.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_plans_v2.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_eth_recharge.sql
+mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_channel_memo.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_short_filters.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_user_settings.sql
 echo "--- 迁移后校验 ---"
@@ -316,7 +318,7 @@ $plan = $db->table('lp_vip_plan')->where('status', 1)->order('months asc')->find
 $planId = (int) $plan['id'];
 $userBefore = $db->table('lp_user')->where('id', $uid)->field('vip_expire_at')->find();
 $balanceBefore = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
-printf("测试用户=%d 套餐=%s(%d个月 USD %s) 充值前会员到期=%s 钻石=%.2f\n\n",
+printf("测试用户=%d 套餐=%s(%d个月 USD %s) 充值前会员到期=%s 代币=%.2f\n\n",
     $uid, $plan['name'], (int) $plan['months'], $plan['usd_price'],
     (string) ($userBefore['vip_expire_at'] ?? '无'), $balanceBefore);
 
@@ -369,7 +371,7 @@ $u1 = $db->table('lp_user')->where('id', $uid)->field('vip_expire_at')->find();
 $orders1 = $db->table('lp_vip_order')->where('order_no', $orderNo)->count();
 $balance1 = (float) $db->table('lp_wallet_account')->where('user_id', $uid)->value('diamond_balance');
 $status1 = $vip->status($uid);
-printf("http=%d resp=%s -> 订单状态=%d 会员到期=%s 会员单数=%d 剩余天数=%d 钻石=%.2f（应不变）\n",
+printf("http=%d resp=%s -> 订单状态=%d 会员到期=%s 会员单数=%d 剩余天数=%d 代币=%.2f（应不变）\n",
     $http, $resp, (int) $o1['status'], (string) $u1['vip_expire_at'], (int) $orders1,
     (int) $status1['remain_days'], $balance1);
 
@@ -618,19 +620,19 @@ $db->table('lp_user_quota')->where('user_id', $uid)->delete();
 echo "\n--- 3) 开通 Premium（1 个月）---\n";
 $vipSvc->activate($uid, (int) $premium['id'], 'TIERTEST-P-' . time(), (float) $premium['diamond_price']);
 $e = $vipSvc->entitlements($uid);
-printf("level=%s(%s) 聊天额度=%d(0=不限) 生成额度=%d 折扣=%d%% 权益文案=%d条 每日领钻=%s\n",
+printf("level=%s(%s) 聊天额度=%d(0=不限) 生成额度=%d 折扣=%d%% 权益文案=%d条 每日领代币=%s\n",
     $e['level'], $e['level_name'], $e['chat_daily_limit'], $e['image_daily_limit'],
     $e['discount_percent'], count($e['benefits']), $e['daily_diamond']);
-printf("折扣价校验: 100钻->%d（期望%d） 1000钻->%d（期望%d） 内容/商城同价\n\n",
+printf("折扣价校验: 100代币->%d（期望%d） 1000代币->%d（期望%d） 内容/商城同价\n\n",
     $vipSvc->discounted(100, $e['discount_percent']), (int) round(100 * (100 - $e['discount_percent']) / 100),
     $vipSvc->discounted(1000, $e['discount_percent']), (int) round(1000 * (100 - $e['discount_percent']) / 100));
 
 echo "--- 4) 升级 Premium Plus（层级取最高）---\n";
 $vipSvc->activate($uid, (int) $plus['id'], 'TIERTEST-X-' . time(), (float) $plus['diamond_price']);
 $e2 = $vipSvc->entitlements($uid);
-printf("level=%s(%s) 生成额度=%d 折扣=%d%% 每日领钻=%s\n",
+printf("level=%s(%s) 生成额度=%d 折扣=%d%% 每日领代币=%s\n",
     $e2['level'], $e2['level_name'], $e2['image_daily_limit'], $e2['discount_percent'], $e2['daily_diamond']);
-printf("折扣价校验: 100钻->%d（期望%d） 1000钻->%d（期望%d）\n\n",
+printf("折扣价校验: 100代币->%d（期望%d） 1000代币->%d（期望%d）\n\n",
     $vipSvc->discounted(100, $e2['discount_percent']), (int) round(100 * (100 - $e2['discount_percent']) / 100),
     $vipSvc->discounted(1000, $e2['discount_percent']), (int) round(1000 * (100 - $e2['discount_percent']) / 100));
 

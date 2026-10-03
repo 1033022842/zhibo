@@ -43,5 +43,5 @@ INSERT IGNORE INTO lp_platform_config (`key`, `value`, remark) VALUES
 ('gift_commission_rate', '0.30', '礼物收入平台抽成比例'),
 ('crowdfunding_commission_rate', '0.05', '众筹达标结算平台抽成比例'),
 ('withdraw_fee_rate', '0.01', '提现手续费比例'),
-('diamond_to_usdt_rate', '0.01', '钻石兑USDT比例(1钻=0.01USDT)'),
-('min_withdraw_diamond', '1000', '最低提现钻石数');
+('diamond_to_usdt_rate', '0.01', '代币兑USDT比例(1代币=0.01USDT)'),
+('min_withdraw_diamond', '1000', '最低提现代币数');

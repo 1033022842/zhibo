@@ -31,15 +31,15 @@ class Dashboard extends Backend
         $rechargeTotalUsd   = (float) $db->table('lp_recharge_order')->where('status', 1)->sum('pay_amount');
         $rechargePending    = $db->table('lp_recharge_order')->where('status', 0)->count();
 
-        // ── 送礼（钻石消耗）──
+        // ── 送礼（代币消耗）──
         $giftTodayCount    = $db->table('lp_gift_order')->where('status', 1)->whereLike('created_at', $today . '%')->count();
         $giftTodayDiamonds = (float) $db->table('lp_gift_order')->where('status', 1)->whereLike('created_at', $today . '%')->sum('total_price');
         $giftTotalDiamonds = (float) $db->table('lp_gift_order')->where('status', 1)->sum('total_price');
 
-        // ── 平台钻石余额 ──
+        // ── 平台代币余额 ──
         $walletDiamonds = (float) $db->table('lp_wallet_account')->sum('diamond_balance');
 
-        // ── 近 7 天趋势（送礼钻石 / 充值USD / 新增用户）──
+        // ── 近 7 天趋势（送礼代币 / 充值USD / 新增用户）──
         $start = date('Y-m-d', strtotime('-6 days'));
         $rows = $db->table('lp_gift_order')
             ->field("DATE(created_at) d, COUNT(*) c, SUM(total_price) diamonds")

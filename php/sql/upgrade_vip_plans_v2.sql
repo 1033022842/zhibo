@@ -29,7 +29,7 @@ CALL `upgrade_vip_plan_tokens`();
 DROP PROCEDURE IF EXISTS `upgrade_vip_plan_tokens`;
 
 -- 2) 18 档套餐（价格照参考页；usd_price = 该档实付总额）
---    diamond_price = usd_price × 100（沿用原有钻石定价比例）
+--    diamond_price = usd_price × 100（沿用原有代币定价比例）
 INSERT IGNORE INTO `lp_vip_plan`
   (`name`, `level`, `months`, `tokens_month`, `usd_price`, `diamond_price`, `daily_diamond`,
    `benefits`, `chat_daily_limit`, `image_daily_limit`, `discount_percent`, `custom_video`, `sort`, `status`)

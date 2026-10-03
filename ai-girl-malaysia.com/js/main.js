@@ -30,7 +30,7 @@
             .catch(function(){ /* 拉取失败则保持原样，不影响页面 */ })
     }
 
-    // 顶栏 tokens 余额胶囊：右上角新版导航形态，余额取用户真实钻石数
+    // 顶栏 tokens 余额胶囊：右上角新版导航形态，余额取用户真实代币数
     function loadTokenBalance(token){
         if(!token) return
         fetch('/api/live/userInfo', { method: 'POST', headers: { token: token } })

@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS `lp_shop_item` (
   `cover_url` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '封面图URL(详情弹窗第1帧的海报)',
   `video_url` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '预览视频URL(列表卡片hover播放)',
   `images` TEXT NULL COMMENT '详情弹窗附加图片URL，逗号分隔',
-  `price` INT NOT NULL DEFAULT 0 COMMENT '价格(钻石)',
+  `price` INT NOT NULL DEFAULT 0 COMMENT '价格(代币)',
   `rating` DECIMAL(2,1) NOT NULL DEFAULT 5.0 COMMENT '评分(0~5)',
   `reviews` INT NOT NULL DEFAULT 0 COMMENT '评价数',
   `weigh` INT NOT NULL DEFAULT 0 COMMENT '权重(越大越靠前)',

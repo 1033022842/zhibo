@@ -55,7 +55,7 @@ final class CrowdfundingService
     }
 
     /**
-     * 支持众筹项目（冻结钻石）
+     * 支持众筹项目（冻结代币）
      */
     public function pledge(int $userId, int $projectId, float $amount): void
     {
@@ -82,7 +82,7 @@ final class CrowdfundingService
 
         Db::startTrans();
         try {
-            // 1. 扣减支持者钻石
+            // 1. 扣减支持者代币
             $this->debitDiamond($userId, $amount, 'crowdfunding_pledge', $projectId);
 
             // 2. 创建支持记录（冻结状态）
@@ -452,7 +452,7 @@ final class CrowdfundingService
     }
 
     /**
-     * 扣减用户钻石（支出）
+     * 扣减用户代币（支出）
      */
     private function debitDiamond(int $userId, float $amount, string $bizType, int $bizId): void
     {
@@ -508,7 +508,7 @@ final class CrowdfundingService
     }
 
     /**
-     * 增加用户钻石（收入）
+     * 增加用户代币（收入）
      */
     private function creditDiamond(int $userId, float $amount, string $bizType, int $bizId): void
     {

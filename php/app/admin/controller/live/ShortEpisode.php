@@ -13,7 +13,7 @@ use app\admin\model\live\ShortEpisode as ShortEpisodeModel;
  * AI 女友端：Candy Shorts 短剧剧集管理
  *
  * 一部短剧（lp_short_item）下挂多集（lp_short_episode），每集单独定价、单独解锁；
- * 短剧上的 free_episodes=N 表示前 N 集免费（集号 <= N 的集不讲价、免钻直接看）。
+ * 短剧上的 free_episodes=N 表示前 N 集免费（集号 <= N 的集不讲价、免代币直接看）。
  */
 final class ShortEpisode extends Backend
 {
@@ -61,7 +61,7 @@ final class ShortEpisode extends Backend
             foreach ($items as &$item) {
                 $sid = (int) $item['short_id'];
                 $item['short_title'] = $titles[$sid] ?? '';
-                // 集号 <= 短剧的 free_episodes 时，本集实际免钻（price 不生效）
+                // 集号 <= 短剧的 free_episodes 时，本集实际免代币（price 不生效）
                 $item['free_by_series'] = ($sid > 0 && ($freeMap[$sid] ?? 0) >= (int) $item['episode_no']) ? 1 : 0;
             }
             unset($item);
