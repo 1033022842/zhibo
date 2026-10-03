@@ -21,7 +21,7 @@ DEALLOCATE PREPARE _stmt;
 SET @has_free = (SELECT COUNT(*) FROM `information_schema`.`COLUMNS`
   WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = 'lp_short_item' AND `COLUMN_NAME` = 'free_episodes');
 SET @ddl = IF(@has_free = 0,
-  'ALTER TABLE `lp_short_item` ADD COLUMN `free_episodes` INT NOT NULL DEFAULT 0 COMMENT ''前N集免费(集号<=N 免钻)'' AFTER `description`',
+  'ALTER TABLE `lp_short_item` ADD COLUMN `free_episodes` INT NOT NULL DEFAULT 0 COMMENT ''前N集免费(集号<=N 免代币)'' AFTER `description`',
   'SELECT ''lp_short_item.free_episodes 已存在，跳过'' AS msg');
 PREPARE _stmt FROM @ddl;
 EXECUTE _stmt;
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `lp_short_episode` (
   `poster` varchar(500) NOT NULL DEFAULT '' COMMENT '本集封面，留空用短剧封面',
   `video_url` varchar(500) NOT NULL DEFAULT '' COMMENT '视频文件URL',
   `duration` varchar(32) NOT NULL DEFAULT '' COMMENT '时长，如 03:12',
-  `price` int NOT NULL DEFAULT 0 COMMENT '本集价格(钻石)，0=免费',
+  `price` int NOT NULL DEFAULT 0 COMMENT '本集价格(代币)，0=免费',
   `weigh` int NOT NULL DEFAULT 0 COMMENT '权重，越大越靠前',
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '1上架 0下架',
   `created_at` datetime DEFAULT NULL,

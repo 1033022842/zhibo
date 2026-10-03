@@ -35,8 +35,8 @@
       <div class="progress-card" v-anim>
         <div class="progress-header">
           <div class="progress-amounts">
-            <span class="raised">{{ fmtNum(project.raised_amount) }} 钻</span>
-            <span class="target">目标 {{ fmtNum(project.target_amount) }} 钻</span>
+            <span class="raised">{{ fmtNum(project.raised_amount) }} 代币</span>
+            <span class="target">目标 {{ fmtNum(project.target_amount) }} 代币</span>
           </div>
           <span class="progress-pct">{{ project.progress_percent }}%</span>
         </div>
@@ -103,10 +103,10 @@
               v-model.number="pledgeAmount"
               type="number"
               class="pledge-input"
-              placeholder="输入支持金额（钻石）"
+              placeholder="输入支持金额（代币）"
               min="1"
             />
-            <span class="pledge-unit">钻</span>
+            <span class="pledge-unit">代币</span>
           </div>
           <div class="quick-btns">
             <button v-for="n in quickAmounts" :key="n" class="quick-btn" :class="{ active: pledgeAmount === n }" @click="pledgeAmount = n">
@@ -118,8 +118,8 @@
           </button>
           <p class="pledge-hint">支持后资金将冻结，达标后划转给商家，未达标全额退还</p>
           <p class="pledge-hint" style="margin-top:6px">
-            没有钻石？
-            <a class="btn-topup" @click="doTopup">获取 1000 测试钻石</a>
+            没有代币？
+            <a class="btn-topup" @click="doTopup">获取 1000 测试代币</a>
           </p>
         </template>
 
@@ -127,7 +127,7 @@
           <div class="result-card result-card--success">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <h2>众筹成功</h2>
-            <p>已筹 {{ fmtNum(project.raised_amount) }} 钻，{{ project.supporter_count }} 人支持</p>
+            <p>已筹 {{ fmtNum(project.raised_amount) }} 代币，{{ project.supporter_count }} 人支持</p>
             <p class="result-sub">商家可创建角色</p>
           </div>
         </template>
@@ -136,7 +136,7 @@
           <div class="result-card result-card--failed">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ff2d55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
             <h2>众筹未达标</h2>
-            <p>已筹 {{ fmtNum(project.raised_amount) }} 钻 / 目标 {{ fmtNum(project.target_amount) }} 钻</p>
+            <p>已筹 {{ fmtNum(project.raised_amount) }} 代币 / 目标 {{ fmtNum(project.target_amount) }} 代币</p>
             <p class="result-sub">资金已退还支持者</p>
           </div>
         </template>
@@ -240,7 +240,7 @@ async function doTopup() {
     const res: any = await topupDiamonds(1000)
     const data = res?.data
     if (data && data.balance_after !== undefined) {
-      alert(`已添加 1000 测试钻石！当前余额: ${data.balance_after} 钻`)
+      alert(`已添加 1000 测试代币！当前余额: ${data.balance_after} 代币`)
     }
   } catch { /* ignore */ }
 }

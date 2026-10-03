@@ -232,7 +232,7 @@ final class Crowdfunding extends BaseController
 
 
     /**
-     * 查询当前用户钻石余额
+     * 查询当前用户代币余额
      */
     public function balance()
     {

@@ -5,7 +5,7 @@
  *
  * 与原站行为差异（前端实现）：
  *   · 搜索：原站由服务端按关键词过滤，这里改为前端按 title / creator 做 includes 过滤；
- *   · 购买：未解锁 → Unlock → Confirm → POST /api/live/privateUnlock（扣钻石，需登录）；
+ *   · 购买：未解锁 → Unlock → Confirm → POST /api/live/privateUnlock（扣代币，需登录）；
  *           已解锁 → 点卡片在本站弹窗观看（媒体地址只有解锁后才会由接口下发）；
  *           卡片一律不跳站外，未解锁时点卡片即展开 Confirm。
  */
@@ -451,7 +451,7 @@
             if (form) form.classList.remove('hidden')
         })
 
-        // Confirm 真正下单扣钻石（submit 在卡片内，用事件委托）
+        // Confirm 真正下单扣代币（submit 在卡片内，用事件委托）
         box.addEventListener('submit', function (e) {
             var form = e.target.closest ? e.target.closest('[data-content-pack-confirm]') : null
             if (!form) return

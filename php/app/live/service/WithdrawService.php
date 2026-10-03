@@ -101,7 +101,7 @@ final class WithdrawService
     }
 
     /**
-     * 发起提现：扣钻冻结 + 建单待审
+     * 发起提现：扣代币冻结 + 建单待审
      */
     public function apply(int $userId, float $diamonds): array
     {
@@ -122,7 +122,7 @@ final class WithdrawService
             throw new BusinessException(ResultCode::PARAM_ERROR, '收款地址无效：' . $addrErr);
         }
 
-        // 冻结扣钻
+        // 冻结扣代币
         (new WalletService())->debit($userId, $diamonds, 'withdraw', 0, '提现申请冻结');
 
         try {
@@ -411,9 +411,9 @@ final class WithdrawService
     }
 
     /**
-     * 后台拒绝 → 自动退钻
+     * 后台拒绝 → 自动退代币
      *
-     * 已广播/已确认的单据不允许拒绝，否则会「既打款又退钻」。
+     * 已广播/已确认的单据不允许拒绝，否则会「既打款又退代币」。
      */
     public function reject(int $id, string $reason): void
     {

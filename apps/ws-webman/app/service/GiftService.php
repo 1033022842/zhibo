@@ -29,7 +29,7 @@ final class GiftService
         $totalPrice = round(((float) $gift['price_diamond']) * $quantity, 2);
         $senderUserId = (int) ($session['user_id'] ?? 0);
 
-        // 送礼扣钻（余额不足直接拒绝）
+        // 送礼扣代币（余额不足直接拒绝）
         try {
             $this->walletDebit($senderUserId, $totalPrice, $giftName);
         } catch (\RuntimeException $e) {
@@ -47,7 +47,7 @@ final class GiftService
                 $totalPrice
             );
         } catch (\Throwable $e) {
-            // 订单写入失败 → 退还已扣钻石
+            // 订单写入失败 → 退还已扣代币
             $this->walletCredit($senderUserId, $totalPrice, 'gift_refund', '礼物下单失败退款');
             throw $e;
         }
@@ -134,7 +134,7 @@ final class GiftService
     }
 
     /**
-     * 送礼扣钻（事务 + 行锁 + 流水）
+     * 送礼扣代币（事务 + 行锁 + 流水）
      */
     private function walletDebit(int $userId, float $amount, string $giftName): void
     {
@@ -158,7 +158,7 @@ final class GiftService
             }
 
             if (round($before, 2) < round($amount, 2)) {
-                throw new \RuntimeException('钻石余额不足，请先充值');
+                throw new \RuntimeException('代币余额不足，请先充值');
             }
             $after = round($before - $amount, 2);
 
@@ -178,7 +178,7 @@ final class GiftService
     }
 
     /**
-     * 钻石入账（失败退款/礼物收入/平台抽成）
+     * 代币入账（失败退款/礼物收入/平台抽成）
      */
     private function walletCredit(int $userId, float $amount, string $bizType, string $remark): void
     {

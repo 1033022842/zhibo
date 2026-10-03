@@ -23,9 +23,9 @@ final class PayoutSetting extends Backend
 
     /** 普通（非敏感）配置项白名单：表单字段 => [类型, 说明] */
     private const PLAIN_FIELDS = [
-        'diamond_to_usdt_rate'        => ['float', '钻石兑USDT比例（1钻=多少USDT）'],
+        'diamond_to_usdt_rate'        => ['float', '代币兑USDT比例（1代币=多少USDT）'],
         'withdraw_fee_rate'           => ['float', '提现手续费比例'],
-        'min_withdraw_diamond'        => ['float', '最低提现钻石数'],
+        'min_withdraw_diamond'        => ['float', '最低提现代币数'],
         'payout_max_attempts'         => ['int', '单笔提现最多自动打款次数'],
         'payout_trc20_fee_limit'      => ['float', 'TRC20 单笔 fee_limit（TRX）'],
         'payout_erc20_rpc'            => ['str', 'ERC20 RPC 节点（逗号分隔可配多个）'],
@@ -139,9 +139,9 @@ final class PayoutSetting extends Backend
     <div class="card">
         <h2><span class="dot"></span>提现基础参数</h2>
         <div class="grid">
-            <div class="field"><label>钻石兑 USDT 比例（1 钻 = 多少 USDT）</label><input name="diamond_to_usdt_rate" value="{$rate}" placeholder="0.01"></div>
+            <div class="field"><label>代币兑 USDT 比例（1 代币 = 多少 USDT）</label><input name="diamond_to_usdt_rate" value="{$rate}" placeholder="0.01"></div>
             <div class="field"><label>提现手续费比例（0.01 = 1%，在折算出的 USDT 上扣）</label><input name="withdraw_fee_rate" value="{$fee}" placeholder="0.01"></div>
-            <div class="field"><label>最低提现钻石数</label><input name="min_withdraw_diamond" value="{$minWd}" placeholder="1000"></div>
+            <div class="field"><label>最低提现代币数</label><input name="min_withdraw_diamond" value="{$minWd}" placeholder="1000"></div>
             <div class="field"><label>单笔最多自动打款次数（超过转人工）</label><input name="payout_max_attempts" value="{$attempts}" placeholder="3"></div>
         </div>
     </div>

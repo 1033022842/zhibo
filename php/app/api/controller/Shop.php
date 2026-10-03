@@ -16,7 +16,7 @@ use think\facade\Db;
  *   GET  /api/live/shopItems  商品列表（带 owned 已购数量标记）
  *   GET  /api/live/shopItem?id=  商品详情（含描述与附加图片，详情弹窗用）
  *   GET  /api/live/inventory  我的背包（需登录）
- *   POST /api/live/shopBuy    购买商品，扣钻石（需登录）
+ *   POST /api/live/shopBuy    购买商品，扣代币（需登录）
  */
 final class Shop extends BaseController
 {
@@ -161,7 +161,7 @@ final class Shop extends BaseController
     }
 
     /**
-     * 购买商品：扣钻石 → 写入背包（需登录）
+     * 购买商品：扣代币 → 写入背包（需登录）
      *
      * 扣费与入库在同一事务内，唯一键 uk_user_item 兜住并发重复购买。
      */

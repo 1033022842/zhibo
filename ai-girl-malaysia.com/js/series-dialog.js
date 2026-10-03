@@ -16,7 +16,7 @@
  *
  * 与原站的差异（本站是「按集收费」）：付费未解锁的剧集行右侧显示 白锁 + 价格
  * （原站只在 data 属性里存 token 成本，界面不显示价格）；点该集后视频区显示
- * 渐变 CTA，点 CTA 变 Confirm，再点才真正扣钻石解锁；免费集显示绿色 Free。
+ * 渐变 CTA，点 CTA 变 Confirm，再点才真正扣代币解锁；免费集显示绿色 Free。
  *
  * 用法：CandySeries.open({ shortId: 15, title: 'Student Bodies' })
  */

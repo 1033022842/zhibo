@@ -150,7 +150,7 @@ final class Live extends BaseController
             }
         }
 
-        // 获取钻石余额（直播端和AI女友端共用 lp_wallet_account）
+        // 获取代币余额（直播端和AI女友端共用 lp_wallet_account）
         $wallet = \think\facade\Db::connect('live_mysql')
             ->table('lp_wallet_account')
             ->where('user_id', $userId)
@@ -1081,7 +1081,7 @@ final class Live extends BaseController
             $result['affection'] = $affectionData;
         }
 
-        // 特殊视频命令：消息含命令词 → 返回随机「已解锁」的特殊视频（好感度满100 或已花钻石解锁）
+        // 特殊视频命令：消息含命令词 → 返回随机「已解锁」的特殊视频（好感度满100 或已花代币解锁）
         if (!$voice && $userId > 0 && $contentId > 0 && $this->isSpecialCommand($message)) {
             $specialVideo = $this->pickSpecialVideo($contentId, $userId);
             if ($specialVideo !== '') {
@@ -1230,7 +1230,7 @@ final class Live extends BaseController
             ->select()
             ->toArray();
 
-        // 付费剧集/特殊视频：判断是否已解锁（好感度满100仅对特殊视频生效，追剧只看是否已花钻石）
+        // 付费剧集/特殊视频：判断是否已解锁（好感度满100仅对特殊视频生效，追剧只看是否已花代币）
         $userId = $this->optionalAuthUserId();
         $affectionUnlocked = false;
         $unlockedMediaIds = [];
@@ -1358,7 +1358,7 @@ final class Live extends BaseController
     }
 
     /**
-     * AI 前端：钻石购买好感度（1:1，需登录）
+     * AI 前端：代币购买好感度（1:1，需登录）
      * POST { content_id, amount }
      */
     public function buyAffection()
@@ -1380,7 +1380,7 @@ final class Live extends BaseController
     }
 
     /**
-     * AI 前端：花钻石解锁特殊视频（需登录）
+     * AI 前端：花代币解锁特殊视频（需登录）
      * POST { media_id }
      */
     public function unlockVideo()
@@ -1402,14 +1402,14 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, '该视频无需解锁');
         }
 
-        // 已花钻石解锁
+        // 已花代币解锁
         $exists = \think\facade\Db::connect('live_mysql')->table('lp_ai_media_unlock')
             ->where('user_id', $userId)->where('media_id', $mediaId)->find();
         if ($exists) {
             return $this->jsonSuccess(['unlocked' => true, 'balance' => (new WalletService())->balance($userId), 'video_url' => $videoUrl]);
         }
 
-        // 扣钻石并记录解锁
+        // 扣代币并记录解锁
         try {
             $debit = (new WalletService())->debit($userId, (float) $price, 'media_unlock', $mediaId, '解锁AI视频');
         } catch (BusinessException $e) {
@@ -1427,7 +1427,7 @@ final class Live extends BaseController
     }
 
     /**
-     * AI 前端：花钻石解锁单条聊天媒体消息（按消息，不按素材）
+     * AI 前端：花代币解锁单条聊天媒体消息（按消息，不按素材）
      * POST { message_id }
      */
     public function unlockChatMedia()
@@ -1500,7 +1500,7 @@ final class Live extends BaseController
 
     /**
      * 随机取一个「已解锁」的特殊视频 URL
-     * 好感度满 100 视为全部解锁，否则只取已花钻石解锁或免费的
+     * 好感度满 100 视为全部解锁，否则只取已花代币解锁或免费的
      */
     private function pickSpecialVideo(int $contentId, int $userId): string
     {

@@ -668,7 +668,7 @@
   }
 
   /* ---------- 顶栏右上角：成就徽章 + tokens 胶囊 + 头像菜单 ---------- */
-  /* ---------- 顶栏余额刷新：扣钻石/金币后调用（解锁等） ---------- */
+  /* ---------- 顶栏余额刷新：扣代币/金币后调用（解锁等） ---------- */
   window.refreshTokenBalance = function () {
     var tk = null
     try { tk = localStorage.getItem('live_access_token') } catch (e) { return }
@@ -685,7 +685,7 @@
       .catch(function () {})
   }
 
-  // 解锁类接口（扣钻石）响应后自动刷新顶栏余额
+  // 解锁类接口（扣代币）响应后自动刷新顶栏余额
   ;(function () {
     if (window.__fyFetchHooked) return
     window.__fyFetchHooked = true

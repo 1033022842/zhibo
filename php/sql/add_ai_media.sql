@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `lp_ai_media` (
   `media_type` VARCHAR(20) NOT NULL DEFAULT 'normal' COMMENT '类型(normal普通/special特殊)',
   `media_kind` VARCHAR(10) NOT NULL DEFAULT 'video' COMMENT '媒体类型(video视频/voice语音)',
   `scene_type` VARCHAR(20) NOT NULL DEFAULT 'chat' COMMENT '场景分类(chat聊天内容/binge追剧/affection好感度特殊视频)',
-  `unlock_price` INT NOT NULL DEFAULT 0 COMMENT '解锁价格(钻石,0免费)',
+  `unlock_price` INT NOT NULL DEFAULT 0 COMMENT '解锁价格(代币,0免费)',
   `keywords` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '触发关键词(逗号分隔,空=不触发)',
   `weigh` INT NOT NULL DEFAULT 0 COMMENT '权重(越大越靠前)',
   `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态(1启用0禁用)',

@@ -489,7 +489,7 @@ footer{border-top:1px solid var(--line-1);padding:28px 0;text-align:center;font-
   <button class="get" data-i18n="pwa_get">获取应用</button>
 </aside>
 
-<!-- 登录 / 注册弹窗（使用直播端账户，共用钻石余额） -->
+<!-- 登录 / 注册弹窗（使用直播端账户，共用代币余额） -->
 <div class="modal-overlay" id="authModal">
   <div class="auth-modal">
     <button class="close" id="authClose" aria-label="close">&times;</button>
@@ -1189,7 +1189,7 @@ window.addEventListener("scroll", () => {
 </script>
 
 <script>
-// ---------- 登录 / 注册（直播端账户，共用钻石余额） ----------
+// ---------- 登录 / 注册（直播端账户，共用代币余额） ----------
 (function () {
   var API_BASE = "/api/live"; // 后端接口前缀（生产环境由 Nginx 将 /api 代理到 ThinkPHP）
   var LS_TOKEN = "live_access_token";

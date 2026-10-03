@@ -922,7 +922,7 @@
                         <span class="task-id">T-3.1.3</span>
                         <span class="task-text">创建 app/wallet/service/WalletService.php</span>
                       </div>
-                      <ul><li>getBalance(userId) 查询钻石余额</li><li>deduct(userId, amount, bizType, bizId) 扣费（检查余额）</li><li>credit(userId, amount, bizType, bizId) 充值入账</li><li>freeze(userId, amount) / unfreeze(userId, amount) 冻结/解冻</li></ul>
+                      <ul><li>getBalance(userId) 查询代币余额</li><li>deduct(userId, amount, bizType, bizId) 扣费（检查余额）</li><li>credit(userId, amount, bizType, bizId) 充值入账</li><li>freeze(userId, amount) / unfreeze(userId, amount) 冻结/解冻</li></ul>
                     </div>
                     
                     <div class="task-item">
@@ -1083,7 +1083,7 @@
                       <div class="task-main">
                         <span class="badge todo">待开始</span>
                         <span class="task-id">T-3.3.7</span>
-                        <span class="task-text">前端轮询订单状态，支付成功后刷新钻石余额</span>
+                        <span class="task-text">前端轮询订单状态，支付成功后刷新代币余额</span>
                       </div>
                       
                     </div>
@@ -1181,14 +1181,14 @@
                         <span class="task-id">T-4.2.3</span>
                         <span class="task-text">送礼完整流程：</span>
                       </div>
-                      <ul><li>校验礼物是否存在</li><li>查询用户钻石余额</li><li>扣减钻石（调用 WalletService.deduct）</li><li>创建礼物订单 lp_gift_order</li><li>写入钱包流水</li><li>房间内广播 gift_effect</li><li>若礼物有 trigger_mode，触发切流逻辑</li></ul>
+                      <ul><li>校验礼物是否存在</li><li>查询用户代币余额</li><li>扣减代币（调用 WalletService.deduct）</li><li>创建礼物订单 lp_gift_order</li><li>写入钱包流水</li><li>房间内广播 gift_effect</li><li>若礼物有 trigger_mode，触发切流逻辑</li></ul>
                     </div>
                     
                     <div class="task-item">
                       <div class="task-main">
                         <span class="badge todo">待开始</span>
                         <span class="task-id">T-4.2.4</span>
-                        <span class="task-text">前端礼物面板（底部弹出，展示礼物列表与钻石余额）</span>
+                        <span class="task-text">前端礼物面板（底部弹出，展示礼物列表与代币余额）</span>
                       </div>
                       
                     </div>

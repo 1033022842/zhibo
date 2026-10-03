@@ -35,7 +35,7 @@ const API_HANDLERS = {
           expire_at: Date.now() + 3600000,
         },
         interaction: { allow_chat: true, allow_like: true, allow_gift: true },
-        gift_panel: { quick_gifts: [], currency_name: '钻石' },
+        gift_panel: { quick_gifts: [], currency_name: '代币' },
         room_tags: [],
       }],
       cursor: null,
@@ -62,7 +62,7 @@ const API_HANDLERS = {
         expire_at: Date.now() + 3600000,
       },
       interaction: { allow_chat: true, allow_like: true, allow_gift: true },
-      gift_panel: { quick_gifts: [], currency_name: '钻石' },
+      gift_panel: { quick_gifts: [], currency_name: '代币' },
       room_tags: [],
       binding: null,
     }

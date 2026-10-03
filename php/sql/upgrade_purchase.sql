@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `lp_user_item` (
   `item_type` varchar(16) NOT NULL DEFAULT 'shop' COMMENT '类型:shop商品 private私密内容',
   `item_id` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT '业务ID(lp_shop_item.id / lp_private_item.id)',
   `quantity` int(11) NOT NULL DEFAULT 1 COMMENT '拥有数量',
-  `price` int(11) NOT NULL DEFAULT 0 COMMENT '成交单价(钻石)',
+  `price` int(11) NOT NULL DEFAULT 0 COMMENT '成交单价(代币)',
   `created_at` datetime DEFAULT NULL COMMENT '首次购买时间',
   `updated_at` datetime DEFAULT NULL COMMENT '最近购买时间',
   PRIMARY KEY (`id`) USING BTREE,

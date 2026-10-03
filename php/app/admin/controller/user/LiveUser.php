@@ -15,7 +15,7 @@ class LiveUser extends Backend
     protected object $model;
 
     /**
-     * 手动充值/扣减钻石、开通会员无需单独配置权限节点（登录鉴权仍生效）
+     * 手动充值/扣减代币、开通会员无需单独配置权限节点（登录鉴权仍生效）
      */
     protected array $noNeedPermission = ['adjustDiamond', 'vipPlans', 'grantVip'];
 
@@ -86,10 +86,10 @@ class LiveUser extends Backend
     }
 
     /**
-     * 手动充值/扣减用户钻石
+     * 手动充值/扣减用户代币
      * POST /admin/user.LiveUser/adjustDiamond
      * @param int    user_id 用户ID
-     * @param float  amount  钻石数量（正数）
+     * @param float  amount  代币数量（正数）
      * @param string type    credit=充值(增加) debit=扣减(减少)
      * @param string remark  备注（可选）
      */
@@ -129,7 +129,7 @@ class LiveUser extends Backend
         }
 
         // 注意：success() 内部通过抛 HttpResponseException 输出响应，必须放在 try/catch 之外，
-        // 否则会被 catch (\Throwable) 捕获而误报为失败（钻石已入账但前端收到错误提示）。
+        // 否则会被 catch (\Throwable) 捕获而误报为失败（代币已入账但前端收到错误提示）。
         $this->success($type === 'debit' ? '扣减成功' : '充值成功', $result);
     }
 

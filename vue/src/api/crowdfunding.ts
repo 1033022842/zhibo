@@ -140,7 +140,7 @@ export function checkActiveCrowdfunding() {
   })
 }
 
-// 测试充值钻石
+// 测试充值代币
 export function topupDiamonds(amount = 1000) {
   return request<{ amount: number; balance_before: number; balance_after: number }>({
     url: '/api/v1/crowdfunding/topup',
@@ -149,7 +149,7 @@ export function topupDiamonds(amount = 1000) {
   })
 }
 
-/** 获取钻石余额 */
+/** 获取代币余额 */
 export function getCrowdfundingBalance() {
   return request<{ balance: number }>({
     url: '/api/v1/crowdfunding/balance',
