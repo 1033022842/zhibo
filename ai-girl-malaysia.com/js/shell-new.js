@@ -532,9 +532,9 @@
   }
 
   /* 抽屉底部（照参考站 footer 的排布）：上面一个大按钮「Category: Girls」，
-     下面四个小按钮两行两列（Discord / Contact Us / Affiliate / 语言）。
-     内容沿用本站既有去处：Discord 用站内旧页注释里的品牌邀请链接，
-     Contact Us 用 NAV 里的同款邮箱，Affiliate 指向 Inviter.html。 */
+     下面小按钮一排放两个（Contact Us / Affiliate），语言按钮占满第二行。
+     内容沿用本站既有去处：Contact Us 用 NAV 里的同款邮箱，Affiliate 指向 Inviter.html。
+     Discord 入口已下线（本站没有 Discord）。 */
   var CATEGORIES = [
     { key: 'girls', label: 'Girls', href: './Girls.html', icon: 'catFemale' },
     { key: 'anime', label: 'Anime', href: './Anime.html', icon: 'catAnime' },
@@ -617,12 +617,9 @@
       '<div class="fy-cat-menu hidden" id="fy-cat-menu">' + catMenu + '</div>' +
       '</div>' +
 
-      // 四个小按钮：一排两个
+      // 小按钮：Contact Us / Affiliate 一排，语言按钮占满第二行
       '<div class="fy-foot-grid">' +
-      '<a class="fy-foot-btn" href="https://discord.gg/sugusai" target="_blank" rel="noopener noreferrer">Discord</a>' +
       '<a class="fy-foot-btn" href="mailto:support@sugusmail.ai">Contact Us</a>' +
-      '</div>' +
-      '<div class="fy-foot-grid">' +
       '<a class="fy-foot-btn" href="./Inviter.html">Affiliate</a>' +
       langButton(false, true) +
       '</div>' +
