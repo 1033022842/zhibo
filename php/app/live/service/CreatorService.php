@@ -225,20 +225,32 @@ final class CreatorService
                 $item->persona_id = $personaId;
             }
 
-            // 直播型作品：补维护态直播间（没有才建，避免重复）
+            // 直播型作品：建可用直播间（没有才建，避免重复）
+            $roomId = 0;
             if ((string) $item->publish_type === 'live' && $personaId > 0) {
-                if (!Room::where('persona_id', $personaId)->find()) {
+                $room = Room::where('persona_id', $personaId)->find();
+                if (!$room) {
                     $room = new Room();
                     $room->room_no    = StrHelper::orderNo('R');
                     $room->title      = mb_substr((string) $item->persona_name, 0, 64) . '的直播间';
                     $room->persona_id = $personaId;
                     $room->room_type  = 'live';
-                    $room->status     = 2; // 2=维护中
+                    $room->status     = 1; // 1=启用（有推流后才会出现在前台直播列表）
                     $room->cover_url  = (string) $item->cover_url;
                     $room->created_at = date('Y-m-d H:i:s');
                     $room->updated_at = date('Y-m-d H:i:s');
                     $room->save();
                 }
+                $roomId = (int) $room->id;
+                // 补绑定 + 播单模板，房间才真正可开播（否则后台无从配置）
+                $this->ensureRoomBinding($roomId, (string) $room->title, (string) $item->persona_name);
+            }
+
+            // 短剧型作品：上架 Candy Shorts（lp_short_item + 剧集），没有才建避免重复
+            $shortId = (int) ($item->short_id ?? 0);
+            if ((string) $item->publish_type === 'drama' && $shortId <= 0) {
+                $shortId = $this->publishShort($item);
+                $item->short_id = $shortId;
             }
 
             // 2) 首页推荐角色卡（没有才上架，避免重复）
@@ -275,7 +287,120 @@ final class CreatorService
             throw new BusinessException(ResultCode::SERVER_ERROR, '上架失败: ' . $e->getMessage());
         }
 
-        return ['persona_id' => $personaId, 'home_character_id' => $homeId];
+        return [
+            'persona_id'        => $personaId,
+            'home_character_id' => $homeId,
+            'room_id'           => $roomId,
+            'short_id'          => $shortId,
+        ];
+    }
+
+    /**
+     * 短剧上架：建 lp_short_item + 全部剧集（与后台「短剧管理/短剧剧集」同结构）
+     * 返回 lp_short_item.id
+     */
+    private function publishShort(CreatorSubmission $item): int
+    {
+        $db  = Db::connect('live_mysql');
+        $now = date('Y-m-d H:i:s');
+
+        $episodes = json_decode((string) $item->episodes, true);
+        if (!is_array($episodes)) {
+            $episodes = [];
+        }
+
+        $shortId = (int) $db->table('lp_short_item')->insertGetId([
+            'title'          => mb_substr((string) $item->persona_name, 0, 160),
+            'description'    => (string) $item->description,
+            'free_episodes'  => max(0, (int) $item->free_episodes),
+            'category'       => mb_substr((string) $item->tags, 0, 128),
+            'character_type' => 'creator', // Candy Creators：创作者投稿
+            'poster'         => mb_substr((string) $item->cover_url, 0, 500),
+            'video_url'      => '',
+            'href'           => '',
+            'section'        => 'explore', // 与普通短剧同区
+            'rank'           => 0,
+            'progress'       => 0,
+            'spicy'          => (int) $item->is_adult === 1 ? 1 : 0,
+            'featured'       => '',
+            'new_episodes'   => 1,
+            'weigh'          => 100, // 新上架给一点权重，避免排在分区末尾
+            'status'         => 1,
+            'created_at'     => $now,
+            'updated_at'     => $now,
+        ]);
+
+        $seen = [];
+        foreach ($episodes as $ep) {
+            if (!is_array($ep)) {
+                continue;
+            }
+            $no = max(1, (int) ($ep['episode_no'] ?? 0));
+            if (isset($seen[$no])) {
+                continue; // 表上 (short_id, episode_no) 唯一
+            }
+            $seen[$no] = true;
+
+            $db->table('lp_short_episode')->insert([
+                'short_id'   => $shortId,
+                'episode_no' => $no,
+                'title'      => mb_substr((string) ($ep['title'] ?? ''), 0, 160),
+                'poster'     => mb_substr((string) ($ep['poster'] ?? ''), 0, 500),
+                'video_url'  => mb_substr((string) ($ep['video_url'] ?? ''), 0, 500),
+                'duration'   => mb_substr((string) ($ep['duration'] ?? ''), 0, 32),
+                'price'      => max(0, (int) ($ep['price'] ?? 0)),
+                'weigh'      => 0,
+                'status'     => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        return $shortId;
+    }
+
+    /**
+     * 补齐房间可用配置：绑定（默认流模板）+ 播单模板；已存在则保持不动
+     */
+    private function ensureRoomBinding(int $roomId, string $roomTitle, string $personaName): void
+    {
+        $db = Db::connect('live_mysql');
+
+        $binding = $db->table('lp_room_binding')->where('room_id', $roomId)->find();
+
+        $streamTemplateId = $binding ? (int) $binding['stream_template_id'] : 0;
+        if ($streamTemplateId <= 0) {
+            $streamTemplateId = (int) $db->table('lp_stream_template')->where('status', 1)->order('id', 'asc')->value('id');
+        }
+        if ($streamTemplateId <= 0) {
+            throw new BusinessException(ResultCode::SERVER_ERROR, '未找到可用流模板，请先在后台初始化默认流模板');
+        }
+
+        $playlistId = $binding ? (int) ($binding['playlist_template_id'] ?? 0) : 0;
+        if ($playlistId <= 0) {
+            $playlistId = (int) $db->table('lp_playlist_template')
+                ->where('template_code', 'room_playlist_' . $roomId)->value('id');
+        }
+        if ($playlistId <= 0) {
+            $playlistId = (int) $db->table('lp_playlist_template')->insertGetId([
+                'template_code' => 'room_playlist_' . $roomId,
+                'name'          => mb_substr($roomTitle, 0, 120) . '播单',
+                'mode'          => 'public',
+                'status'        => 1,
+                'created_at'    => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $data = [
+            'stream_template_id'   => $streamTemplateId,
+            'playlist_template_id' => $playlistId,
+            'persona'              => mb_substr($personaName, 0, 64),
+        ];
+        if ($binding) {
+            $db->table('lp_room_binding')->where('room_id', $roomId)->update($data);
+        } else {
+            $db->table('lp_room_binding')->insert($data + ['room_id' => $roomId, 'room_group_id' => null]);
+        }
     }
 
     /**
