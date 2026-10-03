@@ -74,6 +74,16 @@
         .pc-rg-login a div{
             font-size: 12px;
         }
+        /* Subscriptions.html 顶栏的注册/登录仍是 div（点击走站内弹窗），一并收成小号，
+           否则手机端保持 90×32 的固定尺寸，比其它页面（a 标签自适应）宽一圈 */
+        .pc-rg-login > div > div{
+            width: auto;
+            height: 30px;
+            padding: 0 12px;
+        }
+        .pc-rg-login > div > div > div{
+            font-size: 12px;
+        }
          .nav-zk{
             display: none !important;
         }
