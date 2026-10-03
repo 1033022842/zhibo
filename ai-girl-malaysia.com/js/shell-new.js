@@ -3,7 +3,7 @@
  * 样式目标：Subscriptions.html / tokens.html 使用的新版外壳。
  * 菜单内容：沿用站点原有的菜单项与顺序（Home / Explore / Chat / Gallery / Generate Image /
  *          Create Character / My AI / Upload Media / Face Swap / Shop / Shorts / Posts /
- *          Private Content / Tokens / Games / Crowdfunding，底部 Contact Us / Affiliate Program /
+ *          Private Content / Tokens / Crowdfunding，底部 Contact Us / Affiliate Program /
  *          Become Premium），只换外观，不改入口。
  *
  * 做法：只替换旧页面里「侧边栏 nav 的内容」与「#user-setting 的内容」，
@@ -103,8 +103,7 @@
     { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
     { href: './posts.html', label: 'Posts', icon: 'posts' },
     { href: './private_content.html', label: 'Private Content', icon: 'private' },
-    { href: './purchasePoints.html', label: 'Tokens', icon: 'token' },
-    { href: './Game.html', label: 'Games', icon: 'games' }
+    { href: './purchasePoints.html', label: 'Tokens', icon: 'token' }
   ]
 
   // 侧边栏底部：沿用站点原有三项

@@ -42,8 +42,7 @@
     ['shorts', './shorts.html', 'Shorts', 'shorts', ''],
     ['posts', './posts.html', 'Posts', 'posts', ''],
     ['private', './private_content.html', 'Private Content', 'private', ''],
-    ['tokens', './purchasePoints.html', 'Tokens', 'tokens', ''],
-    ['game', './Game.html', 'Games', 'game', '']
+    ['tokens', './purchasePoints.html', 'Tokens', 'tokens', '']
   ];
   // 底部区（参考站结构：Contact / Affiliate / Premium）
   var BOTTOM = [
