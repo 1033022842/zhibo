@@ -564,7 +564,7 @@
         var xhr = new XMLHttpRequest()
         xhr.open('POST', base + '/merchant/upload')
         xhr.setRequestHeader('Authorization', 'Bearer ' + token)
-        xhr.timeout = 120000
+        xhr.timeout = 600000
         xhr.upload.onprogress = function(e) {
             if (e.lengthComputable && onProgress) onProgress(Math.min(99, Math.round(e.loaded / e.total * 100)))
         }
@@ -574,8 +574,10 @@
             if (xhr.status === 200 && d && d.data && d.data.url) {
                 if (onProgress) onProgress(100)
                 onDone(d.data.url)
+            } else if (xhr.status === 413) {
+                onFail('File too large (server limit reached)')
             } else {
-                onFail(xhr.status === 413 ? 'File too large' : 'Upload failed')
+                onFail((d && d.msg) || 'Upload failed')
             }
         }
         xhr.onerror = function(){ onFail('Network error') }
