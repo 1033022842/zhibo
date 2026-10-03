@@ -172,6 +172,11 @@ final class Creator extends Backend
             $materials = [];
         }
 
+        $episodes = json_decode((string)($item->episodes ?? ''), true);
+        if (!is_array($episodes)) {
+            $episodes = [];
+        }
+
         // 收入信息：作品关联角色的礼物收入 + 提交用户累计到手收益
         $rate         = $this->commissionRate();
         $personaId    = (int)($item->persona_id ?? 0);
@@ -216,6 +221,8 @@ final class Creator extends Backend
             'reference_url'  => (string)$item->reference_url,
             'cover_url'      => (string)$item->cover_url,
             'materials'      => $materials,
+            'episodes'       => $episodes,
+            'free_episodes'  => (int)($item->free_episodes ?? 0),
             'status'         => (int)$item->status,
             'status_text'    => self::STATUS_MAP[$item->status] ?? '未知',
             'reject_reason'  => (string)$item->reject_reason,
@@ -280,6 +287,10 @@ final class Creator extends Backend
         if (!is_array($materials)) {
             $materials = [];
         }
+        $episodes = json_decode((string) ($item->episodes ?? ''), true);
+        if (!is_array($episodes)) {
+            $episodes = [];
+        }
 
         $user = \think\facade\Db::connect('live_mysql')
             ->table('lp_user')
@@ -311,6 +322,8 @@ final class Creator extends Backend
             'created_at'    => (string) $item->created_at,
             'reviewed_at'   => (string) $item->reviewed_at,
             'materials'     => $materials,
+            'episodes'      => $episodes,
+            'free_episodes' => (int) ($item->free_episodes ?? 0),
         ];
 
         if (!class_exists('\ZipArchive')) {
@@ -331,27 +344,21 @@ final class Creator extends Backend
 
         $used = [];
         foreach ($materials as $i => $m) {
-            $url = trim((string) ($m['url'] ?? ''));
-            if ($url === '') {
-                continue;
-            }
-            $bin = $this->fetchMaterial($url);
-            if ($bin === null) {
-                continue;
-            }
+            $url  = (string) ($m['url'] ?? '');
             $name = basename(str_replace('\\', '/', trim((string) ($m['name'] ?? ''))));
             if ($name === '') {
-                $name = 'asset-' . ($i + 1);
+                $name = self::fileNameFromUrl($url, 'asset-' . ($i + 1));
             }
-            $entry = $name;
-            $k     = 1;
-            while (isset($used[$entry])) {
-                $entry = $k . '_' . $name;
-                $k++;
-            }
-            $used[$entry] = true;
-            $zip->addFromString('assets/' . $entry, $bin);
+            $this->zipAddFromUrl($zip, $used, 'assets/' . $name, $url);
         }
+
+        // 短剧剧集：每集视频 + 每集封面
+        foreach ($episodes as $ep) {
+            $no = (int) ($ep['episode_no'] ?? 0);
+            $this->zipAddFromUrl($zip, $used, 'episodes/EP' . $no . '-' . self::fileNameFromUrl((string) ($ep['video_url'] ?? ''), 'video'), (string) ($ep['video_url'] ?? ''));
+            $this->zipAddFromUrl($zip, $used, 'episodes/EP' . $no . '-cover-' . self::fileNameFromUrl((string) ($ep['poster'] ?? ''), 'cover'), (string) ($ep['poster'] ?? ''));
+        }
+
         $zip->close();
 
         $filename = 'creation-' . $id . '-' . date('YmdHis') . '.zip';
@@ -393,6 +400,48 @@ final class Creator extends Backend
         ]);
         $bin = @file_get_contents($url, false, $ctx);
         return $bin === false ? null : $bin;
+    }
+
+    /**
+     * 把某个素材 URL 的内容写入 ZIP（先本地后 HTTP），同名自动加序号前缀
+     */
+    private function zipAddFromUrl(\ZipArchive $zip, array &$used, string $entry, string $url): bool
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return false;
+        }
+        $bin = $this->fetchMaterial($url);
+        if ($bin === null) {
+            return false;
+        }
+
+        $entry = ltrim(str_replace('\\', '/', $entry), '/');
+        if ($entry === '') {
+            $entry = 'asset';
+        }
+        $dir  = dirname($entry);
+        $base = basename($entry);
+        $new  = $entry;
+        $k    = 1;
+        while (isset($used[$new])) {
+            $new = ($dir !== '.' && $dir !== '' ? $dir . '/' : '') . $k . '_' . $base;
+            $k++;
+        }
+        $used[$new] = true;
+        $zip->addFromString($new, $bin);
+        return true;
+    }
+
+    /**
+     * 从 URL 取文件名（取 URL path 的 basename），取不到用兜底名
+     */
+    private static function fileNameFromUrl(string $url, string $fallback): string
+    {
+        $url  = trim($url);
+        $path = $url !== '' ? (string) (parse_url($url, PHP_URL_PATH) ?: $url) : '';
+        $name = basename(str_replace('\\', '/', $path));
+        return $name !== '' ? $name : $fallback;
     }
 
     /**
@@ -677,6 +726,14 @@ final class Creator extends Backend
                 .mat-item{display:flex;flex-direction:column;gap:6px;width:150px;border:1px solid #eef0f6;border-radius:10px;padding:8px;text-decoration:none;color:#3a4051;font-size:12px}
                 .mat-item img{width:100%;height:82px;object-fit:cover;border-radius:6px;background:#f2f3f8}
                 .mat-item .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+                .ep-list{display:flex;flex-direction:column;gap:8px}
+                .ep-item{display:flex;gap:12px;align-items:center;border:1px solid #eef0f6;border-radius:10px;padding:8px 10px;background:#fff}
+                .ep-item img{width:96px;height:54px;object-fit:cover;border-radius:6px;background:#f2f3f8;flex-shrink:0}
+                .ep-ph{width:96px;height:54px;border-radius:6px;background:#f2f3f8;color:#9aa0b0;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+                .ep-meta{min-width:0}
+                .ep-ttl{font-size:13px;font-weight:600;color:#1a1f36;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+                .ep-sub{font-size:12px;color:#8a90a3;margin-top:3px}
+                .ep-free{color:#059669;font-weight:600}
                 .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:16px;border-top:1px solid #eef0f6}
                 .btn-sm{padding:9px 18px;font-size:13px}
                 .btn-danger{background:#e11d48;color:#fff}
@@ -779,6 +836,27 @@ final class Creator extends Backend
                         matHtml = '<div class="empty-tip">无资料</div>';
                     }
 
+                    // 短剧剧集（与后台 lp_short_episode 同结构）
+                    var eps = p.episodes || [];
+                    var freeEp = Number(p.free_episodes) || 0;
+                    var epHtml = '';
+                    if (eps.length) {
+                        epHtml = '<div class="sec-title">剧集（' + eps.length + ' 集' + (freeEp > 0 ? ' · 前 ' + freeEp + ' 集免费' : '') + '）</div><div class="ep-list">';
+                        for (var ei = 0; ei < eps.length; ei++) {
+                            var ep = eps[ei] || {};
+                            var epNo = Number(ep.episode_no) || (ei + 1);
+                            var epPrice = Number(ep.price) || 0;
+                            var epFree = (epNo <= freeEp) || epPrice <= 0;
+                            var cover = ep.poster ? '<img src="' + esc(ep.poster) + '" onerror="this.style.visibility=\'hidden\'">' : '<div class="ep-ph">EP' + epNo + '</div>';
+                            var priceTxt = epFree ? '<span class="ep-free">免费</span>' : (epPrice + ' 代币');
+                            epHtml += '<div class="ep-item">' + cover +
+                                '<div class="ep-meta"><div class="ep-ttl">EP' + epNo + ' · ' + esc(ep.title || '') + '</div>' +
+                                '<div class="ep-sub">' + (ep.duration ? esc(ep.duration) + ' · ' : '') + priceTxt + '</div>' +
+                                '<div class="ep-sub">' + (ep.video_url ? '<a href="' + esc(ep.video_url) + '" target="_blank" download style="color:#6366f1">视频</a>' : '<span style="color:#e11d48">缺视频</span>') + '</div></div></div>';
+                        }
+                        epHtml += '</div>';
+                    }
+
                     // 收入：作品(关联角色)毛额/净额 + 作者累计到手
                     var inc = p.income || {};
                     var incPersona = inc.persona;
@@ -831,6 +909,7 @@ final class Creator extends Backend
                             (p.highlights ? '<div class="sec-title">项目亮点</div><div class="detail-desc">'+esc(p.highlights)+'</div>' : '') +
                             '<div class="sec-title">角色描述</div><div class="detail-desc">'+(p.description?esc(p.description):'暂无描述')+'</div>' +
                             '<div class="sec-title">角色资料（'+mats.length+'）</div><div class="mat-list">'+matHtml+'</div>' +
+                            epHtml +
                             '<div class="modal-footer">'+footer+'</div>' +
                         '</div>';
                     document.getElementById('detailBox').innerHTML = html;

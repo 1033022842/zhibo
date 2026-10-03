@@ -227,10 +227,30 @@ final class Creator extends BaseController
             return $fail('参考链接需以 http(s):// 开头');
         }
 
-        // 资料：前端已开放上传，至少一份
+        // 资料：前端已开放上传，至少一份（短剧以剧集为准，资料可选）
         $materials = $this->parseMaterials($params['materials'] ?? []);
-        if (count($materials) === 0) {
+        if (count($materials) === 0 && $publishType !== 'drama') {
             return $fail('请至少上传一份角色资料');
+        }
+
+        // 短剧：多集结构（与后台 lp_short_episode 一致），非短剧则忽略
+        $episodes     = $this->parseEpisodes($params['episodes'] ?? []);
+        $freeEpisodes = max(0, (int) ($params['free_episodes'] ?? 0));
+        if ($publishType === 'drama') {
+            if (count($episodes) === 0) {
+                return $fail('短剧至少需要上传 1 集');
+            }
+            foreach ($episodes as $i => $ep) {
+                if ($ep['video_url'] === '') {
+                    return $fail('第 ' . ($i + 1) . ' 集请上传视频');
+                }
+            }
+            if ($freeEpisodes > count($episodes)) {
+                $freeEpisodes = count($episodes);
+            }
+        } else {
+            $episodes     = [];
+            $freeEpisodes = 0;
         }
 
         return [
@@ -251,6 +271,8 @@ final class Creator extends BaseController
                 'reference_url' => $referenceUrl,
                 'cover_url'     => trim((string) ($params['cover_url'] ?? '')),
                 'materials'     => $materials,
+                'episodes'      => $episodes,
+                'free_episodes' => $freeEpisodes,
             ],
         ];
     }
@@ -303,6 +325,44 @@ final class Creator extends BaseController
                 continue;
             }
             $result[] = ['name' => $name, 'url' => $url];
+        }
+        return $result;
+    }
+
+    /**
+     * 短剧剧集归一化：[{episode_no,title,poster,video_url,duration,price}]
+     * 集号由服务端按顺序重排，避免前端乱序；标题留空时按「第N集」兜底
+     */
+    private function parseEpisodes(mixed $raw): array
+    {
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $result = [];
+        $no     = 1;
+        foreach ($raw as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $title = trim((string) ($item['title'] ?? ''));
+            $video = trim((string) ($item['video_url'] ?? ''));
+            if ($title === '' && $video === '') {
+                continue; // 空行跳过
+            }
+            $result[] = [
+                'episode_no' => $no,
+                'title'      => $title !== '' ? $title : ('第' . $no . '集'),
+                'poster'     => trim((string) ($item['poster'] ?? '')),
+                'video_url'  => $video,
+                'duration'   => trim((string) ($item['duration'] ?? '')),
+                'price'      => max(0, (int) ($item['price'] ?? 0)),
+            ];
+            $no++;
         }
         return $result;
     }

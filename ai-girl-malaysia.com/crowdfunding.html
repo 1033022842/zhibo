@@ -97,6 +97,20 @@
         .cf-spin-s{flex-shrink:0;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#E75275;border-radius:50%;animation:cfr .8s linear infinite}
         .cf-upload-load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.55);color:#fff;font-size:13px}
         .cf-upload-load .cf-spin-s{width:26px;height:26px;border-width:3px}
+
+        /* ===== Short drama episodes (mirrors admin lp_short_episode) ===== */
+        .cf-eps{display:flex;flex-direction:column;gap:14px;margin-top:12px}
+        .cf-ep{background:#1d1d1d;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px}
+        .cf-ep-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+        .cf-ep-no{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:linear-gradient(268deg,#fc768a -14.8%,#e65073 102.08%);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+        .cf-ep-row{display:flex;gap:12px;margin-bottom:12px}
+        .cf-ep-up{position:relative;flex:1;min-width:0;aspect-ratio:16/9;border:2px dashed rgba(255,255,255,.18);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;overflow:hidden;color:rgba(255,255,255,.45);font-size:12px;text-align:center;padding:6px;transition:border-color .2s}
+        .cf-ep-up:hover{border-color:#E75275}
+        .cf-ep-up img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+        .cf-ep-fields{display:flex;gap:10px}
+        .cf-ep-fields .cf-input{flex:1;min-width:0}
+        .cf-ep-rm{flex-shrink:0;color:#f59e0b;font-size:12px;background:transparent;border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:7px 10px;cursor:pointer;font-family:inherit}
+        .cf-ep-rm:hover{background:rgba(245,158,11,.12)}
         .cf-editbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#fbbf24}
         .cf-editbar b{color:#fbbf24}
         .cf-editbar .cf-editcancel{margin-left:auto;background:none;border:1px solid rgba(245,158,11,.45);color:#fbbf24;font-size:12px;font-weight:600;padding:6px 12px;border-radius:9999px;cursor:pointer;font-family:inherit}
@@ -257,6 +271,10 @@
     var currentTab = 'independent'
     // Uploaded assets: { name, url }
     var materials = []
+    // Short drama episodes (mirrors admin lp_short_episode)
+    var episodes = []
+    var episodeSeq = 0
+    var epPick = null
 
     function showToast(msg, type) {
         var el = document.getElementById('toast')
@@ -332,6 +350,7 @@
     // ===================================================================
     function renderIndependentForm() {
         materials = []
+        episodes = []
         document.getElementById('content').innerHTML =
             '<div class="cf-form">' +
             editBannerHtml() +
@@ -395,6 +414,15 @@
             '<button type="button" class="cf-chip" data-v="1" onclick="pickAdult(this)">Yes &middot; 18+</button>' +
             '</div><div class="cf-hint">18+ content is only shown to adult users</div></div>' +
 
+            '<div class="cf-field" id="episodesField" style="display:none">' +
+            '<label class="cf-label">Episodes <span class="req">*</span></label>' +
+            '<label class="cf-label" style="margin:2px 0 6px">Free episodes (first N)</label>' +
+            '<input type="number" class="cf-input" id="freeEpisodes" min="0" step="1" value="0" placeholder="0 = none free" />' +
+            '<div class="cf-eps" id="episodeList"></div>' +
+            '<button type="button" class="cf-addbtn" style="margin-top:12px" onclick="addEpisode()">+ Add episode</button>' +
+            '<input type="file" id="epFileInput" style="display:none" onchange="onEpisodeFilePicked(this)" />' +
+            '<div class="cf-hint">Each episode needs a cover and a video; price is in tokens (0 = free)</div></div>' +
+
             '<div class="cf-field"><label class="cf-label">Highlights</label><textarea class="cf-input" id="highlights" rows="3" maxlength="500" placeholder="One-line selling point or differentiator, can be multi-line"></textarea></div>' +
             '<div class="cf-field"><label class="cf-label">Reference link</label><input type="url" class="cf-input" id="referenceUrl" placeholder="https://... (optional, style reference / portfolio)" /></div>' +
 
@@ -403,6 +431,7 @@
             '</div>'
 
         onDescInput()
+        syncPublishUI()
     }
 
     function onDescInput() {
@@ -420,6 +449,8 @@
         var chips = row.getElementsByClassName('cf-chip')
         for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on')
         btn.classList.add('on')
+        syncPublishUI()
+        if (btn.getAttribute('data-v') === 'drama' && episodes.length === 0) addEpisode()
     }
 
     window.pickAdult = function(btn) {
@@ -491,6 +522,26 @@
         }
         pickChipValue('publishRow', d.publish_type)
         pickChipValue('adultRow', String(d.is_adult))
+
+        // 短剧剧集回填
+        episodes = []
+        var epList = d.episodes || []
+        for (var ei = 0; ei < epList.length; ei++) {
+            var ep = epList[ei] || {}
+            var epObj = newEpisode()
+            epObj.title = ep.title || ''
+            epObj.duration = ep.duration || ''
+            epObj.price = (ep.price != null && ep.price !== '') ? String(ep.price) : ''
+            epObj.poster = ep.poster || ''
+            epObj.posterStatus = epObj.poster ? 'done' : ''
+            epObj.video = ep.video_url || ''
+            epObj.videoName = epObj.video ? 'uploaded-video' : ''
+            epObj.videoStatus = epObj.video ? 'done' : ''
+            episodes.push(epObj)
+        }
+        setVal('freeEpisodes', (d.free_episodes != null ? d.free_episodes : 0))
+        syncPublishUI()
+        renderEpisodes()
 
         // Already-uploaded assets show up as done entries
         materials = []
@@ -635,6 +686,129 @@
         list.innerHTML = html
     }
 
+    // ===================================================================
+    // Short drama episodes
+    // ===================================================================
+    function newEpisode() {
+        return {
+            id: ++episodeSeq,
+            title: '', duration: '', price: '',
+            poster: '', posterStatus: '', posterProgress: 0,
+            video: '', videoName: '', videoStatus: '', videoProgress: 0
+        }
+    }
+
+    function findEpisode(id) {
+        for (var i = 0; i < episodes.length; i++) if (episodes[i].id === id) return episodes[i]
+        return null
+    }
+
+    window.addEpisode = function() {
+        episodes.push(newEpisode())
+        renderEpisodes()
+    }
+
+    window.removeEpisode = function(id) {
+        for (var i = 0; i < episodes.length; i++) {
+            if (episodes[i].id === id) { episodes.splice(i, 1); break }
+        }
+        renderEpisodes()
+    }
+
+    window.epSetTitle = function(id, v) { var e = findEpisode(id); if (e) e.title = v }
+    window.epSetDuration = function(id, v) { var e = findEpisode(id); if (e) e.duration = v }
+    window.epSetPrice = function(id, v) { var e = findEpisode(id); if (e) e.price = v }
+
+    window.pickEpisodeFile = function(id, kind) {
+        epPick = { id: id, kind: kind }
+        var inp = document.getElementById('epFileInput')
+        if (!inp) return
+        inp.accept = kind === 'video' ? 'video/*' : 'image/*'
+        inp.value = ''
+        inp.click()
+    }
+
+    window.onEpisodeFilePicked = function(input) {
+        var f = input.files && input.files[0]
+        input.value = ''
+        var t = epPick
+        epPick = null
+        if (!f || !t) return
+        var e = findEpisode(t.id)
+        if (!e) return
+
+        if (t.kind === 'video') { e.videoName = f.name; e.videoStatus = 'uploading'; e.videoProgress = 0 }
+        else { e.posterStatus = 'uploading'; e.posterProgress = 0 }
+        renderEpisodes()
+
+        uploadFileXhr(f, function(p){
+            if (t.kind === 'video') e.videoProgress = p
+            else e.posterProgress = p
+            var box = document.querySelector('.cf-ep-up[data-ep="' + e.id + '"][data-kind="' + t.kind + '"] .cf-pct')
+            if (box) box.textContent = 'Uploading ' + p + '%'
+        }, function(url){
+            if (t.kind === 'video') { e.video = url; e.videoStatus = 'done' }
+            else { e.poster = url; e.posterStatus = 'done' }
+            renderEpisodes()
+            showToast((t.kind === 'video' ? 'Episode video' : 'Episode cover') + ' uploaded', 'success')
+        }, function(msg){
+            if (t.kind === 'video') e.videoStatus = 'error'
+            else e.posterStatus = 'error'
+            renderEpisodes()
+            showToast('Episode upload failed: ' + msg, 'error')
+        })
+    }
+
+    function renderEpisodes() {
+        var list = document.getElementById('episodeList')
+        if (!list) return
+        var html = ''
+        for (var i = 0; i < episodes.length; i++) {
+            var e = episodes[i]
+            var cov
+            if (e.posterStatus === 'uploading') {
+                cov = '<div class="cf-upload-load"><div class="cf-spin-s"></div><div class="cf-pct">Uploading ' + (e.posterProgress || 0) + '%</div></div>'
+            } else if (e.poster) {
+                cov = '<img src="' + escHtml(e.poster) + '" alt="" />'
+            } else {
+                cov = '<span>&#128247; Cover</span><span style="font-size:11px;opacity:.7">Click to upload</span>'
+            }
+
+            var vid
+            if (e.videoStatus === 'uploading') {
+                vid = '<div class="cf-upload-load"><div class="cf-spin-s"></div><div class="cf-pct">Uploading ' + (e.videoProgress || 0) + '%</div></div>'
+            } else if (e.video) {
+                vid = '<span style="color:#34d399">&#10003;</span><span style="font-size:11px">' + escHtml(String(e.videoName || 'video').slice(0, 24)) + '</span>'
+            } else {
+                vid = '<span>&#127909; Video</span><span style="font-size:11px;opacity:.7">Click to upload</span>'
+            }
+            if (e.videoStatus === 'error') vid += '<span style="color:#ef4444;font-size:11px">Failed, click to retry</span>'
+
+            html += '<div class="cf-ep">' +
+                '<div class="cf-ep-head"><span class="cf-ep-no">' + (i + 1) + '</span>' +
+                '<input class="cf-input" style="flex:1" placeholder="Episode title" maxlength="160" value="' + escHtml(e.title) + '" oninput="epSetTitle(' + e.id + ', this.value)" />' +
+                '<button type="button" class="cf-ep-rm" onclick="removeEpisode(' + e.id + ')">Remove</button></div>' +
+                '<div class="cf-ep-row">' +
+                '<div class="cf-ep-up" data-ep="' + e.id + '" data-kind="cover" onclick="pickEpisodeFile(' + e.id + ', \'cover\')">' + cov + '</div>' +
+                '<div class="cf-ep-up" data-ep="' + e.id + '" data-kind="video" onclick="pickEpisodeFile(' + e.id + ', \'video\')">' + vid + '</div>' +
+                '</div>' +
+                '<div class="cf-ep-fields">' +
+                '<input class="cf-input" placeholder="Duration e.g. 03:12" maxlength="32" value="' + escHtml(e.duration) + '" oninput="epSetDuration(' + e.id + ', this.value)" />' +
+                '<input class="cf-input" type="number" min="0" step="1" placeholder="Price (tokens, 0 = free)" value="' + escHtml(e.price) + '" oninput="epSetPrice(' + e.id + ', this.value)" />' +
+                '</div></div>'
+        }
+        list.innerHTML = html
+    }
+
+    // 剧集区仅在「Short drama」发布类型时显示
+    function syncPublishUI() {
+        var chip = document.querySelector('#publishRow .cf-chip.on')
+        var isDrama = !!chip && chip.getAttribute('data-v') === 'drama'
+        var f = document.getElementById('episodesField')
+        if (f) f.style.display = isDrama ? '' : 'none'
+    }
+    window.syncPublishUI = syncPublishUI
+
     function splitList(v) {
         return String(v || '').replace(/，/g, ',').split(',').map(function(s){ return s.trim() }).filter(function(s){ return s !== '' })
     }
@@ -668,8 +842,35 @@
         }
         if (uploading) { showToast('Upload in progress, please wait', 'warn'); return }
         if (failedCount) { showToast('Some uploads failed — retry or remove them', 'warn'); return }
-        if (!readyMaterials.length) { showToast('Please upload at least one asset', 'warn'); return }
         if (!publishChip) { showToast('Please select a publish type', 'warn'); return }
+        var publishType = publishChip.getAttribute('data-v')
+
+        // 短剧以剧集为准（资料可选）；其它类型仍需至少一份资料
+        var epPayload = []
+        if (publishType === 'drama') {
+            var epBusy = false, epBad = false
+            for (var ei = 0; ei < episodes.length; ei++) {
+                var e = episodes[ei]
+                if (e.posterStatus === 'uploading' || e.videoStatus === 'uploading') epBusy = true
+                if (e.posterStatus === 'error' || e.videoStatus === 'error') epBad = true
+                if (e.video) {
+                    epPayload.push({
+                        episode_no: ei + 1,
+                        title: e.title.trim(),
+                        poster: e.poster,
+                        video_url: e.video,
+                        duration: e.duration.trim(),
+                        price: parseInt(e.price, 10) || 0
+                    })
+                }
+            }
+            if (epBusy) { showToast('Episode upload in progress, please wait', 'warn'); return }
+            if (epBad) { showToast('Some episode uploads failed — retry or remove them', 'warn'); return }
+            if (!epPayload.length) { showToast('Please add at least one episode with a video', 'warn'); return }
+        } else if (!readyMaterials.length) {
+            showToast('Please upload at least one asset', 'warn'); return
+        }
+
         if (!adultChip) { showToast('Please select whether it is 18+ content', 'warn'); return }
         if (referenceUrl && !/^https?:\/\//i.test(referenceUrl)) { showToast('Reference link must start with http(s)://', 'warn'); return }
 
@@ -678,14 +879,17 @@
         btn.disabled = true
         btn.textContent = 'Submitting...'
 
+        var freeEpEl = document.getElementById('freeEpisodes')
         var payload = {
             persona_name: personaName, description: description,
             tags: tags.join(','), style: style, gender: gender, age_range: ageRange,
             language: language, personality: personality.join(','), voice_style: voiceStyle,
-            publish_type: publishChip.getAttribute('data-v'),
+            publish_type: publishType,
             is_adult: adultChip.getAttribute('data-v'),
             highlights: highlights, reference_url: referenceUrl, cover_url: coverUrl,
-            materials: readyMaterials
+            materials: readyMaterials,
+            episodes: epPayload,
+            free_episodes: publishType === 'drama' ? (parseInt(freeEpEl && freeEpEl.value, 10) || 0) : 0
         }
         var api = INDEPENDENT_API
         if (editId) { payload.id = editId; api = base + '/creator/update' }
