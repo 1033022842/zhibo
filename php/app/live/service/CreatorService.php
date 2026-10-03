@@ -37,6 +37,8 @@ final class CreatorService
             $item->reference_url = $data['reference_url'] ?? '';
             $item->cover_url     = $data['cover_url'] ?? '';
             $item->materials     = json_encode($data['materials'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $item->episodes      = json_encode($data['episodes'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $item->free_episodes = (int) ($data['free_episodes'] ?? 0);
             $item->status        = CreatorSubmission::STATUS_PENDING;
             $item->created_at    = date('Y-m-d H:i:s');
             $item->updated_at    = date('Y-m-d H:i:s');
@@ -76,6 +78,8 @@ final class CreatorService
                 'cover_url'     => (string) $row['cover_url'],
                 'reject_reason' => (string) $row['reject_reason'],
                 'created_at'    => (string) $row['created_at'],
+                'episode_count' => count((array) json_decode((string) ($row['episodes'] ?? ''), true)),
+                'free_episodes' => (int) ($row['free_episodes'] ?? 0),
             ];
         }, $rows);
     }
@@ -89,6 +93,7 @@ final class CreatorService
         $row  = $item->toArray();
 
         $materials = json_decode((string) $item->materials, true);
+        $episodes  = json_decode((string) $item->episodes, true);
 
         return [
             'id'            => (int) $row['id'],
@@ -107,6 +112,8 @@ final class CreatorService
             'reference_url' => (string) $row['reference_url'],
             'cover_url'     => (string) $row['cover_url'],
             'materials'     => is_array($materials) ? $materials : [],
+            'episodes'      => is_array($episodes) ? $episodes : [],
+            'free_episodes' => (int) ($row['free_episodes'] ?? 0),
             'status'        => (int) $row['status'],
             'reject_reason' => (string) $row['reject_reason'],
             'created_at'    => (string) $row['created_at'],
@@ -138,6 +145,8 @@ final class CreatorService
         $item->reference_url = $data['reference_url'] ?? '';
         $item->cover_url     = $data['cover_url'] ?? '';
         $item->materials     = json_encode($data['materials'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $item->episodes      = json_encode($data['episodes'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $item->free_episodes = (int) ($data['free_episodes'] ?? 0);
         // 修改后重新进入待审核
         $item->status        = CreatorSubmission::STATUS_PENDING;
         $item->reject_reason = '';
