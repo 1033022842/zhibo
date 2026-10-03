@@ -104,7 +104,7 @@ final class Creator extends Backend
 
         try {
             $r = (new CreatorService())->publish($id);
-            $this->success('审核通过，已上架站内（角色 #' . $r['persona_id'] . '，首页卡 #' . $r['home_character_id'] . '）');
+            $this->success('审核通过，已上架站内（' . $this->publishResultMsg($r) . '）');
         } catch (\Throwable $e) {
             $this->success('审核通过，但上架站内失败：' . $e->getMessage());
         }
@@ -125,7 +125,22 @@ final class Creator extends Backend
             $this->error($e->getMessage());
             return;
         }
-        $this->success('已上架站内（角色 #' . $r['persona_id'] . '，首页卡 #' . $r['home_character_id'] . '）');
+        $this->success('已上架站内（' . $this->publishResultMsg($r) . '）');
+    }
+
+    /**
+     * 上架结果文案：角色 / 首页卡 / 直播间 / 短剧
+     */
+    private function publishResultMsg(array $r): string
+    {
+        $parts = ['角色 #' . (int) ($r['persona_id'] ?? 0), '首页卡 #' . (int) ($r['home_character_id'] ?? 0)];
+        if (!empty($r['room_id'])) {
+            $parts[] = '直播间 #' . (int) $r['room_id'];
+        }
+        if (!empty($r['short_id'])) {
+            $parts[] = '短剧 #' . (int) $r['short_id'];
+        }
+        return implode('，', $parts);
     }
 
     /**
