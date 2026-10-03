@@ -89,7 +89,7 @@
     /* ---------- 失败提示（原生 dialog，避免被 modal 的 top layer 挡住） ---------- */
     function errText(res) {
         var code = res && res.code
-        if (code === 'C0100') return 'Not enough diamonds. Please top up first.'
+        if (code === 'C0100') return 'Not enough tokens. Please top up first.'
         if (code === 'C0101') return 'Your wallet is frozen. Please contact support.'
         if (code === 'A0100' || code === 'A0101') return 'Session expired. Please sign in again.'
         return (res && res.msg) || 'Something went wrong. Please try again.'
@@ -518,7 +518,7 @@
                   (ep.poster ? '<img class="cs-locked-poster" style="' + (vipUnblur() ? 'filter:none;' : '') + '" alt="" src="' + esc(ep.poster) + '">' : '') +
                   '<div class="cs-locked-inner">' +
                     '<p class="cs-locked-text">' + esc(episodeLabel(ep)) + ' is locked' +
-                      (ep.price > 0 ? ' · ' + ep.price + ' diamonds' : '') + '</p>' +
+                      (ep.price > 0 ? ' · ' + ep.price + ' tokens' : '') + '</p>' +
                     lockedCta(ep, confirming) +
                   '</div>' +
                 '</div>'
@@ -573,7 +573,7 @@
                 (ep.poster ? '<img class="cs-locked-poster" style="' + (vipUnblur() ? 'filter:none;' : '') + '" alt="" src="' + esc(ep.poster) + '">' : '') +
                 '<div class="cs-locked-inner">' +
                   '<p class="cs-locked-text">' + esc(episodeLabel(ep)) + ' is locked' +
-                    (ep.price > 0 ? ' · ' + ep.price + ' diamonds' : '') + '</p>' +
+                    (ep.price > 0 ? ' · ' + ep.price + ' tokens' : '') + '</p>' +
                   lockedCta(ep, confirming) +
                 '</div>' +
               '</div>'

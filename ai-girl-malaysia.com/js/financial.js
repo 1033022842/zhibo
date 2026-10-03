@@ -25,7 +25,7 @@
     function injectBalanceBar() {
         $('#moneyLayout').before(
             '<div id="fin-balance-bar" style="margin:0 auto 16px;width:350px;padding:12px 16px;border-radius:10px;background:rgba(231,82,117,.08);border:1px solid rgba(231,82,117,.25);display:flex;justify-content:space-between;align-items:center" class="sm:w-[450px] md:w-[580px] lg:w-[846px]">' +
-            '<span style="font-size:13px;color:#bbb">Diamond balance</span>' +
+            '<span style="font-size:13px;color:#bbb">Token balance</span>' +
             '<span id="fin-balance" style="font-size:20px;font-weight:800;color:#E75275">-</span>' +
             '</div>'
         )
@@ -37,7 +37,7 @@
         $.ajax({ url: base + '/wallet/ledger?page=' + page + '&page_size=20', headers: h() }).done(function(r) {
             if (r.code !== '00000' || !r.data) return
             var list = r.data.list || []
-            $('#fin-balance').text(num(r.data.balance) + ' diamonds')
+            $('#fin-balance').text(num(r.data.balance) + ' tokens')
 
             $('#moneyLayout').html(moneyTpl)
             if (!list.length) {
