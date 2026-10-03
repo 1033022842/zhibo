@@ -378,9 +378,13 @@
     }
   }
 
-  /* 页面里原有的 Contact Us 入口（侧边栏/抽屉 data-contact-us）改开客服弹窗 */
+  /* 页面里原有的 Contact Us 入口（侧边栏/抽屉 data-contact-us）改开客服弹窗。
+     必须挂在 window 的捕获阶段：各页面自己还留着一份「打开自带 contactUsModalContainer」的
+     document 捕获监听，document 上的监听按注册顺序都会执行、stopPropagation 拦不住它，
+     会出现两个客服弹窗同时弹出、互相重叠。window 捕获早于 document，
+     这里 stopPropagation 后页面那份监听（以及元素自身的监听）都不会再触发。 */
   function intercept() {
-    document.addEventListener('click', function (e) {
+    window.addEventListener('click', function (e) {
       var el = e.target && e.target.closest ? e.target.closest('[data-contact-us]') : null
       if (!el) return
       e.preventDefault()
