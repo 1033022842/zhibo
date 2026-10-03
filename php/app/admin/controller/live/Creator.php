@@ -10,12 +10,13 @@ namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
 use app\admin\model\live\CreatorSubmission as CreatorModel;
+use app\live\service\CreatorService;
 
 final class Creator extends Backend
 {
     protected object $model;
 
-    protected array $noNeedLogin = ['index', 'approve', 'reject', 'detailJson', 'download', 'removeRecord', 'linkPersona'];
+    protected array $noNeedLogin = ['index', 'approve', 'reject', 'publish', 'detailJson', 'download', 'removeRecord', 'linkPersona'];
 
     // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
     protected array $middleware = [
@@ -87,7 +88,7 @@ final class Creator extends Backend
     }
 
     /**
-     * 审核通过 (AJAX)
+     * 审核通过 (AJAX)：通过后自动上架站内（建可聊天角色 + 首页推荐角色卡）
      */
     public function approve(): void
     {
@@ -100,7 +101,31 @@ final class Creator extends Backend
         $item->reviewed_at = date('Y-m-d H:i:s');
         $item->updated_at  = date('Y-m-d H:i:s');
         $item->save();
-        $this->success('审核通过');
+
+        try {
+            $r = (new CreatorService())->publish($id);
+            $this->success('审核通过，已上架站内（角色 #' . $r['persona_id'] . '，首页卡 #' . $r['home_character_id'] . '）');
+        } catch (\Throwable $e) {
+            $this->success('审核通过，但上架站内失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 上架站内 (AJAX)：给已上线但还没上架的作品补上（建可聊天角色 + 首页推荐角色卡，幂等）
+     */
+    public function publish(): void
+    {
+        $id = $this->request->param('id/d', 0);
+        $item = $this->model->find($id);
+        if (!$item) { $this->error('记录不存在'); return; }
+
+        try {
+            $r = (new CreatorService())->publish($id);
+        } catch (\Throwable $e) {
+            $this->error($e->getMessage());
+            return;
+        }
+        $this->success('已上架站内（角色 #' . $r['persona_id'] . '，首页卡 #' . $r['home_character_id'] . '）');
     }
 
     /**
@@ -488,6 +513,10 @@ final class Creator extends Backend
                 <button class="op-btn op-ok" onclick="doApprove({$row['id']})">通过</button>
                 <button class="op-btn op-no" onclick="showReject({$row['id']})">驳回</button>
                 ACT;
+            } elseif ($stNum === 1 && (int)($row['home_character_id'] ?? 0) <= 0) {
+                $actions = <<<ACT
+                <button class="op-btn op-ok" onclick="doPublish({$row['id']})">上架站内</button>
+                ACT;
             }
 
             // 收入：作品(关联角色)礼物收入 毛额/净额 + 提交用户累计到手收益
@@ -812,9 +841,17 @@ final class Creator extends Backend
             function closeDetail(){ document.getElementById('detailModal').classList.remove('active'); }
 
             function doApprove(id, closeAfter){
-                if (!confirm('确定通过该创作？通过后角色上线。')) return;
+                if (!confirm('确定通过该创作？通过后会自动上架站内（建可聊天角色 + 首页推荐角色卡）。')) return;
                 fetch('/admin/live.Creator/approve?id=' + id).then(function(r){return r.json()}).then(function(d){
-                    if (d.code === 1) { alert('审核通过'); location.reload(); }
+                    if (d.code === 1) { alert(d.msg || '审核通过'); location.reload(); }
+                    else { alert(d.msg || '操作失败'); }
+                }).catch(function(){ alert('网络错误'); });
+            }
+
+            function doPublish(id){
+                if (!confirm('把该作品上架到站内（建可聊天角色 + 首页推荐角色卡）？')) return;
+                fetch('/admin/live.Creator/publish?id=' + id).then(function(r){return r.json()}).then(function(d){
+                    if (d.code === 1) { alert(d.msg || '已上架'); location.reload(); }
                     else { alert(d.msg || '操作失败'); }
                 }).catch(function(){ alert('网络错误'); });
             }

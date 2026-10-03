@@ -576,6 +576,34 @@ mysql -h"$DBH" -u"$DBU" "$DBN" -e "
 """
 
 
+CREATOR_PUBLISH_STEP = r'''
+cat > /tmp/creator_publish.php <<'PHPEOF'
+<?php
+use think\facade\Db;
+require '/www/wwwroot/douyin/php/vendor/autoload.php';
+$app = new \think\App();
+$app->initialize();
+
+$ids = array_values(array_filter(array_map('intval', array_slice($argv, 1))));
+if (!$ids) {
+    $ids = Db::connect('live_mysql')->table('lp_creator_submission')
+        ->where('status', 1)->where('home_character_id', 0)->order('id asc')->column('id');
+}
+$svc = new \app\live\service\CreatorService();
+foreach ($ids as $id) {
+    try {
+        $r = $svc->publish((int) $id);
+        printf("publish #%d -> persona #%d, home_character #%d\n", $id, $r['persona_id'], $r['home_character_id']);
+    } catch (\Throwable $e) {
+        printf("publish #%d FAILED: %s\n", $id, $e->getMessage());
+    }
+}
+echo "done\n";
+PHPEOF
+php /tmp/creator_publish.php __IDS__
+'''
+
+
 TIER_E2E_STEP = r'''
 cat > /tmp/vip_tier_e2e.php <<'PHPEOF'
 <?php
@@ -1264,6 +1292,29 @@ def main():
             run(cli, buf, "生成测试用户 %s 的登录 token" % uid, TOKEN_STEP.replace("__UID__", uid), timeout=120)
         elif action == "cleanvip":
             run(cli, buf, "清理订阅联调残留", CLEANVIP_STEP, timeout=120)
+        elif action == "creator":
+            # 创作作品上架：后台审核控制器 + 创作服务 + 上架字段迁移
+            for rel in ["php/app/live/service/CreatorService.php",
+                        "php/app/admin/controller/live/Creator.php"]:
+                upload_file(sftp, buf, rel, PHP_DIR + "/" + rel.split("/", 1)[1], ".bak_creator_" + STAMP)
+            upload_file(sftp, buf, "php/sql/upgrade_creator_publish.sql",
+                        PHP_DIR + "/sql/upgrade_creator_publish.sql", "")
+            run(cli, buf, "PHP 语法检查（创作上架相关）",
+                "php -l %s/app/live/service/CreatorService.php; php -l %s/app/admin/controller/live/Creator.php\n"
+                % (PHP_DIR, PHP_DIR), timeout=120)
+            run(cli, buf, "上架字段迁移 + 现状校验",
+                DB_ENV + 'mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_creator_publish.sql\n'
+                + 'mysql -h"$DBH" -u"$DBU" "$DBN" -e "SELECT id,user_id,persona_id,home_character_id,status,persona_name FROM lp_creator_submission ORDER BY id DESC;"\n',
+                timeout=120)
+            run(cli, buf, "把已上线作品上架站内（角色 + 首页推荐卡）",
+                CREATOR_PUBLISH_STEP.replace("__IDS__", " ".join(sys.argv[2:])), timeout=180)
+            run(cli, buf, "上架结果校验",
+                DB_ENV + 'mysql -h"$DBH" -u"$DBU" "$DBN" -e "'
+                + 'SELECT id,user_id,persona_id,home_character_id,status,persona_name FROM lp_creator_submission ORDER BY id DESC;'
+                + 'SELECT id,name,category,status,weigh,link_url FROM lp_home_character ORDER BY id DESC LIMIT 5;'
+                + 'SELECT id,code,name,user_id,status FROM lp_persona ORDER BY id DESC LIMIT 5;"\n',
+                timeout=120)
+            run(cli, buf, "重载 php-fpm", RELOAD_STEP, timeout=120)
         elif action == "shell":
             for rel in ["ai-girl-malaysia.com/assets/fy.css",
                         "ai-girl-malaysia.com/js/shell-new.js",
