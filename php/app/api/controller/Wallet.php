@@ -42,6 +42,8 @@ final class Wallet extends BaseController
             'gift_income'          => '礼物收入',
             'gift_commission'      => '平台抽成',
             'gift_refund'          => '礼物退款',
+            'short_unlock'         => '解锁短剧',
+            'short_income'         => '短剧收入',
             'crowdfunding_pledge'  => '众筹支持',
             'crowdfunding_unlock'  => '众筹划转',
             'crowdfunding_refund'  => '众筹退款',
