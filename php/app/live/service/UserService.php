@@ -16,12 +16,12 @@ use think\facade\Log;
 
 final class UserService
 {
-    public function register(string $email, string $code, string $password, string $nickname, string $ip = '', string $inviteCode = ''): array
+    public function register(string $email, string $code, string $password, string $nickname, string $ip = '', string $inviteCode = '', string $regDomain = '', string $regChannel = ''): array
     {
         $verifyService = new EmailVerifyService();
         $verifyService->verify($email, $code);
 
-        $user = $this->createUser($email, $password, $nickname, $ip, 'email');
+        $user = $this->createUser($email, $password, $nickname, $ip, 'email', $regDomain, $regChannel);
         $this->bindInviter((int) $user['id'], $inviteCode);
 
         return $user;
@@ -30,7 +30,7 @@ final class UserService
     /**
      * AI 前端注册（无需邮箱验证码）
      */
-    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = ''): array
+    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = '', string $regDomain = '', string $regChannel = ''): array
     {
         // 检查用户名/邮箱是否已存在
         $exists = UserAuth::where('auth_key', $email)
@@ -40,7 +40,7 @@ final class UserService
             throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
         }
 
-        $user = $this->createUser($email, $password, $username, $ip, 'username');
+        $user = $this->createUser($email, $password, $username, $ip, 'username', $regDomain, $regChannel);
         $this->bindInviter((int) $user['id'], $inviteCode);
 
         return $user;
@@ -61,7 +61,7 @@ final class UserService
         }
     }
 
-    private function createUser(string $email, string $password, string $nickname, string $ip, string $authType): array
+    private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, string $regDomain = '', string $regChannel = ''): array
     {
         $exists = UserAuth::where('auth_type', 'email')
             ->where('auth_key', $email)
@@ -78,6 +78,9 @@ final class UserService
             $user->email    = $email;
             $user->status   = 1;
             $user->level    = 1;
+            // 推广来源归因：注册来源域名 + 渠道参数（前台没带时用 Referer/Origin 兜底）
+            $user->reg_domain  = self::normalizeRegDomain($regDomain !== '' ? $regDomain : self::requestHost());
+            $user->reg_channel = mb_substr(trim($regChannel), 0, 64);
             $user->created_at = date('Y-m-d H:i:s');
             $user->save();
 
@@ -230,6 +233,9 @@ final class UserService
             $user->email      = $email;
             $user->status     = 1;
             $user->level      = 1;
+            // 推广来源归因：Google 首次登录建号同样记录来源域名
+            $user->reg_domain  = self::normalizeRegDomain(self::requestHost());
+            $user->reg_channel = '';
             $user->created_at = date('Y-m-d H:i:s');
             $user->save();
 
@@ -512,5 +518,42 @@ final class UserService
             $reason === '' ? '-' : $reason,
             $description === '' ? '-' : $description
         ));
+    }
+
+    /**
+     * 从当前请求的 Origin / Referer 解析来源域名（注册接口没显式带 reg_domain 时兜底）
+     */
+    private static function requestHost(): string
+    {
+        try {
+            $req = request();
+            if (!$req) {
+                return '';
+            }
+            $src = trim((string) $req->header('origin', ''));
+            if ($src === '') {
+                $src = trim((string) $req->header('referer', ''));
+            }
+            if ($src === '') {
+                return '';
+            }
+            return self::normalizeRegDomain((string) parse_url($src, PHP_URL_HOST));
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    /**
+     * 来源域名规范化：去协议/端口/路径，转小写；IP 与本机地址不算推广域名
+     */
+    private static function normalizeRegDomain(string $host): string
+    {
+        $host = strtolower(trim($host));
+        $host = (string) preg_replace('#^https?://#', '', $host);
+        $host = (string) preg_replace('#[/:].*$#', '', $host);
+        if ($host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return '';
+        }
+        return mb_substr($host, 0, 120);
     }
 }

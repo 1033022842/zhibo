@@ -180,6 +180,11 @@
         form.append("email", $('#user_email_registration').val());
         form.append("password", $('#user_password_registration').val());
         form.append("invite_code", inviteCode());
+        // 推广来源归因：来源域名 + 渠道参数（由 tracking.js 首次落地时写入 localStorage）
+        try {
+          form.append("reg_domain", localStorage.getItem('reg_domain') || '');
+          form.append("reg_channel", localStorage.getItem('reg_channel') || '');
+        } catch (e) {}
 
         const settings = {
           "async": true,

@@ -42,7 +42,7 @@ final class Live extends BaseController
         $params = $this->request->post();
         $this->validate($params, UserValidate::class . '.register');
         $ip = $this->request->ip();
-        $this->userService->register($params['email'], $params['code'], $params['password'], $params['nickname'], $ip);
+        $this->userService->register($params['email'], $params['code'], $params['password'], $params['nickname'], $ip, (string) ($params['invite_code'] ?? ''), (string) ($params['reg_domain'] ?? ''), (string) ($params['reg_channel'] ?? ''));
         return $this->jsonSuccess(null, '注册成功');
     }
 
@@ -54,7 +54,7 @@ final class Live extends BaseController
         $params = $this->request->post();
         $this->validate($params, UserValidate::class . '.registerAi');
         $ip = $this->request->ip();
-        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''));
+        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''), (string) ($params['reg_domain'] ?? ''), (string) ($params['reg_channel'] ?? ''));
         // 注册成功后自动登录
         $result = $this->userService->login($params['email'], $params['password'], $ip);
         return $this->jsonSuccess($result);
