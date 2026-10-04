@@ -5,6 +5,8 @@
        var token = localStorage.getItem('live_access_token')
     // 聊天/通话消费价格（后端平台可配），进页面时拉一次
     var consumeOptions = { chat_overage_price: 0, call_price_per_minute: 0 }
+    // 好感度奖励清单缓存键（character:affection），避免每发一条消息都重复拉取
+    var rewardsKey = ''
     function loadConsumeOptions() {
         fetch('/api/live/consumeOptions')
             .then(function (r) { return r.json() })
@@ -578,6 +580,8 @@
                 '<button type="button" class="js-sp-aff-confirm" style="height:34px;padding:0 14px;border:0;border-radius:9px;' +
                 'background:#E75275;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Buy</button>' +
                 '</div>' +
+                '<div class="js-sp-aff-hint" style="margin-top:8px;font-size:11px;color:#8b8b92;line-height:1.5"></div>' +
+                '<div class="js-sp-rewards" style="display:none;flex-direction:column;gap:6px;margin-top:8px"></div>' +
             '</div>' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:10px 12px;' +
             'border-radius:10px;background:#262626;border:1px solid #3a3a3a">' +
@@ -624,6 +628,53 @@
         box.querySelector('.js-sp-aff-fill').style.width = Math.round(val / max * 100) + '%'
         box.querySelector('.js-sp-aff-buy').style.display = val >= max ? 'none' : 'block'
         if (val >= max) box.querySelector('.js-sp-aff-panel').style.display = 'none'
+        // 满好感度解锁该角色的「专属视频」，拉一次清单（未满时用于提示还差多少）
+        var cid = spendContentId()
+        if (cid !== '0') {
+            var key = cid + ':' + val
+            if (key !== rewardsKey) {
+                rewardsKey = key
+                loadAffectionRewards(cid, val >= max)
+            }
+        }
+    }
+
+    // 好感度奖励：满 100 可观看该角色的专属视频（scene_type=affection）
+    function loadAffectionRewards(cid, unlocked) {
+        fetch('/api/live/roleMedia?content_id=' + cid + '&type=special', { headers: authHeaders(false) })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                var box = document.getElementById('js-spend')
+                if (!box || !d || d.code !== '00000' || !Array.isArray(d.data)) return
+                var all = d.data
+                var playable = all.filter(function (m) { return m && m.video_url })
+                var hint = box.querySelector('.js-sp-aff-hint')
+                var wrap = box.querySelector('.js-sp-rewards')
+                if (unlocked && playable.length) {
+                    hint.innerHTML = '<span style="color:#7ee0a2;font-weight:600">🎉 Exclusive videos unlocked</span> · tap to watch'
+                    wrap.style.display = 'flex'
+                    wrap.innerHTML = playable.map(function (m) {
+                        return '<button type="button" class="js-sp-play" data-url="' + esc(m.video_url) + '" style="display:flex;align-items:center;gap:8px;' +
+                            'width:100%;padding:8px 10px;border:1px solid #434343;border-radius:9px;background:#262626;color:#fff;' +
+                            'font-size:12px;font-weight:600;cursor:pointer;text-align:left">' +
+                            '<span style="flex:0 0 auto;color:#E75275">▶</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+                            esc(m.title || 'Exclusive video') + '</span></button>'
+                    }).join('')
+                    var btns = wrap.querySelectorAll('.js-sp-play')
+                    for (var i = 0; i < btns.length; i++) {
+                        btns[i].addEventListener('click', function () {
+                            playSpecialVideo(this.getAttribute('data-url'))
+                        })
+                    }
+                } else {
+                    wrap.style.display = 'none'
+                    wrap.innerHTML = ''
+                    hint.textContent = all.length
+                        ? ('Chat daily (+1/day) or buy tokens · Reach 100 to unlock ' + all.length + ' exclusive video' + (all.length > 1 ? 's' : ''))
+                        : 'Chat daily (+1/day) or buy tokens to raise her affection'
+                }
+            })
+            .catch(function () {})
     }
 
     // 代币余额（任何角色都展示，作为消费/充值入口）
