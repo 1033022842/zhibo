@@ -475,7 +475,7 @@ final class Creator extends Backend
      */
     private function commissionRate(): float
     {
-        $rate = (float) \app\live\service\WalletService::config('gift_commission_rate', '0.30');
+        $rate = (float) \app\live\service\WalletService::config('short_commission_rate', (string) \app\live\service\WalletService::config('gift_commission_rate', '0.30'));
         return max(0.0, min(0.9, $rate));
     }
 
