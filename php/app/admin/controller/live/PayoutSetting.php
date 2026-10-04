@@ -25,6 +25,7 @@ final class PayoutSetting extends Backend
     private const PLAIN_FIELDS = [
         'diamond_to_usdt_rate'        => ['float', '代币兑USDT比例（1代币=多少USDT）'],
         'short_commission_rate'       => ['float', '短剧收入平台抽成比例（0.3=抽30%，作者得70%）'],
+        'chat_commission_rate'        => ['float', '聊天收入（好感度/视频解锁）平台抽成比例'],
         'gift_commission_rate'        => ['float', '礼物收入平台抽成比例'],
         'crowdfunding_commission_rate' => ['float', '众筹收入平台抽成比例'],
         'withdraw_fee_rate'           => ['float', '提现手续费比例'],
@@ -103,6 +104,7 @@ final class PayoutSetting extends Backend
         $ercGp  = $f('payout_erc20_gas_price_gwei', '0');
         $bepGp  = $f('payout_bep20_gas_price_gwei', '0');
         $shortComm = $f('short_commission_rate', '0.30');
+        $chatComm  = $f('chat_commission_rate', '0.30');
         $giftComm  = $f('gift_commission_rate', '0.30');
         $crowdComm = $f('crowdfunding_commission_rate', '0.30');
 
@@ -156,6 +158,7 @@ final class PayoutSetting extends Backend
         <h2><span class="dot"></span>收入分成比例</h2>
         <div class="grid">
             <div class="field"><label>短剧收入平台抽成（0.5 = 抽 50%，作者得 50%）</label><input name="short_commission_rate" value="{$shortComm}" placeholder="0.30"></div>
+            <div class="field"><label>聊天收入平台抽成（好感度/视频解锁，0.3 = 抽 30%，作者得 70%）</label><input name="chat_commission_rate" value="{$chatComm}" placeholder="0.30"></div>
             <div class="field"><label>礼物收入平台抽成（0.3 = 抽 30%，主播得 70%）</label><input name="gift_commission_rate" value="{$giftComm}" placeholder="0.30"></div>
             <div class="field"><label>众筹收入平台抽成（0.3 = 抽 30%，发起人得 70%）</label><input name="crowdfunding_commission_rate" value="{$crowdComm}" placeholder="0.30"></div>
         </div>

@@ -151,7 +151,8 @@ final class WalletService
             return 0.0;
         }
 
-        $rate = max(0.0, min(0.9, (float) self::config('gift_commission_rate', '0.30')));
+        // 聊天收入抽成：优先 chat_commission_rate，未配置时沿用 gift_commission_rate（默认 0.30）
+        $rate = max(0.0, min(0.9, (float) self::config('chat_commission_rate', (string) self::config('gift_commission_rate', '0.30'))));
         $net  = round($gross * (1 - $rate), 2);
         if ($net <= 0) {
             return 0.0;
