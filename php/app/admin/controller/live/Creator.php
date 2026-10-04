@@ -1032,9 +1032,9 @@ final class Creator extends Backend
                             var epNo = Number(ep.episode_no) || (ei + 1);
                             var epPrice = Number(ep.price) || 0;
                             var epFree = (epNo <= freeEp) || epPrice <= 0;
-                            var cover = ep.poster ? '<img src="' + esc(ep.poster) + '" onerror="this.style.visibility=\'hidden\'">' : '<div class="ep-ph">EP' + epNo + '</div>';
+                            var epCover = ep.poster ? '<img src="' + esc(ep.poster) + '" onerror="this.style.visibility=\'hidden\'">' : '<div class="ep-ph">EP' + epNo + '</div>';
                             var priceTxt = epFree ? '<span class="ep-free">免费</span>' : (epPrice + ' 代币');
-                            epHtml += '<div class="ep-item">' + cover +
+                            epHtml += '<div class="ep-item">' + epCover +
                                 '<div class="ep-meta"><div class="ep-ttl">EP' + epNo + ' · ' + esc(ep.title || '') + '</div>' +
                                 '<div class="ep-sub">' + (ep.duration ? esc(ep.duration) + ' · ' : '') + priceTxt + '</div>' +
                                 '<div class="ep-sub">' + (ep.video_url ? '<a href="' + esc(ep.video_url) + '" target="_blank" download style="color:#6366f1">视频</a>' : '<span style="color:#e11d48">缺视频</span>') + '</div></div></div>';
