@@ -634,7 +634,7 @@ final class Creator extends Backend
         $rows = $db->table('lp_wallet_ledger')
             ->where('biz_type', 'affection_buy')->where('direction', 2)
             ->whereIn('biz_id', $contentIds)
-            ->field(['biz_id', 'SUM(amount) AS amt', 'COUNT(*) AS n'])
+            ->field('biz_id, SUM(amount) AS amt, COUNT(*) AS n')
             ->group('biz_id')->select()->toArray();
         foreach ($rows as $r) {
             $cid = (int) $r['biz_id'];
@@ -647,7 +647,7 @@ final class Creator extends Backend
             ->join('lp_ai_media m', 'm.id = l.biz_id')
             ->where('l.biz_type', 'media_unlock')->where('l.direction', 2)
             ->whereIn('m.content_id', $contentIds)
-            ->field(['m.content_id AS cid', 'SUM(l.amount) AS amt', 'COUNT(*) AS n'])
+            ->field('m.content_id AS cid, SUM(l.amount) AS amt, COUNT(*) AS n')
             ->group('m.content_id')->select()->toArray();
         foreach ($rows as $r) {
             $cid = (int) $r['cid'];
@@ -659,7 +659,7 @@ final class Creator extends Backend
         $rows = $db->table('lp_wallet_ledger')
             ->whereIn('biz_type', ['affection_income', 'media_income'])->where('direction', 1)
             ->whereIn('biz_id', $contentIds)
-            ->field(['biz_id', 'SUM(amount) AS amt'])
+            ->field('biz_id, SUM(amount) AS amt')
             ->group('biz_id')->select()->toArray();
         foreach ($rows as $r) {
             $cid = (int) $r['biz_id'];
