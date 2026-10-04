@@ -102,6 +102,9 @@ final class PayoutSetting extends Backend
         $bepGas = $f('payout_bep20_gas_limit', '100000');
         $ercGp  = $f('payout_erc20_gas_price_gwei', '0');
         $bepGp  = $f('payout_bep20_gas_price_gwei', '0');
+        $shortComm = $f('short_commission_rate', '0.30');
+        $giftComm  = $f('gift_commission_rate', '0.30');
+        $crowdComm = $f('crowdfunding_commission_rate', '0.30');
 
         echo <<<HTML
 <!DOCTYPE html>
@@ -147,6 +150,16 @@ final class PayoutSetting extends Backend
             <div class="field"><label>最低提现代币数</label><input name="min_withdraw_diamond" value="{$minWd}" placeholder="1000"></div>
             <div class="field"><label>单笔最多自动打款次数（超过转人工）</label><input name="payout_max_attempts" value="{$attempts}" placeholder="3"></div>
         </div>
+    </div>
+
+    <div class="card">
+        <h2><span class="dot"></span>收入分成比例</h2>
+        <div class="grid">
+            <div class="field"><label>短剧收入平台抽成（0.5 = 抽 50%，作者得 50%）</label><input name="short_commission_rate" value="{$shortComm}" placeholder="0.30"></div>
+            <div class="field"><label>礼物收入平台抽成（0.3 = 抽 30%，主播得 70%）</label><input name="gift_commission_rate" value="{$giftComm}" placeholder="0.30"></div>
+            <div class="field"><label>众筹收入平台抽成（0.3 = 抽 30%，发起人得 70%）</label><input name="crowdfunding_commission_rate" value="{$crowdComm}" placeholder="0.30"></div>
+        </div>
+        <div class="tip">填 0.5 表示平台抽 50%、创作者分成 50%。修改后立即对新的解锁/送礼/众筹入账生效（已入账的流水不回溯）。留空保存则恢复默认 0.30。</div>
     </div>
 
     <div class="card">
@@ -235,6 +248,10 @@ HTML;
                 };
                 if (in_array($type, ['int', 'float'], true) && $value === '') {
                     $value = '0';
+                }
+                // 分成比例统一钳制到 [0, 0.9]，防止误填 1 或更大导致创作者零分成/负分成
+                if (str_ends_with($key, '_commission_rate') && $type === 'float') {
+                    $value = (string) min(0.9, max(0.0, (float) $value));
                 }
                 $service->saveSetting($key, $value, $remark);
             }
