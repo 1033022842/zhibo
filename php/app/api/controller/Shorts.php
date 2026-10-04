@@ -223,6 +223,23 @@ final class Shorts extends BaseController
                     $episodeId,
                     $remark
                 );
+
+                // 作者分账：短剧归属作者（lp_creator_submission.short_id = lp_short_item.id），扣平台抽成后入作者钱包
+                $authorId = (int) $db->table('lp_creator_submission')
+                    ->where('short_id', (int) $episode['short_id'])->value('user_id');
+                if ($authorId > 0) {
+                    $commission = max(0.0, min(0.9, (float) WalletService::config('gift_commission_rate', '0.30')));
+                    $income     = round($amount * (1 - $commission), 2);
+                    if ($income > 0) {
+                        $wallet->credit(
+                            $authorId,
+                            $income,
+                            'short_income',
+                            $episodeId,
+                            '短剧《' . mb_substr((string) $short['title'], 0, 20) . '》第' . (int) $episode['episode_no'] . '集解锁分成'
+                        );
+                    }
+                }
             }
 
             $now = date('Y-m-d H:i:s');

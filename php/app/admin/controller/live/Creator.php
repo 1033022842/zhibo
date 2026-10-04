@@ -64,25 +64,31 @@ final class Creator extends Backend
             'rejected' => (int)$this->model->where('status', 2)->count(),
         ];
 
-        // 收入：按作品关联角色统计礼物收入（毛额/净额），并统计提交用户的累计到手收益
+        // 收入：角色作品按角色礼物收入统计；短剧作品按解锁收入统计；再统计提交用户累计到手收益
         $items       = $list->items();
         $personaIds  = [];
         $userIds     = [];
+        $shortIds    = [];
         foreach ($items as $row) {
             $pid = (int)($row['persona_id'] ?? 0);
-            if ($pid > 0) {
+            if ($pid > 0 && (string)($row['publish_type'] ?? '') !== 'drama') {
                 $personaIds[] = $pid;
+            }
+            $sid = (int)($row['short_id'] ?? 0);
+            if ($sid > 0) {
+                $shortIds[] = $sid;
             }
             $uid = (int)($row['user_id'] ?? 0);
             if ($uid > 0) {
                 $userIds[] = $uid;
             }
         }
-        $rate         = $this->commissionRate();
+        $rate          = $this->commissionRate();
         $personaIncome = $this->personaIncomeMap($personaIds, $rate);
+        $shortIncome   = $this->shortIncomeMap($shortIds);
         $userIncome    = $this->userIncomeMap($userIds);
 
-        $html = $this->renderPage($list, $stats, $personaIncome, $userIncome, $rate);
+        $html = $this->renderPage($list, $stats, $personaIncome, $userIncome, $rate, $shortIncome);
         response($html)->send();
         exit;
     }
@@ -192,10 +198,13 @@ final class Creator extends Backend
             $episodes = [];
         }
 
-        // 收入信息：作品关联角色的礼物收入 + 提交用户累计到手收益
+        // 收入信息：短剧按解锁收入、角色作品按角色礼物收入；外加提交用户累计到手收益
         $rate         = $this->commissionRate();
         $personaId    = (int)($item->persona_id ?? 0);
-        $personaInc   = $personaId > 0 ? ($this->personaIncomeMap([$personaId], $rate)[$personaId] ?? null) : null;
+        $shortId      = (int)($item->short_id ?? 0);
+        $isDrama      = (string)$item->publish_type === 'drama';
+        $personaInc   = (!$isDrama && $personaId > 0) ? ($this->personaIncomeMap([$personaId], $rate)[$personaId] ?? null) : null;
+        $shortInc     = $shortId > 0 ? ($this->shortIncomeMap([$shortId])[$shortId] ?? null) : null;
         $authorIncome = $this->userIncomeMap([(int)$item->user_id])[(int)$item->user_id] ?? 0.0;
 
         // 可关联的角色列表（供后台手动关联）
@@ -244,9 +253,11 @@ final class Creator extends Backend
             'created_at'     => (string)$item->created_at,
             'reviewed_at'    => (string)$item->reviewed_at,
             'persona_id'     => $personaId,
+            'short_id'       => $shortId,
             'income'         => [
                 'rate'         => $rate,
                 'persona'      => $personaInc,
+                'short'        => $shortInc,
                 'author_total' => $authorIncome,
             ],
             'persona_options' => $personaOptions,
@@ -505,7 +516,7 @@ final class Creator extends Backend
     }
 
     /**
-     * 用户累计到手收益：钱包流水 gift_income 汇总（与用户收入排行榜同口径）
+     * 用户累计到手收益：钱包流水收入项汇总（礼物 gift_income + 短剧 short_income，与收入排行榜同口径）
      * @return array<int,float>
      */
     private function userIncomeMap(array $userIds): array
@@ -517,7 +528,7 @@ final class Creator extends Backend
 
         $rows = \think\facade\Db::connect('live_mysql')
             ->table('lp_wallet_ledger')
-            ->where('biz_type', 'gift_income')
+            ->whereIn('biz_type', ['gift_income', 'short_income'])
             ->where('direction', 1)
             ->whereIn('user_id', $userIds)
             ->field(['user_id', 'SUM(amount) AS income'])
@@ -528,6 +539,62 @@ final class Creator extends Backend
         $map = [];
         foreach ($rows as $row) {
             $map[(int) $row['user_id']] = (float) $row['income'];
+        }
+        return $map;
+    }
+
+    /**
+     * 短剧解锁收入：按短剧汇总
+     *   毛额 = 买家实付（short_unlock 支出）之和，净额 = 作者到手（short_income 收入）之和
+     * @return array<int,array{gross:float,net:float,buyers:int}>
+     */
+    private function shortIncomeMap(array $shortIds): array
+    {
+        $shortIds = array_values(array_unique(array_filter($shortIds)));
+        if (!$shortIds) {
+            return [];
+        }
+
+        $db = \think\facade\Db::connect('live_mysql');
+
+        $episodes = $db->table('lp_short_episode')
+            ->whereIn('short_id', $shortIds)
+            ->field(['id', 'short_id'])
+            ->select()
+            ->toArray();
+        if (!$episodes) {
+            return [];
+        }
+
+        $epToShort = [];
+        foreach ($episodes as $ep) {
+            $epToShort[(int) $ep['id']] = (int) $ep['short_id'];
+        }
+
+        $rows = $db->table('lp_wallet_ledger')
+            ->whereIn('biz_type', ['short_unlock', 'short_income'])
+            ->whereIn('biz_id', array_keys($epToShort))
+            ->field(['biz_type', 'biz_id', 'SUM(amount) AS amt', 'COUNT(DISTINCT user_id) AS buyers'])
+            ->group('biz_type')
+            ->group('biz_id')
+            ->select()
+            ->toArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $sid = $epToShort[(int) $row['biz_id']] ?? 0;
+            if ($sid <= 0) {
+                continue;
+            }
+            if (!isset($map[$sid])) {
+                $map[$sid] = ['gross' => 0.0, 'net' => 0.0, 'buyers' => 0];
+            }
+            if ((string) $row['biz_type'] === 'short_unlock') {
+                $map[$sid]['gross']  += (float) $row['amt'];
+                $map[$sid]['buyers'] += (int) $row['buyers'];
+            } else {
+                $map[$sid]['net'] += (float) $row['amt'];
+            }
         }
         return $map;
     }
@@ -552,7 +619,7 @@ final class Creator extends Backend
         return array_values(array_filter(array_map('trim', explode(',', $value)), static fn($s) => $s !== ''));
     }
 
-    private function renderPage($list, array $stats, array $personaIncome = [], array $userIncome = [], float $rate = 0.3): string
+    private function renderPage($list, array $stats, array $personaIncome = [], array $userIncome = [], float $rate = 0.3, array $shortIncome = []): string
     {
         $statusMap  = self::STATUS_MAP;
         $publishMap = self::PUBLISH_MAP;
@@ -577,20 +644,27 @@ final class Creator extends Backend
                 <button class="op-btn op-ok" onclick="doApprove({$row['id']})">通过</button>
                 <button class="op-btn op-no" onclick="showReject({$row['id']})">驳回</button>
                 ACT;
-            } elseif ($stNum === 1 && (int)($row['home_character_id'] ?? 0) <= 0) {
+            } elseif ($stNum === 1 && ((string)$row['publish_type'] === 'drama'
+                ? (int)($row['short_id'] ?? 0) <= 0
+                : (int)($row['home_character_id'] ?? 0) <= 0)) {
                 $actions = <<<ACT
                 <button class="op-btn op-ok" onclick="doPublish({$row['id']})">上架站内</button>
                 ACT;
             }
 
-            // 收入：作品(关联角色)礼物收入 毛额/净额 + 提交用户累计到手收益
+            // 收入：短剧按解锁分成，角色作品按礼物收入；再叠加提交用户累计到手收益
             $pid    = (int)($row['persona_id'] ?? 0);
             $uid    = (int)($row['user_id'] ?? 0);
-            $pInc   = $pid > 0 ? ($personaIncome[$pid] ?? null) : null;
+            $sid    = (int)($row['short_id'] ?? 0);
             $uTotal = (float)($userIncome[$uid] ?? 0);
-            if ($pid <= 0) {
+            if ($sid > 0) {
+                $sInc    = $shortIncome[$sid] ?? null;
+                $workInc = '<div class="inc-work">' . self::fmtNum((float)($sInc['net'] ?? 0)) . ' <span class="inc-cur">代币</span></div>'
+                    . '<div class="inc-sub">解锁毛额 ' . self::fmtNum((float)($sInc['gross'] ?? 0)) . ' · ' . (int)($sInc['buyers'] ?? 0) . ' 人</div>';
+            } elseif ($pid <= 0) {
                 $workInc = '<div class="inc-none">未关联角色</div>';
             } else {
+                $pInc    = $personaIncome[$pid] ?? null;
                 $workInc = '<div class="inc-work">' . self::fmtNum((float)($pInc['net'] ?? 0)) . ' <span class="inc-cur">代币</span></div>'
                     . '<div class="inc-sub">毛额 ' . self::fmtNum((float)($pInc['gross'] ?? 0)) . '</div>';
             }
@@ -872,13 +946,11 @@ final class Creator extends Backend
                         epHtml += '</div>';
                     }
 
-                    // 收入：作品(关联角色)毛额/净额 + 作者累计到手
+                    // 收入：短剧按解锁分成，角色作品按礼物收入；外加作者累计到手
                     var inc = p.income || {};
                     var incPersona = inc.persona;
+                    var incShort = inc.short;
                     var rate = Number(inc.rate) || 0;
-                    var grossVal = incPersona ? (Number(incPersona.gross) || 0) : 0;
-                    var netVal = incPersona ? (Number(incPersona.net) || 0) : 0;
-                    var donors = incPersona ? (Number(incPersona.donors) || 0) : 0;
                     var authorTotal = Number(inc.author_total) || 0;
 
                     var optHtml = '<option value="0">— 不关联 —</option>';
@@ -889,18 +961,37 @@ final class Creator extends Backend
                         optHtml += '<option value="' + o.id + '"' + (String(o.id) === String(p.persona_id) ? ' selected' : '') + '>#' + o.id + ' ' + esc(o.name) + own + '</option>';
                     }
 
-                    var incHtml =
-                        '<div class="sec-title">收入</div>' +
-                        '<div class="inc-grid">' +
-                            '<div class="inc-card"><div class="k">作品礼物毛额</div><div class="v">' + (incPersona ? fmt(grossVal) : '—') + '</div></div>' +
-                            '<div class="inc-card"><div class="k">作品净收入（抽成 ' + (rate * 100).toFixed(0) + '%）</div><div class="v green">' + (incPersona ? fmt(netVal) : '—') + '</div></div>' +
-                            '<div class="inc-card"><div class="k">作者累计到手</div><div class="v purple">' + fmt(authorTotal) + '</div></div>' +
-                        '</div>' +
-                        '<div class="link-hint">' + (incPersona ? ('送礼人数 ' + donors + ' 人 · 已关联角色 #' + p.persona_id) : '该作品尚未关联角色，暂无法统计作品收入；请在下方关联对应角色。') + '</div>' +
-                        '<div class="link-row">' +
-                            '<select id="personaSel">' + optHtml + '</select>' +
-                            '<button class="btn btn-primary btn-sm" onclick="doLinkPersona(' + p.id + ')">保存关联</button>' +
-                        '</div>';
+                    var incHtml;
+                    if (Number(p.short_id) > 0) {
+                        // 短剧：按剧集解锁分成统计
+                        var sGross  = incShort ? (Number(incShort.gross) || 0) : 0;
+                        var sNet    = incShort ? (Number(incShort.net) || 0) : 0;
+                        var sBuyers = incShort ? (Number(incShort.buyers) || 0) : 0;
+                        incHtml =
+                            '<div class="sec-title">收入</div>' +
+                            '<div class="inc-grid">' +
+                                '<div class="inc-card"><div class="k">解锁毛额</div><div class="v">' + fmt(sGross) + '</div></div>' +
+                                '<div class="inc-card"><div class="k">作者分成（抽成 ' + (rate * 100).toFixed(0) + '%）</div><div class="v green">' + fmt(sNet) + '</div></div>' +
+                                '<div class="inc-card"><div class="k">作者累计到手</div><div class="v purple">' + fmt(authorTotal) + '</div></div>' +
+                            '</div>' +
+                            '<div class="link-hint">短剧 #' + p.short_id + ' · 已解锁 ' + sBuyers + ' 人（短剧收入按剧集解锁分成统计）</div>';
+                    } else {
+                        var grossVal = incPersona ? (Number(incPersona.gross) || 0) : 0;
+                        var netVal = incPersona ? (Number(incPersona.net) || 0) : 0;
+                        var donors = incPersona ? (Number(incPersona.donors) || 0) : 0;
+                        incHtml =
+                            '<div class="sec-title">收入</div>' +
+                            '<div class="inc-grid">' +
+                                '<div class="inc-card"><div class="k">作品礼物毛额</div><div class="v">' + (incPersona ? fmt(grossVal) : '—') + '</div></div>' +
+                                '<div class="inc-card"><div class="k">作品净收入（抽成 ' + (rate * 100).toFixed(0) + '%）</div><div class="v green">' + (incPersona ? fmt(netVal) : '—') + '</div></div>' +
+                                '<div class="inc-card"><div class="k">作者累计到手</div><div class="v purple">' + fmt(authorTotal) + '</div></div>' +
+                            '</div>' +
+                            '<div class="link-hint">' + (incPersona ? ('送礼人数 ' + donors + ' 人 · 已关联角色 #' + p.persona_id) : '该作品尚未关联角色，暂无法统计作品收入；请在下方关联对应角色。') + '</div>' +
+                            '<div class="link-row">' +
+                                '<select id="personaSel">' + optHtml + '</select>' +
+                                '<button class="btn btn-primary btn-sm" onclick="doLinkPersona(' + p.id + ')">保存关联</button>' +
+                            '</div>';
+                    }
 
                     var footer = '<button class="btn btn-ghost" onclick="closeDetail()">关闭</button>';
                     footer += '<button class="btn btn-ghost btn-sm" onclick="doDownload('+p.id+')">下载资料</button>';

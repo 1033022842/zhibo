@@ -196,9 +196,11 @@ final class CreatorService
 
         Db::startTrans();
         try {
-            // 1) 角色：没有就按提交内容建一个（可聊天）
-            $personaId = (int) $item->persona_id;
-            if ($personaId <= 0) {
+            $isDrama = (string) $item->publish_type === 'drama';
+
+            // 1) 角色：没有就按提交内容建一个（可聊天）；短剧只做短剧，不进角色/聊天体系
+            $personaId = $isDrama ? 0 : (int) $item->persona_id;
+            if (!$isDrama && $personaId <= 0) {
                 $persona = new Persona();
                 $persona->code      = StrHelper::orderNo('P');
                 $persona->user_id   = (int) $item->user_id;
@@ -256,9 +258,9 @@ final class CreatorService
                 }
             }
 
-            // 2) 首页推荐角色卡（没有才上架，避免重复）
-            $homeId = (int) $item->home_character_id;
-            if ($homeId <= 0) {
+            // 2) 首页推荐角色卡（没有才上架，避免重复）；短剧不上首页推荐、不进聊天
+            $homeId = $isDrama ? 0 : (int) $item->home_character_id;
+            if (!$isDrama && $homeId <= 0) {
                 $now = date('Y-m-d H:i:s');
                 $homeId = (int) Db::connect('live_mysql')->table('lp_home_character')->insertGetId([
                     'name'        => mb_substr((string) $item->persona_name, 0, 60),
@@ -438,7 +440,7 @@ final class CreatorService
 
     /**
      * 收入排行榜：按平台用户累计到手收益降序（公开数据，用于创作中心展示）
-     * 数据源为钱包流水 gift_income（礼物分成后角色归属人实际入账的代币）
+     * 数据源为钱包流水收入项：gift_income（礼物分成）+ short_income（短剧解锁分成）
      */
     public function leaderboard(int $limit = 10): array
     {
@@ -447,7 +449,7 @@ final class CreatorService
         $rows = Db::connect('live_mysql')
             ->table('lp_wallet_ledger l')
             ->join('lp_user u', 'u.id = l.user_id')
-            ->where('l.biz_type', 'gift_income')
+            ->whereIn('l.biz_type', ['gift_income', 'short_income'])
             ->where('l.direction', 1)
             ->where('l.user_id', '>', 0)
             ->field([
