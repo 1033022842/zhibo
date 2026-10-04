@@ -12,6 +12,7 @@
                 if (d && d.code === '00000' && d.data) {
                     consumeOptions.chat_overage_price = Number(d.data.chat_overage_price || 0)
                     consumeOptions.call_price_per_minute = Number(d.data.call_price_per_minute || 0)
+                    renderSpendHint()
                 }
             })
             .catch(function () {})
@@ -41,6 +42,7 @@
         setupCall()
         setupLogout()
         loadConsumeOptions()
+        loadTokens()
         // 会话列表是异步渲染的，点击必须用事件委托，否则后插入的条目不会带上事件
         $(document).on('click', '#message-list a.chat-obj', function(){
             selectConversation(String($(this).data('id') || ''))
@@ -381,6 +383,16 @@
         return /^\d+$/.test(id) ? '' : id
     }
 
+    // 可消费内容 id（好感度购买/解锁用）：首页角色 home-N 与纯数字都映射到 lp_ai_content.id；
+    // 自建角色 my-N 没有平台内容，返回 0。历史归档仍按 convContentId() 走，避免老记录串号。
+    function spendContentId() {
+        var id = String(currentConversation().id || '')
+        if (id === '') id = String(getParam('id') || '')
+        var m = /^home-(\d+)$/.exec(id)
+        if (m) return m[1]
+        return /^\d+$/.test(id) ? id : '0'
+    }
+
     function authHeaders(json) {
         var h = {}
         if (json) h['Content-Type'] = 'application/json'
@@ -543,49 +555,89 @@
         video.play().catch(function () {})
     }
 
-    // 好感度：在右侧资料面板显示进度 + 「Buy Affection」入口（有数据才插入）
-    function renderAffection(data) {
-        if (!data) return
+    /* ---------- 右侧资料面板「消费区」：好感度购买 + 代币余额（任何角色都能看到消费入口） ---------- */
+    function ensureSpendBox() {
+        var box = document.getElementById('js-spend')
+        if (box) return box
         var info = document.getElementById('infomation')
-        if (!info || !info.parentNode) return
+        if (!info || !info.parentNode) return null
+        box = document.createElement('div')
+        box.id = 'js-spend'
+        box.style.cssText = 'width:100%;margin-top:12px'
+        box.innerHTML =
+            '<div class="js-sp-aff" style="display:none">' +
+                '<div style="display:flex;justify-content:space-between;font-size:12px;color:#A1A1A1;margin-bottom:6px">' +
+                '<span>Affection</span><span class="js-sp-aff-val"></span></div>' +
+                '<div style="height:6px;border-radius:999px;background:#303030;overflow:hidden">' +
+                '<div class="js-sp-aff-fill" style="height:100%;width:0;background:linear-gradient(90deg,#E75275,#F97187);border-radius:999px;transition:width .4s"></div></div>' +
+                '<button type="button" class="js-sp-aff-buy" style="margin-top:10px;width:100%;height:34px;border:0;border-radius:9px;' +
+                'background:linear-gradient(135deg,#E75275,#c73b5c);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Buy Affection (1 token / point)</button>' +
+                '<div class="js-sp-aff-panel" style="display:none;gap:8px;margin-top:8px">' +
+                '<input type="number" class="js-sp-amt" min="1" step="1" value="10" style="flex:1;min-width:0;height:34px;padding:0 10px;' +
+                'border-radius:9px;border:1px solid #434343;background:#262626;color:#fff;font-size:13px">' +
+                '<button type="button" class="js-sp-aff-confirm" style="height:34px;padding:0 14px;border:0;border-radius:9px;' +
+                'background:#E75275;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Buy</button>' +
+                '</div>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:10px 12px;' +
+            'border-radius:10px;background:#262626;border:1px solid #3a3a3a">' +
+            '<div style="line-height:1.25"><div style="font-size:11px;color:#A1A1A1">Tokens</div>' +
+            '<div class="js-sp-bal" style="font-size:16px;font-weight:700;color:#fff">-</div></div>' +
+            '<a href="./tokens.html" style="padding:8px 12px;border-radius:9px;background:linear-gradient(135deg,#E75275,#c73b5c);' +
+            'color:#fff;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap">Get Tokens</a>' +
+            '</div>' +
+            '<div class="js-sp-hint" style="margin-top:6px;font-size:11px;color:#8b8b92;line-height:1.5"></div>'
+        info.parentNode.insertBefore(box, info.nextSibling)
+        box.querySelector('.js-sp-aff-buy').addEventListener('click', function () {
+            var panel = box.querySelector('.js-sp-aff-panel')
+            panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex'
+        })
+        box.querySelector('.js-sp-aff-confirm').addEventListener('click', function () {
+            buyAffection(parseInt(box.querySelector('.js-sp-amt').value, 10))
+        })
+        renderSpendHint()
+        return box
+    }
+
+    // 消费价格提示（通话/续聊单价，来自 /api/live/consumeOptions）
+    function renderSpendHint() {
+        var box = document.getElementById('js-spend')
+        if (!box) return
+        var hint = []
+        if (Number(consumeOptions.call_price_per_minute || 0) > 0) {
+            hint.push('Voice call ' + consumeOptions.call_price_per_minute + ' tokens/min')
+        }
+        if (Number(consumeOptions.chat_overage_price || 0) > 0) {
+            hint.push('Extra chat ' + consumeOptions.chat_overage_price + ' token/message after daily free limit')
+        }
+        box.querySelector('.js-sp-hint').textContent = hint.join(' · ')
+    }
+
+    // 好感度进度 + Buy 按钮（平台内容才有；自建角色不展示这一块）
+    function renderAffection(data) {
+        var box = ensureSpendBox()
+        if (!box || !data) return
         var max = Number(data.max || 100) || 100
         var val = Math.max(0, Math.min(max, Number(data.affection || 0)))
-        var box = document.getElementById('js-affection')
-        if (!box) {
-            box = document.createElement('div')
-            box.id = 'js-affection'
-            box.style.cssText = 'width:100%;margin-top:12px'
-            box.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:12px;color:#A1A1A1;margin-bottom:6px">' +
-                '<span>Affection</span><span class="js-aff-val"></span></div>' +
-                '<div style="height:6px;border-radius:999px;background:#303030;overflow:hidden">' +
-                '<div class="js-aff-fill" style="height:100%;width:0;background:linear-gradient(90deg,#E75275,#F97187);border-radius:999px;transition:width .4s"></div></div>' +
-                '<button type="button" class="js-aff-buy" style="margin-top:10px;width:100%;height:34px;border:0;border-radius:9px;' +
-                'background:linear-gradient(135deg,#E75275,#c73b5c);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Buy Affection</button>' +
-                '<div class="js-aff-panel" style="display:none;gap:8px;margin-top:8px">' +
-                '<input type="number" class="js-aff-amt" min="1" step="1" value="10" style="flex:1;min-width:0;height:34px;padding:0 10px;' +
-                'border-radius:9px;border:1px solid #434343;background:#262626;color:#fff;font-size:13px">' +
-                '<button type="button" class="js-aff-confirm" style="height:34px;padding:0 14px;border:0;border-radius:9px;' +
-                'background:#E75275;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Buy</button>' +
-                '</div>'
-            info.parentNode.insertBefore(box, info.nextSibling)
-            box.querySelector('.js-aff-buy').addEventListener('click', function () {
-                var panel = box.querySelector('.js-aff-panel')
-                panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex'
-            })
-            box.querySelector('.js-aff-confirm').addEventListener('click', function () {
-                buyAffection(parseInt(box.querySelector('.js-aff-amt').value, 10))
-            })
-        }
-        box.querySelector('.js-aff-val').textContent = val + ' / ' + max
-        box.querySelector('.js-aff-fill').style.width = Math.round(val / max * 100) + '%'
-        var buy = box.querySelector('.js-aff-buy')
-        if (buy) buy.style.display = val >= max ? 'none' : 'block'
+        box.querySelector('.js-sp-aff').style.display = 'block'
+        box.querySelector('.js-sp-aff-val').textContent = val + ' / ' + max
+        box.querySelector('.js-sp-aff-fill').style.width = Math.round(val / max * 100) + '%'
+        box.querySelector('.js-sp-aff-buy').style.display = val >= max ? 'none' : 'block'
+        if (val >= max) box.querySelector('.js-sp-aff-panel').style.display = 'none'
+    }
+
+    // 代币余额（任何角色都展示，作为消费/充值入口）
+    function renderTokens(balance) {
+        var box = ensureSpendBox()
+        if (!box) return
+        var n = Math.round(Number(balance || 0) * 100) / 100
+        box.querySelector('.js-sp-bal').textContent = n.toLocaleString()
     }
 
     // 购买好感度（1 代币 = 1 点，后端扣费并给作者分成）
     function buyAffection(amount) {
         if (!token) { goLoginPage(); return }
-        var cid = convContentId()
+        var cid = spendContentId()
         if (cid === '0') { appendError('Affection purchase is not available for this character.'); return }
         amount = parseInt(amount, 10)
         if (!(amount > 0)) { appendError('Please enter a valid amount.'); return }
@@ -598,6 +650,7 @@
             .then(function (d) {
                 if (d && d.code === '00000' && d.data) {
                     renderAffection({ affection: d.data.affection, max: 100 })
+                    renderTokens(d.data.balance)
                     if (window.SugusDialog) {
                         SugusDialog.alert('Purchase successful. Balance: ' + d.data.balance + ' tokens.', { title: 'Affection', icon: 'info' })
                     }
@@ -612,13 +665,22 @@
     }
 
     function loadAffection() {
-        var cid = convContentId()
-        var box = document.getElementById('js-affection')
-        // 非平台角色没有好感度，移除上一个角色残留的进度条
-        if (!token || cid === '0') { if (box) box.remove(); return }
+        var box = document.getElementById('js-spend')
+        var cid = spendContentId()
+        // 非平台角色 / 未登录：没有好感度，隐藏好感度区（代币余额入口仍然保留）
+        if (cid === '0' || !token) { if (box) box.querySelector('.js-sp-aff').style.display = 'none'; return }
         fetch('/api/live/affection?content_id=' + cid, { headers: authHeaders(false) })
             .then(function (r) { return r.json() })
             .then(function (d) { if (d && d.code === '00000' && d.data) renderAffection(d.data) })
+            .catch(function () {})
+    }
+
+    // 代币余额（消费入口展示）
+    function loadTokens() {
+        if (!token) return
+        fetch('/api/live/userInfo', { headers: authHeaders(false) })
+            .then(function (r) { return r.json() })
+            .then(function (d) { if (d && d.code === '00000' && d.data) renderTokens(d.data.money) })
             .catch(function () {})
     }
 
@@ -719,6 +781,7 @@
                 }
                 var data = d.data
                 chatHis.push({ role: 'user', content: text })
+                if (data.balance !== undefined) renderTokens(data.balance)
                 if (data.reply) {
                     appendBubble(data.reply, false)
                     chatHis.push({ role: 'assistant', content: data.reply })
@@ -982,7 +1045,10 @@
         })
             .then(function (r) { return r.json() })
             .then(function (d) {
-                if (d && d.code === '00000') return true
+                if (d && d.code === '00000') {
+                    if (d.data && d.data.balance !== undefined) renderTokens(d.data.balance)
+                    return true
+                }
                 appendError((d && d.msg) ? ('Call ended: ' + d.msg) : 'Call ended: insufficient tokens.')
                 return false
             })
