@@ -41,6 +41,9 @@ Route::get('live/replayClips',       '\app\api\controller\Live@replayClips')->mi
 Route::get('live/affection',         '\app\api\controller\Live@affection')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/buyAffection',     '\app\api\controller\Live@buyAffection')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/unlockVideo',      '\app\api\controller\Live@unlockVideo')->middleware(\app\live\middleware\Auth::class);
+// 聊天消费：公开价格查询 + 语音通话按分钟扣费（需登录）
+Route::get('live/consumeOptions',    '\app\api\controller\Live@consumeOptions');
+Route::post('live/callCharge',       '\app\api\controller\Live@callCharge')->middleware(\app\live\middleware\Auth::class);
 // 邀请好友（Affiliate Program / Inviter 页）的路由见 app/api/route/invite.php —— 全局 route/ 目录的规则在本机运行时不生效
 
 // VIP 定制角色视频（AI 电脑生成）

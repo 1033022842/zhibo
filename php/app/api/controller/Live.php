@@ -940,6 +940,8 @@ final class Live extends BaseController
         $lang      = (string) $this->request->post('lang', '');
         $deviceId  = trim((string) $this->request->post('device_id', ''));
         $voice     = (int) $this->request->post('voice', 0) === 1;
+        // 免费额度用尽后，用户确认用代币继续本轮聊天
+        $payTokens = (int) $this->request->post('pay_tokens', 0) === 1;
         $history   = $this->request->post('history', []);
         if (!is_array($history)) {
             $history = [];
@@ -960,19 +962,36 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, '请先登录');
         }
 
-        // 免费用户每日消息额度（会员不限，Premium / Premium Plus 均为无限）
+        // 语音通话按分钟计费：voice=1 必须处于已扣费的通话会话中（callCharge 写入 90 秒有效缓存）
+        $callPrice = (float) WalletService::config('call_price_per_minute', '5');
+        $inPaidCall = $voice && $callPrice > 0;
+        if ($inPaidCall && !\think\facade\Cache::store('file')->get('call_active:' . $userId . ':' . $contentId)) {
+            return $this->jsonFail(ResultCode::RATE_LIMIT, '通话未接通或已到期，请重新呼叫');
+        }
+
+        // 免费用户每日消息额度（会员不限，Premium / Premium Plus 均为无限；已计费通话内的语音不受此额度限制）
         $entitlement   = (new VipService())->entitlements($userId);
         $chatLimit     = (int) ($entitlement['chat_daily_limit'] ?? 0);
         $chatUnlimited = !empty($entitlement['is_vip']) && $chatLimit <= 0;
         $quotaService  = new QuotaService();
-        if (!$chatUnlimited) {
+        // 额度用尽后可用代币续聊（单条价格平台可配）
+        $overagePrice  = (float) WalletService::config('chat_overage_price', '1');
+        $chargeOverage = false;
+        if (!$chatUnlimited && !$inPaidCall) {
             $limitMsg = empty($entitlement['is_vip'])
                 ? "You've used all {$chatLimit} free messages today. Upgrade to Premium for unlimited chatting."
                 : "You've reached today's message limit ({$chatLimit}).";
             try {
                 $quotaService->check($userId, 'chat', $chatLimit, $limitMsg);
             } catch (BusinessException $e) {
-                return $this->jsonFail($e->resultCode, $e->getMessage());
+                if (!$payTokens || $overagePrice <= 0) {
+                    return $this->jsonFail($e->resultCode, $e->getMessage());
+                }
+                // 代币续聊：先校验余额（成功回复后再扣费，避免 AI 失败也扣钱）
+                if ((new WalletService())->balance($userId) + 0.0001 < $overagePrice) {
+                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, '代币余额不足，无法继续聊天');
+                }
+                $chargeOverage = true;
             }
         }
 
@@ -1070,8 +1089,8 @@ final class Live extends BaseController
             $result['media'] = $triggerMedia;
         }
 
-        // 计入当日消息额度（免费用户；会员无限时也计数，便于前端展示剩余额度）
-        if (!$chatUnlimited) {
+        // 计入当日消息额度（免费用户；会员无限时也计数，便于前端展示剩余额度；计费通话内语音不计数）
+        if (!$chatUnlimited && !$inPaidCall) {
             $quotaService->incr($userId, 'chat');
             $result['quota'] = $quotaService->info($userId, 'chat', $chatLimit);
         }
@@ -1086,6 +1105,19 @@ final class Live extends BaseController
             $specialVideo = $this->pickSpecialVideo($contentId, $userId);
             if ($specialVideo !== '') {
                 $result['special_video'] = $specialVideo;
+            }
+        }
+
+        // 代币续聊扣费：回复已生成后再扣，按配置价格扣代币并给作者分成
+        if ($chargeOverage) {
+            $wallet = new WalletService();
+            try {
+                $wallet->debit($userId, $overagePrice, 'chat_overage', $contentId, '免费额度用尽后代币续聊');
+                $wallet->creditContentCreator($contentId, $overagePrice, 'chat_income', '聊天代币续聊分成');
+                $result['paid_overage'] = true;
+                $result['balance']      = $wallet->balance($userId);
+            } catch (BusinessException $e) {
+                // 生成期间余额被其它请求扣光：放行本轮，不阻断已生成的回复
             }
         }
 
@@ -1377,6 +1409,58 @@ final class Live extends BaseController
         }
 
         return $this->jsonSuccess($result);
+    }
+
+    /**
+     * AI 前端：聊天/通话消费价格（公开，供前端按钮与通话提示展示）
+     * GET /api/live/consumeOptions
+     */
+    public function consumeOptions()
+    {
+        return $this->jsonSuccess([
+            'chat_overage_price'    => (float) WalletService::config('chat_overage_price', '1'),
+            'call_price_per_minute' => (float) WalletService::config('call_price_per_minute', '5'),
+            'affection_price'       => 1,
+        ]);
+    }
+
+    /**
+     * AI 前端：语音通话按分钟扣费（需登录）
+     * POST { content_id }
+     * 前端在通话开始与每分钟续扣时各调用一次；余额不足返回 C0100
+     */
+    public function callCharge()
+    {
+        $userId    = $this->getAuthUserId();
+        $contentId = (int) $this->request->post('content_id', 0);
+        $price     = (float) WalletService::config('call_price_per_minute', '5');
+        $wallet    = new WalletService();
+
+        if ($price <= 0) {
+            return $this->jsonSuccess([
+                'charged'          => 0,
+                'price_per_minute' => 0,
+                'balance'          => $wallet->balance($userId),
+            ]);
+        }
+
+        try {
+            $debit = $wallet->debit($userId, $price, 'call_buy', $contentId, '语音通话按时长计费');
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+
+        // 作者分账：创作者投稿内容按平台抽成后给作者入账（平台内容 creator_user_id=0，不分账）
+        $wallet->creditContentCreator($contentId, $price, 'call_income', '语音通话分成');
+
+        // 标记通话会话有效：90 秒内允许 /api/live/chat?voice=1，前端每分钟续扣以延长
+        \think\facade\Cache::store('file')->set('call_active:' . $userId . ':' . $contentId, 1, 90);
+
+        return $this->jsonSuccess([
+            'charged'          => $price,
+            'price_per_minute' => $price,
+            'balance'          => $debit['balance_after'],
+        ]);
     }
 
     /**

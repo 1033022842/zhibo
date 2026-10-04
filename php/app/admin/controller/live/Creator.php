@@ -544,7 +544,7 @@ final class Creator extends Backend
 
         $rows = \think\facade\Db::connect('live_mysql')
             ->table('lp_wallet_ledger')
-            ->whereIn('biz_type', ['gift_income', 'short_income', 'affection_income', 'media_income'])
+            ->whereIn('biz_type', ['gift_income', 'short_income', 'affection_income', 'media_income', 'chat_income', 'call_income'])
             ->where('direction', 1)
             ->whereIn('user_id', $userIds)
             ->field(['user_id', 'SUM(amount) AS income'])
@@ -630,9 +630,9 @@ final class Creator extends Backend
         $db  = \think\facade\Db::connect('live_mysql');
         $map = [];
 
-        // 毛额：好感度购买（biz_id=content_id）
+        // 毛额：好感度购买 / 代币续聊 / 语音通话（biz_id=content_id）
         $rows = $db->table('lp_wallet_ledger')
-            ->where('biz_type', 'affection_buy')->where('direction', 2)
+            ->whereIn('biz_type', ['affection_buy', 'chat_overage', 'call_buy'])->where('direction', 2)
             ->whereIn('biz_id', $contentIds)
             ->field('biz_id, SUM(amount) AS amt, COUNT(*) AS n')
             ->group('biz_id')->select()->toArray();
@@ -655,9 +655,9 @@ final class Creator extends Backend
             $map[$cid]['orders'] = ($map[$cid]['orders'] ?? 0) + (int) $r['n'];
         }
 
-        // 净额：作者到手（affection_income / media_income，biz_id=content_id）
+        // 净额：作者到手（affection_income / media_income / chat_income / call_income，biz_id=content_id）
         $rows = $db->table('lp_wallet_ledger')
-            ->whereIn('biz_type', ['affection_income', 'media_income'])->where('direction', 1)
+            ->whereIn('biz_type', ['affection_income', 'media_income', 'chat_income', 'call_income'])->where('direction', 1)
             ->whereIn('biz_id', $contentIds)
             ->field('biz_id, SUM(amount) AS amt')
             ->group('biz_id')->select()->toArray();

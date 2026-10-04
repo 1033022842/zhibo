@@ -3,6 +3,19 @@
        // 缓存对话模板
        var cacheTemplate = $('#messages-list').html()
        var token = localStorage.getItem('live_access_token')
+    // 聊天/通话消费价格（后端平台可配），进页面时拉一次
+    var consumeOptions = { chat_overage_price: 0, call_price_per_minute: 0 }
+    function loadConsumeOptions() {
+        fetch('/api/live/consumeOptions')
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                if (d && d.code === '00000' && d.data) {
+                    consumeOptions.chat_overage_price = Number(d.data.chat_overage_price || 0)
+                    consumeOptions.call_price_per_minute = Number(d.data.call_price_per_minute || 0)
+                }
+            })
+            .catch(function () {})
+    }
      /** 
      * 获取指定的URL参数�?
      * URL:http://www.xxx.com/index?name=123
@@ -27,6 +40,7 @@
         setupAuthFlow()
         setupCall()
         setupLogout()
+        loadConsumeOptions()
         // 会话列表是异步渲染的，点击必须用事件委托，否则后插入的条目不会带上事件
         $(document).on('click', '#message-list a.chat-obj', function(){
             selectConversation(String($(this).data('id') || ''))
@@ -313,6 +327,34 @@
         scrollMessagesToBottom()
     }
 
+    /* 免费额度用尽：给「用代币继续聊」+「升级会员」两个入口（text 为本轮被拦下的消息，点击后原样重发） */
+    function appendOverageHint(text) {
+        var box = messagesBox()
+        if (!box) return
+        var price = Number(consumeOptions.chat_overage_price || 0)
+        if (!(price > 0)) { appendQuotaHint('Free messages for today are used up. Upgrade for unlimited chat.', true); return }
+        var row = document.createElement('div')
+        row.className = 'px-4 py-2'
+        row.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;padding:10px 12px;border-radius:12px;' +
+            'background:linear-gradient(135deg,rgba(231,82,117,.18),rgba(97,67,230,.18));border:1px solid rgba(231,82,117,.35)">' +
+            '<div style="font-size:12px;line-height:18px;color:#fff">Daily free messages used up. Continue this chat for ' +
+            '<b>' + price + '</b> tokens per message?</div>' +
+            '<div style="display:flex;gap:8px">' +
+            '<button type="button" class="js-pay-continue" style="flex:1;padding:8px 14px;border:0;border-radius:10px;' +
+            'background:linear-gradient(135deg,#E75275,#c73b5c);color:#fff;font-size:12px;font-weight:700;cursor:pointer">Continue (' + price + ')</button>' +
+            '<a href="./Subscriptions.html" style="flex:0 0 auto;padding:8px 14px;border-radius:10px;' +
+            'background:#3a3a3a;color:#fff;font-size:12px;font-weight:700;text-decoration:none">Upgrade</a>' +
+            '</div></div>'
+        box.appendChild(row)
+        scrollMessagesToBottom()
+        var btn = row.querySelector('.js-pay-continue')
+        if (btn) btn.addEventListener('click', function () {
+            row.remove()
+            // 上一条气泡已展示，重发时不再重复插入，仅带上 pay_tokens
+            sendMessage({ text: text, skipBubble: true, payTokens: true })
+        })
+    }
+
     /* ---------- 聊天：历史 / 媒体消息卡片 / 好感度 / 特殊视频（参考 ai_web/chat.html） ---------- */
     var chatHis = []
     // 当前会话 id（左侧列表里被选中的那条，决定历史归档键）
@@ -501,7 +543,7 @@
         video.play().catch(function () {})
     }
 
-    // 好感度：在右侧资料面板显示进度（有数据才插入）
+    // 好感度：在右侧资料面板显示进度 + 「Buy Affection」入口（有数据才插入）
     function renderAffection(data) {
         if (!data) return
         var info = document.getElementById('infomation')
@@ -516,16 +558,64 @@
             box.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:12px;color:#A1A1A1;margin-bottom:6px">' +
                 '<span>Affection</span><span class="js-aff-val"></span></div>' +
                 '<div style="height:6px;border-radius:999px;background:#303030;overflow:hidden">' +
-                '<div class="js-aff-fill" style="height:100%;width:0;background:linear-gradient(90deg,#E75275,#F97187);border-radius:999px;transition:width .4s"></div></div>'
+                '<div class="js-aff-fill" style="height:100%;width:0;background:linear-gradient(90deg,#E75275,#F97187);border-radius:999px;transition:width .4s"></div></div>' +
+                '<button type="button" class="js-aff-buy" style="margin-top:10px;width:100%;height:34px;border:0;border-radius:9px;' +
+                'background:linear-gradient(135deg,#E75275,#c73b5c);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Buy Affection</button>' +
+                '<div class="js-aff-panel" style="display:none;gap:8px;margin-top:8px">' +
+                '<input type="number" class="js-aff-amt" min="1" step="1" value="10" style="flex:1;min-width:0;height:34px;padding:0 10px;' +
+                'border-radius:9px;border:1px solid #434343;background:#262626;color:#fff;font-size:13px">' +
+                '<button type="button" class="js-aff-confirm" style="height:34px;padding:0 14px;border:0;border-radius:9px;' +
+                'background:#E75275;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Buy</button>' +
+                '</div>'
             info.parentNode.insertBefore(box, info.nextSibling)
+            box.querySelector('.js-aff-buy').addEventListener('click', function () {
+                var panel = box.querySelector('.js-aff-panel')
+                panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex'
+            })
+            box.querySelector('.js-aff-confirm').addEventListener('click', function () {
+                buyAffection(parseInt(box.querySelector('.js-aff-amt').value, 10))
+            })
         }
         box.querySelector('.js-aff-val').textContent = val + ' / ' + max
         box.querySelector('.js-aff-fill').style.width = Math.round(val / max * 100) + '%'
+        var buy = box.querySelector('.js-aff-buy')
+        if (buy) buy.style.display = val >= max ? 'none' : 'block'
+    }
+
+    // 购买好感度（1 代币 = 1 点，后端扣费并给作者分成）
+    function buyAffection(amount) {
+        if (!token) { goLoginPage(); return }
+        var cid = convContentId()
+        if (cid === '0') { appendError('Affection purchase is not available for this character.'); return }
+        amount = parseInt(amount, 10)
+        if (!(amount > 0)) { appendError('Please enter a valid amount.'); return }
+        fetch('/api/live/buyAffection', {
+            method: 'POST',
+            headers: authHeaders(true),
+            body: JSON.stringify({ content_id: cid, amount: amount })
+        })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                if (d && d.code === '00000' && d.data) {
+                    renderAffection({ affection: d.data.affection, max: 100 })
+                    if (window.SugusDialog) {
+                        SugusDialog.alert('Purchase successful. Balance: ' + d.data.balance + ' tokens.', { title: 'Affection', icon: 'info' })
+                    }
+                } else if (d && d.code === 'C0100') {
+                    if (window.SugusDialog) SugusDialog.alert(d.msg || 'Insufficient token balance.', { title: 'Not enough tokens', icon: 'warn' })
+                    else appendError(d.msg || 'Insufficient token balance.')
+                } else {
+                    appendError((d && d.msg) ? ('Purchase failed: ' + d.msg) : 'Purchase failed, please try again.')
+                }
+            })
+            .catch(function () { appendError('Network error, please try again.') })
     }
 
     function loadAffection() {
         var cid = convContentId()
-        if (!token || cid === '0') return
+        var box = document.getElementById('js-affection')
+        // 非平台角色没有好感度，移除上一个角色残留的进度条
+        if (!token || cid === '0') { if (box) box.remove(); return }
         fetch('/api/live/affection?content_id=' + cid, { headers: authHeaders(false) })
             .then(function (r) { return r.json() })
             .then(function (d) { if (d && d.code === '00000' && d.data) renderAffection(d.data) })
@@ -581,17 +671,19 @@
         loadAffection()
     }
 
-    function sendMessage() {
+    function sendMessage(opts) {
+        opts = opts || {}
         var input = document.getElementById('message_body')
-        if (!input) return
+        var fromInput = (opts.text === undefined)
+        if (!input && fromInput) return
         // 未登录不允许聊天（也不会产生记录）
         if (!token) { goLoginPage(); return }
-        var text = (input.value || '').trim()
+        var text = fromInput ? (input.value || '').trim() : String(opts.text || '').trim()
         if (text === '' || sending) return
         sending = true
-        input.value = ''
+        if (fromInput) input.value = ''
 
-        appendBubble(text, true)
+        if (!opts.skipBubble) appendBubble(text, true)
         var typing = appendTyping()
 
         var cid = convContentId()
@@ -606,6 +698,7 @@
         }
         // 首页等非平台角色：带上归档标识与人设
         if (rkey !== '') body.role_key = rkey
+        if (opts.payTokens) body.pay_tokens = 1
         if (cid === '0') {
             body.persona_name = persona.name || ''
             body.persona_desc = persona.desc || ''
@@ -616,9 +709,9 @@
             .then(function (d) {
                 if (typing) typing.remove()
                 if (!d || d.code !== '00000' || !d.data) {
-                    // 免费用户每日消息额度用尽：给出升级入口
+                    // 免费用户每日消息额度用尽：给「代币续聊」+「升级会员」入口
                     if (d && d.code === 'G0100') {
-                        appendQuotaHint(d.msg || 'Daily free message limit reached.', true)
+                        appendOverageHint(text)
                         return
                     }
                     appendError((d && d.msg) ? ('发送失败：' + d.msg) : '发送失败，请稍后重试')
@@ -634,8 +727,8 @@
                 if (data.affection) renderAffection(data.affection)
                 if (data.special_video) playSpecialVideo(data.special_video)
                 if (!data.reply && !data.media) appendError('未收到回复，请再试一次')
-                // 免费用户：剩余条数不多时提醒一次
-                if (data.quota && data.quota.remaining >= 0 && data.quota.remaining <= 3) {
+                // 免费用户：剩余条数不多时提醒一次（用代币续聊的这一条不再提示）
+                if (!data.paid_overage && data.quota && data.quota.remaining >= 0 && data.quota.remaining <= 3) {
                     appendQuotaHint(data.quota.remaining > 0
                         ? ('Free messages left today: ' + data.quota.remaining)
                         : 'Free messages for today are used up. Upgrade for unlimited chat.', data.quota.remaining <= 0)
@@ -654,6 +747,7 @@
     var callMuted = false
     var callSpeaking = false
     var callRec = null
+    var callBillTimer = null
 
     var CALL_MIC_ON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3h2a7 7 0 0 1-6 6.92V21h-2v-3.08A7 7 0 0 1 5 11h2a5 5 0 0 0 10 0z"/></svg>'
     var CALL_MIC_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3h2a7 7 0 0 1-6 6.92V21h-2v-3.08A7 7 0 0 1 5 11h2a5 5 0 0 0 10 0z"/><path d="M3 3l18 18" stroke="#fff" stroke-width="2" fill="none"/></svg>'
@@ -772,7 +866,8 @@
         if (inCall) {
             dot.style.background = '#E75275'
             dot.style.animation = 'js-call-pulse 1s ease-in-out infinite'
-            text.textContent = 'In call…'
+            var ppm = Number(consumeOptions.call_price_per_minute || 0)
+            text.textContent = ppm > 0 ? ('In call… · ' + ppm + ' tokens/min') : 'In call…'
             ui.bar.style.display = 'flex'
         } else {
             dot.style.background = '#3ddc84'
@@ -857,7 +952,13 @@
         fetch('/api/live/chat', { method: 'POST', headers: authHeaders(true), body: JSON.stringify(body) })
             .then(function (r) { return r.json() })
             .then(function (d) {
-                var reply = (d && d.code === '00000' && d.data && typeof d.data.reply === 'string') ? d.data.reply : ''
+                if (!d || d.code !== '00000') {
+                    // 通话未接通/已到期或余额问题：结束通话并提示
+                    appendError((d && d.msg) ? ('Call ended: ' + d.msg) : 'Call ended.')
+                    closeCall()
+                    return
+                }
+                var reply = (d.data && typeof d.data.reply === 'string') ? d.data.reply : ''
                 chatHis.push({ role: 'user', content: text })
                 if (reply) {
                     chatHis.push({ role: 'assistant', content: reply })
@@ -871,28 +972,56 @@
             .catch(function () { callSpeak('Bad signal, say that again?') })
     }
 
+    // 通话按分钟计费：返回 true 表示可继续（余额足够或未开启计费）
+    function callChargeOnce() {
+        if (!(Number(consumeOptions.call_price_per_minute || 0) > 0)) return Promise.resolve(true)
+        return fetch('/api/live/callCharge', {
+            method: 'POST',
+            headers: authHeaders(true),
+            body: JSON.stringify({ content_id: convContentId() })
+        })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                if (d && d.code === '00000') return true
+                appendError((d && d.msg) ? ('Call ended: ' + d.msg) : 'Call ended: insufficient tokens.')
+                return false
+            })
+            .catch(function () { return true })
+    }
+
     function openCall() {
         if (!token) { goLoginPage(); return }
         if (callActive) return
-        ensureCallStyle()
-        callActive = true
-        callSpeaking = false
-        callHeaderUi()
-        callResetMic()
-        callSetStatus(true)
-        var name = callRoleName()
-        setTimeout(function () {
-            if (!callActive) return
-            var greet = 'Hi, this is ' + name + '. So glad you called!'
-            appendBubble(greet, false, true)
-            callSpeak(greet)
-        }, 800)
+        // 先扣第一分钟，余额不足则不接通
+        callChargeOnce().then(function (ok) {
+            if (!ok || callActive) return
+            ensureCallStyle()
+            callActive = true
+            callSpeaking = false
+            callHeaderUi()
+            callResetMic()
+            callSetStatus(true)
+            // 每分钟续扣一次，余额不足自动挂断
+            if (Number(consumeOptions.call_price_per_minute || 0) > 0) {
+                callBillTimer = setInterval(function () {
+                    callChargeOnce().then(function (ok2) { if (!ok2) closeCall() })
+                }, 60000)
+            }
+            var name = callRoleName()
+            setTimeout(function () {
+                if (!callActive) return
+                var greet = 'Hi, this is ' + name + '. So glad you called!'
+                appendBubble(greet, false, true)
+                callSpeak(greet)
+            }, 800)
+        })
     }
 
     function closeCall() {
         callActive = false
         callSpeaking = false
         callStopListening()
+        if (callBillTimer) { clearInterval(callBillTimer); callBillTimer = null }
         if ('speechSynthesis' in window && window.speechSynthesis) window.speechSynthesis.cancel()
         callSetStatus(false)
     }
