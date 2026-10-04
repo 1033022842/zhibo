@@ -24,6 +24,9 @@ final class PayoutSetting extends Backend
     /** 普通（非敏感）配置项白名单：表单字段 => [类型, 说明] */
     private const PLAIN_FIELDS = [
         'diamond_to_usdt_rate'        => ['float', '代币兑USDT比例（1代币=多少USDT）'],
+        'short_commission_rate'       => ['float', '短剧收入平台抽成比例（0.3=抽30%，作者得70%）'],
+        'gift_commission_rate'        => ['float', '礼物收入平台抽成比例'],
+        'crowdfunding_commission_rate' => ['float', '众筹收入平台抽成比例'],
         'withdraw_fee_rate'           => ['float', '提现手续费比例'],
         'min_withdraw_diamond'        => ['float', '最低提现代币数'],
         'payout_max_attempts'         => ['int', '单笔提现最多自动打款次数'],
