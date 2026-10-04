@@ -80,6 +80,9 @@ final class AffectionService
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
+        // 作者分账：创作者投稿的内容按平台抽成后给作者入账（平台内容 creator_user_id=0，不分账）
+        $wallet->creditContentCreator($contentId, (float) $amount, 'affection_income', '好感度购买分成');
+
         return [
             'affection' => $newAffection,
             'balance'   => $debit['balance_after'],
