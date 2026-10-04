@@ -110,9 +110,7 @@
   var NAV_BOTTOM = [
     { href: 'mailto:support@sugusmail.ai', label: 'Contact Us', icon: 'contact', attr: ' data-contact-us="1"' },
     { href: './Inviter.html', label: 'Affiliate Program', icon: 'affiliate' },
-    { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' },
-    // 安装教程入口：从头像下拉挪到左侧菜单栏最底部（Home.html#install-app 打开「添加到主屏幕」教程）
-    { href: './Home.html#install-app', label: 'Get Candy.ai app', icon: 'appdl' }
+    { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' }
   ]
 
   /* 支持的语言：与 setting.html / Subscriptions.html / settings.html / taocan.html 等页面自带的
