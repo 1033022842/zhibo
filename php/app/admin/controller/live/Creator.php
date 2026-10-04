@@ -698,8 +698,9 @@ final class Creator extends Backend
 
     /**
      * 作品是否已上架到对应专区：短剧=short_id、聊天=ai_content_id、直播=persona_id
+     * 注意：$row 可能是模型对象（ArrayAccess）或数组，故不加 array 类型约束
      */
-    private static function isPublished(array $row): bool
+    private static function isPublished($row): bool
     {
         $type = (string) ($row['publish_type'] ?? '');
         if ($type === 'drama') {
