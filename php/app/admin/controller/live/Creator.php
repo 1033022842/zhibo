@@ -69,6 +69,7 @@ final class Creator extends Backend
         $personaIds  = [];
         $userIds     = [];
         $shortIds    = [];
+        $contentIds  = [];
         foreach ($items as $row) {
             $pid = (int)($row['persona_id'] ?? 0);
             if ($pid > 0 && (string)($row['publish_type'] ?? '') !== 'drama') {
@@ -78,6 +79,10 @@ final class Creator extends Backend
             if ($sid > 0) {
                 $shortIds[] = $sid;
             }
+            $cid = (int)($row['ai_content_id'] ?? 0);
+            if ($cid > 0) {
+                $contentIds[] = $cid;
+            }
             $uid = (int)($row['user_id'] ?? 0);
             if ($uid > 0) {
                 $userIds[] = $uid;
@@ -86,15 +91,16 @@ final class Creator extends Backend
         $rate          = $this->commissionRate();
         $personaIncome = $this->personaIncomeMap($personaIds, $rate);
         $shortIncome   = $this->shortIncomeMap($shortIds);
+        $contentIncome = $this->contentIncomeMap($contentIds);
         $userIncome    = $this->userIncomeMap($userIds);
 
-        $html = $this->renderPage($list, $stats, $personaIncome, $userIncome, $rate, $shortIncome);
+        $html = $this->renderPage($list, $stats, $personaIncome, $userIncome, $rate, $shortIncome, $contentIncome);
         response($html)->send();
         exit;
     }
 
     /**
-     * 审核通过 (AJAX)：通过后自动上架站内（建可聊天角色 + 首页推荐角色卡）
+     * 审核通过 (AJAX)：通过后按类型自动上架到对应专区（直播→直播间、聊天→聊天内容、短剧→短剧）
      */
     public function approve(): void
     {
@@ -117,7 +123,7 @@ final class Creator extends Backend
     }
 
     /**
-     * 上架站内 (AJAX)：给已上线但还没上架的作品补上（建可聊天角色 + 首页推荐角色卡，幂等）
+     * 上架站内 (AJAX)：给已上线但还没上架的作品补上（按类型落到对应专区，幂等）
      */
     public function publish(): void
     {
@@ -135,18 +141,24 @@ final class Creator extends Backend
     }
 
     /**
-     * 上架结果文案：角色 / 首页卡 / 直播间 / 短剧
+     * 上架结果文案：按类型只显示落到自己专区的成果
      */
     private function publishResultMsg(array $r): string
     {
-        $parts = ['角色 #' . (int) ($r['persona_id'] ?? 0), '首页卡 #' . (int) ($r['home_character_id'] ?? 0)];
+        $parts = [];
+        if (!empty($r['persona_id'])) {
+            $parts[] = '角色 #' . (int) $r['persona_id'];
+        }
         if (!empty($r['room_id'])) {
             $parts[] = '直播间 #' . (int) $r['room_id'];
         }
         if (!empty($r['short_id'])) {
             $parts[] = '短剧 #' . (int) $r['short_id'];
         }
-        return implode('，', $parts);
+        if (!empty($r['content_id'])) {
+            $parts[] = '聊天内容 #' . (int) $r['content_id'];
+        }
+        return $parts ? implode('，', $parts) : '无有效内容，未上架';
     }
 
     /**
@@ -198,13 +210,14 @@ final class Creator extends Backend
             $episodes = [];
         }
 
-        // 收入信息：短剧按解锁收入、角色作品按角色礼物收入；外加提交用户累计到手收益
+        // 收入信息：短剧按解锁收入、聊天作品按好感度/视频解锁收入、直播作品按角色礼物收入；外加提交用户累计到手收益
         $rate         = $this->commissionRate();
         $personaId    = (int)($item->persona_id ?? 0);
         $shortId      = (int)($item->short_id ?? 0);
-        $isDrama      = (string)$item->publish_type === 'drama';
-        $personaInc   = (!$isDrama && $personaId > 0) ? ($this->personaIncomeMap([$personaId], $rate)[$personaId] ?? null) : null;
+        $contentId    = (int)($item->ai_content_id ?? 0);
+        $personaInc   = $personaId > 0 ? ($this->personaIncomeMap([$personaId], $rate)[$personaId] ?? null) : null;
         $shortInc     = $shortId > 0 ? ($this->shortIncomeMap([$shortId])[$shortId] ?? null) : null;
+        $contentInc   = $contentId > 0 ? ($this->contentIncomeMap([$contentId])[$contentId] ?? null) : null;
         $authorIncome = $this->userIncomeMap([(int)$item->user_id])[(int)$item->user_id] ?? 0.0;
 
         // 可关联的角色列表（供后台手动关联）
@@ -254,10 +267,12 @@ final class Creator extends Backend
             'reviewed_at'    => (string)$item->reviewed_at,
             'persona_id'     => $personaId,
             'short_id'       => $shortId,
+            'content_id'     => $contentId,
             'income'         => [
                 'rate'         => $rate,
                 'persona'      => $personaInc,
                 'short'        => $shortInc,
+                'content'      => $contentInc,
                 'author_total' => $authorIncome,
             ],
             'persona_options' => $personaOptions,
@@ -516,7 +531,8 @@ final class Creator extends Backend
     }
 
     /**
-     * 用户累计到手收益：钱包流水收入项汇总（礼物 gift_income + 短剧 short_income，与收入排行榜同口径）
+     * 用户累计到手收益：钱包流水收入项汇总
+     * （礼物 gift_income + 短剧 short_income + 聊天好感度/视频解锁 affection_income/media_income，与收入排行榜同口径）
      * @return array<int,float>
      */
     private function userIncomeMap(array $userIds): array
@@ -528,7 +544,7 @@ final class Creator extends Backend
 
         $rows = \think\facade\Db::connect('live_mysql')
             ->table('lp_wallet_ledger')
-            ->whereIn('biz_type', ['gift_income', 'short_income'])
+            ->whereIn('biz_type', ['gift_income', 'short_income', 'affection_income', 'media_income'])
             ->where('direction', 1)
             ->whereIn('user_id', $userIds)
             ->field(['user_id', 'SUM(amount) AS income'])
@@ -599,6 +615,68 @@ final class Creator extends Backend
     }
 
     /**
+     * 聊天作品收入：按 lp_ai_content 汇总
+     *   毛额 = 买家实付（好感度购买 affection_buy biz_id=content_id + 视频解锁 media_unlock 经 lp_ai_media 归到 content_id）
+     *   净额 = 作者到手（affection_income / media_income，biz_id=content_id）
+     * @return array<int,array{gross:float,net:float,orders:int}>
+     */
+    private function contentIncomeMap(array $contentIds): array
+    {
+        $contentIds = array_values(array_unique(array_filter($contentIds)));
+        if (!$contentIds) {
+            return [];
+        }
+
+        $db  = \think\facade\Db::connect('live_mysql');
+        $map = [];
+
+        // 毛额：好感度购买（biz_id=content_id）
+        $rows = $db->table('lp_wallet_ledger')
+            ->where('biz_type', 'affection_buy')->where('direction', 2)
+            ->whereIn('biz_id', $contentIds)
+            ->field(['biz_id', 'SUM(amount) AS amt', 'COUNT(*) AS n'])
+            ->group('biz_id')->select()->toArray();
+        foreach ($rows as $r) {
+            $cid = (int) $r['biz_id'];
+            $map[$cid]['gross']  = (float) $r['amt'];
+            $map[$cid]['orders'] = (int) $r['n'];
+        }
+
+        // 毛额：视频解锁（biz_id=media_id，经 lp_ai_media 归到 content_id）
+        $rows = $db->table('lp_wallet_ledger l')
+            ->join('lp_ai_media m', 'm.id = l.biz_id')
+            ->where('l.biz_type', 'media_unlock')->where('l.direction', 2)
+            ->whereIn('m.content_id', $contentIds)
+            ->field(['m.content_id AS cid', 'SUM(l.amount) AS amt', 'COUNT(*) AS n'])
+            ->group('m.content_id')->select()->toArray();
+        foreach ($rows as $r) {
+            $cid = (int) $r['cid'];
+            $map[$cid]['gross']  = ($map[$cid]['gross'] ?? 0) + (float) $r['amt'];
+            $map[$cid]['orders'] = ($map[$cid]['orders'] ?? 0) + (int) $r['n'];
+        }
+
+        // 净额：作者到手（affection_income / media_income，biz_id=content_id）
+        $rows = $db->table('lp_wallet_ledger')
+            ->whereIn('biz_type', ['affection_income', 'media_income'])->where('direction', 1)
+            ->whereIn('biz_id', $contentIds)
+            ->field(['biz_id', 'SUM(amount) AS amt'])
+            ->group('biz_id')->select()->toArray();
+        foreach ($rows as $r) {
+            $cid = (int) $r['biz_id'];
+            $map[$cid]['net'] = (float) $r['amt'];
+        }
+
+        foreach ($map as $cid => $v) {
+            $map[$cid] = [
+                'gross'  => (float) ($v['gross'] ?? 0),
+                'net'    => (float) ($v['net'] ?? 0),
+                'orders' => (int) ($v['orders'] ?? 0),
+            ];
+        }
+        return $map;
+    }
+
+    /**
      * 数字展示：整数不带小数，否则保留两位
      */
     private static function fmtNum(float $n): string
@@ -618,7 +696,22 @@ final class Creator extends Backend
         return array_values(array_filter(array_map('trim', explode(',', $value)), static fn($s) => $s !== ''));
     }
 
-    private function renderPage($list, array $stats, array $personaIncome = [], array $userIncome = [], float $rate = 0.3, array $shortIncome = []): string
+    /**
+     * 作品是否已上架到对应专区：短剧=short_id、聊天=ai_content_id、直播=persona_id
+     */
+    private static function isPublished(array $row): bool
+    {
+        $type = (string) ($row['publish_type'] ?? '');
+        if ($type === 'drama') {
+            return (int) ($row['short_id'] ?? 0) > 0;
+        }
+        if ($type === 'live') {
+            return (int) ($row['persona_id'] ?? 0) > 0;
+        }
+        return (int) ($row['ai_content_id'] ?? 0) > 0;
+    }
+
+    private function renderPage($list, array $stats, array $personaIncome = [], array $userIncome = [], float $rate = 0.3, array $shortIncome = [], array $contentIncome = []): string
     {
         $statusMap  = self::STATUS_MAP;
         $publishMap = self::PUBLISH_MAP;
@@ -643,29 +736,32 @@ final class Creator extends Backend
                 <button class="op-btn op-ok" onclick="doApprove({$row['id']})">通过</button>
                 <button class="op-btn op-no" onclick="showReject({$row['id']})">驳回</button>
                 ACT;
-            } elseif ($stNum === 1 && ((string)$row['publish_type'] === 'drama'
-                ? (int)($row['short_id'] ?? 0) <= 0
-                : (int)($row['home_character_id'] ?? 0) <= 0)) {
+            } elseif ($stNum === 1 && !self::isPublished($row)) {
                 $actions = <<<ACT
                 <button class="op-btn op-ok" onclick="doPublish({$row['id']})">上架站内</button>
                 ACT;
             }
 
-            // 收入：短剧按解锁分成，角色作品按礼物收入；再叠加提交用户累计到手收益
+            // 收入：短剧按解锁分成、聊天作品按好感度/视频解锁分成、直播作品按礼物收入；再叠加提交用户累计到手收益
             $pid    = (int)($row['persona_id'] ?? 0);
             $uid    = (int)($row['user_id'] ?? 0);
             $sid    = (int)($row['short_id'] ?? 0);
+            $cid    = (int)($row['ai_content_id'] ?? 0);
             $uTotal = (float)($userIncome[$uid] ?? 0);
             if ($sid > 0) {
                 $sInc    = $shortIncome[$sid] ?? null;
                 $workInc = '<div class="inc-work">' . self::fmtNum((float)($sInc['net'] ?? 0)) . ' <span class="inc-cur">代币</span></div>'
                     . '<div class="inc-sub">解锁毛额 ' . self::fmtNum((float)($sInc['gross'] ?? 0)) . ' · ' . (int)($sInc['buyers'] ?? 0) . ' 人</div>';
-            } elseif ($pid <= 0) {
-                $workInc = '<div class="inc-none">未关联角色</div>';
-            } else {
+            } elseif ($cid > 0) {
+                $cInc    = $contentIncome[$cid] ?? null;
+                $workInc = '<div class="inc-work">' . self::fmtNum((float)($cInc['net'] ?? 0)) . ' <span class="inc-cur">代币</span></div>'
+                    . '<div class="inc-sub">消费毛额 ' . self::fmtNum((float)($cInc['gross'] ?? 0)) . ' · ' . (int)($cInc['orders'] ?? 0) . ' 笔</div>';
+            } elseif ($pid > 0) {
                 $pInc    = $personaIncome[$pid] ?? null;
                 $workInc = '<div class="inc-work">' . self::fmtNum((float)($pInc['net'] ?? 0)) . ' <span class="inc-cur">代币</span></div>'
                     . '<div class="inc-sub">毛额 ' . self::fmtNum((float)($pInc['gross'] ?? 0)) . '</div>';
+            } else {
+                $workInc = '<div class="inc-none">未上架</div>';
             }
             $incomeCell = '<td class="td-income">' . $workInc
                 . '<div class="inc-owner">作者累计 ' . self::fmtNum($uTotal) . '</div></td>';
@@ -945,10 +1041,11 @@ final class Creator extends Backend
                         epHtml += '</div>';
                     }
 
-                    // 收入：短剧按解锁分成，角色作品按礼物收入；外加作者累计到手
+                    // 收入：短剧按解锁分成、聊天作品按好感度/视频解锁分成、直播作品按礼物收入；外加作者累计到手
                     var inc = p.income || {};
                     var incPersona = inc.persona;
                     var incShort = inc.short;
+                    var incContent = inc.content;
                     var rate = Number(inc.rate) || 0;
                     var authorTotal = Number(inc.author_total) || 0;
 
@@ -974,6 +1071,18 @@ final class Creator extends Backend
                                 '<div class="inc-card"><div class="k">作者累计到手</div><div class="v purple">' + fmt(authorTotal) + '</div></div>' +
                             '</div>' +
                             '<div class="link-hint">短剧 #' + p.short_id + ' · 已解锁 ' + sBuyers + ' 人（短剧收入按剧集解锁分成统计）</div>';
+                    } else if (Number(p.content_id) > 0) {
+                        var cGross  = incContent ? (Number(incContent.gross) || 0) : 0;
+                        var cNet    = incContent ? (Number(incContent.net) || 0) : 0;
+                        var cOrders = incContent ? (Number(incContent.orders) || 0) : 0;
+                        incHtml =
+                            '<div class="sec-title">收入</div>' +
+                            '<div class="inc-grid">' +
+                                '<div class="inc-card"><div class="k">消费毛额</div><div class="v">' + fmt(cGross) + '</div></div>' +
+                                '<div class="inc-card"><div class="k">作者分成（抽成 ' + (rate * 100).toFixed(0) + '%）</div><div class="v green">' + fmt(cNet) + '</div></div>' +
+                                '<div class="inc-card"><div class="k">作者累计到手</div><div class="v purple">' + fmt(authorTotal) + '</div></div>' +
+                            '</div>' +
+                            '<div class="link-hint">聊天内容 #' + p.content_id + ' · ' + cOrders + ' 笔消费（好感度购买 / 视频解锁分成）</div>';
                     } else {
                         var grossVal = incPersona ? (Number(incPersona.gross) || 0) : 0;
                         var netVal = incPersona ? (Number(incPersona.net) || 0) : 0;
@@ -1025,7 +1134,7 @@ final class Creator extends Backend
             function closeDetail(){ document.getElementById('detailModal').classList.remove('active'); }
 
             function doApprove(id, closeAfter){
-                if (!confirm('确定通过该创作？通过后会自动上架站内（建可聊天角色 + 首页推荐角色卡）。')) return;
+                if (!confirm('确定通过该创作？通过后会自动上架到对应专区（直播→直播间，聊天→聊天内容，短剧→短剧）。')) return;
                 fetch('/admin/live.Creator/approve?id=' + id).then(function(r){return r.json()}).then(function(d){
                     if (d.code === 1) { alert(d.msg || '审核通过'); location.reload(); }
                     else { alert(d.msg || '操作失败'); }
@@ -1033,7 +1142,7 @@ final class Creator extends Backend
             }
 
             function doPublish(id){
-                if (!confirm('把该作品上架到站内（建可聊天角色 + 首页推荐角色卡）？')) return;
+                if (!confirm('把该作品上架到对应专区（直播→直播间，聊天→聊天内容，短剧→短剧）？')) return;
                 fetch('/admin/live.Creator/publish?id=' + id).then(function(r){return r.json()}).then(function(d){
                     if (d.code === 1) { alert(d.msg || '已上架'); location.reload(); }
                     else { alert(d.msg || '操作失败'); }

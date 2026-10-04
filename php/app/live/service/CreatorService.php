@@ -178,11 +178,12 @@ final class CreatorService
     }
 
     /**
-     * 作品上架站内（幂等，审核通过后由后台调用）
-     *  1) 还没角色的，按提交内容创建 lp_persona（归属提交用户，可聊天）；
-     *     publish_type=live 的再补一个维护态直播间（等运营上传素材后开播）
-     *  2) 上架首页推荐角色 lp_home_character，分类按性别/风格落到 girls / anime / guys
-     * 返回 ['persona_id' => int, 'home_character_id' => int]
+     * 作品上架站内（幂等，审核通过后由后台调用），按类型只落到自己的专区：
+     *  - live ：直播间（归属角色 + 可用房间）
+     *  - chat ：聊天内容 lp_ai_content（归属作者，可聊天/消费分账）
+     *  - drama：短剧 lp_short_item + 剧集
+     * 任何类型都不自动上首页推荐位（Girls / Anime / Guys 仅由运营在后台手动维护）
+     * 返回 ['persona_id','home_character_id','room_id','short_id','content_id']
      */
     public function publish(int $id): array
     {
@@ -196,40 +197,42 @@ final class CreatorService
 
         Db::startTrans();
         try {
-            $isDrama = (string) $item->publish_type === 'drama';
+            $type      = (string) $item->publish_type;
+            $personaId = 0;
+            $roomId    = 0;
+            $shortId   = 0;
+            $contentId = 0;
 
-            // 1) 角色：没有就按提交内容建一个（可聊天）；短剧只做短剧，不进角色/聊天体系
-            $personaId = $isDrama ? 0 : (int) $item->persona_id;
-            if (!$isDrama && $personaId <= 0) {
-                $persona = new Persona();
-                $persona->code      = StrHelper::orderNo('P');
-                $persona->user_id   = (int) $item->user_id;
-                $persona->name      = mb_substr((string) $item->persona_name, 0, 64);
-                $persona->tags      = (string) $item->tags;
-                $persona->cover_url = (string) $item->cover_url;
-                $persona->status    = 1; // 1=可直接使用
-                $persona->source_fields = json_encode([
-                    'creator_submission_id' => (int) $item->id,
-                    'publish_type' => (string) $item->publish_type,
-                    'style'        => (string) $item->style,
-                    'gender'       => (string) $item->gender,
-                    'age_range'    => (string) $item->age_range,
-                    'language'     => (string) $item->language,
-                    'personality'  => (string) $item->personality,
-                    'voice_style'  => (string) $item->voice_style,
-                    'highlights'   => (string) $item->highlights,
-                    'description'  => (string) $item->description,
-                ], JSON_UNESCAPED_UNICODE);
-                $persona->created_at = date('Y-m-d H:i:s');
-                $persona->updated_at = date('Y-m-d H:i:s');
-                $persona->save();
-                $personaId = (int) $persona->id;
-                $item->persona_id = $personaId;
-            }
+            if ($type === 'live') {
+                // 直播作品：只上直播间（归属角色 + 可用房间）；不上首页推荐位、不进聊天/短剧
+                $personaId = (int) $item->persona_id;
+                if ($personaId <= 0) {
+                    $persona = new Persona();
+                    $persona->code      = StrHelper::orderNo('P');
+                    $persona->user_id   = (int) $item->user_id;
+                    $persona->name      = mb_substr((string) $item->persona_name, 0, 64);
+                    $persona->tags      = (string) $item->tags;
+                    $persona->cover_url = (string) $item->cover_url;
+                    $persona->status    = 1; // 1=可直接使用
+                    $persona->source_fields = json_encode([
+                        'creator_submission_id' => (int) $item->id,
+                        'publish_type' => (string) $item->publish_type,
+                        'style'        => (string) $item->style,
+                        'gender'       => (string) $item->gender,
+                        'age_range'    => (string) $item->age_range,
+                        'language'     => (string) $item->language,
+                        'personality'  => (string) $item->personality,
+                        'voice_style'  => (string) $item->voice_style,
+                        'highlights'   => (string) $item->highlights,
+                        'description'  => (string) $item->description,
+                    ], JSON_UNESCAPED_UNICODE);
+                    $persona->created_at = date('Y-m-d H:i:s');
+                    $persona->updated_at = date('Y-m-d H:i:s');
+                    $persona->save();
+                    $personaId = (int) $persona->id;
+                    $item->persona_id = $personaId;
+                }
 
-            // 直播型作品：建可用直播间（没有才建，避免重复）
-            $roomId = 0;
-            if ((string) $item->publish_type === 'live' && $personaId > 0) {
                 $room = Room::where('persona_id', $personaId)->find();
                 if (!$room) {
                     $room = new Room();
@@ -246,38 +249,26 @@ final class CreatorService
                 $roomId = (int) $room->id;
                 // 补绑定 + 播单模板，房间才真正可开播（否则后台无从配置）
                 $this->ensureRoomBinding($roomId, (string) $room->title, (string) $item->persona_name);
-            }
-
-            // 短剧型作品：上架 Candy Shorts（lp_short_item + 剧集），没有才建避免重复
-            $shortId = (int) ($item->short_id ?? 0);
-            if ((string) $item->publish_type === 'drama' && $shortId <= 0) {
-                $newShortId = $this->publishShort($item);
-                if ($newShortId > 0) {
-                    $shortId = $newShortId;
-                    $item->short_id = $shortId;
+            } elseif ($type === 'drama') {
+                // 短剧作品：只上 Candy Shorts（lp_short_item + 剧集）；不进角色/聊天、不上首页推荐位
+                $shortId = (int) ($item->short_id ?? 0);
+                if ($shortId <= 0) {
+                    $newShortId = $this->publishShort($item);
+                    if ($newShortId > 0) {
+                        $shortId = $newShortId;
+                        $item->short_id = $shortId;
+                    }
                 }
-            }
-
-            // 2) 首页推荐角色卡（没有才上架，避免重复）；短剧不上首页推荐、不进聊天
-            $homeId = $isDrama ? 0 : (int) $item->home_character_id;
-            if (!$isDrama && $homeId <= 0) {
-                $now = date('Y-m-d H:i:s');
-                $homeId = (int) Db::connect('live_mysql')->table('lp_home_character')->insertGetId([
-                    'name'        => mb_substr((string) $item->persona_name, 0, 60),
-                    'age'         => (string) $item->age_range,
-                    'tagline'     => $this->taglineOf($item),
-                    'description' => (string) $item->description,
-                    'cover_url'   => (string) $item->cover_url,
-                    'tags'        => (string) $item->tags,
-                    'link_url'    => './Chat.html?id=my-' . $personaId,
-                    'is_adult'    => (int) $item->is_adult,
-                    'category'    => $this->homeCategory($item),
-                    'weigh'       => 0,
-                    'status'      => 1,
-                    'created_at'  => $now,
-                    'updated_at'  => $now,
-                ]);
-                $item->home_character_id = $homeId;
+            } else {
+                // 聊天作品：只上聊天内容 lp_ai_content（归属作者，可聊天/消费分账）；不建直播间/短剧、不上首页推荐位
+                $contentId = (int) ($item->ai_content_id ?? 0);
+                if ($contentId <= 0) {
+                    $newContentId = $this->publishChatContent($item);
+                    if ($newContentId > 0) {
+                        $contentId = $newContentId;
+                        $item->ai_content_id = $contentId;
+                    }
+                }
             }
 
             $item->updated_at = date('Y-m-d H:i:s');
@@ -294,10 +285,47 @@ final class CreatorService
 
         return [
             'persona_id'        => $personaId,
-            'home_character_id' => $homeId,
+            'home_character_id' => 0,
             'room_id'           => $roomId,
             'short_id'          => $shortId,
+            'content_id'        => $contentId,
         ];
+    }
+
+    /**
+     * 聊天作品上架：写入 lp_ai_content（归属作者 creator_user_id），进入聊天内容体系
+     * 返回 lp_ai_content.id
+     */
+    private function publishChatContent(CreatorSubmission $item): int
+    {
+        $db  = Db::connect('live_mysql');
+        $now = date('Y-m-d H:i:s');
+
+        // 人设 JSON：整理提交的可读字段，供聊天提示词参考
+        $personality = json_encode([
+            'style'       => (string) $item->style,
+            'gender'      => (string) $item->gender,
+            'age_range'   => (string) $item->age_range,
+            'language'    => (string) $item->language,
+            'personality' => (string) $item->personality,
+            'voice_style' => (string) $item->voice_style,
+            'highlights'  => (string) $item->highlights,
+        ], JSON_UNESCAPED_UNICODE);
+
+        return (int) $db->table('lp_ai_content')->insertGetId([
+            'title'           => mb_substr((string) $item->persona_name, 0, 120),
+            'category'        => mb_substr((string) ($item->style !== '' ? $item->style : $item->tags), 0, 50),
+            'cover_url'       => mb_substr((string) $item->cover_url, 0, 500),
+            'video_url'       => '',
+            'description'     => (string) $item->description,
+            'personality'     => $personality,
+            'creator_user_id' => (int) $item->user_id,
+            'weigh'           => 100, // 新上架给一点权重
+            'is_public'       => 1,
+            'status'          => 1,
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ]);
     }
 
     /**
@@ -412,35 +440,9 @@ final class CreatorService
     }
 
     /**
-     * 首页卡片一句话简介：优先作者填的亮点，其次描述前 160 字
-     */
-    private function taglineOf(CreatorSubmission $item): string
-    {
-        $text = trim((string) $item->highlights);
-        if ($text === '') {
-            $text = trim((string) $item->description);
-        }
-        $text = (string) preg_replace('/\s+/u', ' ', $text);
-        return mb_substr($text, 0, 160);
-    }
-
-    /**
-     * 作品落到首页哪个分类：男→guys，二次元风格→anime，其余→girls
-     */
-    private function homeCategory(CreatorSubmission $item): string
-    {
-        if ((string) $item->gender === 'male') {
-            return 'guys';
-        }
-        if ((string) $item->style === 'anime') {
-            return 'anime';
-        }
-        return 'girls';
-    }
-
-    /**
      * 收入排行榜：按平台用户累计到手收益降序（公开数据，用于创作中心展示）
      * 数据源为钱包流水收入项：gift_income（礼物分成）+ short_income（短剧解锁分成）
+     *                      + affection_income / media_income（聊天好感度、视频解锁分成）
      */
     public function leaderboard(int $limit = 10): array
     {
@@ -449,7 +451,7 @@ final class CreatorService
         $rows = Db::connect('live_mysql')
             ->table('lp_wallet_ledger l')
             ->join('lp_user u', 'u.id = l.user_id')
-            ->whereIn('l.biz_type', ['gift_income', 'short_income'])
+            ->whereIn('l.biz_type', ['gift_income', 'short_income', 'affection_income', 'media_income'])
             ->where('l.direction', 1)
             ->where('l.user_id', '>', 0)
             ->field([

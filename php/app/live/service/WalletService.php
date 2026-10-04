@@ -135,6 +135,33 @@ final class WalletService
     }
 
     /**
+     * 内容消费分账：把用户在某条 lp_ai_content 上的消费，按平台抽成分给内容作者
+     * 作者 = lp_ai_content.creator_user_id（创作者投稿）；平台内容为 0，不分账
+     * @return float 实际入账作者的净额（0 表示无作者或无可分金额）
+     */
+    public function creditContentCreator(int $contentId, float $gross, string $bizType, string $remark): float
+    {
+        if ($contentId <= 0 || $gross <= 0) {
+            return 0.0;
+        }
+
+        $authorId = (int) Db::connect('live_mysql')->table('lp_ai_content')
+            ->where('id', $contentId)->value('creator_user_id');
+        if ($authorId <= 0) {
+            return 0.0;
+        }
+
+        $rate = max(0.0, min(0.9, (float) self::config('gift_commission_rate', '0.30')));
+        $net  = round($gross * (1 - $rate), 2);
+        if ($net <= 0) {
+            return 0.0;
+        }
+
+        $this->credit($authorId, $net, $bizType, $contentId, $remark);
+        return $net;
+    }
+
+    /**
      * 读取平台配置（带默认值）
      */
     public static function config(string $key, string $default = ''): string

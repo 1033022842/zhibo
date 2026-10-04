@@ -1410,8 +1410,9 @@ final class Live extends BaseController
         }
 
         // 扣代币并记录解锁
+        $wallet = new WalletService();
         try {
-            $debit = (new WalletService())->debit($userId, (float) $price, 'media_unlock', $mediaId, '解锁AI视频');
+            $debit = $wallet->debit($userId, (float) $price, 'media_unlock', $mediaId, '解锁AI视频');
         } catch (BusinessException $e) {
             return $this->jsonFail($e->resultCode, $e->getMessage());
         }
@@ -1422,6 +1423,9 @@ final class Live extends BaseController
             'content_id' => $contentId,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
+
+        // 作者分账：创作者投稿内容按平台抽成后给作者入账（平台内容 creator_user_id=0，不分账）
+        $wallet->creditContentCreator($contentId, (float) $price, 'media_income', '解锁视频分成');
 
         return $this->jsonSuccess(['unlocked' => true, 'balance' => $debit['balance_after'], 'video_url' => $videoUrl]);
     }
@@ -1470,8 +1474,9 @@ final class Live extends BaseController
 
         $videoUrl = $this->fullUrl((string) $media['video_url']);
 
+        $wallet = new WalletService();
         try {
-            $debit = (new WalletService())->debit($userId, (float) $price, 'media_unlock', $mediaId, '解锁AI视频');
+            $debit = $wallet->debit($userId, (float) $price, 'media_unlock', $mediaId, '解锁AI视频');
         } catch (BusinessException $e) {
             return $this->jsonFail($e->resultCode, $e->getMessage());
         }
@@ -1480,6 +1485,9 @@ final class Live extends BaseController
             'unlocked'  => 1,
             'media_url' => (string) $media['video_url'],
         ]);
+
+        // 作者分账：创作者投稿内容按平台抽成后给作者入账（平台内容 creator_user_id=0，不分账）
+        $wallet->creditContentCreator((int) $media['content_id'], (float) $price, 'media_income', '解锁视频分成');
 
         return $this->jsonSuccess(['unlocked' => true, 'balance' => $debit['balance_after'], 'video_url' => $videoUrl]);
     }
