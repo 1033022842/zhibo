@@ -20,6 +20,24 @@
 
   var cfg = null
 
+  /* ---------------- 来源归因（域名 / ?ch，与任何像素无关） ----------------
+     首次落地时记录来源域名与渠道参数，注册时由 main.js 一起提交给后端。
+     首触归因：已记录过就不再覆盖，保证是「第一次进来的域名」。 */
+  ;(function captureSource() {
+    try {
+      if (localStorage.getItem('reg_domain') !== null) return
+      var host = (location.hostname || '').toLowerCase()
+      if (!host || /^\d+\.\d+\.\d+\.\d+$/.test(host) || host === 'localhost') host = ''
+      var q = new URLSearchParams(location.search)
+      var ch = String(q.get('ch') || q.get('src') || q.get('utm_source') || '').slice(0, 64)
+      localStorage.setItem('reg_domain', host)
+      if (ch) localStorage.setItem('reg_channel', ch)
+      var exp = new Date(Date.now() + 90 * 864e5).toUTCString()
+      document.cookie = 'reg_domain=' + encodeURIComponent(host) + ';expires=' + exp + ';path=/;SameSite=Lax'
+      if (ch) document.cookie = 'reg_channel=' + encodeURIComponent(ch) + ';expires=' + exp + ';path=/;SameSite=Lax'
+    } catch (e) { /* 隐私模式忽略 */ }
+  })()
+
   /* ---------------- 配置读取（带 60s 会话缓存，减少后台压力） ---------------- */
 
   function readCache() {
