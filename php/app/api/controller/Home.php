@@ -6,6 +6,7 @@ namespace app\api\controller;
 use app\BaseController;
 use app\live\model\HomeCharacter as CharacterModel;
 use app\live\model\HomeBanner as BannerModel;
+use app\live\service\WalletService;
 
 final class Home extends BaseController
 {
@@ -105,5 +106,33 @@ final class Home extends BaseController
         }
 
         return $this->jsonSuccess(['list' => $data]);
+    }
+
+    /**
+     * 平台收入分成比例（公开，供创作者中心等前台展示）
+     * GET /api/v1/home/commission
+     * 返回各类型的平台抽成 / 创作者分成百分比（0~100）
+     */
+    public function commission()
+    {
+        $giftFallback = (string) WalletService::config('gift_commission_rate', '0.30');
+
+        $rates = [
+            'short'        => (string) WalletService::config('short_commission_rate', $giftFallback),
+            'chat'         => (string) WalletService::config('chat_commission_rate', $giftFallback),
+            'gift'         => $giftFallback,
+            'crowdfunding' => (string) WalletService::config('crowdfunding_commission_rate', '0.05'),
+        ];
+
+        $data = [];
+        foreach ($rates as $type => $raw) {
+            $cut = max(0.0, min(0.9, (float) $raw)); // 平台抽成比例
+            $data[$type] = [
+                'platform' => (int) round($cut * 100),
+                'creator'  => (int) round((1 - $cut) * 100),
+            ];
+        }
+
+        return $this->jsonSuccess($data);
     }
 }

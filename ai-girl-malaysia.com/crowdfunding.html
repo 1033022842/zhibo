@@ -206,7 +206,7 @@
                 <div class="cf-earn-ic">&#128176;</div>
                 <div class="cf-earn-txt">
                     <div class="t">Earnings</div>
-                    <div class="d">Revenue from your published characters works the same as live streaming — split by the backend-configured ratio. Creator payouts are after tax.</div>
+                    <div class="d">Revenue from your published characters is split by the backend-configured ratio<span id="earnSplit"></span>. Creator payouts are after tax.</div>
                 </div>
                 <a href="./Withdrawal.html" class="cf-earn-btn">Withdraw</a>
             </div>
@@ -426,7 +426,7 @@
             '<div class="cf-field"><label class="cf-label">Highlights</label><textarea class="cf-input" id="highlights" rows="3" maxlength="500" placeholder="One-line selling point or differentiator, can be multi-line"></textarea></div>' +
             '<div class="cf-field"><label class="cf-label">Reference link</label><input type="url" class="cf-input" id="referenceUrl" placeholder="https://... (optional, style reference / portfolio)" /></div>' +
 
-            '<div class="cf-agreement"><p>By submitting you agree that:</p><ul><li>Character assets must comply with platform content rules</li><li>Submissions are reviewed by the platform before going live</li><li>Revenue after going live works the same as live streaming, split by the backend-configured ratio</li></ul></div>' +
+            '<div class="cf-agreement"><p>By submitting you agree that:</p><ul><li>Character assets must comply with platform content rules</li><li>Submissions are reviewed by the platform before going live</li><li>Revenue after going live is split by the backend-configured ratio' + (window.CF_SPLIT_TXT || '') + '</li></ul></div>' +
             '<button class="cf-submit" id="submitBtn" onclick="doSubmitIndependent()">' + (editId ? 'Save changes' : 'Submit for review') + '</button>' +
             '</div>'
 
@@ -1176,6 +1176,27 @@
     loadLeaderboard()
 })()
 </script>
+	<script>
+(function () {
+  // 平台收入分成比例：从后台配置动态读取并展示（短剧/直播/聊天/众筹）
+  fetch('/api/v1/home/commission', { headers: { 'Accept': 'application/json' } })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || d.code !== '00000' || !d.data) return;
+      var s = d.data, parts = [];
+      if (s.short)        parts.push('Shorts ' + s.short.creator + '%');
+      if (s.gift)         parts.push('Live ' + s.gift.creator + '%');
+      if (s.chat)         parts.push('Chat ' + s.chat.creator + '%');
+      if (s.crowdfunding) parts.push('Crowdfunding ' + s.crowdfunding.creator + '%');
+      if (!parts.length) return;
+      var txt = ' (creator share: ' + parts.join(' · ') + ')';
+      window.CF_SPLIT_TXT = txt;
+      var el = document.getElementById('earnSplit');
+      if (el) el.textContent = txt;
+    })
+    .catch(function () {});
+})();
+	</script>
 	<script src="./js/promo-popup.js?v=20260929a"></script>
   <script src="./js/creator-guide.js?v=20261002f"></script>
 </body>

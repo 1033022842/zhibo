@@ -8,4 +8,6 @@ Route::group('v1/home', function () {
     Route::get('banners', '\app\api\controller\Home@banners');
     // 推荐角色列表（公开）
     Route::get('characters', '\app\api\controller\Home@characters');
+    // 平台收入分成比例（公开）
+    Route::get('commission', '\app\api\controller\Home@commission');
 });
