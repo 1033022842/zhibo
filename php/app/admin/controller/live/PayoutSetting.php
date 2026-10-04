@@ -244,6 +244,12 @@ HTML;
             // 1. 普通配置项
             foreach (self::PLAIN_FIELDS as $key => [$type, $remark]) {
                 $raw = trim((string) $this->request->post($key, ''));
+                // 分成比例：留空恢复默认 30%（与页面提示一致），并钳制到 [0, 0.9] 防止误填
+                if (str_ends_with($key, '_commission_rate') && $type === 'float') {
+                    $value = $raw === '' ? '0.30' : (string) min(0.9, max(0.0, (float) $raw));
+                    $service->saveSetting($key, $value, $remark);
+                    continue;
+                }
                 $value = match ($type) {
                     'int'   => (string) max(0, (int) $raw),
                     'float' => $raw === '' ? '' : (string) (float) $raw,
@@ -251,10 +257,6 @@ HTML;
                 };
                 if (in_array($type, ['int', 'float'], true) && $value === '') {
                     $value = '0';
-                }
-                // 分成比例统一钳制到 [0, 0.9]，防止误填 1 或更大导致创作者零分成/负分成
-                if (str_ends_with($key, '_commission_rate') && $type === 'float') {
-                    $value = (string) min(0.9, max(0.0, (float) $value));
                 }
                 $service->saveSetting($key, $value, $remark);
             }
