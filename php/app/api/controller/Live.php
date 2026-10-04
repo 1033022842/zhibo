@@ -24,7 +24,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge']],
     ];
 
     private UserService $userService;
