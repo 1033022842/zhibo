@@ -451,7 +451,7 @@ final class CreatorService
         $rows = Db::connect('live_mysql')
             ->table('lp_wallet_ledger l')
             ->join('lp_user u', 'u.id = l.user_id')
-            ->whereIn('l.biz_type', ['gift_income', 'short_income', 'affection_income', 'media_income'])
+            ->whereIn('l.biz_type', ['gift_income', 'short_income', 'affection_income', 'media_income', 'chat_income', 'call_income'])
             ->where('l.direction', 1)
             ->where('l.user_id', '>', 0)
             ->field([

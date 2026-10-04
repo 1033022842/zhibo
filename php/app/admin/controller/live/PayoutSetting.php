@@ -28,6 +28,8 @@ final class PayoutSetting extends Backend
         'chat_commission_rate'        => ['float', '聊天收入（好感度/视频解锁）平台抽成比例'],
         'gift_commission_rate'        => ['float', '礼物收入平台抽成比例'],
         'crowdfunding_commission_rate' => ['float', '众筹收入平台抽成比例'],
+        'chat_overage_price'          => ['float', '免费额度用尽后，用代币继续聊天的单条价格（代币）'],
+        'call_price_per_minute'       => ['float', '语音通话每分钟价格（代币）'],
         'withdraw_fee_rate'           => ['float', '提现手续费比例'],
         'min_withdraw_diamond'        => ['float', '最低提现代币数'],
         'payout_max_attempts'         => ['int', '单笔提现最多自动打款次数'],
@@ -107,6 +109,8 @@ final class PayoutSetting extends Backend
         $chatComm  = $f('chat_commission_rate', '0.30');
         $giftComm  = $f('gift_commission_rate', '0.30');
         $crowdComm = $f('crowdfunding_commission_rate', '0.30');
+        $chatOverage = $f('chat_overage_price', '1');
+        $callPrice   = $f('call_price_per_minute', '5');
 
         echo <<<HTML
 <!DOCTYPE html>
@@ -163,6 +167,15 @@ final class PayoutSetting extends Backend
             <div class="field"><label>众筹收入平台抽成（0.3 = 抽 30%，发起人得 70%）</label><input name="crowdfunding_commission_rate" value="{$crowdComm}" placeholder="0.30"></div>
         </div>
         <div class="tip">填 0.5 表示平台抽 50%、创作者分成 50%。修改后立即对新的解锁/送礼/众筹入账生效（已入账的流水不回溯）。留空保存则恢复默认 0.30。</div>
+    </div>
+
+    <div class="card">
+        <h2><span class="dot"></span>聊天消费价格</h2>
+        <div class="grid">
+            <div class="field"><label>免费额度用尽后，代币续聊单条价格（代币）</label><input name="chat_overage_price" value="{$chatOverage}" placeholder="1"></div>
+            <div class="field"><label>语音通话每分钟价格（代币）</label><input name="call_price_per_minute" value="{$callPrice}" placeholder="5"></div>
+        </div>
+        <div class="tip">用户每日免费消息额度用完后，可选择用代币继续聊天（按条扣费）；语音通话按每分钟扣费，余额不足自动结束。填 0 表示关闭对应消费点，留空保存则恢复默认（续聊 1 / 通话 5）。</div>
     </div>
 
     <div class="card">
@@ -247,6 +260,13 @@ HTML;
                 // 分成比例：留空恢复默认 30%（与页面提示一致），并钳制到 [0, 0.9] 防止误填
                 if (str_ends_with($key, '_commission_rate') && $type === 'float') {
                     $value = $raw === '' ? '0.30' : (string) min(0.9, max(0.0, (float) $raw));
+                    $service->saveSetting($key, $value, $remark);
+                    continue;
+                }
+                // 聊天消费价格：留空恢复默认（续聊 1 代币 / 通话 5 代币/分钟），0 表示关闭该消费点
+                if ($key === 'chat_overage_price' || $key === 'call_price_per_minute') {
+                    $default = $key === 'chat_overage_price' ? '1' : '5';
+                    $value = $raw === '' ? $default : (string) round(max(0.0, (float) $raw), 2);
                     $service->saveSetting($key, $value, $remark);
                     continue;
                 }
