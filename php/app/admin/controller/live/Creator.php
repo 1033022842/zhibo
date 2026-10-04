@@ -574,9 +574,8 @@ final class Creator extends Backend
         $rows = $db->table('lp_wallet_ledger')
             ->whereIn('biz_type', ['short_unlock', 'short_income'])
             ->whereIn('biz_id', array_keys($epToShort))
-            ->field(['biz_type', 'biz_id', 'SUM(amount) AS amt', 'COUNT(DISTINCT user_id) AS buyers'])
-            ->group('biz_type')
-            ->group('biz_id')
+            ->field('biz_type, biz_id, SUM(amount) AS amt, COUNT(DISTINCT user_id) AS buyers')
+            ->group('biz_type, biz_id')
             ->select()
             ->toArray();
 
