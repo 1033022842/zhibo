@@ -23,7 +23,7 @@ class LiveUser extends Backend
 
     protected string|array $preExcludeFields = [];
 
-    protected string|array $quickSearchField = ['nickname', 'id', 'user_no'];
+    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'reg_domain'];
 
     protected string|array $defaultSortField = ['id' => 'desc'];
 
@@ -43,6 +43,7 @@ class LiveUser extends Backend
             ->field('
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
                 live_user.email, live_user.status, live_user.level, live_user.vip_expire_at, live_user.created_at,
+                live_user.reg_domain, live_user.reg_channel,
                 IFNULL(wallet.diamond_balance, 0) as diamond_balance,
                 IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
@@ -276,6 +277,9 @@ class LiveUser extends Backend
         $level = $user->level;
         $userStatus = $user->status == 1 ? '正常' : '禁用';
         $createdAt = $user->created_at;
+        // 推广来源（注册来源域名 / 渠道参数）
+        $regDomain  = ($user->reg_domain ?? '') !== '' ? htmlspecialchars((string) $user->reg_domain) : '-';
+        $regChannel = ($user->reg_channel ?? '') !== '' ? htmlspecialchars((string) $user->reg_channel) : '-';
 
         // 审核按钮
         $auditBtns = '';
@@ -341,6 +345,8 @@ class LiveUser extends Backend
         <div class="row"><span class="label">等级</span><span class="value">Lv.{$level}</span></div>
         <div class="row"><span class="label">状态</span><span class="value">{$userStatus}</span></div>
         <div class="row"><span class="label">注册时间</span><span class="value">{$createdAt}</span></div>
+        <div class="row"><span class="label">来源域名</span><span class="value">{$regDomain}</span></div>
+        <div class="row"><span class="label">来源渠道</span><span class="value">{$regChannel}</span></div>
     </div>
 
     <div class="card">

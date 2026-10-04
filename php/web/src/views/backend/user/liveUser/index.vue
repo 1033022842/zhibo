@@ -190,6 +190,8 @@ const baTable = new baTableClass(
             { label: '昵称', prop: 'nickname', align: 'center', operator: 'LIKE', show: true },
             { label: '代币余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
             { label: '邮箱', prop: 'email', align: 'center', operator: 'LIKE', render: 'tag' },
+            { label: '来源域名', prop: 'reg_domain', align: 'center', operator: 'LIKE', width: 170 },
+            { label: '来源渠道', prop: 'reg_channel', align: 'center', operator: 'LIKE', width: 110 },
             {
                 label: '认证方式',
                 prop: 'auth_type',
