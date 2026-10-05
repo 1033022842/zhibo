@@ -38,26 +38,110 @@
     } catch (e) { /* 隐私模式忽略 */ }
   })()
 
-  /* ---------------- 像素绑定（?px=） ----------------
-     推广链接可带 ?px=<后台像素ID 或 像素编号>，落地后本次会话只打这一个像素（独占）。
-     首触记录到 localStorage，保证跳到其它页面（链接参数已丢）仍保持绑定。 */
-  var pxOverride = (function () {
-    var fromUrl = ''
+  /* ---------------- 推广参数（?px= / ?ch=） ----------------
+     推广链接可带 ?px=<后台像素ID 或 像素编号> 与 ?ch=<渠道>。落地后：
+     1) 像素绑定写 localStorage（90 天），站内切页面时继续只打这一个像素；
+     2) 链接参数写 sessionStorage，站内切页面时继续带在 URL 上（标签页关闭即失效）。 */
+  var PROMO_KEYS = ['px', 'ch']
+
+  function readUrlPromo() {
+    var out = {}
     try {
       var q = new URLSearchParams(location.search)
-      fromUrl = String(q.get('px') || q.get('pixel_id') || '').trim().slice(0, 64)
+      for (var i = 0; i < PROMO_KEYS.length; i++) {
+        var k = PROMO_KEYS[i]
+        var raw = q.get(k)
+        if (k === 'ch' && !raw) raw = q.get('src') || q.get('utm_source') || ''
+        var v = String(raw || '').trim().slice(0, 64)
+        if (v) out[k] = v
+      }
+      if (!out.px) {
+        var p = String(q.get('pixel_id') || '').trim().slice(0, 64)
+        if (p) out.px = p
+      }
     } catch (e) { /* 忽略 */ }
-    var stored = ''
-    try { stored = localStorage.getItem('promo_px') || '' } catch (e) { /* 忽略 */ }
-    if (!fromUrl) return stored
-    if (stored !== fromUrl) {
-      try { localStorage.setItem('promo_px', fromUrl) } catch (e) { /* 忽略 */ }
+    return out
+  }
+
+  function readStoredPromo(key) {
+    var v = ''
+    try { v = localStorage.getItem('promo_' + key) || '' } catch (e) { /* 忽略 */ }
+    if (!v) {
       try {
-        var pxExp = new Date(Date.now() + 90 * 864e5).toUTCString()
-        document.cookie = 'promo_px=' + encodeURIComponent(fromUrl) + ';expires=' + pxExp + ';path=/;SameSite=Lax'
+        var m = document.cookie.match(new RegExp('(?:^|;\\s*)promo_' + key + '=([^;]*)'))
+        if (m) v = decodeURIComponent(m[1])
       } catch (e) { /* 忽略 */ }
     }
-    return fromUrl
+    return v
+  }
+
+  var pxOverride = ''
+  ;(function capturePromo() {
+    var fromUrl = readUrlPromo()
+    // 落地带参 → 写 localStorage + Cookie，之后其它页面继续生效
+    for (var i = 0; i < PROMO_KEYS.length; i++) {
+      var k = PROMO_KEYS[i]
+      var v = fromUrl[k]
+      if (!v || readStoredPromo(k) === v) continue
+      try { localStorage.setItem('promo_' + k, v) } catch (e) { /* 忽略 */ }
+      try {
+        var exp = new Date(Date.now() + 90 * 864e5).toUTCString()
+        document.cookie = 'promo_' + k + '=' + encodeURIComponent(v) + ';expires=' + exp + ';path=/;SameSite=Lax'
+      } catch (e) { /* 忽略 */ }
+    }
+    // 本次会话带进来的链接参数（只活到标签页关闭）
+    try {
+      for (var j = 0; j < PROMO_KEYS.length; j++) {
+        var sk = PROMO_KEYS[j]
+        if (fromUrl[sk]) sessionStorage.setItem('sugus.promo.' + sk, fromUrl[sk])
+      }
+    } catch (e) { /* 忽略 */ }
+    pxOverride = fromUrl.px || readStoredPromo('px') || ''
+  })()
+
+  /* 站内切页面时把会话里的推广参数继续带上，避免「点几下导航参数就没了」 */
+  ;(function passPromoToLinks() {
+    function sessionPromo() {
+      var out = []
+      for (var i = 0; i < PROMO_KEYS.length; i++) {
+        var k = PROMO_KEYS[i]
+        var v = ''
+        try { v = sessionStorage.getItem('sugus.promo.' + k) || '' } catch (e) { /* 忽略 */ }
+        if (v) out.push([k, v])
+      }
+      return out
+    }
+    function withPromo(href) {
+      var add = sessionPromo()
+      if (!add.length) return null
+      var u
+      try { u = new URL(href, location.href) } catch (e) { return null }
+      if (u.origin !== location.origin) return null
+      if (/^\/(api|storage)\//.test(u.pathname)) return null
+      var changed = false
+      for (var i = 0; i < add.length; i++) {
+        if (!u.searchParams.get(add[i][0])) { u.searchParams.set(add[i][0], add[i][1]); changed = true }
+      }
+      return changed ? (u.pathname + u.search + u.hash) : null
+    }
+    // 1) 当前地址栏补全（已有则不重复加）
+    try {
+      var cur = withPromo(location.pathname + location.search + location.hash)
+      if (cur) history.replaceState(history.state, '', cur)
+    } catch (e) { /* 忽略 */ }
+    // 2) 站内链接：捕获阶段改写 href（Turbo 与普通跳转都会带上）
+    if (window.__sugusPromoLinkBound) return
+    window.__sugusPromoLinkBound = true
+    document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null
+      if (!a) return
+      if ((a.target && a.target !== '_self') || a.hasAttribute('download')) return
+      var href = a.getAttribute('href') || ''
+      if (!href || href.charAt(0) === '#' || /^(javascript:|mailto:|tel:|blob:|data:)/i.test(href)) return
+      var next = withPromo(href)
+      if (next) a.setAttribute('href', next)
+    }, true)
   })()
 
   /* ---------------- 配置读取（带 60s 会话缓存，减少后台压力） ---------------- */
