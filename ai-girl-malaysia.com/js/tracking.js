@@ -38,6 +38,28 @@
     } catch (e) { /* 隐私模式忽略 */ }
   })()
 
+  /* ---------------- 像素绑定（?px=） ----------------
+     推广链接可带 ?px=<后台像素ID 或 像素编号>，落地后本次会话只打这一个像素（独占）。
+     首触记录到 localStorage，保证跳到其它页面（链接参数已丢）仍保持绑定。 */
+  var pxOverride = (function () {
+    var fromUrl = ''
+    try {
+      var q = new URLSearchParams(location.search)
+      fromUrl = String(q.get('px') || q.get('pixel_id') || '').trim().slice(0, 64)
+    } catch (e) { /* 忽略 */ }
+    var stored = ''
+    try { stored = localStorage.getItem('promo_px') || '' } catch (e) { /* 忽略 */ }
+    if (!fromUrl) return stored
+    if (stored !== fromUrl) {
+      try { localStorage.setItem('promo_px', fromUrl) } catch (e) { /* 忽略 */ }
+      try {
+        var pxExp = new Date(Date.now() + 90 * 864e5).toUTCString()
+        document.cookie = 'promo_px=' + encodeURIComponent(fromUrl) + ';expires=' + pxExp + ';path=/;SameSite=Lax'
+      } catch (e) { /* 忽略 */ }
+    }
+    return fromUrl
+  })()
+
   /* ---------------- 配置读取（带 60s 会话缓存，减少后台压力） ---------------- */
 
   function readCache() {
@@ -223,9 +245,18 @@
     fbReady = !!window.fbq
     ttReady = !!window.ttq
 
+    // 推广链接绑定像素（?px=）：独占，只打匹配的那一条，忽略域名与其余像素
+    if (pxOverride) {
+      items = items.filter(function (it) {
+        if (!it) return false
+        return String(it.id || '') === pxOverride ||
+               String(it.pixel || '').trim() === pxOverride
+      })
+    }
+
     for (var i = 0; i < items.length; i++) {
       var it = items[i] || {}
-      if (!domainMatched(it.domains)) continue
+      if (!pxOverride && !domainMatched(it.domains)) continue
 
       var platform = String(it.platform || 'other')
       var pixel = String(it.pixel || '').trim()

@@ -122,6 +122,18 @@ final class PromoSetting extends Backend
             $statusHtml = $status === 1 ? '<span class="chip on">启用</span>' : '<span class="chip off">停用</span>';
             $toggleText = $status === 1 ? '停用' : '启用';
 
+            // 推广链接：绑定该像素，落地只打这一条（?px=<像素ID>）
+            $rowDomains = array_values(array_filter(array_map('trim', explode(',', (string) $row['domains']))));
+            $linkDomain = $rowDomains !== [] ? $rowDomains[0] : ($domains !== [] ? $domains[0] : '');
+            if ($linkDomain !== '') {
+                $promoUrl  = 'https://' . $linkDomain . '/?px=' . $id;
+                $promoEsc  = htmlspecialchars($promoUrl, ENT_QUOTES);
+                $linkHtml  = '<button type="button" class="btn-copy" data-link="' . $promoEsc . '">复制链接</button>'
+                    . '<div class="url" style="margin-top:4px">' . $promoEsc . '</div>';
+            } else {
+                $linkHtml = '<span class="muted">先设置推广域名</span>';
+            }
+
             $rows .= <<<ROW
             <tr>
                 <td>{$id}</td>
@@ -133,6 +145,7 @@ final class PromoSetting extends Backend
                 <td>{$codeHtml}</td>
                 <td>{$testHtml}</td>
                 <td>{$statusHtml}</td>
+                <td class="link">{$linkHtml}</td>
                 <td class="ops">
                     <a href="/admin/live.PromoSetting/index?id={$id}">编辑</a>
                     <a href="/admin/live.PromoSetting/pxToggle?id={$id}">{$toggleText}</a>
@@ -142,7 +155,7 @@ final class PromoSetting extends Backend
 ROW;
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="10" class="empty">还没有像素，先在下面「新增像素」加一条（Facebook / TikTok 都支持无限多条）</td></tr>';
+            $rows = '<tr><td colspan="11" class="empty">还没有像素，先在下面「新增像素」加一条（Facebook / TikTok 都支持无限多条）</td></tr>';
         }
 
         echo <<<HTML
@@ -182,6 +195,10 @@ ROW;
     .chip.on{background:#e8f7ef;color:#00a870}
     .chip.off{background:#f2f3f5;color:#999}
     .chip.test{background:#fff4e5;color:#d48806}
+    .btn-copy{padding:4px 10px;border:1px solid #409eff;border-radius:6px;background:#fff;color:#409eff;font-size:12px;cursor:pointer}
+    .btn-copy:hover{background:#ecf5ff}
+    .btn-copy.copied{border-color:#00a870;color:#00a870;background:#e8f7ef}
+    td.link .url{max-width:250px}
     .muted{color:#bbb;font-size:12px}
     .bar{display:flex;justify-content:space-between;align-items:center;gap:12px}
     .note{background:#eef6ff;border:1px solid #cfe3ff;color:#2b6cb0;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.8;margin-bottom:18px}
@@ -195,7 +212,9 @@ ROW;
         当前启用中的像素：<b>{$enabled}</b> 条。像素支持<b>无限添加</b>——同一条推广渠道可以有多个像素（例如 FB 主号 + FB 备用号），
         每条像素可以<b>单独选择要接收的事件</b>、<b>限定只在某个推广域名上生效</b>。保存后前台 <b>60 秒内自动生效</b>（无需重新发版）。<br>
         要验证事件是否真的回传到广告后台：Ads Manager / Events Manager 里取「测试代码」填到下面的<b>测试回调编码</b>，
-        然后在广告后台打开「测试事件」面板，用无痕窗口走一遍注册或充值，事件会实时出现在面板里。
+        然后在广告后台打开「测试事件」面板，用无痕窗口走一遍注册或充值，事件会实时出现在面板里。<br>
+        每条像素的「推广链接」= <code>https://域名/?px=像素ID</code>，点「复制链接」拿去投放：用户从这个链接进来后，
+        <b>只打这一条像素</b>（不再受域名规则影响），访客后续跳转到其它页面也会保持绑定。
     </div>
 
     <form class="card" method="post" action="/admin/live.PromoSetting/evSave">
@@ -293,7 +312,7 @@ ROW;
             <div class="tip" id="livePreview">当前生效：加载中…</div>
         </div>
         <table>
-            <thead><tr><th>ID</th><th>推广渠道</th><th>备注</th><th>像素ID</th><th>事件</th><th>推广域名</th><th>像素代码</th><th>测试编码</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>ID</th><th>推广渠道</th><th>备注</th><th>像素ID</th><th>事件</th><th>推广域名</th><th>像素代码</th><th>测试编码</th><th>状态</th><th>推广链接（绑定像素）</th><th>操作</th></tr></thead>
             <tbody>{$rows}</tbody>
         </table>
     </div>
@@ -309,6 +328,38 @@ ROW;
         var isCustom = sel.value === '__custom__';
         custom.style.display = isCustom ? 'block' : 'none';
         if (!isCustom) custom.value = '';
+    });
+})();
+
+// 复制「绑定像素」的推广链接
+(function () {
+    function fallback(text, done) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        done();
+    }
+    document.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('.btn-copy') : null;
+        if (!btn) return;
+        var link = btn.getAttribute('data-link') || '';
+        if (!link) return;
+        var done = function () {
+            var old = btn.textContent;
+            btn.textContent = '已复制';
+            btn.classList.add('copied');
+            setTimeout(function () { btn.textContent = old; btn.classList.remove('copied'); }, 1500);
+        };
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(link).then(done, function () { fallback(link, done); });
+        } else {
+            fallback(link, done);
+        }
     });
 })();
 

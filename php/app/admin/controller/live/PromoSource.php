@@ -110,6 +110,16 @@ final class PromoSource extends Backend
             $domainOptions = '<option value="">（暂无已收录域名，先去前台访问一次或到「推广与像素」手动添加）</option>';
         }
 
+        // 像素下拉（生成推广链接用：绑定后该链接只打这一条像素）
+        $pxOptions = '<option value="">不绑定像素（按域名规则自动匹配）</option>';
+        foreach ((new PromoService())->pixels(true) as $p) {
+            $pid     = (int) $p['id'];
+            $pfLabel = PromoService::PIXEL_PLATFORMS[(string) $p['platform']] ?? (string) $p['platform'];
+            $pname   = trim((string) $p['name']);
+            $plabel  = $pfLabel . ($pname !== '' ? ' · ' . $pname : '') . '（#' . $pid . '）';
+            $pxOptions .= '<option value="' . $pid . '">' . htmlspecialchars($plabel, ENT_QUOTES) . '</option>';
+        }
+
         $totalRegsFmt   = number_format($totalRegs);
         $withSourceFmt  = number_format($withSource);
         $unknownFmt     = number_format($totalRegs - $withSource);
@@ -167,13 +177,15 @@ tr:last-child td{border-bottom:none}
         <div class="row">
             <select id="domSel">{$domainOptions}</select>
             <input id="chInput" placeholder="渠道参数 ch（可选，如 fb1 / tk2）">
+            <select id="pxSel">{$pxOptions}</select>
             <button class="btn" onclick="genLink()">生成链接</button>
         </div>
         <div class="link-box">
             <input id="linkOut" readonly placeholder="点「生成链接」得到可复制的推广链接">
             <button class="btn" onclick="copyLink()">复制</button>
         </div>
-        <div class="tip">提示：把生成好的链接分别投放到不同渠道，用户注册后就会带上来源域名/渠道，本页即可看到各域名带来的注册与充值。</div>
+        <div class="tip">提示：把生成好的链接分别投放到不同渠道，用户注册后就会带上来源域名/渠道，本页即可看到各域名带来的注册与充值。<br>
+            绑定像素后生成 <b>?px=像素ID</b>：从该链接进来的访客<b>只打这一条像素</b>（不受域名规则影响），跳转到其它页面也保持绑定。</div>
     </div>
 
     <div class="card">
@@ -196,9 +208,13 @@ tr:last-child td{border-bottom:none}
 function genLink(){
     var d = document.getElementById('domSel').value;
     var ch = document.getElementById('chInput').value.trim();
+    var px = document.getElementById('pxSel').value;
     if(!d){ document.getElementById('linkOut').value=''; return; }
+    var qs = [];
+    if(ch){ qs.push('ch=' + encodeURIComponent(ch)); }
+    if(px){ qs.push('px=' + encodeURIComponent(px)); }
     var url = 'https://' + d + '/';
-    if(ch){ url += '?ch=' + encodeURIComponent(ch); }
+    if(qs.length){ url += '?' + qs.join('&'); }
     document.getElementById('linkOut').value = url;
 }
 function copyLink(){
