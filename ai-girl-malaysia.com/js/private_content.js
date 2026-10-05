@@ -27,8 +27,8 @@
 
     var items = []
     var tab = 'all'
-    // 分类过滤（与首页 Tab 一致）：all / girls / anime / guys
-    var cat = 'all'
+    // 分类（对应首页顶栏 Girls/Anime/Guys 控件）：girls / anime / guys
+    var cat = 'girls'
     var query = ''
 
     function getParam(name) {
@@ -263,8 +263,7 @@
     }
 
     function load() {
-        var url = API_LIST + '?tab=' + encodeURIComponent(tab)
-        if (cat !== 'all') url += '&category=' + encodeURIComponent(cat)
+        var url = API_LIST + '?tab=' + encodeURIComponent(tab) + '&category=' + encodeURIComponent(cat)
         fetch(url, { method: 'GET', headers: headers() })
             .then(function (r) { return r.json() })
             .then(function (d) {
@@ -287,37 +286,48 @@
         }
     }
 
-    /* ---------- 分类栏：所有分类 / Girls / Anime / Guys（与首页 Tab 一致） ---------- */
+    /* ---------- 顶栏分类：Girls / Anime / Guys（与首页 #head-btn-group 同一控件） ---------- */
     function setCatClasses() {
-        var tabs = document.querySelectorAll('#private-content-cat-tabs [data-pcat]')
-        for (var i = 0; i < tabs.length; i++) {
-            var on = tabs[i].getAttribute('data-pcat') === cat
-            tabs[i].className = TAB_BASE + ' ' + (on ? TAB_ACTIVE : TAB_INACTIVE)
-            tabs[i].setAttribute('aria-current', on ? 'true' : 'false')
+        var btns = document.querySelectorAll('#head-btn-group [data-cat]')
+        for (var i = 0; i < btns.length; i++) {
+            var on = btns[i].getAttribute('data-cat') === cat
+            btns[i].classList.toggle('active', on)
+            if (!on) {
+                // 站点 main.js 可能给上一个 tab 留下粉色残留，清掉
+                btns[i].classList.remove('border-rose-400', 'text-rose-400')
+                var inner = btns[i].querySelectorAll('*')
+                for (var j = 0; j < inner.length; j++) {
+                    inner[j].classList.remove('border-rose-400', 'text-rose-400')
+                }
+            }
         }
     }
 
     // 标签 / 分类变化时同步地址栏，刷新或分享后保持当前筛选
     function syncUrl() {
-        var q = '?tab=' + encodeURIComponent(tab)
-        if (cat !== 'all') q += '&category=' + encodeURIComponent(cat)
-        try { history.replaceState(null, '', './private_content.html' + q) } catch (e) {}
+        try {
+            history.replaceState(null, '', './private_content.html?tab=' + encodeURIComponent(tab) + '&category=' + encodeURIComponent(cat))
+        } catch (e) {}
     }
 
     function bindCatTabs() {
-        var wrap = document.getElementById('private-content-cat-tabs')
-        if (!wrap) return
-        wrap.addEventListener('click', function (e) {
-            var a = e.target.closest ? e.target.closest('[data-pcat]') : null
-            if (!a) return
+        var bar = document.getElementById('head-btn-group')
+        if (!bar) return
+        // 用捕获阶段拦截：站点 main.js 也给 .head-btn 绑了 click（会去拉 /pagelist 并覆盖
+        // localStorage.pageList），这里命中分类按钮时阻止其继续冒泡，避免多余请求与串数据
+        bar.addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('[data-cat]') : null
+            if (!b) return
+            var next = String(b.getAttribute('data-cat') || '')
+            if (['girls', 'anime', 'guys'].indexOf(next) === -1) return
             e.preventDefault()
-            var next = String(a.getAttribute('data-pcat') || 'all')
+            e.stopPropagation()
             if (next === cat) return
             cat = next
             setCatClasses()
             syncUrl()
             load()
-        })
+        }, true)
     }
 
     function bindTabs() {
@@ -504,7 +514,7 @@
         var from = String(getParam('tab') || '')
         tab = from === 'most_liked' ? 'most_liked' : 'all'
         var fromCat = String(getParam('category') || '').toLowerCase()
-        cat = ['girls', 'anime', 'guys'].indexOf(fromCat) !== -1 ? fromCat : 'all'
+        cat = ['girls', 'anime', 'guys'].indexOf(fromCat) !== -1 ? fromCat : 'girls'
         setTabClasses()
         setCatClasses()
         bindTabs()
