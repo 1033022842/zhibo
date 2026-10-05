@@ -287,6 +287,19 @@
     }
 
     /* ---------- 顶栏分类：Girls / Anime / Guys（与首页 #head-btn-group 同一控件） ---------- */
+    // 手机端（<768px）fy.css 会隐藏 #head-btn-group，改用 shell-new 注入的紧凑下拉 #fyCatDd，
+    // 其菜单项默认跳 Girls/Anime/Guys 列表页；这里同步它的图标，并在本页改为原地过滤。
+    var CAT_ICON_SRC = {
+        girls: './tokens_files/female-grey-f8778c0424271c5cb4b1b50b2e50d7e8d5a2c79851c6f905e5d3ef4069956bef.svg',
+        anime: './tokens_files/anime-grey-1f1c9de8c17364c1634470e5d2ab1d4d05109fa8e80c1e1b83ac0478eb2d5dac.svg',
+        guys: './tokens_files/male-grey-48c8b386c214b3f674b7ef04bc51c9f7e967c49023e308fc58032fa0cc10c2e7.svg'
+    }
+
+    function syncMobileCatIcon() {
+        var ic = document.querySelector('#fyCatDd .fy-catdd-ic')
+        if (ic && CAT_ICON_SRC[cat]) ic.src = CAT_ICON_SRC[cat]
+    }
+
     function setCatClasses() {
         var btns = document.querySelectorAll('#head-btn-group [data-cat]')
         for (var i = 0; i < btns.length; i++) {
@@ -301,6 +314,7 @@
                 }
             }
         }
+        syncMobileCatIcon()
     }
 
     // 标签 / 分类变化时同步地址栏，刷新或分享后保持当前筛选
@@ -308,6 +322,14 @@
         try {
             history.replaceState(null, '', './private_content.html?tab=' + encodeURIComponent(tab) + '&category=' + encodeURIComponent(cat))
         } catch (e) {}
+    }
+
+    function applyCat(next) {
+        if (['girls', 'anime', 'guys'].indexOf(next) === -1 || next === cat) return
+        cat = next
+        setCatClasses()
+        syncUrl()
+        load()
     }
 
     function bindCatTabs() {
@@ -322,12 +344,31 @@
             if (['girls', 'anime', 'guys'].indexOf(next) === -1) return
             e.preventDefault()
             e.stopPropagation()
-            if (next === cat) return
-            cat = next
-            setCatClasses()
-            syncUrl()
-            load()
+            applyCat(next)
         }, true)
+    }
+
+    // 手机端紧凑下拉：拦截菜单项跳转，改为原地过滤（shell-new 在本页脚本之后才注入，需重试几次）
+    var catDdTries = 0
+    function bindMobileCatDropdown() {
+        var panel = document.getElementById('fyCatDdPanel')
+        if (!panel) {
+            if (catDdTries++ < 20) setTimeout(bindMobileCatDropdown, 250)
+            return
+        }
+        panel.addEventListener('click', function (e) {
+            var a = e.target.closest ? e.target.closest('a') : null
+            if (!a || !panel.contains(a)) return
+            var href = a.getAttribute('href') || ''
+            var k = href.indexOf('Anime') >= 0 ? 'anime' : (href.indexOf('Guys') >= 0 ? 'guys' : 'girls')
+            e.preventDefault()
+            e.stopPropagation()
+            panel.classList.add('hidden')
+            var btn = document.getElementById('fyCatDdBtn')
+            if (btn) btn.setAttribute('aria-expanded', 'false')
+            applyCat(k)
+        }, true)
+        syncMobileCatIcon()
     }
 
     function bindTabs() {
@@ -519,6 +560,7 @@
         setCatClasses()
         bindTabs()
         bindCatTabs()
+        bindMobileCatDropdown()
         bindSearch()
         bindCards()
         load()
