@@ -37,7 +37,7 @@
                         label="所属分类"
                         v-model="baTable.form.items!.category"
                         type="select"
-                        :input-attr="{ content: { girls: 'Girls（真人）', anime: 'Anime（动漫）' } }"
+                        :input-attr="{ content: { girls: 'Girls（真人）', anime: 'Anime（动漫）', guys: 'Guys（男生）' } }"
                         tip="首页对应 Tab 下的 Private Content 栏展示"
                     />
                     <FormItem label="价格" v-model="baTable.form.items!.price" type="number" :input-attr="{ min: 0 }" />

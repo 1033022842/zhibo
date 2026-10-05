@@ -21,6 +21,7 @@
                         <el-option label="全部分类" value="" />
                         <el-option label="Girls（真人）" value="girls" />
                         <el-option label="Anime（动漫）" value="anime" />
+                        <el-option label="Guys（男生）" value="guys" />
                     </el-select>
                 </el-form-item>
                 <el-form-item label="价格(代币)">
@@ -62,8 +63,8 @@ const baTable = new baTableClass(
                 align: 'center',
                 width: 100,
                 render: 'tag',
-                custom: { girls: 'danger', anime: 'primary' },
-                replaceValue: { girls: 'Girls 真人', anime: 'Anime 动漫' },
+                custom: { girls: 'danger', anime: 'primary', guys: 'success' },
+                replaceValue: { girls: 'Girls 真人', anime: 'Anime 动漫', guys: 'Guys 男生' },
                 operator: '=',
             },
             { label: '价格', prop: 'price', align: 'center', width: 80, operator: 'RANGE' },

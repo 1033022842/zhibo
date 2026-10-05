@@ -27,6 +27,8 @@
 
     var items = []
     var tab = 'all'
+    // 分类过滤（与首页 Tab 一致）：all / girls / anime / guys
+    var cat = 'all'
     var query = ''
 
     function getParam(name) {
@@ -261,7 +263,9 @@
     }
 
     function load() {
-        fetch(API_LIST + '?tab=' + encodeURIComponent(tab), { method: 'GET', headers: headers() })
+        var url = API_LIST + '?tab=' + encodeURIComponent(tab)
+        if (cat !== 'all') url += '&category=' + encodeURIComponent(cat)
+        fetch(url, { method: 'GET', headers: headers() })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 items = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
@@ -283,6 +287,39 @@
         }
     }
 
+    /* ---------- 分类栏：所有分类 / Girls / Anime / Guys（与首页 Tab 一致） ---------- */
+    function setCatClasses() {
+        var tabs = document.querySelectorAll('#private-content-cat-tabs [data-pcat]')
+        for (var i = 0; i < tabs.length; i++) {
+            var on = tabs[i].getAttribute('data-pcat') === cat
+            tabs[i].className = TAB_BASE + ' ' + (on ? TAB_ACTIVE : TAB_INACTIVE)
+            tabs[i].setAttribute('aria-current', on ? 'true' : 'false')
+        }
+    }
+
+    // 标签 / 分类变化时同步地址栏，刷新或分享后保持当前筛选
+    function syncUrl() {
+        var q = '?tab=' + encodeURIComponent(tab)
+        if (cat !== 'all') q += '&category=' + encodeURIComponent(cat)
+        try { history.replaceState(null, '', './private_content.html' + q) } catch (e) {}
+    }
+
+    function bindCatTabs() {
+        var wrap = document.getElementById('private-content-cat-tabs')
+        if (!wrap) return
+        wrap.addEventListener('click', function (e) {
+            var a = e.target.closest ? e.target.closest('[data-pcat]') : null
+            if (!a) return
+            e.preventDefault()
+            var next = String(a.getAttribute('data-pcat') || 'all')
+            if (next === cat) return
+            cat = next
+            setCatClasses()
+            syncUrl()
+            load()
+        })
+    }
+
     function bindTabs() {
         var wrap = document.getElementById('private-content-lobby-tabs')
         if (!wrap) return
@@ -294,7 +331,7 @@
             if (next === tab) return
             tab = next
             setTabClasses()
-            history.replaceState(null, '', './private_content.html?tab=' + encodeURIComponent(tab))
+            syncUrl()
             load()
         })
     }
@@ -466,8 +503,12 @@
     document.addEventListener('DOMContentLoaded', function () {
         var from = String(getParam('tab') || '')
         tab = from === 'most_liked' ? 'most_liked' : 'all'
+        var fromCat = String(getParam('category') || '').toLowerCase()
+        cat = ['girls', 'anime', 'guys'].indexOf(fromCat) !== -1 ? fromCat : 'all'
         setTabClasses()
+        setCatClasses()
         bindTabs()
+        bindCatTabs()
         bindSearch()
         bindCards()
         load()
