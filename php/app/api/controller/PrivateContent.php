@@ -34,9 +34,9 @@ final class PrivateContent extends BaseController
     public function items()
     {
         $tab = (string) $this->request->get('tab', 'all');
-        // 分类过滤：girls(真人) / anime(动漫)，对应首页 Tab；非法值忽略（返回全部）
+        // 分类过滤：girls(真人) / anime(动漫) / guys(男生)，与首页 Tab 一致；非法值忽略（返回全部）
         $category = strtolower(trim((string) $this->request->get('category', '')));
-        if (!in_array($category, ['girls', 'anime'], true)) {
+        if (!in_array($category, ['girls', 'anime', 'guys'], true)) {
             $category = '';
         }
 

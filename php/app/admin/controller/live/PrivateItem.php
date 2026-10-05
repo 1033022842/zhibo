@@ -15,8 +15,8 @@ final class PrivateItem extends Backend
 {
     private const MEDIA_TYPES = ['video', 'image', 'mixed'];
 
-    /** 首页分类（girls=真人 / anime=动漫），对应首页 Tab */
-    private const CATEGORIES = ['girls', 'anime'];
+    /** 首页分类（girls=真人 / anime=动漫 / guys=男生），对应首页 Tab */
+    private const CATEGORIES = ['girls', 'anime', 'guys'];
 
     protected object $model;
     protected string|array $quickSearchField = ['title', 'creator', 'id'];
