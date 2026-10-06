@@ -73,10 +73,37 @@ class LiveUser extends Backend
             $row['cert_review_url'] = $row['cert_id'] > 0
                 ? '/admin/user.LiveUser/detail?id=' . $row['id']
                 : '';
+
+            // 来源合并展示：列内优先显示「推广链接名称 → 渠道 → 平台 → 域名」，
+            // 完整明细放 reg_source_detail，前端悬浮显示
+            $regLink     = (string) ($row['reg_link_name'] ?? '');
+            $regChannel  = (string) ($row['reg_channel'] ?? '');
+            $regPlatform = (string) ($row['reg_platform'] ?? '');
+            $regDomain   = (string) ($row['reg_domain'] ?? '');
+            $row['reg_source'] = $regLink !== '' ? $regLink
+                : ($regChannel !== '' ? $regChannel
+                : ($regPlatform !== '' ? $regPlatform : $regDomain));
+            $row['reg_source_type'] = match ($regPlatform) {
+                'facebook' => 'primary',
+                'tiktok'   => 'danger',
+                'google'   => 'success',
+                default    => 'info',
+            };
+            $detail = [];
+            if ($regDomain !== '')                        { $detail[] = '域名：' . $regDomain; }
+            if ($regPlatform !== '')                      { $detail[] = '平台：' . $regPlatform; }
+            if ($regChannel !== '')                       { $detail[] = '渠道：' . $regChannel; }
+            if ($regLink !== '')                          { $detail[] = '推广链接：' . $regLink; }
+            if ((string) ($row['reg_px'] ?? '') !== '')       { $detail[] = '推广像素：' . $row['reg_px']; }
+            if ((string) ($row['reg_campaign'] ?? '') !== '') { $detail[] = '广告系列：' . $row['reg_campaign']; }
+            if ((string) ($row['reg_adset'] ?? '') !== '')    { $detail[] = '广告组：' . $row['reg_adset']; }
+            if ((string) ($row['reg_ad'] ?? '') !== '')       { $detail[] = '广告：' . $row['reg_ad']; }
+            $row['reg_source_detail'] = implode("\n", $detail);
         }
+        unset($row);
 
         $this->success('', [
-            'list'   => $res->items(),
+            'list'   => $items,
             'total'  => $res->total(),
             'remark' => get_route_remark(),
         ]);
