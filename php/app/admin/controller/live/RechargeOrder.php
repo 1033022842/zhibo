@@ -46,7 +46,8 @@ final class RechargeOrder extends Backend
             $query = $db->table('lp_recharge_order')->alias('o')
                 ->join('lp_user u', 'u.id = o.user_id', 'LEFT')
                 ->join('lp_recharge_channel ch', 'ch.id = o.channel_id', 'LEFT')
-                ->field('o.*, u.nickname, ch.name as channel_name');
+                ->join('lp_fiat_channel fc', 'fc.id = o.fiat_channel_id', 'LEFT')
+                ->field('o.*, u.nickname, ch.name as channel_name, fc.name as fiat_channel_name');
 
             if ($keyword !== '') {
                 $query->where(function ($q) use ($keyword) {
@@ -287,6 +288,14 @@ final class RechargeOrder extends Backend
                 ? '<input type="checkbox" class="rowchk" value="' . $rid . '" onclick="syncBulk()">'
                 : '';
 
+            // 法币单：pay_amount 是本币实付，附带标出折算前的 USD 原价便于对账
+            $usdAmount = (float) ($r['usd_amount'] ?? 0);
+            $isFiatPay = trim((string) ($r['pay_currency'] ?? '')) !== '';
+            $usdTipHtml = ($isFiatPay && $usdAmount > 0)
+                ? ' <span style="color:#999">≈ $' . number_format($usdAmount, 2) . '</span>'
+                : '';
+            $usdTipText = ($isFiatPay && $usdAmount > 0) ? '（≈ $' . number_format($usdAmount, 2) . '）' : '';
+
             $actions = '';
             if ($st === 0) {
                 $actions = "<button class='btn btn-sm btn-success' onclick=\"showApprove({$rid})\">通过</button>"
@@ -304,7 +313,7 @@ final class RechargeOrder extends Backend
                 . '<td><a href="javascript:void(0)" onclick="showDetail(' . $rid . ')" class="olink">' . htmlspecialchars((string) $r['order_no'], ENT_QUOTES) . '</a></td>'
                 . '<td>' . htmlspecialchars($channelLbl, ENT_QUOTES) . '</td>'
                 . '<td>' . htmlspecialchars($bizLbl, ENT_QUOTES) . '</td>'
-                . '<td>' . htmlspecialchars((string) $r['pay_amount'], ENT_QUOTES) . ' ' . $unit . '</td>'
+                . '<td>' . htmlspecialchars((string) $r['pay_amount'], ENT_QUOTES) . ' ' . $unit . $usdTipHtml . '</td>'
                 . '<td>' . htmlspecialchars((string) $r['diamond_amount'], ENT_QUOTES) . ($isVip ? '' : ' 代币') . '</td>'
                 . '<td>' . $refCell . '</td>'
                 . '<td>' . $proof . '</td>'
@@ -329,7 +338,7 @@ final class RechargeOrder extends Backend
                     : '-',
                 '业务'       => $bizLbl . ($isVip && !empty($r['vip_plan_id']) ? '（套餐 #' . (int) $r['vip_plan_id'] . '）' : '')
                     . ($r['package_id'] ? '（充值套餐 #' . (int) $r['package_id'] . '）' : ''),
-                '应付金额'   => (string) $r['pay_amount'] . ' ' . $unit,
+                '应付金额'   => (string) $r['pay_amount'] . ' ' . $unit . $usdTipText,
                 '到账'       => (string) $r['diamond_amount'] . ($isVip ? '（会员天数按套餐）' : ' 代币'),
                 '网关/链上单号' => $ref !== '' ? $ref : '-',
                 '收银台链接' => (string) ($r['pay_url'] ?? '') !== '' ? (string) $r['pay_url'] : '-',
@@ -428,9 +437,14 @@ final class RechargeOrder extends Backend
         ]);
     }
 
-    /** 支付金额单位：链上按币种代号，网关按法币 USD */
+    /** 支付金额单位：法币单按实付币种，链上按币种代号，网关按 USD */
     private function unitOf(array $r): string
     {
+        // 法币单（含走 starpay 的本币单）：pay_amount 存的是折算后的本币金额
+        $currency = trim((string) ($r['pay_currency'] ?? ''));
+        if ($currency !== '') {
+            return strtoupper($currency);
+        }
         $payChannel = (string) $r['pay_channel'];
         if ($payChannel === '' || in_array($payChannel, ['starpay', 'flowpay'], true)) {
             return 'USD';
@@ -444,6 +458,10 @@ final class RechargeOrder extends Backend
 
     private function channelLabel(array $r): string
     {
+        if ((int) ($r['fiat_channel_id'] ?? 0) > 0) {
+            $name = trim((string) ($r['fiat_channel_name'] ?? ''));
+            return '法币 · ' . ($name !== '' ? $name : strtoupper((string) $r['pay_currency']));
+        }
         $payChannel = (string) $r['pay_channel'];
         if ($payChannel === 'starpay') {
             return 'star-pay（网关）';

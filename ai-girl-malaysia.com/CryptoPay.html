@@ -219,7 +219,7 @@
 
 		<!-- 第一步：选币种 -->
 		<section class="cp-body" id="cp-step1">
-			<div class="cp-panel">
+			<div class="cp-panel" id="cp-pick-panel">
 				<button type="button" class="cp-select" id="cp-currency-btn">
 					<span class="cp-select-ico" id="cp-currency-ico"></span>
 					<span class="cp-select-name is-placeholder" id="cp-currency-name">Select currency</span>
@@ -230,9 +230,17 @@
 					<b id="cp-net-value">—</b>
 				</div>
 			</div>
+			<!-- 法币通道（后台 lp_fiat_channel）：币种由通道决定，这里只展示按后台汇率折算的预估价 -->
+			<div class="cp-panel" id="cp-fiat-panel" hidden>
+				<div class="cp-block">
+					<div class="cp-k">You will pay</div>
+					<div class="cp-payamt"><b id="cp-fiat-preview">—</b></div>
+					<div class="cp-meta" id="cp-fiat-meta"></div>
+				</div>
+			</div>
 			<button type="button" class="cp-primary" id="cp-continue">Continue</button>
-			<div class="cp-or"><span>or choose other methods</span></div>
-			<div class="cp-panel">
+			<div class="cp-or" id="cp-or"><span>or choose other methods</span></div>
+			<div class="cp-panel" id="cp-alt-panel">
 				<a class="cp-alt" id="cp-alt-card" href="./Subscriptions.html">
 					<span>Continue with card</span>
 					<span class="cp-alt-icons">
@@ -247,13 +255,14 @@
 		<section class="cp-body" id="cp-step2" hidden>
 			<div class="cp-panel">
 				<div class="cp-block">
-					<div class="cp-k">Send exactly</div>
+					<div class="cp-k" id="cp-exact-label">Send exactly</div>
 					<div class="cp-payamt">
 						<b id="cp-exact">—</b>
-						<button type="button" class="cp-copy" data-copy="cp-exact">Copy</button>
+						<button type="button" class="cp-copy" data-copy="cp-exact" id="cp-exact-copy">Copy</button>
 					</div>
+					<div class="cp-meta" id="cp-usd-note" hidden></div>
 				</div>
-				<div class="cp-block">
+				<div class="cp-block" id="cp-addr-block">
 					<div class="cp-k">to this <span id="cp-chain">—</span> address</div>
 					<div class="cp-addr">
 						<span id="cp-address">—</span>
@@ -272,6 +281,7 @@
 			<p class="cp-note" id="cp-note"></p>
 			<div class="cp-state" id="cp-state">Waiting for payment…</div>
 			<div class="cp-meta">Order <span id="cp-order">—</span> · expires in <span id="cp-timer">--:--</span></div>
+			<a class="cp-primary" id="cp-fiat-pay" href="#" style="display:none;text-align:center;line-height:48px;text-decoration:none">Pay now</a>
 			<button type="button" class="cp-back" id="cp-back">Choose another currency</button>
 		</section>
 
@@ -302,8 +312,8 @@
 	</div>
 
 	<script src="./plugins/qrcode-generator.js?v=20261002a"></script>
-	<script src="./js/crypto-pay.js?v=20261002a"></script>
+	<script src="./js/crypto-pay.js?v=20261006a"></script>
 	<script src="./js/creator-guide.js?v=20261002f"></script>
-	<script src="./js/tracking.js?v=20261006c"></script>
+	<script src="./js/tracking.js?v=20261006d"></script>
 </body>
 </html>

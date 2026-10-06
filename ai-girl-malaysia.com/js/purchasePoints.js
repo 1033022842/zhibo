@@ -37,6 +37,8 @@
     var flowpayEnabled = false
     // FlowPay 可选收单通道：[{ gcode, label }]，点开卡按钮后就地展开成多个通道按钮
     var flowpayChannels = []
+    // 后台法币通道（lp_fiat_channel）：每个国家一条，下单时按后台汇率把 USD 折算成本币
+    var fiatChannels = []
     var selected = null
     var customTokens = 0
     var customTimer = null
@@ -259,6 +261,8 @@
             packages = res.data.list || []
             flowpayEnabled = !!(res.data.flowpay && res.data.flowpay.enabled)
             flowpayChannels = (res.data.flowpay && res.data.flowpay.channels) || []
+            // 法币通道（后台 lp_fiat_channel）
+            fiatChannels = res.data.fiat || []
             renderPlans()
             renderCustom(normalizeTokens(DEFAULT_TOKENS))
         })
@@ -312,6 +316,15 @@
             '<span class="tk-method-text">Continue with</span>' +
             '<span class="tk-method-icons">' + logos + '</span>' +
             '</button>'
+        // 法币通道（后台 lp_fiat_channel，单国本币收款）：每条通道一个按钮
+        fiatChannels.forEach(function (fc) {
+            var unit = fc.symbol || fc.currency || ''
+            var name = String(fc.name || '').replace(/[<>"]/g, '')
+            html +=
+                '<button type="button" class="tk-method" data-fiat-id="' + parseInt(fc.id, 10) + '">' +
+                '<span class="tk-method-text">' + name + (unit !== '' ? ' · ' + unit : '') + '</span>' +
+                '</button>'
+        })
         // 银行卡收银台：FlowPay 商户参数配置齐全后自动出现。
         // 形态与 Subscriptions.html 一致：一个渐变胶囊按钮，点开后就地展开各条收单通道
         if (flowpayEnabled) {
@@ -527,6 +540,14 @@
         $(document).on('click', '#tk-payment-modal .tk-method[data-code]', function () {
             if (!selected) return
             location.href = './CryptoPay.html?kind=coin' +
+                '&tokens=' + encodeURIComponent(selected.tokens) +
+                '&price=' + encodeURIComponent(selected.price)
+        })
+        // 法币通道（单国本币收款）：跳站内收款页，金额由服务端按后台汇率折算成本币
+        $(document).on('click', '#tk-payment-modal .tk-method[data-fiat-id]', function () {
+            if (!selected) return
+            location.href = './CryptoPay.html?kind=coin' +
+                '&fiat_id=' + encodeURIComponent($(this).attr('data-fiat-id')) +
                 '&tokens=' + encodeURIComponent(selected.tokens) +
                 '&price=' + encodeURIComponent(selected.price)
         })

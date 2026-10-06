@@ -39,6 +39,14 @@ final class Recharge extends BaseController
     }
 
     /**
+     * 可用法币支付通道（后台 lp_fiat_channel，含各通道的汇率与币种）
+     */
+    public function fiatChannels()
+    {
+        return $this->jsonSuccess(\app\live\service\FiatChannelService::channels());
+    }
+
+    /**
      * AI 女友端：充值套餐 + 可选支付方式（免登录）
      */
     public function packages()
@@ -53,6 +61,8 @@ final class Recharge extends BaseController
                 'enabled'  => $flowPay->enabled(),
                 'channels' => $flowPay->channels(),
             ],
+            // 法币通道（单国本币收款）：下单时按这条通道的汇率把 USD 折算成本币
+            'fiat'     => \app\live\service\FiatChannelService::channels(),
         ]);
     }
 
@@ -165,12 +175,21 @@ final class Recharge extends BaseController
     public function submit()
     {
         $userId = $this->getAuthUserId();
-        $channelId = $this->request->post('channel_id/d', 0);
         $amount = $this->request->post('amount/f', 0);
-        $proofImage = $this->request->post('proof_image', '');
-
-        if ($channelId <= 0) return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择充值渠道');
         if ($amount <= 0) return $this->jsonFail(ResultCode::PARAM_ERROR, '请输入充值金额');
+
+        // 法币通道：按后台汇率折算成本币收款（pay_amount 即本币实付金额）
+        $fiatChannelId = $this->request->post('fiat_channel_id/d', 0);
+        if ($fiatChannelId > 0) {
+            return $this->jsonSuccess(
+                $this->service->submitFiatCoinOrder($userId, $fiatChannelId, $amount),
+                '订单已提交，请按本币金额支付'
+            );
+        }
+
+        $channelId = $this->request->post('channel_id/d', 0);
+        $proofImage = $this->request->post('proof_image', '');
+        if ($channelId <= 0) return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择充值渠道');
 
         $order = $this->service->submitOrder($userId, $channelId, $amount, $proofImage);
         $spec  = \app\live\service\RechargeService::specOf((array) ($order['channel'] ?? []));

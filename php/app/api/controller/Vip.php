@@ -64,10 +64,28 @@ final class Vip extends BaseController
         $gcode   = trim((string) $this->request->post('gcode', ''));
         // 链上收款渠道（后台 lp_recharge_channel）
         $channelId = (int) $this->request->post('channel_id', 0);
+        // 法币支付通道（后台 lp_fiat_channel）：按后台汇率把套餐 USD 价折算成本币
+        $fiatChannelId = (int) $this->request->post('fiat_channel_id', 0);
         if ($planId <= 0) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, '套餐ID无效');
         }
-        $order   = $this->recharge->submitVipOrder($this->getAuthUserId(), $planId, $product, $gateway, $gcode, $channelId);
+        $order   = $this->recharge->submitVipOrder($this->getAuthUserId(), $planId, $product, $gateway, $gcode, $channelId, $fiatChannelId);
+
+        // 法币单：金额/币种/汇率都在下单时锁定，这里直接回给前台展示
+        if ($fiatChannelId > 0) {
+            return $this->jsonSuccess([
+                'order_no'     => $order['order_no'],
+                'pay_amount'   => $order['pay_amount'],
+                'usd_amount'   => $order['usd_amount'],
+                'fx_rate'      => $order['fx_rate'],
+                'pay_currency' => $order['pay_currency'],
+                'pay_url'      => $order['pay_url'] ?? '',
+                'expire_at'    => $order['expire_at'] ?? '',
+                'fiat_channel' => $order['fiat_channel'] ?? [],
+                'channel_name' => (string) (($order['fiat_channel']['name'] ?? '')),
+                'instructions' => (string) (($order['fiat_channel']['instructions'] ?? '')),
+            ], '订单已创建，请按本币金额支付');
+        }
         $channel = (array) ($order['channel'] ?? []);
         $spec    = \app\live\service\RechargeService::specOf($channel);
         return $this->jsonSuccess([

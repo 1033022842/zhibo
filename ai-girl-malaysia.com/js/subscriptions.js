@@ -29,6 +29,8 @@
     var vipState = null
     // FlowPay 可选收单通道：[{ gcode, label }]，点卡按钮后展开成多个通道按钮
     var cardChannels = []
+    // 后台法币通道（lp_fiat_channel）：每个国家一条，点进去按后台汇率折算成本币收款
+    var fiatChannels = []
     // 页面里两个弹窗各有一个卡支付按钮（保留原 id，校验脚本会数它）
     var CARD_BUTTONS = ['#sub-pay-card', '#sub-pay-card-plus']
 
@@ -86,14 +88,20 @@
     }
 
     /**
-     * 卡支付通道：/recharge/packages 下发 FlowPay 已开通的收单通道
+     * 支付方式：/recharge/packages 下发 FlowPay 收单通道 + 后台法币通道
      */
     function loadCardChannels() {
         $.ajax({
             url: base + '/recharge/packages',
             timeout: API_TIMEOUT,
         }).done(function (r) {
-            if (!r || r.code !== '00000' || !r.data || !r.data.flowpay) { return }
+            if (!r || r.code !== '00000' || !r.data) { return }
+            // 法币通道（后台 lp_fiat_channel，单国本币收款）
+            if (r.data.fiat && r.data.fiat.length) {
+                fiatChannels = r.data.fiat
+                renderFiatButtons()
+            }
+            if (!r.data.flowpay) { return }
             cardChannels = r.data.flowpay.channels || []
             if (r.data.flowpay.enabled && cardChannels.length) { renderCardButtons() }
         })
@@ -144,6 +152,31 @@
             $btn.on('click', function (e) {
                 e.preventDefault()
                 $box.slideToggle(140)
+            })
+        })
+    }
+
+    /**
+     * 法币通道：每条通道一个按钮（如 "Malaysia · FPX · RM"），
+     * 点它进站内收款页，金额在服务端按该通道的后台汇率把 USD 折算成本币
+     */
+    function renderFiatButtons() {
+        [['#sub-pay-crypto', 'premium'], ['#sub-pay-crypto-plus', 'premium_plus']].forEach(function (pair) {
+            var $crypto = $(pair[0])
+            if (!$crypto.length) { return }
+            var $host = $crypto.closest('.sub-modal-buttons')
+            if (!$host.length || $host.find('[data-fiat-id]').length) { return }
+            fiatChannels.forEach(function (fc) {
+                var unit = fc.symbol || fc.currency || ''
+                var label = fc.name + (unit !== '' ? ' · ' + unit : '')
+                var $wrap = $('<div></div>')
+                $('<button type="button" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex"></button>')
+                    .attr('id', pair[0].replace('#', '') + '-fiat-' + fc.id)
+                    .attr('data-fiat-id', fc.id)
+                    .attr('data-fiat-level', pair[1])
+                    .append($('<div class="text-white text-xs sm:text-sm font-medium leading-tight"></div>').text(label))
+                    .appendTo($wrap)
+                $crypto.closest('div').after($wrap)
             })
         })
     }
@@ -392,6 +425,11 @@
             e.preventDefault()
             pay($(this).attr('id'), 'flowpay', String($(this).attr('data-gcode') || ''))
         })
+        // 法币通道（单国本币收款）
+        $(document).on('click', '[data-fiat-id]', function (e) {
+            e.preventDefault()
+            fiatPay($(this).attr('data-fiat-id'), String($(this).attr('data-fiat-level') || 'premium'))
+        })
     }
 
     function remember($w) {
@@ -426,6 +464,18 @@
             return
         }
         location.href = './CryptoPay.html?kind=vip&plan_id=' + encodeURIComponent(plan.id)
+    }
+
+    /** 法币通道：同样跳站内收款页，金额由服务端按后台汇率折算成本币 */
+    function fiatPay(fiatId, level) {
+        var sel = readSelection(level)
+        var plan = findPlan(level, sel.months, sel.tokens)
+        if (!plan) {
+            toast('Please choose a plan first')
+            return
+        }
+        location.href = './CryptoPay.html?kind=vip&fiat_id=' + encodeURIComponent(fiatId) +
+            '&plan_id=' + encodeURIComponent(plan.id)
     }
 
     function pay(btnId, gateway, gcode) {

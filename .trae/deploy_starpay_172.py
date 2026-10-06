@@ -84,6 +84,10 @@ PHP_FILES = [
     "php/app/api/route/vip.php",
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/app/admin/controller/live/RechargeOrder.php",
+    "php/app/live/service/FiatChannelService.php",
+    "php/app/admin/model/live/FiatChannel.php",
+    "php/app/admin/controller/live/FiatChannel.php",
+    "php/sql/upgrade_fiat_channel.sql",
     "php/sql/upgrade_recharge_starpay.sql",
     "php/sql/upgrade_vip_starpay.sql",
     "php/sql/upgrade_vip_tier.sql",
@@ -159,6 +163,7 @@ mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_tier.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_vip_plans_v2.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_eth_recharge.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_recharge_channel_memo.sql
+mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_fiat_channel.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_short_filters.sql
 mysql -h"$DBH" -u"$DBU" "$DBN" < sql/upgrade_user_settings.sql
 echo "--- 迁移后校验 ---"

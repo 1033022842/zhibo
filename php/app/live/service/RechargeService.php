@@ -545,12 +545,20 @@ final class RechargeService
      *
      * 与充值共用 lp_recharge_order（biz_type=vip 标记），回调时开通会员而非加代币
      */
-    public function submitVipOrder(int $userId, int $planId, string $product = '', string $gateway = 'starpay', string $gcode = '', int $channelId = 0): array
+    public function submitVipOrder(int $userId, int $planId, string $product = '', string $gateway = 'starpay', string $gcode = '', int $channelId = 0, int $fiatChannelId = 0): array
     {
         $plan = Db::connect('live_mysql')->table('lp_vip_plan')
             ->where('id', $planId)->where('status', 1)->find();
         if (!$plan) {
             throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '会员套餐不存在或已下架');
+        }
+
+        // 法币通道（后台 lp_fiat_channel）：按后台汇率把套餐 USD 价折算成本币收款
+        if ($fiatChannelId > 0) {
+            return $this->submitFiatOrder($userId, $fiatChannelId, (float) $plan['usd_price'], [
+                'biz_type'    => 'vip',
+                'vip_plan_id' => (int) $plan['id'],
+            ]);
         }
 
         // 链上收款渠道（后台 lp_recharge_channel）：站内收款页直接用渠道地址收款
@@ -625,6 +633,119 @@ final class RechargeService
         Db::connect('live_mysql')->table('lp_recharge_order')->insert($order);
 
         return array_merge($order, ['channel' => $channel->toArray()]);
+    }
+
+    /**
+     * 法币通道下单（会员订阅 / 代币充值共用）
+     *
+     * 金额按后台配置的汇率在「下单这一刻」折算成本币并锁定：
+     *   pay_amount = 本币实付（如 70.53）、usd_amount = 原始 USD 标价（如 15.00）、
+     *   fx_rate    = 锁定的 1 USD = ? 本币。
+     * 之后运营改汇率，已生成的订单金额不变。
+     *
+     * @param array $opt biz_type / vip_plan_id / diamond_amount / package_id / return_url
+     */
+    public function submitFiatOrder(int $userId, int $fiatChannelId, float $usd, array $opt = []): array
+    {
+        $channel = FiatChannelService::find($fiatChannelId);
+        $fx      = FiatChannelService::convert($usd, $channel);
+        $gateway = (string) $channel['gateway'];
+
+        $db  = Db::connect('live_mysql');
+        $now = date('Y-m-d H:i:s');
+        $order = [
+            'order_no'        => StrHelper::orderNo('RC'),
+            'user_id'         => $userId,
+            // 走网关的记网关 code，这样网关查单补单（reconcileGateway）能自动带上；
+            // 纯人工通道记 'fiat'，订单直接进后台「充值审核」等运营核对
+            'pay_channel'     => $gateway === 'starpay' ? 'starpay' : 'fiat',
+            'channel_id'      => 0,
+            'fiat_channel_id' => (int) $channel['id'],
+            'package_id'      => $opt['package_id'] ?? null,
+            'biz_type'        => (string) ($opt['biz_type'] ?? 'coin'),
+            'vip_plan_id'     => $opt['vip_plan_id'] ?? null,
+            'chain_type'      => strtoupper((string) $fx['currency']),
+            'pay_amount'      => $fx['amount'],
+            'pay_currency'    => $fx['currency'],
+            'usd_amount'      => $fx['usd'],
+            'fx_rate'         => $fx['rate'],
+            'diamond_amount'  => (float) ($opt['diamond_amount'] ?? 0),
+            'proof_image'     => '',
+            'status'          => 0,
+            'expire_at'       => date('Y-m-d H:i:s', time() + 7200),
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ];
+        $db->table('lp_recharge_order')->insert($order);
+
+        $update = [];
+        try {
+            $update = $this->callFiatGateway($order, $channel, $fx, (string) ($opt['return_url'] ?? ''));
+        } catch (\Throwable $e) {
+            $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update([
+                'status'       => 3,
+                'admin_remark' => '网关下单失败：' . $e->getMessage(),
+                'updated_at'   => date('Y-m-d H:i:s'),
+            ]);
+            throw $e;
+        }
+        if ($update !== []) {
+            $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update($update);
+        }
+
+        return array_merge($order, $update, ['fiat' => $fx, 'fiat_channel' => $channel]);
+    }
+
+    /**
+     * 法币通道充值代币：到账代币按通道的 diamond_rate（每 1 USD）折算，
+     * 与链上渠道 submitOrder 同一口径（取 USD 整数部分 × 单价）
+     */
+    public function submitFiatCoinOrder(int $userId, int $fiatChannelId, float $usd, ?int $packageId = null): array
+    {
+        $channel  = FiatChannelService::find($fiatChannelId);
+        $diamonds = bcmul((string) floor($usd), (string) $channel['diamond_rate'], 2);
+
+        return $this->submitFiatOrder($userId, $fiatChannelId, $usd, [
+            'biz_type'       => 'coin',
+            'diamond_amount' => $diamonds,
+            'package_id'     => $packageId,
+        ]);
+    }
+
+    /**
+     * 法币单的网关下单
+     *
+     * manual：不动网关（还没接，或本就想走人工），订单留在后台等运营核对；
+     * starpay：金额传折算后的本币，币种走 extra.fiat_currency（网关按这个校验）；
+     * 其它 code 一律拒绝，避免「以为对接了其实没对接」把钱收错。
+     */
+    private function callFiatGateway(array $order, array $channel, array $fx, string $returnUrl): array
+    {
+        $gateway = (string) $channel['gateway'];
+        if ($gateway === '' || $gateway === 'manual') {
+            return [];
+        }
+        if ($gateway !== 'starpay') {
+            throw new BusinessException(
+                ResultCode::PARAM_ERROR,
+                '「' . $channel['name'] . '」尚未对接网关，请联系客服'
+            );
+        }
+
+        $product = (string) $channel['gref'] !== '' ? (string) $channel['gref'] : (string) config('starpay.product');
+        $gw = (new StarPayService())->createDeposit(
+            (string) $order['order_no'],
+            (string) $fx['amount'],
+            $product,
+            ['fiat_currency' => (string) $fx['currency']],
+            $returnUrl !== '' ? $returnUrl : (string) config('starpay.return_url')
+        );
+
+        return [
+            'system_ref' => (string) ($gw['system_ref'] ?? ''),
+            'pay_url'    => (string) ($gw['payurl'] ?? ''),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
     }
 
     /**
