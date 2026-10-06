@@ -4,7 +4,7 @@
 
         <TableHeader
             :buttons="['refresh', 'delete', 'comSearch', 'quickSearch', 'columnDisplay']"
-            :quick-search-placeholder="'搜索用户昵称/ID/编号'"
+            :quick-search-placeholder="'搜索 昵称/ID/编号/邮箱/来源域名/来源渠道'"
         />
 
         <Table />
