@@ -10,7 +10,7 @@
  *   NOTIFY_URL = https://域名/api/v1/recharge/notifyFlowPay
  *   RETURN_URL = http://域名:8082/purchasePoints.html
  *   RETURN_URL_VIP = http://域名:8082/Subscriptions.html
- *   MIN_AMOUNT = 10
+ *   MIN_AMOUNT = 15
  */
 return [
     // 网关地址（不含接口路径）
@@ -34,8 +34,10 @@ return [
     'return_url'     => (string) env('flowpay.return_url', ''),
     // 会员订阅页同步跳回地址
     'return_url_vip' => (string) env('flowpay.return_url_vip', ''),
-    // 网关最小支付金额（USD），低于该金额下单会被网关拒绝
-    'min_amount'     => (float) env('flowpay.min_amount', 10),
+    // 网关最小支付金额（USD），低于该金额下单会被网关拒绝。
+    // 实测该商户的收单通道最低 $15：14.50 会被网关以「没有找到可用的通道」拒掉，15.00 正常，
+    // 所以这里必须 >= 15，否则用户在收银台会看到一个看不懂的网关报错。
+    'min_amount'     => (float) env('flowpay.min_amount', 15),
     // 请求超时（秒）
     'timeout'        => 15,
     // 订单有效期（分钟）
