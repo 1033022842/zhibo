@@ -276,9 +276,9 @@ function openMembers(by, val, label){
             document.getElementById('memRows').innerHTML = rows.map(function(u){
                 return '<tr>'
                     + '<td>' + esc(u.id) + '</td>'
-                    + '<td>' + esc(u.nickname) + '</td>'
-                    + '<td>' + esc(u.email) + '</td>'
-                    + '<td>' + esc(u.reg_channel) + '</td>'
+                    + '<td>' + (esc(u.nickname) || '—') + '</td>'
+                    + '<td>' + (esc(u.email) || '—') + '</td>'
+                    + '<td>' + (esc(u.reg_channel) || '—') + '</td>'
                     + '<td>' + esc(u.created_at) + '</td>'
                     + '<td class="num">' + esc(u.paid) + '</td>'
                     + '</tr>';
