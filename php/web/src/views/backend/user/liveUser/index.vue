@@ -63,6 +63,9 @@
                 <el-button type="primary" :loading="vipState.loading" @click="submitVip">{{ t('Confirm') }}</el-button>
             </template>
         </el-dialog>
+        <el-dialog v-model="detailState.visible" title="用户详情" width="760px" :close-on-click-modal="false" destroy-on-close>
+            <iframe v-if="detailState.visible" :src="detailState.url" style="width: 100%; height: 70vh; border: 0" />
+        </el-dialog>
     </div>
 </template>
 
@@ -75,6 +78,7 @@ import Table from '/@/components/table/index.vue'
 import TableHeader from '/@/components/table/header/index.vue'
 import { defaultOptButtons } from '/@/components/table'
 import { baTableApi } from '/@/api/common'
+import { useAdminInfo } from '/@/stores/adminInfo'
 
 defineOptions({
     name: 'user/liveUser',
@@ -179,6 +183,16 @@ const submitVip = () => {
         })
 }
 
+const adminInfo = useAdminInfo()
+
+// 用户详情（含来源域名/渠道、商家认证审核）：详情页读取 batoken 参数鉴权，iframe 直接打开即可
+const detailState = reactive({ visible: false, url: '' })
+
+const openDetail = (row: TableRow) => {
+    detailState.url = '/admin/user.LiveUser/detail?id=' + row.id + '&batoken=' + adminInfo.getToken()
+    detailState.visible = true
+}
+
 const baTable = new baTableClass(
     new baTableApi('/admin/user.LiveUser/'),
     {
@@ -253,7 +267,7 @@ const baTable = new baTableClass(
             {
                 label: '操作',
                 align: 'center',
-                width: 320,
+                width: 400,
                 render: 'buttons',
                 buttons: [
                     {
@@ -271,6 +285,14 @@ const baTable = new baTableClass(
                         type: 'warning',
                         icon: 'fa fa-diamond',
                         click: (row: TableRow) => openRecharge(row),
+                    },
+                    {
+                        render: 'basicButton',
+                        name: 'detail',
+                        text: '详情',
+                        type: 'info',
+                        icon: 'fa fa-id-card-o',
+                        click: (row: TableRow) => openDetail(row),
                     },
                     ...defaultOptButtons(['delete']),
                 ],

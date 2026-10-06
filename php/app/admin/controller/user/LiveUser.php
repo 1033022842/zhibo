@@ -17,7 +17,7 @@ class LiveUser extends Backend
     /**
      * 手动充值/扣减代币、开通会员无需单独配置权限节点（登录鉴权仍生效）
      */
-    protected array $noNeedPermission = ['adjustDiamond', 'vipPlans', 'grantVip'];
+    protected array $noNeedPermission = ['adjustDiamond', 'vipPlans', 'grantVip', 'detail'];
 
     protected array $withJoinTable = [];
 
