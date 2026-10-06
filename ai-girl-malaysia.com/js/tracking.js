@@ -56,11 +56,12 @@
     } catch (e) { /* 隐私模式忽略 */ }
   })()
 
-  /* ---------------- 推广参数（?px= / ?ch=） ----------------
-     推广链接可带 ?px=<后台像素ID 或 像素编号> 与 ?ch=<渠道>。落地后：
+  /* ---------------- 推广参数（?px= / ?ch= / ?name=） ----------------
+     推广链接可带 ?px=<后台像素ID 或 像素编号>、?ch=<渠道> 与 ?name=<链接名称>。落地后：
      1) 像素绑定写 localStorage（90 天），站内切页面时继续只打这一个像素；
-     2) 链接参数写 sessionStorage，站内切页面时继续带在 URL 上（标签页关闭即失效）。 */
-  var PROMO_KEYS = ['px', 'ch']
+     2) 链接参数写 sessionStorage，站内切页面时继续带在 URL 上（标签页关闭即失效）；
+     3) ?name= 为后台生成的推广链接名称（如 FB-素材A），注册时记录到 reg_link_name。 */
+  var PROMO_KEYS = ['px', 'ch', 'name']
 
   function readUrlPromo() {
     var out = {}

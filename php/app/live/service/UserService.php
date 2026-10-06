@@ -66,7 +66,7 @@ final class UserService
     private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, array $attr = []): array
     {
         $attr = array_merge([
-            'domain' => '', 'channel' => '', 'px' => '',
+            'domain' => '', 'channel' => '', 'px' => '', 'link_name' => '',
             'platform' => '', 'campaign' => '', 'adset' => '', 'ad' => '',
             'utm_source' => '', 'utm_medium' => '',
         ], $attr);
@@ -93,6 +93,7 @@ final class UserService
             $user->reg_campaign = mb_substr(trim((string) $attr['campaign']), 0, 128);
             $user->reg_adset    = mb_substr(trim((string) $attr['adset']), 0, 128);
             $user->reg_ad       = mb_substr(trim((string) $attr['ad']), 0, 128);
+            $user->reg_link_name = mb_substr(trim((string) $attr['link_name']), 0, 128);
             $user->created_at = date('Y-m-d H:i:s');
             $user->save();
 

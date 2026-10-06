@@ -35,6 +35,7 @@ final class PromoSource extends Backend
         'domain'   => ['来源域名', 'reg_domain'],
         'platform' => ['平台', 'reg_platform'],
         'channel'  => ['渠道(ch)', 'reg_channel'],
+        'link'     => ['推广链接名称', 'reg_link_name'],
         'px'       => ['推广像素', 'reg_px'],
         'campaign' => ['广告系列', 'reg_campaign'],
         'adset'    => ['广告组', 'reg_adset'],
@@ -237,7 +238,7 @@ tr:last-child td{border-bottom:none}
 <body>
 <div class="container">
     <h1>推广数据</h1>
-    <div class="sub">按 <b>来源域名 / 平台 / 渠道 / 推广像素 / 广告系列 / 广告组 / 广告</b> 归因统计注册与付费（首触归因，注册时记录）。
+    <div class="sub">按 <b>来源域名 / 平台 / 渠道 / 推广链接名称 / 推广像素 / 广告系列 / 广告组 / 广告</b> 归因统计注册与付费（首触归因，注册时记录）。
         充值/订阅金额取「已支付订单」口径。</div>
 
     <div class="stats">
@@ -277,6 +278,7 @@ tr:last-child td{border-bottom:none}
         <h2>推广链接生成器<span class="muted" style="font-weight:400"> · 已收录 {$domainCount} 个域名</span></h2>
         <div class="row">
             <select id="domSel">{$domainOptions}</select>
+            <input id="nameInput" placeholder="链接名称（可选，如 FB-素材A）">
             <input id="chInput" placeholder="渠道参数 ch（可选，如 fb1 / tk2）">
             <select id="pxSel">{$pxOptions}</select>
             <button class="btn" onclick="genLink()">生成链接</button>
@@ -285,7 +287,8 @@ tr:last-child td{border-bottom:none}
             <input id="linkOut" readonly placeholder="点「生成链接」得到可复制的推广链接">
             <button class="btn" onclick="copyLink()">复制</button>
         </div>
-        <div class="tip">绑定像素后生成 <b>?px=像素ID</b>：从该链接进来的访客<b>只打这一条像素</b>（不受域名规则影响），跳转到其它页面也保持绑定。<br>
+        <div class="tip">填「链接名称」会生成 <b>?name=名称</b>：从该链接进来的客户在注册时会记录这个名称，报表切到「推广链接名称」维度即可看出<b>是哪条链接进来的</b>。<br>
+            绑定像素后生成 <b>?px=像素ID</b>：从该链接进来的访客<b>只打这一条像素</b>（不受域名规则影响），跳转到其它页面也保持绑定。<br>
             想让数据能按广告系列/组/广告区分：在 FB 广告的「网址参数」里再加
             <code>campaign_name={{campaign.name}}&amp;adset_name={{adset.name}}&amp;ad_name={{ad.name}}</code>。</div>
     </div>
@@ -300,7 +303,7 @@ tr:last-child td{border-bottom:none}
         </div>
         <div class="mem-body">
             <table>
-                <thead><tr><th>ID</th><th>昵称</th><th>邮箱</th><th>平台</th><th>渠道</th><th>广告系列</th><th>广告组</th><th>广告</th><th>注册时间</th><th class="num">充值</th><th class="num">订阅</th></tr></thead>
+                <thead><tr><th>ID</th><th>昵称</th><th>邮箱</th><th>平台</th><th>渠道</th><th>推广链接</th><th>广告系列</th><th>广告组</th><th>广告</th><th>注册时间</th><th class="num">充值</th><th class="num">订阅</th></tr></thead>
                 <tbody id="memRows"></tbody>
             </table>
         </div>
@@ -309,10 +312,12 @@ tr:last-child td{border-bottom:none}
 <script>
 function genLink(){
     var d = document.getElementById('domSel').value;
+    var nm = document.getElementById('nameInput').value.trim();
     var ch = document.getElementById('chInput').value.trim();
     var px = document.getElementById('pxSel').value;
     if(!d){ document.getElementById('linkOut').value=''; return; }
     var qs = [];
+    if(nm){ qs.push('name=' + encodeURIComponent(nm)); }
     if(ch){ qs.push('ch=' + encodeURIComponent(ch)); }
     if(px){ qs.push('px=' + encodeURIComponent(px)); }
     var url = 'https://' + d + '/';
@@ -344,7 +349,7 @@ function openMembers(dim, val, label){
             document.getElementById('memSum').textContent =
                 '共 ' + (sum.total || 0) + ' 人 · 充值 ' + (sum.buyers || 0) + ' 人 / ' + (sum.amount || 0)
                 + ' · 订阅 ' + (sum.subs || 0) + ' 人 / ' + (sum.sub_amount || 0);
-            if(!rows.length){ document.getElementById('memRows').innerHTML = '<tr><td colspan="11" class="empty">该来源暂无注册会员</td></tr>'; return; }
+            if(!rows.length){ document.getElementById('memRows').innerHTML = '<tr><td colspan="12" class="empty">该来源暂无注册会员</td></tr>'; return; }
             document.getElementById('memRows').innerHTML = rows.map(function(u){
                 return '<tr>'
                     + '<td>' + esc(u.id) + '</td>'
@@ -352,6 +357,7 @@ function openMembers(dim, val, label){
                     + '<td>' + (esc(u.email) || '—') + '</td>'
                     + '<td>' + (esc(u.reg_platform) || '—') + '</td>'
                     + '<td>' + (esc(u.reg_channel) || '—') + '</td>'
+                    + '<td>' + (esc(u.reg_link_name) || '—') + '</td>'
                     + '<td>' + (esc(u.reg_campaign) || '—') + '</td>'
                     + '<td>' + (esc(u.reg_adset) || '—') + '</td>'
                     + '<td>' + (esc(u.reg_ad) || '—') + '</td>'
@@ -418,7 +424,7 @@ HTML;
             ['v1' => $val, 'v2' => $val])[0] ?? [];
 
         $list = $db->query("SELECT u.id, u.user_no, u.nickname, u.email,
-                u.reg_platform, u.reg_channel, u.reg_campaign, u.reg_adset, u.reg_ad, u.created_at,
+                u.reg_platform, u.reg_channel, u.reg_link_name, u.reg_campaign, u.reg_adset, u.reg_ad, u.created_at,
                 IFNULL((SELECT SUM(o.pay_amount) FROM lp_recharge_order o
                         WHERE o.user_id = u.id AND o.status = 1 AND o.biz_type <> 'vip'),0) AS paid,
                 IFNULL((SELECT SUM(o.pay_amount) FROM lp_recharge_order o
