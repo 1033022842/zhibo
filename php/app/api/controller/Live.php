@@ -9,6 +9,7 @@ use app\common\exception\BusinessException;
 use app\common\service\LlmService;
 use app\common\web\ResultCode;
 use app\live\service\AffectionService;
+use app\live\service\FbCapiService;
 use app\live\service\JwtService;
 use app\live\service\UserService;
 use app\live\service\UserSettingService;
@@ -54,7 +55,22 @@ final class Live extends BaseController
         $params = $this->request->post();
         $this->validate($params, UserValidate::class . '.registerAi');
         $ip = $this->request->ip();
-        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''), (string) ($params['reg_domain'] ?? ''), (string) ($params['reg_channel'] ?? ''));
+        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''), (string) ($params['reg_domain'] ?? ''), (string) ($params['reg_channel'] ?? ''), (string) ($params['reg_px'] ?? ''));
+        // 服务端回传：注册完成（与浏览器端 CompleteRegistration 用同一个 event_id 去重）
+        try {
+            FbCapiService::send('register', [
+                'email'      => (string) $params['email'],
+                'user_id'    => (string) ($user['id'] ?? ''),
+                'ip'         => $ip,
+                'ua'         => (string) $this->request->header('user-agent', ''),
+                'fbp'        => (string) $this->request->cookie('_fbp', ''),
+                'fbc'        => (string) $this->request->cookie('_fbc', ''),
+                'px'         => (string) ($params['reg_px'] ?? ''),
+                'domain'     => (string) ($params['reg_domain'] ?? ''),
+                'event_id'   => (string) ($params['event_id'] ?? ''),
+                'source_url' => (string) ($params['source_url'] ?? ''),
+            ]);
+        } catch (\Throwable $e) { /* 回传失败不影响注册 */ }
         // 注册成功后自动登录
         $result = $this->userService->login($params['email'], $params['password'], $ip);
         return $this->jsonSuccess($result);

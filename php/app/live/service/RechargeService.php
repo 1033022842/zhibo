@@ -799,10 +799,42 @@ final class RechargeService
 
             $db->commit();
             $order['status'] = 1;
+            // 服务端回传：充值 / 订阅成功（与浏览器端用同一个 event_id 去重）
+            $this->sendCapiForOrder($order);
             return $order;
         } catch (\Throwable $e) {
             $db->rollback();
             throw $e;
+        }
+    }
+
+    /**
+     * 服务端回传充值 / 订阅事件到 Facebook（尽力而为，失败只记日志）
+     */
+    private function sendCapiForOrder(array $order): void
+    {
+        try {
+            $userId = (int) ($order['user_id'] ?? 0);
+            if ($userId <= 0) {
+                return;
+            }
+            $db      = Db::connect('live_mysql');
+            $user    = $db->table('lp_user')->where('id', $userId)->find();
+            $profile = $db->table('lp_user_profile')->where('user_id', $userId)->find();
+            $isVip   = (string) ($order['biz_type'] ?? 'coin') === 'vip';
+
+            FbCapiService::send($isVip ? 'subscribe' : 'recharge', [
+                'email'    => (string) ($user['email'] ?? ''),
+                'user_id'  => (string) $userId,
+                'ip'       => (string) ($profile['last_login_ip'] ?? ''),
+                'px'       => (string) ($user['reg_px'] ?? ''),
+                'domain'   => (string) ($user['reg_domain'] ?? ''),
+                'event_id' => (string) ($order['order_no'] ?? ''),
+                'value'    => (float) ($order['pay_amount'] ?? 0),
+                'currency' => 'USD',
+            ]);
+        } catch (\Throwable $e) {
+            \think\facade\Log::warning('[capi] 订单回传异常 order=' . ($order['order_no'] ?? '') . ' err=' . $e->getMessage());
         }
     }
 

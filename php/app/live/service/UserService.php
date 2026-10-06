@@ -30,7 +30,7 @@ final class UserService
     /**
      * AI 前端注册（无需邮箱验证码）
      */
-    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = '', string $regDomain = '', string $regChannel = ''): array
+    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = '', string $regDomain = '', string $regChannel = '', string $regPx = ''): array
     {
         // 检查用户名/邮箱是否已存在
         $exists = UserAuth::where('auth_key', $email)
@@ -40,7 +40,7 @@ final class UserService
             throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
         }
 
-        $user = $this->createUser($email, $password, $username, $ip, 'username', $regDomain, $regChannel);
+        $user = $this->createUser($email, $password, $username, $ip, 'username', $regDomain, $regChannel, $regPx);
         $this->bindInviter((int) $user['id'], $inviteCode);
 
         return $user;
@@ -61,7 +61,7 @@ final class UserService
         }
     }
 
-    private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, string $regDomain = '', string $regChannel = ''): array
+    private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, string $regDomain = '', string $regChannel = '', string $regPx = ''): array
     {
         $exists = UserAuth::where('auth_type', 'email')
             ->where('auth_key', $email)
@@ -81,6 +81,7 @@ final class UserService
             // 推广来源归因：注册来源域名 + 渠道参数（前台没带时用 Referer/Origin 兜底）
             $user->reg_domain  = self::normalizeRegDomain($regDomain !== '' ? $regDomain : self::requestHost());
             $user->reg_channel = mb_substr(trim($regChannel), 0, 64);
+            $user->reg_px      = mb_substr(trim($regPx), 0, 64);
             $user->created_at = date('Y-m-d H:i:s');
             $user->save();
 

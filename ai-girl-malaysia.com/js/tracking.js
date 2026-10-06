@@ -390,7 +390,7 @@
    * 上报转化事件：只发给「事件选择里勾了这个事件」的像素
    * 带测试回调编码的像素会把测试标记一起发出去，方便在广告后台「测试事件」面板验证
    */
-  function track(name, params) {
+  function track(name, params, eventId) {
     if (!name || !eventEnabled(name)) return
     var p = params || {}
     var payload = {}
@@ -398,22 +398,41 @@
       payload.value = Number(p.value)
       payload.currency = p.currency || 'USD'
     }
+    var eid = eventId ? String(eventId) : ''
     for (var i = 0; i < targets.length; i++) {
       var t = targets[i]
       if (t.events.indexOf(name) < 0) continue
       var map = PLATFORM_EVENTS[t.platform]
       if (!map || !map[name]) continue
       var evt = map[name]
-      var opt = t.test ? { test_event_code: t.test } : undefined
+      // eventID 与服务端 CAPI 回传用同一个值，FB 会自动去重，不会重复计数
+      var fbOpt = {}
+      if (t.test) fbOpt.test_event_code = t.test
+      if (eid) fbOpt.eventID = eid
+      var ttOpt = {}
+      if (eid) ttOpt.event_id = eid
       try {
-        if (t.platform === 'facebook' && window.fbq) window.fbq('track', evt, payload, opt)
-        else if (t.platform === 'tiktok' && window.ttq) window.ttq.track(evt, payload, opt)
+        if (t.platform === 'facebook' && window.fbq) window.fbq('track', evt, payload, (t.test || eid) ? fbOpt : undefined)
+        else if (t.platform === 'tiktok' && window.ttq) window.ttq.track(evt, payload, eid ? ttOpt : undefined)
         else if (t.platform === 'google' && window.gtag) window.gtag('event', evt, payload)
       } catch (e) {}
     }
   }
 
-  window.SugusTrack = { event: track, config: function () { return cfg }, pixels: function () { return targets } }
+  /** 生成一个去重 ID（与服务端 CAPI 的 event_id 对应） */
+  function newEventId() {
+    try {
+      if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID()
+    } catch (e) { /* 忽略 */ }
+    return 'ev' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
+  }
+
+  window.SugusTrack = {
+    event: track,
+    newId: newEventId,
+    config: function () { return cfg },
+    pixels: function () { return targets }
+  }
 
   /* ---------------- 客服 ---------------- */
 

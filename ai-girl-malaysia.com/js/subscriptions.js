@@ -557,7 +557,7 @@
             var d = (r && r.code === '00000' && r.data) ? r.data : null
             if (d) {
                 known = true
-                if (parseInt(d.status, 10) === 1) { paySucceeded(d); return }
+                if (parseInt(d.status, 10) === 1) { paySucceeded(d, orderNo); return }
                 if (parseInt(d.pay_state, 10) === 2) { payFailed(); return }
             }
             // 订单号查不到（后台已清理等）不算支付失败，只有确认过这笔单确实未支付才提示
@@ -570,12 +570,12 @@
         })
     }
 
-    function paySucceeded(d) {
+    function paySucceeded(d, orderNo) {
         clearPending()
         toast('Payment successful, membership activated')
-        // 转化事件：订阅成功（金额取订单实付）
+        // 转化事件：订阅成功（与服务端 CAPI 用同一个 event_id = 订单号，去重）
         try {
-            if (window.SugusTrack) SugusTrack.event('subscribe', { value: d.pay_amount })
+            if (window.SugusTrack) SugusTrack.event('subscribe', { value: d.pay_amount }, orderNo || '')
         } catch (e) {}
     }
 
