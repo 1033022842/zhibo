@@ -83,11 +83,15 @@ class LiveUser extends Backend
             $row['reg_source'] = $regLink !== '' ? $regLink
                 : ($regChannel !== '' ? $regChannel
                 : ($regPlatform !== '' ? $regPlatform : $regDomain));
-            $row['reg_source_type'] = match ($regPlatform) {
-                'facebook' => 'primary',
-                'tiktok'   => 'danger',
-                'google'   => 'success',
-                default    => 'info',
+            // 标签配色：优先按平台；老数据 platform 为空时按渠道参数兜底，保证同值同色
+            $row['reg_source_type'] = match (true) {
+                $regPlatform === 'facebook' => 'primary',
+                $regPlatform === 'tiktok'   => 'danger',
+                $regPlatform === 'google'   => 'success',
+                (bool) preg_match('/facebook|meta|instagram|fb/i', $regChannel) => 'primary',
+                (bool) preg_match('/tiktok|douyin/i', $regChannel)            => 'danger',
+                (bool) preg_match('/google|adwords|gdn|youtube|yt/i', $regChannel) => 'success',
+                default => 'info',
             };
             $detail = [];
             if ($regDomain !== '')                        { $detail[] = '域名：' . $regDomain; }
