@@ -83,6 +83,20 @@ class LiveUser extends Backend
             $row['reg_source'] = $regLink !== '' ? $regLink
                 : ($regChannel !== '' ? $regChannel
                 : ($regPlatform !== '' ? $regPlatform : $regDomain));
+            // 标签值来自哪个字段 / 对应「推广数据」报表的维度，供前端点击筛选与跳转
+            if ($regLink !== '') {
+                $row['reg_source_field'] = 'reg_link_name';
+                $row['reg_source_dim']   = 'link';
+            } elseif ($regChannel !== '') {
+                $row['reg_source_field'] = 'reg_channel';
+                $row['reg_source_dim']   = 'channel';
+            } elseif ($regPlatform !== '') {
+                $row['reg_source_field'] = 'reg_platform';
+                $row['reg_source_dim']   = 'platform';
+            } else {
+                $row['reg_source_field'] = 'reg_domain';
+                $row['reg_source_dim']   = 'domain';
+            }
             // 标签配色：优先按平台；老数据 platform 为空时按渠道参数兜底，保证同值同色
             $row['reg_source_type'] = match (true) {
                 $regPlatform === 'facebook' => 'primary',

@@ -158,25 +158,9 @@ final class PromoSource extends Backend
             . '<a href="' . $qs($d30, $today) . '">近30天</a>'
             . '<a href="/admin/live.PromoSource/index?dim=' . urlencode($dim) . '">全部</a>';
 
-        // 推广链接生成器
-        $svc     = new PromoService();
-        $domains = $svc->siteDomains();
-        $domainOptions = '';
-        foreach ($domains as $d) {
-            $domainOptions .= '<option value="' . htmlspecialchars($d, ENT_QUOTES) . '">' . htmlspecialchars($d) . '</option>';
-        }
-        if ($domainOptions === '') {
-            $domainOptions = '<option value="">（暂无已收录域名，先去前台访问一次或到「推广与像素」手动添加）</option>';
-        }
-        $pxOptions = '<option value="">不绑定像素（按域名规则自动匹配）</option>';
-        foreach ($svc->pixels(true) as $p) {
-            $pid     = (int) $p['id'];
-            $pfLabel = PromoService::PIXEL_PLATFORMS[(string) $p['platform']] ?? (string) $p['platform'];
-            $pname   = trim((string) $p['name']);
-            $plabel  = $pfLabel . ($pname !== '' ? ' · ' . $pname : '') . '（#' . $pid . '）';
-            $pxOptions .= '<option value="' . $pid . '">' . htmlspecialchars($plabel, ENT_QUOTES) . '</option>';
-        }
-        $domainCount = count($domains);
+        // 本页只做报表；建链接在「推广链接」页，这里只统计已收录域名数
+        $svc         = new PromoService();
+        $domainCount = count($svc->siteDomains());
 
         $totalRegsFmt  = number_format($totalRegs);
         $withSrcFmt    = number_format($withSrc);
@@ -275,21 +259,15 @@ tr:last-child td{border-bottom:none}
     </div>
 
     <div class="card">
-        <h2>推广链接生成器<span class="muted" style="font-weight:400"> · 已收录 {$domainCount} 个域名</span></h2>
-        <div class="row">
-            <select id="domSel">{$domainOptions}</select>
-            <input id="nameInput" placeholder="链接名称（可选，如 FB-素材A）">
-            <input id="chInput" placeholder="渠道参数 ch（可选，如 fb1 / tk2）">
-            <select id="pxSel">{$pxOptions}</select>
-            <button class="btn" onclick="genLink()">生成链接</button>
+        <h2>建推广链接<span class="muted" style="font-weight:400"> · 本页只负责看数据</span></h2>
+        <div class="sub" style="margin:0">
+            要创建 / 命名推广链接（可绑定像素、填渠道），请到左侧菜单 <b>「推广链接」</b> 页；
+            那里建的链接会出现在本报表的 <b>推广链接名称</b> 维度里。当前已收录 <b>{$domainCount}</b> 个推广域名。
         </div>
-        <div class="link-box">
-            <input id="linkOut" readonly placeholder="点「生成链接」得到可复制的推广链接">
-            <button class="btn" onclick="copyLink()">复制</button>
+        <div class="link-box" style="margin-top:12px">
+            <button class="btn" onclick="gotoPromoLink()">去「推广链接」页创建 →</button>
         </div>
-        <div class="tip">填「链接名称」会生成 <b>?name=名称</b>：从该链接进来的客户在注册时会记录这个名称，报表切到「推广链接名称」维度即可看出<b>是哪条链接进来的</b>。<br>
-            绑定像素后生成 <b>?px=像素ID</b>：从该链接进来的访客<b>只打这一条像素</b>（不受域名规则影响），跳转到其它页面也保持绑定。<br>
-            想让数据能按广告系列/组/广告区分：在 FB 广告的「网址参数」里再加
+        <div class="tip">想让数据能按广告系列/组/广告区分：在 FB 广告的「网址参数」里加
             <code>campaign_name={{campaign.name}}&amp;adset_name={{adset.name}}&amp;ad_name={{ad.name}}</code>。</div>
     </div>
 </div>
@@ -310,25 +288,8 @@ tr:last-child td{border-bottom:none}
     </div>
 </div>
 <script>
-function genLink(){
-    var d = document.getElementById('domSel').value;
-    var nm = document.getElementById('nameInput').value.trim();
-    var ch = document.getElementById('chInput').value.trim();
-    var px = document.getElementById('pxSel').value;
-    if(!d){ document.getElementById('linkOut').value=''; return; }
-    var qs = [];
-    if(nm){ qs.push('name=' + encodeURIComponent(nm)); }
-    if(ch){ qs.push('ch=' + encodeURIComponent(ch)); }
-    if(px){ qs.push('px=' + encodeURIComponent(px)); }
-    var url = 'https://' + d + '/';
-    if(qs.length){ url += '?' + qs.join('&'); }
-    document.getElementById('linkOut').value = url;
-}
-function copyLink(){
-    var el = document.getElementById('linkOut');
-    if(!el.value) return;
-    try { el.select(); document.execCommand('copy'); alert('已复制：' + el.value); } catch(e) { alert('复制失败，请手动选择复制'); }
-}
+// 本页只做报表，建链接统一在「推广链接」页
+function gotoPromoLink(){ location.href = '/admin/live.PromoLink/index'; }
 
 /*---------- 查看会员：某个维度值下的注册用户明细 ----------*/
 function esc(s){
