@@ -23,7 +23,7 @@ class LiveUser extends Backend
 
     protected string|array $preExcludeFields = [];
 
-    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'email', 'reg_domain', 'reg_channel'];
+    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'email', 'reg_domain', 'reg_channel', 'reg_platform', 'reg_campaign'];
 
     protected string|array $defaultSortField = ['id' => 'desc'];
 
@@ -43,7 +43,8 @@ class LiveUser extends Backend
             ->field('
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
                 live_user.email, live_user.status, live_user.level, live_user.vip_expire_at, live_user.created_at,
-                live_user.reg_domain, live_user.reg_channel,
+                live_user.reg_domain, live_user.reg_channel, live_user.reg_platform, live_user.reg_px,
+                live_user.reg_campaign, live_user.reg_adset, live_user.reg_ad,
                 IFNULL(wallet.diamond_balance, 0) as diamond_balance,
                 IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
@@ -277,9 +278,14 @@ class LiveUser extends Backend
         $level = $user->level;
         $userStatus = $user->status == 1 ? '正常' : '禁用';
         $createdAt = $user->created_at;
-        // 推广来源（注册来源域名 / 渠道参数）
-        $regDomain  = ($user->reg_domain ?? '') !== '' ? htmlspecialchars((string) $user->reg_domain) : '-';
-        $regChannel = ($user->reg_channel ?? '') !== '' ? htmlspecialchars((string) $user->reg_channel) : '-';
+        // 推广来源（域名 / 渠道 / 平台 / 像素 / 广告系列·组·广告）
+        $regDomain   = ($user->reg_domain ?? '') !== '' ? htmlspecialchars((string) $user->reg_domain) : '-';
+        $regChannel  = ($user->reg_channel ?? '') !== '' ? htmlspecialchars((string) $user->reg_channel) : '-';
+        $regPlatform = ($user->reg_platform ?? '') !== '' ? htmlspecialchars((string) $user->reg_platform) : '-';
+        $regPx       = ($user->reg_px ?? '') !== '' ? htmlspecialchars((string) $user->reg_px) : '-';
+        $regCampaign = ($user->reg_campaign ?? '') !== '' ? htmlspecialchars((string) $user->reg_campaign) : '-';
+        $regAdset    = ($user->reg_adset ?? '') !== '' ? htmlspecialchars((string) $user->reg_adset) : '-';
+        $regAd       = ($user->reg_ad ?? '') !== '' ? htmlspecialchars((string) $user->reg_ad) : '-';
 
         // 审核按钮
         $auditBtns = '';
@@ -347,6 +353,11 @@ class LiveUser extends Backend
         <div class="row"><span class="label">注册时间</span><span class="value">{$createdAt}</span></div>
         <div class="row"><span class="label">来源域名</span><span class="value">{$regDomain}</span></div>
         <div class="row"><span class="label">来源渠道</span><span class="value">{$regChannel}</span></div>
+        <div class="row"><span class="label">平台</span><span class="value">{$regPlatform}</span></div>
+        <div class="row"><span class="label">推广像素</span><span class="value">{$regPx}</span></div>
+        <div class="row"><span class="label">广告系列</span><span class="value">{$regCampaign}</span></div>
+        <div class="row"><span class="label">广告组</span><span class="value">{$regAdset}</span></div>
+        <div class="row"><span class="label">广告</span><span class="value">{$regAd}</span></div>
     </div>
 
     <div class="card">
