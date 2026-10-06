@@ -4,7 +4,7 @@
 
         <TableHeader
             :buttons="['refresh', 'delete', 'comSearch', 'quickSearch', 'columnDisplay']"
-            :quick-search-placeholder="'搜索 昵称/ID/编号/邮箱/来源域名/来源渠道'"
+            :quick-search-placeholder="'搜索 昵称/ID/编号/邮箱/推广链接/渠道'"
         />
 
         <Table />
@@ -70,9 +70,9 @@
 </template>
 
 <script setup lang="ts">
-import { provide, reactive } from 'vue'
+import { provide, reactive, h, defineComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElTag, ElTooltip } from 'element-plus'
 import baTableClass from '/@/utils/baTable'
 import Table from '/@/components/table/index.vue'
 import TableHeader from '/@/components/table/header/index.vue'
@@ -204,14 +204,41 @@ const baTable = new baTableClass(
             { label: '昵称', prop: 'nickname', align: 'center', operator: 'LIKE', width: 130, showOverflowTooltip: true, show: true },
             { label: '代币余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
             { label: '邮箱', prop: 'email', align: 'center', operator: 'LIKE', width: 200, render: 'tag', showOverflowTooltip: true },
-            { label: '来源域名', prop: 'reg_domain', align: 'center', operator: 'LIKE', width: 170, showOverflowTooltip: true },
-            { label: '来源渠道', prop: 'reg_channel', align: 'center', operator: 'LIKE', width: 110, showOverflowTooltip: true },
-            { label: '推广链接', prop: 'reg_link_name', align: 'center', operator: 'LIKE', width: 140, showOverflowTooltip: true },
-            { label: '平台', prop: 'reg_platform', align: 'center', operator: 'LIKE', width: 90, showOverflowTooltip: true },
-            { label: '推广像素', prop: 'reg_px', align: 'center', operator: 'LIKE', width: 90, show: false, showOverflowTooltip: true },
-            { label: '广告系列', prop: 'reg_campaign', align: 'center', operator: 'LIKE', width: 150, showOverflowTooltip: true },
-            { label: '广告组', prop: 'reg_adset', align: 'center', operator: 'LIKE', width: 140, show: false, showOverflowTooltip: true },
-            { label: '广告', prop: 'reg_ad', align: 'center', operator: 'LIKE', width: 140, show: false, showOverflowTooltip: true },
+            {
+                // 来源合并为一列：优先显示 推广链接名称 → 渠道 → 平台 → 域名；悬浮看完整明细
+                label: '来源',
+                prop: 'reg_source',
+                align: 'center',
+                operator: false,
+                width: 150,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const label = row?.reg_source || ''
+                            if (!label) {
+                                return h('span', { style: 'color:#c0c4cc' }, '—')
+                            }
+                            return h(
+                                ElTooltip,
+                                { effect: 'dark', placement: 'top', disabled: !row?.reg_source_detail },
+                                {
+                                    default: () =>
+                                        h(ElTag, { size: 'small', effect: 'light', type: row?.reg_source_type || 'info' }, () => label),
+                                    content: () =>
+                                        h(
+                                            'div',
+                                            { style: 'white-space:pre-line;line-height:1.8;max-width:320px' },
+                                            row?.reg_source_detail || label
+                                        ),
+                                }
+                            )
+                        }
+                    },
+                }) as any,
+            },
             {
                 label: '认证方式',
                 prop: 'auth_type',
