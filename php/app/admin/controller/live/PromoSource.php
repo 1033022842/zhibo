@@ -18,7 +18,7 @@ use think\facade\Db;
 
 final class PromoSource extends Backend
 {
-    protected array $noNeedLogin = ['index'];
+    protected array $noNeedLogin = ['index', 'members'];
 
     protected array $middleware = [
         \app\admin\middleware\FloatAuth::class,
@@ -80,10 +80,11 @@ final class PromoSource extends Backend
                 . '<td class="num">' . $v['buyers'] . '</td>'
                 . '<td class="num">' . $payRate . '</td>'
                 . '<td class="num">' . number_format($v['amount'], 2) . '</td>'
+                . '<td><button type="button" class="btn-link" data-by="domain" data-val="' . htmlspecialchars($dom, ENT_QUOTES) . '">查看会员</button></td>'
                 . '</tr>';
         }
         if ($domainRows === '') {
-            $domainRows = '<tr><td colspan="5" class="empty">暂无数据</td></tr>';
+            $domainRows = '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
         }
 
         // 按渠道参数统计
@@ -95,10 +96,15 @@ final class PromoSource extends Backend
             ->select()->toArray();
         $channelRows = '';
         foreach ($chRows as $r) {
-            $channelRows .= '<tr><td>' . htmlspecialchars((string) $r['reg_channel']) . '</td><td class="num">' . (int) $r['regs'] . '</td></tr>';
+            $chVal = htmlspecialchars((string) $r['reg_channel'], ENT_QUOTES);
+            $channelRows .= '<tr>'
+                . '<td>' . htmlspecialchars((string) $r['reg_channel']) . '</td>'
+                . '<td class="num">' . (int) $r['regs'] . '</td>'
+                . '<td><button type="button" class="btn-link" data-by="channel" data-val="' . $chVal . '">查看会员</button></td>'
+                . '</tr>';
         }
         if ($channelRows === '') {
-            $channelRows = '<tr><td colspan="2" class="empty">暂无渠道数据（推广链接带 ?ch=xxx 后才有）</td></tr>';
+            $channelRows = '<tr><td colspan="3" class="empty">暂无渠道数据（推广链接带 ?ch=xxx 后才有）</td></tr>';
         }
 
         // 域名下拉（生成推广链接用）
@@ -159,6 +165,15 @@ tr:last-child td{border-bottom:none}
 .empty{text-align:center;color:#9aa0b0;padding:26px 0}
 .muted{color:#9aa0b0}
 .tip{font-size:12px;color:#9aa0b0;margin-top:10px;line-height:1.7}
+.btn-link{padding:4px 10px;border:1px solid #6366f1;border-radius:8px;background:#fff;color:#6366f1;font-size:12px;cursor:pointer}
+.btn-link:hover{background:#eef0ff}
+.mem-mask{display:none;position:fixed;inset:0;z-index:1000;background:rgba(20,22,40,.45)}
+.mem-mask.open{display:flex;align-items:center;justify-content:center}
+.mem-panel{width:min(920px,94vw);max-height:82vh;display:flex;flex-direction:column;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(20,22,40,.25)}
+.mem-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #eef0f6}
+.mem-head b{font-size:15px;color:#1a1f36}
+.mem-head .mem-x{margin-left:auto;width:28px;height:28px;border:none;border-radius:8px;background:#f2f3f8;color:#6b7280;cursor:pointer}
+.mem-body{overflow:auto;padding:4px 6px 10px}
 </style>
 </head>
 <body>
@@ -189,9 +204,9 @@ tr:last-child td{border-bottom:none}
     </div>
 
     <div class="card">
-        <h2>按来源域名统计</h2>
+        <h2>按来源域名统计<span class="muted" style="font-weight:400"> · 点「查看会员」看该来源的注册用户</span></h2>
         <table>
-            <thead><tr><th>来源域名</th><th class="num">注册数</th><th class="num">充值人数</th><th class="num">付费率</th><th class="num">充值金额</th></tr></thead>
+            <thead><tr><th>来源域名</th><th class="num">注册数</th><th class="num">充值人数</th><th class="num">付费率</th><th class="num">充值金额</th><th>操作</th></tr></thead>
             <tbody>{$domainRows}</tbody>
         </table>
     </div>
@@ -199,9 +214,25 @@ tr:last-child td{border-bottom:none}
     <div class="card">
         <h2>按渠道参数统计（?ch=）</h2>
         <table>
-            <thead><tr><th>渠道</th><th class="num">注册数</th></tr></thead>
+            <thead><tr><th>渠道</th><th class="num">注册数</th><th>操作</th></tr></thead>
             <tbody>{$channelRows}</tbody>
         </table>
+    </div>
+</div>
+
+<div id="memMask" class="mem-mask">
+    <div class="mem-panel">
+        <div class="mem-head">
+            <b id="memTitle">会员明细</b>
+            <span id="memSum" class="muted"></span>
+            <button type="button" class="mem-x" onclick="closeMembers()">✕</button>
+        </div>
+        <div class="mem-body">
+            <table>
+                <thead><tr><th>ID</th><th>昵称</th><th>邮箱</th><th>来源渠道</th><th>注册时间</th><th class="num">充值金额</th></tr></thead>
+                <tbody id="memRows"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 <script>
@@ -222,12 +253,107 @@ function copyLink(){
     if(!el.value) return;
     try { el.select(); document.execCommand('copy'); alert('已复制：' + el.value); } catch(e) { alert('复制失败，请手动选择复制'); }
 }
+
+/*---------- 查看会员：某个来源域名 / 渠道下的注册用户明细 ----------*/
+function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+}
+function openMembers(by, val, label){
+    document.getElementById('memTitle').textContent = '会员明细 · ' + label;
+    document.getElementById('memSum').textContent = '加载中…';
+    document.getElementById('memRows').innerHTML = '';
+    document.getElementById('memMask').classList.add('open');
+    fetch('/admin/live.PromoSource/members?by=' + encodeURIComponent(by) + '&val=' + encodeURIComponent(val))
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            var rows = (d && d.data && d.data.list) || [];
+            var sum = (d && d.data) || {};
+            document.getElementById('memSum').textContent =
+                '共 ' + (sum.total || 0) + ' 人 · 已充值 ' + (sum.buyers || 0) + ' 人 · 合计 ' + (sum.amount || 0);
+            if(!rows.length){ document.getElementById('memRows').innerHTML = '<tr><td colspan="6" class="empty">该来源暂无注册会员</td></tr>'; return; }
+            document.getElementById('memRows').innerHTML = rows.map(function(u){
+                return '<tr>'
+                    + '<td>' + esc(u.id) + '</td>'
+                    + '<td>' + esc(u.nickname) + '</td>'
+                    + '<td>' + esc(u.email) + '</td>'
+                    + '<td>' + esc(u.reg_channel) + '</td>'
+                    + '<td>' + esc(u.created_at) + '</td>'
+                    + '<td class="num">' + esc(u.paid) + '</td>'
+                    + '</tr>';
+            }).join('');
+        })
+        .catch(function(){
+            document.getElementById('memSum').textContent = '读取失败';
+        });
+}
+function closeMembers(){
+    document.getElementById('memMask').classList.remove('open');
+}
+document.addEventListener('click', function(e){
+    if(e.target && e.target.id === 'memMask') closeMembers();
+    var btn = e.target && e.target.closest ? e.target.closest('.btn-link') : null;
+    if(!btn) return;
+    var by = btn.getAttribute('data-by');
+    var val = btn.getAttribute('data-val') || '';
+    var label = by === 'channel' ? ('渠道 ' + val) : (val === '' ? '未知 / 直连' : val);
+    openMembers(by, val, label);
+});
 </script>
 </body>
 </html>
 HTML;
 
         response($html)->send();
+        exit;
+    }
+
+    /**
+     * 某个来源（来源域名 / 渠道）下的注册会员明细（本页「查看会员」用）
+     * 参数：by=domain|channel，val=来源值（可为空字符串，表示「未知 / 直连」）
+     */
+    public function members(): void
+    {
+        $by  = (string) $this->request->param('by', 'domain');
+        $val = (string) $this->request->param('val', '');
+        $col = $by === 'channel' ? 'reg_channel' : 'reg_domain';
+
+        $db = Db::connect('live_mysql');
+
+        // 汇总：注册人数 / 充值人数 / 充值金额
+        $agg = $db->table('lp_user u')
+            ->leftJoin('lp_wallet_ledger l', "l.user_id = u.id AND l.biz_type = 'recharge' AND l.direction = 1")
+            ->where('u.' . $col, $val)
+            ->field('COUNT(DISTINCT u.id) AS total, COUNT(DISTINCT l.user_id) AS buyers, IFNULL(SUM(l.amount), 0) AS amount')
+            ->find();
+
+        // 明细（最多 300 条，按注册时间倒序）
+        $list = $db->table('lp_user u')
+            ->where('u.' . $col, $val)
+            ->field("u.id, u.user_no, u.nickname, u.email, u.reg_channel, u.created_at,
+                IFNULL((SELECT SUM(l.amount) FROM lp_wallet_ledger l
+                        WHERE l.user_id = u.id AND l.biz_type = 'recharge' AND l.direction = 1), 0) AS paid")
+            ->order('u.id', 'desc')
+            ->limit(300)
+            ->select()->toArray();
+        foreach ($list as &$u) {
+            $u['paid'] = number_format((float) ($u['paid'] ?? 0), 2, '.', '');
+        }
+        unset($u);
+
+        $payload = json_encode([
+            'code' => '00000',
+            'msg'  => 'ok',
+            'data' => [
+                'total'  => (int) ($agg['total'] ?? 0),
+                'buyers' => (int) ($agg['buyers'] ?? 0),
+                'amount' => number_format((float) ($agg['amount'] ?? 0), 2, '.', ''),
+                'list'   => $list,
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+
+        response($payload, 200, ['Content-Type' => 'application/json; charset=utf-8'])->send();
         exit;
     }
 }
