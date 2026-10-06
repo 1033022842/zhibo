@@ -85,7 +85,6 @@ PHP_FILES = [
     "php/app/admin/controller/live/RechargeChannel.php",
     "php/app/admin/controller/live/RechargeOrder.php",
     "php/app/live/service/FiatChannelService.php",
-    "php/app/admin/model/live/FiatChannel.php",
     "php/app/admin/controller/live/FiatChannel.php",
     "php/sql/upgrade_fiat_channel.sql",
     "php/sql/upgrade_recharge_starpay.sql",

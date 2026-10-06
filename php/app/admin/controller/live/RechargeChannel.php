@@ -35,7 +35,9 @@ final class RechargeChannel extends Backend
         $list = $this->model->order('sort', 'asc')->paginate(20);
         $vipPlans = Db::connect('live_mysql')->table('lp_vip_plan')->order('sort', 'asc')->select()->toArray();
         $packages = Db::connect('live_mysql')->table('lp_recharge_package')->order('sort', 'asc')->select()->toArray();
-        $html = $this->renderPage($list, $vipPlans, $packages);
+        // 法币通道（单国本币收款）也在这个页面上维护，不单开菜单
+        $fiatList = Db::connect('live_mysql')->table('lp_fiat_channel')->order('sort', 'asc')->order('id', 'asc')->select()->toArray();
+        $html = $this->renderPage($list, $vipPlans, $packages, $fiatList);
         response($html)->send();
         exit;
     }
@@ -475,8 +477,44 @@ final class RechargeChannel extends Backend
         $this->renderSuccess('状态已切换');
     }
 
-    private function renderPage($list, array $vipPlans = [], array $packages = []): string
+    private function renderPage($list, array $vipPlans = [], array $packages = [], array $fiatList = []): string
     {
+        // ===== 法币通道（单国本币收款，lp_fiat_channel）=====
+        $fiatRows = '';
+        foreach ($fiatList as $r) {
+            $fid = (int) $r['id'];
+            $fst = ((int) $r['status'] === 1)
+                ? '<span style="color:#00d4aa">启用</span>'
+                : '<span style="color:#ff2d55">已下架</span>';
+            $fc  = htmlspecialchars((string) $r['currency'], ENT_QUOTES);
+            $fs  = htmlspecialchars((string) $r['currency_symbol'], ENT_QUOTES);
+            $fgw = ((string) $r['gateway'] === 'starpay') ? 'star-pay' : '人工审核';
+
+            // 拿 $15 举例把折算结果写出来，运营填错汇率能一眼看出来
+            $sample = '—';
+            if ((float) $r['usd_rate'] > 0) {
+                $dec = max(0, min(8, (int) $r['decimals']));
+                $amt = number_format(round(15 * (float) $r['usd_rate'], $dec), $dec, '.', '');
+                $sample = htmlspecialchars(($fs !== '' ? $fs : $fc) . ' ' . $amt, ENT_QUOTES)
+                    . '<span style="color:#999"> / $15</span>';
+            }
+
+            $fiatRows .= "<tr><td>{$fid}</td>"
+                . '<td>' . htmlspecialchars((string) $r['name'], ENT_QUOTES) . '</td>'
+                . "<td>{$fgw}</td><td>{$fc}</td>"
+                . '<td>' . htmlspecialchars((string) $r['usd_rate'], ENT_QUOTES) . "</td>"
+                . "<td>{$sample}</td>"
+                . '<td>' . (int) $r['decimals'] . '</td>'
+                . '<td>' . htmlspecialchars((string) $r['min_amount'], ENT_QUOTES) . '</td>'
+                . '<td>' . htmlspecialchars((string) $r['diamond_rate'], ENT_QUOTES) . '</td>'
+                . '<td>' . (int) $r['sort'] . "</td><td>{$fst}</td>"
+                . "<td><a class='btn-edit' href='/admin/live.FiatChannel/edit?id={$fid}'>编辑</a> "
+                . "<a class='btn-edit' href='/admin/live.FiatChannel/toggle?id={$fid}' onclick=\"return confirm('切换启用状态?')\">切换</a></td></tr>";
+        }
+        if ($fiatRows === '') {
+            $fiatRows = '<tr><td colspan="11" style="text-align:center;color:#999">还没有法币通道，点上方「+ 新增法币通道」添加</td></tr>';
+        }
+
         $pkgRows = '';
         foreach ($packages as $p) {
             $pid   = (int) $p['id'];
@@ -542,6 +580,13 @@ final class RechargeChannel extends Backend
             <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editChannel">+ 新增渠道</a></div>
             <table><thead><tr><th>ID</th><th>名称</th><th>类型</th><th>确认方式</th><th>二维码</th><th>地址</th><th>汇率</th><th>最低(USD)</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$rows}</tbody></table>
             <div class="pager">{$pager}</div>
+
+            <h1 style="margin-top:32px">法币通道（单国本币收款）</h1>
+            <div style="color:#888;font-size:13px;margin-bottom:12px;line-height:1.7">
+                用户在收银台看到的是本币金额：套餐 $15 × 汇率 = 本币实付。汇率在下单那一刻锁定写进订单，之后改汇率不影响已生成的订单。
+            </div>
+            <div class="toolbar"><a class="btn-add" href="/admin/live.FiatChannel/edit">+ 新增法币通道</a></div>
+            <table><thead><tr><th>ID</th><th>名称</th><th>对接方式</th><th>币种</th><th>汇率(1 USD=?)</th><th>折算示例</th><th>小数位</th><th>最低(本币)</th><th>代币/USD</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$fiatRows}</tbody></table>
 
             <h1 style="margin-top:32px">VIP 会员套餐</h1>
             <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editVip">+ 新增套餐</a></div>
