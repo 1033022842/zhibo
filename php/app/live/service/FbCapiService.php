@@ -117,6 +117,47 @@ final class FbCapiService
     }
 
     /**
+     * 后台「测试回传」：用该像素的 像素ID + 回传令牌 发一条测试事件，返回 Facebook 的原始响应
+     * 返回：ok 是否成功 / http 状态码 / resp 原始响应（便于后台直接展示给运营排查）
+     */
+    public static function probe(array $pixel): array
+    {
+        $pixelId = trim((string) ($pixel['pixel_id'] ?? ''));
+        $token   = trim((string) ($pixel['capi_token'] ?? ''));
+        if ($pixelId === '' || $token === '') {
+            return ['ok' => false, 'http' => 0, 'resp' => '该像素未配置「像素ID」或「服务端回传令牌」'];
+        }
+
+        $payload = ['data' => [[
+            'event_name'    => 'CompleteRegistration',
+            'event_time'    => time(),
+            'action_source' => 'website',
+            'event_id'      => 'admin-test-' . time(),
+            'user_data'     => ['em' => [hash('sha256', 'capi-test@sugus.ai')]],
+            'custom_data'   => ['value' => 0.01, 'currency' => 'USD'],
+        ]]];
+        $testCode = trim((string) ($pixel['test_code'] ?? ''));
+        if ($testCode !== '') {
+            $payload['test_event_code'] = $testCode;
+        }
+
+        try {
+            $client = new Client(['timeout' => self::TIMEOUT, 'http_errors' => false]);
+            $resp   = $client->post(self::GRAPH . '/' . rawurlencode($pixelId) . '/events', [
+                'query' => ['access_token' => $token],
+                'json'  => $payload,
+            ]);
+            $body = (string) $resp->getBody();
+            $ok   = $resp->getStatusCode() === 200 && str_contains($body, '"events_received"');
+            Log::info('[capi] probe pixel=' . $pixelId . ' http=' . $resp->getStatusCode() . ' resp=' . mb_substr($body, 0, 300));
+            return ['ok' => $ok, 'http' => $resp->getStatusCode(), 'resp' => mb_substr($body, 0, 600)];
+        } catch (\Throwable $e) {
+            Log::warning('[capi] probe 异常 pixel=' . $pixelId . ' err=' . $e->getMessage());
+            return ['ok' => false, 'http' => 0, 'resp' => $e->getMessage()];
+        }
+    }
+
+    /**
      * 选像素：优先访客绑定的 ?px=，其次按来源域名匹配生效域名
      */
     private static function resolvePixel(string $px, string $domain): ?array

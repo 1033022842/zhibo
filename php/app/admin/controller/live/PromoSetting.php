@@ -20,7 +20,7 @@ use think\facade\Db;
 
 final class PromoSetting extends Backend
 {
-    protected array $noNeedLogin = ['index', 'evSave', 'domainSave', 'pxSave', 'pxToggle', 'pxDel', 'preview'];
+    protected array $noNeedLogin = ['index', 'evSave', 'domainSave', 'pxSave', 'pxToggle', 'pxDel', 'preview', 'pxTest'];
 
     protected array $middleware = [
         \app\admin\middleware\FloatAuth::class,
@@ -151,6 +151,7 @@ final class PromoSetting extends Backend
                 <td class="link">{$linkHtml}</td>
                 <td class="ops">
                     <a href="/admin/live.PromoSetting/index?id={$id}">编辑</a>
+                    <a href="javascript:void(0)" onclick="testPx({$id})">测试回传</a>
                     <a href="/admin/live.PromoSetting/pxToggle?id={$id}">{$toggleText}</a>
                     <a href="/admin/live.PromoSetting/pxDel?id={$id}" onclick="return confirm('确认删除该像素？')" class="danger">删除</a>
                 </td>
@@ -202,6 +203,14 @@ ROW;
     .btn-copy:hover{background:#ecf5ff}
     .btn-copy.copied{border-color:#00a870;color:#00a870;background:#e8f7ef}
     td.link .url{max-width:250px}
+    .pt-mask{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.35)}
+    .pt-mask.open{display:flex;align-items:center;justify-content:center}
+    .pt-panel{width:min(680px,92vw);max-height:80vh;display:flex;flex-direction:column;background:#fff;border-radius:12px;overflow:hidden}
+    .pt-head{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #eef0f3;font-size:14px}
+    .pt-head .pt-x{margin-left:auto;width:26px;height:26px;border:none;border-radius:6px;background:#f2f3f5;cursor:pointer}
+    .pt-panel pre{margin:0;padding:14px 16px;overflow:auto;font-size:12.5px;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+    .pt-ok{color:#00a870}
+    .pt-bad{color:#ff2d55}
     .muted{color:#bbb;font-size:12px}
     .bar{display:flex;justify-content:space-between;align-items:center;gap:12px}
     .note{background:#eef6ff;border:1px solid #cfe3ff;color:#2b6cb0;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.8;margin-bottom:18px}
@@ -219,7 +228,10 @@ ROW;
         每条像素的「推广链接」= <code>https://域名/?px=像素ID</code>，点「复制链接」拿去投放：用户从这个链接进来后，
         <b>只打这一条像素</b>（不再受域名规则影响），访客后续跳转到其它页面也会保持绑定。<br>
         想让回传更稳（不怕浏览器拦截 / 无痕 / iPhone 的 ITP）：把该像素的 <b>服务端回传令牌</b>（Conversions API Access Token）填上，
-        注册 / 充值 / 订阅会由服务器直连 Facebook 回传，并与浏览器端自动去重。
+        注册 / 充值 / 订阅会由服务器直连 Facebook 回传，并与浏览器端自动去重。<br>
+        配好后点列表里的 <b>「测试回传」</b>：服务器会立刻发一条测试事件，并把 Facebook 的原始返回显示出来
+        —— <b>成功</b>会看到 <code>events_received</code>；若报「object does not exist / missing permissions」，
+        说明这个 <b>像素ID 与回传令牌不是同一条像素</b>（令牌要在该像素自己的「设置 → 转化 API」里生成）。
     </div>
 
     <form class="card" method="post" action="/admin/live.PromoSetting/evSave">
@@ -328,7 +340,38 @@ ROW;
     </div>
 </div>
 
+<div id="pxTestMask" class="pt-mask">
+    <div class="pt-panel">
+        <div class="pt-head">
+            <b id="pxTestTitle">测试回传</b>
+            <button type="button" class="pt-x" onclick="closePxTest()">✕</button>
+        </div>
+        <pre id="pxTestBody">请求中…</pre>
+    </div>
+</div>
+
 <script>
+// 「测试回传」：用该像素的像素ID + 回传令牌发一条测试事件，把 Facebook 的原始响应显示出来
+function testPx(id) {
+    var mask = document.getElementById('pxTestMask');
+    var body = document.getElementById('pxTestBody');
+    document.getElementById('pxTestTitle').textContent = '测试回传 · 像素 #' + id;
+    body.className = '';
+    body.textContent = '请求 Facebook 中…';
+    mask.classList.add('open');
+    fetch('/admin/live.PromoSetting/pxTest?id=' + id)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            body.textContent = (d.ok ? '✅ 回传成功\n\n' : '❌ 回传失败\n\n') + 'HTTP ' + d.http + '\n' + d.resp;
+            body.className = d.ok ? 'pt-ok' : 'pt-bad';
+        })
+        .catch(function (e) { body.textContent = '请求失败：' + e; body.className = 'pt-bad'; });
+}
+function closePxTest() { document.getElementById('pxTestMask').classList.remove('open'); }
+document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'pxTestMask') closePxTest();
+});
+
 // 「推广域名」下拉：选到「自定义 / 多个域名…」时才显示手动输入框
 (function () {
     var sel = document.getElementById('pxDomains');
@@ -389,6 +432,18 @@ fetch('/api/v1/site/config').then(function(r){return r.json()}).then(function(d)
 </body>
 </html>
 HTML;
+        exit;
+    }
+
+    /** 测试回传：用该像素的 像素ID + 回传令牌 发一条测试事件，返回 FB 原始响应 */
+    public function pxTest(): void
+    {
+        $id  = (int) $this->request->param('id', 0);
+        $row = $id > 0 ? Db::connect('live_mysql')->table('lp_promo_pixel')->where('id', $id)->find() : null;
+        $res = $row
+            ? \app\live\service\FbCapiService::probe($row)
+            : ['ok' => false, 'http' => 0, 'resp' => '像素不存在'];
+        response(json_encode($res, JSON_UNESCAPED_UNICODE), 200, ['Content-Type' => 'application/json; charset=utf-8'])->send();
         exit;
     }
 
