@@ -248,7 +248,17 @@ const applySourceFilter = (field: string, val: string, operator = 'LIKE') => {
 
 const onSourceFilterSubmit = () => applySourceFilter(srcFilter.field, srcFilter.val, 'LIKE')
 
+// 点列表「来源」标签：同步顶部筛选条，再用精确匹配筛选
+const filterBySourceTag = (field: string, val: string) => {
+    if (SRC_FIELDS.some((f) => f.value === field)) {
+        srcFilter.field = field
+    }
+    srcFilter.val = val
+    applySourceFilter(field, val, 'eq')
+}
+
 const clearSourceFilter = () => {
+    srcFilter.field = 'reg_link_name'
     srcFilter.val = ''
     baTable.setFilterSearchData([], 'cover')
     baTable.getData()
@@ -297,7 +307,7 @@ const baTable = new baTableClass(
                                     style: 'cursor:pointer',
                                     onClick: (e: any) => {
                                         e.stopPropagation()
-                                        applySourceFilter(row?.reg_source_field || 'reg_domain', label, 'eq')
+                                        filterBySourceTag(row?.reg_source_field || 'reg_domain', label)
                                     },
                                 },
                                 () => label
