@@ -105,6 +105,10 @@
     var planId = parseInt(q.get('plan_id') || '0', 10)
     var tokens = String(q.get('tokens') || '')
     var price = String(q.get('price') || '')
+    // 法币通道（后台 lp_fiat_channel，单国本币收款）：kind=fiat&fiat_id=1
+    var fiatId = parseInt(q.get('fiat_id') || '0', 10)
+    var isFiat = fiatId > 0
+    var fiatChannel = null
 
     var channels = []
     var picked = null
@@ -221,15 +225,99 @@
         }
     }
 
+    // ---------- 法币通道（单国本币收款） ----------
+    /** 取通道配置（币种 / 后台汇率 / 精度），用于付款前预估 */
+    function loadFiatChannel() {
+        return api('/recharge/fiat-channels').then(function (r) {
+            var list = (r && r.code === '00000' && r.data) ? r.data : []
+            for (var i = 0; i < list.length; i++) {
+                if (parseInt(list[i].id, 10) === fiatId) { fiatChannel = list[i] }
+            }
+            if (!fiatChannel) {
+                $('cp-fiat-preview').textContent = 'Unavailable'
+                $('cp-continue').disabled = true
+                return
+            }
+            $('cp-continue').disabled = false
+            renderFiatPreview()
+        })
+    }
+
+    /** 当前本单的 USD 标价（套餐价 / 上页传来的充值金额） */
+    function fiatUsd() {
+        var n = parseFloat(String(($('cp-price') || {}).textContent || '').replace(/[^0-9.]/g, ''))
+        return isNaN(n) ? 0 : n
+    }
+
+    /** USD → 本币：与后端 FiatChannelService::convert 同一算法，仅用于下单前预估展示 */
+    function fiatAmount(usd, ch) {
+        var d = Math.max(0, Math.min(8, parseInt(ch.decimals, 10) || 0))
+        var p = Math.pow(10, d)
+        return (Math.round(usd * parseFloat(ch.usd_rate) * p) / p).toFixed(d)
+    }
+
+    function fiatMoney(ch, amount) {
+        var prefix = ch.symbol || ch.currency || ''
+        return prefix === '' ? String(amount) : prefix + ' ' + amount
+    }
+
+    /** 下单前的前台预估：真正锁定的汇率以服务端下单结果为准 */
+    function renderFiatPreview() {
+        var usd = fiatUsd()
+        if (!fiatChannel || usd <= 0) { return }
+        $('cp-fiat-preview').textContent = fiatMoney(fiatChannel, fiatAmount(usd, fiatChannel))
+        $('cp-fiat-meta').textContent = fiatChannel.name +
+            ' · 1 USD = ' + fiatChannel.usd_rate + ' ' + fiatChannel.currency
+    }
+
+    /** 法币下单：服务端按后台汇率折算成本币，并把当次汇率锁进订单 */
+    function createFiatOrder() {
+        var req
+        if (kind === 'vip') {
+            req = api('/vip/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan_id: planId, fiat_channel_id: fiatId })
+            })
+        } else {
+            req = api('/recharge/submit', {
+                method: 'POST',
+                form: true,
+                body: 'fiat_channel_id=' + encodeURIComponent(fiatId) + '&amount=' + encodeURIComponent(price)
+            })
+        }
+        return req.then(function (r) {
+            if (!r || r.code !== '00000' || !r.data) { throw new Error((r && r.msg) || 'Create order failed') }
+            var d  = r.data
+            var ch = d.fiat_channel || {}
+            return {
+                fiat: {
+                    order_no: d.order_no,
+                    amount: String(d.pay_amount),
+                    currency: d.pay_currency || ch.currency || '',
+                    symbol: (d.fiat && d.fiat.symbol) || ch.symbol || '',
+                    usd: String(d.usd_amount),
+                    rate: d.fx_rate,
+                    name: d.channel_name || ch.name || '',
+                    instructions: d.instructions || ch.instructions || '',
+                    pay_url: d.pay_url || ''
+                },
+                expire_at: d.expire_at
+            }
+        })
+    }
+
     // ---------- 下单 ----------
     function createOrder() {
-        if (!picked) { return }
+        if (!isFiat && !picked) { return }
         var btn = $('cp-continue')
         btn.disabled = true
         btn.textContent = 'Creating order…'
 
         var req
-        if (kind === 'vip') {
+        if (isFiat) {
+            req = createFiatOrder()
+        } else if (kind === 'vip') {
             req = api('/vip/order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -292,6 +380,7 @@
 
     // ---------- 付款信息 ----------
     function showPayStep(o) {
+        if (o.fiat) { showFiatStep(o); return }
         var ch = o.channel || {}
         var unit = unitOf(ch)
         $('cp-step1').hidden = true
@@ -314,6 +403,42 @@
         renderQr(o)
         startCountdown(o.expire_at)
         startPoll(o.order_no)
+    }
+
+    /**
+     * 法币付款信息：金额是本币实付（下单时按后台汇率锁定），
+     * 没有收款地址/二维码，有网关收银台才给「Pay now」
+     */
+    function showFiatStep(o) {
+        var f = o.fiat
+        $('cp-step1').hidden = true
+        $('cp-step2').hidden = false
+
+        $('cp-exact-label').textContent = 'Please pay'
+        $('cp-exact').textContent = fiatMoney(f, f.amount)
+        $('cp-exact-copy').hidden = true
+        // 本币是本单锁定值，同时把折算前的 USD 与汇率标出来，方便用户对账
+        $('cp-usd-note').hidden = false
+        $('cp-usd-note').textContent = '= $' + f.usd + ' · 1 USD = ' + f.rate + ' ' + f.currency
+
+        $('cp-addr-block').hidden = true
+        $('cp-memo-block').hidden = true
+        $('cp-order').textContent = f.order_no
+
+        $('cp-note').textContent = f.instructions !== ''
+            ? f.instructions
+            : 'Pay ' + fiatMoney(f, f.amount) + ' via ' + f.name +
+              '. Your order will be credited after our review (usually within a few minutes).'
+
+        if (f.pay_url) {
+            var pay = $('cp-fiat-pay')
+            pay.href = f.pay_url
+            pay.style.display = 'block'
+        }
+        $('cp-back').textContent = 'Choose another method'
+
+        startCountdown(o.expire_at)
+        startPoll(f.order_no)
     }
 
     /**
@@ -406,18 +531,33 @@
     function closeModal(id) { $(id).hidden = true }
 
     function renderInfo() {
-        var ch = (order && order.channel) || picked || {}
-        var rows = [
-            ['Merchant', 'Sugus.ai'],
-            ['Order', $('cp-desc').textContent],
-            ['Order number', (order && order.order_no) || '—'],
-            ['Price', $('cp-price').textContent],
-            ['Currency', ch.name || '—'],
-            ['Network', chainLabel(ch)],
-            ['Amount to send', $('cp-exact').textContent]
-        ]
-        if (!$('cp-memo-block').hidden) {
-            rows.push(['Memo / Tag', $('cp-memo').textContent])
+        var f = order && order.fiat
+        var rows
+        if (f) {
+            rows = [
+                ['Merchant', 'Sugus.ai'],
+                ['Order', $('cp-desc').textContent],
+                ['Order number', f.order_no],
+                ['Price', $('cp-price').textContent],
+                ['Method', f.name],
+                ['Currency', f.currency],
+                ['Exchange rate', '1 USD = ' + f.rate + ' ' + f.currency],
+                ['Amount to pay', fiatMoney(f, f.amount)]
+            ]
+        } else {
+            var ch = (order && order.channel) || picked || {}
+            rows = [
+                ['Merchant', 'Sugus.ai'],
+                ['Order', $('cp-desc').textContent],
+                ['Order number', (order && order.order_no) || '—'],
+                ['Price', $('cp-price').textContent],
+                ['Currency', ch.name || '—'],
+                ['Network', chainLabel(ch)],
+                ['Amount to send', $('cp-exact').textContent]
+            ]
+            if (!$('cp-memo-block').hidden) {
+                rows.push(['Memo / Tag', $('cp-memo').textContent])
+            }
         }
         $('cp-info-list').innerHTML = rows.map(function (r) {
             return '<div class="cp-info-row"><span class="cp-info-key">' + esc(r[0]) + '</span>' +
@@ -494,12 +634,16 @@
         if ($('cp-alt-card')) {
             $('cp-alt-card').href = kind === 'vip' ? './Subscriptions.html' : './purchasePoints.html'
         }
-        if (kind === 'vip') {
-            loadVipSummary()
+        // 预估价要用套餐价格，所以摘要渲染完再拉法币通道配置
+        var summary = kind === 'vip' ? loadVipSummary() : Promise.resolve(renderCoinSummary())
+        if (isFiat) {
+            // 法币通道：币种由通道决定，不显示币种选择器，改成展示按后台汇率折算的预估价
+            $('cp-pick-panel').hidden = true
+            $('cp-fiat-panel').hidden = false
+            summary.then(loadFiatChannel)
         } else {
-            renderCoinSummary()
+            loadChannels()
         }
-        loadChannels()
     }
 
     if (document.readyState === 'loading') {

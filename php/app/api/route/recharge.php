@@ -11,6 +11,9 @@ Route::post('v1/recharge/notifyFlowPay', '\app\api\controller\Recharge@notifyFlo
 // AI 女友端充值套餐 + 支付方式（免登录展示）
 Route::get('v1/recharge/packages', '\app\api\controller\Recharge@packages');
 
+// 法币支付通道（免登录展示：币种 + 后台汇率）
+Route::get('v1/recharge/fiat-channels', '\app\api\controller\Recharge@fiatChannels');
+
 // 自选点数报价（免登录，与下单同算法）
 Route::get('v1/recharge/quote', '\app\api\controller\Recharge@quote');
 
