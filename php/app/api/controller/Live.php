@@ -43,8 +43,35 @@ final class Live extends BaseController
         $params = $this->request->post();
         $this->validate($params, UserValidate::class . '.register');
         $ip = $this->request->ip();
-        $this->userService->register($params['email'], $params['code'], $params['password'], $params['nickname'], $ip, (string) ($params['invite_code'] ?? ''), (string) ($params['reg_domain'] ?? ''), (string) ($params['reg_channel'] ?? ''));
+        $this->userService->register($params['email'], $params['code'], $params['password'], $params['nickname'], $ip, (string) ($params['invite_code'] ?? ''), $this->buildAttr($params));
         return $this->jsonSuccess(null, '注册成功');
+    }
+
+    /**
+     * 构建来源归因字段（域名 / 渠道 / 像素 / 平台 / 广告系列 / 广告组 / 广告）
+     */
+    private function buildAttr(array $params): array
+    {
+        $pick = static function (array $keys) use ($params): string {
+            foreach ($keys as $k) {
+                $v = trim((string) ($params[$k] ?? ''));
+                if ($v !== '') {
+                    return $v;
+                }
+            }
+            return '';
+        };
+        return [
+            'domain'     => (string) ($params['reg_domain'] ?? ''),
+            'channel'    => (string) ($params['reg_channel'] ?? ''),
+            'px'         => (string) ($params['reg_px'] ?? ''),
+            'platform'   => (string) ($params['reg_platform'] ?? ''),
+            'utm_source' => (string) ($params['utm_source'] ?? ''),
+            'utm_medium' => (string) ($params['utm_medium'] ?? ''),
+            'campaign'   => $pick(['campaign_name', 'campaign_id', 'utm_campaign']),
+            'adset'      => $pick(['adset_name', 'adset_id', 'utm_term']),
+            'ad'         => $pick(['ad_name', 'ad_id', 'utm_content']),
+        ];
     }
 
     /**
@@ -55,7 +82,7 @@ final class Live extends BaseController
         $params = $this->request->post();
         $this->validate($params, UserValidate::class . '.registerAi');
         $ip = $this->request->ip();
-        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''), (string) ($params['reg_domain'] ?? ''), (string) ($params['reg_channel'] ?? ''), (string) ($params['reg_px'] ?? ''));
+        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''), $this->buildAttr($params));
         // 服务端回传：注册完成（与浏览器端 CompleteRegistration 用同一个 event_id 去重）
         try {
             FbCapiService::send('register', [

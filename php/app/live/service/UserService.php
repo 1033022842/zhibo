@@ -16,12 +16,12 @@ use think\facade\Log;
 
 final class UserService
 {
-    public function register(string $email, string $code, string $password, string $nickname, string $ip = '', string $inviteCode = '', string $regDomain = '', string $regChannel = ''): array
+    public function register(string $email, string $code, string $password, string $nickname, string $ip = '', string $inviteCode = '', array $attr = []): array
     {
         $verifyService = new EmailVerifyService();
         $verifyService->verify($email, $code);
 
-        $user = $this->createUser($email, $password, $nickname, $ip, 'email', $regDomain, $regChannel);
+        $user = $this->createUser($email, $password, $nickname, $ip, 'email', $attr);
         $this->bindInviter((int) $user['id'], $inviteCode);
 
         return $user;
@@ -29,8 +29,10 @@ final class UserService
 
     /**
      * AI 前端注册（无需邮箱验证码）
+     *
+     * @param array $attr 来源归因：domain/channel/px/platform/campaign/adset/ad + utm_source/utm_medium
      */
-    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = '', string $regDomain = '', string $regChannel = '', string $regPx = ''): array
+    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = '', array $attr = []): array
     {
         // 检查用户名/邮箱是否已存在
         $exists = UserAuth::where('auth_key', $email)
@@ -40,7 +42,7 @@ final class UserService
             throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
         }
 
-        $user = $this->createUser($email, $password, $username, $ip, 'username', $regDomain, $regChannel, $regPx);
+        $user = $this->createUser($email, $password, $username, $ip, 'username', $attr);
         $this->bindInviter((int) $user['id'], $inviteCode);
 
         return $user;
@@ -61,8 +63,13 @@ final class UserService
         }
     }
 
-    private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, string $regDomain = '', string $regChannel = '', string $regPx = ''): array
+    private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, array $attr = []): array
     {
+        $attr = array_merge([
+            'domain' => '', 'channel' => '', 'px' => '',
+            'platform' => '', 'campaign' => '', 'adset' => '', 'ad' => '',
+            'utm_source' => '', 'utm_medium' => '',
+        ], $attr);
         $exists = UserAuth::where('auth_type', 'email')
             ->where('auth_key', $email)
             ->find();
@@ -78,10 +85,14 @@ final class UserService
             $user->email    = $email;
             $user->status   = 1;
             $user->level    = 1;
-            // 推广来源归因：注册来源域名 + 渠道参数（前台没带时用 Referer/Origin 兜底）
-            $user->reg_domain  = self::normalizeRegDomain($regDomain !== '' ? $regDomain : self::requestHost());
-            $user->reg_channel = mb_substr(trim($regChannel), 0, 64);
-            $user->reg_px      = mb_substr(trim($regPx), 0, 64);
+            // 推广来源归因：来源域名 + 渠道 + 平台 + 像素 + 广告系列/组/广告（前台没带域名时用 Referer/Origin 兜底）
+            $user->reg_domain   = self::normalizeRegDomain($attr['domain'] !== '' ? $attr['domain'] : self::requestHost());
+            $user->reg_channel  = mb_substr(trim((string) $attr['channel']), 0, 64);
+            $user->reg_platform = mb_substr(self::normalizePlatform($attr), 0, 32);
+            $user->reg_px       = mb_substr(trim((string) $attr['px']), 0, 64);
+            $user->reg_campaign = mb_substr(trim((string) $attr['campaign']), 0, 128);
+            $user->reg_adset    = mb_substr(trim((string) $attr['adset']), 0, 128);
+            $user->reg_ad       = mb_substr(trim((string) $attr['ad']), 0, 128);
             $user->created_at = date('Y-m-d H:i:s');
             $user->save();
 
@@ -542,6 +553,37 @@ final class UserService
         } catch (\Throwable) {
             return '';
         }
+    }
+
+    /**
+     * 来源平台归一化：facebook / tiktok / google / other
+     * 依据渠道参数 ?ch= 与 utm_source / utm_medium 里的关键词判断
+     */
+    private static function normalizePlatform(array $attr): string
+    {
+        $raw = strtolower(trim(
+            (string) $attr['platform'] . ' '
+            . (string) $attr['channel'] . ' '
+            . (string) $attr['utm_source'] . ' '
+            . (string) $attr['utm_medium']
+        ));
+        if ($raw === '') {
+            return '';
+        }
+
+        $map = [
+            'facebook' => ['facebook', 'fb', 'meta', 'instagram', 'ig', 'messenger'],
+            'tiktok'   => ['tiktok', 'tt', 'douyin'],
+            'google'   => ['google', 'gg', 'adwords', 'youtube', 'yt', 'gdn'],
+        ];
+        foreach ($map as $platform => $keys) {
+            foreach ($keys as $k) {
+                if (preg_match('/(?:^|[^a-z])' . preg_quote($k, '/') . '(?:[^a-z]|$)/', $raw)) {
+                    return $platform;
+                }
+            }
+        }
+        return 'other';
     }
 
     /**

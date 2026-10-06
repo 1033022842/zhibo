@@ -187,6 +187,11 @@
           form.append("reg_channel", localStorage.getItem('reg_channel') || '');
           form.append("reg_px", localStorage.getItem('promo_px') || '');
           form.append("source_url", location.href);
+          // 广告归因明细：广告系列 / 广告组 / 广告（utm_* 与 FB 宏参数，tracking.js 首触记录）
+          try {
+            var attr = JSON.parse(localStorage.getItem('sugus.attr') || '{}') || {};
+            for (var ak in attr) { if (attr[ak]) form.append(ak, attr[ak]); }
+          } catch (e2) {}
           // 与服务端 CAPI 回传共用的事件去重 ID
           regEventId = (window.SugusTrack && SugusTrack.newId) ? SugusTrack.newId() : '';
           if (regEventId) form.append("event_id", regEventId);
