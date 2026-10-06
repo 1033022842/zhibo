@@ -206,6 +206,7 @@ const baTable = new baTableClass(
             { label: '邮箱', prop: 'email', align: 'center', operator: 'LIKE', width: 200, render: 'tag', showOverflowTooltip: true },
             { label: '来源域名', prop: 'reg_domain', align: 'center', operator: 'LIKE', width: 170, showOverflowTooltip: true },
             { label: '来源渠道', prop: 'reg_channel', align: 'center', operator: 'LIKE', width: 110, showOverflowTooltip: true },
+            { label: '推广链接', prop: 'reg_link_name', align: 'center', operator: 'LIKE', width: 140, showOverflowTooltip: true },
             { label: '平台', prop: 'reg_platform', align: 'center', operator: 'LIKE', width: 90, showOverflowTooltip: true },
             { label: '推广像素', prop: 'reg_px', align: 'center', operator: 'LIKE', width: 90, show: false, showOverflowTooltip: true },
             { label: '广告系列', prop: 'reg_campaign', align: 'center', operator: 'LIKE', width: 150, showOverflowTooltip: true },

@@ -186,6 +186,7 @@
           form.append("reg_domain", localStorage.getItem('reg_domain') || '');
           form.append("reg_channel", localStorage.getItem('reg_channel') || '');
           form.append("reg_px", localStorage.getItem('promo_px') || '');
+          form.append("reg_link_name", localStorage.getItem('promo_name') || '');
           form.append("source_url", location.href);
           // 广告归因明细：广告系列 / 广告组 / 广告（utm_* 与 FB 宏参数，tracking.js 首触记录）
           try {
