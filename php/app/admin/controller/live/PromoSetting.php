@@ -124,19 +124,6 @@ final class PromoSetting extends Backend
             $statusHtml = $status === 1 ? '<span class="chip on">启用</span>' : '<span class="chip off">停用</span>';
             $toggleText = $status === 1 ? '停用' : '启用';
 
-            // 推广链接：绑定该像素的基础链接（?px=<像素ID>）。
-            // 需要「链接名称 / 渠道」按链接区分来源，请到「推广链接」页创建带名称的推广链接。
-            $rowDomains = array_values(array_filter(array_map('trim', explode(',', (string) $row['domains']))));
-            $linkDomain = $rowDomains !== [] ? $rowDomains[0] : ($domains !== [] ? $domains[0] : '');
-            if ($linkDomain !== '') {
-                $promoUrl = 'https://' . $linkDomain . '/?px=' . $id;
-                $promoEsc = htmlspecialchars($promoUrl, ENT_QUOTES);
-                $linkHtml = '<button type="button" class="btn-copy" data-link="' . $promoEsc . '">复制基础链接</button>'
-                    . '<div class="url" style="margin-top:4px">' . $promoEsc . '</div>';
-            } else {
-                $linkHtml = '<span class="muted">先设置推广域名</span>';
-            }
-
             $rows .= <<<ROW
             <tr>
                 <td>{$id}</td>
@@ -149,7 +136,6 @@ final class PromoSetting extends Backend
                 <td>{$capiHtml}</td>
                 <td>{$testHtml}</td>
                 <td>{$statusHtml}</td>
-                <td class="link">{$linkHtml}</td>
                 <td class="ops">
                     <a href="/admin/live.PromoSetting/index?id={$id}">编辑</a>
                     <a href="javascript:void(0)" onclick="testPx({$id})">测试回传</a>
@@ -160,7 +146,7 @@ final class PromoSetting extends Backend
 ROW;
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="12" class="empty">还没有像素，先在下面「新增像素」加一条（Facebook / TikTok 都支持无限多条）</td></tr>';
+            $rows = '<tr><td colspan="11" class="empty">还没有像素，先在下面「新增像素」加一条（Facebook / TikTok 都支持无限多条）</td></tr>';
         }
 
         echo <<<HTML
@@ -200,10 +186,7 @@ ROW;
     .chip.on{background:#e8f7ef;color:#00a870}
     .chip.off{background:#f2f3f5;color:#999}
     .chip.test{background:#fff4e5;color:#d48806}
-    .btn-copy{padding:4px 10px;border:1px solid #409eff;border-radius:6px;background:#fff;color:#409eff;font-size:12px;cursor:pointer}
-    .btn-copy:hover{background:#ecf5ff}
-    .btn-copy.copied{border-color:#00a870;color:#00a870;background:#e8f7ef}
-    td.link .url{max-width:250px;word-break:break-all;font-size:12px;color:#666;line-height:1.5}
+
     .pt-mask{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.35)}
     .pt-mask.open{display:flex;align-items:center;justify-content:center}
     .pt-panel{width:min(680px,92vw);max-height:80vh;display:flex;flex-direction:column;background:#fff;border-radius:12px;overflow:hidden}
@@ -226,10 +209,11 @@ ROW;
         每条像素可以<b>单独选择要接收的事件</b>、<b>限定只在某个推广域名上生效</b>。保存后前台 <b>60 秒内自动生效</b>（无需重新发版）。<br>
         要验证事件是否真的回传到广告后台：Ads Manager / Events Manager 里取「测试代码」填到下面的<b>测试回调编码</b>，
         然后在广告后台打开「测试事件」面板，用无痕窗口走一遍注册或充值，事件会实时出现在面板里。<br>
-        每条像素的「推广链接」= <code>https://域名/?px=像素ID</code>（基础链接），点「复制基础链接」拿去投放：用户从这个链接进来后，
-        <b>只打这一条像素</b>（不再受域名规则影响），访客后续跳转到其它页面也会保持绑定。<br>
-        需要给链接起名字、按<b>链接名称</b>区分是哪条广告带来的客户：请到左侧菜单
-        <b>「推广链接」</b>页创建带名称的推广链接（可选择域名、绑定像素、填名称与渠道）。<br>
+        本页只负责<b>像素配置</b>（像素ID、事件、生效域名、像素代码、回传令牌）。<br>
+        要生成投放用的<b>推广链接</b>（可绑定像素、给链接起名称、按来源区分客户）：请到左侧菜单
+        <b>「推广链接」</b>页创建 —— 那里生成的链接形如
+        <code>https://域名/?px=像素ID&amp;name=链接名称&amp;ch=渠道</code>，从该链接进来的访客<b>只打绑定的那一条像素</b>，
+        注册时会记录链接名称，后台会员列表与「推广数据」即可区分来源。<br>
         想让回传更稳（不怕浏览器拦截 / 无痕 / iPhone 的 ITP）：把该像素的 <b>服务端回传令牌</b>（Conversions API Access Token）填上，
         注册 / 充值 / 订阅会由服务器直连 Facebook 回传，并与浏览器端自动去重。<br>
         配好后点列表里的 <b>「测试回传」</b>：服务器会立刻发一条测试事件，并把 Facebook 的原始返回显示出来
@@ -337,7 +321,7 @@ ROW;
             <div class="tip" id="livePreview">当前生效：加载中…</div>
         </div>
         <table>
-            <thead><tr><th>ID</th><th>推广渠道</th><th>备注</th><th>像素ID</th><th>事件</th><th>推广域名</th><th>像素代码</th><th>服务端回传</th><th>测试编码</th><th>状态</th><th>推广链接（绑定像素）</th><th>操作</th></tr></thead>
+            <thead><tr><th>ID</th><th>推广渠道</th><th>备注</th><th>像素ID</th><th>事件</th><th>推广域名</th><th>像素代码</th><th>服务端回传</th><th>测试编码</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>{$rows}</tbody>
         </table>
     </div>
@@ -384,38 +368,6 @@ document.addEventListener('click', function (e) {
         var isCustom = sel.value === '__custom__';
         custom.style.display = isCustom ? 'block' : 'none';
         if (!isCustom) custom.value = '';
-    });
-})();
-
-// 复制「绑定像素」的基础推广链接
-(function () {
-    function fallback(text, done) {
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        try { document.execCommand('copy'); } catch (e) {}
-        document.body.removeChild(ta);
-        done();
-    }
-    document.addEventListener('click', function (e) {
-        var btn = e.target && e.target.closest ? e.target.closest('.btn-copy') : null;
-        if (!btn) return;
-        var link = btn.getAttribute('data-link') || '';
-        if (!link) return;
-        var done = function () {
-            var old = btn.textContent;
-            btn.textContent = '已复制';
-            btn.classList.add('copied');
-            setTimeout(function () { btn.textContent = old; btn.classList.remove('copied'); }, 1500);
-        };
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(link).then(done, function () { fallback(link, done); });
-        } else {
-            fallback(link, done);
-        }
     });
 })();
 

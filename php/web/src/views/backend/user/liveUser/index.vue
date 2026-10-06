@@ -7,6 +7,36 @@
             :quick-search-placeholder="'搜索 昵称/ID/编号/邮箱/推广链接/渠道'"
         />
 
+        <div
+            style="
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 10px;
+                padding: 10px 12px;
+                background: var(--el-fill-color-light);
+                border-radius: 6px;
+            "
+        >
+            <span style="color: #606266; font-size: 13px">来源筛选</span>
+            <el-select v-model="srcFilter.field" size="small" style="width: 150px">
+                <el-option v-for="f in SRC_FIELDS" :key="f.value" :label="f.label" :value="f.value" />
+            </el-select>
+            <el-input
+                v-model="srcFilter.val"
+                size="small"
+                style="width: 220px"
+                placeholder="输入值，如 FB-素材A / fb"
+                clearable
+                @keyup.enter="onSourceFilterSubmit"
+                @clear="clearSourceFilter"
+            />
+            <el-button size="small" type="primary" @click="onSourceFilterSubmit">筛选</el-button>
+            <el-button size="small" @click="clearSourceFilter">清除</el-button>
+            <span style="color: #909399; font-size: 12px">点列表里的「来源」标签也能直接筛选；点标签旁 ↗ 看推广数据报表</span>
+        </div>
+
         <Table />
 
         <el-dialog v-model="rechargeState.visible" title="手动充值 / 扣减代币" width="440px" :close-on-click-modal="false">
@@ -193,6 +223,42 @@ const openDetail = (row: TableRow) => {
     detailState.visible = true
 }
 
+// ---------------- 来源筛选（顶部筛选器 / 点列表「来源」标签） ----------------
+const srcFilter = reactive({ field: 'reg_link_name', val: '' })
+const SRC_FIELDS = [
+    { label: '推广链接名称', value: 'reg_link_name' },
+    { label: '渠道 ch', value: 'reg_channel' },
+    { label: '平台', value: 'reg_platform' },
+    { label: '来源域名', value: 'reg_domain' },
+    { label: '广告系列', value: 'reg_campaign' },
+    { label: '广告组', value: 'reg_adset' },
+    { label: '广告', value: 'reg_ad' },
+    { label: '推广像素', value: 'reg_px' },
+]
+
+const applySourceFilter = (field: string, val: string, operator = 'LIKE') => {
+    const v = (val || '').trim()
+    if (!v) {
+        baTable.setFilterSearchData([], 'cover')
+    } else {
+        baTable.setFilterSearchData([{ field, operator, val: v }], 'cover')
+    }
+    baTable.getData()
+}
+
+const onSourceFilterSubmit = () => applySourceFilter(srcFilter.field, srcFilter.val, 'LIKE')
+
+const clearSourceFilter = () => {
+    srcFilter.val = ''
+    baTable.setFilterSearchData([], 'cover')
+    baTable.getData()
+}
+
+// 打开「推广数据」报表对应维度（新标签页；同源打开，飘页鉴权可通过）
+const openSourceReport = (dim: string) => {
+    window.open('/admin/live.PromoSource/index?dim=' + (dim || 'domain'), '_blank')
+}
+
 const baTable = new baTableClass(
     new baTableApi('/admin/user.LiveUser/'),
     {
@@ -205,12 +271,13 @@ const baTable = new baTableClass(
             { label: '代币余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
             { label: '邮箱', prop: 'email', align: 'center', operator: 'LIKE', width: 200, render: 'tag', showOverflowTooltip: true },
             {
-                // 来源合并为一列：优先显示 推广链接名称 → 渠道 → 平台 → 域名；悬浮看完整明细
+                // 来源合并为一列：优先显示 推广链接名称 → 渠道 → 平台 → 域名；
+                // 悬浮看完整明细；点标签=筛选同来源会员；点标签旁 ↗=看推广数据报表
                 label: '来源',
                 prop: 'reg_source',
                 align: 'center',
                 operator: false,
-                width: 150,
+                width: 170,
                 render: 'customRender',
                 customRender: defineComponent({
                     props: { renderRow: Object },
@@ -221,18 +288,46 @@ const baTable = new baTableClass(
                             if (!label) {
                                 return h('span', { style: 'color:#c0c4cc' }, '—')
                             }
+                            const tag = h(
+                                ElTag,
+                                {
+                                    size: 'small',
+                                    effect: 'light',
+                                    type: row?.reg_source_type || 'info',
+                                    style: 'cursor:pointer',
+                                    onClick: (e: any) => {
+                                        e.stopPropagation()
+                                        applySourceFilter(row?.reg_source_field || 'reg_domain', label, 'eq')
+                                    },
+                                },
+                                () => label
+                            )
+                            const jump = h(
+                                'a',
+                                {
+                                    href: 'javascript:void(0)',
+                                    style: 'margin-left:6px;color:#909399;font-size:13px;text-decoration:none',
+                                    onClick: (e: any) => {
+                                        e.stopPropagation()
+                                        openSourceReport(row?.reg_source_dim || 'domain')
+                                    },
+                                },
+                                '↗'
+                            )
                             return h(
                                 ElTooltip,
                                 { effect: 'dark', placement: 'top', disabled: !row?.reg_source_detail },
                                 {
-                                    default: () =>
-                                        h(ElTag, { size: 'small', effect: 'light', type: row?.reg_source_type || 'info' }, () => label),
+                                    default: () => h('span', { style: 'display:inline-flex;align-items:center' }, [tag, jump]),
                                     content: () =>
-                                        h(
-                                            'div',
-                                            { style: 'white-space:pre-line;line-height:1.8;max-width:320px' },
-                                            row?.reg_source_detail || label
-                                        ),
+                                        h('div', { style: 'white-space:pre-line;line-height:1.8;max-width:320px' }, [
+                                            row?.reg_source_detail || label,
+                                            h(
+                                                'div',
+                                                { style: 'margin-top:6px;color:#a4a4a4' },
+                                                '点标签 = 筛选同来源　点 ↗ = 看推广数据'
+                                            ),
+                                        ]),
                                 }
                             )
                         }
