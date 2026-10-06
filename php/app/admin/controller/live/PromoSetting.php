@@ -42,7 +42,7 @@ final class PromoSetting extends Backend
         $edit = [
             'id' => 0, 'platform' => 'facebook', 'name' => '', 'pixel_id' => '',
             'events' => 'register,recharge,subscribe', 'domains' => '', 'code' => '',
-            'test_code' => '', 'sort' => 0, 'status' => 1,
+            'capi_token' => '', 'test_code' => '', 'sort' => 0, 'status' => 1,
         ];
         if ($editId > 0) {
             $row = Db::connect('live_mysql')->table('lp_promo_pixel')->where('id', $editId)->find();
@@ -85,6 +85,7 @@ final class PromoSetting extends Backend
         $eDomain = htmlspecialchars((string) $edit['domains'], ENT_QUOTES);
         $customStyle = $useCustom ? '' : ' style="display:none"';
         $eCode   = htmlspecialchars((string) $edit['code'], ENT_QUOTES);
+        $eToken  = htmlspecialchars((string) ($edit['capi_token'] ?? ''), ENT_QUOTES);
         $eTest   = htmlspecialchars((string) $edit['test_code'], ENT_QUOTES);
         $eSort   = (int) $edit['sort'];
         $eStatus = (int) $edit['status'] === 1 ? ' checked' : '';
@@ -118,6 +119,7 @@ final class PromoSetting extends Backend
 
             $domHtml  = $domains === '' ? '<span class="muted">全部域名</span>' : htmlspecialchars($domains, ENT_QUOTES);
             $codeHtml = trim((string) $row['code']) !== '' ? '<span class="chip on">有</span>' : '<span class="muted">无</span>';
+            $capiHtml = trim((string) ($row['capi_token'] ?? '')) !== '' ? '<span class="chip on">已配</span>' : '<span class="muted">未配</span>';
             $testHtml = $testCode !== '' ? '<span class="chip test">' . $testCode . '</span>' : '<span class="muted">—</span>';
             $statusHtml = $status === 1 ? '<span class="chip on">启用</span>' : '<span class="chip off">停用</span>';
             $toggleText = $status === 1 ? '停用' : '启用';
@@ -143,6 +145,7 @@ final class PromoSetting extends Backend
                 <td>{$evHtml}</td>
                 <td class="url">{$domHtml}</td>
                 <td>{$codeHtml}</td>
+                <td>{$capiHtml}</td>
                 <td>{$testHtml}</td>
                 <td>{$statusHtml}</td>
                 <td class="link">{$linkHtml}</td>
@@ -155,7 +158,7 @@ final class PromoSetting extends Backend
 ROW;
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="11" class="empty">还没有像素，先在下面「新增像素」加一条（Facebook / TikTok 都支持无限多条）</td></tr>';
+            $rows = '<tr><td colspan="12" class="empty">还没有像素，先在下面「新增像素」加一条（Facebook / TikTok 都支持无限多条）</td></tr>';
         }
 
         echo <<<HTML
@@ -214,7 +217,9 @@ ROW;
         要验证事件是否真的回传到广告后台：Ads Manager / Events Manager 里取「测试代码」填到下面的<b>测试回调编码</b>，
         然后在广告后台打开「测试事件」面板，用无痕窗口走一遍注册或充值，事件会实时出现在面板里。<br>
         每条像素的「推广链接」= <code>https://域名/?px=像素ID</code>，点「复制链接」拿去投放：用户从这个链接进来后，
-        <b>只打这一条像素</b>（不再受域名规则影响），访客后续跳转到其它页面也会保持绑定。
+        <b>只打这一条像素</b>（不再受域名规则影响），访客后续跳转到其它页面也会保持绑定。<br>
+        想让回传更稳（不怕浏览器拦截 / 无痕 / iPhone 的 ITP）：把该像素的 <b>服务端回传令牌</b>（Conversions API Access Token）填上，
+        注册 / 充值 / 订阅会由服务器直连 Facebook 回传，并与浏览器端自动去重。
     </div>
 
     <form class="card" method="post" action="/admin/live.PromoSetting/evSave">
@@ -272,6 +277,11 @@ ROW;
                     <input type="text" name="test_code" value="{$eTest}" placeholder="如 TEST12345">
                     <div class="tip">填了之后，这条像素上报的转化事件会带上测试标记，可直接在广告后台「测试事件」面板里看到，用来验证注册 / 充值是否真的回传。</div>
                 </div>
+                <div class="field">
+                    <label>服务端回传令牌（Conversions API Access Token，可选）</label>
+                    <input type="text" name="capi_token" value="{$eToken}" placeholder="EAA…">
+                    <div class="tip">填了之后，<b>注册 / 充值 / 订阅</b>会由服务器直连 Facebook 回传（与浏览器端同一个 event_id，自动去重不会重复计数），不怕浏览器拦截 / 无痕 / ITP。令牌只存在服务器，不会下发给前端。</div>
+                </div>
             </div>
             <div>
                 <div class="field">
@@ -312,7 +322,7 @@ ROW;
             <div class="tip" id="livePreview">当前生效：加载中…</div>
         </div>
         <table>
-            <thead><tr><th>ID</th><th>推广渠道</th><th>备注</th><th>像素ID</th><th>事件</th><th>推广域名</th><th>像素代码</th><th>测试编码</th><th>状态</th><th>推广链接（绑定像素）</th><th>操作</th></tr></thead>
+            <thead><tr><th>ID</th><th>推广渠道</th><th>备注</th><th>像素ID</th><th>事件</th><th>推广域名</th><th>像素代码</th><th>服务端回传</th><th>测试编码</th><th>状态</th><th>推广链接（绑定像素）</th><th>操作</th></tr></thead>
             <tbody>{$rows}</tbody>
         </table>
     </div>
@@ -427,6 +437,7 @@ HTML;
             $name     = trim((string) $this->request->post('name', ''));
             $pixelId  = $this->cleanId((string) $this->request->post('pixel_id', ''));
             $code     = trim((string) $this->request->post('code', ''));
+            $capiToken = mb_substr(trim((string) $this->request->post('capi_token', '')), 0, 255);
             $testCode = $this->cleanId((string) $this->request->post('test_code', ''));
             // 推广域名：下拉选具体域名，或选「自定义 / 多个域名…」走手动输入
             $rawDomain = (string) $this->request->post('domains', '');
@@ -454,6 +465,7 @@ HTML;
             $data = [
                 'platform' => $platform, 'name' => $name, 'pixel_id' => $pixelId,
                 'events' => $eventsStr, 'domains' => $domains, 'code' => $code,
+                'capi_token' => $capiToken,
                 'test_code' => $testCode, 'sort' => $sort, 'status' => $status, 'updated_at' => $now,
             ];
             if ($id > 0) {

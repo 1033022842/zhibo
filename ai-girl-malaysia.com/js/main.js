@@ -181,9 +181,15 @@
         form.append("password", $('#user_password_registration').val());
         form.append("invite_code", inviteCode());
         // 推广来源归因：来源域名 + 渠道参数（由 tracking.js 首次落地时写入 localStorage）
+        var regEventId = ''
         try {
           form.append("reg_domain", localStorage.getItem('reg_domain') || '');
           form.append("reg_channel", localStorage.getItem('reg_channel') || '');
+          form.append("reg_px", localStorage.getItem('promo_px') || '');
+          form.append("source_url", location.href);
+          // 与服务端 CAPI 回传共用的事件去重 ID
+          regEventId = (window.SugusTrack && SugusTrack.newId) ? SugusTrack.newId() : '';
+          if (regEventId) form.append("event_id", regEventId);
         } catch (e) {}
 
         const settings = {
@@ -214,8 +220,8 @@
             localStorage.setItem('live_user_info', JSON.stringify(userinfo))
             saveSession(res.data)
             token = res.data.access_token
-            // 转化事件：注册成功
-            try { if (window.SugusTrack) SugusTrack.event('register') } catch (e) {}
+            // 转化事件：注册成功（与服务端 CAPI 同一 event_id，FB 自动去重）
+            try { if (window.SugusTrack) SugusTrack.event('register', {}, regEventId) } catch (e) {}
            layer.msg('Registration successful')
             setTimeout(() => {
             window.location.replace(backUrl())

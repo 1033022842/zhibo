@@ -469,7 +469,7 @@
             var d = (res && res.code === '00000' && res.data) ? res.data : null
             if (d) {
                 known = true
-                if (parseInt(d.status, 10) === 1) { paySucceeded(d); return }
+                if (parseInt(d.status, 10) === 1) { paySucceeded(d, orderNo); return }
                 // 支付状态 2 = 网关已明确回未支付
                 if (parseInt(d.pay_state, 10) === 2) { payFailed(); return }
             }
@@ -483,13 +483,13 @@
         })
     }
 
-    function paySucceeded(d) {
+    function paySucceeded(d, orderNo) {
         clearPending()
         toast('Payment successful, tokens credited')
         loadBalance()
-        // 转化事件：充值成功（回跳后轮询到账）
+        // 转化事件：充值成功（与服务端 CAPI 用同一个 event_id = 订单号，去重）
         try {
-            if (window.SugusTrack) SugusTrack.event('recharge', { value: d.pay_amount })
+            if (window.SugusTrack) SugusTrack.event('recharge', { value: d.pay_amount }, orderNo || '')
         } catch (e) {}
     }
 
