@@ -34,7 +34,9 @@
             />
             <el-button size="small" type="primary" @click="onSourceFilterSubmit">筛选</el-button>
             <el-button size="small" @click="clearSourceFilter">清除</el-button>
-            <span style="color: #909399; font-size: 12px">点列表里的「来源」标签也能直接筛选；点标签旁 ↗ 看推广数据报表</span>
+            <span style="color: #909399; font-size: 12px">
+                点列表里的「注册来源」标签可筛同平台、「注册渠道」文字可筛同域名；点 ↗ 看推广数据报表
+            </span>
         </div>
 
         <Table />
@@ -281,20 +283,19 @@ const baTable = new baTableClass(
             { label: '代币余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
             { label: '邮箱', prop: 'email', align: 'center', operator: 'LIKE', width: 200, render: 'tag', showOverflowTooltip: true },
             {
-                // 来源合并为一列：优先显示 推广链接名称 → 渠道 → 平台 → 域名；
-                // 悬浮看完整明细；点标签=筛选同来源会员；点标签旁 ↗=看推广数据报表
-                label: '来源',
-                prop: 'reg_source',
+                // 注册来源：平台短名（FB / TT / GG）；点标签=筛选同平台；↗=看推广数据「平台」维度
+                label: '注册来源',
+                prop: 'reg_source_label',
                 align: 'center',
                 operator: false,
-                width: 170,
+                width: 120,
                 render: 'customRender',
                 customRender: defineComponent({
                     props: { renderRow: Object },
                     setup(props) {
                         return () => {
                             const row: any = props.renderRow
-                            const label = row?.reg_source || ''
+                            const label = row?.reg_source_label || ''
                             if (!label) {
                                 return h('span', { style: 'color:#c0c4cc' }, '—')
                             }
@@ -304,10 +305,12 @@ const baTable = new baTableClass(
                                     size: 'small',
                                     effect: 'light',
                                     type: row?.reg_source_type || 'info',
-                                    style: 'cursor:pointer',
+                                    style: row?.reg_platform ? 'cursor:pointer' : '',
                                     onClick: (e: any) => {
                                         e.stopPropagation()
-                                        filterBySourceTag(row?.reg_source_field || 'reg_domain', label)
+                                        if (row?.reg_platform) {
+                                            filterBySourceTag('reg_platform', row.reg_platform)
+                                        }
                                     },
                                 },
                                 () => label
@@ -319,24 +322,55 @@ const baTable = new baTableClass(
                                     style: 'margin-left:6px;color:#909399;font-size:13px;text-decoration:none',
                                     onClick: (e: any) => {
                                         e.stopPropagation()
-                                        openSourceReport(row?.reg_source_dim || 'domain')
+                                        openSourceReport('platform')
                                     },
                                 },
                                 '↗'
                             )
+                            return h('span', { style: 'display:inline-flex;align-items:center' }, [tag, jump])
+                        }
+                    },
+                }) as any,
+            },
+            {
+                // 注册渠道：后台绑定的「像素名称 · 来源域名」；悬浮看完整明细；点文字=筛选同域名
+                label: '注册渠道',
+                prop: 'reg_channel_label',
+                align: 'center',
+                operator: false,
+                width: 210,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const label = row?.reg_channel_label || ''
+                            if (!label) {
+                                return h('span', { style: 'color:#c0c4cc' }, '—')
+                            }
                             return h(
                                 ElTooltip,
                                 { effect: 'dark', placement: 'top', disabled: !row?.reg_source_detail },
                                 {
-                                    default: () => h('span', { style: 'display:inline-flex;align-items:center' }, [tag, jump]),
+                                    default: () =>
+                                        h(
+                                            'span',
+                                            {
+                                                style: row?.reg_domain ? 'cursor:pointer' : '',
+                                                onClick: (e: any) => {
+                                                    e.stopPropagation()
+                                                    if (row?.reg_domain) {
+                                                        filterBySourceTag('reg_domain', row.reg_domain)
+                                                    }
+                                                },
+                                            },
+                                            label
+                                        ),
                                     content: () =>
                                         h('div', { style: 'white-space:pre-line;line-height:1.8;max-width:320px' }, [
                                             row?.reg_source_detail || label,
-                                            h(
-                                                'div',
-                                                { style: 'margin-top:6px;color:#a4a4a4' },
-                                                '点标签 = 筛选同来源　点 ↗ = 看推广数据'
-                                            ),
+                                            h('div', { style: 'margin-top:6px;color:#a4a4a4' }, '点文字 = 筛选同域名　点 ↗ = 看推广数据'),
                                         ]),
                                 }
                             )

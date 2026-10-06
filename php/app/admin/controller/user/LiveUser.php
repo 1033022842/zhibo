@@ -3,6 +3,7 @@
 namespace app\admin\controller\user;
 
 use Throwable;
+use think\facade\Db;
 use app\common\controller\Backend;
 use app\admin\model\live\LiveUser as LiveUserModel;
 
@@ -61,6 +62,19 @@ class LiveUser extends Backend
             ->order($order)
             ->paginate($limit);
 
+        // 像素名映射：reg_px 存的是 lp_promo_pixel.id 或像素ID字符串，两种都映射一份
+        $pixelNames = [];
+        foreach (Db::connect('live_mysql')->table('lp_promo_pixel')->field('id,pixel_id,name')->select()->toArray() as $p) {
+            $pn = trim((string) $p['name']);
+            if ($pn === '') {
+                continue;
+            }
+            $pixelNames[(string) $p['id']] = $pn;
+            if ((string) $p['pixel_id'] !== '') {
+                $pixelNames[(string) $p['pixel_id']] = $pn;
+            }
+        }
+
         // 附加认证状态展示字段（给前端 tag 渲染用）
         $items = $res->items();
         foreach ($items as &$row) {
@@ -74,45 +88,52 @@ class LiveUser extends Backend
                 ? '/admin/user.LiveUser/detail?id=' . $row['id']
                 : '';
 
-            // 来源合并展示：列内优先显示「推广链接名称 → 渠道 → 平台 → 域名」，
-            // 完整明细放 reg_source_detail，前端悬浮显示
+            // 来源展示两列：
+            //   注册来源 = 平台短名（FB / TT / GG）
+            //   注册渠道 = 后台绑定的像素名称 + 来源域名
             $regLink     = (string) ($row['reg_link_name'] ?? '');
             $regChannel  = (string) ($row['reg_channel'] ?? '');
             $regPlatform = (string) ($row['reg_platform'] ?? '');
             $regDomain   = (string) ($row['reg_domain'] ?? '');
-            $row['reg_source'] = $regLink !== '' ? $regLink
-                : ($regChannel !== '' ? $regChannel
-                : ($regPlatform !== '' ? $regPlatform : $regDomain));
-            // 标签值来自哪个字段 / 对应「推广数据」报表的维度，供前端点击筛选与跳转
-            if ($regLink !== '') {
-                $row['reg_source_field'] = 'reg_link_name';
-                $row['reg_source_dim']   = 'link';
-            } elseif ($regChannel !== '') {
-                $row['reg_source_field'] = 'reg_channel';
-                $row['reg_source_dim']   = 'channel';
-            } elseif ($regPlatform !== '') {
-                $row['reg_source_field'] = 'reg_platform';
-                $row['reg_source_dim']   = 'platform';
-            } else {
-                $row['reg_source_field'] = 'reg_domain';
-                $row['reg_source_dim']   = 'domain';
-            }
-            // 标签配色：优先按平台；老数据 platform 为空时按渠道参数兜底，保证同值同色
-            $row['reg_source_type'] = match (true) {
-                $regPlatform === 'facebook' => 'primary',
-                $regPlatform === 'tiktok'   => 'danger',
-                $regPlatform === 'google'   => 'success',
-                (bool) preg_match('/facebook|meta|instagram|fb/i', $regChannel) => 'primary',
-                (bool) preg_match('/tiktok|douyin/i', $regChannel)            => 'danger',
-                (bool) preg_match('/google|adwords|gdn|youtube|yt/i', $regChannel) => 'success',
-                default => 'info',
+
+            $pfShort = match ($regPlatform) {
+                'facebook' => 'FB',
+                'tiktok'   => 'TT',
+                'google'   => 'GG',
+                default    => '',
             };
+            if ($pfShort === '') {
+                // 老数据 platform 为空时，按渠道 / 链接名兜底识别
+                $hint = $regChannel . ' ' . $regLink;
+                if (preg_match('/facebook|meta|instagram|fb/i', $hint)) {
+                    $pfShort = 'FB';
+                } elseif (preg_match('/tiktok|douyin/i', $hint)) {
+                    $pfShort = 'TT';
+                } elseif (preg_match('/google|adwords|gdn|youtube/i', $hint)) {
+                    $pfShort = 'GG';
+                }
+            }
+            $row['reg_source_label'] = $pfShort;
+            $row['reg_source_type']  = match ($pfShort) {
+                'FB' => 'primary', 'TT' => 'danger', 'GG' => 'success', default => 'info',
+            };
+
+            // 注册渠道：像素名称 · 域名
+            $pxKey   = (string) ($row['reg_px'] ?? '');
+            $pxName  = ($pxKey !== '' && isset($pixelNames[$pxKey])) ? $pixelNames[$pxKey] : '';
+            $chParts = [];
+            if ($pxName !== '')    { $chParts[] = $pxName; }
+            if ($regDomain !== '') { $chParts[] = $regDomain; }
+            $row['reg_channel_label'] = implode(' · ', $chParts);
+
+            // 悬浮明细
             $detail = [];
-            if ($regDomain !== '')                        { $detail[] = '域名：' . $regDomain; }
-            if ($regPlatform !== '')                      { $detail[] = '平台：' . $regPlatform; }
-            if ($regChannel !== '')                       { $detail[] = '渠道：' . $regChannel; }
-            if ($regLink !== '')                          { $detail[] = '推广链接：' . $regLink; }
-            if ((string) ($row['reg_px'] ?? '') !== '')       { $detail[] = '推广像素：' . $row['reg_px']; }
+            if ($regDomain !== '')   { $detail[] = '域名：' . $regDomain; }
+            if ($pfShort !== '')     { $detail[] = '平台：' . ($regPlatform !== '' ? $regPlatform : $pfShort); }
+            if ($regChannel !== '')  { $detail[] = '渠道：' . $regChannel; }
+            if ($pxName !== '')      { $detail[] = '像素：' . $pxName; }
+            elseif ($pxKey !== '')   { $detail[] = '像素：' . $pxKey; }
+            if ($regLink !== '')     { $detail[] = '推广链接：' . $regLink; }
             if ((string) ($row['reg_campaign'] ?? '') !== '') { $detail[] = '广告系列：' . $row['reg_campaign']; }
             if ((string) ($row['reg_adset'] ?? '') !== '')    { $detail[] = '广告组：' . $row['reg_adset']; }
             if ((string) ($row['reg_ad'] ?? '') !== '')       { $detail[] = '广告：' . $row['reg_ad']; }
