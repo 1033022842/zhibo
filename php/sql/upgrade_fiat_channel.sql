@@ -68,14 +68,11 @@ SET @ddl = IF(@has = 0,
 PREPARE _stmt FROM @ddl; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 -- --------------------------------------------
--- 3) 后台菜单「法币通道」
+-- 3) 后台不单开菜单：法币通道列表并到「充值渠道」页面
+--    （live.RechargeChannel/index 里一并维护，新增/编辑/启停走 live.FiatChannel）
+--    早期版本曾插过一条独立菜单，这里删掉；新库执行也无副作用。
 -- --------------------------------------------
-SET @live_pid = IFNULL((SELECT `id` FROM `ba_admin_rule`
-  WHERE `title` = '直播运营' AND `type` = 'menu_dir' ORDER BY `id` DESC LIMIT 1), 0);
-
-INSERT INTO `ba_admin_rule` (`pid`, `type`, `title`, `name`, `path`, `icon`, `menu_type`, `url`, `component`, `keepalive`, `extend`, `remark`, `weigh`, `status`)
-VALUES (@live_pid, 'menu', '法币通道', 'live/fiatChannel', 'live/fiatChannel', 'fa fa-globe', 'iframe', '/admin/live.FiatChannel/index', '', 0, 'none', '单国本币收款通道（币种+汇率）', 6, 1)
-ON DUPLICATE KEY UPDATE `pid` = VALUES(`pid`), `title` = '法币通道', `menu_type` = 'iframe', `url` = '/admin/live.FiatChannel/index', `status` = 1;
+DELETE FROM `ba_admin_rule` WHERE `name` = 'live/fiatChannel';
 
 -- --------------------------------------------
 -- 4) 校验
@@ -84,5 +81,5 @@ SELECT '--- lp_fiat_channel ---' AS section;
 SELECT `id`, `name`, `gateway`, `currency`, `currency_symbol`, `usd_rate`, `decimals`, `min_amount`, `diamond_rate`, `status`, `sort`
   FROM `lp_fiat_channel` ORDER BY `sort`, `id`;
 
-SELECT '--- 后台菜单 ---' AS section;
+SELECT '--- 后台菜单（应为空）---' AS section;
 SELECT `id`, `pid`, `title`, `name`, `url`, `status` FROM `ba_admin_rule` WHERE `name` = 'live/fiatChannel';

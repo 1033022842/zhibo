@@ -8,15 +8,18 @@ declare(strict_types=1);
 namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
-use app\admin\model\live\FiatChannel as FiatChannelModel;
 use think\facade\Db;
 
+/**
+ * 法币支付通道（单国本币收款）的表单与保存
+ *
+ * 列表已并到「充值渠道」页面（live.RechargeChannel/index）里，这里只留
+ * 新增 / 编辑 / 启停三个入口。
+ */
 final class FiatChannel extends Backend
 {
-    protected object $model;
-
     // 绕过登录检查（iframe 模式下 cookie 不共享）
-    protected array $noNeedLogin = ['index', 'edit', 'save', 'toggle'];
+    protected array $noNeedLogin = ['edit', 'save', 'toggle'];
 
     // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
     protected array $middleware = [
@@ -28,19 +31,6 @@ final class FiatChannel extends Backend
         'manual'  => '人工审核（暂不接网关，订单进「充值审核」等运营核对）',
         'starpay' => 'star-pay（金额传本币，币种走 extra.fiat_currency）',
     ];
-
-    public function initialize(): void
-    {
-        parent::initialize();
-        $this->model = new FiatChannelModel();
-    }
-
-    public function index(): void
-    {
-        $list = $this->model->order('sort', 'asc')->order('id', 'asc')->paginate(20);
-        response($this->renderPage($list))->send();
-        exit;
-    }
 
     /**
      * 新增 / 编辑表单
@@ -115,7 +105,7 @@ final class FiatChannel extends Backend
                 <div class="field"><label>付款说明（人工通道展示给用户，如收款账号 / 操作步骤）</label><textarea name="pay_instructions" rows="4">{$v('pay_instructions')}</textarea></div>
                 <div class="field"><label>排序</label><input type="number" name="sort" value="{$v('sort')}" /></div>
                 <button class="btn btn-primary" type="submit">保存</button>
-                <a class="btn btn-cancel" href="/admin/live.FiatChannel/index">取消</a>
+                <a class="btn btn-cancel" href="/admin/live.RechargeChannel/index">取消</a>
             </form>
         </div></body></html>
         HTML;
@@ -189,77 +179,9 @@ final class FiatChannel extends Backend
         $this->renderSuccess('状态已切换');
     }
 
-    private function renderPage($list): string
-    {
-        $rows = '';
-        foreach ($list->items() as $r) {
-            $rid  = (int) $r['id'];
-            $st   = ((int) $r['status'] === 1)
-                ? '<span style="color:#00d4aa">启用</span>'
-                : '<span style="color:#ff2d55">已下架</span>';
-            $gw   = htmlspecialchars((string) (self::GATEWAYS[(string) $r['gateway']] ?? ('未对接：' . $r['gateway'])), ENT_QUOTES);
-            $cur  = htmlspecialchars((string) $r['currency'], ENT_QUOTES);
-            $sym  = htmlspecialchars((string) $r['currency_symbol'], ENT_QUOTES);
-
-            // 用 $15 举例把折算结果写出来，运营填错汇率能一眼看出来
-            $sample = '—';
-            if ((float) $r['usd_rate'] > 0) {
-                $dec = max(0, min(8, (int) $r['decimals']));
-                $amt = number_format(round(15 * (float) $r['usd_rate'], $dec), $dec, '.', '');
-                $sample = htmlspecialchars((($sym !== '' ? $sym : $cur) . ' ' . $amt), ENT_QUOTES)
-                    . '<span style="color:#999"> / $15</span>';
-            }
-
-            $rows .= "<tr><td>{$rid}</td>"
-                . '<td>' . htmlspecialchars((string) $r['name'], ENT_QUOTES) . '</td>'
-                . "<td>{$gw}</td><td>{$cur}</td>"
-                . '<td>' . htmlspecialchars((string) $r['usd_rate'], ENT_QUOTES) . "</td>"
-                . "<td>{$sample}</td>"
-                . '<td>' . (int) $r['decimals'] . '</td>'
-                . '<td>' . htmlspecialchars((string) $r['min_amount'], ENT_QUOTES) . '</td>'
-                . '<td>' . htmlspecialchars((string) $r['diamond_rate'], ENT_QUOTES) . '</td>'
-                . '<td>' . (int) $r['sort'] . "</td><td>{$st}</td>"
-                . "<td><a class='btn-edit' href='/admin/live.FiatChannel/edit?id={$rid}'>编辑</a> "
-                . "<a class='btn-edit' href='/admin/live.FiatChannel/toggle?id={$rid}' onclick=\"return confirm('切换启用状态?')\">切换</a></td></tr>";
-        }
-        if ($rows === '') {
-            $rows = '<tr><td colspan="11" style="text-align:center;color:#999">还没有法币通道，点上方「+ 新增通道」添加</td></tr>';
-        }
-
-        $pager = $list->render();
-
-        return <<<HTML
-        <!DOCTYPE html><html lang="zh-CN">
-        <head><meta charset="UTF-8"><title>法币通道管理</title>
-        <style>
-            *{margin:0;padding:0;box-sizing:border-box}
-            body{font-family:-apple-system,sans-serif;background:#f5f7fa;color:#333;font-size:14px}
-            .container{max-width:1400px;margin:0 auto;padding:20px}
-            h1{margin-bottom:8px}
-            .sub{color:#888;font-size:13px;margin-bottom:16px;line-height:1.7}
-            .toolbar{margin-bottom:12px}
-            table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-            th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #eee}th{background:#f8f9fc;font-weight:600;font-size:13px}
-            .btn-add{display:inline-block;padding:8px 18px;background:#409eff;color:#fff;border-radius:6px;text-decoration:none;font-size:14px}
-            .btn-edit{color:#409eff;text-decoration:none}
-            .pager{margin-top:16px;text-align:center}
-            .pager ul{display:inline-flex;gap:4px;list-style:none}
-            .pager li a,.pager li span{padding:6px 12px;border:1px solid #ddd;border-radius:4px;color:#333;text-decoration:none;font-size:13px}
-            .pager .active span{background:#409eff;color:#fff;border-color:#409eff}
-        </style></head><body>
-        <div class="container">
-            <h1>法币通道（单国本币收款）</h1>
-            <div class="sub">用户在收银台看到的是本币金额：套餐 $15 × 汇率 4.70 = RM 70.50。汇率在下单时锁定并写进订单，改汇率不影响已生成的订单。</div>
-            <div class="toolbar"><a class="btn-add" href="/admin/live.FiatChannel/edit">+ 新增通道</a></div>
-            <table><thead><tr><th>ID</th><th>名称</th><th>对接方式</th><th>币种</th><th>汇率(1 USD=?)</th><th>折算示例</th><th>小数位</th><th>最低(本币)</th><th>代币/USD</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$rows}</tbody></table>
-            <div class="pager">{$pager}</div>
-        </div></body></html>
-        HTML;
-    }
-
     private function renderSuccess(string $msg): void
     {
-        $listUrl = '/admin/live.FiatChannel/index';
+        $listUrl = '/admin/live.RechargeChannel/index';
         $escMsg  = htmlspecialchars($msg, ENT_QUOTES);
         echo <<<HTML
         <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>操作成功</title>
