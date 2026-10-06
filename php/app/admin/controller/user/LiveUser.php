@@ -23,7 +23,7 @@ class LiveUser extends Backend
 
     protected string|array $preExcludeFields = [];
 
-    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'reg_domain'];
+    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'email', 'reg_domain', 'reg_channel'];
 
     protected string|array $defaultSortField = ['id' => 'desc'];
 
