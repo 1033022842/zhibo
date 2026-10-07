@@ -29,16 +29,16 @@ final class Merchant extends BaseController
     public function shopTypes()
     {
         $types = [
-            ['value' => 'food', 'label' => '美食'],
-            ['value' => 'clothing', 'label' => '服饰'],
-            ['value' => 'digital', 'label' => '数码'],
-            ['value' => 'beauty', 'label' => '美妆'],
-            ['value' => 'home', 'label' => '家居'],
-            ['value' => 'sports', 'label' => '运动'],
-            ['value' => 'baby', 'label' => '母婴'],
-            ['value' => 'pet', 'label' => '宠物'],
-            ['value' => 'book', 'label' => '图书'],
-            ['value' => 'other', 'label' => '其他'],
+            ['value' => 'food', 'label' => 'Food'],
+            ['value' => 'clothing', 'label' => 'Clothing'],
+            ['value' => 'digital', 'label' => 'Electronics'],
+            ['value' => 'beauty', 'label' => 'Beauty'],
+            ['value' => 'home', 'label' => 'Home & Living'],
+            ['value' => 'sports', 'label' => 'Sports'],
+            ['value' => 'baby', 'label' => 'Baby & Kids'],
+            ['value' => 'pet', 'label' => 'Pets'],
+            ['value' => 'book', 'label' => 'Books'],
+            ['value' => 'other', 'label' => 'Other'],
         ];
         return $this->jsonSuccess($types);
     }
@@ -53,7 +53,7 @@ final class Merchant extends BaseController
         $this->validate($params, MerchantValidate::class . '.submit');
 
         $this->certService->submit($userId, $params);
-        return $this->jsonSuccess(null, '认证信息已提交，请等待审核');
+        return $this->jsonSuccess(null, 'Verification submitted. Please wait for review.');
     }
 
     /**
@@ -68,20 +68,20 @@ final class Merchant extends BaseController
             return $this->jsonSuccess([
                 'has_cert'    => false,
                 'cert_status' => -1,
-                'status_text' => '未认证',
+                'status_text' => 'Not verified',
             ]);
         }
 
         $statusMap = [
-            0 => '审核中',
-            1 => '已通过',
-            2 => '已拒绝',
+            0 => 'Under review',
+            1 => 'Approved',
+            2 => 'Rejected',
         ];
 
         return $this->jsonSuccess([
             'has_cert'      => true,
             'cert_status'   => (int)$cert['status'],
-            'status_text'   => $statusMap[$cert['status']] ?? '未知',
+            'status_text'   => $statusMap[$cert['status']] ?? 'Unknown',
             'shop_name'     => $cert['shop_name'] ?? '',
             'email'         => $cert['email'] ?? '',
             'reject_reason' => $cert['reject_reason'] ?? '',
@@ -102,11 +102,11 @@ final class Merchant extends BaseController
         }
 
         $statusMap = [
-            0 => '审核中',
-            1 => '已通过',
-            2 => '已拒绝',
+            0 => 'Under review',
+            1 => 'Approved',
+            2 => 'Rejected',
         ];
-        $cert['status_text'] = $statusMap[$cert['status']] ?? '未知';
+        $cert['status_text'] = $statusMap[$cert['status']] ?? 'Unknown';
 
         return $this->jsonSuccess($cert);
     }
@@ -118,7 +118,7 @@ final class Merchant extends BaseController
     {
         $file = $this->request->file('file');
         if (!$file) {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择要上传的文件');
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please select a file to upload');
         }
 
         $upload = new \app\common\library\Upload($file);

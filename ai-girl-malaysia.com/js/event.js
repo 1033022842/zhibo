@@ -807,7 +807,7 @@
             
             // 检查是否是认证失败
             if(res.code !== "00000" && (res.code === "10003" || res.code === "10004")) {
-              layer.msg(res.msg || "请登录后操作")
+              layer.msg(res.msg || "Please log in to continue")
               localStorage.removeItem('live_access_token')
               localStorage.removeItem('live_user_info')
               setTimeout(() => {
@@ -817,7 +817,7 @@
             }
             
             if(res.code === "00000") {
-                layer.msg(res.msg || '创建成功')
+                layer.msg(res.msg || 'Character created successfully')
               localStorage.removeItem('characterSummary')
               localStorage.removeItem('characterData')
               localStorage.removeItem('characterStep')
@@ -842,7 +842,7 @@
               // 检查响应体中的 code
               else if(error.responseJSON && error.responseJSON.code === 401) {
                 isUnauthorized = true
-                errorMsg = error.responseJSON.msg || "请登录后操作"
+                errorMsg = error.responseJSON.msg || "Please log in to continue"
               }
               
               if(isUnauthorized) {

@@ -38,9 +38,9 @@
             } else {
                 layer.open({
                     type: 1,
-                    title: '商家认证提示',
+                    title: 'Verification Required',
                     area: ['420px', '240px'],
-                    content: '<div style="padding:20px;text-align:center;line-height:1.8"><p style="font-size:15px;color:#f59e0b">&#9888; 创建AI角色需要先通过商家认证</p><p style="color:#999;margin-top:8px;font-size:13px">请先完成商家认证后再创建AI角色</p><button onclick="location.href=\'./certification.html\'" style="margin-top:16px;padding:10px 32px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">去认证</button></div>',
+                    content: '<div style="padding:20px;text-align:center;line-height:1.8"><p style="font-size:15px;color:#f59e0b">&#9888; You need to pass merchant verification to create AI characters</p><p style="color:#999;margin-top:8px;font-size:13px">Please complete merchant verification before creating AI characters</p><button onclick="location.href=\'./certification.html\'" style="margin-top:16px;padding:10px 32px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">Verify Now</button></div>',
                     btn: []
                 })
             }
@@ -191,7 +191,7 @@ function showReplayClips(personaId, personaName) {
 
             layer.open({
                 type: 1,
-                title: '📹 ' + personaName + ' - 历史切片',
+                title: '📹 ' + personaName + ' - Replay Clips',
                 content: html,
                 area: ['500px', 'auto'],
                 skin: 'layui-layer-demo',

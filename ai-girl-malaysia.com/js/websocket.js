@@ -47,7 +47,7 @@
                     // 设置超时检�?                    heartbeatTimeout = setTimeout(() => {
                         console.log('心跳超时，连接可能断开');
                         if (window.addChatMessage) {
-                            window.addChatMessage('⚠️ 连接超时，正在重�?..', false);
+                            window.addChatMessage('⚠️ Connection timed out, reconnecting...', false);
                         }
                         // 强制重连
                         ws.close();
@@ -515,7 +515,7 @@
             if (!isConnected) {
                 console.log('WebSocket未连接，无法发送消�?);
                 if (window.addChatMessage) {
-                    window.addChatMessage('⚠️ 连接断开，无法发送消�?, false);
+                    window.addChatMessage('⚠️ Connection lost, unable to send message', false);
                 }
             }
             return;
@@ -531,7 +531,7 @@
         } catch (error) {
             console.error('发送消息失�?', error);
             if (window.addChatMessage) {
-                window.addChatMessage('�?发送消息失�?, false);
+                window.addChatMessage('❌ Failed to send message', false);
             }
         }
         

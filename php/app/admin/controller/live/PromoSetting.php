@@ -3,12 +3,10 @@
  * 推广与像素配置
  * 访问: /admin/live.PromoSetting/index?_key=<ADMIN_FLOAT_KEY>
  *
- * 一条像素 = 一个广告后台账号，可无限添加。每条可单独设置：
- *   推广渠道（Facebook / TikTok / Google / Snapchat / Kwai / Bing / Pinterest / 其他）
- *   像素ID、事件（完成注册 / 购物·充值 / 订阅）、推广域名、像素代码、测试回调编码
- *
- * 前端静态站每个页面引用的 js/tracking.js 会拉 /api/v1/site/config 自动注入，改完即时生效（缓存 60 秒）。
- * 「测试回调编码」填广告后台 Events Manager 里的测试代码，配合「测试事件」面板即可验证注册 / 充值有没有回传。
+ * 按参考后台改成「渠道统计 / 渠道配置」双 Tab 结构：
+ * - 渠道统计：按站点展示各广告渠道配置数量
+ * - 渠道配置：像素列表 + 弹窗式新增/编辑 + 直接复制推广链接
+ * - 单独的「推广链接」页不再作为主操作入口
  */
 declare(strict_types=1);
 
@@ -28,21 +26,38 @@ final class PromoSetting extends Backend
 
     public function index(): void
     {
-        $svc    = new PromoService();
-        $values = $svc->all();
-        $editId = (int) $this->request->param('id', 0);
+        $svc     = new PromoService();
+        $values  = $svc->all();
+        $pixels  = $svc->pixels(false);
+        $tab     = (string) $this->request->param('tab', 'config');
+        $tab     = in_array($tab, ['stats', 'config'], true) ? $tab : 'config';
+        $editId  = (int) $this->request->param('id', 0);
+        $showNew = (string) $this->request->param('show', '') === 'new';
 
-        $on = static fn(string $key, string $default = '1'): string => ($values[$key] ?? $default) === '1' ? ' checked' : '';
+        $key           = (string) $this->request->param('_key', '');
+        $hiddenKey     = $key !== '' ? '<input type="hidden" name="_key" value="' . htmlspecialchars($key, ENT_QUOTES) . '">' : '';
+        $currentTabInp = '<input type="hidden" name="tab" value="config">';
+        $siteName      = htmlspecialchars((string) get_sys_config('site_name'), ENT_QUOTES);
+        $siteName      = $siteName !== '' ? $siteName : '默认站点';
+        $siteId        = 1;
 
+        $on = static fn(string $keyName, string $default = '1'): string => ($values[$keyName] ?? $default) === '1' ? ' checked' : '';
         $evReg = $on('promo_ev_register');
         $evPay = $on('promo_ev_recharge');
         $evSub = $on('promo_ev_subscribe');
 
-        // ---------- 编辑中的像素 ----------
         $edit = [
-            'id' => 0, 'platform' => 'facebook', 'name' => '', 'pixel_id' => '',
-            'events' => 'register,recharge,subscribe', 'domains' => '', 'code' => '',
-            'capi_token' => '', 'test_code' => '', 'sort' => 0, 'status' => 1,
+            'id' => 0,
+            'platform' => 'facebook',
+            'name' => '',
+            'pixel_id' => '',
+            'events' => 'register,recharge,subscribe',
+            'domains' => '',
+            'code' => '',
+            'capi_token' => '',
+            'test_code' => '',
+            'sort' => 0,
+            'status' => 1,
         ];
         if ($editId > 0) {
             $row = Db::connect('live_mysql')->table('lp_promo_pixel')->where('id', $editId)->find();
@@ -50,316 +65,648 @@ final class PromoSetting extends Backend
                 $edit = array_merge($edit, $row);
             }
         }
-        $eId = (int) $edit['id'];
+
+        $eId     = (int) $edit['id'];
         $eEvents = array_map('trim', explode(',', (string) $edit['events']));
+        $showForm = $eId > 0 || $showNew;
 
         $platformOptions = '';
-        foreach (PromoService::PIXEL_PLATFORMS as $key => $label) {
-            $sel = ((string) $edit['platform'] === $key) ? ' selected' : '';
-            $platformOptions .= "<option value=\"{$key}\"{$sel}>{$label}</option>";
-        }
-        $eventBoxes = '';
-        foreach (PromoService::PIXEL_EVENTS as $key => $label) {
-            $checked = in_array($key, $eEvents, true) ? ' checked' : '';
-            $eventBoxes .= "<label class=\"switch\"><input type=\"checkbox\" name=\"events[]\" value=\"{$key}\"{$checked}> {$label}</label>";
+        foreach (PromoService::PIXEL_PLATFORMS as $keyName => $label) {
+            $selected = ((string) $edit['platform'] === $keyName) ? ' selected' : '';
+            $platformOptions .= "<option value=\"{$keyName}\"{$selected}>{$label}</option>";
         }
 
-        // ---------- 前端域名（推广域名下拉的数据源）----------
-        $domains      = $svc->siteDomains();
-        $domainListV  = htmlspecialchars(implode("\n", $domains), ENT_QUOTES);
-        $domainCount  = count($domains);
-        $eDomainList  = array_values(array_filter(array_map('trim', explode(',', (string) $edit['domains']))));
-        $eDomainStr   = implode(',', $eDomainList);
-        $isKnownOne   = count($eDomainList) === 1 && in_array($eDomainList[0], $domains, true);
-        $useCustom    = $eDomainStr !== '' && !$isKnownOne;
+        $eventBoxes = '';
+        foreach (PromoService::PIXEL_EVENTS as $keyName => $label) {
+            $checked = in_array($keyName, $eEvents, true) ? ' checked' : '';
+            $eventBoxes .= "<label class=\"event-item\"><input type=\"checkbox\" name=\"events[]\" value=\"{$keyName}\"{$checked}> <span>{$label}</span></label>";
+        }
+
+        $domains     = $svc->siteDomains();
+        $domainCount = count($domains);
+        $domainListV = htmlspecialchars(implode("\n", $domains), ENT_QUOTES);
+        $eDomainList = array_values(array_filter(array_map('trim', explode(',', (string) $edit['domains']))));
+        $eDomainStr  = implode(',', $eDomainList);
+        $isKnownOne  = count($eDomainList) === 1 && in_array($eDomainList[0], $domains, true);
+        $useCustom   = $eDomainStr !== '' && !$isKnownOne;
 
         $domainOptions = '<option value=""' . ($eDomainStr === '' ? ' selected' : '') . '>全部域名（不限）</option>';
         foreach ($domains as $d) {
             $dEsc = htmlspecialchars($d, ENT_QUOTES);
-            $domainOptions .= '<option value="' . $dEsc . '"' . ($eDomainStr === $d ? ' selected' : '') . '>' . $dEsc . '</option>';
+            $selected = $eDomainStr === $d ? ' selected' : '';
+            $domainOptions .= '<option value="' . $dEsc . '"' . $selected . '>' . $dEsc . '</option>';
         }
         $domainOptions .= '<option value="__custom__"' . ($useCustom ? ' selected' : '') . '>自定义 / 多个域名…</option>';
 
-        $eName   = htmlspecialchars((string) $edit['name'], ENT_QUOTES);
-        $ePixel  = htmlspecialchars((string) $edit['pixel_id'], ENT_QUOTES);
-        $eDomain = htmlspecialchars((string) $edit['domains'], ENT_QUOTES);
-        $customStyle = $useCustom ? '' : ' style="display:none"';
-        $eCode   = htmlspecialchars((string) $edit['code'], ENT_QUOTES);
-        $eToken  = htmlspecialchars((string) ($edit['capi_token'] ?? ''), ENT_QUOTES);
-        $eTest   = htmlspecialchars((string) $edit['test_code'], ENT_QUOTES);
-        $eSort   = (int) $edit['sort'];
-        $eStatus = (int) $edit['status'] === 1 ? ' checked' : '';
-        $formTitle = $eId > 0 ? '编辑像素 #' . $eId : '新增像素';
+        $eName        = htmlspecialchars((string) $edit['name'], ENT_QUOTES);
+        $ePixel       = htmlspecialchars((string) $edit['pixel_id'], ENT_QUOTES);
+        $eDomain      = htmlspecialchars((string) $edit['domains'], ENT_QUOTES);
+        $eCode        = htmlspecialchars((string) $edit['code'], ENT_QUOTES);
+        $eToken       = htmlspecialchars((string) ($edit['capi_token'] ?? ''), ENT_QUOTES);
+        $eTest        = htmlspecialchars((string) $edit['test_code'], ENT_QUOTES);
+        $eSort        = (int) $edit['sort'];
+        $eStatus      = (int) $edit['status'] === 1 ? ' checked' : '';
+        $customStyle  = $useCustom ? '' : ' style="display:none"';
+        $formTitle    = $eId > 0 ? '编辑渠道' : '新增渠道';
+        $formBtnText  = $eId > 0 ? '保存修改' : '保存';
 
-        // ---------- 像素列表 ----------
-        $rows = '';
-        $enabled = 0;
-        foreach ($svc->pixels(false) as $row) {
+        $pixelTotal   = count($pixels);
+        $pixelEnabled = count(array_filter($pixels, static fn(array $row): bool => (int) ($row['status'] ?? 0) === 1));
+        $pixelDisabled = $pixelTotal - $pixelEnabled;
+        $copyableTotal = 0;
+
+        $statBuckets = [
+            'facebook' => 0,
+            'kwai' => 0,
+            'bigo' => 0,
+            'tiktok' => 0,
+            'google' => 0,
+            'okspin' => 0,
+            'adjust' => 0,
+            'mgskyads' => 0,
+            'threebeauties' => 0,
+            'traxpix' => 0,
+            'geemee' => 0,
+            'smartads' => 0,
+        ];
+        foreach ($pixels as $row) {
+            if ((int) ($row['status'] ?? 0) !== 1) {
+                continue;
+            }
+            $bucket = $this->detectStatBucket((string) ($row['platform'] ?? ''), (string) ($row['name'] ?? ''));
+            if (isset($statBuckets[$bucket])) {
+                $statBuckets[$bucket]++;
+            }
+        }
+
+        $statsRow = '<tr>'
+            . '<td>' . $siteId . '</td>'
+            . '<td>' . $siteName . '</td>'
+            . '<td>' . $statBuckets['facebook'] . '</td>'
+            . '<td>' . $statBuckets['kwai'] . '</td>'
+            . '<td>' . $statBuckets['bigo'] . '</td>'
+            . '<td>' . $statBuckets['tiktok'] . '</td>'
+            . '<td>' . $statBuckets['google'] . '</td>'
+            . '<td>' . $statBuckets['okspin'] . '</td>'
+            . '<td>' . $statBuckets['adjust'] . '</td>'
+            . '<td>' . $statBuckets['mgskyads'] . '</td>'
+            . '<td>' . $statBuckets['threebeauties'] . '</td>'
+            . '<td>' . $statBuckets['traxpix'] . '</td>'
+            . '<td>' . $statBuckets['geemee'] . '</td>'
+            . '<td>' . $statBuckets['smartads'] . '</td>'
+            . '</tr>';
+
+        $pixelRows = '';
+        foreach ($pixels as $row) {
             $id       = (int) $row['id'];
             $platform = (string) $row['platform'];
             $label    = PromoService::PIXEL_PLATFORMS[$platform] ?? $platform;
-            $name     = htmlspecialchars((string) $row['name'], ENT_QUOTES);
+            $nameRaw  = (string) $row['name'];
+            $name     = htmlspecialchars($nameRaw, ENT_QUOTES);
             $pixelId  = htmlspecialchars((string) $row['pixel_id'], ENT_QUOTES);
-            $domains  = htmlspecialchars((string) $row['domains'], ENT_QUOTES);
-            $testCode = htmlspecialchars((string) $row['test_code'], ENT_QUOTES);
+            $domainsV = trim((string) $row['domains']) !== '' ? htmlspecialchars((string) $row['domains'], ENT_QUOTES) : '<span class="muted">全部域名</span>';
+            $tokenV   = trim((string) ($row['capi_token'] ?? '')) !== '' ? '<span class="flag flag-on">已配置</span>' : '<span class="muted">未配置</span>';
+            $testV    = trim((string) ($row['test_code'] ?? '')) !== '' ? htmlspecialchars((string) $row['test_code'], ENT_QUOTES) : '<span class="muted">—</span>';
             $status   = (int) $row['status'];
-            if ($status === 1) {
-                $enabled++;
-            }
-
-            $evLabels = [];
-            foreach (array_map('trim', explode(',', (string) $row['events'])) as $ek) {
-                if (isset(PromoService::PIXEL_EVENTS[$ek])) {
-                    $evLabels[] = PromoService::PIXEL_EVENTS[$ek];
+            $events   = [];
+            foreach (array_map('trim', explode(',', (string) $row['events'])) as $eventKey) {
+                if (isset(PromoService::PIXEL_EVENTS[$eventKey])) {
+                    $events[] = PromoService::PIXEL_EVENTS[$eventKey];
                 }
             }
-            $evHtml = $evLabels === []
-                ? '<span class="muted">全部</span>'
-                : htmlspecialchars(implode(' / ', $evLabels), ENT_QUOTES);
-
-            $domHtml  = $domains === '' ? '<span class="muted">全部域名</span>' : htmlspecialchars($domains, ENT_QUOTES);
-            $codeHtml = trim((string) $row['code']) !== '' ? '<span class="chip on">有</span>' : '<span class="muted">无</span>';
-            $capiHtml = trim((string) ($row['capi_token'] ?? '')) !== '' ? '<span class="chip on">已配</span>' : '<span class="muted">未配</span>';
-            $testHtml = $testCode !== '' ? '<span class="chip test">' . $testCode . '</span>' : '<span class="muted">—</span>';
-            $statusHtml = $status === 1 ? '<span class="chip on">启用</span>' : '<span class="chip off">停用</span>';
+            $eventsV    = $events === [] ? '<span class="muted">全部</span>' : htmlspecialchars(implode(' / ', $events), ENT_QUOTES);
+            $statusHtml = $status === 1 ? '<span class="flag flag-on">启用</span>' : '<span class="flag flag-off">停用</span>';
             $toggleText = $status === 1 ? '停用' : '启用';
+            $linkName      = trim($nameRaw) !== '' ? trim($nameRaw) : ('channel-' . $id);
+            $copyPromoBtn  = '';
+            $copyPromoHint = '';
+            if ($status === 1) {
+                foreach ($this->resolvePromoDomains((string) ($row['domains'] ?? ''), $domains) as $promoDomain) {
+                    if (strpos($promoDomain, '*') !== false) {
+                        continue;
+                    }
+                    // 普通推广不绑定像素，链接只带 name / ch，靠名称区分短信商等来源
+                    $pxParam  = $platform === 'general' ? '' : (string) $id;
+                    $promoUrl = $this->buildPromoLink($promoDomain, $pxParam, $linkName, $platform);
+                    $promoUrlEsc = htmlspecialchars($promoUrl, ENT_QUOTES);
+                    $promoDomainEsc = htmlspecialchars($promoDomain, ENT_QUOTES);
+                    $copyPromoBtn = '<button type="button" class="link-copy-btn" data-link="' . $promoUrlEsc . '" title="复制 ' . $promoDomainEsc . ' 的推广链接" style="cursor:pointer" onmousedown="this.style.transform=\'translateY(1px) scale(.97)\';this.style.boxShadow=\'0 1px 3px rgba(64,158,255,.22)\';" onmouseup="this.style.transform=\'\';this.style.boxShadow=\'\';" onmouseleave="this.style.transform=\'\';this.style.boxShadow=\'\';" onclick="return onCopyPromoLink(this)">复制链接</button>';
+                    $copyPromoHint = '<span class="op-hint">默认域名：' . $promoDomainEsc . '</span>';
+                    $copyableTotal++;
+                    break;
+                }
+            }
 
-            $rows .= <<<ROW
-            <tr>
-                <td>{$id}</td>
-                <td><b>{$label}</b></td>
-                <td>{$name}</td>
-                <td class="mono">{$pixelId}</td>
-                <td>{$evHtml}</td>
-                <td class="url">{$domHtml}</td>
-                <td>{$codeHtml}</td>
-                <td>{$capiHtml}</td>
-                <td>{$testHtml}</td>
-                <td>{$statusHtml}</td>
-                <td class="ops">
-                    <a href="/admin/live.PromoSetting/index?id={$id}">编辑</a>
-                    <a href="javascript:void(0)" onclick="testPx({$id})">测试回传</a>
-                    <a href="/admin/live.PromoSetting/pxToggle?id={$id}">{$toggleText}</a>
-                    <a href="/admin/live.PromoSetting/pxDel?id={$id}" onclick="return confirm('确认删除该像素？')" class="danger">删除</a>
-                </td>
-            </tr>
-ROW;
+            $pixelRows .= '<tr>'
+                . '<td>' . $id . '</td>'
+                . '<td><div class="channel-name">' . ($name !== '' ? $name : '未命名渠道') . '</div><div class="channel-sub">' . htmlspecialchars($label, ENT_QUOTES) . '</div></td>'
+                . '<td>' . htmlspecialchars($label, ENT_QUOTES) . '</td>'
+                . '<td class="td-wrap">' . $domainsV . '</td>'
+                . '<td class="td-wrap mono">' . ($pixelId !== '' ? $pixelId : '<span class="muted">未填写</span>') . '</td>'
+                . '<td>' . $eventsV . '</td>'
+                . '<td>' . $tokenV . '</td>'
+                . '<td>' . $testV . '</td>'
+                . '<td>' . $statusHtml . '</td>'
+                . '<td class="td-ops">'
+                    . '<a href="' . $this->buildIndexUrl(['tab' => 'config', 'id' => $id]) . '">编辑</a>'
+                    . '<a href="javascript:void(0)" onclick="testPx(' . $id . ')">测试</a>'
+                    . '<a href="/admin/live.PromoSetting/pxToggle?id=' . $id . $this->buildActionQuery(['tab' => 'config']) . '">' . $toggleText . '</a>'
+                    . '<a href="/admin/live.PromoSetting/pxDel?id=' . $id . $this->buildActionQuery(['tab' => 'config']) . '" class="danger" onclick="return confirm(\'确认删除该渠道？\')">删除</a>'
+                    . $copyPromoBtn
+                    . $copyPromoHint
+                . '</td>'
+                . '</tr>';
         }
-        if ($rows === '') {
-            $rows = '<tr><td colspan="11" class="empty">还没有像素，先在下面「新增像素」加一条（Facebook / TikTok 都支持无限多条）</td></tr>';
+        if ($pixelRows === '') {
+            $pixelRows = '<tr><td colspan="10" class="empty">还没有渠道配置，点右上角「新增」先添加一条</td></tr>';
         }
+
+        $statsTabClass  = $tab === 'stats' ? 'tab-item is-active' : 'tab-item';
+        $configTabClass = $tab === 'config' ? 'tab-item is-active' : 'tab-item';
+        $statsTabUrl    = $this->buildIndexUrl(['tab' => 'stats']);
+        $configTabUrl   = $this->buildIndexUrl(['tab' => 'config']);
+        $newUrl         = $this->buildIndexUrl(['tab' => 'config', 'show' => 'new']);
+        $closeUrl       = $this->buildIndexUrl(['tab' => 'config']);
+        $closeUrlJs     = json_encode($closeUrl, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $statsPanelStyle  = $tab === 'stats' ? '' : ' style="display:none"';
+        $configPanelStyle = $tab === 'config' ? '' : ' style="display:none"';
+        $dialogClass      = $showForm ? 'dialog-mask is-open' : 'dialog-mask';
 
         echo <<<HTML
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>推广与像素</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>广告渠道配置</title>
 <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,sans-serif;background:#f5f7fa;color:#333;padding:20px;font-size:14px}
-    .container{max-width:1180px;margin:0 auto}
-    .card{background:#fff;border-radius:12px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:18px}
-    h2{font-size:17px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-    h2 .dot{width:6px;height:18px;background:#409eff;border-radius:3px}
-    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-    .field{margin-bottom:12px}
-    .field label{display:block;font-size:13px;color:#666;margin-bottom:4px}
-    .field input[type=text],.field select,.field textarea{width:100%;padding:9px 10px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-family:inherit}
-    .field select + input[type=text]{margin-top:8px}
-    .field textarea{min-height:74px;resize:vertical}
-    .field textarea.code{min-height:120px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
-    .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#333;font-weight:600;margin-right:20px}
-    .switch input{width:16px;height:16px}
-    .tip{font-size:12px;color:#999;margin-top:6px;line-height:1.6}
-    .btn{padding:10px 26px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
-    .btn-primary{background:#409eff;color:#fff}
-    .btn-ghost{background:#f0f2f5;color:#555}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:10px 8px;border-bottom:1px solid #eef0f3;text-align:left;vertical-align:middle}
-    th{color:#888;font-weight:600;background:#fafbfc}
-    td.url,td.mono{color:#666;font-size:12px;max-width:220px;word-break:break-all}
-    td.ops a{color:#409eff;text-decoration:none;margin-right:10px}
-    td.ops a.danger{color:#ff2d55}
-    td.empty{text-align:center;color:#aaa;padding:26px}
-    .chip{font-size:12px;padding:2px 9px;border-radius:999px}
-    .chip.on{background:#e8f7ef;color:#00a870}
-    .chip.off{background:#f2f3f5;color:#999}
-    .chip.test{background:#fff4e5;color:#d48806}
-
-    .pt-mask{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.35)}
-    .pt-mask.open{display:flex;align-items:center;justify-content:center}
-    .pt-panel{width:min(680px,92vw);max-height:80vh;display:flex;flex-direction:column;background:#fff;border-radius:12px;overflow:hidden}
-    .pt-head{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #eef0f3;font-size:14px}
-    .pt-head .pt-x{margin-left:auto;width:26px;height:26px;border:none;border-radius:6px;background:#f2f3f5;cursor:pointer}
-    .pt-panel pre{margin:0;padding:14px 16px;overflow:auto;font-size:12.5px;line-height:1.7;white-space:pre-wrap;word-break:break-all}
-    .pt-ok{color:#00a870}
-    .pt-bad{color:#ff2d55}
-    .muted{color:#bbb;font-size:12px}
-    .bar{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .note{background:#eef6ff;border:1px solid #cfe3ff;color:#2b6cb0;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.8;margin-bottom:18px}
-    code{background:#f2f3f5;padding:1px 5px;border-radius:4px}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f5f7fb;color:#303133;font-size:14px;padding:16px}
+    a{text-decoration:none}
+    a,button,.btn,.tab-item,.link-copy-btn,.dialog-close,.summary-item{cursor:pointer}
+    a:active,button:active,.btn:active,.tab-item:active,.link-copy-btn:active{transform:translateY(1px)}
+    .btn:hover{border-color:#c6d4e6;color:#409eff}
+    .btn.btn-primary:hover{background:#66b1ff;border-color:#66b1ff;color:#fff}
+    button{font-family:inherit}
+    .page{max-width:1320px;margin:0 auto}
+    .summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+    .summary-item{background:#fff;border:1px solid #ebeef5;border-radius:4px;padding:14px 16px}
+    .summary-item .num{font-size:24px;line-height:1;color:#303133;font-weight:600}
+    .summary-item .txt{margin-top:8px;color:#909399;font-size:13px}
+    .panel{background:#fff;border:1px solid #ebeef5;border-radius:4px;overflow:hidden}
+    .panel-top{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid #ebeef5}
+    .panel-title{font-size:18px;font-weight:600;color:#303133}
+    .panel-desc{margin-top:6px;font-size:12px;color:#909399}
+    .actions{display:flex;align-items:center;gap:10px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;border-radius:4px;border:1px solid #dcdfe6;background:#fff;color:#606266;font-size:13px;cursor:pointer}
+    .btn.btn-primary{background:#409eff;border-color:#409eff;color:#fff}
+    .btn.btn-plain{background:#ecf5ff;border-color:#b3d8ff;color:#409eff}
+    .tabs{display:flex;gap:28px;padding:0 18px;border-bottom:1px solid #ebeef5}
+    .tab-item{position:relative;height:46px;line-height:46px;color:#606266;font-size:14px}
+    .tab-item.is-active{color:#409eff}
+    .tab-item.is-active::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:#409eff}
+    .panel-body{padding:18px}
+    .notice{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;margin-bottom:14px;background:#f4faff;border:1px solid #d9ecff;border-radius:4px;color:#606266;font-size:13px;line-height:1.8}
+    .notice strong{color:#409eff}
+    .sub-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .sub-title{font-size:14px;font-weight:600;color:#303133}
+    .sub-tip{font-size:12px;color:#909399}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 10px;border:1px solid #ebeef5;text-align:left;vertical-align:middle;font-size:13px}
+    th{background:#f5f7fa;color:#606266;font-weight:600;white-space:nowrap}
+    td{color:#303133}
+    .td-wrap{word-break:break-all}
+    .mono{font-family:Consolas,Monaco,monospace}
+    .td-ops a{margin-right:12px;color:#409eff}
+    .td-ops a.danger{color:#f56c6c}
+    .muted{color:#c0c4cc}
+    .empty{text-align:center;color:#909399;padding:28px 0}
+    .flag{display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:11px;font-size:12px}
+    .flag-on{background:#f0f9eb;color:#67c23a}
+    .flag-off{background:#f4f4f5;color:#909399}
+    .channel-name{font-weight:600;color:#303133}
+    .channel-sub{margin-top:4px;font-size:12px;color:#909399}
+    .mini-stat{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+    .mini-stat .item{padding:8px 12px;background:#fafafa;border:1px solid #ebeef5;border-radius:4px;font-size:12px;color:#606266}
+    .mini-stat .item b{color:#303133}
+    .split-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:14px}
+    .card-box{border:1px solid #ebeef5;border-radius:4px;padding:16px}
+    .card-box h3{font-size:14px;font-weight:600;color:#303133;margin-bottom:12px}
+    .small-form .line{margin-bottom:12px}
+    .small-form label{display:block;margin-bottom:6px;font-size:12px;color:#606266}
+    .small-form textarea,.small-form input[type=text]{width:100%;padding:8px 10px;border:1px solid #dcdfe6;border-radius:4px;font-size:13px;outline:none}
+    .small-form textarea{min-height:96px;resize:vertical}
+    .tip{margin-top:6px;font-size:12px;color:#909399;line-height:1.7}
+    .td-ops{white-space:nowrap}
+    .td-ops .link-copy-btn{margin-left:0}
+    .op-hint{display:block;margin-top:6px;font-size:12px;color:#909399;white-space:normal}
+    .link-copy-btn{height:26px;padding:0 10px;border:1px solid #b3d8ff;border-radius:4px;background:#ecf5ff;color:#409eff;font-size:12px;cursor:pointer !important;flex:0 0 auto;transition:all .18s ease;user-select:none}
+    .link-copy-btn:hover{background:#d9ecff;border-color:#95c8ff;box-shadow:0 2px 8px rgba(64,158,255,.18)}
+    .link-copy-btn:active{transform:translateY(1px) scale(.97);box-shadow:0 1px 3px rgba(64,158,255,.22)}
+    .link-copy-btn.is-done{background:#f0f9eb;border-color:#c2e7b0;color:#67c23a}
+    .copy-toast{position:fixed;left:50%;top:22px;z-index:1400;transform:translate(-50%,-12px);padding:10px 16px;border-radius:8px;background:rgba(0,0,0,.82);color:#fff;font-size:13px;line-height:1.2;opacity:0;pointer-events:none;transition:all .22s ease;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+    .copy-toast.show{opacity:1;transform:translate(-50%,0)}
+    .dialog-mask{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.38)}
+    .dialog-mask.is-open{display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto}
+    .dialog{width:min(880px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+    .dialog form{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;overflow:hidden}
+    .dialog-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #ebeef5;flex:0 0 auto}
+    .dialog-head h2{font-size:18px;font-weight:600;color:#303133}
+    .dialog-close{width:28px;height:28px;border:none;background:#fff;color:#909399;font-size:22px;line-height:1;cursor:pointer}
+    .dialog-body{padding:20px;overflow:auto;flex:1 1 auto}
+    .dialog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+    .form-item label{display:block;margin-bottom:6px;font-size:13px;color:#606266}
+    .form-item input[type=text],.form-item input[type=number],.form-item select,.form-item textarea{width:100%;padding:9px 10px;border:1px solid #dcdfe6;border-radius:4px;font-size:13px;outline:none}
+    .form-item textarea{min-height:88px;resize:vertical}
+    .form-item textarea.code{min-height:118px;font-family:Consolas,Monaco,monospace}
+    .form-item.is-full{grid-column:1 / -1}
+    .hint{margin-top:6px;font-size:12px;color:#909399;line-height:1.7}
+    .radio-row,.status-row,.event-row{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+    .radio-item,.event-item,.status-item{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#606266}
+    .radio-item input,.event-item input,.status-item input{width:14px;height:14px}
+    .dialog-foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid #ebeef5;flex:0 0 auto;background:#fff}
+    .dialog-foot .btn{min-width:88px}
+    .test-mask{display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.35)}
+    .test-mask.open{display:flex;align-items:center;justify-content:center}
+    .test-panel{width:min(700px,94vw);background:#fff;border-radius:4px;overflow:hidden}
+    .test-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #ebeef5}
+    .test-head b{font-size:15px}
+    .test-head button{width:26px;height:26px;border:none;background:#fff;font-size:20px;color:#909399;cursor:pointer}
+    .test-panel pre{padding:16px;max-height:68vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:12px;line-height:1.75}
+    .pt-ok{color:#67c23a}
+    .pt-bad{color:#f56c6c}
+    @media (max-width: 980px){
+        .summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+        .split-grid,.dialog-grid{grid-template-columns:1fr}
+        .panel-top,.sub-actions{align-items:flex-start}
+        .actions{flex-wrap:wrap;justify-content:flex-end}
+        .dialog-mask.is-open{padding:12px}
+        .dialog{max-height:calc(100vh - 24px)}
+        .dialog-body{padding:16px}
+        .dialog-head,.dialog-foot{padding-left:16px;padding-right:16px}
+    }
 </style>
 </head>
 <body>
-<div class="container">
-
-    <div class="note">
-        当前启用中的像素：<b>{$enabled}</b> 条。像素支持<b>无限添加</b>——同一条推广渠道可以有多个像素（例如 FB 主号 + FB 备用号），
-        每条像素可以<b>单独选择要接收的事件</b>、<b>限定只在某个推广域名上生效</b>。保存后前台 <b>60 秒内自动生效</b>（无需重新发版）。<br>
-        要验证事件是否真的回传到广告后台：Ads Manager / Events Manager 里取「测试代码」填到下面的<b>测试回调编码</b>，
-        然后在广告后台打开「测试事件」面板，用无痕窗口走一遍注册或充值，事件会实时出现在面板里。<br>
-        本页只负责<b>像素配置</b>（像素ID、事件、生效域名、像素代码、回传令牌）。<br>
-        要生成投放用的<b>推广链接</b>（可绑定像素、给链接起名称、按来源区分客户）：请到左侧菜单
-        <b>「推广链接」</b>页创建 —— 那里生成的链接形如
-        <code>https://域名/?px=像素ID&amp;name=链接名称&amp;ch=渠道</code>，从该链接进来的访客<b>只打绑定的那一条像素</b>，
-        注册时会记录链接名称，后台会员列表与「推广数据」即可区分来源。<br>
-        想让回传更稳（不怕浏览器拦截 / 无痕 / iPhone 的 ITP）：把该像素的 <b>服务端回传令牌</b>（Conversions API Access Token）填上，
-        注册 / 充值 / 订阅会由服务器直连 Facebook 回传，并与浏览器端自动去重。<br>
-        配好后点列表里的 <b>「测试回传」</b>：服务器会立刻发一条测试事件，并把 Facebook 的原始返回显示出来
-        —— <b>成功</b>会看到 <code>events_received</code>；若报「object does not exist / missing permissions」，
-        说明这个 <b>像素ID 与回传令牌不是同一条像素</b>（令牌要在该像素自己的「设置 → 转化 API」里生成）。
+<div class="page">
+    <div class="summary">
+        <div class="summary-item"><div class="num">{$pixelTotal}</div><div class="txt">渠道配置总数</div></div>
+        <div class="summary-item"><div class="num">{$pixelEnabled}</div><div class="txt">启用中的渠道</div></div>
+        <div class="summary-item"><div class="num">{$copyableTotal}</div><div class="txt">可复制推广链接</div></div>
+        <div class="summary-item"><div class="num">{$domainCount}</div><div class="txt">已收录推广域名</div></div>
     </div>
 
-    <form class="card" method="post" action="/admin/live.PromoSetting/evSave">
-        <h2><span class="dot"></span>转化事件总开关</h2>
-        <div>
-            <label class="switch"><input type="checkbox" name="promo_ev_register" value="1"{$evReg}> 完成注册 CompleteRegistration</label>
-            <label class="switch"><input type="checkbox" name="promo_ev_recharge" value="1"{$evPay}> 购物 / 充值 Purchase</label>
-            <label class="switch"><input type="checkbox" name="promo_ev_subscribe" value="1"{$evSub}> 订阅 Subscribe</label>
-        </div>
-        <div class="tip">这里是总闸：关掉后<b>所有</b>像素都不再上报该事件（各像素自己的事件选择仍然有效）。页面浏览不受影响。</div>
-        <div class="bar" style="margin-top:14px">
-            <div class="tip">购物 / 订阅事件会带上金额与币种（USD）。</div>
-            <button class="btn btn-primary" type="submit">保存总开关</button>
-        </div>
-    </form>
-
-    <form class="card" method="post" action="/admin/live.PromoSetting/domainSave">
-        <h2><span class="dot"></span>前端推广域名</h2>
-        <div class="field">
-            <label>下面这些域名会出现在「推广域名」下拉里，一行一个（当前 {$domainCount} 个）</label>
-            <textarea name="promo_site_domains" style="min-height:110px" placeholder="sugus.it.com&#10;promo-01.sugus.ai">{$domainListV}</textarea>
-            <div class="tip">
-                前台每有一个新域名打开站点，会自动收录进这个列表（去重，最多 30 条），所以通常不用手填；
-                你也可以在这里手动增删。<b>在这里删掉的域名不会再被自动收录回来</b>，想恢复就重新加回去。
-                像素里选中的域名 = 该像素只在这个域名上生效。
-            </div>
-        </div>
-        <div class="bar">
-            <div class="tip">下拉里没有你想要的域名时，在像素表单里选「自定义 / 多个域名…」手动填即可。</div>
-            <button class="btn btn-primary" type="submit">保存域名列表</button>
-        </div>
-    </form>
-
-    <form class="card" method="post" action="/admin/live.PromoSetting/pxSave">
-        <h2><span class="dot"></span>{$formTitle}</h2>
-        <input type="hidden" name="id" value="{$eId}">
-        <div class="grid">
+    <div class="panel">
+        <div class="panel-top">
             <div>
-                <div class="field">
-                    <label>推广渠道</label>
-                    <select name="platform">{$platformOptions}</select>
-                    <div class="tip">Facebook / TikTok / Google 会加载对应的官方脚本；Snapchat、Kwai 等请把官方像素代码粘到右下「像素代码」。</div>
-                </div>
-                <div class="field">
-                    <label>备注名（仅后台可见，方便区分多条像素）</label>
-                    <input type="text" name="name" value="{$eName}" placeholder="如 FB-马来1号">
-                </div>
-                <div class="field">
-                    <label>像素ID</label>
-                    <input type="text" name="pixel_id" value="{$ePixel}" placeholder="FB: 123456789012345 / TikTok: C1A2B3... / GA4: G-XXXX / Ads: AW-XXXX / GTM: GTM-XXXX">
-                    <div class="tip">Google 渠道按前缀自动识别：<code>G-</code> GA4、<code>AW-</code> Google Ads、<code>GTM-</code> 容器。</div>
-                </div>
-                <div class="field">
-                    <label>测试回调编码（Test Event Code，可选）</label>
-                    <input type="text" name="test_code" value="{$eTest}" placeholder="如 TEST12345">
-                    <div class="tip">填了之后，这条像素上报的转化事件会带上测试标记，可直接在广告后台「测试事件」面板里看到，用来验证注册 / 充值是否真的回传。</div>
-                </div>
-                <div class="field">
-                    <label>服务端回传令牌（Conversions API Access Token，可选）</label>
-                    <input type="text" name="capi_token" value="{$eToken}" placeholder="EAA…">
-                    <div class="tip">填了之后，<b>注册 / 充值 / 订阅</b>会由服务器直连 Facebook 回传（与浏览器端同一个 event_id，自动去重不会重复计数），不怕浏览器拦截 / 无痕 / ITP。令牌只存在服务器，不会下发给前端。</div>
-                </div>
+                <div class="panel-title">广告渠道配置</div>
+                <div class="panel-desc">把像素配置、推广链接复制和统计报表收敛到同一套后台结构里，操作路径按你给的参考后台改成双 Tab 形式。</div>
             </div>
-            <div>
-                <div class="field">
-                    <label>事件选择（这条像素要接收哪些事件）</label>
-                    {$eventBoxes}
-                    <div class="tip">全不勾 = 接收全部事件。</div>
-                </div>
-                <div class="field">
-                    <label>推广域名（选「全部域名」= 不限域名，全站生效）</label>
-                    <select name="domains" id="pxDomains">{$domainOptions}</select>
-                    <input type="text" name="domains_custom" id="pxDomainsCustom" value="{$eDomain}"
-                           placeholder="多个用逗号分隔，支持 *.sugus.ai"{$customStyle}>
-                    <div class="tip">下拉里的域名就是我们前端在跑的域名（前台访问时自动收录，也可在下面「前端推广域名」里手动维护）。选某条域名 = 这条像素只在该域名上生效，方便多条域名分别投不同广告账号。</div>
-                </div>
-                <div class="field">
-                    <label>排序（越小越靠前）</label>
-                    <input type="text" name="sort" value="{$eSort}">
-                </div>
-                <div class="field">
-                    <label class="switch"><input type="checkbox" name="status" value="1"{$eStatus}> 启用这条像素</label>
-                </div>
+            <div class="actions">
+                <a class="btn btn-primary" href="{$newUrl}">新增</a>
             </div>
         </div>
-        <div class="field">
-            <label>像素代码（可选，原样注入页面 &lt;head&gt;）</label>
-            <textarea class="code" name="code" placeholder="&lt;script&gt; ... &lt;/script&gt;">{$eCode}</textarea>
-            <div class="tip">用于 Snapchat / Kwai / Bing 等未内置的像素，或给已有像素补充自定义脚本。已内置的 Facebook / TikTok / Google 无需在此粘贴代码。</div>
-        </div>
-        <div class="bar">
-            <a class="btn btn-ghost" href="/admin/live.PromoSetting/index">清空表单</a>
-            <button class="btn btn-primary" type="submit">{$formTitle}</button>
-        </div>
-    </form>
 
-    <div class="card">
-        <div class="bar" style="margin-bottom:12px">
-            <h2 style="margin:0"><span class="dot"></span>像素列表</h2>
-            <div class="tip" id="livePreview">当前生效：加载中…</div>
+        <div class="tabs">
+            <a class="{$statsTabClass}" href="{$statsTabUrl}">渠道统计</a>
+            <a class="{$configTabClass}" href="{$configTabUrl}">渠道配置</a>
         </div>
-        <table>
-            <thead><tr><th>ID</th><th>推广渠道</th><th>备注</th><th>像素ID</th><th>事件</th><th>推广域名</th><th>像素代码</th><th>服务端回传</th><th>测试编码</th><th>状态</th><th>操作</th></tr></thead>
-            <tbody>{$rows}</tbody>
-        </table>
+
+        <div class="panel-body">
+            <div class="notice">
+                <div>•</div>
+                <div>
+                    当前这版直接在 <strong>渠道配置列表</strong> 里生成并复制推广链接，来源归因仍沿用现有
+                    <strong>reg_link_name / reg_channel / reg_px</strong> 字段，不再单独维护「推广链接」页。
+                </div>
+            </div>
+
+            <div{$statsPanelStyle}>
+                <div class="sub-actions">
+                    <div>
+                        <div class="sub-title">渠道统计</div>
+                    <div class="sub-tip">按当前站点统计已启用的广告渠道配置数量，表头结构对齐参考后台。</div>
+                    </div>
+                    <div class="sub-tip">站点：{$siteName}</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>站点ID</th>
+                            <th>站点名称</th>
+                            <th>Facebook广告</th>
+                            <th>Kwai广告</th>
+                            <th>Bigo广告</th>
+                            <th>Tiktok广告</th>
+                            <th>Google广告</th>
+                            <th>Okspin广告</th>
+                            <th>Adjust广告</th>
+                            <th>MgskyAds广告</th>
+                            <th>3beesuties广告</th>
+                            <th>TraxPix广告</th>
+                            <th>GeeMee广告</th>
+                            <th>SmartAds广告</th>
+                        </tr>
+                    </thead>
+                    <tbody>{$statsRow}</tbody>
+                </table>
+                <div class="mini-stat">
+                    <div class="item">启用渠道：<b>{$pixelEnabled}</b></div>
+                    <div class="item">停用渠道：<b>{$pixelDisabled}</b></div>
+                    <div class="item">可复制链接：<b>{$copyableTotal}</b></div>
+                    <div class="item">推广域名：<b>{$domainCount}</b></div>
+                </div>
+            </div>
+
+            <div{$configPanelStyle}>
+                <div class="sub-actions">
+                    <div>
+                        <div class="sub-title">渠道配置</div>
+                        <div class="sub-tip">列表展示当前像素渠道，并可按域名直接复制投放链接；右侧保留全局事件和域名维护。</div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:72px">ID</th>
+                            <th style="min-width:180px">渠道名称</th>
+                            <th style="min-width:140px">渠道类型</th>
+                            <th style="min-width:160px">推广域名</th>
+                            <th style="min-width:190px">像素(Pixel Id)</th>
+                            <th style="min-width:140px">上报事件</th>
+                            <th style="width:110px">令牌(Token)</th>
+                            <th style="width:120px">测试码</th>
+                            <th style="width:92px">状态</th>
+                            <th style="min-width:200px">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>{$pixelRows}</tbody>
+                </table>
+
+                <div class="split-grid">
+                    <div class="card-box">
+                        <h3>转化事件总开关</h3>
+                        <form class="small-form" method="post" action="/admin/live.PromoSetting/evSave">
+                            {$hiddenKey}
+                            {$currentTabInp}
+                            <div class="line status-row">
+                                <label class="status-item"><input type="checkbox" name="promo_ev_register" value="1"{$evReg}> 完成注册</label>
+                                <label class="status-item"><input type="checkbox" name="promo_ev_recharge" value="1"{$evPay}> 购物 / 充值</label>
+                                <label class="status-item"><input type="checkbox" name="promo_ev_subscribe" value="1"{$evSub}> 订阅</label>
+                            </div>
+                            <div class="tip">这里是总闸，关掉后所有渠道都不再上报该事件；浏览事件不受影响。</div>
+                            <div style="margin-top:12px"><button class="btn btn-primary" type="submit">保存总开关</button></div>
+                        </form>
+                    </div>
+
+                    <div class="card-box">
+                        <h3>前端推广域名</h3>
+                        <form class="small-form" method="post" action="/admin/live.PromoSetting/domainSave">
+                            {$hiddenKey}
+                            {$currentTabInp}
+                            <div class="line">
+                                <label>一行一个（当前 {$domainCount} 个）</label>
+                                <textarea name="promo_site_domains" placeholder="promo.example.com&#10;lp.example.net">{$domainListV}</textarea>
+                            </div>
+                            <div class="tip">前台访问时会自动收录域名；你也可以手动增删。像素里选中的域名表示这条渠道只在该域名上生效。</div>
+                            <div style="margin-top:12px"><button class="btn btn-primary" type="submit">保存域名列表</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="pxTestMask" class="pt-mask">
-    <div class="pt-panel">
-        <div class="pt-head">
+<div id="promoDialog" class="{$dialogClass}">
+    <div class="dialog">
+        <div class="dialog-head">
+            <h2>{$formTitle}</h2>
+            <a href="{$closeUrl}" class="dialog-close" onclick="return closePromoDialog(event)" aria-label="关闭">×</a>
+        </div>
+        <form method="post" action="/admin/live.PromoSetting/pxSave">
+            {$hiddenKey}
+            {$currentTabInp}
+            <input type="hidden" name="id" value="{$eId}">
+            <div class="dialog-body">
+                <div class="dialog-grid">
+                    <div class="form-item">
+                        <label><span style="color:#f56c6c">*</span> 渠道名称</label>
+                        <input type="text" name="name" value="{$eName}" placeholder="请输入渠道名称，如 FB-马来1号">
+                    </div>
+                    <div class="form-item">
+                        <label>渠道指向</label>
+                        <div class="radio-row">
+                            <label class="radio-item"><input type="radio" checked disabled> 主站名</label>
+                            <label class="radio-item"><input type="radio" checked> H5页面</label>
+                            <label class="radio-item"><input type="radio" disabled> 短信营销</label>
+                        </div>
+                        <div class="hint">当前投放链路走现有 H5 主站，先按参考后台保留这个结构。</div>
+                    </div>
+                    <div class="form-item">
+                        <label><span style="color:#f56c6c">*</span> 推广域名</label>
+                        <select name="domains" id="pxDomains">{$domainOptions}</select>
+                        <input type="text" name="domains_custom" id="pxDomainsCustom" value="{$eDomain}" placeholder="多个域名用逗号分隔，支持 *.example.com"{$customStyle}>
+                        <div class="hint">选具体域名表示该渠道只在该域名生效；不选表示全站生效。</div>
+                    </div>
+                    <div class="form-item">
+                        <label><span style="color:#f56c6c">*</span> 渠道类型</label>
+                        <select name="platform" id="pxPlatform">{$platformOptions}</select>
+                        <div class="hint px-general-hint" style="display:none">普通推广不接像素，只需填「渠道名称 + 推广域名」即可保存，之后可直接复制推广链接（适合短信、群发等渠道）。</div>
+                    </div>
+                    <div class="form-item px-only">
+                        <label>像素(Pixel Id)</label>
+                        <input type="text" name="pixel_id" value="{$ePixel}" placeholder="例如 1115897220944131 / G-XXXX / AW-XXXX">
+                    </div>
+                    <div class="form-item px-only">
+                        <label>令牌(Token)</label>
+                        <input type="text" name="capi_token" value="{$eToken}" placeholder="EAA...">
+                        <div class="hint">填写后注册 / 充值 / 订阅会由服务端直连回传，并与浏览器端自动去重。</div>
+                    </div>
+                    <div class="form-item px-only">
+                        <label>测试码(test_event_code)</label>
+                        <input type="text" name="test_code" value="{$eTest}" placeholder="例如 TEST88641">
+                    </div>
+                    <div class="form-item">
+                        <label>排序</label>
+                        <input type="number" name="sort" value="{$eSort}" placeholder="越小越靠前">
+                    </div>
+                    <div class="form-item is-full px-only">
+                        <label>事件选择</label>
+                        <div class="event-row">{$eventBoxes}</div>
+                        <div class="hint">全不勾表示接收全部事件。</div>
+                    </div>
+                    <div class="form-item is-full px-only">
+                        <label>像素代码（可选，原样注入页面 head）</label>
+                        <textarea class="code" name="code" placeholder="&lt;script&gt;...&lt;/script&gt;">{$eCode}</textarea>
+                        <div class="hint">用于 Snapchat / Kwai / Bing 等未内置平台，或给已有像素补充自定义脚本。</div>
+                    </div>
+                    <div class="form-item is-full">
+                        <label>状态</label>
+                        <div class="status-row">
+                            <label class="status-item"><input type="checkbox" name="status" value="1"{$eStatus}> 启用该渠道</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="dialog-foot">
+                <a class="btn" href="{$closeUrl}" onclick="return closePromoDialog(event)">取消</a>
+                <button class="btn btn-primary" type="submit">{$formBtnText}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="pxTestMask" class="test-mask">
+    <div class="test-panel">
+        <div class="test-head">
             <b id="pxTestTitle">测试回传</b>
-            <button type="button" class="pt-x" onclick="closePxTest()">✕</button>
+            <button type="button" onclick="closePxTest()">×</button>
         </div>
         <pre id="pxTestBody">请求中…</pre>
     </div>
 </div>
+<input type="text" id="promoCopyProxy" value="" readonly style="position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none">
+<div id="copyToast" class="copy-toast">复制成功</div>
 
 <script>
-// 「测试回传」：用该像素的像素ID + 回传令牌发一条测试事件，把 Facebook 的原始响应显示出来
+var promoCloseUrl = {$closeUrlJs};
+var copyToastTimer = null;
+
+function closePromoDialog(event){
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    var dialog = document.getElementById('promoDialog');
+    if (dialog) {
+        dialog.classList.remove('is-open');
+        dialog.style.display = 'none';
+    }
+    if (window.location.href !== promoCloseUrl) {
+        window.setTimeout(function () {
+            window.location.replace(promoCloseUrl);
+        }, 10);
+    }
+    return false;
+}
+
+function copyText(text) {
+    var proxy = document.getElementById('promoCopyProxy');
+    if (!proxy) {
+        window.prompt('请手动复制下面链接', text);
+        return false;
+    }
+    proxy.value = text;
+    proxy.removeAttribute('readonly');
+    proxy.focus();
+    proxy.select();
+    if (proxy.setSelectionRange) {
+        proxy.setSelectionRange(0, proxy.value.length);
+    }
+    proxy.setAttribute('readonly', 'readonly');
+    try {
+        if (document.execCommand('copy')) {
+            return true;
+        }
+    } catch (err) {}
+    window.prompt('请手动复制下面链接', text);
+    return false;
+}
+
+function showCopyToast(text) {
+    var toast = document.getElementById('copyToast');
+    if (!toast) {
+        return;
+    }
+    toast.textContent = text || '复制成功';
+    toast.classList.add('show');
+    if (copyToastTimer) {
+        window.clearTimeout(copyToastTimer);
+    }
+    copyToastTimer = window.setTimeout(function () {
+        toast.classList.remove('show');
+    }, 1600);
+}
+
+function onCopyPromoLink(btn) {
+    var text = btn ? (btn.getAttribute('data-link') || '') : '';
+    if (!text) return false;
+    var oldText = btn.textContent;
+    if (copyText(text)) {
+        btn.textContent = '已复制';
+        btn.classList.add('is-done');
+        showCopyToast('复制成功');
+        window.alert('复制成功');
+        window.setTimeout(function () {
+            btn.textContent = oldText;
+            btn.classList.remove('is-done');
+        }, 1200);
+        window.setTimeout(function () {
+            try { window.getSelection().removeAllRanges(); } catch (err) {}
+        }, 50);
+    }
+    return false;
+}
+
+function bindPromoCopyButtons() {
+    var list = document.querySelectorAll('.link-copy-btn');
+    for (var i = 0; i < list.length; i++) {
+        list[i].onclick = function () {
+            return onCopyPromoLink(this);
+        };
+    }
+}
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        var dialog = document.getElementById('promoDialog');
+        if (dialog && dialog.classList.contains('is-open')) {
+            closePromoDialog();
+        }
+    }
+});
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindPromoCopyButtons);
+} else {
+    bindPromoCopyButtons();
+}
+
 function testPx(id) {
     var mask = document.getElementById('pxTestMask');
     var body = document.getElementById('pxTestBody');
-    document.getElementById('pxTestTitle').textContent = '测试回传 · 像素 #' + id;
+    document.getElementById('pxTestTitle').textContent = '测试回传 · 渠道 #' + id;
     body.className = '';
     body.textContent = '请求 Facebook 中…';
     mask.classList.add('open');
     fetch('/admin/live.PromoSetting/pxTest?id=' + id)
         .then(function (r) { return r.json(); })
         .then(function (d) {
-            body.textContent = (d.ok ? '✅ 回传成功\n\n' : '❌ 回传失败\n\n') + 'HTTP ' + d.http + '\n' + d.resp;
+            var extra = d.diag ? '\\n\\n—— 自诊断 ——\\n' + d.diag : '';
+            body.textContent = (d.ok ? '✅ 回传成功\\n\\n' : '❌ 回传失败\\n\\n') + 'HTTP ' + d.http + '\\n' + d.resp + extra;
             body.className = d.ok ? 'pt-ok' : 'pt-bad';
         })
-        .catch(function (e) { body.textContent = '请求失败：' + e; body.className = 'pt-bad'; });
+        .catch(function (e) {
+            body.textContent = '请求失败：' + e;
+            body.className = 'pt-bad';
+        });
 }
-function closePxTest() { document.getElementById('pxTestMask').classList.remove('open'); }
+
+function closePxTest() {
+    document.getElementById('pxTestMask').classList.remove('open');
+}
+
 document.addEventListener('click', function (e) {
-    if (e.target && e.target.id === 'pxTestMask') closePxTest();
+    if (e.target && e.target.id === 'pxTestMask') {
+        closePxTest();
+    }
+    if (e.target && e.target.id === 'promoDialog') {
+        closePromoDialog();
+    }
 });
 
-// 「推广域名」下拉：选到「自定义 / 多个域名…」时才显示手动输入框
 (function () {
     var sel = document.getElementById('pxDomains');
     var custom = document.getElementById('pxDomainsCustom');
@@ -371,18 +718,22 @@ document.addEventListener('click', function (e) {
     });
 })();
 
-fetch('/api/v1/site/config').then(function(r){return r.json()}).then(function(d){
-    var box = document.getElementById('livePreview');
-    if (!d || d.code !== '00000') { box.textContent = '读取失败'; return; }
-    var p = d.data.pixels || {};
-    var items = p.items || [];
-    var ev = p.events || {};
-    var on = [];
-    if (ev.register) on.push('注册');
-    if (ev.recharge) on.push('购物');
-    if (ev.subscribe) on.push('订阅');
-    box.textContent = '前台正在加载 ' + items.length + ' 条像素 · 总开关：' + (on.length ? on.join('/') : '全关');
-}).catch(function(){ document.getElementById('livePreview').textContent = '读取失败'; });
+/* 渠道类型 = 普通推广 时，隐藏像素相关字段（不需要媒体像素也能保存并复制链接） */
+(function () {
+    var sel = document.getElementById('pxPlatform');
+    if (!sel) return;
+    function sync() {
+        var isGeneral = sel.value === 'general';
+        var list = document.querySelectorAll('.px-only');
+        for (var i = 0; i < list.length; i++) {
+            list[i].style.display = isGeneral ? 'none' : '';
+        }
+        var hint = document.querySelector('.px-general-hint');
+        if (hint) hint.style.display = isGeneral ? 'block' : 'none';
+    }
+    sel.addEventListener('change', sync);
+    sync();
+})();
 </script>
 </body>
 </html>
@@ -414,7 +765,7 @@ HTML;
             $svc->flushCache();
             $this->backToIndex('转化事件总开关已保存');
         } catch (\Throwable $e) {
-            $this->renderToast(false, $e->getMessage(), '/admin/live.PromoSetting/index');
+            $this->renderToast(false, $e->getMessage(), $this->buildIndexUrl(['tab' => 'config']));
         }
     }
 
@@ -433,7 +784,7 @@ HTML;
             $saved = (new PromoService())->saveDomains($list);
             $this->backToIndex('前端域名列表已保存（共 ' . count($saved) . ' 个）');
         } catch (\Throwable $e) {
-            $this->renderToast(false, $e->getMessage(), '/admin/live.PromoSetting/index');
+            $this->renderToast(false, $e->getMessage(), $this->buildIndexUrl(['tab' => 'config']));
         }
     }
 
@@ -441,42 +792,51 @@ HTML;
     public function pxSave(): void
     {
         try {
-            $id       = (int) $this->request->post('id', 0);
-            $platform = (string) $this->request->post('platform', 'facebook');
-            $platform = isset(PromoService::PIXEL_PLATFORMS[$platform]) ? $platform : 'other';
-            $name     = trim((string) $this->request->post('name', ''));
-            $pixelId  = $this->cleanId((string) $this->request->post('pixel_id', ''));
-            $code     = trim((string) $this->request->post('code', ''));
+            $id        = (int) $this->request->post('id', 0);
+            $platform  = (string) $this->request->post('platform', 'facebook');
+            $platform  = isset(PromoService::PIXEL_PLATFORMS[$platform]) ? $platform : 'other';
+            $name      = trim((string) $this->request->post('name', ''));
+            $pixelId   = $this->cleanId((string) $this->request->post('pixel_id', ''));
+            $code      = trim((string) $this->request->post('code', ''));
             $capiToken = mb_substr(trim((string) $this->request->post('capi_token', '')), 0, 255);
-            $testCode = $this->cleanId((string) $this->request->post('test_code', ''));
-            // 推广域名：下拉选具体域名，或选「自定义 / 多个域名…」走手动输入
+            $testCode  = $this->cleanId((string) $this->request->post('test_code', ''));
             $rawDomain = (string) $this->request->post('domains', '');
             if ($rawDomain === '__custom__') {
                 $rawDomain = (string) $this->request->post('domains_custom', '');
             }
             $domains = $this->cleanDomains($rawDomain);
-            $sort     = (int) $this->request->post('sort', 0);
-            $status   = (string) $this->request->post('status', '') === '1' ? 1 : 0;
+            $sort    = (int) $this->request->post('sort', 0);
+            $status  = (string) $this->request->post('status', '') === '1' ? 1 : 0;
 
             $events = $this->request->param('events/a', []);
             $events = array_values(array_intersect(
                 array_map('strval', is_array($events) ? $events : []),
                 array_keys(PromoService::PIXEL_EVENTS)
             ));
-            // 全不勾 = 接收全部事件
             $eventsStr = $events === [] ? implode(',', array_keys(PromoService::PIXEL_EVENTS)) : implode(',', $events);
 
-            if ($pixelId === '' && $code === '') {
+            if ($name === '') {
+                throw new \InvalidArgumentException('渠道名称不能为空');
+            }
+            // 普通推广（短信 / 群发）不接像素，只要有名称 + 域名即可
+            if ($platform !== 'general' && $pixelId === '' && $code === '') {
                 throw new \InvalidArgumentException('像素ID 和 像素代码 至少要填一个');
             }
 
             $db   = Db::connect('live_mysql');
             $now  = date('Y-m-d H:i:s');
             $data = [
-                'platform' => $platform, 'name' => $name, 'pixel_id' => $pixelId,
-                'events' => $eventsStr, 'domains' => $domains, 'code' => $code,
+                'platform' => $platform,
+                'name' => $name,
+                'pixel_id' => $pixelId,
+                'events' => $eventsStr,
+                'domains' => $domains,
+                'code' => $code,
                 'capi_token' => $capiToken,
-                'test_code' => $testCode, 'sort' => $sort, 'status' => $status, 'updated_at' => $now,
+                'test_code' => $testCode,
+                'sort' => $sort,
+                'status' => $status,
+                'updated_at' => $now,
             ];
             if ($id > 0) {
                 $db->table('lp_promo_pixel')->where('id', $id)->update($data);
@@ -484,10 +844,11 @@ HTML;
                 $data['created_at'] = $now;
                 $db->table('lp_promo_pixel')->insert($data);
             }
+
             (new PromoService())->flushCache();
-            $this->backToIndex($id > 0 ? '像素已更新' : '像素已新增');
+            $this->backToIndex($id > 0 ? '渠道已更新' : '渠道已新增');
         } catch (\Throwable $e) {
-            $this->renderToast(false, $e->getMessage(), '/admin/live.PromoSetting/index');
+            $this->renderToast(false, $e->getMessage(), $this->buildIndexUrl(['tab' => 'config']));
         }
     }
 
@@ -525,7 +886,48 @@ HTML;
         exit;
     }
 
-    // ================= 内部 =================
+    private function detectStatBucket(string $platform, string $name): string
+    {
+        $needle = strtolower($platform . ' ' . $name);
+        // 普通推广不属于任何媒体广告，不计入统计表的广告列
+        if ($platform === 'general') {
+            return 'general';
+        }
+        if ($platform === 'facebook' || preg_match('/facebook|meta|instagram|fb/', $needle) === 1) {
+            return 'facebook';
+        }
+        if ($platform === 'kwai' || preg_match('/kwai|kuaishou/', $needle) === 1) {
+            return 'kwai';
+        }
+        if ($platform === 'tiktok' || preg_match('/tiktok|tt/', $needle) === 1) {
+            return 'tiktok';
+        }
+        if ($platform === 'google' || preg_match('/google|ga4|gtm|ads/', $needle) === 1) {
+            return 'google';
+        }
+        if (preg_match('/bigo/', $needle) === 1) {
+            return 'bigo';
+        }
+        if (preg_match('/okspin/', $needle) === 1) {
+            return 'okspin';
+        }
+        if (preg_match('/adjust/', $needle) === 1) {
+            return 'adjust';
+        }
+        if (preg_match('/mgsky/', $needle) === 1) {
+            return 'mgskyads';
+        }
+        if (preg_match('/3bees|3beauties/', $needle) === 1) {
+            return 'threebeauties';
+        }
+        if (preg_match('/traxpix/', $needle) === 1) {
+            return 'traxpix';
+        }
+        if (preg_match('/geemee/', $needle) === 1) {
+            return 'geemee';
+        }
+        return 'smartads';
+    }
 
     /** 去掉粘贴时常见的杂质（空格、引号、尖括号） */
     private function cleanId(string $raw): string
@@ -549,19 +951,75 @@ HTML;
         return implode(',', array_unique($out));
     }
 
-    /** 操作后回列表页（带上 _key，保证首次访问的飘页鉴权不断） */
+    private function resolvePromoDomains(string $raw, array $siteDomains): array
+    {
+        $cleaned = $this->cleanDomains($raw);
+        if ($cleaned !== '') {
+            return array_values(array_filter(array_map('trim', explode(',', $cleaned))));
+        }
+        return array_values(array_filter(array_map('trim', $siteDomains)));
+    }
+
+    private function buildPromoLink(string $domain, string $px, string $name, string $channel): string
+    {
+        $qs = [];
+        if ($px !== '') {
+            $qs['px'] = $px;
+        }
+        if ($name !== '') {
+            $qs['name'] = $name;
+        }
+        if ($channel !== '') {
+            $qs['ch'] = $channel;
+        }
+        return 'https://' . $domain . '/' . ($qs !== [] ? '?' . http_build_query($qs) : '');
+    }
+
+    private function buildIndexUrl(array $params = []): string
+    {
+        $query = [];
+        $key = (string) $this->request->param('_key', '');
+        if ($key !== '') {
+            $query['_key'] = $key;
+        }
+        foreach ($params as $k => $v) {
+            if ($v === '' || $v === null) {
+                continue;
+            }
+            $query[$k] = $v;
+        }
+        return '/admin/live.PromoSetting/index' . ($query !== [] ? '?' . http_build_query($query) : '');
+    }
+
+    private function buildActionQuery(array $params = []): string
+    {
+        $query = [];
+        $key = (string) $this->request->param('_key', '');
+        if ($key !== '') {
+            $query['_key'] = $key;
+        }
+        foreach ($params as $k => $v) {
+            if ($v === '' || $v === null) {
+                continue;
+            }
+            $query[$k] = $v;
+        }
+        return $query !== [] ? '&' . http_build_query($query) : '';
+    }
+
+    /** 操作后回列表页 */
     private function backToIndex(string $msg): void
     {
-        $key    = (string) $this->request->param('_key', '');
-        $suffix = $key !== '' ? '?_key=' . urlencode($key) : '';
-        $this->renderToast(true, $msg, '/admin/live.PromoSetting/index' . $suffix, 1200);
+        $tab = (string) $this->request->param('tab', 'config');
+        $tab = in_array($tab, ['stats', 'config'], true) ? $tab : 'config';
+        $this->renderToast(true, $msg, $this->buildIndexUrl(['tab' => $tab]), 1200);
     }
 
     private function renderToast(bool $success, string $msg, string $listUrl, int $delay = 5000): void
     {
         $escMsg   = htmlspecialchars($msg, ENT_QUOTES);
         $redirect = $success ? "<script>setTimeout(function(){location.href='{$listUrl}'},{$delay})</script>" : '';
-        $color    = $success ? '#00a870' : '#ff2d55';
+        $color    = $success ? '#67c23a' : '#f56c6c';
         $icon     = $success
             ? '<polyline points="20 6 9 17 4 12"/>'
             : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
@@ -570,10 +1028,10 @@ HTML;
         <style>
             *{margin:0;padding:0;box-sizing:border-box}
             body{font-family:-apple-system,sans-serif;background:#f5f7fa;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-            .toast-box{background:#fff;padding:36px 44px;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);text-align:center;max-width:560px}
+            .toast-box{background:#fff;padding:36px 44px;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.1);text-align:center;max-width:520px}
             .toast-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;background:rgba(0,0,0,.04)}
             .toast-icon svg{width:28px;height:28px;color:{$color}}
-            .toast-msg{font-size:14px;color:#333;margin-bottom:20px;line-height:1.8;text-align:left;word-break:break-all}
+            .toast-msg{font-size:14px;color:#333;margin-bottom:20px;line-height:1.8}
             a{color:#409eff;text-decoration:none;font-size:13px}
         </style></head><body>
         <div class="toast-box">

@@ -33,7 +33,7 @@
         var counter = document.getElementById(counterId)
         if (!el || !counter) return
         var len = el.value.trim().length
-        counter.textContent = len + ' / 20 字'
+        counter.textContent = len + ' / 20 chars'
         counter.style.color = len >= 20 ? '#34d399' : (len > 0 ? '#f59e0b' : '#6b7280')
     }
     window.onMediaDescInput = function () { onDescInput('media-desc-input', 'media-desc-counter') }
@@ -56,10 +56,10 @@
                 $preview.html('<img class="w-full h-full object-cover" src="' + escapeHtml(url) + '" alt="">')
                 done(url)
             } else {
-                layer.msg((res && res.msg) || '封面上传失败')
+                layer.msg((res && res.msg) || 'Cover upload failed')
             }
         }).fail(function () {
-            layer.msg('封面上传失败，请稍后重试')
+            layer.msg('Cover upload failed, please try again later')
         })
     }
 
@@ -85,7 +85,7 @@
         $('#media-weight-input').val('1')
         $('#media-duration-input').val('')
         $('#media-cover-input').val('')
-        $('#media-cover-preview').html('<span class="text-[11px] text-gray-500">点击上传</span>')
+        $('#media-cover-preview').html('<span class="text-[11px] text-gray-500">Click to upload</span>')
         uploadCoverUrl = ''
         onMediaDescInput()
         $('#upload-progress').addClass('hidden')
@@ -95,7 +95,7 @@
 
     function loadPersonas($select, currentName) {
         if (!token) {
-            $select.html('<option value="">登录后可选择角色</option>')
+            $select.html('<option value="">Log in to select a character</option>')
             return
         }
         $.ajax({
@@ -106,14 +106,14 @@
         }).done(function (res) {
             var list = (res && res.code === '00000' && Array.isArray(res.data)) ? res.data : []
             $select.empty()
-            $select.append('<option value="">选择角色（可空）</option>')
+            $select.append('<option value="">Select a character (optional)</option>')
             list.forEach(function (p) {
-                var name = p.name || ('角色' + p.id)
+                var name = p.name || ('Character ' + p.id)
                 var selected = (currentName && name === currentName) ? ' selected' : ''
                 $select.append('<option value="' + p.id + '"' + selected + '>' + escapeHtml(name) + '</option>')
             })
         }).fail(function () {
-            $select.html('<option value="">角色加载失败</option>')
+            $select.html('<option value="">Failed to load characters</option>')
         })
     }
 
@@ -121,29 +121,29 @@
         var fileInput = $('#media-file-input')[0]
         var file = fileInput && fileInput.files[0]
         if (!file) {
-            layer.msg('请选择素材文件')
+            layer.msg('Please select a media file')
             return
         }
 
         var description = ($('#media-desc-input').val() || '').trim()
         if (description.length < 20) {
-            layer.msg('素材描述不能少于20字（当前 ' + description.length + ' 字）')
+            layer.msg('Description must be at least 20 characters (currently ' + description.length + ')')
             return
         }
 
         var tags = splitList($('#media-tags-input').val())
         if (!tags.length) {
-            layer.msg('请至少填写一个标签')
+            layer.msg('Please add at least one tag')
             return
         }
         if (tags.length > 10) {
-            layer.msg('标签最多填写10个')
+            layer.msg('You can add up to 10 tags')
             return
         }
 
         var style = $('#media-style-select').val() || ''
         if (!style) {
-            layer.msg('请选择素材风格')
+            layer.msg('Please select a style')
             return
         }
 
@@ -193,15 +193,15 @@
             }
         }).done(function (res) {
             if (res && res.code === '00000') {
-                layer.msg('素材上传成功')
+                layer.msg('Media uploaded successfully')
                 showModal('upload-modal', false)
                 resetForm()
                 loadMediaList()
             } else {
-                layer.msg((res && res.msg) || '上传失败')
+                layer.msg((res && res.msg) || 'Upload failed')
             }
         }).fail(function () {
-            layer.msg('上传失败，请稍后重试')
+            layer.msg('Upload failed, please try again later')
         }).always(function () {
             submitBtn.prop('disabled', false).removeClass('opacity-50 cursor-not-allowed')
             $('#upload-progress').addClass('hidden')
@@ -275,7 +275,7 @@
                 }).join('') + '</div>'
                 : ''
             var desc = m.description ? '<div class="text-[#A1A1A1] text-xs mt-1.5 line-clamp-2">' + escapeHtml(m.description) + '</div>' : ''
-            var keywords = m.keywords ? '<div class="text-[#6b6b6b] text-[11px] truncate mt-1">触发词：' + escapeHtml(m.keywords) + '</div>' : ''
+            var keywords = m.keywords ? '<div class="text-[#6b6b6b] text-[11px] truncate mt-1">Trigger words: ' + escapeHtml(m.keywords) + '</div>' : ''
 
             var li = '<li class="flex flex-col">' +
                 '<div class="relative rounded-lg overflow-hidden bg-gray-800 group">' +
@@ -318,7 +318,7 @@
         $('#edit-cover-preview').html(
             editCoverUrl
                 ? '<img class="w-full h-full object-cover" src="' + escapeHtml(editCoverUrl) + '" alt="">'
-                : '<span class="text-[11px] text-gray-500">点击上传</span>'
+                : '<span class="text-[11px] text-gray-500">Click to upload</span>'
         )
         onEditDescInput()
         loadPersonas($('#edit-persona-select'), m.persona)
@@ -331,21 +331,21 @@
 
         var description = ($('#edit-desc-input').val() || '').trim()
         if (description.length < 20) {
-            layer.msg('素材描述不能少于20字（当前 ' + description.length + ' 字）')
+            layer.msg('Description must be at least 20 characters (currently ' + description.length + ')')
             return
         }
         var tags = splitList($('#edit-tags-input').val())
         if (!tags.length) {
-            layer.msg('请至少填写一个标签')
+            layer.msg('Please add at least one tag')
             return
         }
         if (tags.length > 10) {
-            layer.msg('标签最多填写10个')
+            layer.msg('You can add up to 10 tags')
             return
         }
         var style = $('#edit-style-select').val() || ''
         if (!style) {
-            layer.msg('请选择素材风格')
+            layer.msg('Please select a style')
             return
         }
 
@@ -389,21 +389,21 @@
             data: formData
         }).done(function (res) {
             if (res && res.code === '00000') {
-                layer.msg('更新成功')
+                layer.msg('Updated successfully')
                 showModal('edit-modal', false)
                 loadMediaList()
             } else {
-                layer.msg((res && res.msg) || '更新失败')
+                layer.msg((res && res.msg) || 'Update failed')
             }
         }).fail(function () {
-            layer.msg('更新失败，请稍后重试')
+            layer.msg('Update failed, please try again later')
         }).always(function () {
             submitBtn.prop('disabled', false).removeClass('opacity-50 cursor-not-allowed').text('Save')
         })
     }
 
     function deleteMedia(id) {
-        layer.confirm('确定删除该素材吗？', { btn: ['删除', '取消'] }, function (index) {
+        layer.confirm('Delete this media?', { btn: ['Delete', 'Cancel'] }, function (index) {
             var formData = new FormData()
             formData.append('id', id)
 
@@ -416,13 +416,13 @@
                 data: formData
             }).done(function (res) {
                 if (res && res.code === '00000') {
-                    layer.msg('删除成功')
+                    layer.msg('Deleted successfully')
                     loadMediaList()
                 } else {
-                    layer.msg((res && res.msg) || '删除失败')
+                    layer.msg((res && res.msg) || 'Delete failed')
                 }
             }).fail(function () {
-                layer.msg('删除失败，请稍后重试')
+                layer.msg('Delete failed, please try again later')
             })
 
             layer.close(index)
@@ -460,7 +460,7 @@
         $('#upload-media-form').on('submit', function (e) {
             e.preventDefault()
             if (!token) {
-                layer.msg('请先登录后再上传素材')
+                layer.msg('Please log in to upload media')
                 return
             }
             uploadMedia()
@@ -469,7 +469,7 @@
         $('#edit-media-form').on('submit', function (e) {
             e.preventDefault()
             if (!token) {
-                layer.msg('请先登录后再操作')
+                layer.msg('Please log in to continue')
                 return
             }
             saveEdit()

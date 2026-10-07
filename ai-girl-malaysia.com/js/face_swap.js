@@ -85,7 +85,7 @@
         var t = templateMap[selectedTemplateId]
         var $box = $('#swap-template-preview')
         if (!t) {
-            $box.html('<span class="text-sm text-gray-500">请先在列表中选择模板视频</span>')
+            $box.html('<span class="text-sm text-gray-500">Select a template video from the list first</span>')
             return
         }
         var cover = t.cover_url
@@ -121,11 +121,11 @@
         var input = $('#swap-image-input')[0]
         var file = input && input.files[0]
         if (!selectedTemplateId || !templateMap[selectedTemplateId]) {
-            layer.msg('请选择模板视频')
+            layer.msg('Please select a template video')
             return
         }
         if (!file) {
-            layer.msg('请上传人脸图片')
+            layer.msg('Please upload a face image')
             return
         }
 
@@ -157,15 +157,15 @@
             }
         }).done(function (res) {
             if (res && res.code === '00000') {
-                layer.msg('换脸任务已提交')
+                layer.msg('Face swap submitted')
                 showModal('swap-modal', false)
                 resetSwapForm(false)
                 loadSwapList()
             } else {
-                layer.msg((res && res.msg) || '提交失败')
+                layer.msg((res && res.msg) || 'Submission failed')
             }
         }).fail(function () {
-            layer.msg('提交失败，请稍后重试')
+            layer.msg('Submission failed, please try again later')
         }).always(function () {
             submitBtn.prop('disabled', false).removeClass('opacity-50 cursor-not-allowed')
             $('#swap-progress').addClass('hidden')
@@ -217,7 +217,7 @@
                 var poster = t.cover_url ? ' poster="' + escapeHtml(t.cover_url) + '"' : ''
                 media = '<video class="w-full h-[160px] object-cover" controls preload="metadata" playsinline' + poster + ' src="' + escapeHtml(t.video_url) + '"></video>'
             } else {
-                var text = t.status === 'failed' ? '换脸失败' : (t.status === 'expired' ? '已超时' : '处理中…')
+                var text = t.status === 'failed' ? 'Face swap failed' : (t.status === 'expired' ? 'Timed out' : 'Processing…')
                 var color = t.status === 'failed' || t.status === 'expired' ? '#f87171' : '#A1A1A1'
                 media = '<div class="flex flex-col items-center justify-center h-[160px] bg-black">' +
                     '<span class="text-sm" style="color:' + color + '">' + escapeHtml(text) + '</span>' +
@@ -270,7 +270,7 @@
 
         $('#face-swap-btn, #face-swap-btn-mobile').on('click', function () {
             if (!token) {
-                layer.msg('请先登录后再使用换脸功能')
+                layer.msg('Please log in to use Face Swap')
                 return
             }
             openSwapModal(0)
@@ -279,7 +279,7 @@
         $('#template-list').on('click', '.use-template-btn', function (e) {
             e.stopPropagation()
             if (!token) {
-                layer.msg('请先登录后再使用换脸功能')
+                layer.msg('Please log in to use Face Swap')
                 return
             }
             openSwapModal($(this).data('id'))
@@ -311,7 +311,7 @@
         $('#face-swap-form').on('submit', function (e) {
             e.preventDefault()
             if (!token) {
-                layer.msg('请先登录后再提交')
+                layer.msg('Please log in to submit')
                 return
             }
             submitSwap()

@@ -1016,7 +1016,7 @@ body, html {
 					// 播放失败时重置状�?					isVideoTransitioning = false
 					showVideo.style.display = 'none'
 					hideVideo.style.opacity = 1
-					layer.msg('视频播放失败，请稍后重试')
+					layer.msg('Video playback failed. Please try again later.')
 				})
 			}
 
@@ -1028,7 +1028,7 @@ body, html {
 				}
 				
 				console.error('新视频加载失�?', e)
-				layer.msg('视频加载失败，请稍后重试')
+				layer.msg('Video failed to load. Please try again later.')
 				
 				// 重置状�?				isVideoTransitioning = false
 				showVideo.style.display = 'none'
@@ -1124,11 +1124,11 @@ body, html {
 					}
 				} else {
 					console.error('礼物订单提交失败:', res.msg)
-					layer.msg(res.msg || '礼物订单提交失败')
+					layer.msg(res.msg || 'Failed to submit gift order')
 				}
 			}).catch(error => {
 				console.error('发送礼物订单错�?', error)
-				layer.msg('网络错误，请稍后重试')
+				layer.msg('Network error. Please try again later.')
 			})
 		}
 
@@ -1138,7 +1138,7 @@ body, html {
 			
 			// 检查用户余�?			var giftPrice = parseFloat(gift.price || 0)
 			if (giftPrice <= 0) {
-				layer.msg('礼物价格无效')
+				layer.msg('Invalid gift price')
 				return
 			}
 

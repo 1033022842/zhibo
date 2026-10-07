@@ -304,16 +304,16 @@
 							<label class="block text-sm font-medium text-gray-300 mb-2">Cover <span class="text-gray-500">(optional)</span></label>
 							<div class="flex items-center gap-3">
 								<div id="media-cover-preview" class="w-[96px] h-[54px] rounded-[10px] border border-black-light bg-black-medium flex items-center justify-center overflow-hidden shrink-0 cursor-pointer" onclick="document.getElementById('media-cover-input').click()">
-									<span class="text-[11px] text-gray-500">点击上传</span>
+									<span class="text-[11px] text-gray-500">Click to upload</span>
 								</div>
-								<div class="text-xs text-gray-500">建议 16:9 图片，用于素材列表展示</div>
+								<div class="text-xs text-gray-500">Recommended 16:9 image for the asset list display</div>
 							</div>
 							<input type="file" id="media-cover-input" accept="image/*" class="hidden" onchange="uploadMediaCover(this)">
 						</div>
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Description <span class="text-red-500">*</span></label>
-							<textarea id="media-desc-input" rows="4" maxlength="2000" placeholder="描述素材内容、动作、适用场景等（不少于20字）" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0] resize-y" oninput="onMediaDescInput()"></textarea>
-							<p class="text-xs text-gray-500 mt-1" id="media-desc-counter">0 / 20 字</p>
+							<textarea id="media-desc-input" rows="4" maxlength="2000" placeholder="Describe the asset content, actions, use cases, etc. (at least 20 characters)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0] resize-y" oninput="onMediaDescInput()"></textarea>
+							<p class="text-xs text-gray-500 mt-1" id="media-desc-counter">0 / 20 characters</p>
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
@@ -338,40 +338,40 @@
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Persona</label>
 							<select id="media-persona-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-								<option value="">选择角色（可空）</option>
+								<option value="">Select a character (optional)</option>
 							</select>
 						</div>
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Tags <span class="text-red-500">*</span></label>
-							<input type="text" id="media-tags-input" placeholder="逗号分隔，例如：比心,甜妹,竖屏（最多10个）" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
-							<p class="text-xs text-gray-500 mt-1">描述性标签，最多 10 个</p>
+							<input type="text" id="media-tags-input" placeholder="Comma-separated, e.g. heart, sweet, vertical (up to 10)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							<p class="text-xs text-gray-500 mt-1">Descriptive tags, up to 10</p>
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
 								<label class="block text-sm font-medium text-gray-300 mb-2">Style <span class="text-red-500">*</span></label>
 								<select id="media-style-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-									<option value="">请选择风格</option>
-									<option value="realistic">写实</option>
-									<option value="anime">二次元</option>
+									<option value="">Select a style</option>
+									<option value="realistic">Realistic</option>
+									<option value="anime">Anime</option>
 									<option value="3d">3D</option>
-									<option value="cyberpunk">赛博朋克</option>
-									<option value="chinese">古风</option>
-									<option value="korean">韩系</option>
-									<option value="western">欧美</option>
+									<option value="cyberpunk">Cyberpunk</option>
+									<option value="chinese">Traditional Chinese</option>
+									<option value="korean">Korean</option>
+									<option value="western">Western</option>
 								</select>
 							</div>
 							<div class="w-full">
 								<label class="block text-sm font-medium text-gray-300 mb-2">Mood</label>
 								<select id="media-mood-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-									<option value="">不限</option>
-									<option value="happy">开心</option>
-									<option value="cute">撒娇</option>
-									<option value="shy">害羞</option>
-									<option value="cold">高冷</option>
-									<option value="sexy">性感</option>
-									<option value="healing">治愈</option>
-									<option value="funny">搞笑</option>
-									<option value="serious">认真</option>
+									<option value="">Any</option>
+									<option value="happy">Happy</option>
+									<option value="cute">Flirty</option>
+									<option value="shy">Shy</option>
+									<option value="cold">Aloof</option>
+									<option value="sexy">Sexy</option>
+									<option value="healing">Healing</option>
+									<option value="funny">Funny</option>
+									<option value="serious">Serious</option>
 								</select>
 							</div>
 						</div>
@@ -379,7 +379,7 @@
 							<div class="w-full">
 								<label class="block text-sm font-medium text-gray-300 mb-2">Resolution</label>
 								<select id="media-resolution-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-									<option value="">未设置</option>
+									<option value="">Not set</option>
 									<option value="720P">720P</option>
 									<option value="1080P">1080P</option>
 									<option value="2K">2K</option>
@@ -393,8 +393,8 @@
 						</div>
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Trigger Keywords</label>
-							<input type="text" id="media-keywords-input" placeholder="比心,飞吻,害羞 (comma separated)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
-							<p class="text-xs text-gray-500 mt-1">直播触发关键词，用于按关键词切换素材</p>
+							<input type="text" id="media-keywords-input" placeholder="heart, kiss, shy (comma separated)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							<p class="text-xs text-gray-500 mt-1">Live trigger keywords, used to switch assets by keyword</p>
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
@@ -404,8 +404,8 @@
 							<div class="w-full">
 								<label class="block text-sm font-medium text-gray-300 mb-2">18+ Content <span class="text-red-500">*</span></label>
 								<select id="media-adult-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-									<option value="0">否 · 全年龄</option>
-									<option value="1">是 · 18+</option>
+									<option value="0">No · All ages</option>
+									<option value="1">Yes · 18+</option>
 								</select>
 							</div>
 						</div>
@@ -450,16 +450,16 @@
 							<label class="block text-sm font-medium text-gray-300 mb-2">Cover <span class="text-gray-500">(optional)</span></label>
 							<div class="flex items-center gap-3">
 								<div id="edit-cover-preview" class="w-[96px] h-[54px] rounded-[10px] border border-black-light bg-black-medium flex items-center justify-center overflow-hidden shrink-0 cursor-pointer" onclick="document.getElementById('edit-cover-input').click()">
-									<span class="text-[11px] text-gray-500">点击上传</span>
+									<span class="text-[11px] text-gray-500">Click to upload</span>
 								</div>
-								<div class="text-xs text-gray-500">留空则保留当前封面</div>
+								<div class="text-xs text-gray-500">Leave blank to keep the current cover</div>
 							</div>
 							<input type="file" id="edit-cover-input" accept="image/*" class="hidden">
 						</div>
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Description <span class="text-red-500">*</span></label>
-							<textarea id="edit-desc-input" rows="4" maxlength="2000" placeholder="描述素材内容、动作、适用场景等（不少于20字）" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0] resize-y" oninput="onEditDescInput()"></textarea>
-							<p class="text-xs text-gray-500 mt-1" id="edit-desc-counter">0 / 20 字</p>
+							<textarea id="edit-desc-input" rows="4" maxlength="2000" placeholder="Describe the asset content, actions, use cases, etc. (at least 20 characters)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0] resize-y" oninput="onEditDescInput()"></textarea>
+							<p class="text-xs text-gray-500 mt-1" id="edit-desc-counter">0 / 20 characters</p>
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
@@ -484,39 +484,39 @@
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Persona</label>
 							<select id="edit-persona-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-								<option value="">选择角色（可空）</option>
+								<option value="">Select a character (optional)</option>
 							</select>
 						</div>
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Tags <span class="text-red-500">*</span></label>
-							<input type="text" id="edit-tags-input" placeholder="逗号分隔，例如：比心,甜妹,竖屏（最多10个）" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							<input type="text" id="edit-tags-input" placeholder="Comma-separated, e.g. heart, sweet, vertical (up to 10)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
 								<label class="block text-sm font-medium text-gray-300 mb-2">Style <span class="text-red-500">*</span></label>
 								<select id="edit-style-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-									<option value="">请选择风格</option>
-									<option value="realistic">写实</option>
-									<option value="anime">二次元</option>
+									<option value="">Select a style</option>
+									<option value="realistic">Realistic</option>
+									<option value="anime">Anime</option>
 									<option value="3d">3D</option>
-									<option value="cyberpunk">赛博朋克</option>
-									<option value="chinese">古风</option>
-									<option value="korean">韩系</option>
-									<option value="western">欧美</option>
+									<option value="cyberpunk">Cyberpunk</option>
+									<option value="chinese">Traditional Chinese</option>
+									<option value="korean">Korean</option>
+									<option value="western">Western</option>
 								</select>
 							</div>
 							<div class="w-full">
 								<label class="block text-sm font-medium text-gray-300 mb-2">Mood</label>
 								<select id="edit-mood-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-									<option value="">不限</option>
-									<option value="happy">开心</option>
-									<option value="cute">撒娇</option>
-									<option value="shy">害羞</option>
-									<option value="cold">高冷</option>
-									<option value="sexy">性感</option>
-									<option value="healing">治愈</option>
-									<option value="funny">搞笑</option>
-									<option value="serious">认真</option>
+									<option value="">Any</option>
+									<option value="happy">Happy</option>
+									<option value="cute">Flirty</option>
+									<option value="shy">Shy</option>
+									<option value="cold">Aloof</option>
+									<option value="sexy">Sexy</option>
+									<option value="healing">Healing</option>
+									<option value="funny">Funny</option>
+									<option value="serious">Serious</option>
 								</select>
 							</div>
 						</div>
@@ -524,7 +524,7 @@
 							<div class="w-full">
 								<label class="block text-sm font-medium text-gray-300 mb-2">Resolution</label>
 								<select id="edit-resolution-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-									<option value="">未设置</option>
+									<option value="">Not set</option>
 									<option value="720P">720P</option>
 									<option value="1080P">1080P</option>
 									<option value="2K">2K</option>
@@ -538,7 +538,7 @@
 						</div>
 						<div class="w-full">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Trigger Keywords</label>
-							<input type="text" id="edit-keywords-input" placeholder="比心,飞吻,害羞 (comma separated)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
+							<input type="text" id="edit-keywords-input" placeholder="heart, kiss, shy (comma separated)" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">
 						</div>
 						<div class="grid grid-cols-2 gap-3">
 							<div class="w-full">
@@ -548,8 +548,8 @@
 							<div class="w-full">
 								<label class="block text-sm font-medium text-gray-300 mb-2">18+ Content <span class="text-red-500">*</span></label>
 								<select id="edit-adult-select" class="w-full px-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] focus:outline-none focus:ring-2 focus:ring-[#E75275]">
-									<option value="0">否 · 全年龄</option>
-									<option value="1">是 · 18+</option>
+									<option value="0">No · All ages</option>
+									<option value="1">Yes · 18+</option>
 								</select>
 							</div>
 						</div>

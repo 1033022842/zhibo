@@ -24,7 +24,7 @@ class LiveUser extends Backend
 
     protected string|array $preExcludeFields = [];
 
-    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'email', 'reg_domain', 'reg_channel', 'reg_link_name', 'reg_platform', 'reg_campaign'];
+    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'email', 'reg_domain', 'reg_channel', 'reg_link_name', 'reg_platform'];
 
     protected string|array $defaultSortField = ['id' => 'desc'];
 
@@ -45,7 +45,6 @@ class LiveUser extends Backend
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
                 live_user.email, live_user.status, live_user.level, live_user.vip_expire_at, live_user.created_at,
                 live_user.reg_domain, live_user.reg_channel, live_user.reg_link_name, live_user.reg_platform, live_user.reg_px,
-                live_user.reg_campaign, live_user.reg_adset, live_user.reg_ad,
                 IFNULL(wallet.diamond_balance, 0) as diamond_balance,
                 IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
@@ -62,9 +61,11 @@ class LiveUser extends Backend
             ->order($order)
             ->paginate($limit);
 
-        // 像素名映射：reg_px 存的是 lp_promo_pixel.id 或像素ID字符串，两种都映射一份
-        $pixelNames = [];
-        foreach (Db::connect('live_mysql')->table('lp_promo_pixel')->field('id,pixel_id,name')->select()->toArray() as $p) {
+        // 渠道名映射：reg_px 存的是 lp_promo_pixel.id 或像素ID字符串，两种都映射一份；
+        // 同时按渠道绑定的推广域名建立「域名 → 渠道名称」映射（老链接常不带 px/name）
+        $pixelNames  = [];
+        $domainNames = [];
+        foreach (Db::connect('live_mysql')->table('lp_promo_pixel')->field('id,pixel_id,name,domains')->select()->toArray() as $p) {
             $pn = trim((string) $p['name']);
             if ($pn === '') {
                 continue;
@@ -73,11 +74,57 @@ class LiveUser extends Backend
             if ((string) $p['pixel_id'] !== '') {
                 $pixelNames[(string) $p['pixel_id']] = $pn;
             }
+            foreach (preg_split('/[\s,]+/', (string) ($p['domains'] ?? '')) ?: [] as $d) {
+                $d = strtolower(trim((string) $d));
+                $d = (string) preg_replace('#^https?://#i', '', $d);
+                $d = (string) preg_replace('#[/:].*$#', '', $d);
+                if ($d !== '' && !isset($domainNames[$d])) {
+                    $domainNames[$d] = $pn;
+                }
+            }
         }
 
         // 附加认证状态展示字段（给前端 tag 渲染用）
         $items = $res->items();
+
+        // 会员身份：Free / Premium / Premium Plus
+        // Premium Plus = 名下有生效中的 premium_plus 订单（其余有效会员归为 Premium）
+        $plusUsers = [];
+        $ids = array_map(static fn($r) => (int) $r['id'], $items);
+        if ($ids !== []) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $plusRows = Db::connect('live_mysql')->query(
+                "SELECT DISTINCT o.user_id FROM lp_vip_order o
+                 JOIN lp_vip_plan p ON p.id = o.plan_id
+                 WHERE o.user_id IN ({$placeholders}) AND o.status = 1
+                   AND o.expire_to >= ? AND p.level = 'premium_plus'",
+                array_merge($ids, [date('Y-m-d H:i:s')])
+            );
+            foreach ($plusRows as $pr) {
+                $plusUsers[(int) $pr['user_id']] = true;
+            }
+        }
+
         foreach ($items as &$row) {
+            // 会员账号：邮箱优先，为空时取登录账号（用户名/手机号）
+            $row['account_label'] = (string) ($row['email'] ?? '') !== ''
+                ? (string) $row['email']
+                : (string) ($row['auth_account'] ?? '');
+
+            // 会员身份标签
+            $vipExpire   = (string) ($row['vip_expire_at'] ?? '');
+            $isVipActive = $vipExpire !== '' && strtotime($vipExpire) > time();
+            if (!$isVipActive) {
+                $row['vip_level_label'] = 'Free';
+                $row['vip_level_type']  = 'info';
+            } elseif (isset($plusUsers[(int) $row['id']])) {
+                $row['vip_level_label'] = 'Premium Plus';
+                $row['vip_level_type']  = 'warning';
+            } else {
+                $row['vip_level_label'] = 'Premium';
+                $row['vip_level_type']  = 'primary';
+            }
+
             $row['cert_status_text'] = match ((int)$row['cert_status']) {
                 -1 => '未认证', 0 => '审核中', 1 => '已通过', 2 => '已拒绝', default => '未知'
             };
@@ -90,7 +137,7 @@ class LiveUser extends Backend
 
             // 来源展示两列：
             //   注册来源 = 平台短名（FB / TT / GG）
-            //   注册渠道 = 后台绑定的像素名称 + 来源域名
+            //   注册渠道 = 渠道名称 + 推广域名
             $regLink     = (string) ($row['reg_link_name'] ?? '');
             $regChannel  = (string) ($row['reg_channel'] ?? '');
             $regPlatform = (string) ($row['reg_platform'] ?? '');
@@ -118,11 +165,15 @@ class LiveUser extends Backend
                 'FB' => 'primary', 'TT' => 'danger', 'GG' => 'success', default => 'info',
             };
 
-            // 注册渠道：像素名称 · 域名
-            $pxKey   = (string) ($row['reg_px'] ?? '');
-            $pxName  = ($pxKey !== '' && isset($pixelNames[$pxKey])) ? $pixelNames[$pxKey] : '';
+            // 注册渠道 = 渠道名称 + 推广域名
+            // 渠道名称取数优先级：推广链接 name 参数 > reg_px 映射的渠道名 > 推广域名匹配的渠道名 > ch 参数
+            $pxKey    = (string) ($row['reg_px'] ?? '');
+            $pxName   = ($pxKey !== '' && isset($pixelNames[$pxKey])) ? $pixelNames[$pxKey] : '';
+            $domKey   = strtolower(trim($regDomain));
+            $domName  = ($domKey !== '' && isset($domainNames[$domKey])) ? $domainNames[$domKey] : '';
+            $channelName = $regLink !== '' ? $regLink : ($pxName !== '' ? $pxName : ($domName !== '' ? $domName : $regChannel));
             $chParts = [];
-            if ($pxName !== '')    { $chParts[] = $pxName; }
+            if ($channelName !== '') { $chParts[] = $channelName; }
             if ($regDomain !== '') { $chParts[] = $regDomain; }
             $row['reg_channel_label'] = implode(' · ', $chParts);
 
@@ -134,9 +185,6 @@ class LiveUser extends Backend
             if ($pxName !== '')      { $detail[] = '像素：' . $pxName; }
             elseif ($pxKey !== '')   { $detail[] = '像素：' . $pxKey; }
             if ($regLink !== '')     { $detail[] = '推广链接：' . $regLink; }
-            if ((string) ($row['reg_campaign'] ?? '') !== '') { $detail[] = '广告系列：' . $row['reg_campaign']; }
-            if ((string) ($row['reg_adset'] ?? '') !== '')    { $detail[] = '广告组：' . $row['reg_adset']; }
-            if ((string) ($row['reg_ad'] ?? '') !== '')       { $detail[] = '广告：' . $row['reg_ad']; }
             $row['reg_source_detail'] = implode("\n", $detail);
         }
         unset($row);
@@ -338,21 +386,95 @@ class LiveUser extends Backend
         $certEmail = $certEmail ?: '-';
         $certReason = $certReason ?: '-';
 
-        $nickname = htmlspecialchars($user->nickname);
-        $userNo = htmlspecialchars($user->user_no);
-        $email = htmlspecialchars($user->email ?: '-');
-        $level = $user->level;
-        $userStatus = $user->status == 1 ? '正常' : '禁用';
-        $createdAt = $user->created_at;
-        // 推广来源（域名 / 渠道 / 平台 / 像素 / 广告系列·组·广告）
-        $regDomain   = ($user->reg_domain ?? '') !== '' ? htmlspecialchars((string) $user->reg_domain) : '-';
-        $regChannel  = ($user->reg_channel ?? '') !== '' ? htmlspecialchars((string) $user->reg_channel) : '-';
-        $regLinkName = ($user->reg_link_name ?? '') !== '' ? htmlspecialchars((string) $user->reg_link_name) : '-';
-        $regPlatform = ($user->reg_platform ?? '') !== '' ? htmlspecialchars((string) $user->reg_platform) : '-';
-        $regPx       = ($user->reg_px ?? '') !== '' ? htmlspecialchars((string) $user->reg_px) : '-';
-        $regCampaign = ($user->reg_campaign ?? '') !== '' ? htmlspecialchars((string) $user->reg_campaign) : '-';
-        $regAdset    = ($user->reg_adset ?? '') !== '' ? htmlspecialchars((string) $user->reg_adset) : '-';
-        $regAd       = ($user->reg_ad ?? '') !== '' ? htmlspecialchars((string) $user->reg_ad) : '-';
+        $nickname = htmlspecialchars((string) $user->nickname);
+        $userNo   = htmlspecialchars((string) $user->user_no);
+        $userStatus = (int) $user->status === 1 ? '正常' : '禁用';
+        $createdAt  = (string) $user->created_at;
+
+        // 会员账号：邮箱优先，无邮箱时取登录账号（用户名/手机号）
+        $auth = Db::connect('live_mysql')->table('lp_user_auth')
+            ->where('user_id', $userId)->order('id', 'asc')->find();
+        $authTypeRaw  = (string) ($auth['auth_type'] ?? '');
+        $authKeyRaw   = (string) ($auth['auth_key'] ?? '');
+        $emailRaw     = (string) ($user->email ?? '');
+        $accountRaw   = $emailRaw !== '' ? $emailRaw : $authKeyRaw;
+        $accountText  = htmlspecialchars($accountRaw !== '' ? $accountRaw : '-');
+        $authTypeText = match ($authTypeRaw) {
+            'email' => '邮箱', 'username' => '用户名', 'mobile' => '手机号', default => '',
+        };
+        $authSuffix = $authTypeText !== '' ? ' <span style="color:#999">（' . $authTypeText . '）</span>' : '';
+
+        // 会员身份（Free / Premium / Premium Plus）与到期
+        $vipExpireRaw = (string) ($user->vip_expire_at ?? '');
+        $isVipActive  = $vipExpireRaw !== '' && strtotime($vipExpireRaw) > time();
+        $vipLabel     = 'Free';
+        if ($isVipActive) {
+            $hasPlus = Db::connect('live_mysql')->table('lp_vip_order')->alias('o')
+                ->join('lp_vip_plan p', 'p.id = o.plan_id')
+                ->where('o.user_id', $userId)->where('o.status', 1)
+                ->where('o.expire_to', '>=', date('Y-m-d H:i:s'))
+                ->where('p.level', 'premium_plus')->count() > 0;
+            $vipLabel = $hasPlus ? 'Premium Plus' : 'Premium';
+        }
+        $vipBadgeCls   = match ($vipLabel) {
+            'Premium Plus' => 'purple', 'Premium' => 'blue', default => 'gray',
+        };
+        $vipExpireText = $isVipActive ? htmlspecialchars($vipExpireRaw) : '-';
+
+        // 代币余额
+        $balanceVal = Db::connect('live_mysql')->table('lp_wallet_account')
+            ->where('user_id', $userId)->value('diamond_balance');
+        $balance = number_format((float) ($balanceVal ?? 0), 2, '.', '');
+
+        // 最后登录
+        $profile = Db::connect('live_mysql')->table('lp_user_profile')->where('user_id', $userId)->find();
+        $lastIp  = (string) ($profile['last_login_ip'] ?? '');
+        $lastAt  = (string) ($profile['last_login_at'] ?? '');
+        $lastLoginText = $lastAt !== '' ? htmlspecialchars($lastAt) : '-';
+        if ($lastIp !== '') {
+            $lastLoginText .= ' <span style="color:#999">（' . htmlspecialchars($lastIp) . '）</span>';
+        }
+
+        // 推广来源
+        $regDomainRaw   = (string) ($user->reg_domain ?? '');
+        $regLinkRaw     = (string) ($user->reg_link_name ?? '');
+        $regPlatformRaw = (string) ($user->reg_platform ?? '');
+        $regPxRaw       = (string) ($user->reg_px ?? '');
+
+        // 渠道名称：优先 reg_px 映射，其次按推广域名匹配渠道配置
+        $channelName = '';
+        if ($regPxRaw !== '') {
+            $channelName = trim((string) Db::connect('live_mysql')->table('lp_promo_pixel')
+                ->where('id', $regPxRaw)->value('name'));
+            if ($channelName === '') {
+                $channelName = trim((string) Db::connect('live_mysql')->table('lp_promo_pixel')
+                    ->where('pixel_id', $regPxRaw)->value('name'));
+            }
+        }
+        if ($channelName === '' && $regDomainRaw !== '') {
+            $channelName = trim((string) Db::connect('live_mysql')->table('lp_promo_pixel')
+                ->whereLike('domains', '%' . $regDomainRaw . '%')->value('name'));
+        }
+        $pfShort = match (strtolower($regPlatformRaw)) {
+            'facebook' => 'FB', 'tiktok' => 'TT', 'google' => 'GG', default => '',
+        };
+        $chParts = [];
+        if ($channelName !== '') { $chParts[] = htmlspecialchars($channelName); }
+        if ($regDomainRaw !== '') { $chParts[] = htmlspecialchars($regDomainRaw); }
+        $channelDisplay = $chParts !== [] ? implode(' · ', $chParts) : '-';
+
+        // 推广来源明细：只展示有值的项，避免一排 "-"
+        $srcRows = '<div class="row"><span class="label">注册渠道</span><span class="value">' . $channelDisplay . '</span></div>';
+        if ($pfShort !== '' || $regPlatformRaw !== '') {
+            $srcRows .= '<div class="row"><span class="label">注册来源</span><span class="value">'
+                . htmlspecialchars($pfShort !== '' ? $pfShort : $regPlatformRaw) . '</span></div>';
+        }
+        if ($regLinkRaw !== '') {
+            $srcRows .= '<div class="row"><span class="label">推广链接</span><span class="value">' . htmlspecialchars($regLinkRaw) . '</span></div>';
+        }
+        if ($regPxRaw !== '') {
+            $srcRows .= '<div class="row"><span class="label">推广像素</span><span class="value">' . htmlspecialchars($regPxRaw) . '</span></div>';
+        }
 
         // 审核按钮
         $auditBtns = '';
@@ -393,6 +515,8 @@ class LiveUser extends Backend
         .badge-yellow{background:rgba(245,158,11,.12);color:#f59e0b}
         .badge-green{background:rgba(0,212,170,.12);color:#00d4aa}
         .badge-red{background:rgba(255,45,85,.12);color:#ff2d55}
+        .badge-blue{background:rgba(59,130,246,.12);color:#3b82f6}
+        .badge-purple{background:rgba(139,92,246,.12);color:#8b5cf6}
         .reason{color:#ff2d55;font-size:13px;margin-top:8px}
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center}
         .modal-overlay.active{display:flex}
@@ -412,20 +536,20 @@ class LiveUser extends Backend
     <div class="card">
         <h2>基本信息</h2>
         <div class="row"><span class="label">用户ID</span><span class="value">{$userId}</span></div>
-        <div class="row"><span class="label">编号</span><span class="value">{$userNo}</span></div>
+        <div class="row"><span class="label">用户编号</span><span class="value">{$userNo}</span></div>
         <div class="row"><span class="label">昵称</span><span class="value">{$nickname}</span></div>
-        <div class="row"><span class="label">邮箱</span><span class="value">{$email}</span></div>
-        <div class="row"><span class="label">等级</span><span class="value">Lv.{$level}</span></div>
+        <div class="row"><span class="label">会员账号</span><span class="value">{$accountText}{$authSuffix}</span></div>
+        <div class="row"><span class="label">会员身份</span><span class="value"><span class="badge badge-{$vipBadgeCls}">{$vipLabel}</span></span></div>
+        <div class="row"><span class="label">会员到期</span><span class="value">{$vipExpireText}</span></div>
+        <div class="row"><span class="label">代币余额</span><span class="value">{$balance}</span></div>
         <div class="row"><span class="label">状态</span><span class="value">{$userStatus}</span></div>
         <div class="row"><span class="label">注册时间</span><span class="value">{$createdAt}</span></div>
-        <div class="row"><span class="label">来源域名</span><span class="value">{$regDomain}</span></div>
-        <div class="row"><span class="label">来源渠道</span><span class="value">{$regChannel}</span></div>
-        <div class="row"><span class="label">推广链接</span><span class="value">{$regLinkName}</span></div>
-        <div class="row"><span class="label">平台</span><span class="value">{$regPlatform}</span></div>
-        <div class="row"><span class="label">推广像素</span><span class="value">{$regPx}</span></div>
-        <div class="row"><span class="label">广告系列</span><span class="value">{$regCampaign}</span></div>
-        <div class="row"><span class="label">广告组</span><span class="value">{$regAdset}</span></div>
-        <div class="row"><span class="label">广告</span><span class="value">{$regAd}</span></div>
+        <div class="row"><span class="label">最后登录</span><span class="value">{$lastLoginText}</span></div>
+    </div>
+
+    <div class="card">
+        <h2>推广来源</h2>
+        {$srcRows}
     </div>
 
     <div class="card">
