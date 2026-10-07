@@ -37,7 +37,7 @@
 
     $(function() {
         if (!token) {
-            layer.msg('请先登录')
+            layer.msg('Please log in first')
             setTimeout(function(){ location.href = './Login.html' }, 900)
             return
         }
@@ -65,9 +65,9 @@
         $('#saveWithdrawal').on('click', function() {
             var addr = $('#user_withdrawal').val().trim()
             var net = $('#user_network').val() || 'TRC20'
-            if (!addr) { layer.msg('请输入收款地址'); return }
+            if (!addr) { layer.msg('Please enter a payout address'); return }
             if (ADDR_RE[net] && !ADDR_RE[net].test(addr)) {
-                layer.msg(net === 'TRC20' ? 'TRC20 地址应为 T 开头的 34 位地址' : net + ' 地址应为 0x 开头的 42 位地址')
+                layer.msg(net === 'TRC20' ? 'A TRC20 address must be 34 characters and start with T' : net + ' address must be 42 characters and start with 0x')
                 return
             }
             var $btn = $(this)
@@ -83,14 +83,14 @@
                     account = { network: net, address: addr }
                     renderAccount()
                     $('.withdrawal-modal').addClass('hidden')
-                    layer.msg('收款账户已更新')
+                    layer.msg('Payout account updated')
                 } else if (isTokenDead(r.code)) {
                     relogin()
                 } else {
-                    layer.msg(r.msg || '保存失败')
+                    layer.msg(r.msg || 'Save failed')
                 }
                 syncSubmitState()
-            }).fail(function(){ layer.msg('网络错误') })
+            }).fail(function(){ layer.msg('Network error') })
               .always(function(){ $btn.prop('disabled', false) })
         })
 
@@ -108,7 +108,7 @@
         })
 
         $('#fin-wd-max').on('click', function() {
-            if (!balance) { layer.msg('暂无可提余额'); return }
+            if (!balance) { layer.msg('No withdrawable balance'); return }
             $('#fin-wd-amount').val(Math.floor(balance)).trigger('input')
         })
 
@@ -124,11 +124,11 @@
             var fee = usdt * feeRate
             layer.confirm(
                 '<div style="line-height:2;font-size:14px">' +
-                '提现 <b style="color:#E75275">' + num(d) + ' tokens</b><br>' +
-                '到账 <b style="color:#28c76f">' + num(usdt - fee, 6) + ' USDT</b>（手续费 ' + num(fee, 6) + '）<br>' +
-                '网络 <b style="color:#fff">' + esc(account.network) + '</b> · 地址 <span style="color:#bbb">' + esc(short(account.address)) + '</span>' +
+                'Withdraw <b style="color:#E75275">' + num(d) + ' tokens</b><br>' +
+                'You receive <b style="color:#28c76f">' + num(usdt - fee, 6) + ' USDT</b> (fee ' + num(fee, 6) + ')<br>' +
+                'Network <b style="color:#fff">' + esc(account.network) + '</b> · Address <span style="color:#bbb">' + esc(short(account.address)) + '</span>' +
                 '</div>',
-                { title: '确认提现', btn: ['确认提交', '取消'] },
+                { title: 'Confirm Withdrawal', btn: ['Confirm', 'Cancel'] },
                 function(i) { layer.close(i); doApply(d) }
             )
         })
@@ -149,7 +149,7 @@
             layer.close(idx)
             $btn.data('busy', false).text('Submit withdrawal')
             if (r.code === '00000') {
-                layer.msg('已提交：审核通过后自动上链打款')
+                layer.msg('Submitted: funds will be paid out automatically once approved')
                 $('#fin-wd-amount').val('')
                 showEl('#fin-wd-est', 'none')
                 hideMsg()
@@ -158,7 +158,7 @@
             } else if (isTokenDead(r.code)) {
                 relogin()
             } else {
-                msg(esc(r.msg || '提交失败'), 'error')
+                msg(esc(r.msg || 'Submission failed'), 'error')
             }
             syncSubmitState()
         }).fail(function(){
@@ -321,7 +321,7 @@
     function isTokenDead(code) { return code === 'A0100' || code === 'A0101' }
 
     function relogin() {
-        layer.msg('登录已失效，请重新登录')
+        layer.msg('Your session has expired. Please log in again.')
         setTimeout(function(){ location.href = './Login.html' }, 900)
     }
 

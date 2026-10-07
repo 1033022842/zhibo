@@ -150,11 +150,50 @@ final class FbCapiService
             $body = (string) $resp->getBody();
             $ok   = $resp->getStatusCode() === 200 && str_contains($body, '"events_received"');
             Log::info('[capi] probe pixel=' . $pixelId . ' http=' . $resp->getStatusCode() . ' resp=' . mb_substr($body, 0, 300));
-            return ['ok' => $ok, 'http' => $resp->getStatusCode(), 'resp' => mb_substr($body, 0, 600)];
+            $out = ['ok' => $ok, 'http' => $resp->getStatusCode(), 'resp' => mb_substr($body, 0, 600)];
+            // 失败时补一份自诊断：这个令牌属于谁、能不能读到这个像素
+            if (!$ok) {
+                $out['diag'] = self::diagnose($pixelId, $token);
+            }
+            return $out;
         } catch (\Throwable $e) {
             Log::warning('[capi] probe 异常 pixel=' . $pixelId . ' err=' . $e->getMessage());
             return ['ok' => false, 'http' => 0, 'resp' => $e->getMessage()];
         }
+    }
+
+    /**
+     * 回传失败时的自诊断：确认「令牌身份」以及「该令牌能否读到这个像素」
+     * 400 / code 100 / subcode 33 基本都是令牌与像素不属于同一资产
+     */
+    private static function diagnose(string $pixelId, string $token): string
+    {
+        $client = new Client(['timeout' => self::TIMEOUT, 'http_errors' => false]);
+        $out    = [];
+
+        // 1) 令牌属于哪个用户 / 系统用户
+        try {
+            $r = $client->get(self::GRAPH . '/me', [
+                'query' => ['fields' => 'id,name', 'access_token' => $token],
+            ]);
+            $out[] = '① 令牌身份：HTTP ' . $r->getStatusCode() . ' → ' . mb_substr((string) $r->getBody(), 0, 200);
+        } catch (\Throwable $e) {
+            $out[] = '① 令牌身份查询异常：' . $e->getMessage();
+        }
+
+        // 2) 这个令牌能不能读到该像素（读不到 = 令牌不是在这个像素下生成的）
+        try {
+            $r = $client->get(self::GRAPH . '/' . rawurlencode($pixelId), [
+                'query' => ['fields' => 'id,name', 'access_token' => $token],
+            ]);
+            $out[] = '② 读取像素：HTTP ' . $r->getStatusCode() . ' → ' . mb_substr((string) $r->getBody(), 0, 300);
+        } catch (\Throwable $e) {
+            $out[] = '② 读取像素异常：' . $e->getMessage();
+        }
+
+        $out[] = '③ 若②读不到该像素，说明令牌不是在这个像素的「设置 → 生成访问令牌」里生成的，需重新生成。';
+
+        return implode("\n", $out);
     }
 
     /**

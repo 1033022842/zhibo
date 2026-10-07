@@ -232,9 +232,6 @@ const SRC_FIELDS = [
     { label: '渠道 ch', value: 'reg_channel' },
     { label: '平台', value: 'reg_platform' },
     { label: '来源域名', value: 'reg_domain' },
-    { label: '广告系列', value: 'reg_campaign' },
-    { label: '广告组', value: 'reg_adset' },
-    { label: '广告', value: 'reg_ad' },
     { label: '推广像素', value: 'reg_px' },
 ]
 
@@ -278,10 +275,39 @@ const baTable = new baTableClass(
         column: [
             { type: 'selection', align: 'center', operator: false },
             { label: 'ID', prop: 'id', align: 'center', operator: '=', width: 70 },
-            { label: '用户编号', prop: 'user_no', align: 'center', operator: 'LIKE', width: 150, showOverflowTooltip: true },
             { label: '昵称', prop: 'nickname', align: 'center', operator: 'LIKE', width: 130, showOverflowTooltip: true, show: true },
             { label: '代币余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
-            { label: '邮箱', prop: 'email', align: 'center', operator: 'LIKE', width: 200, render: 'tag', showOverflowTooltip: true },
+            {
+                // 会员账号：邮箱优先，无邮箱时显示用户名/手机号账号；悬浮显示注册认证方式
+                label: '会员账号',
+                prop: 'email',
+                align: 'center',
+                operator: 'LIKE',
+                width: 220,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const label = row?.account_label || row?.email || ''
+                            if (!label) {
+                                return h('span', { style: 'color:#c0c4cc' }, '—')
+                            }
+                            const typeMap: any = { email: '邮箱', username: '用户名', mobile: '手机号' }
+                            const typeText = typeMap[row?.auth_type] || ''
+                            return h(
+                                ElTooltip,
+                                { effect: 'dark', placement: 'top', disabled: !typeText },
+                                {
+                                    default: () => h('span', { style: 'word-break:break-all' }, label),
+                                    content: () => h('span', {}, '认证方式：' + typeText),
+                                }
+                            )
+                        }
+                    },
+                }) as any,
+            },
             {
                 // 注册来源：平台短名（FB / TT / GG）；点标签=筛选同平台；↗=看推广数据「平台」维度
                 label: '注册来源',
@@ -333,7 +359,7 @@ const baTable = new baTableClass(
                 }) as any,
             },
             {
-                // 注册渠道：后台绑定的「像素名称 · 来源域名」；悬浮看完整明细；点文字=筛选同域名
+                // 注册渠道：后台绑定的「渠道名称 · 推广域名」；悬浮看完整明细；点文字=筛选同域名
                 label: '注册渠道',
                 prop: 'reg_channel_label',
                 align: 'center',
@@ -379,31 +405,39 @@ const baTable = new baTableClass(
                 }) as any,
             },
             {
-                label: '认证方式',
-                prop: 'auth_type',
-                align: 'center',
-                width: 100,
-                render: 'tag',
-                replaceValue: { 'email': '邮箱', 'username': '用户名', 'mobile': '手机号' },
-                custom: { 'email': 'success', 'username': 'info', 'mobile': 'warning' },
-            },
-            { label: '账号', prop: 'auth_account', align: 'center', operator: 'LIKE', width: 180, render: 'tag', showOverflowTooltip: true },
-            {
+                // 商家认证：未认证/审核中/已通过/已拒绝；有提交时点击标签进入认证审核
                 label: '商家认证',
                 prop: 'cert_status',
                 align: 'center',
-                width: 100,
-                render: 'tag',
-                replaceValue: { '-1': '未认证', '0': '审核中', '1': '已通过', '2': '已拒绝' },
-                custom: { '-1': 'info', '0': 'warning', '1': 'success', '2': 'danger' },
-            },
-            {
-                label: '审核认证',
-                prop: 'cert_review_url',
-                align: 'center',
-                width: 100,
-                render: 'tag',
-                replaceValue: { '': '-' },
+                operator: false,
+                width: 110,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const textMap: any = { '-1': '未认证', '0': '审核中', '1': '已通过', '2': '已拒绝' }
+                            const typeMap: any = { '-1': 'info', '0': 'warning', '1': 'success', '2': 'danger' }
+                            const key = String(row?.cert_status)
+                            const url = row?.cert_review_url || ''
+                            return h(
+                                ElTag,
+                                {
+                                    size: 'small',
+                                    effect: 'light',
+                                    type: typeMap[key] || 'info',
+                                    style: url ? 'cursor:pointer' : '',
+                                    onClick: (e: any) => {
+                                        e.stopPropagation()
+                                        if (url) window.open(url, '_blank')
+                                    },
+                                },
+                                () => textMap[key] || '未知'
+                            )
+                        }
+                    },
+                }) as any,
             },
             {
                 label: '状态',
@@ -414,11 +448,32 @@ const baTable = new baTableClass(
                 replaceValue: { '0': '禁用', '1': '正常' },
                 custom: { '0': 'danger', '1': 'success' },
             },
-            { label: '等级', prop: 'level', align: 'center', operator: '=', width: 70 },
-            { label: '会员到期', prop: 'vip_expire_at', align: 'center', render: 'datetime', width: 160 },
-            { label: '最后登录IP', prop: 'last_login_ip', align: 'center', operator: 'LIKE', width: 150, render: 'tag', showOverflowTooltip: true },
             {
-                label: '最后登录时间',
+                // 会员身份：Free / Premium / Premium Plus（按生效套餐层级）
+                label: '会员身份',
+                prop: 'vip_level_label',
+                align: 'center',
+                operator: false,
+                width: 130,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const label = row?.vip_level_label || 'Free'
+                            return h(
+                                ElTag,
+                                { size: 'small', effect: 'light', type: row?.vip_level_type || 'info' },
+                                () => label
+                            )
+                        }
+                    },
+                }) as any,
+            },
+            { label: '会员到期', prop: 'vip_expire_at', align: 'center', render: 'datetime', width: 160 },
+            {
+                label: '最后登录',
                 prop: 'last_login_at',
                 align: 'center',
                 render: 'datetime',
@@ -440,6 +495,7 @@ const baTable = new baTableClass(
                 label: '操作',
                 align: 'center',
                 width: 400,
+                fixed: 'right',
                 render: 'buttons',
                 buttons: [
                     {

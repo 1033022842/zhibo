@@ -55,7 +55,7 @@ final class MerchantCertificationService
             throw $e;
         } catch (\Exception $e) {
             Db::rollback();
-            throw new BusinessException(ResultCode::SERVER_ERROR, '提交认证失败: ' . $e->getMessage());
+            throw new BusinessException(ResultCode::SERVER_ERROR, 'Failed to submit verification: ' . $e->getMessage());
         }
     }
 

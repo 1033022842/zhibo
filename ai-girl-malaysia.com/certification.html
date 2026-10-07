@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 		<link rel="icon" type="image/png" href="./sugus-favicon-v3.png">
 		<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon-v3.png">
@@ -68,7 +68,7 @@
 <div class="container">
     <div class="top-bar">
         <button class="back-btn" onclick="history.back()">&#8592;</button>
-        <h1>商家认证</h1>
+        <h1>Merchant Verification</h1>
     </div>
     <div id="content">
         <div class="loading"><div class="spinner"></div></div>
@@ -106,7 +106,7 @@
         document.getElementById('modalTitle').innerHTML = title
         document.getElementById('modalDesc').innerHTML = desc || ''
         var btn = document.getElementById('modalBtn')
-        btn.textContent = btnText || '确定'
+        btn.textContent = btnText || 'OK'
         btn.className = 'modal-btn ' + (btnClass || '')
         btn.onclick = function(){
             document.getElementById('modal').classList.remove('show')
@@ -126,7 +126,7 @@
             headers: { 'Authorization': 'Bearer ' + token }
         }).then(function(r){ return r.json() }).then(function(d){
             if (d.code && d.code !== '00000') {
-                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">登录已过期</p><button class="btn-submit" onclick="location.href=\'./Login.html\'">去登录</button></div>'
+                document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">Session expired</p><button class="btn-submit" onclick="location.href=\'./Login.html\'">Log In</button></div>'
                 return
             }
             var status = d.data ? d.data.cert_status : -1
@@ -140,23 +140,23 @@
                 renderForm()
             }
         }).catch(function(){
-            document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">网络错误</p><button class="btn-submit" onclick="loadStatus()">重试</button></div>'
+            document.getElementById('content').innerHTML = '<div class="status-card"><p class="status-desc">Network error</p><button class="btn-submit" onclick="loadStatus()">Retry</button></div>'
         })
     }
 
     function renderPassed() {
         document.getElementById('content').innerHTML =
-            '<div class="status-card passed"><div class="status-icon">&#10003;</div><div class="status-title">认证已通过</div><div class="status-desc">您现在可以创建AI角色</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
+            '<div class="status-card passed"><div class="status-icon">&#10003;</div><div class="status-title">Verification Approved</div><div class="status-desc">You can now create AI characters</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">Back</button></div>'
     }
 
     function renderPending() {
         document.getElementById('content').innerHTML =
-            '<div class="status-card pending"><div class="status-icon">&#9201;</div><div class="status-title">审核中</div><div class="status-desc">您的认证申请正在审核，请耐心等待</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">返回</button></div>'
+            '<div class="status-card pending"><div class="status-icon">&#9201;</div><div class="status-title">Under Review</div><div class="status-desc">Your verification is under review. Please wait patiently.</div><button class="btn-submit" onclick="location.href=\'./charactersIndex.html\'">Back</button></div>'
     }
 
     function renderRejected() {
         document.getElementById('content').innerHTML =
-            '<div class="status-card rejected"><div class="status-icon">&#10007;</div><div class="status-title">认证未通过</div><div class="status-desc">您可以修改信息后重新提交</div><button class="btn-retry" onclick="renderForm()">重新提交</button></div>'
+            '<div class="status-card rejected"><div class="status-icon">&#10007;</div><div class="status-title">Verification Rejected</div><div class="status-desc">You can edit your information and submit again</div><button class="btn-retry" onclick="renderForm()">Submit Again</button></div>'
     }
 
     function renderForm() {
@@ -179,21 +179,21 @@
         function buildForm() {
             document.getElementById('content').innerHTML =
                 '<div class="form-card">' +
-                '<div class="form-title">提交认证资料</div>' +
-                '<div class="field"><label>真实姓名 *</label><input type="text" id="realName" placeholder="请输入真实姓名" maxlength="50"></div>' +
-                '<div class="field"><label>身份证号 *</label><input type="text" id="idCardNo" placeholder="请输入身份证号" maxlength="18"></div>' +
-                '<div class="field"><label>手机号 *</label><input type="tel" id="phone" placeholder="请输入手机号" maxlength="20"></div>' +
-                '<div class="field"><label>认证邮箱 *</label><input type="email" id="certEmail" placeholder="请输入认证邮箱" maxlength="255"></div>' +
-                '<div class="field"><label>店铺名称 *</label><input type="text" id="shopName" placeholder="请输入店铺名称" maxlength="100"></div>' +
-                '<div class="field"><label>经营类目 *</label><select id="shopType">' +
-                '<option value="">'+ (shopTypesLoaded ? '加载失败，请刷新重试' : '加载中...') +'</option>' +
+                '<div class="form-title">Submit Verification Information</div>' +
+                '<div class="field"><label>Full Name *</label><input type="text" id="realName" placeholder="Enter your full name" maxlength="50"></div>' +
+                '<div class="field"><label>ID Number *</label><input type="text" id="idCardNo" placeholder="Enter your ID number" maxlength="18"></div>' +
+                '<div class="field"><label>Phone Number *</label><input type="tel" id="phone" placeholder="Enter your phone number" maxlength="20"></div>' +
+                '<div class="field"><label>Email *</label><input type="email" id="certEmail" placeholder="Enter your email" maxlength="255"></div>' +
+                '<div class="field"><label>Store Name *</label><input type="text" id="shopName" placeholder="Enter your store name" maxlength="100"></div>' +
+                '<div class="field"><label>Business Category *</label><select id="shopType">' +
+                '<option value="">'+ (shopTypesLoaded ? 'Failed to load, please refresh' : 'Loading...') +'</option>' +
                 shopTypeOptions +
                 '</select></div>' +
-                '<div class="field"><label>店铺简介</label><textarea id="shopDesc" placeholder="请简要描述您的店铺（选填）" maxlength="500"></textarea></div>' +
-                '<div class="field"><label>身份证正面 *</label><div class="upload-zone" id="frontUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="frontInput" accept="image/*" style="display:none"></div>' +
-                '<div class="field"><label>身份证背面 *</label><div class="upload-zone" id="backUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>点击上传</span></div></div><input type="file" id="backInput" accept="image/*" style="display:none"></div>' +
-                '<div class="field"><label>营业执照 *</label><div class="upload-zone" id="licenseUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128196;</span><span>点击上传</span></div></div><input type="file" id="licenseInput" accept="image/*" style="display:none"></div>' +
-                '<button class="btn-submit" id="btnSubmit" onclick="doSubmit()">提交认证</button>' +
+                '<div class="field"><label>Store Description</label><textarea id="shopDesc" placeholder="Briefly describe your store (optional)" maxlength="500"></textarea></div>' +
+                '<div class="field"><label>ID Card Front *</label><div class="upload-zone" id="frontUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>Click to upload</span></div></div><input type="file" id="frontInput" accept="image/*" style="display:none"></div>' +
+                '<div class="field"><label>ID Card Back *</label><div class="upload-zone" id="backUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128247;</span><span>Click to upload</span></div></div><input type="file" id="backInput" accept="image/*" style="display:none"></div>' +
+                '<div class="field"><label>Business License *</label><div class="upload-zone" id="licenseUpload"><div class="upload-placeholder"><span style="font-size:28px">&#128196;</span><span>Click to upload</span></div></div><input type="file" id="licenseInput" accept="image/*" style="display:none"></div>' +
+                '<button class="btn-submit" id="btnSubmit" onclick="doSubmit()">Submit Verification</button>' +
                 '</div>'
 
             bindUploads()
@@ -227,42 +227,42 @@
             var shopDesc = document.getElementById('shopDesc').value.trim()
             var btn = document.getElementById('btnSubmit')
 
-            if (!realName) { showToast('请输入真实姓名', 'error'); return }
-            if (!idCardNo) { showToast('请输入身份证号', 'error'); return }
-            if (!/^[a-zA-Z0-9]{15,18}$/.test(idCardNo)) { showToast('身份证号格式不正确', 'error'); return }
-            if (!phone) { showToast('请输入手机号', 'error'); return }
-            if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('手机号格式不正确', 'error'); return }
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('请输入正确的邮箱', 'error'); return }
-            if (!shopName) { showToast('请输入店铺名称', 'error'); return }
-            if (!shopType) { showToast('请选择经营类目', 'error'); return }
-            if (!frontUrl) { showToast('请上传身份证正面', 'error'); return }
-            if (!backUrl) { showToast('请上传身份证背面', 'error'); return }
-            if (!licenseUrl) { showToast('请上传营业执照', 'error'); return }
+            if (!realName) { showToast('Please enter your full name', 'error'); return }
+            if (!idCardNo) { showToast('Please enter your ID number', 'error'); return }
+            if (!/^[a-zA-Z0-9]{15,18}$/.test(idCardNo)) { showToast('Invalid ID number format', 'error'); return }
+            if (!phone) { showToast('Please enter your phone number', 'error'); return }
+            if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('Invalid phone number format', 'error'); return }
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Please enter a valid email', 'error'); return }
+            if (!shopName) { showToast('Please enter your store name', 'error'); return }
+            if (!shopType) { showToast('Please select a business category', 'error'); return }
+            if (!frontUrl) { showToast('Please upload the front of your ID card', 'error'); return }
+            if (!backUrl) { showToast('Please upload the back of your ID card', 'error'); return }
+            if (!licenseUrl) { showToast('Please upload your business license', 'error'); return }
 
             btn.disabled = true
-            btn.textContent = '提交中...'
+            btn.textContent = 'Submitting...'
             var r = new XMLHttpRequest()
             r.open('POST', base + '/submit')
             r.setRequestHeader('Authorization', 'Bearer ' + token)
             r.setRequestHeader('Content-Type', 'application/json')
             r.onload = function(){
                 btn.disabled = false
-                btn.textContent = '提交认证'
+                btn.textContent = 'Submit Verification'
                 try {
                     var d = JSON.parse(r.responseText)
                     if (d.code === '00000' || d.code === 0) {
-                        showModal('&#10003;', '提交成功', '您的认证申请已提交，请等待审核', '我知道了', 'modal-btn-success', function(){ loadStatus() })
+                        showModal('&#10003;', 'Submitted Successfully', 'Your verification request has been submitted. Please wait for review.', 'Got it', 'modal-btn-success', function(){ loadStatus() })
                     } else {
-                        showToast(d.msg || '提交失败', 'error')
+                        showToast(d.msg || 'Submission failed', 'error')
                     }
                 } catch(e) {
-                    showToast('提交失败', 'error')
+                    showToast('Submission failed', 'error')
                 }
             }
             r.onerror = function(){
                 btn.disabled = false
-                btn.textContent = '提交认证'
-                showToast('网络错误，请重试', 'error')
+                btn.textContent = 'Submit Verification'
+                showToast('Network error, please try again', 'error')
             }
             r.send(JSON.stringify({
                 real_name: realName,
@@ -292,7 +292,7 @@
                     zone.innerHTML = '<img src="' + d.data.url + '">'
                     cb(d.data.url)
                 } else {
-                    showToast('上传失败', 'error')
+                    showToast('Upload failed', 'error')
                 }
             }
         }

@@ -12,7 +12,7 @@
 
     function init() {
         if (!token) {
-            layer.msg('请先登录')
+            layer.msg('Please sign in first')
             setTimeout(function(){ location.href = './Login.html' }, 900)
             return
         }
@@ -50,7 +50,7 @@
                     .replace(/{{form_user_username}}/g, esc(l.type_text))
                     .replace(/{{Lv}}/g, isIn ? 'IN' : 'OUT')
                     .replace(/{{en_memo}}/g, esc((l.remark || '') + ' · ' + String(l.created_at).slice(5, 16)))
-                    .replace(/{{money}}/g, (isIn ? '+' : '-') + l.amount + ' 代币')
+                    .replace(/{{money}}/g, (isIn ? '+' : '-') + l.amount + ' tokens')
                     .replace(/{{color}}/g, 'color:' + (isIn ? '#28c76f' : '#ff7b7b'))
                 $('#moneyLayout').append(html)
             })

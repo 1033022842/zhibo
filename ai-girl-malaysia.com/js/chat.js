@@ -524,10 +524,10 @@
                     media.url = d.data.video_url || d.data.url || ''
                     paintMedia(node, media, mine)
                 } else {
-                    appendError((d && d.msg) ? ('解锁失败：' + d.msg) : '解锁失败，请稍后重试')
+                    appendError((d && d.msg) ? ('Unlock failed: ' + d.msg) : 'Unlock failed, please try again later')
                 }
             })
-            .catch(function () { appendError('网络错误，请稍后重试') })
+            .catch(function () { appendError('Network error, please try again later') })
     }
 
     // 全屏播放特殊视频（满好感度触发的剧情视频）
@@ -827,7 +827,7 @@
                         appendOverageHint(text)
                         return
                     }
-                    appendError((d && d.msg) ? ('发送失败：' + d.msg) : '发送失败，请稍后重试')
+                    appendError((d && d.msg) ? ('Failed to send: ' + d.msg) : 'Failed to send, please try again later')
                     return
                 }
                 var data = d.data
@@ -840,7 +840,7 @@
                 if (data.media) paintMedia(mediaRow(data.media, false), data.media, false)
                 if (data.affection) renderAffection(data.affection)
                 if (data.special_video) playSpecialVideo(data.special_video)
-                if (!data.reply && !data.media) appendError('未收到回复，请再试一次')
+                if (!data.reply && !data.media) appendError('No reply received, please try again')
                 // 免费用户：剩余条数不多时提醒一次（用代币续聊的这一条不再提示）
                 if (!data.paid_overage && data.quota && data.quota.remaining >= 0 && data.quota.remaining <= 3) {
                     appendQuotaHint(data.quota.remaining > 0
@@ -851,7 +851,7 @@
             })
             .catch(function () {
                 if (typing) typing.remove()
-                appendError('网络错误，请稍后重试')
+                appendError('Network error, please try again later')
             })
             .then(function () { sending = false })
     }

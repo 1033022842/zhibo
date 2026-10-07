@@ -8,9 +8,6 @@
  *   reg_platform 来源平台（facebook / tiktok / google / other）
  *   reg_channel  渠道参数 ?ch=
  *   reg_px       推广像素 ?px=
- *   reg_campaign 广告系列（campaign_name / campaign_id / utm_campaign）
- *   reg_adset    广告组（adset_name / adset_id / utm_term）
- *   reg_ad       广告（ad_name / ad_id / utm_content）
  *
  * 指标口径：充值/订阅都取「已支付订单」lp_recharge_order(status=1)，按 biz_type 区分买代币与订阅。
  */
@@ -37,9 +34,6 @@ final class PromoSource extends Backend
         'channel'  => ['渠道(ch)', 'reg_channel'],
         'link'     => ['推广链接名称', 'reg_link_name'],
         'px'       => ['推广像素', 'reg_px'],
-        'campaign' => ['广告系列', 'reg_campaign'],
-        'adset'    => ['广告组', 'reg_adset'],
-        'ad'       => ['广告', 'reg_ad'],
     ];
 
     public function index(): void
@@ -222,7 +216,7 @@ tr:last-child td{border-bottom:none}
 <body>
 <div class="container">
     <h1>推广数据</h1>
-    <div class="sub">按 <b>来源域名 / 平台 / 渠道 / 推广链接名称 / 推广像素 / 广告系列 / 广告组 / 广告</b> 归因统计注册与付费（首触归因，注册时记录）。
+    <div class="sub">按 <b>来源域名 / 平台 / 渠道 / 推广链接名称 / 推广像素</b> 归因统计注册与付费（首触归因，注册时记录）。
         充值/订阅金额取「已支付订单」口径。</div>
 
     <div class="stats">
@@ -242,9 +236,7 @@ tr:last-child td{border-bottom:none}
             <button class="btn" type="submit">查询</button>
         </form>
         <div class="presets" style="margin-top:10px">{$presets}</div>
-        <div class="tip">时间按「注册时间」过滤。广告系列/广告组/广告请在 FB 广告的「网址参数」里带上，例如：
-            <code>campaign_name={{campaign.name}}&amp;adset_name={{adset.name}}&amp;ad_name={{ad.name}}</code>
-            （也兼容 <code>utm_campaign</code> / <code>utm_term</code> / <code>utm_content</code>）。</div>
+        <div class="tip">时间按「注册时间」过滤。</div>
     </div>
 
     <div class="card">
@@ -259,16 +251,14 @@ tr:last-child td{border-bottom:none}
     </div>
 
     <div class="card">
-        <h2>建推广链接<span class="muted" style="font-weight:400"> · 本页只负责看数据</span></h2>
+        <h2>复制推广链接<span class="muted" style="font-weight:400"> · 本页只负责看数据</span></h2>
         <div class="sub" style="margin:0">
-            要创建 / 命名推广链接（可绑定像素、填渠道），请到左侧菜单 <b>「推广链接」</b> 页；
-            那里建的链接会出现在本报表的 <b>推广链接名称</b> 维度里。当前已收录 <b>{$domainCount}</b> 个推广域名。
+            现在不再单独维护「推广链接」页了；请直接到 <b>「推广与像素 &gt; 渠道配置」</b> 列表里复制每条渠道的默认投放链接。
+            复制出的链接会自动带上 <b>?px= / ?name= / ?ch=</b> 参数，并继续归因到本报表的 <b>推广链接名称</b> 维度。当前已收录 <b>{$domainCount}</b> 个推广域名。
         </div>
         <div class="link-box" style="margin-top:12px">
-            <button class="btn" onclick="gotoPromoLink()">去「推广链接」页创建 →</button>
+            <button class="btn" onclick="gotoPromoSetting()">去「渠道配置」页复制 →</button>
         </div>
-        <div class="tip">想让数据能按广告系列/组/广告区分：在 FB 广告的「网址参数」里加
-            <code>campaign_name={{campaign.name}}&amp;adset_name={{adset.name}}&amp;ad_name={{ad.name}}</code>。</div>
     </div>
 </div>
 
@@ -281,15 +271,15 @@ tr:last-child td{border-bottom:none}
         </div>
         <div class="mem-body">
             <table>
-                <thead><tr><th>ID</th><th>昵称</th><th>邮箱</th><th>平台</th><th>渠道</th><th>推广链接</th><th>广告系列</th><th>广告组</th><th>广告</th><th>注册时间</th><th class="num">充值</th><th class="num">订阅</th></tr></thead>
+                <thead><tr><th>ID</th><th>昵称</th><th>邮箱</th><th>平台</th><th>渠道</th><th>推广链接</th><th>注册时间</th><th class="num">充值</th><th class="num">订阅</th></tr></thead>
                 <tbody id="memRows"></tbody>
             </table>
         </div>
     </div>
 </div>
 <script>
-// 本页只做报表，建链接统一在「推广链接」页
-function gotoPromoLink(){ location.href = '/admin/live.PromoLink/index'; }
+// 本页只做报表，复制链接统一在「渠道配置」页
+function gotoPromoSetting(){ location.href = '/admin/live.PromoSetting/index?tab=config'; }
 
 /*---------- 查看会员：某个维度值下的注册用户明细 ----------*/
 function esc(s){
@@ -310,7 +300,7 @@ function openMembers(dim, val, label){
             document.getElementById('memSum').textContent =
                 '共 ' + (sum.total || 0) + ' 人 · 充值 ' + (sum.buyers || 0) + ' 人 / ' + (sum.amount || 0)
                 + ' · 订阅 ' + (sum.subs || 0) + ' 人 / ' + (sum.sub_amount || 0);
-            if(!rows.length){ document.getElementById('memRows').innerHTML = '<tr><td colspan="12" class="empty">该来源暂无注册会员</td></tr>'; return; }
+            if(!rows.length){ document.getElementById('memRows').innerHTML = '<tr><td colspan="9" class="empty">该来源暂无注册会员</td></tr>'; return; }
             document.getElementById('memRows').innerHTML = rows.map(function(u){
                 return '<tr>'
                     + '<td>' + esc(u.id) + '</td>'
@@ -319,9 +309,6 @@ function openMembers(dim, val, label){
                     + '<td>' + (esc(u.reg_platform) || '—') + '</td>'
                     + '<td>' + (esc(u.reg_channel) || '—') + '</td>'
                     + '<td>' + (esc(u.reg_link_name) || '—') + '</td>'
-                    + '<td>' + (esc(u.reg_campaign) || '—') + '</td>'
-                    + '<td>' + (esc(u.reg_adset) || '—') + '</td>'
-                    + '<td>' + (esc(u.reg_ad) || '—') + '</td>'
                     + '<td>' + esc(u.created_at) + '</td>'
                     + '<td class="num">' + esc(u.paid) + '</td>'
                     + '<td class="num">' + esc(u.sub_paid) + '</td>'
@@ -385,7 +372,7 @@ HTML;
             ['v1' => $val, 'v2' => $val])[0] ?? [];
 
         $list = $db->query("SELECT u.id, u.user_no, u.nickname, u.email,
-                u.reg_platform, u.reg_channel, u.reg_link_name, u.reg_campaign, u.reg_adset, u.reg_ad, u.created_at,
+                u.reg_platform, u.reg_channel, u.reg_link_name, u.created_at,
                 IFNULL((SELECT SUM(o.pay_amount) FROM lp_recharge_order o
                         WHERE o.user_id = u.id AND o.status = 1 AND o.biz_type <> 'vip'),0) AS paid,
                 IFNULL((SELECT SUM(o.pay_amount) FROM lp_recharge_order o

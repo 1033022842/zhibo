@@ -31,6 +31,7 @@ final class PromoService
 
     /** 像素渠道（推广平台） */
     public const PIXEL_PLATFORMS = [
+        'general'   => '普通推广（短信 / 群发，无需像素）',
         'facebook'  => 'Facebook / Meta',
         'tiktok'    => 'TikTok',
         'google'    => 'Google（GA4 / Ads / GTM）',
