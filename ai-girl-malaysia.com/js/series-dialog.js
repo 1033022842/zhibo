@@ -39,6 +39,7 @@
         return !!(window.LIVE_VIP && window.LIVE_VIP.is_vip && window.LIVE_VIP.unblur_preview)
     }
     var SVG_LOCK = '<svg class="cs-lock" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2a2 2 0 0 0-1 1.7V19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8.3A2 2 0 0 0 17 9zm-8-2a3 3 0 0 1 6 0v2H9V7zm3 10a1.6 1.6 0 0 1-1-2.8V13a1 1 0 0 1 2 0v1.2A1.6 1.6 0 0 1 12 17z"/></svg>'
+    var TOKEN_ICON = '<img class="cs-token" src="./taocan_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg" alt="">'
 
     var RATES = [1, 1.25, 1.5, 2]
 
@@ -199,8 +200,10 @@
             '#' + DIALOG_ID + ' .cs-ep[data-current="1"]{border-color:' + ACCENT + ';}',
             '#' + DIALOG_ID + ' .cs-ep-right{display:flex;align-items:center;gap:8px;flex:0 0 auto;}',
             '#' + DIALOG_ID + ' .cs-lock{width:16px;height:16px;fill:#fff;display:block;}',
-            '#' + DIALOG_ID + ' .cs-price{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;}',
+            '#' + DIALOG_ID + ' .cs-price{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;}',
             '#' + DIALOG_ID + ' .cs-price[data-owned="1"]{color:rgba(255,255,255,.5);}',
+            '#' + DIALOG_ID + ' .cs-token{width:13px;height:13px;display:inline-block;vertical-align:-2px;margin-left:1px;}',
+            '#' + DIALOG_ID + ' .cs-cta .cs-token{width:14px;height:14px;vertical-align:-2px;}',
             '#' + DIALOG_ID + ' .cs-free{font-size:13px;font-weight:600;color:#7EE2A8;white-space:nowrap;}',
             '#' + DIALOG_ID + ' .cs-skeleton{padding:0 20px;font-size:13px;color:#9aa0a6;}',
 
@@ -368,8 +371,8 @@
     function lockedCta(ep, confirming) {
         return '<button type="button" class="cs-cta" data-cs-cta data-confirm="' + (confirming ? '1' : '0') + '">' +
             (confirming
-                ? 'Confirm · ' + ep.price + ' 💎'
-                : 'Unlock ' + esc(episodeLabel(ep)) + (ep.price > 0 ? ' · ' + ep.price + ' 💎' : '')) +
+                ? 'Confirm · ' + ep.price + ' ' + TOKEN_ICON
+                : 'Unlock ' + esc(episodeLabel(ep)) + (ep.price > 0 ? ' · ' + ep.price + ' ' + TOKEN_ICON : '')) +
           '</button>'
     }
 
@@ -696,9 +699,9 @@
             if (ep.unlocked && ep.free) {
                 right = '<span class="cs-free">Free</span>'
             } else if (ep.unlocked) {
-                right = '<span class="cs-price" data-owned="1">' + ep.price + ' 💎</span>'
+                right = '<span class="cs-price" data-owned="1">' + ep.price + ' ' + TOKEN_ICON + '</span>'
             } else {
-                right = SVG_LOCK + '<span class="cs-price">' + (ep.price > 0 ? ep.price + ' 💎' : 'Free') + '</span>'
+                right = SVG_LOCK + '<span class="cs-price">' + (ep.price > 0 ? ep.price + ' ' + TOKEN_ICON : 'Free') + '</span>'
             }
 
             html +=
