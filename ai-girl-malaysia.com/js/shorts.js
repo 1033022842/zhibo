@@ -105,7 +105,7 @@
 
         var from = Math.round(num(item.price_from))
         var pills = '<span style="' + PILL_STYLE + '">' + count + ' Eps</span>' +
-            '<span style="' + PILL_STYLE + '">' + (from > 0 ? from + ' 💎' : 'Free') + '</span>'
+            '<span style="' + PILL_STYLE + '">' + (from > 0 ? from + ' <img src="./taocan_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg" alt="" style="width:10px;height:10px;display:inline-block;vertical-align:-1px;margin-left:1px">' : 'Free') + '</span>'
 
         return '<div style="position:absolute;right:6px;bottom:' + (withProgressBar ? '14px' : '6px') +
             ';z-index:30;display:flex;gap:4px;pointer-events:none;">' + pills + '</div>'

@@ -95,7 +95,7 @@
             return '<div class="cv-preset' + (sel ? ' on' : '') + (locked ? ' lock' : '') + '" data-key="' + esc(p.key) + '">' +
                 thumb +
                 '<div class="n">' + esc(p.label) + '</div>' +
-                '<div class="d">' + esc(locked ? ('💎 ' + p.price + ' · buy in Shop') : (p.desc || '')) + '</div></div>'
+                '<div class="d">' + (locked ? ('<img src="./taocan_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg" alt="" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-right:3px">' + esc(p.price + ' · buy in Shop')) : esc(p.desc || '')) + '</div></div>'
         }).join('')
         box.querySelectorAll('.cv-preset').forEach(function (card) {
             card.addEventListener('click', function () {
