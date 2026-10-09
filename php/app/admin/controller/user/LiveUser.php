@@ -44,7 +44,7 @@ class LiveUser extends Backend
             ->field('
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
                 live_user.email, live_user.status, live_user.level, live_user.vip_expire_at, live_user.created_at,
-                live_user.reg_domain, live_user.reg_channel, live_user.reg_link_name, live_user.reg_platform, live_user.reg_px,
+                live_user.reg_domain, live_user.reg_channel, live_user.reg_link_name, live_user.reg_platform, live_user.reg_px, live_user.reg_channel_name,
                 IFNULL(wallet.diamond_balance, 0) as diamond_balance,
                 IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
@@ -61,11 +61,9 @@ class LiveUser extends Backend
             ->order($order)
             ->paginate($limit);
 
-        // 渠道名映射：reg_px 存的是 lp_promo_pixel.id 或像素ID字符串，两种都映射一份；
-        // 同时按渠道绑定的推广域名建立「域名 → 渠道名称」映射（老链接常不带 px/name）
-        $pixelNames  = [];
-        $domainNames = [];
-        foreach (Db::connect('live_mysql')->table('lp_promo_pixel')->field('id,pixel_id,name,domains')->select()->toArray() as $p) {
+        // 像素名映射：reg_px 存的是 lp_promo_pixel.id 或像素ID字符串，两种都映射一份（仅用于悬浮明细展示）
+        $pixelNames = [];
+        foreach (Db::connect('live_mysql')->table('lp_promo_pixel')->field('id,pixel_id,name')->select()->toArray() as $p) {
             $pn = trim((string) $p['name']);
             if ($pn === '') {
                 continue;
@@ -73,14 +71,6 @@ class LiveUser extends Backend
             $pixelNames[(string) $p['id']] = $pn;
             if ((string) $p['pixel_id'] !== '') {
                 $pixelNames[(string) $p['pixel_id']] = $pn;
-            }
-            foreach (preg_split('/[\s,]+/', (string) ($p['domains'] ?? '')) ?: [] as $d) {
-                $d = strtolower(trim((string) $d));
-                $d = (string) preg_replace('#^https?://#i', '', $d);
-                $d = (string) preg_replace('#[/:].*$#', '', $d);
-                if ($d !== '' && !isset($domainNames[$d])) {
-                    $domainNames[$d] = $pn;
-                }
             }
         }
 
@@ -166,12 +156,11 @@ class LiveUser extends Backend
             };
 
             // 注册渠道 = 渠道名称 + 推广域名
-            // 渠道名称取数优先级：推广链接 name 参数 > reg_px 映射的渠道名 > 推广域名匹配的渠道名 > ch 参数
+            // 渠道名称取注册时的快照，渠道配置被改名/删除后历史会员归属不再变化
             $pxKey    = (string) ($row['reg_px'] ?? '');
             $pxName   = ($pxKey !== '' && isset($pixelNames[$pxKey])) ? $pixelNames[$pxKey] : '';
-            $domKey   = strtolower(trim($regDomain));
-            $domName  = ($domKey !== '' && isset($domainNames[$domKey])) ? $domainNames[$domKey] : '';
-            $channelName = $regLink !== '' ? $regLink : ($pxName !== '' ? $pxName : ($domName !== '' ? $domName : $regChannel));
+            $snapName = (string) ($row['reg_channel_name'] ?? '');
+            $channelName = $snapName !== '' ? $snapName : ($regLink !== '' ? $regLink : ($pxName !== '' ? $pxName : $regChannel));
             $chParts = [];
             if ($channelName !== '') { $chParts[] = $channelName; }
             if ($regDomain !== '') { $chParts[] = $regDomain; }
@@ -441,19 +430,10 @@ class LiveUser extends Backend
         $regPlatformRaw = (string) ($user->reg_platform ?? '');
         $regPxRaw       = (string) ($user->reg_px ?? '');
 
-        // 渠道名称：优先 reg_px 映射，其次按推广域名匹配渠道配置
-        $channelName = '';
-        if ($regPxRaw !== '') {
-            $channelName = trim((string) Db::connect('live_mysql')->table('lp_promo_pixel')
-                ->where('id', $regPxRaw)->value('name'));
-            if ($channelName === '') {
-                $channelName = trim((string) Db::connect('live_mysql')->table('lp_promo_pixel')
-                    ->where('pixel_id', $regPxRaw)->value('name'));
-            }
-        }
-        if ($channelName === '' && $regDomainRaw !== '') {
-            $channelName = trim((string) Db::connect('live_mysql')->table('lp_promo_pixel')
-                ->whereLike('domains', '%' . $regDomainRaw . '%')->value('name'));
+        // 渠道名称：优先注册时快照，保证渠道配置被改名/删除后归属展示不变
+        $channelName = trim((string) ($user->reg_channel_name ?? ''));
+        if ($channelName === '') {
+            $channelName = $regLinkRaw;
         }
         $pfShort = match (strtolower($regPlatformRaw)) {
             'facebook' => 'FB', 'tiktok' => 'TT', 'google' => 'GG', default => '',

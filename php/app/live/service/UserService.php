@@ -90,6 +90,12 @@ final class UserService
             $user->reg_channel  = mb_substr(trim((string) $attr['channel']), 0, 64);
             $user->reg_platform = mb_substr(self::normalizePlatform($attr), 0, 32);
             $user->reg_px       = mb_substr(trim((string) $attr['px']), 0, 64);
+            // 渠道名称快照：注册当下解析一次落库，之后改名/删除渠道配置都不再影响该会员的归属展示
+            $user->reg_channel_name = mb_substr(
+                self::resolveChannelName((string) $attr['px'], (string) $attr['link_name'], (string) $attr['channel']),
+                0,
+                128
+            );
             $user->reg_campaign = mb_substr(trim((string) $attr['campaign']), 0, 128);
             $user->reg_adset    = mb_substr(trim((string) $attr['adset']), 0, 128);
             $user->reg_ad       = mb_substr(trim((string) $attr['ad']), 0, 128);
@@ -531,6 +537,38 @@ final class UserService
             $reason === '' ? '-' : $reason,
             $description === '' ? '-' : $description
         ));
+    }
+
+    /**
+     * 解析「渠道名称」用于注册时快照
+     * 优先 ?px= 对应的渠道配置名称，其次推广链接名称(?name=)，最后兜底 ch 参数
+     */
+    private static function resolveChannelName(string $px, string $linkName, string $channel): string
+    {
+        $px = trim($px);
+        if ($px !== '') {
+            try {
+                $name = trim((string) Db::connect('live_mysql')->table('lp_promo_pixel')
+                    ->where('id', $px)->value('name'));
+                if ($name === '') {
+                    $name = trim((string) Db::connect('live_mysql')->table('lp_promo_pixel')
+                        ->where('pixel_id', $px)->value('name'));
+                }
+                if ($name !== '') {
+                    return $name;
+                }
+            } catch (\Throwable $e) {
+                // 快照失败不能影响注册主流程
+                Log::warning('[promo] 渠道名称快照失败 px=' . $px . ' err=' . $e->getMessage());
+            }
+        }
+
+        $linkName = trim($linkName);
+        if ($linkName !== '') {
+            return $linkName;
+        }
+
+        return trim($channel);
     }
 
     /**
