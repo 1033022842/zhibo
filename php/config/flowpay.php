@@ -26,9 +26,11 @@ return [
      * 所以前台把它们平铺成多个「Pay with xxx」按钮，由用户自选。
      */
     'channels'       => [
-        '666888' => 'Amopay-applepay',
-        '666777' => 'Amopay-GGPay',
-        '666999' => 'Amopay-Visa',
+        // gcode ↔ 通道名的对应关系以 FlowPay 商户后台为准，不能凭编号猜
+        // （曾配错：把 666888 当成 applepay，实际是 Visa）
+        '666777' => 'Amopay-applepay',
+        '666999' => 'Amopay-GGPay',
+        '666888' => 'Amopay-Visa',
     ],
     'notify_url'     => (string) env('flowpay.notify_url', ''),
     'return_url'     => (string) env('flowpay.return_url', ''),

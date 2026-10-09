@@ -2,7 +2,7 @@
 -- 充值订单「支付通道」字段（FlowPay 多通道）
 --
 -- 背景：FlowPay 商户号 10000011 下开通了多条收单通道（gcode）：
---   666888 Amopay-applepay / 666777 Amopay-GGPay / 666999 Amopay-Visa
+--   666777 Amopay-applepay / 666999 Amopay-GGPay / 666888 Amopay-Visa
 -- 三条通道金额与费率一致（同一收银台 ramp.amopay.io），只差发卡行侧收单路由。
 -- 前台把它们平铺成多个「Pay with xxx」按钮由用户自选，因此订单需要记下
 -- 本单实际走的 gcode，后台才能按通道对比成功率。

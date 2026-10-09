@@ -143,7 +143,8 @@ final class Recharge extends BaseController
     {
         $flowPay = new \app\live\service\FlowPayService();
         // 网关以 application/json 推送，需读原始 body（全局输入过滤会破坏签名原文）
-        $post = json_decode((string) $this->request->getContent(), true);
+        $raw  = (string) $this->request->getContent();
+        $post = json_decode($raw, true);
         if (!is_array($post)) {
             $post = (array) $this->request->post();
         }
@@ -151,12 +152,20 @@ final class Recharge extends BaseController
         try {
             $params = $flowPay->verifyNotify($post);
         } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyFlowPay] 验签失败：' . $e->getMessage() . ' raw=' . mb_substr($raw, 0, 2000));
             return response('FAIL', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
         }
 
         $orderNo = (string) ($params['orderid'] ?? '');
-        // trade_state：success 成功 / notpay 失败；务必判断状态
-        if ($orderNo === '' || (string) ($params['trade_state'] ?? '') !== 'success') {
+        // 成功标志：回调文档口径是 trade_state=success；而查单接口里 trade_state 恒为 notpay、
+        // 真正标记已支付的是 status=success。两个都认，避免漏单。
+        $paid = (string) ($params['trade_state'] ?? '') === 'success'
+            || (string) ($params['status'] ?? '') === 'success';
+        \think\facade\Log::info(sprintf(
+            '[recharge:notifyFlowPay] orderid=%s trade_state=%s status=%s paid=%s',
+            $orderNo, (string) ($params['trade_state'] ?? ''), (string) ($params['status'] ?? ''), $paid ? '1' : '0'
+        ));
+        if ($orderNo === '' || !$paid) {
             return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
         }
 
