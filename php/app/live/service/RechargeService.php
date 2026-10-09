@@ -1059,15 +1059,18 @@ final class RechargeService
                     $stat['skipped']++;
                     continue;
                 }
-                $res   = $flowPay->queryOrder($orderNo);
-                $state = (string) ($res['trade_state'] ?? '');
-                if ($state === 'notpay') {
-                    $this->markPayChecked((int) $r['id'], 2);
-                    $stat['unpaid']++;
+                $res = $flowPay->queryOrder($orderNo);
+                // 实测：查单接口里 trade_state 恒为 notpay、pay_time 恒为 0（网关没维护这两个字段），
+                // 真正标记「已支付」的是 status=success，所以以它为准；trade_state=success 也一并认。
+                $trade  = (string) ($res['trade_state'] ?? '');
+                $ostate = (string) ($res['status'] ?? '');
+                if ($trade !== 'success' && $ostate !== 'success') {
+                    // 只有网关明确给了「未支付」才落这个状态，拿不到结论时保持未知
+                    if ($trade === 'notpay' || $ostate === 'pending') {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
+                    }
                     continue;
-                }
-                if ($state !== 'success') {
-                    continue; // 网关没给出明确结论，保持未知
                 }
                 $this->markPayChecked((int) $r['id'], 1);
                 $this->confirmByGateway($orderNo, (string) ($res['transaction_id'] ?? ''), '', 'FlowPay(查单补单)');
