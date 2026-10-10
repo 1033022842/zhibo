@@ -4,6 +4,10 @@
   if (window.__sugusPromoReady) return
   window.__sugusPromoReady = true
 
+  /* 总开关：弹窗导流到 face_swap（AI 换脸），该功能尚未上线，暂时不弹；
+     上线后改回 true 恢复（HTML 引用版本号记得同步升级） */
+  var ENABLED = false
+
   var DISMISS_KEY = 'sugus.promo.dismissed'
   var LOGIN_EVENT = 'live:login'
 
@@ -82,6 +86,7 @@
 
   /* 已登录 + 本会话没关闭过 → 弹出 */
   function maybeShow() {
+    if (!ENABLED) return
     if (!build()) return
     if (!token()) return
     if (readS(DISMISS_KEY) === '1') return
