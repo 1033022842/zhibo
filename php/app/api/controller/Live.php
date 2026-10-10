@@ -1169,6 +1169,74 @@ final class Live extends BaseController
     }
 
     /**
+     * 角色开场白（ice breaker）：按人设 AI 生成一条火热开场问候，进入无历史的会话时展示。
+     * GET { content_id?, role_key?, persona_name?, persona_desc?, lang? }
+     *
+     * 缓存：按角色缓存（content_id 或 role_key 维度），生成一次全站共享——开场白是角色的公开属性，
+     * 同一角色每个用户看到同一条，避免每次进入都调 AI。命中返回 cached=true，新生成 cached=false。
+     * 未登录可用（不需要知道访客是谁）；AI 失败返回错误，由前端本地模板兜底。
+     */
+    public function iceBreaker()
+    {
+        $contentId = (int) $this->request->get('content_id', 0);
+        $roleKey   = $this->normalizeRoleKey((string) $this->request->get('role_key', ''));
+        $lang      = (string) $this->request->get('lang', '');
+        $customName = trim((string) $this->request->get('persona_name', ''));
+        $customDesc = trim((string) $this->request->get('persona_desc', ''));
+        if ($contentId <= 0 && $roleKey === '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'content_id 无效');
+        }
+
+        $cacheKey = 'ice_breaker:' . ($contentId > 0 ? 'c' . $contentId : $roleKey);
+        $cached = (string) \think\facade\Cache::store('file')->get($cacheKey, '');
+        if ($cached !== '') {
+            return $this->jsonSuccess(['text' => $cached, 'cached' => true]);
+        }
+
+        // 人设：平台角色读库；无平台内容 id 的角色（首页推荐/自建）用前端传入的人设
+        if ($contentId > 0) {
+            [$personaName, $personaDesc] = $this->loadPersonaPrompt($contentId);
+        } else {
+            $personaName = $customName;
+            $personaDesc = mb_substr($customDesc, 0, 800);
+        }
+        if ($personaName === '') {
+            $personaName = 'AI girlfriend';
+        }
+
+        $system = '你是「' . $personaName . '」，一个真实、鲜活的 AI 虚拟伴侣。';
+        $system .= '请完全代入这个角色，用第一人称、口语化、自然的方式和对方聊天。';
+        $system .= '主动延续话题、适当调情暧昧，可以适当使用 emoji 表达情绪，语气贴合角色人设，避免机械、模板化。';
+        $langRule = $this->langRule($lang);
+        if ($langRule !== '') {
+            $system .= $langRule;
+        }
+        if ($personaDesc !== '') {
+            $system .= "\n\n角色人设：" . $personaDesc;
+        }
+
+        try {
+            $text = (new LlmService())->chat([
+                ['role' => 'system', 'content' => $system],
+                ['role' => 'user', 'content' => '（对方刚进入聊天室，还没有说话）请以角色身份，主动写下你发给对方的第一条开场消息：火热、撩人、充满渴望但不过分露骨，一两句话（不超过 40 个词），可带 1-2 个 emoji。只输出消息本身，不要任何前缀或解释。'],
+            ], ['max_tokens' => 120]);
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+        $text = trim($text);
+        // LLM 有时会把整条消息用引号包起来：去掉首尾成对的包裹引号
+        $text = preg_replace('/^(["\'“”‘’]+)(.*)\\1$/us', '$2', $text);
+        $text = trim($text);
+        if ($text === '') {
+            return $this->jsonFail(ResultCode::SERVER_ERROR, '生成失败，请重试');
+        }
+
+        // 缓存 30 天：同一角色固定一条开场白
+        \think\facade\Cache::store('file')->set($cacheKey, $text, 30 * 86400);
+        return $this->jsonSuccess(['text' => $text, 'cached' => false]);
+    }
+
+    /**
      * AI 前端：获取聊天历史（只读当前登录用户自己的记录）
      * GET { content_id, limit }
      */
