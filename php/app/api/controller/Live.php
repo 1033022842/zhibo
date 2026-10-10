@@ -1172,8 +1172,9 @@ final class Live extends BaseController
      * 角色开场白（ice breaker）：按人设 AI 生成一条火热开场问候，进入无历史的会话时展示。
      * GET { content_id?, role_key?, persona_name?, persona_desc?, lang? }
      *
-     * 缓存：按角色缓存（content_id 或 role_key 维度），生成一次全站共享——开场白是角色的公开属性，
-     * 同一角色每个用户看到同一条，避免每次进入都调 AI。命中返回 cached=true，新生成 cached=false。
+     * 缓存：按「角色 × ISO 周」缓存（如 ice_breaker:c17:2026W41），生成一次全站共享一周——
+     * 开场白是角色的公开属性，同周每个用户看到同一条，每周一自动轮换新的一条。
+     * 命中返回 cached=true，新生成 cached=false。
      * 未登录可用（不需要知道访客是谁）；AI 失败返回错误，由前端本地模板兜底。
      */
     public function iceBreaker()
@@ -1187,7 +1188,9 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'content_id 无效');
         }
 
-        $cacheKey = 'ice_breaker:' . ($contentId > 0 ? 'c' . $contentId : $roleKey);
+        // 每周轮换：key 带上一 ISO 周号（如 2026W41），同周全站命中同一条，跨周自动生成新的开场白
+        $week = date('o') . 'W' . date('W');
+        $cacheKey = 'ice_breaker:' . ($contentId > 0 ? 'c' . $contentId : $roleKey) . ':' . $week;
         $cached = (string) \think\facade\Cache::store('file')->get($cacheKey, '');
         if ($cached !== '') {
             return $this->jsonSuccess(['text' => $cached, 'cached' => true]);
@@ -1231,8 +1234,8 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::SERVER_ERROR, '生成失败，请重试');
         }
 
-        // 缓存 30 天：同一角色固定一条开场白
-        \think\facade\Cache::store('file')->set($cacheKey, $text, 30 * 86400);
+        // 缓存 8 天：覆盖本周剩余时间，跨周后旧周 key 自然过期（每周一自动换新开场白）
+        \think\facade\Cache::store('file')->set($cacheKey, $text, 8 * 86400);
         return $this->jsonSuccess(['text' => $text, 'cached' => false]);
     }
 
