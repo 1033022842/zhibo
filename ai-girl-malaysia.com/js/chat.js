@@ -806,7 +806,35 @@
         var conv = chatItemById(activeConvId)
         // 没有真实角色（如 chat-default 空状态）不生成开场白
         if (!conv || !conv.title || conv.title === String(conv.id || '')) return
-        appendBubble(pickIceBreaker(), false)
+        // 后端按人设生成（角色维度缓存，同一角色固定一条）；超时/失败用本地模板兜底
+        var typing = appendTyping()
+        var done = false
+        var cid = convContentId()
+        var rkey = convRoleKey()
+        var persona = currentPersona()
+        var qs = '?content_id=' + encodeURIComponent(cid) +
+            '&role_key=' + encodeURIComponent(rkey) +
+            '&persona_name=' + encodeURIComponent(persona.name || '') +
+            '&persona_desc=' + encodeURIComponent(String(persona.desc || '').slice(0, 600)) +
+            '&lang=' + encodeURIComponent(uiLang())
+        var finish = function (text) {
+            if (done) return
+            done = true
+            if (typing) typing.remove()
+            appendBubble(text, false)
+        }
+        var fallbackTimer = setTimeout(function () { finish(pickIceBreaker()) }, 8000)
+        fetch('/api/live/iceBreaker' + qs, { headers: authHeaders(false) })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                clearTimeout(fallbackTimer)
+                var t = (d && d.code === '00000' && d.data && d.data.text) ? String(d.data.text) : ''
+                finish(t || pickIceBreaker())
+            })
+            .catch(function () {
+                clearTimeout(fallbackTimer)
+                finish(pickIceBreaker())
+            })
     }
 
     /* ---------- Suggestion 建议语：点击直接作为消息发送（捕获阶段拦截，避免触发原站注册弹窗） ---------- */
