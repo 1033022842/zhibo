@@ -98,7 +98,6 @@
     { href: './characters.html', label: 'Create Character', icon: 'wand' },
     { href: './charactersIndex.html', label: 'My AI', icon: 'lady' },
     { href: './upload_media.html', label: 'Upload Media', icon: 'upload' },
-    { href: './face_swap.html', label: 'Face Swap', icon: 'faceswap' },
     { href: './shop.html', label: 'Shop', icon: 'candy' },
     { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
     { href: './posts.html', label: 'Posts', icon: 'posts' },
