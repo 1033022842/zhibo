@@ -51,6 +51,8 @@
         })
         // 重启会话按钮（原模板内联 confirm 已摘除，走美化确认框）
         setupRebootDialog()
+        setupSuggestionSend()
+        avatarFallback()
         channelDetail(id)
     }, 1000);
 
@@ -758,13 +760,12 @@
                     if (m.media && (m.media.url || m.media.unlocked === false)) rows.push({ media: m.media, mine: mine })
                     else if (m.content) rows.push({ text: m.content, mine: mine, role: m.role, voice: !!m.voice })
                 }
-                // 没有历史：首次加载保留页面自带的问候占位，切换会话时清空上一个会话的消息
+                // 没有历史：清掉页面自带的空问候占位（无音频 play 按钮），换成按人设生成的火热开场白
                 if (!rows.length) {
-                    if (historyLoadedOnce) {
-                        var emptyBox = messagesBox()
-                        if (emptyBox) emptyBox.innerHTML = ''
-                    }
+                    var emptyBox = messagesBox()
+                    if (emptyBox) emptyBox.innerHTML = ''
                     historyLoadedOnce = true
+                    showIceBreaker()
                     return
                 }
                 historyLoadedOnce = true
@@ -782,6 +783,61 @@
             })
             .catch(function () {})
         loadAffection()
+    }
+
+    /* ---------- 开场问候：无历史时按人设生成火热开场白（本地模板轮换，替代页面自带的空音频占位） ---------- */
+    var ICE_BREAKERS = [
+        'Mmm, finally you\'re here… I was just thinking about you and getting a little impatient. How\'s my favorite person today? 💋',
+        'Hey you… I\'ve been waiting all day for this. Come closer and tell me — what have you been doing without me? 😏',
+        'There you are… I couldn\'t stop imagining you tonight. Stay a while and make it worth my while 🔥',
+        'Hi baby… I\'m in a dangerously playful mood right now. Curious how naughty I can get? 😈',
+        'Finally… don\'t make me wait like that again. I need your attention — all of it, right now 💦'
+    ]
+
+    function pickIceBreaker() {
+        var conv = currentConversation()
+        var seed = String(conv.id || '') + String(conv.title || '')
+        var h = 0
+        for (var i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+        return ICE_BREAKERS[h % ICE_BREAKERS.length]
+    }
+
+    function showIceBreaker() {
+        var conv = chatItemById(activeConvId)
+        // 没有真实角色（如 chat-default 空状态）不生成开场白
+        if (!conv || !conv.title || conv.title === String(conv.id || '')) return
+        appendBubble(pickIceBreaker(), false)
+    }
+
+    /* ---------- Suggestion 建议语：点击直接作为消息发送（捕获阶段拦截，避免触发原站注册弹窗） ---------- */
+    function setupSuggestionSend() {
+        document.addEventListener('click', function (e) {
+            var sug = e.target && e.target.closest ? e.target.closest('#answer-suggestion > div.cursor-pointer, #image-suggestion > div.cursor-pointer') : null
+            if (!sug) return
+            e.preventDefault()
+            e.stopPropagation()
+            var txt = (sug.textContent || '').trim()
+            if (txt !== '') sendMessage({ text: txt })
+        }, true)
+    }
+
+    /* ---------- 头像兜底：图片裂开时换成角色首字母渐变占位 ---------- */
+    function avatarFallback() {
+        var img = document.getElementById('chat-img')
+        if (!img) return
+        img.addEventListener('error', function () {
+            var conv = chatItemById(activeConvId) || {}
+            var name = String(conv.title || 'AI')
+            var letter = (name.trim()[0] || 'A').toUpperCase()
+            img.onerror = null
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">' +
+                '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+                '<stop offset="0" stop-color="#fc768a"/><stop offset="1" stop-color="#e65073"/>' +
+                '</linearGradient></defs>' +
+                '<rect width="120" height="120" fill="url(#g)"/>' +
+                '<text x="60" y="76" font-family="Arial,sans-serif" font-size="52" font-weight="700" fill="#fff" text-anchor="middle">' + letter + '</text></svg>')
+        })
     }
 
     function sendMessage(opts) {
@@ -1316,11 +1372,17 @@
         // }).catch(error => console.error(error))
         var local = readPageList()
         activeConvId = String(id || '') || String(getParam('id') || '')
+        // chat-default 不是真实角色（旧版默认兜底键）：清掉走「自动选第一个会话」，名字/头像随真实角色走
+        if (activeConvId === 'chat-default') {
+            activeConvId = ''
+            try { history.replaceState(null, '', './Chat.html') } catch (e) {}
+        }
         // 聊天记录只属于登录用户：未登录不展示会话列表与历史，只显示当前角色资料
         if (!token) {
             getInfo([])
             var guestConv = chatItemById(activeConvId)
-            if (guestConv) getDetail(guestConv)
+            // 只在拿到真实角色资料时刷新头部，避免把「chat-default」这类兜底 id 当名字显示
+            if (guestConv && guestConv.title && guestConv.title !== String(activeConvId)) getDetail(guestConv)
             return
         }
         if (activeConvId === '' && local.length > 0) activeConvId = String(local[0].id || '')
@@ -1353,7 +1415,7 @@
             var conv = convs[i] || {}
             var cid = Number(conv.content_id || 0)
             var id = cid > 0 ? String(cid) : String(conv.role_key || '')
-            if (id === '' || id === '0') continue
+            if (id === '' || id === '0' || id === 'chat-default') continue
             var l = null
             for (var k = 0; k < local.length; k++) {
                 if (String(local[k] && local[k].id) === id) { l = local[k]; break }
@@ -1363,7 +1425,8 @@
                 try { persona = JSON.parse(localStorage.getItem('myPersona:' + id) || 'null') } catch (e) { persona = null }
             }
             used[id] = true
-            var item = emptyConv(id, (l && l.title) || conv.title || (persona && persona.name) || id)
+            // 名字兜底：人设名 → 服务端标题 → 「AI Chat」，绝不把裸 id 当名字显示
+            var item = emptyConv(id, (l && l.title) || conv.title || (persona && persona.name) || 'AI Chat')
             item.image = (l && l.image) || conv.cover_url || ''
             item.description = conv.last_message || (l && l.description) || ''
             item.time = shortTime(conv.time) || (l && l.time) || ''
