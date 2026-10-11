@@ -1462,42 +1462,53 @@
                 return
             }
         }
-        // 聊天记录只属于登录用户：未登录不展示会话列表与历史，只显示当前角色资料
-        if (!token) {
-            getInfo([])
-            var guestConv = chatItemById(activeConvId)
-            // 只在拿到真实角色资料时刷新头部，避免把「chat-default」这类兜底 id 当名字显示
-            if (guestConv && guestConv.title && guestConv.title !== String(activeConvId)) getDetail(guestConv)
-            return
-        }
+        // 聊天记录只属于登录用户：未登录不展示历史，但左侧同样显示首页角色列表（点角色→跳登录）
         continueChannelDetail(local)
     }
 
-    // channelDetail 的公共后半段：渲染会话列表 + 拉服务端会话 + 启动当前会话
+    // channelDetail 的公共后半段：左侧列表 = 首页 Explore Featured Characters 的角色列表（全带封面），
+    // 不再渲染聊天会话历史；当前随机/指定的角色在列表中高亮并加载其历史
     function continueChannelDetail(local) {
-        if (activeConvId === '' && local.length > 0) activeConvId = String(local[0].id || '')
+        // 本机没有角色缓存（新设备）：拉取首页角色列表后再渲染
+        if (local.length === 0) {
+            fetch('/api/live/pagelist', { method: 'POST', headers: authHeaders(false) })
+                .then(function (r) { return r.json() })
+                .then(function (d) {
+                    var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                    if (list.length > 0) {
+                        try { localStorage.setItem('pageList', JSON.stringify(list)) } catch (e) {}
+                        local = list
+                        // 直接进入且还没选角色：补一次随机
+                        if (activeConvId === '') activeConvId = String(list[Math.floor(Math.random() * list.length)].id)
+                    }
+                    continueChannelDetail(local)
+                })
+                .catch(function () { /* 列表拉不到就保持空白，不影响右侧 */ })
+            return
+        }
 
-        // 先用本地记录渲染一版，接口慢时左侧也不会空白
-        getInfo(buildConvItems([], local))
+        // 渲染首页角色列表（id/title/cover_url/description → 列表条目）
+        getInfo(local.map(function (r) {
+            return {
+                id: String(r.id), title: r.title || '', image: r.cover_url || '',
+                description: r.description || '', time: ''
+            }
+        }))
 
-        // 当前会话的聊天历史与「会话列表」并行拉（历史上是串行，白等一个 RTT）
+        // 当前会话的聊天历史与「列表渲染」并行拉（历史上是串行，白等一个 RTT）
         if (activeConvId !== '' && token) loadChatHistory()
 
-        // 再拉服务端会话列表（换设备/清了缓存也能看到历史），按最近聊天排序
-        fetch('/api/live/chatConversations?device_id=' + encodeURIComponent(deviceId()), { headers: authHeaders(false) })
-          .then(function (r) { return r.json() })
-          .then(function (d) {
-            var convs = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
-            if (convs.length > 0) {
-              getInfo(buildConvItems(convs, local))
-              // URL 不带 ?id= 时补上，刷新后仍停留在同一会话
-              if (String(getParam('id') || '') === '') {
-                try { history.replaceState(null, '', './Chat.html?id=' + encodeURIComponent(activeConvId)) } catch (e) {}
-              }
+        // 当前角色不在列表里（如 URL 指定的老角色）：随机换一个列表内角色开场
+        var hasCur = activeConvId !== '' && $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').length > 0
+        if (!hasCur) {
+            var all = $('#message-list').find('a.chat-obj')
+            if (all.length) {
+                var pick = all[Math.floor(Math.random() * all.length)]
+                selectConversation(String($(pick).data('id') || ''), true)
+                return
             }
-            startConversation()
-          })
-          .catch(function () { startConversation() })
+        }
+        startConversation()
       }
 
     // 服务端会话 + 本地记录 → 左侧可渲染条目（本地记录补名字/头像，服务端给最近一条消息与时间）
