@@ -64,6 +64,20 @@
 	@media (max-width:1023px){
 		#conversation-container{padding-left:0 !important;padding-right:0 !important;border-radius:0}
 	}
+	/* 滚动条美化：暗色细圆条，替代 Windows 原生灰色大滚动条 */
+	#messages::-webkit-scrollbar,
+	.list-container::-webkit-scrollbar,
+	#conversation-container::-webkit-scrollbar{width:6px;height:6px}
+	#messages::-webkit-scrollbar-track,
+	.list-container::-webkit-scrollbar-track,
+	#conversation-container::-webkit-scrollbar-track{background:transparent}
+	#messages::-webkit-scrollbar-thumb,
+	.list-container::-webkit-scrollbar-thumb,
+	#conversation-container::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:8px}
+	#messages::-webkit-scrollbar-thumb:hover,
+	.list-container::-webkit-scrollbar-thumb:hover,
+	#conversation-container::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
+	#messages,.list-container,#conversation-container{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
 	</style>
 <script src="./js/tracking.js?v=20261006e"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
