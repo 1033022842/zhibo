@@ -59,9 +59,10 @@
             })
             // 重启会话按钮（原模板内联 confirm 已摘除，走美化确认框）
             setupRebootDialog()
-            setupSuggestionSend()
             avatarFallback()
         }
+        // 建议语每次进入都要重新消毒（Turbo 快照恢复会丢掉克隆元素上的监听）
+        setupSuggestionSend()
         // 会话/历史/开场白每次进入都要重建（Turbo 恢复的快照是旧 DOM）
         channelDetail(id)
     }
@@ -863,14 +864,27 @@
 
     /* ---------- Suggestion 建议语：点击直接作为消息发送（捕获阶段拦截，避免触发原站注册弹窗） ---------- */
     function setupSuggestionSend() {
-        document.addEventListener('click', function (e) {
-            var sug = e.target && e.target.closest ? e.target.closest('#answer-suggestion > div.cursor-pointer, #image-suggestion > div.cursor-pointer') : null
-            if (!sug) return
-            e.preventDefault()
-            e.stopPropagation()
-            var txt = (sug.textContent || '').trim()
-            if (txt !== '') sendMessage({ text: txt })
-        }, true)
+        // candy 模板在建议语上挂了 Stimulus 钩子（data-action=openRegistrationModal → 弹它的登录框）。
+        // 用克隆替换元素：一次性拔掉原站全部监听，再绑自己的「点击直接发送」。
+        ['#answer-suggestion', '#image-suggestion'].forEach(function (sel) {
+            var wrap = document.querySelector(sel)
+            if (!wrap) return
+            var inner = wrap.querySelector('.cursor-pointer')
+            if (!inner) return
+            var clone = inner.cloneNode(true)
+            clone.removeAttribute('data-action')
+            clone.removeAttribute('data-redirect-url')
+            clone.removeAttribute('data-controller')
+            inner.parentNode.replaceChild(clone, inner)
+            clone.addEventListener('click', function (e) {
+                e.preventDefault()
+                e.stopPropagation()
+                var txt = (clone.textContent || '').trim()
+                if (txt === '') return
+                if (!token) { goLoginPage(); return }
+                sendMessage({ text: txt })
+            })
+        })
     }
 
     /* ---------- 头像兜底：图片裂开时换成角色首字母渐变占位 ---------- */
