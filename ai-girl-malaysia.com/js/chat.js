@@ -862,6 +862,7 @@
 
     function showIceBreaker() {
         var conv = chatItemById(activeConvId)
+        try { (window.__chatTrace = window.__chatTrace || []).push('showIceBreaker id=' + String(activeConvId) + ' title=' + String(conv && conv.title)) } catch (e) {}
         // 没有真实角色（如 chat-default 空状态）不生成开场白
         if (!conv || !conv.title || conv.title === String(conv.id || '')) return
         // 后端按人设生成（角色维度缓存，同一角色固定一条）；超时/失败用本地模板兜底
@@ -1562,12 +1563,16 @@
     }
 
     function continueChannelDetail(local) {
-        // 未登录：左侧保持空（没有历史会话可显示），右侧仍要展示当前角色资料
+        // 未登录：左侧保持空（没有历史会话可显示），右侧展示当前角色资料 + 开场白（清掉页面自带的空音频占位）
         if (!token) {
             getInfo([])
             ensureCurrentInList(local)
             var guestConv = chatItemById(activeConvId)
             if (guestConv && guestConv.title && guestConv.title !== activeConvId && guestConv.title !== 'AI Chat') getDetail(guestConv)
+            // 清掉页面自带的空音频占位气泡，直接展示开场白
+            var guestBox = messagesBox()
+            if (guestBox) guestBox.innerHTML = ''
+            showIceBreaker()
             return
         }
         // 本机没有角色缓存（新设备）：等预热拉取完成后继续（会话列表来自服务端，不依赖它）
