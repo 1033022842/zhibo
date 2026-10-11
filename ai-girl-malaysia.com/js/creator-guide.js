@@ -4,7 +4,7 @@
  * Behavior:
  *   · Shows once per login session: auto-opens 1.2s after load, then stays hidden on further page
  *     views. It opens again when the login token changes (i.e. next login).
- *   · First visit in a browser session (not logged in yet) also shows it once.
+ *   · 未登录（含登录页）从不弹。
  *   · Clicking "Don't show again" disables it permanently (localStorage: creator_guide_seen_v2=1)
  *   · Closing (X / Maybe later) does not disable it
  *   · "Start creating" goes to the Creator Center ./crowdfunding.html
@@ -47,15 +47,16 @@
   }
 
   /**
-   * Once per login: show on the first page in a browser session, and again only when the
-   * login token changes (a new login). Same login + further page views -> hidden.
+   * 登录后才弹：每次登录（token 变化）后的第一个页面弹一次，同一登录的后续页面不再弹。
+   * 未登录（含登录页）从不弹——Creator Earning Guide 只对已登录的创作者有意义。
    */
   function shouldShow() {
     if (isSeen()) return false;
     var tok = getToken();
+    if (tok === '') return false;
     var prev = shownToken();
-    if (prev === null) return true;
-    return tok !== '' && tok !== prev;
+    if (prev === null || prev === '') return true;
+    return tok !== prev;
   }
 
   var CSS = ''

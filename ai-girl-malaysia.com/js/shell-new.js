@@ -717,6 +717,8 @@
       '</button>' +
       '<div class="fy-chip-pop hidden" id="navbar-tokens-dropdown">' +
       '<div class="fy-chip-pop-in">' +
+      row('Message cost', '<b>2</b> tokens') +
+      '<span class="fy-chip-pop-sep"></span>' +
       row('Voice cost', '<b>1</b>/20s') +
       '<span class="fy-chip-pop-sep"></span>' +
       row('Image cost', '<b>4</b>') +
