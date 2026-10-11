@@ -1315,6 +1315,21 @@
             }, true)
         }
     }
+    // 会话头像兜底：没有封面图时生成「渐变 + 首字母」占位，避免左侧列表一排裂图
+    function avatarPlaceholder(title) {
+        var name = String(title || 'AI').trim()
+        var letter = (name[0] || 'A').toUpperCase()
+        var hue = 0
+        for (var i = 0; i < name.length; i++) hue = (hue * 31 + name.charCodeAt(i)) % 360
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">' +
+            '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+            '<stop offset="0" stop-color="hsl(' + hue + ',60%,55%)"/><stop offset="1" stop-color="hsl(' + ((hue + 40) % 360) + ',65%,45%)"/>' +
+            '</linearGradient></defs>' +
+            '<rect width="96" height="96" fill="url(#g)"/>' +
+            '<text x="48" y="61" font-family="Arial,sans-serif" font-size="40" font-weight="700" fill="#fff" text-anchor="middle">' + letter + '</text></svg>')
+    }
+
     function getInfo(data) {
         convItems = {}
         var template = String($('#user-template').html() || '')
@@ -1326,13 +1341,18 @@
             conv.id = cid
             convItems[cid] = conv
 
+            var img = String(conv.image || '').split(',')[0]
+            if (!img) img = avatarPlaceholder(conv.title)
             var rendered = template.replace("{{name}}", conv.title == null ? '' : conv.title)
-            .replace("{{imgUrl}}", String(conv.image || '').split(',')[0])
+            .replace("{{imgUrl}}", img)
             .replace("{{message}}", conv.description == null ? '' : conv.description)
             .replace("{{time}}", conv.time == null ? '' : conv.time)
             .replace("{{id}}", cid);
 
-            $('#message-list').append(rendered);
+            var $row = $(rendered)
+            // 封面 URL 存在但加载失败（失效域名/404）→ 同样换占位
+            $row.find('img').one('error', function () { this.src = avatarPlaceholder(conv.title) })
+            $('#message-list').append($row);
         });
         // 当前会话置为选中态，保证刷新后归档键不丢
         var $active = $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').first()
