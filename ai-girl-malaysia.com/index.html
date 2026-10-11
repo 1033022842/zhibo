@@ -36,6 +36,11 @@
 		<style>
 			/* 众筹卡片补充样式（沿用站点配色） */
 			.cf-card{background:#262626;border:1px solid rgba(255,255,255,.08);border-radius:8px;overflow:hidden;position:relative}
+			/* 卡片等高：li 拉伸为 flex，卡片纵向布局，按钮贴底——所有卡片高度一致 */
+			#cfActiveList>li,#cfDoneList>li,#cfFailList>li{display:flex}
+			.cf-card{display:flex;flex-direction:column;width:100%}
+			.cf-body{flex:1;display:flex;flex-direction:column}
+			.cf-body .cf-btn{margin-top:auto}
 			.cf-cover-wrap{position:relative;height:210px;background:#161616}
 			.cf-cover-wrap img{width:100%;height:100%;object-fit:contain;object-position:center}
 			.cf-cover-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a1a,#2a1d22)}
