@@ -32,29 +32,43 @@
         var r = location.search.substring(1).match(reg);  
         if (r != null) return decodeURI(decodeURI(r[2])); 
     }
-    setTimeout(() => {
-      if(token) {
-          $('#sign-in-modal').css('display', 'none')
-                $('#user-setting').css('display', 'flex')
-                $('#user-login').css('display', 'none')
+    // 初始化入口：首次加载 + Turbo 导航返回（快照恢复不重跑脚本，必须手动重建聊天区）
+    var chatBooted = false
+    var lastBootAt = 0
+    function bootChat(force) {
+        var now = Date.now()
+        if (!force && now - lastBootAt < 1000) return
+        lastBootAt = now
+        if (token) {
+            $('#sign-in-modal').css('display', 'none')
+            $('#user-setting').css('display', 'flex')
+            $('#user-login').css('display', 'none')
         }
         var id = getParam('id')
-        // 登录态/跳登录页/通话的初始化必须最先做：下面会话初始化万一抛错也不会把它跳过
-        setupAuthFlow()
-        setupCall()
-        setupLogout()
-        loadConsumeOptions()
-        loadTokens()
-        // 会话列表是异步渲染的，点击必须用事件委托，否则后插入的条目不会带上事件
-        $(document).on('click', '#message-list a.chat-obj', function(){
-            selectConversation(String($(this).data('id') || ''))
-        })
-        // 重启会话按钮（原模板内联 confirm 已摘除，走美化确认框）
-        setupRebootDialog()
-        setupSuggestionSend()
-        avatarFallback()
+        if (!chatBooted) {
+            // 登录态/跳登录页/通话的初始化必须最先做且只绑一次：下面会话初始化万一抛错也不会把它跳过
+            chatBooted = true
+            setupAuthFlow()
+            setupCall()
+            setupLogout()
+            loadConsumeOptions()
+            loadTokens()
+            // 会话列表是异步渲染的，点击必须用事件委托，否则后插入的条目不会带上事件
+            $(document).on('click', '#message-list a.chat-obj', function(){
+                selectConversation(String($(this).data('id') || ''))
+            })
+            // 重启会话按钮（原模板内联 confirm 已摘除，走美化确认框）
+            setupRebootDialog()
+            setupSuggestionSend()
+            avatarFallback()
+        }
+        // 会话/历史/开场白每次进入都要重建（Turbo 恢复的快照是旧 DOM）
         channelDetail(id)
-    }, 60);
+    }
+    bootChat(true)
+    document.addEventListener('turbo:load', function () {
+        if (/Chat\.html/i.test(location.pathname || '')) bootChat(true)
+    })
 
     /* ---------- 重启会话：美化确认框替代原生 confirm ---------- */
     function setupRebootDialog() {
@@ -1443,18 +1457,21 @@
             if (pool.length > 0) {
                 activeConvId = String(pool[Math.floor(Math.random() * pool.length)].id)
             } else {
-                // 本机没有角色缓存（新设备）：同步拉首页角色列表，取到后继续
+                // 本机没有角色缓存（新设备）：拉首页角色列表，取到后随机开场并继续
                 fetch('/api/live/pagelist', { method: 'POST', headers: authHeaders(false) })
                     .then(function (r) { return r.json() })
                     .then(function (d) {
                         var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
                         if (list.length > 0) {
                             try { localStorage.setItem('pageList', JSON.stringify(list)) } catch (e) {}
-                            var pick = list[Math.floor(Math.random() * list.length)]
-                            activeConvId = String(pick.id)
-                            var convObj = { id: activeConvId, title: pick.title || '', image: pick.cover_url || '', description: pick.description || '' }
-                            convItems[activeConvId] = convObj
-                            getDetail(convObj)
+                            local = list
+                            if (activeConvId === '') {
+                                var pick = list[Math.floor(Math.random() * list.length)]
+                                activeConvId = String(pick.id)
+                                var convObj = { id: activeConvId, title: pick.title || '', image: pick.cover_url || '', description: pick.description || '' }
+                                convItems[activeConvId] = convObj
+                                getDetail(convObj)
+                            }
                         }
                         continueChannelDetail(local)
                     })
