@@ -67,6 +67,7 @@
 	</style>
 <script src="./js/tracking.js?v=20261006e"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
+		<style>[data-main-target="registrationModal"],[data-main-target="signInModal"]{display:none!important}</style>
 </head>
   <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
     
@@ -253,7 +254,85 @@
 </div>
 
 
-          <div id="signup-btn">
+      <turbo-frame id="registration-modal">
+        <div data-main-target="registrationModal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100" x-cloak="">
+  <div class="flex relative bg-black-dark rounded-[10px] mx-5 lg:mx-0">
+    <button type="button" class="absolute w-5 h-5 right-3 top-3 z-10" data-action="click-&gt;main#closeRegistrationModal">
+      <img class="w-auto" src="./Chat_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+    </button>
+    <div class="hidden lg:flex h-full relative">
+      <div id="user-signup-image">
+        <div class="flex justify-center absolute bottom-0 w-full mb-8">
+          <img class="" src="./Chat_files/sugus.ai-65df24cd0fbc2899bc9e90b5e1af77e05e951ea0d6c3aec1b76f811040e368f6.svg">
+        </div>
+        <img src="./Chat_files/35470499-533d6000-9d7e-44a8-92e5-8693e7e71a97" class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top">
+      </div>
+    </div>
+    <div class="flex flex-col relative bg-black-dark rounded-tr-[10px] rounded-br-[10px] rounded-tl-[10px] rounded-bl-[10px] lg:rounded-tl-0 lg:rounded-bl-0 w-[335px] lg:w-[407px]">
+      <div id="user-signup-container" class="flex-1 mx-6 lg:mx-10 mt-6 lg:mt-10">
+        <div class="relative">
+  <form data-turbo="true" class="simple_form new_user" id="new_user_registration" novalidate="novalidate" action="/users" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="RrNjKchpb3ksM1x363yLeS5Df3WuLe0Qx3tJnu484XHjV3Qydw_sHfSPNkAUGmHM4ZW4JjAUl6hCaMzU4rjvyg" autocomplete="off">
+    <input type="hidden" name="profile_id" id="profile_id_registration" data-main-target="characterIDForGenerateImage" autocomplete="off">
+    <input type="hidden" name="prompt" id="prompt_registration" data-main-target="promptForGenerateImage" autocomplete="off">
+    <div class="form-inputs mb-3">
+      <div class="text-[24px] text-white leading-7 lg:leading-8 font-bold mb-3 lg:mb-3">
+          Create Account
+      </div>
+      <div class="w-full flex-col justify-start items-start gap-1.5 inline-flex">
+        <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+          <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+            <img alt="Email icon" src="./Chat_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+          </div>
+          <div class="input email required user_email w-full"><input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_email_registration" required="required" aria-required="true" placeholder="E-mail" type="email" name="user[email]"></div>
+        </div>
+      </div>
+      <div class="w-full flex-col justify-start items-start inline-flex mt-4">
+        <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+          <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+            <img alt="Lock icon" src="./Chat_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+          </div>
+          <div class="w-5 h-5 absolute top-[13px] right-[10px]">
+            <img alt="Visibility icon" src="./Chat_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+          </div>
+          <div class="input password required user_password field_with_hint w-full"><input class="password required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" id="user_password_registration" required="required" aria-required="true" placeholder="Password" type="password" name="user[password]"><span class="hint"><span style="color: gray; display: flex; font-size: 14px; margin-top: 5px;">Minimum 6 characters</span></span></div>
+        </div>
+      </div>
+    </div>
+      <turbo-frame id="recaptchas">
+        
+        <script>
+          // Define function so that we can call it again later if we need to reset it
+          // This executes reCAPTCHA and then calls our callback.
+          function executeRecaptchaForSignup() {
+            grecaptcha.ready(function() {
+              grecaptcha.execute('6LciBZ8pAAAAAE9nywycJp39d22puoEkqsLPoAdh', {action: 'signup'}).then(function(token) {
+                setInputWithRecaptchaResponseTokenForSignup('g-recaptcha-response-data-signup', token)
+              });
+            });
+          };
+          // Invoke immediately
+          executeRecaptchaForSignup()
+
+          // Async variant so you can await this function from another async function (no need for
+          // an explicit callback function then!)
+          // Returns a Promise that resolves with the response token.
+          async function executeRecaptchaForSignupAsync() {
+            return new Promise((resolve, reject) => {
+             grecaptcha.ready(async function() {
+                resolve(await grecaptcha.execute('6LciBZ8pAAAAAE9nywycJp39d22puoEkqsLPoAdh', {action: 'signup'}))
+              });
+            })
+          };
+
+                  var setInputWithRecaptchaResponseTokenForSignup = function(id, token) {
+          var element = document.getElementById(id);
+          if (element !== null) element.value = token;
+        }
+
+        </script>
+<input type="hidden" name="g-recaptcha-response-data[signup]" id="g-recaptcha-response-data-signup" data-sitekey="6LciBZ8pAAAAAE9nywycJp39d22puoEkqsLPoAdh" class="g-recaptcha g-recaptcha-response " style="" value="03AFcWeA5pX8sMiKyj9CtQX8-lAaitsQ3XBGReuY8sZ3UMHLVtIdoIF85Ph_KnPRoa3Fd8X9TYVZdkdUwWogqnHhfRbnh0R92nLihigslVIF3IfuxmUVIrgr_mB0Fe-Jly35LLK8Cqz3qY0goQ7yMH66ibcXN1OPnwXdxa9VfJQTf-tA5H0hzhKPXN1UT80QAn8xnS-pJre6oJPAa9TvaMfMtDTj6i4IA-B9KQ4YgcotTut5lHghbZCLfeReXtK-j_HJu_3j66gFO-bJ7K4-_uDJ4WYBKkg8xvQnU9VcBSX4-I4xC9C2Ds8tX6Bn7EGqQ8gME9WV8CecwQtZzRQVd9NnVBkvfqCFlcnMHt_u5aKalQ3ZuYrAP9JBtoHVgi0d_byh5P5nkNmSooiXl1sAvXAncBlvRttSHJXU0_ElH5HZAUiPQsbK1sLazhGbTgAtcvES8jFheaaZSZkV8nk5fIAsdn0on3WIEnPMzyP-FIQQqQIGxL_03n_nadY7Rrv5J4CHJrTQnIKPkm88vG0ZAyKkUSeEQSSzxJqf1-tMfTNEL6APlwBtYLpNWluf20okOyHwWAbFtADM4HTnhBir8t4duerxx6Yt4USHHD5qJiRz_w8TZrnn2UMLwT4G6-SYdEdJti9gUhUv1rE0zTaxNwudHk2X2ySRumiUuvJh6zWBQSFGYXrYg0_VsIqEgtnSf_xm-egSujvbdDsWMQKKBGwBwMreG2LgDzz-UwS7I6zLwGxjhhxufdVj_nTw8Yx9w0czKHUdyfliRQBlfCIxK8T9dnVgrJEe7SESn9M-ymMKWPfgHz-PPipcb-Q_Z6ATUuORlIuy2m2qqnc98URBKFF3dMeOp8MI1VngyX1gvrsPFohiD4DW2ohX5tl2BVfEuGRLa62xw7eRcOZJDZ2Cmo6yej1mJwfb0CEnb1AiRkkhpMPd7AF8FoodQOjXFRScy5lM0XHMffAF4AMf7b7dL8bkJ8Tptcy7kN2t19_BUo9urbl3iI6_WUEBVtP7f1Tkd7RR0VkygGRJ7-4XWQ9iHbIHDP7gwZbE22ggfKODXi6VpYQ9E2hroqJFdbGG3_Sw2JfFEcG9qOg-DacrQ3cyGjmcB2wWzGykbk2VUBxCx2iZX8MNSfex8Bl2AO55rJvtSLze_184E4UYQpyvQ-xzSusa1OaV1_SlDCRdHvdznG0T1wNgsrERdFAu7ibHtg_SjpfUtaPSGjNQFb7jD16vMjx3UsdOlfTV1fGoeCuTbKPoFIkPJGWXLGVPdzT-pcy5D85yETB1Q0M_9GrcGLIbZzlwE4SrCRRWNlC49speRnWf3p9IUoVcQYxrdl8--xh_JQ4brfZUV1zFXNTzwd9ahI0PM-M1SW6VB3s7ZjIxDfSDyjihe5ALDXdPZoGaqml2BOq6Pp83Hu0UMLoK6F5yqDIHgPjxhchxVVUHVU611noO7S3m9CQGaJYnAa2PVyCc1K6gbOHdDkbQr843oHI-Mc8LX-hnbCMRCz7R_2k_o_HfxlWbwdCgi2n5tDhhGjHJ-eprcOkFaJypapYDzrw0cfetw6U_YyVOMSsY1l08Z-MWYRIXePe_RoSAvs1XdQQXONhF-8UOAwme28-wHHBFGpihfMQaaKwgfUShK8Wx0mtXpndCwxHzXBjuLQLHo_6rjr3Y2LKBxjZMFAQBbDuHF9UOmE4T1YVuPOhzh5oH4fctv2ZDoIdlyWnxr2HkPAo2gsxQU84HuBjn__xvXAgBHpJEHgNg_PSINjw_4frWSP7_5HdoZn_I3-6MbxWFPq2g2Zh4cx40gaSezsOeIPwCyp_qtPVY3_IvcjDVZIQoi8tDz5XDOBPxhb-X-ZWtyDnthjatEzQkcxTxSbzJHofc19gcEhXRyqeQ4dkdo8QXZ4rjhqvgFIXv2DdA7Pxa1httB6I-fSa58pla7Bim1e2p-iNIpFBd--BKKnt4LvmrNkzaeKwIPe1JBHjfrmgSGNRyDkskEbVbK3SpmVAFEHjuszFoBk4fpIXnnfnhHhIrKPRun1CjKO9L27e_7_24wIUywcA4jdm7vzQ71A7W5n9Z51CnH6vGNPhwI74sFXSqhONIz756BPpUwwJBGVQA4S-EmA4JSeK2nF5TwlQeyJnDgkkraCPA2l0eEu3sXZY-jVunM394o4KQGovLvYSQ4x1K0fxdxZNTa4n3gAzt5iBnjov_XNnP-tRCNvXQ"><iframe style="display: none;" src="./Chat_files/saved_resource.html"></iframe></input>
+
+</turbo-frame>    <div id="signup-btn">
       <button name="button" type="submit" class="flex w-full mt-4 px-4 py-3 bg-[#E75275] rounded-[10px] justify-center items-center text-white text-sm font-semibold" id="signup-btn" data-controller="loading-button-state" data-loading-button-state-target="submit" data-action="loading-button-state#handleClick">
         Create Account
 </button>    </div>
@@ -298,7 +377,93 @@
   </div>
 </div>
 
-</turbo-frame>          <div class="main-content-container" data-main-target="contentContainer">
+</turbo-frame>      <turbo-frame id="sign-in-modal">
+        <div data-main-target="signInModal" class="hidden fixed inset-0 backdrop-filter backdrop-blur-md bg-black-default bg-opacity-50 justify-center items-center z-100" x-cloak="">
+  <div class="flex relative bg-black-dark rounded-[10px]">
+    <div class="hidden lg:flex h-full relative">
+      <div id="user-login-image">
+        <div class="flex justify-center absolute bottom-0 w-full mb-8">
+          <img class="" src="./Chat_files/sugus.ai-65df24cd0fbc2899bc9e90b5e1af77e05e951ea0d6c3aec1b76f811040e368f6.svg">
+        </div>
+        <img src="./Chat_files/35470499-533d6000-9d7e-44a8-92e5-8693e7e71a97" class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top">
+      </div>
+    </div>
+    <div class="flex flex-col relative bg-black-dark rounded-tr-[10px] rounded-br-[10px] rounded-tl-[10px] rounded-bl-[10px] lg:rounded-tl-0 lg:rounded-bl-0 w-[335px] lg:w-[407px]">
+      <button type="button" class="absolute w-5 h-5 right-3 top-3" data-action="click-&gt;main#closeSignInModal">
+        <img class="w-auto" src="./Chat_files/close-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
+      </button>
+      <div class="flex-1 px-6 lg:px-10 pt-0 lg:pt-5">
+        <div id="user-login-container">
+          <form data-turbo="true" class="simple_form mt-5" id="new_user" novalidate="novalidate" action="/users/sign_in" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="dYrX2GXe7_MZeKmuzWxeAQcCbDNhlNmPYZaDI5oZ1cHsNNksSOOQLwHZRCtwkkFhNgqTbNfxJf7F95LVVUV6kA" autocomplete="off">
+  <input type="hidden" name="profile_id" id="profile_id" data-main-target="characterIDForGenerateImage" autocomplete="off">
+  <input type="hidden" name="prompt" id="prompt" data-main-target="promptForGenerateImage" autocomplete="off">
+  <div class="form-inputs mb-3">
+    <div class="text-[24px] text-white leading-7 lg:leading-8 font-bold  mb-4 mb-3">
+      Sign in
+    </div>
+    <div class="w-full flex-col justify-start items-start gap-1.5 inline-flex">
+      <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+        <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+          <img src="./Chat_files/filled-email-fc90c315f269441fa73aa876a3941882f9f73cb588fe947851e3412c811e007e.svg">
+        </div>
+        <div class="input email required user_email w-full"><input class="string email required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="E-mail" type="email" value="" name="user[email]" id="user_email"></div>
+      </div>
+    </div>
+    <div class="w-full flex-col justify-start items-start gap-1.5 inline-flex mt-5">
+      <div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">
+        <div class="w-5 h-5 absolute top-[13px] left-[10px]">
+          <img src="./Chat_files/lock-04efd07dd546792702a534536fd638a4bc066c8c3bc6bdb5d5febf85c22f567e.svg">
+        </div>
+        <div class="w-5 h-5 absolute top-[13px] right-[10px]">
+          <img src="./Chat_files/eye-6954483cd116fa391d5bf9d9252431d2ab19ac69e74f9b05d761ec5a6e51697b.svg" class="password-toggle-icon cursor-pointer">
+        </div>
+        <div class="input password required user_password w-full"><input class="password required w-full pl-10 pr-6 pr-4 py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]" required="required" aria-required="true" placeholder="Password" type="password" name="user[password]" id="user_password"></div>
+      </div>
+    </div>
+  </div>
+    <a target="_blank" class="text-white mb-4 font-medium text-sm underline" href="/users/password/new">Forgot password?</a>
+    <br>
+  <button name="button" type="submit" class="flex w-full mt-6 px-4 py-3 bg-[#E75275] rounded-[10px] justify-center items-center text-white text-sm font-semibold" id="signin-btn" data-controller="loading-button-state" data-loading-button-state-target="submit" data-action="loading-button-state#handleClick">
+    Sign in
+</button></form><div id="authentication_sign_in_container" class="mb-8">
+  <div class="flex flex-row items-center mt-8 mb-5">
+    <div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.00) 100%);"></div>
+    <div class="flex-0 text-white text-sm font-medium mx-4">or sign in with</div>
+    <div class="flex-1 h-[1px]" style="background: linear-gradient(270deg, rgba(255, 255, 255, 0.00) 0%, rgba(255, 255, 255, 0.30) 100%);"></div>
+  </div>
+    <form data-turbo="false" action="/ai-girlfriend/priya-mehta#" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="GGjm5ssIKQwncpB6lCfCHIaURMXNZ5v3W5rid_uXaZGMXxSGoKsKGZGsfL9RF3JhGTZVz2JWPmRQuVkmKhK1QQ" autocomplete="off">
+      <input type="hidden" name="authenticity_token" id="authenticity_token" value="r6XuM1tx8nctHoqjwniXfgaVGw4GJiq2cwD5J7X_bMzUfMOFltMLr2P8sgI4LVYwZWoBOxxOlW2jXf7yakXzPg" autocomplete="off">
+          <button name="button" type="submit" formaction="/users/auth/google_oauth2" class="inline-flex items-center justify-center w-full rounded-[10px] px-4 py-2.5 mb-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">
+            <img alt="Google" class="h-6 w-6 mr-3" src="./Chat_files/google-auth-a8a364c5c399770d07ce74e6110a120970b1953557a47719692d85ea9334efb6.png">
+            <div class="font-normal text-[#344054]">
+              Google
+            </div>
+</button>            <div class="flex flex-wrap gap-2.5">
+          <div class="flex-1">
+            <button name="button" type="submit" formaction="/users/auth/twitter" class="inline-flex items-center justify-center w-full font-normal text-[#344054] rounded-[10px] px-4 py-2.5 bg-white" data-controller="loading-button-state" data-action="loading-button-state#handleClick" data-loading-button-state-target="submit" data-loading-button-state-color="black">
+              <img alt="X" class="h-6 w-6 mr-3" src="./Chat_files/X-26904e26c6e97e747b58528737ef2a47ec6a26e01283df190498f526760cf325.svg">
+              <div class=" font-normal text-[#344054]">
+                X
+              </div>
+</button>          </div>
+            </div>
+            <!-- Closing the flex container -->
+</form></div>
+
+        </div>
+      </div>
+      <div style="width: 100%; height: 0px; opacity: 0.20; border: 0.50px white solid"></div>
+      <div class="flex mt-5 font-medium text-sm justify-center items-center text-white px-6 lg:px-10 pb-5">
+        Don't have an account yet? &nbsp;
+        <div data-action="click-&gt;main#closeSignInModal click-&gt;main#openRegistrationModal" class="text-[#E75275] text-sm font-semibold leading-normal cursor-pointer">
+          Sign up
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</turbo-frame>    <div class="main-content-container" data-main-target="contentContainer">
       <div data-controller="profile-toggle phone-call message-edit-form message-regenerate-modal feedback-dislike-modal" data-paid-user="" x-data="{ isPhoneCallModalOpen: false, isPremiumSubscriptionModalOpen: false, isGuestModalOpen: false, isRatingModalOpen: false, isInsufficientTokenModalOpen: false, isPhoneCallConfirmationModalOpen: false, isAllowPermissionModal: false, isBlockPermissionModal: false }" data-phone-call-is-guest-user="true" data-phone-call-is-free-user="false" data-phone-call-conversation-id="" data-phone-call-default-user-phone-number="" data-phone-call-paid-user="" data-phone-call-start-time="" data-phone-call-moderation-message="Hey wait, I cannot talk about this" data-phone-call-is-free-user-value="false" data-phone-call-is-guest-user-value="true" data-phone-call-conversation-id-value="" data-phone-call-has-user-checked-dont-show-again-value="false">
   <div id="conversation-container" class="fixed bottom-0 top-0 text-xs lg:flex lg:flex-grow fill-available w-full rounded-lg lg:pl-[440px] pr-0" style="background-size: cover; background-image: url(&quot;/assets/pattern-73e01b5144fed554ae9bf7baf0280ee22448f1dfc05ef616e85bef1e486c37cc.png&quot;); padding-left: 440px;" data-main-target="conversationContainer">
     <div class="relative mt-16 lg:w-[70%] text-xs flex flex-col flex-grow rounded-lg shadow-xl overflow-hidden messages-container" data-target="profile-toggle.messagesContainer">
