@@ -1820,6 +1820,9 @@ final class Live extends BaseController
             'zh' => '请始终使用中文回复。',
             'en' => 'Please always reply in English.',
             'ja' => '必ず日本語で返信してください。',
+            'fr' => 'Réponds toujours en français.',
+            'de' => 'Antworte bitte immer auf Deutsch.',
+            'es' => 'Responde siempre en español.',
         ];
         return $map[$lang] ?? '';
     }
