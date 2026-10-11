@@ -1582,7 +1582,12 @@
     // 把当前随机会话插到列表顶部（无头像时用角色占位，聊过一条后由服务端会话数据接管）
     function ensureCurrentInList(local) {
         if (activeConvId === '') return
-        if ($('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').length > 0) return
+        var $existing = $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').first()
+        if ($existing.length > 0) {
+            // 当前正在聊的会话始终置顶：右侧聊谁，左侧第一条就是谁，两边保持一致
+            $('#message-list').prepend($existing)
+            return
+        }
         var src = null
         for (var i = 0; i < (local || []).length; i++) {
             if (String(local[i] && local[i].id) === activeConvId) { src = local[i]; break }
