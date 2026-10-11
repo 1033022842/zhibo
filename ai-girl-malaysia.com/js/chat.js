@@ -81,7 +81,12 @@
         // 会话/历史/开场白每次进入都要重建（Turbo 恢复的快照是旧 DOM）
         channelDetail(id)
     }
-    bootChat(true)
+    // chat.js 是 body 中段的同步脚本：必须等 DOM 就绪再初始化（否则 document.body 为 null 直接崩）
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { bootChat(true) })
+    } else {
+        bootChat(true)
+    }
     document.addEventListener('turbo:load', function () {
         if (/Chat\.html/i.test(location.pathname || '')) bootChat(true)
     })
@@ -138,8 +143,20 @@
         if (id === '') return null
         if (convItems[id]) return convItems[id]
         var list = readPageList()
+        // home-N 角色页 id 与首页角色目录的数字 id 不同：home-14 对应目录里 id=14 的那一位
+        var m = /^home-(\d+)$/.exec(id)
+        var wantId = m ? m[1] : id
         for (var i = 0; i < list.length; i++) {
-            if (String(list[i] && list[i].id) === id) return list[i]
+            if (String(list[i] && list[i].id) === wantId) {
+                if (m) {
+                    // 归档键是 home-N：返回目录资料但保留原 id，聊天历史仍按 home-N 归档
+                    var hit = $.extend({}, list[i])
+                    hit.id = id
+                    if (!hit.image && hit.cover_url) hit.image = hit.cover_url
+                    return hit
+                }
+                return list[i]
+            }
         }
         return emptyConv(id)
     }
@@ -1308,7 +1325,7 @@
 
     function setupAuthFlow() {
         // 已登录：让页面的 Stimulus 控制器知道已登录，并切到登录态的发送按钮
-        if (token) {
+        if (token && document.body) {
             document.body.setAttribute('data-main-is-current-user-signed-in', 'true')
         }
         var guestBtn = document.getElementById('send-question')
@@ -1589,13 +1606,18 @@
             return
         }
         var src = null
+        var mHome = /^home-(\d+)$/.exec(activeConvId)
+        var wantId = mHome ? mHome[1] : activeConvId
         for (var i = 0; i < (local || []).length; i++) {
-            if (String(local[i] && local[i].id) === activeConvId) { src = local[i]; break }
+            if (String(local[i] && local[i].id) === wantId) { src = local[i]; break }
         }
         var conv = chatItemById(activeConvId) || {}
+        // 资料缺失（如 pagelist 拉取失败）时标题兜底为 AI Chat，绝不显示 home-14 这类裸归档键
+        var fallbackTitle = ((src && src.title) || conv.title || '')
+        if (fallbackTitle === '' || fallbackTitle === activeConvId) fallbackTitle = 'AI Chat'
         var item = {
             id: activeConvId,
-            title: (src && src.title) || conv.title || 'AI Chat',
+            title: fallbackTitle,
             image: (src && src.cover_url) || conv.image || '',
             description: (src && src.description) || conv.description || '',
             time: 'now'
