@@ -1466,49 +1466,62 @@
         continueChannelDetail(local)
     }
 
-    // channelDetail 的公共后半段：左侧列表 = 首页 Explore Featured Characters 的角色列表（全带封面），
-    // 不再渲染聊天会话历史；当前随机/指定的角色在列表中高亮并加载其历史
+    // channelDetail 的公共后半段：左侧 = 聊天会话列表（聊过的角色，封面由后端补全，缺图有占位兜底）。
+    // 直接进入时随机会话不在列表里 → 插入列表顶部，保证「随机会话」也是正常一条聊天记录。
     function continueChannelDetail(local) {
-        // 本机没有角色缓存（新设备）：拉取首页角色列表后再渲染
-        if (local.length === 0) {
-            fetch('/api/live/pagelist', { method: 'POST', headers: authHeaders(false) })
-                .then(function (r) { return r.json() })
-                .then(function (d) {
-                    var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
-                    if (list.length > 0) {
-                        try { localStorage.setItem('pageList', JSON.stringify(list)) } catch (e) {}
-                        local = list
-                        // 直接进入且还没选角色：补一次随机
-                        if (activeConvId === '') activeConvId = String(list[Math.floor(Math.random() * list.length)].id)
-                    }
-                    continueChannelDetail(local)
-                })
-                .catch(function () { /* 列表拉不到就保持空白，不影响右侧 */ })
-            return
-        }
+        // 先用本地角色资料渲染一版占位（接口慢时左侧不空白）
+        getInfo(buildConvItems([], local))
 
-        // 渲染首页角色列表（id/title/cover_url/description → 列表条目）
-        getInfo(local.map(function (r) {
-            return {
-                id: String(r.id), title: r.title || '', image: r.cover_url || '',
-                description: r.description || '', time: ''
-            }
-        }))
+        // 随机/指定的当前会话先入列表（后端会话列表返回后会合并去重）
+        ensureCurrentInList(local)
 
-        // 当前会话的聊天历史与「列表渲染」并行拉（历史上是串行，白等一个 RTT）
+        // 当前会话的聊天历史与「会话列表」并行拉（历史上是串行，白等一个 RTT）
         if (activeConvId !== '' && token) loadChatHistory()
 
-        // 当前角色不在列表里（如 URL 指定的老角色）：随机换一个列表内角色开场
-        var hasCur = activeConvId !== '' && $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').length > 0
-        if (!hasCur) {
-            var all = $('#message-list').find('a.chat-obj')
-            if (all.length) {
-                var pick = all[Math.floor(Math.random() * all.length)]
-                selectConversation(String($(pick).data('id') || ''), true)
-                return
+        // 拉服务端会话列表（真实聊天记录，按最近聊天排序）
+        fetch('/api/live/chatConversations?device_id=' + encodeURIComponent(deviceId()), { headers: authHeaders(false) })
+          .then(function (r) { return r.json() })
+          .then(function (d) {
+            var convs = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
+            getInfo(buildConvItems(convs, local))
+            ensureCurrentInList(local)
+            // URL 不带 ?id= 时补上，刷新后仍停留在同一会话
+            if (String(getParam('id') || '') === '' && activeConvId !== '') {
+                try { history.replaceState(null, '', './Chat.html?id=' + encodeURIComponent(activeConvId)) } catch (e) {}
             }
+            startConversation()
+          })
+          .catch(function () { startConversation() })
+      }
+
+    // 把当前随机会话插到列表顶部（无头像时用角色占位，聊过一条后由服务端会话数据接管）
+    function ensureCurrentInList(local) {
+        if (activeConvId === '') return
+        if ($('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').length > 0) return
+        var src = null
+        for (var i = 0; i < (local || []).length; i++) {
+            if (String(local[i] && local[i].id) === activeConvId) { src = local[i]; break }
         }
-        startConversation()
+        var conv = chatItemById(activeConvId) || {}
+        var item = {
+            id: activeConvId,
+            title: (src && src.title) || conv.title || 'AI Chat',
+            image: (src && src.cover_url) || conv.image || '',
+            description: (src && src.description) || conv.description || '',
+            time: 'now'
+        }
+        var template = String($('#user-template').html() || '')
+        var img = String(item.image || '').split(',')[0] || avatarPlaceholder(item.title)
+        var rendered = template.replace('{{name}}', item.title)
+            .replace('{{imgUrl}}', img)
+            .replace('{{message}}', item.description)
+            .replace('{{time}}', 'now')
+            .replace('{{id}}', item.id)
+        var $row = $(rendered)
+        $row.find('img').one('error', function () { this.src = avatarPlaceholder(item.title) })
+        $row.addClass('px-[6px] bg-[#303030] border border-zinc-600 active')
+        $('#message-list').prepend($row)
+        convItems[item.id] = item
       }
 
     // 服务端会话 + 本地记录 → 左侧可渲染条目（本地记录补名字/头像，服务端给最近一条消息与时间）
