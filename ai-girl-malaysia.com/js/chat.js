@@ -1562,10 +1562,12 @@
     }
 
     function continueChannelDetail(local) {
-        // 未登录：左侧保持空（没有历史会话可显示），只刷新右侧角色资料
+        // 未登录：左侧保持空（没有历史会话可显示），右侧仍要展示当前角色资料
         if (!token) {
             getInfo([])
             ensureCurrentInList(local)
+            var guestConv = chatItemById(activeConvId)
+            if (guestConv && guestConv.title && guestConv.title !== activeConvId && guestConv.title !== 'AI Chat') getDetail(guestConv)
             return
         }
         // 本机没有角色缓存（新设备）：等预热拉取完成后继续（会话列表来自服务端，不依赖它）
