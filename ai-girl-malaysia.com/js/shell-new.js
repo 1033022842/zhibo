@@ -680,17 +680,28 @@
       .catch(function () {})
   }
 
-  // 解锁类接口（扣代币）响应后自动刷新顶栏余额
+  // 站内 API（/api/live/）请求完成后自动刷新顶栏余额（聊天扣费/解锁/充值后实时更新），300ms 防抖合并
   ;(function () {
     if (window.__fyFetchHooked) return
     window.__fyFetchHooked = true
     var orig = window.fetch
+    var refreshTimer = null
+    function scheduleRefresh() {
+      if (refreshTimer) return
+      refreshTimer = setTimeout(function () {
+        refreshTimer = null
+        try { window.refreshTokenBalance() } catch (e) {}
+      }, 300)
+    }
     window.fetch = function () {
       var p = orig.apply(this, arguments)
       try {
         var u = String((arguments[0] && (arguments[0].url || arguments[0])) || '')
-        if (/privateUnlock|unlockChatMedia/i.test(u)) {
-          p.then(function () { try { window.refreshTokenBalance() } catch (e) {} }).catch(function () {})
+        // 站内实时接口的变更类调用（POST）后刷新余额；只读接口不刷
+        if (/\/api\/live\//.test(u)) {
+          var opts = arguments[1] || {}
+          var method = String(opts.method || (arguments[0] && arguments[0].method) || 'GET').toUpperCase()
+          if (method === 'POST') p.then(function () { scheduleRefresh() }).catch(function () {})
         }
       } catch (e) {}
       return p
@@ -1545,6 +1556,8 @@
       LiveAuth.ensureFresh()
       startAuthTimer()
       if (currentLang() !== 'en') ensureTranslate()
+      // 顶栏余额：页面加载即拉真实值（模板初始是 0），登录态才拉
+      try { if (localStorage.getItem('live_access_token')) window.refreshTokenBalance() } catch (e) {}
     } finally {
       document.documentElement.classList.remove('fy-shell-pending')
     }
