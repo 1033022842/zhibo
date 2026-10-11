@@ -872,6 +872,12 @@
         try { (window.__chatTrace = window.__chatTrace || []).push('showIceBreaker id=' + String(activeConvId) + ' title=' + String(conv && conv.title)) } catch (e) {}
         // 没有真实角色（如 chat-default 空状态）不生成开场白
         if (!conv || !conv.title || conv.title === String(conv.id || '')) return
+        // 幂等：按「当前消息容器」判断——同一个 DOM 容器只发起一次（bootChat 会跑多次）；
+        // Turbo 导航换新 body 后容器是全新元素，天然放行（旧容器上的异步回调落到已丢弃的 DOM，无害）
+        var dupBox = messagesBox()
+        if (!dupBox) return
+        if (window.__iceBox === dupBox) return
+        window.__iceBox = dupBox
         // 后端按人设生成（角色维度缓存，同一角色固定一条）；超时/失败用本地模板兜底
         var typing = appendTyping()
         var done = false
@@ -1499,7 +1505,12 @@
         //   }
         // }).catch(error => console.error(error))
         var local = readPageList()
-        activeConvId = String(id || '') || String(getParam('id') || '')
+        var urlId = String(id || '') || String(getParam('id') || '')
+        if (urlId === '' && activeConvId !== '') {
+            // 重复初始化（Turbo 返回会再跑一次 bootChat）：保留本页面已选中的会话，不重新随机
+        } else {
+            activeConvId = urlId
+        }
         // chat-default 不是真实角色（旧版默认兜底键）：清掉，走「随机首页角色」
         if (activeConvId === 'chat-default') {
             activeConvId = ''
