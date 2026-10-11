@@ -35,15 +35,30 @@
     // 初始化入口：首次加载 + Turbo 导航返回（快照恢复不重跑脚本，必须手动重建聊天区）
     var chatBooted = false
     var lastBootAt = 0
+    // 页面错误收集（只读诊断用：浏览器控制台里 window.__chatErrors 可查）
+    window.addEventListener('error', function (ev) {
+        try {
+            window.__chatErrors = window.__chatErrors || []
+            window.__chatErrors.push(String(ev.message) + ' @ ' + String(ev.filename || '').split('/').pop() + ':' + ev.lineno)
+        } catch (e) {}
+    })
+    window.addEventListener('unhandledrejection', function (ev) {
+        try {
+            window.__chatErrors = window.__chatErrors || []
+            var r = ev && ev.reason
+            window.__chatErrors.push('promise: ' + String((r && r.message) || r))
+        } catch (e) {}
+    })
     function bootChat(force) {
         var now = Date.now()
-        if (!force && now - lastBootAt < 1000) return
+        if (!force && now - lastBootAt < 2500) return
         lastBootAt = now
         if (token) {
             $('#sign-in-modal').css('display', 'none')
             $('#user-setting').css('display', 'flex')
             $('#user-login').css('display', 'none')
         }
+        preloadRoleList()
         var id = getParam('id')
         if (!chatBooted) {
             // 登录态/跳登录页/通话的初始化必须最先做且只绑一次：下面会话初始化万一抛错也不会把它跳过
@@ -1388,6 +1403,7 @@
     }
     function getDetail(info) {
         if(!info) return
+        try { (window.__chatTrace = window.__chatTrace || []).push('getDetail id=' + String(info.id) + ' title=' + String(info.title)) } catch (e) {}
         var pictures = String(info.image || '').split(',')
         $('#chat-name').html(info.title)
         $('#infomation').html(info.description)
@@ -1424,6 +1440,7 @@
     }
 
     function channelDetail(id){
+        try { (window.__chatTrace = window.__chatTrace || []).push('channelDetail id=' + String(id) + ' param=' + String(getParam('id'))) } catch (e) {}
         if (String(id).indexOf('my-') === 0) { loadMyPersona(id); return }
         // var headers = {}
         // if(token) {
@@ -1471,42 +1488,79 @@
             if (pool.length > 0) {
                 activeConvId = String(pool[Math.floor(Math.random() * pool.length)].id)
             } else {
-                // 本机没有角色缓存（新设备）：拉首页角色列表，取到后随机开场并继续
-                fetch('/api/live/pagelist', { method: 'POST', headers: authHeaders(false) })
-                    .then(function (r) { return r.json() })
-                    .then(function (d) {
-                        var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
-                        if (list.length > 0) {
-                            try { localStorage.setItem('pageList', JSON.stringify(list)) } catch (e) {}
-                            local = list
-                            if (activeConvId === '') {
-                                var pick = list[Math.floor(Math.random() * list.length)]
-                                activeConvId = String(pick.id)
-                                var convObj = { id: activeConvId, title: pick.title || '', image: pick.cover_url || '', description: pick.description || '' }
-                                convItems[activeConvId] = convObj
-                                getDetail(convObj)
-                            }
-                        }
-                        continueChannelDetail(local)
-                    })
-                    .catch(function () { continueChannelDetail(local) })
+                // 本机没有角色缓存（新设备）：等预热拉取完成（轮询 pageList），拿到后随机开场
+                waitForRoleList(function (list) {
+                    if (list.length > 0 && activeConvId === '') {
+                        var pick = list[Math.floor(Math.random() * list.length)]
+                        activeConvId = String(pick.id)
+                        var convObj = { id: activeConvId, title: pick.title || '', image: pick.cover_url || '', description: pick.description || '' }
+                        convItems[activeConvId] = convObj
+                        getDetail(convObj)
+                    }
+                    continueChannelDetail(readPageList())
+                })
                 return
             }
         }
-        // 聊天记录只属于登录用户：未登录不展示历史，但左侧同样显示首页角色列表（点角色→跳登录）
+        // 聊天记录只属于登录用户：未登录左侧不显示任何会话（历史为空），右侧仍展示随机角色资料
         continueChannelDetail(local)
     }
 
-    // channelDetail 的公共后半段：左侧 = 聊天会话列表（聊过的角色，封面由后端补全，缺图有占位兜底）。
+    // channelDetail 的公共后半段：左侧 = 真实聊天会话列表（聊过的角色），只对登录用户渲染；
     // 直接进入时随机会话不在列表里 → 插入列表顶部，保证「随机会话」也是正常一条聊天记录。
+    // 等待角色目录就绪（内存 / pageList 缓存，bootChat 已异步预热）；最多 8 秒
+    function waitForRoleList(cb, tries) {
+        var cached = roleListCached()
+        if (cached.length > 0) { cb(cached); return }
+        if ((tries || 0) >= 40) { cb([]); return }
+        if ((tries || 0) % 10 === 9) preloadRoleList()   // 2 秒还没到就再发一次预热
+        setTimeout(function () { waitForRoleList(cb, (tries || 0) + 1) }, 200)
+    }
+
+    // 角色目录读取：内存优先（localStorage 被禁/异常时仍可用）
+    function roleListCached() {
+        if (window.__roleList && window.__roleList.length > 0) return window.__roleList
+        return readPageList()
+    }
+
+    // 角色目录预热：独立请求写缓存（随机开场/资料补全都依赖它）
+    function preloadRoleList() {
+        if (roleListCached().length > 0) return
+        if (window.__roleListLoading) return
+        window.__roleListLoading = true
+        try {
+            fetch('/api/live/pagelist', { method: 'POST', headers: authHeaders(false) })
+                .then(function (r) { return r.json() })
+                .then(function (d) {
+                    window.__roleListLoading = false
+                    var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                    if (list.length > 0) {
+                        window.__roleList = list
+                        try { localStorage.setItem('pageList', JSON.stringify(list)) } catch (e) {}
+                    }
+                })
+                .catch(function () { window.__roleListLoading = false })
+        } catch (e) { window.__roleListLoading = false }
+    }
+
     function continueChannelDetail(local) {
-        // 先用本地角色资料渲染一版占位（接口慢时左侧不空白）
-        getInfo(buildConvItems([], local))
+        // 未登录：左侧保持空（没有历史会话可显示），只刷新右侧角色资料
+        if (!token) {
+            getInfo([])
+            ensureCurrentInList(local)
+            return
+        }
+        // 本机没有角色缓存（新设备）：等预热拉取完成后继续（会话列表来自服务端，不依赖它）
+        if (local.length === 0) {
+            waitForRoleList(function (list) { continueChannelDetail(list) })
+            return
+        }
 
         // 随机/指定的当前会话先入列表（后端会话列表返回后会合并去重）
+        getInfo([])
         ensureCurrentInList(local)
 
-        // 当前会话的聊天历史与「会话列表」并行拉（历史上是串行，白等一个 RTT）
+        // 当前会话的聊天历史与「会话列表」并行拉（历史上是串行，白等一个 RTT）；未登录无用户历史可拉
         if (activeConvId !== '' && token) loadChatHistory()
 
         // 拉服务端会话列表（真实聊天记录，按最近聊天排序）
@@ -1588,24 +1642,7 @@
             }
             items.push(item)
         }
-        // 本地刚点开、还没聊过的角色也留在列表里
-        for (var j = 0; j < local.length; j++) {
-            var e = local[j] || {}
-            var eid = String(e.id || '')
-            if (eid === '' || used[eid]) continue
-            used[eid] = true
-            var it = emptyConv(eid, e.title)
-            it.image = e.image || ''
-            it.description = e.description || ''
-            it.time = e.time || ''
-            it.occupation = e.occupation || '-'
-            it.hobbies = e.hobbies || '-'
-            it.relationship = e.relationship || '-'
-            it.body = e.body || '-'
-            it.age = e.age || '-'
-            it.ethnicity = e.ethnicity || '-'
-            items.push(it)
-        }
+        // 左侧只显示真实聊天会话：不再把本地角色目录全量塞进列表（那就是「几十个会话」的来源）
         return items
     }
 
@@ -1620,6 +1657,7 @@
 
     // 列表就绪后选中会话（优先 URL ?id=，否则列表第一项）
     function startConversation() {
+        try { (window.__chatTrace = window.__chatTrace || []).push('startConversation active=' + String(activeConvId)) } catch (e) {}
         var $cur = $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').first()
         if (!$cur.length) {
             // 没匹配到当前会话：随机挑一条（原来是固定第一条，永远落在最近聊过的那个角色）
