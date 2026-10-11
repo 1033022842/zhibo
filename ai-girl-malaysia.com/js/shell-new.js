@@ -717,7 +717,7 @@
       '</button>' +
       '<div class="fy-chip-pop hidden" id="navbar-tokens-dropdown">' +
       '<div class="fy-chip-pop-in">' +
-      row('Message cost', '<b>2</b> tokens') +
+      row('Message cost', '<b>' + (function () { try { return localStorage.getItem('sugus.chat_price') || '2' } catch (e) { return '2' } })() + '</b> tokens') +
       '<span class="fy-chip-pop-sep"></span>' +
       row('Voice cost', '<b>1</b>/20s') +
       '<span class="fy-chip-pop-sep"></span>' +

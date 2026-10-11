@@ -666,13 +666,20 @@
     // 消费价格提示（通话/续聊单价，来自 /api/live/consumeOptions）
     function renderSpendHint() {
         var box = document.getElementById('js-spend')
+        // 发送按钮上的价格标签：与后端配置（chat_overage_price）同步，不再写死
+        var price = Number(consumeOptions.chat_overage_price || 0)
+        if (price > 0) {
+            try { localStorage.setItem('sugus.chat_price', String(price)) } catch (e) {}
+            var priceTag = document.querySelector('#send-question-with-token .text-white')
+            if (priceTag) priceTag.textContent = String(price)
+        }
         if (!box) return
         var hint = []
         if (Number(consumeOptions.call_price_per_minute || 0) > 0) {
             hint.push('Voice call ' + consumeOptions.call_price_per_minute + ' tokens/min')
         }
-        if (Number(consumeOptions.chat_overage_price || 0) > 0) {
-            hint.push('Extra chat ' + consumeOptions.chat_overage_price + ' token/message after daily free limit')
+        if (price > 0) {
+            hint.push('Extra chat ' + price + ' token/message after daily free limit')
         }
         box.querySelector('.js-sp-hint').textContent = hint.join(' · ')
     }
