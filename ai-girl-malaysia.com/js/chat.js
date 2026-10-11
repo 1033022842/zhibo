@@ -143,19 +143,20 @@
         if (id === '') return null
         if (convItems[id]) return convItems[id]
         var list = readPageList()
-        // home-N 角色页 id 与首页角色目录的数字 id 不同：home-14 对应目录里 id=14 的那一位
-        var m = /^home-(\d+)$/.exec(id)
-        var wantId = m ? m[1] : id
+        // 1) 先按完整 id 精确匹配（Home 页写入的条目 id 就是 'home-14' 这种完整键）
         for (var i = 0; i < list.length; i++) {
-            if (String(list[i] && list[i].id) === wantId) {
-                if (m) {
-                    // 归档键是 home-N：返回目录资料但保留原 id，聊天历史仍按 home-N 归档
-                    var hit = $.extend({}, list[i])
+            if (String(list[i] && list[i].id) === id) return list[i]
+        }
+        // 2) home-N 没精确命中时，回退按数字 N 匹配首页角色目录（id=14 的条目）
+        var m = /^home-(\d+)$/.exec(id)
+        if (m) {
+            for (var j = 0; j < list.length; j++) {
+                if (String(list[j] && list[j].id) === m[1]) {
+                    var hit = $.extend({}, list[j])
                     hit.id = id
                     if (!hit.image && hit.cover_url) hit.image = hit.cover_url
                     return hit
                 }
-                return list[i]
             }
         }
         return emptyConv(id)
@@ -1606,10 +1607,17 @@
             return
         }
         var src = null
-        var mHome = /^home-(\d+)$/.exec(activeConvId)
-        var wantId = mHome ? mHome[1] : activeConvId
+        // 资料匹配：先按完整 id 精确匹配（Home 页条目 id='home-14'），再回退按数字 N 匹配目录
         for (var i = 0; i < (local || []).length; i++) {
-            if (String(local[i] && local[i].id) === wantId) { src = local[i]; break }
+            if (String(local[i] && local[i].id) === activeConvId) { src = local[i]; break }
+        }
+        if (!src) {
+            var mHome = /^home-(\d+)$/.exec(activeConvId)
+            if (mHome) {
+                for (var k = 0; k < (local || []).length; k++) {
+                    if (String(local[k] && local[k].id) === mHome[1]) { src = local[k]; break }
+                }
+            }
         }
         var conv = chatItemById(activeConvId) || {}
         // 资料缺失（如 pagelist 拉取失败）时标题兜底为 AI Chat，绝不显示 home-14 这类裸归档键
