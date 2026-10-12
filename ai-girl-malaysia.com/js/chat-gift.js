@@ -177,7 +177,7 @@
   function onGiftSent(data, name) {
     var media = (data && data.media) || {};
 
-    // 1) 消息区：礼物气泡（用户侧 + 收礼视频，可点播）
+    // 1) 消息区：右侧 = 送礼文字标签；左侧 = 角色侧展示收礼视频（她展示收到的礼物瞬间）
     var box = document.getElementById('messages_turbo_frame') || document.getElementById('messages');
     if (box && media.url) {
       var row = document.createElement('div');
@@ -187,7 +187,11 @@
         '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;background:#303030;padding:10px 12px;border-radius:10px;max-width:80%">🎁 You sent a <b style="color:#fbbf24">' + esc(media.title || name) + '</b>' +
         (data.affection && data.affection.gain ? ' <span style="color:#F97187">+' + esc(data.affection.gain) + ' ❤</span>' : '') +
         '</div>' +
-        '<div style="background:#303030;border-radius:10px;overflow:hidden;max-width:80%"><video src="' + esc(media.url) + '" controls playsinline style="display:block;max-width:260px;max-height:340px"></video></div>' +
+        '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
+        '</div></div>' +
+        '<div class="flex justify-start mt-2"><div class="flex-col gap-[9px] inline-flex">' +
+        '<div style="background:#D98491;border-radius:10px;overflow:hidden;max-width:80%;padding:4px">' +
+        '<video src="' + esc(media.url) + '" controls playsinline style="display:block;max-width:260px;max-height:340px;border-radius:8px"></video></div>' +
         '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
         '</div></div>';
       box.appendChild(row);
@@ -200,7 +204,7 @@
       replyRow.className = 'user-response px-4 py-2';
       replyRow.innerHTML =
         '<div class="flex justify-start"><div class="flex-col gap-[9px] inline-flex">' +
-        '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;background:#D98491;padding:12px;border-radius:10px 10px 10px 0;max-width:80%"></div>' +
+        '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;background:#D98491;padding:12px;border-radius:10px;max-width:80%"></div>' +
         '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
         '</div></div>';
       replyRow.querySelector('.js-bubble').textContent = data.reply;
