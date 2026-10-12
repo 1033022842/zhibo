@@ -1603,9 +1603,14 @@
             return
         }
 
-        // 随机/指定的当前会话先入列表（后端会话列表返回后会合并去重）
-        getInfo([])
-        ensureCurrentInList(local)
+        // 随机/指定的当前会话先入列表；列表已有内容时不清空（重复初始化/Turbo 返回时避免闪成 1 条，
+        // 尤其视频播放占用带宽、会话接口 pending 的窗口期），等会话接口回来再整体替换
+        if ($('#message-list').find('a.chat-obj').length === 0) {
+            getInfo([])
+            ensureCurrentInList(local)
+        } else {
+            ensureCurrentInList(local)
+        }
 
         // 当前会话的聊天历史与「会话列表」并行拉（历史上是串行，白等一个 RTT）；未登录无用户历史可拉
         if (activeConvId !== '' && token) loadChatHistory()

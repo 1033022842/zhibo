@@ -191,7 +191,7 @@
         '</div></div>' +
         '<div class="flex justify-start mt-2"><div class="flex-col gap-[9px] inline-flex">' +
         '<div style="background:#D98491;border-radius:10px;overflow:hidden;max-width:80%;padding:4px">' +
-        '<video src="' + esc(media.url) + '" controls playsinline style="display:block;max-width:260px;max-height:340px;border-radius:8px"></video></div>' +
+        '<video src="' + esc(media.url) + '" controls playsinline preload="metadata" style="display:block;max-width:260px;max-height:340px;border-radius:8px"></video></div>' +
         '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
         '</div></div>';
       box.appendChild(row);
