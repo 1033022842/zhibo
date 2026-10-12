@@ -1753,6 +1753,14 @@
         if ($cur.length) $cur.addClass('px-[6px] bg-[#303030] border border-zinc-600').addClass('active')
         try { history.replaceState(null, '', './Chat.html?id=' + encodeURIComponent(convId)) } catch (e) {}
         getDetail(chatItemById(convId))
+        // 立即清空消息区并显示加载动画：旧角色的消息不再滞留（历史接口回来自然替换），消除"卡住不切换"的观感
+        if (!skipHistory || !sameConv) {
+            var swBox = messagesBox()
+            if (swBox) {
+                swBox.innerHTML = ''
+                appendTyping()
+            }
+        }
         if (skipHistory && sameConv) return
         // 历史与好感并行（各省一个 RTT 的串行等待）
         loadChatHistory()
