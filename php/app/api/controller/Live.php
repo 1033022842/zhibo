@@ -1527,6 +1527,82 @@ final class Live extends BaseController
     }
 
     /**
+     * AI 前端：聊天礼物面板（公开）。
+     * GET { role_key? } —— 带角色键时返回 enabled（该角色是否有收礼素材，前端据此显示/隐藏送礼按钮）
+     */
+    public function chatGifts()
+    {
+        $db    = \think\facade\Db::connect('live_mysql');
+        $gifts = $db->table('lp_chat_gift')->where('status', 1)
+            ->field('id, gift_key, name, icon, price')
+            ->order('sort', 'asc')->select()->toArray();
+
+        $roleKey = $this->normalizeRoleKey((string) $this->request->get('role_key', ''));
+        $enabled = false;
+        if ($roleKey !== '') {
+            $enabled = (int) $db->table('lp_chat_gift_role')
+                ->where('role_key', $roleKey)->where('status', 1)->count() > 0;
+        }
+        return $this->jsonSuccess(['gifts' => $gifts, 'enabled' => $enabled]);
+    }
+
+    /**
+     * AI 前端：送礼（登录）。校验角色有素材 + 礼物启用 → 扣代币 → 落一条礼物媒体消息并返回素材地址。
+     * POST { role_key, gift_id }
+     */
+    public function sendChatGift()
+    {
+        // 走 optionalAuthUserId 自行解析 Bearer（该接口不在强制鉴权中间件列表里）
+        $userId = $this->optionalAuthUserId();
+        if ($userId <= 0) {
+            return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, '请先登录');
+        }
+        $roleKey = $this->normalizeRoleKey((string) $this->request->post('role_key', ''));
+        $giftId  = (int) $this->request->post('gift_id', 0);
+        if ($roleKey === '' || $giftId <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '参数无效');
+        }
+
+        $db = \think\facade\Db::connect('live_mysql');
+        $gift = $db->table('lp_chat_gift')->where('id', $giftId)->where('status', 1)->find();
+        if (!$gift) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '礼物不存在或已下架');
+        }
+        $role = $db->table('lp_chat_gift_role')->where('role_key', $roleKey)->where('status', 1)->find();
+        if (!$role) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '该角色暂不支持送礼');
+        }
+
+        $price = max(0, (int) $gift['price']);
+        // 扣费（余额不足直接拒绝，不产生消息）
+        $wallet = new WalletService();
+        $remark = '聊天送礼：' . $gift['name'] . ' → ' . $role['role_name'];
+        try {
+            $wallet->debit($userId, $price, 'chat_gift', $giftId, $remark);
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+
+        // 素材地址（约定目录：/storage/chat_gifts/<role_key>/<gift_key>.mp4）
+        $mediaUrl = '/storage/chat_gifts/' . $roleKey . '/' . $gift['gift_key'] . '.mp4';
+
+        // 落一条礼物媒体消息（历史可见、换设备不丢）
+        $this->saveChatMessage($userId, (string) $this->request->post('device_id', ''), 0, 'user', '', [
+            'kind'         => 'chat_gift',
+            'url'          => $mediaUrl,
+            'title'        => (string) $gift['name'],
+            'id'           => (int) $gift['id'],
+            'unlock_price' => $price,
+        ], false, $roleKey);
+
+        return $this->jsonSuccess([
+            'gift'    => ['id' => (int) $gift['id'], 'name' => (string) $gift['name'], 'icon' => (string) $gift['icon']],
+            'media'   => ['kind' => 'chat_gift', 'url' => $mediaUrl, 'title' => (string) $gift['name'], 'unlock_price' => $price],
+            'balance' => $wallet->balance($userId),
+        ]);
+    }
+
+    /**
      * AI 前端：聊天/通话消费价格（公开，供前端按钮与通话提示展示）
      * GET /api/live/consumeOptions
      */
