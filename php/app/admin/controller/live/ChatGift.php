@@ -25,15 +25,18 @@ final class ChatGift extends Backend
     {
         $db = Db::connect('live_mysql');
 
-        // 保存（价格/名称/启停）
+        // 保存（价格/好感/名称/启停）
         if ($this->request->isPost()) {
             $id    = (int) $this->request->post('id', 0);
             $field = (string) $this->request->post('field', '');
             $value = (string) $this->request->post('value', '');
-            if ($id > 0 && in_array($field, ['name', 'price', 'sort', 'status'], true)) {
+            if ($id > 0 && in_array($field, ['name', 'price', 'sort', 'status', 'affection'], true)) {
                 $data = [];
                 if ($field === 'price' || $field === 'sort') {
                     $data[$field] = max(0, (int) $value);
+                } elseif ($field === 'affection') {
+                    // -1 = 跟价格一样；>=0 固定好感
+                    $data[$field] = $v = (int) $value < 0 ? -1 : (int) $value;
                 } elseif ($field === 'status') {
                     $data[$field] = $value === '1' ? 1 : 0;
                 } else {
@@ -56,6 +59,7 @@ final class ChatGift extends Backend
             $name = htmlspecialchars((string) $g['name'], ENT_QUOTES);
             $price = (int) $g['price'];
             $sort = (int) $g['sort'];
+            $aff = (int) ($g['affection'] ?? -1);
             $st  = (int) $g['status'] === 1;
             $rows .= <<<ROW
             <tr data-id="{$id}">
@@ -63,6 +67,7 @@ final class ChatGift extends Backend
                 <td><img src="{$icon}" style="width:44px;height:44px;object-fit:cover;border-radius:8px" onerror="this.style.opacity=.2"></td>
                 <td><input class="ed" data-field="name" value="{$name}" style="width:110px"></td>
                 <td><input class="ed num" data-field="price" value="{$price}" style="width:70px"></td>
+                <td><input class="ed num" data-field="affection" value="{$aff}" style="width:70px"></td>
                 <td><input class="ed num" data-field="sort" value="{$sort}" style="width:60px"></td>
                 <td><button class="tg btn-mini" data-on="{$st}">{$st}</button></td>
             </tr>
@@ -104,12 +109,12 @@ ROW;
 <body>
 <div class="container">
     <div class="card">
-        <h2><span class="dot"></span>礼物列表（改价格/名称后回车或点保存；价格单位：代币）</h2>
+        <h2><span class="dot"></span>礼物列表（改价格/好感/名称后回车或点保存；价格单位：代币）</h2>
         <table>
-            <thead><tr><th>ID</th><th>图标</th><th>名称</th><th>价格</th><th>排序</th><th>启用</th></tr></thead>
+            <thead><tr><th>ID</th><th>图标</th><th>名称</th><th>价格</th><th>好感</th><th>排序</th><th>启用</th></tr></thead>
             <tbody>{$rows}</tbody>
         </table>
-        <div class="tip">素材目录约定：/storage/chat_gifts/&lt;角色键&gt;/&lt;gift_key&gt;.mp4；送礼会按「价格」扣代币并写入钱包流水（chat_gift）。</div>
+        <div class="tip">好感列：-1 = 跟价格一样（默认，送礼加等值好感）；正数 = 固定好感值。素材目录约定：/storage/chat_gifts/&lt;角色键&gt;/&lt;gift_key&gt;.mp4；送礼会按「价格」扣代币并写入钱包流水（chat_gift）。</div>
     </div>
     <div class="card">
         <h2><span class="dot"></span>有收礼素材的角色（只读清单）</h2>

@@ -1586,6 +1586,31 @@ final class Live extends BaseController
         // 素材地址（约定目录：/storage/chat_gifts/<role_key>/<gift_key>.mp4）
         $mediaUrl = '/storage/chat_gifts/' . $roleKey . '/' . $gift['gift_key'] . '.mp4';
 
+        // 好感度：礼物配置 affection >= 0 用固定值，否则跟价格走；按 home-N → N 映射入账（与购买好感同空间）
+        $affData = null;
+        $affGain = (int) ($gift['affection'] ?? -1);
+        if ($affGain < 0) {
+            $affGain = $price;
+        }
+        if ($affGain > 0) {
+            $cid = (int) preg_replace('/^home-/', '', $roleKey);
+            if ($cid > 0) {
+                $now = date('Y-m-d H:i:s');
+                $affRow = $db->table('lp_ai_affection')->where('user_id', $userId)->where('content_id', $cid)->find();
+                $newVal = min(100, (int) ($affRow['affection'] ?? 0) + $affGain);
+                if ($affRow) {
+                    $db->table('lp_ai_affection')->where('id', $affRow['id'])
+                        ->update(['affection' => $newVal, 'updated_at' => $now]);
+                } else {
+                    $db->table('lp_ai_affection')->insert([
+                        'user_id' => $userId, 'content_id' => $cid, 'affection' => $newVal,
+                        'created_at' => $now, 'updated_at' => $now,
+                    ]);
+                }
+                $affData = ['affection' => $newVal, 'max' => 100, 'unlocked' => $newVal >= 100, 'gain' => $affGain];
+            }
+        }
+
         // 落一条礼物媒体消息（历史可见、换设备不丢）
         $this->saveChatMessage($userId, (string) $this->request->post('device_id', ''), 0, 'user', '', [
             'kind'         => 'chat_gift',
@@ -1596,9 +1621,10 @@ final class Live extends BaseController
         ], false, $roleKey);
 
         return $this->jsonSuccess([
-            'gift'    => ['id' => (int) $gift['id'], 'name' => (string) $gift['name'], 'icon' => (string) $gift['icon']],
-            'media'   => ['kind' => 'chat_gift', 'url' => $mediaUrl, 'title' => (string) $gift['name'], 'unlock_price' => $price],
-            'balance' => $wallet->balance($userId),
+            'gift'      => ['id' => (int) $gift['id'], 'name' => (string) $gift['name'], 'icon' => (string) $gift['icon']],
+            'media'     => ['kind' => 'chat_gift', 'url' => $mediaUrl, 'title' => (string) $gift['name'], 'unlock_price' => $price],
+            'affection' => $affData,
+            'balance'   => $wallet->balance($userId),
         ]);
     }
 

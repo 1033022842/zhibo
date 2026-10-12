@@ -1,5 +1,5 @@
-/* chat-gift.js — 聊天礼物：登录后输入框左侧送礼按钮 + 礼物卡片 + 送礼（扣费/消息/轮播追加收礼视频）
-   依赖：chat.js 暴露的 convRoleKey() / authHeaders() / appendBubble 等通过事件解耦，不直接引用闭包。 */
+/* chat-gift.js — 聊天礼物：登录后输入框左侧送礼按钮 + 礼物卡片 + 送礼（扣费/好感/消息/轮播追加收礼视频）
+   与 chat.js 通过 DOM 解耦，不直接引用其闭包。 */
 (function () {
   'use strict'
 
@@ -14,7 +14,6 @@
   }
 
   function roleKey() {
-    // 与 chat.js 的归档规则一致：数字 content_id 或 home-N（读当前 URL，聊天页的权威来源）
     var id = '';
     try { id = new URLSearchParams(location.search).get('id') || '' } catch (e) {}
     if (id === '') {
@@ -29,20 +28,28 @@
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   }) }
 
-  /* ---------- 礼物按钮（输入框左侧）：登录 + 当前角色有素材才显示 ---------- */
+  /* ---------- 礼物按钮：与输入框同一行（输入框自动缩短，不挤布局） ---------- */
   function ensureButton() {
-    var bar = document.querySelector('#form .bg-\\[\\#252525\\]') || document.getElementById('message_body');
-    var holder = bar && bar.parentElement;
+    var input = document.getElementById('message_body');
+    var holder = input && input.parentElement;      // .bg-[#252525] 输入行容器（flex）
     var btn = document.getElementById('cg-gift-btn');
-    if (!holder || btn) return;
-    btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'cg-gift-btn';
-    btn.style.cssText = 'flex:0 0 auto;width:38px;height:38px;margin-right:8px;border:none;border-radius:50%;background:linear-gradient(268deg,#fc768a,#e65073);cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(231,82,117,.35)';
-    btn.title = 'Send a gift';
-    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
-    btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openPanel() });
-    holder.insertBefore(btn, holder.firstChild);
+    if (!holder || !input) return;
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'cg-gift-btn';
+      btn.title = 'Send a gift';
+      btn.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
+      btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openPanel() });
+      holder.insertBefore(btn, input);
+      // 输入框改为弹性填充（覆盖模板写死的 w-[87%]，按钮不出现时也不影响）
+      input.style.flex = '1 1 auto';
+      input.style.width = 'auto';
+      input.style.minWidth = '0';
+    }
+    btn.style.cssText = 'flex:0 0 auto;width:34px;height:34px;margin-right:8px;border:none;border-radius:10px;' +
+      'background:linear-gradient(268deg,#fc768a,#e65073);cursor:pointer;display:none;align-items:center;justify-content:center;' +
+      'box-shadow:0 3px 10px rgba(231,82,117,.3)';
     refresh();
   }
 
@@ -99,7 +106,24 @@
     });
   }
 
-  /* ---------- 送礼：扣费 → 消息区礼物气泡 + 轮播追加收礼视频 ---------- */
+  /* 站内风格确认框（原生 confirm 兜底） */
+  function confirmSend(name, price) {
+    return new Promise(function (resolve) {
+      var msg = 'Send "' + name + '" for ' + price + ' tokens?'
+      if (window.SugusDialog) {
+        SugusDialog.confirm({
+          title: 'Send a gift',
+          message: msg,
+          confirmText: 'Send 🎁',
+          cancelText: 'Cancel'
+        }).then(resolve)
+      } else {
+        resolve(window.confirm(msg))
+      }
+    })
+  }
+
+  /* ---------- 送礼：扣费 → 消息区礼物气泡 + 好感刷新 + 轮播追加收礼视频 ---------- */
   function sendGift(item, panel) {
     if (sending) return;
     var tk = token();
@@ -108,58 +132,163 @@
     var id = item.getAttribute('data-id');
     var name = item.getAttribute('data-name');
     var price = item.getAttribute('data-price');
-    if (!window.confirm('Send ' + name + ' for ' + price + ' tokens?')) return;
-    sending = true;
-    item.style.opacity = .5;
-
-    var fd = new FormData();
-    fd.append('role_key', rk);
-    fd.append('gift_id', id);
-    fd.append('device_id', (function () { try { return localStorage.getItem('live_device_id') || 'web' } catch (e) { return 'web' } })());
-    fetch(API + '/sendChatGift', { method: 'POST', headers: { Authorization: 'Bearer ' + tk }, body: fd })
-      .then(function (r) { return r.json() })
-      .then(function (d) {
-        sending = false;
-        item.style.opacity = 1;
-        if (!d || d.code !== '00000' || !d.data) {
-          alert((d && d.msg) ? ('Failed: ' + d.msg) : 'Failed to send gift');
-          return;
-        }
-        panel.remove();
-        onGiftSent(d.data, name);
-        try { if (window.refreshTokenBalance) window.refreshTokenBalance() } catch (e) {}
-      })
-      .catch(function () {
-        sending = false; item.style.opacity = 1;
-        alert('Network error, please try again');
-      });
+    confirmSend(name, price).then(function (ok) {
+      if (!ok) return;
+      sending = true;
+      item.style.opacity = .5;
+      var fd = new FormData();
+      fd.append('role_key', rk);
+      fd.append('gift_id', id);
+      fd.append('device_id', (function () { try { return localStorage.getItem('live_device_id') || 'web' } catch (e) { return 'web' } })());
+      fetch(API + '/sendChatGift', { method: 'POST', headers: { Authorization: 'Bearer ' + tk }, body: fd })
+        .then(function (r) { return r.json() })
+        .then(function (d) {
+          sending = false;
+          item.style.opacity = 1;
+          if (!d || d.code !== '00000' || !d.data) {
+            var failMsg = (d && d.msg) || 'Please try again later';
+            if (window.SugusDialog) {
+              SugusDialog.alert(failMsg, { title: 'Send failed' })
+            } else {
+              alert(failMsg)
+            }
+            return;
+          }
+          panel.remove();
+          onGiftSent(d.data, name);
+          // 顶栏余额实时刷新
+          try { if (window.refreshTokenBalance) window.refreshTokenBalance() } catch (e) {}
+        })
+        .catch(function () {
+          sending = false; item.style.opacity = 1;
+          alert('Network error, please try again');
+        });
+    });
   }
 
-  /* 送礼成功：消息区追加礼物视频气泡 + 右侧轮播追加 */
+  /* 送礼成功：消息气泡 + 好感进度 + 轮播追加 */
   function onGiftSent(data, name) {
     var media = (data && data.media) || {};
-    // 1) 消息区：礼物气泡（用户侧 + 收礼视频）
+
+    // 1) 消息区：礼物气泡（用户侧 + 收礼视频，可点播）
     var box = document.getElementById('messages_turbo_frame') || document.getElementById('messages');
     if (box && media.url) {
       var row = document.createElement('div');
       row.className = 'user-response px-4 py-2';
       row.innerHTML =
         '<div class="flex justify-end"><div class="flex-col gap-[9px] inline-flex ml-auto items-end">' +
-        '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;background:#303030;padding:10px 12px;border-radius:10px;max-width:80%">🎁 You sent a <b>' + esc(media.title || name) + '</b></div>' +
+        '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;background:#303030;padding:10px 12px;border-radius:10px;max-width:80%">🎁 You sent a <b style="color:#fbbf24">' + esc(media.title || name) + '</b>' +
+        (data.affection && data.affection.gain ? ' <span style="color:#F97187">+' + esc(data.affection.gain) + ' ❤</span>' : '') +
+        '</div>' +
         '<div style="background:#303030;border-radius:10px;overflow:hidden;max-width:80%"><video src="' + esc(media.url) + '" controls playsinline style="display:block;max-width:260px;max-height:340px"></video></div>' +
         '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
         '</div></div>';
       box.appendChild(row);
       box.scrollTop = box.scrollHeight;
     }
-    // 2) 右侧资料轮播：追加收礼视频（与角色人设图并列，可左右切换）
-    var carousel = document.querySelector('.carousel');
-    if (carousel && media.url) {
-      var slide = document.createElement('div');
-      slide.className = 'carousel-item';
-      slide.innerHTML = '<video src="' + esc(media.url) + '" controls playsinline style="width:100%;height:100%;object-fit:cover;background:#000"></video>';
-      carousel.appendChild(slide);
+
+    // 2) 右侧好感进度条刷新（与 chat.js 的 spendBox 同一套 DOM）
+    if (data.affection) {
+      var affBox = document.getElementById('js-spend');
+      if (affBox) {
+        var max = Number(data.affection.max || 100) || 100;
+        var val = Math.max(0, Math.min(max, Number(data.affection.affection || 0)));
+        var affEl = affBox.querySelector('.js-sp-aff');
+        var valEl = affBox.querySelector('.js-sp-aff-val');
+        var fillEl = affBox.querySelector('.js-sp-aff-fill');
+        if (affEl) affEl.style.display = 'block';
+        if (valEl) valEl.textContent = val + ' / ' + max;
+        if (fillEl) fillEl.style.width = Math.round(val / max * 100) + '%';
+      }
     }
+
+    // 3) 右侧资料轮播：追加收礼视频并重绑导航（新 item 可切换，视频静音自动循环播放）
+    if (media.url) {
+      giftSlides.push(media.url);
+      appendCarouselSlide(media.url);
+      watchCarousel();
+    }
+  }
+
+  /* 本页送礼的收礼视频（Turbo 二次初始化会重置 carousel，观察变化后重放） */
+  var giftSlides = [];
+  var carouselWatched = false;
+  var selfMutating = false;
+
+  function appendCarouselSlide(url) {
+    var carousel = document.querySelector('.carousel');
+    if (!carousel) return;
+    var slide = document.createElement('div');
+    slide.className = 'carousel-item';
+    slide.innerHTML = '<video src="' + esc(url) + '" muted autoplay loop playsinline style="width:100%;height:100%;object-fit:cover;background:#000"></video>';
+    selfMutating = true;
+    carousel.appendChild(slide);
+    rebindCarousel();
+    setTimeout(function () { selfMutating = false }, 0);
+  }
+
+  /* carousel 被外部重置（chat.js 的 getDetail 用角色图重建）时，把礼物视频补回去 */
+  function watchCarousel() {
+    if (carouselWatched) return;
+    var carousel = document.querySelector('.carousel');
+    if (!carousel || typeof MutationObserver === 'undefined') return;
+    carouselWatched = true;
+    var observer = new MutationObserver(function () {
+      if (selfMutating) return;
+      // 外部重置：检查礼物视频是否还在，不在则重放
+      var urls = Array.prototype.map.call(carousel.querySelectorAll('video'), function (v) { return v.getAttribute('src') || '' });
+      var missing = giftSlides.filter(function (u) { return urls.indexOf(u) === -1 });
+      if (missing.length) {
+        missing.forEach(appendCarouselSlide);
+      } else if (carousel.querySelectorAll('.carousel-item').length > 1 && carousel.querySelectorAll('.dot').length !== carousel.querySelectorAll('.carousel-item').length) {
+        rebindCarousel();   // item 数与圆点数不一致 → 只需重绑
+      }
+    });
+    observer.observe(carousel, { childList: true });
+  }
+
+  /* 轮播导航重绑：application.js 的旧绑定按快照工作（看不到新 item），这里 off 后统一接管 + 重建圆点 */
+  function rebindCarousel() {
+    var $items = document.querySelectorAll('.carousel-item');
+    var dotsWrap = document.querySelector('.carousel-dots');
+    var prev = document.getElementById('prevBtn');
+    var next = document.getElementById('nextBtn');
+    if (!$items.length || !prev || !next) return;
+    // 重建圆点
+    if (dotsWrap) {
+      dotsWrap.innerHTML = '';
+      for (var i = 0; i < $items.length; i++) {
+        var d = document.createElement('span');
+        d.className = 'dot inline-block w-[10px] h-[10px] bg-gray-400 rounded-full mx-1 cursor-pointer';
+        d.setAttribute('data-index', i);
+        dotsWrap.appendChild(d);
+      }
+    }
+    // 解除旧绑定（含 application.js 的），统一接管
+    prev.outerHTML = prev.outerHTML;
+    next.outerHTML = next.outerHTML;
+    prev = document.getElementById('prevBtn');
+    next = document.getElementById('nextBtn');
+    var cur = document.querySelector('.carousel-item.active');
+    var curIdx = Array.prototype.indexOf.call($items, cur);
+    if (curIdx < 0) curIdx = 0;
+
+    function show(i) {
+      curIdx = (i + $items.length) % $items.length;
+      for (var k = 0; k < $items.length; k++) $items[k].classList.toggle('active', k === curIdx);
+      var dots = document.querySelectorAll('.dot');
+      for (var j = 0; j < dots.length; j++) dots[j].classList.toggle('active', j === curIdx);
+      // 当前视频静音循环播放
+      var v = $items[curIdx] && $items[curIdx].querySelector('video');
+      if (v) { v.muted = true; try { v.play() } catch (e) {} }
+    }
+    next.addEventListener('click', function () { show(curIdx + 1) });
+    prev.addEventListener('click', function () { show(curIdx - 1) });
+    if (dotsWrap) dotsWrap.addEventListener('click', function (e) {
+      var t = e.target.closest('.dot');
+      if (t) show(parseInt(t.getAttribute('data-index'), 10) || 0);
+    });
+    show(curIdx);
   }
 
   /* ---------- 样式 + 启动 ---------- */
@@ -183,7 +312,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
   document.addEventListener('turbo:load', function () { boot(); refresh() });
-  // 切换会话后刷新按钮可见性（会话点击由 chat.js 委托，这里用面板 DOM 变化兜底）
+  // 切换会话后刷新按钮可见性
   document.addEventListener('click', function (e) {
     if (e.target.closest && e.target.closest('#message-list a.chat-obj')) setTimeout(refresh, 60);
   }, true);
