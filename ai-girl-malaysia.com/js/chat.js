@@ -522,13 +522,17 @@
             node.innerHTML = '<div class="js-voice" style="display:flex;align-items:center;gap:10px;background:' + bg + ';border-radius:10px;padding:10px 14px;min-width:180px">' +
                 '<button class="js-voice-play" style="background:none;border:0;padding:0;cursor:pointer;display:flex;align-items:center">' +
                 '<svg class="js-ic-play" viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M8 5v14l11-7z"/></svg>' +
-                '<svg class="js-ic-pause" viewBox="0 0 24 24" width="22" height="22" fill="#fff" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>' +
+                '<svg class="js-ic-pause" viewBox="0 0 24 24" width="22" height="22" fill="#fff" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14H6z" xmlns="http://www.w3.org/2000/svg"/></svg>' +
                 '</button>' +
                 '<div style="display:flex;align-items:flex-end;height:28px">' + voiceBarsHtml(barColor) + '</div>' +
                 '<span class="js-voice-dur" style="color:' + barColor + ';font-size:12px">0:00</span></div>'
             bindVoicePlayer(node, media.url)
         } else {
-            node.innerHTML = '<div style="max-width:260px"><video controls playsinline preload="metadata" src="' +
+            // 聊天礼物：视频上方加礼物标签（历史与送礼后的实时渲染一致）
+            var giftTag = media.kind === 'chat_gift'
+                ? '<div style="color:' + (mine ? '#fbbf24' : '#fff') + ';font-size:12.5px;font-weight:700;margin-bottom:6px">🎁 Gift · ' + esc(media.title || '') + '</div>'
+                : ''
+            node.innerHTML = '<div style="max-width:260px">' + giftTag + '<video controls playsinline preload="metadata" src="' +
                 esc(media.url) + '" style="display:block;width:260px;border-radius:10px"></video></div>'
         }
     }
