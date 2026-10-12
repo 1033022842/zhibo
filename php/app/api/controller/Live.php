@@ -1542,6 +1542,13 @@ final class Live extends BaseController
         if ($roleKey !== '') {
             $enabled = (int) $db->table('lp_chat_gift_role')
                 ->where('role_key', $roleKey)->where('status', 1)->count() > 0;
+            // 按角色实际素材过滤：缺视频的礼物不下发（面板不显示，杜绝送礼后 404）
+            if ($enabled) {
+                $base = dirname(__DIR__, 3) . '/public/storage/chat_gifts/' . $roleKey . '/';
+                $gifts = array_values(array_filter($gifts, function ($g) use ($base) {
+                    return is_file($base . $g['gift_key'] . '.mp4');
+                }));
+            }
         }
         return $this->jsonSuccess(['gifts' => $gifts, 'enabled' => $enabled]);
     }
@@ -1571,6 +1578,11 @@ final class Live extends BaseController
         $role = $db->table('lp_chat_gift_role')->where('role_key', $roleKey)->where('status', 1)->find();
         if (!$role) {
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '该角色暂不支持送礼');
+        }
+        // 素材存在性校验：缺视频的礼物不允许送（防 404）
+        $mediaPath = dirname(__DIR__, 3) . '/public/storage/chat_gifts/' . $roleKey . '/' . $gift['gift_key'] . '.mp4';
+        if (!is_file($mediaPath)) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '该礼物暂不可用');
         }
 
         $price = max(0, (int) $gift['price']);
