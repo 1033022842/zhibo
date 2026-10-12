@@ -264,7 +264,7 @@ final class RoomService
             ],
             'play'              => [
                 'stream_alias' => $streamAlias,
-                'webrtc_url'   => $httpBase . '/api/v1/whep/' . $streamAlias,
+                'webrtc_url'   => $this->whepEnabled() ? $httpBase . '/api/v1/whep/' . $streamAlias : '',
                 'hls_url'      => $this->hlsBase($domain) . '/hls/' . $streamAlias . '/index.m3u8?v=2',
                 'play_token'   => sha1($streamAlias . '|' . $expireAt . '|' . config('jwt.secret')),
                 'expire_at'    => $expireAt,
@@ -284,6 +284,12 @@ final class RoomService
         // 配置了 HLS CDN（七牛等）则播放走 CDN，否则源站直连
         $cdn = trim((string) (env('AI.HLS_CDN_DOMAIN', env('HLS_CDN_DOMAIN', ''))), '/');
         return $cdn !== '' ? $cdn : rtrim($domain, '/');
+    }
+
+    private function whepEnabled(): bool
+    {
+        // 未部署 mediamtx(WHEP) 时置 0，前端直接走 HLS，避免先连 WebRTC 失败再回退的等待
+        return (string) env('AI.WHEP_ENABLED', '1') !== '0';
     }
 
     private function loadGiftPanel(string $domain): array
