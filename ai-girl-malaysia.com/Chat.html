@@ -79,6 +79,8 @@
 	.list-container::-webkit-scrollbar-thumb:hover,
 	#conversation-container::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
 	#messages,.list-container,#conversation-container{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+	/* 消息区底部留白：输入框上方悬浮的 Suggestion 建议条（top:-40px）会遮住最后一条消息的上沿 */
+	#messages{padding-bottom:64px}
 	</style>
 <script src="./js/tracking.js?v=20261006e"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
