@@ -139,6 +139,13 @@
       var fd = new FormData();
       fd.append('role_key', rk);
       fd.append('gift_id', id);
+      fd.append('lang', (function () {
+        try {
+          var m = document.cookie.match(/(?:^|;\s*)googtrans=([^;]*)/);
+          if (m) { var p = decodeURIComponent(m[1]).split('/'); var c = (p[p.length - 1] || '').toLowerCase(); if (/^[a-z]{2}$/.test(c)) return c }
+        } catch (e) {}
+        return (document.documentElement.getAttribute('lang') || 'en').slice(0, 2)
+      })());
       fd.append('device_id', (function () { try { return localStorage.getItem('live_device_id') || 'web' } catch (e) { return 'web' } })());
       fetch(API + '/sendChatGift', { method: 'POST', headers: { Authorization: 'Bearer ' + tk }, body: fd })
         .then(function (r) { return r.json() })
@@ -184,6 +191,20 @@
         '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
         '</div></div>';
       box.appendChild(row);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // 1.5) 角色的收礼回应（按人设 + 好感度生成的 LLM 回复，assistant 风格气泡）
+    if (data.reply) {
+      var replyRow = document.createElement('div');
+      replyRow.className = 'user-response px-4 py-2';
+      replyRow.innerHTML =
+        '<div class="flex justify-start"><div class="flex-col gap-[9px] inline-flex">' +
+        '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;background:#D98491;padding:12px;border-radius:10px 10px 10px 0;max-width:80%"></div>' +
+        '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
+        '</div></div>';
+      replyRow.querySelector('.js-bubble').textContent = data.reply;
+      box.appendChild(replyRow);
       box.scrollTop = box.scrollHeight;
     }
 
