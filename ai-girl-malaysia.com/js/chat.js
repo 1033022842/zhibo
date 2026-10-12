@@ -851,7 +851,7 @@
                 scrollMessagesToBottom()
             })
             .catch(function () {})
-        loadAffection()
+        // loadAffection() 由调用方与历史请求并行发起（串行会多等一个 RTT，切换会话明显变卡）
     }
 
     /* ---------- 开场问候：无历史时按人设生成火热开场白（本地模板轮换，替代页面自带的空音频占位） ---------- */
@@ -1737,6 +1737,7 @@
         if (cid !== '') { selectConversation(cid, true); return }
         // 列表里没有任何会话（直接打开 Chat.html）也要加载历史，否则刷新后看不到记录
         loadChatHistory()
+        loadAffection()
     }
 
     // 切换会话：高亮 + 右侧资料 + 历史消息 + URL 同步（skipHistory=初始化时历史已并行预拉，避免重复请求）
@@ -1753,7 +1754,9 @@
         try { history.replaceState(null, '', './Chat.html?id=' + encodeURIComponent(convId)) } catch (e) {}
         getDetail(chatItemById(convId))
         if (skipHistory && sameConv) return
+        // 历史与好感并行（各省一个 RTT 的串行等待）
         loadChatHistory()
+        loadAffection()
     }
 
 })()
