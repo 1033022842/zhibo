@@ -1620,10 +1620,51 @@ final class Live extends BaseController
             'unlock_price' => $price,
         ], false, $roleKey);
 
+        // 角色的收礼回应：按人设 + 当前好感度用 LLM 生成（失败静默降级为空，前端不显示回复）
+        $reply = '';
+        try {
+            $persona = $db->table('lp_home_character')
+                ->where('id', (int) preg_replace('/^home-/', '', $roleKey))
+                ->field('name, tagline, description')
+                ->find();
+            $personaName = (string) ($persona['name'] ?? $role['role_name']);
+            $personaDesc = trim((string) ($persona['tagline'] ?? '') . "\n" . (string) ($persona['description'] ?? ''));
+
+            $affNow = $affData ? (int) $affData['affection'] : 0;
+            $mood = $affNow >= 80 ? 'very intimate and passionate, like a devoted lover'
+                : ($affNow >= 40 ? 'flirty and affectionate, clearly warming up to him'
+                : 'sweet but a little shy, still getting to know him');
+            $system = '你是「' . $personaName . '」，一个真实、鲜活的 AI 虚拟伴侣。请完全代入角色，用第一人称、口语化、自然的方式说话，像真人发消息一样。';
+            if ($personaDesc !== '') {
+                $system .= "\n\n角色人设：" . mb_substr($personaDesc, 0, 500);
+            }
+            $langQ = $this->langRule((string) $this->request->post('lang', ''));
+            $userMsg = sprintf(
+                '（对方刚送了你一份礼物：%s，价值 %d 代币。你们当前的好感度是 %d/100，此刻你的态度：%s。）'
+                . '请以角色身份发一条收礼后的感谢消息：贴合人设、真诚火热，可以提到礼物本身，1-2 句话（不超过 45 个词），带 1-2 个 emoji。只输出消息本身。',
+                (string) $gift['name'], $price, $affNow, $mood
+            );
+            if ($langQ !== '') {
+                $userMsg .= "\n" . $langQ;
+            }
+            $reply = (new LlmService())->chat([
+                ['role' => 'system', 'content' => $system],
+                ['role' => 'user', 'content' => $userMsg],
+            ], ['max_tokens' => 140]);
+            $reply = trim(preg_replace('/^(["\'“”‘’]+)(.*)\\1$/us', '$2', trim((string) $reply)) ?? '');
+            if ($reply !== '') {
+                // 落为角色的回复消息（历史可见）
+                $this->saveChatMessage($userId, (string) $this->request->post('device_id', ''), 0, 'assistant', $reply, [], false, $roleKey);
+            }
+        } catch (\Throwable $e) {
+            $reply = '';
+        }
+
         return $this->jsonSuccess([
             'gift'      => ['id' => (int) $gift['id'], 'name' => (string) $gift['name'], 'icon' => (string) $gift['icon']],
             'media'     => ['kind' => 'chat_gift', 'url' => $mediaUrl, 'title' => (string) $gift['name'], 'unlock_price' => $price],
             'affection' => $affData,
+            'reply'     => $reply,
             'balance'   => $wallet->balance($userId),
         ]);
     }
