@@ -185,9 +185,10 @@ final class PromoSetting extends Backend
                     if (strpos($promoDomain, '*') !== false) {
                         continue;
                     }
-                    // 普通推广不绑定像素，链接只带 name / ch，靠名称区分短信商等来源
-                    $pxParam  = $platform === 'general' ? '' : (string) $id;
-                    $promoUrl = $this->buildPromoLink($promoDomain, $pxParam, $linkName, $platform);
+                    // 普通推广 / 其他不绑定像素：链接只带渠道ID（最短写法），注册时后台按 ID 反解出渠道名称
+                    $promoUrl = in_array($platform, ['general', 'other'], true)
+                        ? $this->buildPromoLink($promoDomain, (string) $id, '', '')
+                        : $this->buildPromoLink($promoDomain, (string) $id, $linkName, $platform);
                     $promoUrlEsc = htmlspecialchars($promoUrl, ENT_QUOTES);
                     $promoDomainEsc = htmlspecialchars($promoDomain, ENT_QUOTES);
                     $copyPromoBtn = '<button type="button" class="link-copy-btn" data-link="' . $promoUrlEsc . '" title="复制 ' . $promoDomainEsc . ' 的推广链接" style="cursor:pointer" onmousedown="this.style.transform=\'translateY(1px) scale(.97)\';this.style.boxShadow=\'0 1px 3px rgba(64,158,255,.22)\';" onmouseup="this.style.transform=\'\';this.style.boxShadow=\'\';" onmouseleave="this.style.transform=\'\';this.style.boxShadow=\'\';" onclick="return onCopyPromoLink(this)">复制链接</button>';
@@ -513,7 +514,7 @@ final class PromoSetting extends Backend
                     <div class="form-item">
                         <label><span style="color:#f56c6c">*</span> 渠道类型</label>
                         <select name="platform" id="pxPlatform">{$platformOptions}</select>
-                        <div class="hint px-general-hint" style="display:none">普通推广不接像素，只需填「渠道名称 + 推广域名」即可保存，之后可直接复制推广链接（适合短信、群发等渠道）。</div>
+                        <div class="hint px-general-hint" style="display:none">「普通推广 / 其他」不接像素，只需填「渠道名称 + 推广域名」即可保存，之后可直接复制推广链接（适合短信、群发等渠道）。</div>
                     </div>
                     <div class="form-item px-only">
                         <label>像素(Pixel Id)</label>
@@ -718,18 +719,18 @@ document.addEventListener('click', function (e) {
     });
 })();
 
-/* 渠道类型 = 普通推广 时，隐藏像素相关字段（不需要媒体像素也能保存并复制链接） */
+/* 渠道类型 = 普通推广 / 其他 时，隐藏像素相关字段（不需要媒体像素也能保存并复制链接） */
 (function () {
     var sel = document.getElementById('pxPlatform');
     if (!sel) return;
     function sync() {
-        var isGeneral = sel.value === 'general';
+        var noPixel = sel.value === 'general' || sel.value === 'other';
         var list = document.querySelectorAll('.px-only');
         for (var i = 0; i < list.length; i++) {
-            list[i].style.display = isGeneral ? 'none' : '';
+            list[i].style.display = noPixel ? 'none' : '';
         }
         var hint = document.querySelector('.px-general-hint');
-        if (hint) hint.style.display = isGeneral ? 'block' : 'none';
+        if (hint) hint.style.display = noPixel ? 'block' : 'none';
     }
     sel.addEventListener('change', sync);
     sync();
@@ -818,8 +819,8 @@ HTML;
             if ($name === '') {
                 throw new \InvalidArgumentException('渠道名称不能为空');
             }
-            // 普通推广（短信 / 群发）不接像素，只要有名称 + 域名即可
-            if ($platform !== 'general' && $pixelId === '' && $code === '') {
+            // 普通推广（短信 / 群发）与「其他」不接像素，只要有名称 + 域名即可保存
+            if (!in_array($platform, ['general', 'other'], true) && $pixelId === '' && $code === '') {
                 throw new \InvalidArgumentException('像素ID 和 像素代码 至少要填一个');
             }
 

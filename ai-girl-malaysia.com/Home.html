@@ -1523,8 +1523,10 @@
 				var cover = item.poster
 					? '<img class="' + (unlocked ? 'pc-clear' : '') + '" src="' + esc(fixUrl(item.poster)) + '" alt="" loading="lazy">'
 					: ''
-				var avatar = item.avatar
-					? '<img class="pc-avatar" src="' + esc(fixUrl(item.avatar)) + '" alt="' + esc(item.creator) + '">'
+				// 头像：优先后台配的角色头像，为空时兜底用封面图
+				var avatarSrc = item.avatar || item.poster
+				var avatar = avatarSrc
+					? '<img class="pc-avatar" src="' + esc(fixUrl(avatarSrc)) + '" alt="' + esc(item.creator) + '">'
 					: ''
 				var center = (hasVideo || hasImage)
 					? '<div class="pc-center">' +

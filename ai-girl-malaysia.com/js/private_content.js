@@ -168,10 +168,11 @@
           '</span>'
     }
 
-    /* 头像：后台未配 avatar 时返回空串，避免出现破图 */
+    /* 头像：优先用后台配的角色头像；为空时兜底用封面图（避免线上整片没有头像/破图） */
     function avatarHtml(item) {
-        if (!item.avatar) return ''
-        return '<img alt="' + esc(item.creator) + '" class="w-7 h-7 object-cover object-top rounded-full ring-1 ring-white/40 shrink-0" data-mpc-card-avatar="true" src="' + esc(item.avatar) + '">'
+        var src = item.avatar || item.poster
+        if (!src) return ''
+        return '<img alt="' + esc(item.creator) + '" class="w-7 h-7 object-cover object-top rounded-full ring-1 ring-white/40 shrink-0" data-mpc-card-avatar="true" src="' + esc(src) + '">'
     }
 
     /* 会员「去模糊」由平台开关控制（window.LIVE_VIP.unblur_preview，默认关闭） */
