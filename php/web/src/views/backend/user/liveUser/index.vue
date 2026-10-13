@@ -492,6 +492,15 @@ const baTable = new baTableClass(
                 show: true,
             },
             {
+                // 登入IP：会员最近一次登录的 IP（来自 lp_user_profile，非主表字段，故不提供筛选）
+                label: '登入IP',
+                prop: 'last_login_ip',
+                align: 'center',
+                operator: false,
+                width: 150,
+                showOverflowTooltip: true,
+            },
+            {
                 label: '操作',
                 align: 'center',
                 width: 400,

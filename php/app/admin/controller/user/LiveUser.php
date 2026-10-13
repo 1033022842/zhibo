@@ -420,9 +420,7 @@ class LiveUser extends Backend
         $lastIp  = (string) ($profile['last_login_ip'] ?? '');
         $lastAt  = (string) ($profile['last_login_at'] ?? '');
         $lastLoginText = $lastAt !== '' ? htmlspecialchars($lastAt) : '-';
-        if ($lastIp !== '') {
-            $lastLoginText .= ' <span style="color:#999">（' . htmlspecialchars($lastIp) . '）</span>';
-        }
+        $lastIpText    = $lastIp !== '' ? htmlspecialchars($lastIp) : '-';
 
         // 推广来源
         $regDomainRaw   = (string) ($user->reg_domain ?? '');
@@ -525,6 +523,7 @@ class LiveUser extends Backend
         <div class="row"><span class="label">状态</span><span class="value">{$userStatus}</span></div>
         <div class="row"><span class="label">注册时间</span><span class="value">{$createdAt}</span></div>
         <div class="row"><span class="label">最后登录</span><span class="value">{$lastLoginText}</span></div>
+        <div class="row"><span class="label">登入IP</span><span class="value" style="word-break:break-all">{$lastIpText}</span></div>
     </div>
 
     <div class="card">

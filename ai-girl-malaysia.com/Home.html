@@ -26,7 +26,7 @@
 		<script src="./Girls_files/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20261006e"></script>
-		<script src="./js/shell-new.js?v=20261011b"></script>
+		<script src="./js/shell-new.js?v=20261015e"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20261007a"></script>
 
@@ -204,6 +204,75 @@
 			.c-s-lock{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--h-grey2)}
 			.c-s-lock svg{width:11px;height:11px;fill:currentColor}
 			.c-card-short{width:190px;height:271px;aspect-ratio:7/10;background:#131313}
+
+			/* ---------- Private Content 卡片：样式对齐 candy.ai/private-content（参考页 siren.html）
+			   栏目布局（横向单排）不变，只统一卡片本身的观感：模糊封面 + 头像/昵称 + New 角标
+			   + 播放按钮与视频/图片数 + 代币价与星级 + 两行简介 + Unlock/Watch 按钮 ---------- */
+			.pc-item{width:190px;list-style:none}
+			.pc-card{position:relative;width:100%;aspect-ratio:9/16;border-radius:16px;overflow:hidden;
+				background:#14171B;cursor:pointer}
+			.pc-media{position:absolute;inset:0;border-radius:16px;overflow:hidden}
+			.pc-media img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;
+				pointer-events:none;transform:scale(1.1);filter:blur(7px)}
+			.pc-media img.pc-clear{transform:none;filter:none}
+			.pc-veil-b{position:absolute;left:0;right:0;bottom:0;height:62%;pointer-events:none;
+				background:linear-gradient(to top,rgba(5,6,8,.95),rgba(5,6,8,.55),transparent)}
+			.pc-veil-t{position:absolute;left:0;right:0;top:0;height:64px;pointer-events:none;
+				background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent)}
+			.pc-peek{position:absolute;left:0;right:0;top:0;bottom:44%;z-index:10;display:block}
+			.pc-center{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:20;
+				width:max-content;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+			.pc-play{width:48px;height:48px;border-radius:9999px;background:rgba(0,0,0,.45);
+				border:1px solid rgba(255,255,255,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+				display:flex;align-items:center;justify-content:center;transition:transform .3s ease}
+			.pc-card:hover .pc-play{transform:scale(1.1)}
+			.pc-play svg{width:20px;height:20px;transform:translateX(-1px);fill:#fff}
+			.pc-badges{display:flex;flex-direction:column;align-items:center;gap:4px}
+			.pc-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;
+				background:rgba(0,0,0,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+				color:#fff;font-size:10px;font-weight:600;line-height:1;letter-spacing:.025em;white-space:nowrap}
+			.pc-pill img{width:12px;height:12px;flex-shrink:0}
+			.pc-top{position:absolute;top:12px;left:12px;right:12px;z-index:20;display:flex;align-items:center;
+				justify-content:space-between;gap:8px;pointer-events:none}
+			.pc-top-left{display:flex;align-items:center;gap:8px;min-width:0}
+			.pc-avatar{width:28px;height:28px;object-fit:cover;object-position:top;border-radius:9999px;
+				box-shadow:0 0 0 1px rgba(255,255,255,.4);flex-shrink:0}
+			.pc-name{color:#fff;font-size:14px;font-weight:600;line-height:1.25;overflow:hidden;
+				text-overflow:ellipsis;white-space:nowrap;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+			.pc-new{height:24px;padding:0 10px;background:#f51e1c;border-radius:9999px;display:inline-flex;
+				align-items:center;flex-shrink:0}
+			.pc-new span{color:#fff;font-size:10px;font-weight:600;line-height:1}
+			.pc-bottom{position:absolute;bottom:0;left:0;right:0;z-index:20;padding:10px;
+				display:flex;flex-direction:column;gap:4px}
+			.pc-meta{display:flex;align-items:center;justify-content:space-between;gap:8px}
+			.pc-price{display:flex;align-items:center;gap:8px}
+			.pc-price span{display:inline-flex;align-items:center;gap:6px}
+			.pc-price img{width:16px;height:16px;flex-shrink:0}
+			.pc-price b{color:#ffac0b;font-size:13px;font-weight:600}
+			.pc-star{display:inline-flex;align-items:center;gap:4px;color:#fff;font-size:13px;
+				font-weight:700;flex-shrink:0}
+			.pc-star svg{width:14px;height:14px}
+			.pc-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+				text-align:left;color:rgba(255,255,255,.8);font-size:11px;font-weight:500;line-height:1.25}
+			.pc-cta{display:flex;height:38px;width:100%;min-width:0;border:none;cursor:pointer;
+				align-items:center;justify-content:center;overflow:hidden;border-radius:12px;padding:0;
+				background:linear-gradient(to right,#FA2A55,#FF6B9A);transition:filter .15s ease}
+			.pc-cta:hover{filter:brightness(1.1)}
+			.pc-cta.watch{background:linear-gradient(to right,#28A76B,#7EE2A8)}
+			.pc-cta span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+				font-size:12px;font-weight:600;color:#fff}
+			.pc-cta.watch span{color:#131313}
+			@media (min-width:768px){
+				.pc-play{width:52px;height:52px}
+				.pc-pill{gap:6px;padding:6px 10px;font-size:12px}
+				.pc-pill img{width:14px;height:14px}
+				.pc-new span{font-size:12px}
+				.pc-bottom{padding:12px;gap:8px}
+				.pc-price b{font-size:14px}
+				.pc-desc{font-size:13px}
+				.pc-cta{height:42px;padding:0 12px}
+				.pc-cta span{font-size:14px}
+			}
 
 			/* ---------- FAQ ---------- */
 			.c-faq{width:100%;max-width:1280px;margin:128px auto 0;padding:0 20px}
@@ -551,7 +620,7 @@
 					</div>
 				</div>
 			</div>
-			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js?v=20261011b 渲染成新版导航形态） -->
+			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js?v=20261015e 渲染成新版导航形态） -->
 			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main"></div>
 		</div>
 
@@ -1432,29 +1501,66 @@
 					})
 					.catch(function () { renderPrivate() })
 			}
+			// 卡片内图标（与 private_content.html 同一套资源）
+			var PC_VIDEO_ICON = './private-content_files/video-icon-dd7dcd618ba6d4bd2e3688728cbadce1a04c069fd72c2bf6137a79df332a60a2.svg'
+			var PC_IMAGE_ICON = './private-content_files/image-icon-bf418de39456539897833eaddf02154524833c9b2e8dc51cdffe77df10b9e36d.svg'
+			var PC_TOKEN_ICON = './private-content_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg'
+			var PC_STAR_PATH = 'M21.05 10.32 17 13.81l1.24 5.22a1.5 1.5 0 0 1-2.2 1.6L11.5 17.83l-4.54 2.8a1.5 1.5 0 0 1-2.2-1.6L6 13.81 1.95 10.32a1.5 1.5 0 0 1 .84-2.6l5.3-.42 2.05-4.95a1.5 1.5 0 0 1 2.72 0l2.04 4.95 5.3.43a1.5 1.5 0 0 1 .85 2.59Z'
+			// 星级评分：原站 5 分制一位小数，后台存点赞率(0~100)，按 ÷20 换算
+			function pcRating(item) {
+				var r = Number(item.like_rate || 0) / 20
+				if (r > 5) r = 5
+				if (r < 0) r = 0
+				return r.toFixed(1)
+			}
 			function privCardHtml(item) {
 				var unlocked = Number(item.unlocked) === 1
 				var price = parseInt(item.price, 10) || 0
+				var vc = Number(item.video_count || 0), ic = Number(item.image_count || 0)
+				if (String(item.media_type) === 'video' && vc < 1) vc = 1
+				var hasVideo = vc > 0, hasImage = ic > 0
+				var isNew = String(item.badge || '').toLowerCase() === 'new'
 				var cover = item.poster
-					? '<img class="cover" src="' + esc(fixUrl(item.poster)) + '" alt="' + esc(item.title) + '" loading="lazy" style="' + (unlocked ? '' : 'filter:blur(7px)') + '" onerror="this.style.display=\'none\'">'
+					? '<img class="' + (unlocked ? 'pc-clear' : '') + '" src="' + esc(fixUrl(item.poster)) + '" alt="" loading="lazy">'
 					: ''
-				var lockSvg = '<svg viewBox="0 0 24 24" fill="#fff"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8 0V7a3 3 0 0 1 6 0v2H9z"/></svg>'
-				var playSvg = '<svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>'
-				var badge = unlocked
-					? '<span class="c-card-badge">' + playSvg + 'Owned</span>'
-					: '<span class="c-card-badge">' + lockSvg + price + '</span>'
-				var meta = unlocked
-					? ''
-					: '<div class="c-s-meta"><span class="c-s-free">VIP</span><span class="c-s-eps">' + price + ' tokens</span></div>'
-				return '<li><a class="c-card c-card-short" draggable="false" data-pid="' + esc(item.id) + '" href="javascript:void(0)" aria-label="' + esc(item.title) + '">' +
-					cover +
-					'<div class="c-card-scrim"></div>' +
-					badge +
-					'<div class="c-card-info">' +
-						'<div class="c-card-name"><b title="' + esc(item.title) + '">' + esc(item.title) + '</b></div>' +
-						meta +
+				var avatar = item.avatar
+					? '<img class="pc-avatar" src="' + esc(fixUrl(item.avatar)) + '" alt="' + esc(item.creator) + '">'
+					: ''
+				var center = (hasVideo || hasImage)
+					? '<div class="pc-center">' +
+						(hasVideo ? '<span class="pc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72c0 .8.87 1.3 1.56.88l10.5-6.86a1.03 1.03 0 0 0 0-1.76L9.56 4.26A1.03 1.03 0 0 0 8 5.14Z"></path></svg></span>' : '') +
+						'<div class="pc-badges">' +
+							(hasVideo ? '<span class="pc-pill"><span>' + esc(vc) + ' x</span><img src="' + PC_VIDEO_ICON + '" alt="">' + (item.duration ? '<span>' + esc(item.duration) + '</span>' : '') + '</span>' : '') +
+							(hasImage ? '<span class="pc-pill"><img src="' + PC_IMAGE_ICON + '" alt=""><span>' + esc(ic) + '</span></span>' : '') +
+						'</div>' +
+					'</div>'
+					: ''
+				var cta = unlocked
+					? '<button class="pc-cta watch" type="button"><span>Watch</span></button>'
+					: '<button class="pc-cta" type="button"><span>Unlock</span></button>'
+				return '<li class="pc-item">' +
+					'<div class="pc-card" data-pid="' + esc(item.id) + '">' +
+						'<div class="pc-media">' + cover +
+							'<div class="pc-veil-b"></div><div class="pc-veil-t"></div>' +
+						'</div>' +
+						'<a class="pc-peek" aria-label="' + esc(item.creator) + '" href="javascript:void(0)"></a>' +
+						center +
+						'<div class="pc-top">' +
+							'<div class="pc-top-left">' + avatar +
+								'<span class="pc-name">' + esc(item.creator) + '</span>' +
+							'</div>' +
+							(isNew ? '<div class="pc-new"><span>New</span></div>' : '') +
+						'</div>' +
+						'<div class="pc-bottom">' +
+							'<div class="pc-meta">' +
+								'<div class="pc-price"><span><img src="' + PC_TOKEN_ICON + '" alt=""><b>' + esc(price) + '</b></span></div>' +
+								'<span class="pc-star"><svg viewBox="0 0 23 23" aria-hidden="true"><path fill="#FFAE00" d="' + PC_STAR_PATH + '"></path></svg>' + pcRating(item) + '</span>' +
+							'</div>' +
+							'<div class="pc-desc">' + esc(item.title) + '</div>' +
+							cta +
+						'</div>' +
 					'</div>' +
-				'</a></li>'
+				'</li>'
 			}
 			function renderPrivate() {
 				var sec = document.getElementById('privateShelf')

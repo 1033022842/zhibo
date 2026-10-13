@@ -112,26 +112,41 @@
     { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' }
   ]
 
-  /* 支持的语言：与 setting.html / Subscriptions.html / settings.html / taocan.html 等页面自带的
-     “Select your language” 大弹窗完全一致（13 种，分 Interface + Chat / Interface only 两组）。
+  /* 支持的语言：原站“Select your language”大弹窗（13 种）基础上扩展常用语种
+     （新增 zh-CN / zh-TW / ko / ru / hi / th / vi / ms / id / ar / tr / km / lo，
+     并把 it 并入可聊天语种，共 26 种，分 Interface + Chat / Interface only 两组；
+     中文两项固定排在最后）。
      约定：[显示名, 弹窗里的两位代码, assets/flags 下的旗标文件名] */
   var LANG_META = {
     'en': ['English', 'EN', 'us'],
+    'ja': ['日本語', 'JP', 'jp'],
+    'ko': ['한국어', 'KO', 'kr'],
     'fr': ['Français', 'FR', 'fr'],
     'de': ['Deutsch', 'DE', 'de'],
     'es': ['Español', 'ES', 'es'],
-    'ja': ['日本語', 'JP', 'jp'],
+    'it': ['Italiano', 'IT', 'it'],
+    'ru': ['Русский', 'RU', 'ru'],
+    'hi': ['हिन्दी', 'HI', 'in'],
+    'th': ['ภาษาไทย', 'TH', 'th'],
+    'vi': ['Tiếng Việt', 'VI', 'vn'],
+    'ms': ['Bahasa Melayu', 'MY', 'my'],
+    'id': ['Bahasa Indonesia', 'ID', 'id'],
+    'ar': ['العربية', 'AR', 'ar'],
+    'tr': ['Türkçe', 'TR', 'tr'],
+    'km': ['ភាសាខ្មែរ', 'KH', 'kh'],
+    'lo': ['ພາສາລາວ', 'LA', 'la'],
+    'zh-CN': ['简体中文', 'CN', 'cn'],
+    'zh-TW': ['繁體中文', 'TW', 'tw'],
     'da': ['Dansk', 'DA', 'da'],
     'fi': ['Suomi', 'FI', 'fi'],
-    'it': ['Italiano', 'IT', 'it'],
     'nl': ['Nederlands', 'NL', 'nl'],
     'no': ['Norsk', 'NO', 'no'],
     'pl': ['Polski', 'PL', 'pl'],
     'pt-BR': ['Português', 'BR', 'pt-BR'],
     'sv': ['Svenska', 'SE', 'sv']
   }
-  var LANG_CHAT = ['en', 'fr', 'de', 'es', 'ja']
-  var LANG_UI = ['da', 'fi', 'it', 'nl', 'no', 'pl', 'pt-BR', 'sv']
+  var LANG_CHAT = ['en', 'ja', 'ko', 'fr', 'de', 'es', 'it', 'ru', 'hi', 'th', 'vi', 'ms', 'id', 'ar', 'tr', 'km', 'lo', 'zh-CN', 'zh-TW']
+  var LANG_UI = ['da', 'fi', 'nl', 'no', 'pl', 'pt-BR', 'sv']
 
   function langFlag(code) {
     return './assets/flags/' + (LANG_META[code] || LANG_META.en)[2] + '.svg'
@@ -287,6 +302,21 @@
     m.style.display = 'none'
   }
 
+  /* 页面自带（非外壳侧栏）的语言按钮：换成站内新弹窗的同时，把按钮上的旗标/名称也同步成当前语言，
+     否则切到中文/其它语种后这些按钮仍显示 “English / en 旗标”，看起来像没生效。 */
+  function syncPageLangButtons() {
+    var btns = document.querySelectorAll('[data-toggle-modal-modal-outlet="#language-select-modal"]')
+    if (!btns.length) return
+    var cur = currentLang()
+    var meta = LANG_META[cur] || LANG_META.en
+    for (var i = 0; i < btns.length; i++) {
+      var img = btns[i].querySelector('img')
+      if (img) img.setAttribute('src', langFlag(cur))
+      var lbl = btns[i].querySelector('div, span')
+      if (lbl) lbl.textContent = meta[0]
+    }
+  }
+
   /* ---------- 语言切换 ----------
      header/header.html 里那段 .lang-select 处理器只有它被注入进 .headerfy 时才存在，
      而不少页面（Gallery / Chat / Login / Subscriptions 等）根本没有 .headerfy，
@@ -300,17 +330,43 @@
     return parts[parts.length - 1] || 'en'
   }
 
-  function switchLang(code) {
-    var value = '/en/' + code
-    document.cookie = 'googtrans=' + value + ';path=/'
-    if (location.hostname.indexOf('.') > -1) {
-      document.cookie = 'googtrans=' + value + ';path=/;domain=.' + location.hostname
+  /* 写 googtrans cookie：先清掉 host-only 及各级域上的同名旧值，再统一写入，
+     避免上一次遗留的重复 cookie 盖住新值。 */
+  function writeGoogtrans(value) {
+    var host = location.hostname
+    var domains = ['']
+    if (host.indexOf('.') > -1) {
+      domains.push(host, '.' + host)
+      var parts = host.split('.')
+      if (parts.length > 2) domains.push('.' + parts.slice(-2).join('.'))
     }
+    var past = 'expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    for (var i = 0; i < domains.length; i++) {
+      document.cookie = 'googtrans=;path=/;' + (domains[i] ? 'domain=' + domains[i] + ';' : '') + past
+    }
+    for (var j = 0; j < domains.length; j++) {
+      document.cookie = 'googtrans=' + value + ';path=/;' + (domains[j] ? 'domain=' + domains[j] : '')
+    }
+  }
+
+  /* 清掉 URL 上遗留的 #googtrans(...) 哈希。
+     Google 翻译在页面加载时若发现该哈希，会按哈希里的语言套用并用它覆盖 googtrans cookie；
+     上一次切换留下的旧哈希因此会让「第二次切换」失效（cookie 被改回上一次的语言）。
+     这里让 cookie 成为唯一依据，保证每次切换都生效。 */
+  function clearLangHash() {
+    if (!/googtrans/i.test(location.hash)) return
+    try {
+      history.replaceState(null, '', location.pathname + location.search)
+    } catch (e) { /* 忽略：老浏览器不支持时保持原样 */ }
+  }
+
+  function switchLang(code) {
+    writeGoogtrans('/en/' + code)
+    clearLangHash()
     try {
       localStorage.setItem('agigpt-lang', location.href.split('#')[0])
       localStorage.setItem('agigpt-lang-href', '#googtrans(en|' + code + ')')
     } catch (e) { /* 隐私模式忽略 */ }
-    location.hash = '#googtrans(en|' + code + ')'
     location.reload()
   }
 
@@ -927,6 +983,15 @@
       var t = e.target
       if (!t || !t.closest) return
       if (t.closest('[data-fy-lang-open]')) {
+        e.preventDefault()
+        e.stopPropagation()
+        openLangModal()
+        return
+      }
+      // 页面自带（非外壳）的语言按钮：Stimulus toggle-modal#openModal 指向 #language-select-modal，
+      // 打开的是页面里那份旧大弹窗（只有 13 种语言）。这里统一改走站内新弹窗。
+      var ob = t.closest('[data-toggle-modal-modal-outlet]')
+      if (ob && ob.getAttribute('data-toggle-modal-modal-outlet') === '#language-select-modal') {
         e.preventDefault()
         e.stopPropagation()
         openLangModal()
@@ -1550,6 +1615,7 @@
     try {
       var __bound = render()
       if (__bound) bind()
+      syncPageLangButtons()
       syncAuth()
       bindPageCatSync()
       renderBottomBar()

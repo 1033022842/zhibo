@@ -9,7 +9,7 @@ import re
 
 ROOT = r"d:\phpstudy_pro\WWW\douyin\ai-girl-malaysia.com"
 PAT = re.compile(rb"js/shell-new\.js\?v=[0-9a-zA-Z]+")
-NEW_VER = b"js/shell-new.js?v=20260930i"
+NEW_VER = b"js/shell-new.js?v=20261015e"
 
 changed = []
 for name in sorted(os.listdir(ROOT)):

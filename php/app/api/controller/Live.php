@@ -1971,13 +1971,28 @@ final class Live extends BaseController
      */
     private function langRule(string $lang): string
     {
+        $lang = strtolower(trim($lang));
         $map = [
             'zh' => '请始终使用中文回复。',
+            'zh-cn' => '请始终使用简体中文回复。',
+            'zh-tw' => '請始終使用繁體中文回覆。',
             'en' => 'Please always reply in English.',
             'ja' => '必ず日本語で返信してください。',
+            'ko' => '항상 한국어로 답변해 주세요.',
             'fr' => 'Réponds toujours en français.',
             'de' => 'Antworte bitte immer auf Deutsch.',
             'es' => 'Responde siempre en español.',
+            'it' => 'Rispondi sempre in italiano.',
+            'ru' => 'Всегда отвечай на русском языке.',
+            'hi' => 'कृपया हमेशा हिंदी में उत्तर दें।',
+            'th' => 'ตอบกลับเป็นภาษาไทยเสมอ',
+            'vi' => 'Luôn trả lời bằng tiếng Việt.',
+            'ms' => 'Sentiasa balas dalam Bahasa Melayu.',
+            'id' => 'Selalu balas dalam Bahasa Indonesia.',
+            'ar' => 'أجب دائمًا باللغة العربية.',
+            'tr' => 'Her zaman Türkçe yanıt ver.',
+            'km' => 'សូមឆ្លើយតបជាភាសាខ្មែរជានិច្ច។',
+            'lo' => 'ກະລຸນາຕອບເປັນພາສາລາວສະເໝີ.',
         ];
         return $map[$lang] ?? '';
     }
