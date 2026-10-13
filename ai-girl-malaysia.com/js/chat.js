@@ -417,14 +417,15 @@
     var historyLoadedOnce = false
 
     function uiLang() {
-        // 聊天语言跟随用户在「Select your language」弹窗的选择（googtrans cookie，如 /en/fr → fr）；
+        // 聊天语言跟随用户在「Select your language」弹窗的选择（googtrans cookie，如 /en/fr → fr、/en/zh-CN → zh-cn）；
         // Google Translate 不会改 <html lang>，所以 cookie 优先，拿不到再退回 html lang
         try {
             var m = document.cookie.match(/(?:^|;\s*)googtrans=([^;]*)/)
             if (m) {
                 var parts = decodeURIComponent(m[1]).split('/')
                 var code = (parts[parts.length - 1] || '').toLowerCase()
-                if (/^[a-z]{2}$/.test(code)) return code
+                // 允许带地区码（zh-cn / zh-tw / pt-br），其余非法值退回 <html lang>
+                if (/^[a-z]{2}(?:-[a-z]{2})?$/.test(code)) return code
             }
         } catch (e) { /* ignore */ }
         return (document.documentElement.getAttribute('lang') || 'en').slice(0, 2)
@@ -1109,7 +1110,14 @@
     }
 
     function callLocale() {
-        return ({ zh: 'zh-CN', en: 'en-US', ja: 'ja-JP' })[uiLang()] || 'en-US'
+        return ({
+            zh: 'zh-CN', 'zh-cn': 'zh-CN', 'zh-tw': 'zh-TW',
+            en: 'en-US', ja: 'ja-JP', ko: 'ko-KR',
+            fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT',
+            ru: 'ru-RU', hi: 'hi-IN',
+            th: 'th-TH', vi: 'vi-VN', ms: 'ms-MY', id: 'id-ID',
+            ar: 'ar-SA', tr: 'tr-TR', km: 'km-KH', lo: 'lo-LA'
+        })[uiLang()] || 'en-US'
     }
 
     function hashSeed(str) {

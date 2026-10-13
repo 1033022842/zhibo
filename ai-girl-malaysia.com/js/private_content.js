@@ -151,6 +151,29 @@
           '</div>'
     }
 
+    /* 星级评分徽标（原站 data-star-rating-badge）：
+     * 原站是 5 分制一位小数，后台存的是点赞率(0~100 整数)，按 ÷20 换算成 5 分制 */
+    function ratingOf(item) {
+        var r = Number(item.like_rate || 0) / 20
+        if (r > 5) r = 5
+        if (r < 0) r = 0
+        return r.toFixed(1)
+    }
+
+    function starBadgeHtml(item) {
+        var rating = ratingOf(item)
+        return '<span role="img" aria-label="Rated ' + rating + ' out of 5" class="inline-flex shrink-0 items-center gap-1 font-bold text-white text-xs" data-star-rating-badge="">' +
+            '<svg aria-hidden="true" class="h-3.5 w-3.5" viewBox="0 0 23 23"><path fill="#FFAE00" d="M21.05 10.32 17 13.81l1.24 5.22a1.5 1.5 0 0 1-2.2 1.6L11.5 17.83l-4.54 2.8a1.5 1.5 0 0 1-2.2-1.6L6 13.81 1.95 10.32a1.5 1.5 0 0 1 .84-2.6l5.3-.42 2.05-4.95a1.5 1.5 0 0 1 2.72 0l2.04 4.95 5.3.43a1.5 1.5 0 0 1 .85 2.59Z"></path></svg>' +
+            rating +
+          '</span>'
+    }
+
+    /* 头像：后台未配 avatar 时返回空串，避免出现破图 */
+    function avatarHtml(item) {
+        if (!item.avatar) return ''
+        return '<img alt="' + esc(item.creator) + '" class="w-7 h-7 object-cover object-top rounded-full ring-1 ring-white/40 shrink-0" data-mpc-card-avatar="true" src="' + esc(item.avatar) + '">'
+    }
+
     /* 会员「去模糊」由平台开关控制（window.LIVE_VIP.unblur_preview，默认关闭） */
     function vipUnblur() {
         return !!(window.LIVE_VIP && window.LIVE_VIP.is_vip && window.LIVE_VIP.unblur_preview)
@@ -196,6 +219,7 @@
               '<!-- Top row -->' +
               '<div class="absolute top-3 inset-x-3 z-20 flex items-center justify-between gap-2 pointer-events-none" data-mpc-card-top="">' +
                 '<div class="flex items-center gap-2 min-w-0">' +
+                  avatarHtml(item) +
                   '<span class="text-white text-sm font-semibold leading-tight truncate drop-shadow" data-mpc-card-name="">' + esc(item.creator) + '</span>' +
                 '</div>' +
                 (isNew ? badgeHtml() : '') +
@@ -211,13 +235,10 @@
                     '</span>' +
                   '</div>' +
 
-                  '<span class="inline-flex items-center gap-1 text-[#7EE2A8] text-xs font-semibold shrink-0">' +
-                    '<svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor" aria-hidden="true">' +
-                      '<path d="M2 21h4V9H2v12ZM22 11c0-1.1-.9-2-2-2h-6.3l1-4.6v-.3c0-.4-.2-.8-.4-1.1L13.2 2 6.6 8.6c-.4.4-.6.9-.6 1.4v9c0 1.1.9 2 2 2h9c.8 0 1.5-.5 1.8-1.2l3-7.1c.1-.2.2-.5.2-.7v-1Z"></path>' +
-                    '</svg>' +
-                    esc(item.like_rate) + '%' +
-                  '</span>' +
+                  starBadgeHtml(item) +
                 '</div>' +
+
+                '<div class="truncate-2-lines text-left text-white/80 text-[11px] md:text-xs font-medium leading-tight" data-mpc-card-description="">' + esc(item.title) + '</div>' +
 
                 (unlocked
                   // 绿色渐变用内联样式：Tailwind 是从原站编译的成品包，没有 #28A76B / #7EE2A8 这两个任意值

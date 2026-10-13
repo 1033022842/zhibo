@@ -378,14 +378,37 @@
     return parts[parts.length - 1] || 'en'
   }
 
-  function switchLang(code) {
-    var value = '/en/' + code
-    document.cookie = 'googtrans=' + value + ';path=/'
-    if (location.hostname.indexOf('.') > -1) {
-      document.cookie = 'googtrans=' + value + ';path=/;domain=.' + location.hostname
+  // 写 googtrans cookie：先清掉 host-only 与各级域上的旧值再写入，避免重复 cookie 盖住新值
+  function writeGoogtrans(value) {
+    var host = location.hostname
+    var domains = ['']
+    if (host.indexOf('.') > -1) {
+      domains.push(host, '.' + host)
+      var parts = host.split('.')
+      if (parts.length > 2) domains.push('.' + parts.slice(-2).join('.'))
     }
+    var past = 'expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    for (var i = 0; i < domains.length; i++) {
+      document.cookie = 'googtrans=;path=/;' + (domains[i] ? 'domain=' + domains[i] + ';' : '') + past
+    }
+    for (var j = 0; j < domains.length; j++) {
+      document.cookie = 'googtrans=' + value + ';path=/;' + (domains[j] ? 'domain=' + domains[j] : '')
+    }
+  }
+
+  // 清掉 URL 上遗留的 #googtrans(...) 哈希：否则 Google 翻译会用它覆盖新 cookie，导致只切换一次生效
+  function clearLangHash() {
+    if (!/googtrans/i.test(location.hash)) return
+    try {
+      history.replaceState(null, '', location.pathname + location.search)
+    } catch (e) { /* 忽略 */ }
+  }
+
+  function switchLang(code) {
+    writeGoogtrans('/en/' + code)
+    clearLangHash()
     try { localStorage.setItem('agigpt-lang', location.href.split('#')[0]) } catch (e) { /* 忽略 */ }
-    location.hash = '#googtrans(en|' + code + ')'
+    try { localStorage.setItem('agigpt-lang-href', '#googtrans(en|' + code + ')') } catch (e) { /* 忽略 */ }
     location.reload()
   }
 
