@@ -154,6 +154,35 @@ final class PrivateItem extends Backend
     }
 
     /**
+     * 批量设置头像：把所选分类（或全部）的角色头像统一设为同一张图
+     * POST category=''|girls|anime|guys  avatar=图片地址
+     * 前台卡片头像优先用这里的图；为空时端上用封面图兜底
+     */
+    public function unifyAvatar(): void
+    {
+        if (!$this->request->isPost()) {
+            $this->error(__('Parameter error'));
+        }
+
+        $avatar = $this->normalizeFileUrl((string) $this->request->param('avatar', ''));
+        if ($avatar === '') {
+            $this->error('请先上传头像图片');
+        }
+
+        $category = strtolower(trim((string) $this->request->param('category', '')));
+
+        $query = $this->model;
+        if ($category !== '' && in_array($category, self::CATEGORIES, true)) {
+            $query = $query->where('category', $category);
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $updated = $query->update(['avatar' => $avatar, 'updated_at' => $now]);
+
+        $this->success('已批量设置头像：' . $updated . ' 个内容');
+    }
+
+    /**
      * 站内附件统一存相对路径，避免部署域名变化后失效
      */
     private function normalizeFileUrl(string $url): string

@@ -39,7 +39,7 @@ final class PromoService
         'kwai'      => 'Kwai',
         'bing'      => 'Bing（Microsoft）',
         'pinterest' => 'Pinterest',
-        'other'     => '其他（用自定义像素代码）',
+        'other'     => '其他（无需像素）',
     ];
 
     /** 像素可接收的事件 */

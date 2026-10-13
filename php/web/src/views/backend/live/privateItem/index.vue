@@ -11,6 +11,10 @@
             <el-button type="warning" @click="priceDialog = true">统一价格</el-button>
             <span class="text-gray-400 text-xs ml-2">批量把（可按分类筛选）私密内容的价格设置为同一数值</span>
         </div>
+        <div class="mb-3">
+            <el-button type="warning" @click="avatarDialog = true">批量设置头像</el-button>
+            <span class="text-gray-400 text-xs ml-2">批量把（可按分类筛选）私密内容的角色头像设为同一张图；未设置时前台卡片用封面图兜底</span>
+        </div>
         <Table />
         <PopupForm />
 
@@ -33,6 +37,24 @@
                 <el-button type="primary" :loading="priceLoading" @click="applyPrice">确定</el-button>
             </template>
         </el-dialog>
+
+        <el-dialog v-model="avatarDialog" title="批量设置头像" width="480px">
+            <el-form label-width="90px">
+                <el-form-item label="应用范围">
+                    <el-select v-model="avatarScope" style="width: 100%">
+                        <el-option label="全部分类" value="" />
+                        <el-option label="Girls（真人）" value="girls" />
+                        <el-option label="Anime（动漫）" value="anime" />
+                        <el-option label="Guys（男生）" value="guys" />
+                    </el-select>
+                </el-form-item>
+                <FormItem label="角色头像" v-model="avatarValue" type="image" tip="会覆盖所选范围内所有内容的角色头像" />
+            </el-form>
+            <template #footer>
+                <el-button @click="avatarDialog = false">取消</el-button>
+                <el-button type="primary" :loading="avatarLoading" @click="applyAvatar">确定</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -42,6 +64,7 @@ import baTableClass from '/@/utils/baTable'
 import { baTableApi } from '/@/api/common'
 import createAxios from '/@/utils/axios'
 import PopupForm from './popupForm.vue'
+import FormItem from '/@/components/formItem/index.vue'
 import Table from '/@/components/table/index.vue'
 import TableHeader from '/@/components/table/header/index.vue'
 import { defaultOptButtons } from '/@/components/table'
@@ -147,6 +170,33 @@ function applyPrice() {
         .catch(() => {})
         .finally(() => {
             priceLoading.value = false
+        })
+}
+
+const avatarDialog = ref(false)
+const avatarScope = ref('')
+const avatarValue = ref('')
+const avatarLoading = ref(false)
+
+function applyAvatar() {
+    if (!avatarValue.value) {
+        if (window.ElMessage) ElMessage.warning('请先上传头像图片')
+        return
+    }
+    avatarLoading.value = true
+    createAxios({
+        url: '/admin/live.PrivateItem/unifyAvatar',
+        method: 'post',
+        params: { category: avatarScope.value, avatar: avatarValue.value },
+    })
+        .then((res) => {
+            avatarDialog.value = false
+            if (window.ElMessage) ElMessage.success((res as any).msg || '已批量设置头像')
+            baTable.getData()
+        })
+        .catch(() => {})
+        .finally(() => {
+            avatarLoading.value = false
         })
 }
 </script>
