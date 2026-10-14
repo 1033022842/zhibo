@@ -61,7 +61,7 @@
 		
 
 
-	<script src="./js/customVideo.js?v=20261014a"></script>
+	<script src="./js/customVideo.js?v=20261014b"></script>
 <script src="./js/tracking.js?v=20261006e"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
@@ -625,8 +625,14 @@
 .cv-preset.lock .d{color:#c8a24a}
 .cv-preset .n{color:#fff;font-size:14px;font-weight:600;margin-bottom:4px}
 .cv-preset .d{color:var(--sg-grey);font-size:12px;line-height:1.5}
-.cv-policy{display:flex;gap:10px;align-items:flex-start;background:#17111c;border:1px solid var(--sg-line);border-radius:12px;padding:13px 15px;margin-top:18px;cursor:pointer}
-.cv-policy input{margin-top:2px;accent-color:var(--sg-cta)}
+.cv-policy{display:flex;gap:11px;align-items:flex-start;background:#17111c;border:1px solid var(--sg-line);border-radius:12px;padding:13px 15px;margin-top:18px;cursor:pointer;transition:border-color .2s,background .2s}
+.cv-policy:hover{border-color:#3a3a3a}
+.cv-policy input{position:absolute;opacity:0;width:0;height:0}
+.cv-policy .cv-box{flex:0 0 auto;width:20px;height:20px;margin-top:1px;border-radius:6px;border:1.5px solid #4a4a4a;background:#0f0b13;display:flex;align-items:center;justify-content:center;transition:.18s}
+.cv-policy .cv-box svg{width:13px;height:13px;opacity:0;transform:scale(.5);transition:.18s;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cv-policy input:checked + .cv-box{background:linear-gradient(135deg,var(--sg-pink),var(--sg-cta));border-color:transparent;box-shadow:0 3px 12px rgba(245,59,112,.4)}
+.cv-policy input:checked + .cv-box svg{opacity:1;transform:scale(1)}
+.cv-policy input:focus-visible + .cv-box{outline:2px solid var(--sg-pink);outline-offset:2px}
 .cv-policy span{color:var(--sg-grey);font-size:12px;line-height:1.6}
 .cv-policy b{color:#ddd}
 .cv-submitbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:22px;flex-wrap:wrap}
@@ -697,16 +703,16 @@
 								</button>
 								<button type="button" class="cv-mode" id="cvModeOutfit">
 									<span class="ic">✏️</span>
-									<span class="tx"><span class="lb">Edit</span><span class="sub">Restyle her look</span></span>
+									<span class="tx"><span class="lb">Edit</span><span class="sub">Dress her up</span></span>
 								</button>
 							</div>
 
 							<div id="cvPromptWrap" style="display:none">
 								<div style="background:rgba(249,113,135,.07);border:1px solid rgba(249,113,135,.25);border-radius:14px;padding:16px 18px">
-									<div style="color:#e6e6e6;font-size:13px;font-weight:600;margin-bottom:6px">✏️ Outfit / AI Edit</div>
+									<div style="color:#e6e6e6;font-size:13px;font-weight:600;margin-bottom:6px">👗 Outfit — dress her up</div>
 									<div style="color:var(--sg-grey);font-size:12px;line-height:1.7">
-										Upload her picture and our AI will restyle her look while keeping her face, hairstyle and pose unchanged.<br>
-										Pick an outfit below — the ones you own are ready to use, locked ones can be unlocked in the <b>Shop</b>.
+										Upload her picture, then pick an outfit below — our AI puts the exact outfit on her, head to toe, while keeping her face, hairstyle, pose and background unchanged.<br>
+										You own the unlocked ones. Locked outfits can be unlocked in the <b>Shop</b>.
 									</div>
 								</div>
 								<div style="height:18px"></div>
@@ -718,6 +724,7 @@
 
 							<label class="cv-policy" id="cvPolicyRow">
 								<input type="checkbox" id="cvPolicy">
+								<span class="cv-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
 								<span>I confirm this image is <b>AI-generated, anime-style, or authorized by the person shown</b> — not a photo of a real third party. I take full responsibility for uploads that violate this rule.</span>
 							</label>
 

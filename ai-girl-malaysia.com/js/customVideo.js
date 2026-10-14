@@ -171,8 +171,8 @@
     /* ---------- 提交 ---------- */
     function submit() {
         if (!selFile) { toast('Please upload her picture first', 'warn'); return }
-        if (mode !== 'outfit' && !selPreset) {
-            toast('Please pick a style', 'warn')
+        if (!selPreset) {
+            toast(mode === 'outfit' ? 'Please pick an outfit to dress her in' : 'Please pick a style', 'warn')
             return
         }
         if (!$('cvPolicy').checked) { toast('Please confirm the upload policy', 'warn'); return }
@@ -186,8 +186,8 @@
         fd.append('type', mode === 'outfit' ? 'image' : 'video')
         fd.append('agreed_policy', '1')
         if (mode !== 'outfit') fd.append('style', selPreset.key)
-        // 换装：选了已购服装就把商品 id 带上（后端校验归属并用商品描述拼指令）
-        else if (selPreset && selPreset.item_id) fd.append('item_id', String(selPreset.item_id))
+        // 换装：把所选服饰的商品 id 带上（后端校验归属并用商品标题+描述拼「换上这套衣服」指令）
+        if (mode === 'outfit' && selPreset && selPreset.item_id) fd.append('item_id', String(selPreset.item_id))
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             btn.disabled = false
