@@ -18,7 +18,7 @@ class LiveUser extends Backend
     /**
      * 手动充值/扣减代币、开通会员无需单独配置权限节点（登录鉴权仍生效）
      */
-    protected array $noNeedPermission = ['adjustDiamond', 'vipPlans', 'grantVip', 'detail'];
+    protected array $noNeedPermission = ['adjustDiamond', 'vipPlans', 'grantVip', 'detail', 'invitees'];
 
     protected array $withJoinTable = [];
 
@@ -45,6 +45,14 @@ class LiveUser extends Backend
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
                 live_user.email, live_user.status, live_user.level, live_user.vip_expire_at, live_user.created_at,
                 live_user.reg_domain, live_user.reg_channel, live_user.reg_link_name, live_user.reg_platform, live_user.reg_px, live_user.reg_channel_name,
+                live_user.invite_code,
+                IFNULL((SELECT ir.inviter_id FROM lp_invite_record ir WHERE ir.invitee_id = live_user.id LIMIT 1), 0) as inviter_id,
+                IFNULL((SELECT iu.nickname FROM lp_invite_record ir JOIN lp_user iu ON iu.id = ir.inviter_id WHERE ir.invitee_id = live_user.id LIMIT 1), \'\') as inviter_nickname,
+                IFNULL((SELECT iu.user_no FROM lp_invite_record ir JOIN lp_user iu ON iu.id = ir.inviter_id WHERE ir.invitee_id = live_user.id LIMIT 1), \'\') as inviter_user_no,
+                IFNULL((SELECT ir.registered_at FROM lp_invite_record ir WHERE ir.invitee_id = live_user.id LIMIT 1), \'\') as inviter_bound_at,
+                IFNULL((SELECT COUNT(*) FROM lp_invite_record ir2 WHERE ir2.inviter_id = live_user.id), 0) as invite_count,
+                IFNULL((SELECT COUNT(*) FROM lp_invite_record ir3 WHERE ir3.inviter_id = live_user.id AND ir3.premium_at IS NOT NULL), 0) as invite_premium_count,
+                IFNULL((SELECT SUM(ir4.reward_tokens) FROM lp_invite_record ir4 WHERE ir4.inviter_id = live_user.id), 0) as invite_reward_tokens,
                 IFNULL(wallet.diamond_balance, 0) as diamond_balance,
                 IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
@@ -175,6 +183,34 @@ class LiveUser extends Backend
             elseif ($pxKey !== '')   { $detail[] = '像素：' . $pxKey; }
             if ($regLink !== '')     { $detail[] = '推广链接：' . $regLink; }
             $row['reg_source_detail'] = implode("\n", $detail);
+
+            // 上下级（邀请关系）
+            //   上级 = 邀请我的人（lp_invite_record.inviter_id），无记录即自然注册
+            //   下级 = 我邀请来的人（lp_invite_record.inviter_id = 我）
+            $inviterId   = (int) ($row['inviter_id'] ?? 0);
+            $inviterName = trim((string) ($row['inviter_nickname'] ?? ''));
+            $inviterNo   = trim((string) ($row['inviter_user_no'] ?? ''));
+            $inviterAt   = trim((string) ($row['inviter_bound_at'] ?? ''));
+            if ($inviterId > 0) {
+                $row['inviter_label'] = $inviterName !== '' ? $inviterName : ('用户#' . $inviterId);
+                $it = ['用户ID：' . $inviterId];
+                if ($inviterNo !== '') { $it[] = '编号：' . $inviterNo; }
+                if ($inviterAt !== '') { $it[] = '邀请绑定：' . $inviterAt; }
+                $row['inviter_detail'] = implode("\n", $it);
+            } else {
+                $row['inviter_label']  = '';
+                $row['inviter_detail'] = '';
+            }
+
+            $inviteCount = (int) ($row['invite_count'] ?? 0);
+            $row['invite_count']         = $inviteCount;
+            $row['invite_premium_count'] = (int) ($row['invite_premium_count'] ?? 0);
+            $row['invite_reward_tokens'] = (float) ($row['invite_reward_tokens'] ?? 0);
+            $row['invite_code']          = trim((string) ($row['invite_code'] ?? ''));
+            $it = ['下级总数：' . $inviteCount . ' 人', '其中已升级会员：' . $row['invite_premium_count'] . ' 人'];
+            if ($row['invite_reward_tokens'] > 0) { $it[] = '累计邀请奖励：' . $row['invite_reward_tokens'] . ' 代币'; }
+            if ($row['invite_code'] !== '') { $it[] = '我的邀请码：' . $row['invite_code']; }
+            $row['invite_detail'] = implode("\n", $it);
         }
         unset($row);
 
@@ -337,6 +373,48 @@ class LiveUser extends Backend
     }
 
     /**
+     * 某会员的「下级」列表（他邀请来的会员）
+     * POST /admin/user.LiveUser/invitees
+     * @param int id 上级用户ID
+     */
+    public function invitees(): void
+    {
+        $userId = $this->request->param('id/d', 0);
+        if ($userId <= 0) {
+            $this->error(__('Parameter error'));
+        }
+
+        $rows = Db::connect('live_mysql')->table('lp_invite_record')->alias('ir')
+            ->join('lp_user u', 'u.id = ir.invitee_id')
+            ->where('ir.inviter_id', $userId)
+            ->field('ir.invitee_id, ir.invite_code, ir.registered_at, ir.premium_at, ir.reward_tokens,
+                     u.nickname, u.user_no, u.vip_expire_at')
+            ->order('ir.id', 'desc')
+            ->limit(500)
+            ->select()
+            ->toArray();
+
+        $now  = time();
+        $list = [];
+        foreach ($rows as $r) {
+            $expire = (string) ($r['vip_expire_at'] ?? '');
+            $isVip  = $expire !== '' && strtotime($expire) > $now;
+            $list[] = [
+                'user_id'       => (int) $r['invitee_id'],
+                'nickname'      => (string) ($r['nickname'] ?? ''),
+                'user_no'       => (string) ($r['user_no'] ?? ''),
+                'invite_code'   => (string) ($r['invite_code'] ?? ''),
+                'registered_at' => (string) ($r['registered_at'] ?? ''),
+                'premium_at'    => (string) ($r['premium_at'] ?? ''),
+                'reward_tokens' => (float) ($r['reward_tokens'] ?? 0),
+                'vip_label'     => $isVip ? 'Premium' : 'Free',
+            ];
+        }
+
+        $this->success('', ['list' => $list, 'total' => count($list)]);
+    }
+
+    /**
      * 用户详情页（含商家认证审核）
      */
     public function detail(): void
@@ -454,6 +532,65 @@ class LiveUser extends Backend
             $srcRows .= '<div class="row"><span class="label">推广像素</span><span class="value">' . htmlspecialchars($regPxRaw) . '</span></div>';
         }
 
+        // 订阅记录（lp_vip_order：代币购买 / 网关付款 / 后台手动开通 三类都在这里）
+        $vipOrders = Db::connect('live_mysql')->table('lp_vip_order')->alias('o')
+            ->join('lp_vip_plan p', 'p.id = o.plan_id', 'LEFT')
+            ->where('o.user_id', $userId)
+            ->field('o.order_no, o.diamond_amount, o.expire_from, o.expire_to, o.status, o.created_at, p.name as plan_name')
+            ->order('o.id', 'desc')->limit(50)->select()->toArray();
+
+        $vipAutoRenew    = (int) ($user->vip_auto_renew ?? 1) === 1;
+        $vipCancelAt     = trim((string) ($user->vip_cancel_at ?? ''));
+        $vipCancelReason = trim((string) ($user->vip_cancel_reason ?? ''));
+        $vipCancelDesc   = trim((string) ($user->vip_cancel_description ?? ''));
+
+        $vipBlock = '<div class="row"><span class="label">自动续订</span><span class="value">'
+            . ($vipAutoRenew
+                ? '<span class="badge badge-blue">是</span>'
+                : '<span class="badge badge-gray">否（已取消续订）</span>')
+            . '</span></div>';
+        if ($vipCancelAt !== '') {
+            $vipBlock .= '<div class="row"><span class="label">取消时间</span><span class="value">' . htmlspecialchars($vipCancelAt) . '</span></div>';
+        }
+        if ($vipCancelReason !== '') {
+            $vipBlock .= '<div class="row"><span class="label">取消原因</span><span class="value">' . htmlspecialchars($vipCancelReason)
+                . ($vipCancelDesc !== '' ? '：' . htmlspecialchars($vipCancelDesc) : '') . '</span></div>';
+        }
+
+        $srcOf = static function (string $no): string {
+            if (str_starts_with($no, 'ADMIN')) { return '后台开通'; }
+            if (str_starts_with($no, 'RC'))    { return '网关/链上'; }
+            if (str_starts_with($no, 'VIP'))   { return '代币购买'; }
+            return '其它';
+        };
+        $vipRows = '';
+        foreach ($vipOrders as $vo) {
+            $expTo = (string) ($vo['expire_to'] ?? '');
+            $ok    = $expTo !== '' && strtotime($expTo) > time();
+            $vipRows .= '<tr>'
+                . '<td>' . htmlspecialchars((string) ($vo['created_at'] ?? '')) . '</td>'
+                . '<td>' . htmlspecialchars((string) ($vo['order_no'] ?? '')) . '</td>'
+                . '<td>' . htmlspecialchars((string) ($vo['plan_name'] ?? '-')) . '</td>'
+                . '<td>' . number_format((float) ($vo['diamond_amount'] ?? 0), 2) . '</td>'
+                . '<td>' . $srcOf((string) ($vo['order_no'] ?? '')) . '</td>'
+                . '<td>' . htmlspecialchars($expTo) . '</td>'
+                . '<td>' . ($ok ? '生效中' : '已到期') . '</td>'
+                . '</tr>';
+        }
+        if ($vipRows === '') {
+            $vipRows = '<tr><td colspan="7" style="text-align:center;color:#999;padding:16px">暂无订阅/开通记录</td></tr>';
+        }
+        $vipBlock .= '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:12px">'
+            . '<thead><tr style="color:#888">'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-weight:500">支付时间</th>'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-weight:500">订单号</th>'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-weight:500">套餐</th>'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-weight:500">实付代币</th>'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-weight:500">来源</th>'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-weight:500">到期时间</th>'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #eee;font-weight:500">状态</th>'
+            . '</tr></thead><tbody>' . $vipRows . '</tbody></table></div>';
+
         // 审核按钮
         $auditBtns = '';
         if ($certStatus === 0) {
@@ -529,6 +666,11 @@ class LiveUser extends Backend
     <div class="card">
         <h2>推广来源</h2>
         {$srcRows}
+    </div>
+
+    <div class="card">
+        <h2>订阅记录（最近 50 条）</h2>
+        {$vipBlock}
     </div>
 
     <div class="card">

@@ -119,7 +119,7 @@
 
     /* ---------- 商品卡片（原站 article 结构） ---------- */
     function cardHtml(item) {
-        return '<article class="flex flex-col" data-candy-shop-item-id="' + item.id + '">' +
+        return '<article class="flex flex-col" data-shop-item-id="' + item.id + '">' +
             '<a class="flex h-full flex-col gap-2.5" data-shop-item="' + item.id + '" href="./shop.html?item=' + item.id + '">' +
               '<div class="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black-light">' +
                 ownedBadge(Number(item.owned || 0), 'Owned × ' + Number(item.owned || 0)) +
@@ -270,7 +270,7 @@
     function renderInventory() {
         var box = document.getElementById('shop-inventory-body')
         if (!box) return
-        var count = document.getElementById('candy-shop-my-items-count')
+        var count = document.getElementById('shop-my-items-count')
         if (count) count.textContent = '(' + inventory.length + ')'
 
         var gridClass = 'grid grid-cols-2 items-stretch gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5'
@@ -289,7 +289,7 @@
 
     /* ---------- 商品详情弹窗 ---------- */
     function dialog() {
-        return document.getElementById('candy-shop-product-modal-dialog')
+        return document.getElementById('shop-product-modal-dialog')
     }
 
     function buildMedia(item) {

@@ -98,6 +98,34 @@
         <el-dialog v-model="detailState.visible" title="用户详情" width="760px" :close-on-click-modal="false" destroy-on-close>
             <iframe v-if="detailState.visible" :src="detailState.url" style="width: 100%; height: 70vh; border: 0" />
         </el-dialog>
+
+        <el-dialog
+            v-model="inviteState.visible"
+            :title="`下级会员 · ${inviteState.nickname || ''} 邀请来的（${inviteState.list.length} 人）`"
+            width="880px"
+            destroy-on-close
+        >
+            <el-table v-loading="inviteState.loading" :data="inviteState.list" size="small" max-height="60vh">
+                <el-table-column prop="user_id" label="ID" width="80" align="center" />
+                <el-table-column prop="nickname" label="昵称" min-width="120" show-overflow-tooltip />
+                <el-table-column prop="user_no" label="编号" width="110" align="center" />
+                <el-table-column prop="registered_at" label="注册时间" width="160" align="center" />
+                <el-table-column prop="invite_code" label="使用邀请码" width="120" align="center" />
+                <el-table-column label="会员" width="100" align="center">
+                    <template #default="{ row }">
+                        <el-tag size="small" effect="light" :type="row.vip_label === 'Free' ? 'info' : 'primary'">
+                            {{ row.vip_label }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="奖励代币" width="100" align="center">
+                    <template #default="{ row }">{{ row.reward_tokens || 0 }}</template>
+                </el-table-column>
+            </el-table>
+            <template #footer>
+                <el-button @click="inviteState.visible = false">{{ t('Close') }}</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -223,6 +251,27 @@ const detailState = reactive({ visible: false, url: '' })
 const openDetail = (row: TableRow) => {
     detailState.url = '/admin/user.LiveUser/detail?id=' + row.id + '&batoken=' + adminInfo.getToken()
     detailState.visible = true
+}
+
+// 下级会员（他邀请来的人）：点「下级」数字弹窗查看明细
+const inviteState = reactive({ visible: false, loading: false, userId: 0, nickname: '', list: [] as any[] })
+
+const openInvitees = (row: TableRow) => {
+    inviteState.userId = Number(row.id)
+    inviteState.nickname = String(row.nickname ?? '')
+    inviteState.list = []
+    inviteState.visible = true
+    inviteState.loading = true
+    baTable.api
+        .postData('invitees', { id: inviteState.userId })
+        .then((res: any) => {
+            const payload = res?.data
+            inviteState.list = Array.isArray(payload) ? payload : (payload?.list ?? payload?.data ?? [])
+            inviteState.loading = false
+        })
+        .catch(() => {
+            inviteState.loading = false
+        })
 }
 
 // ---------------- 来源筛选（顶部筛选器 / 点列表「来源」标签） ----------------
@@ -398,6 +447,80 @@ const baTable = new baTableClass(
                                             row?.reg_source_detail || label,
                                             h('div', { style: 'margin-top:6px;color:#a4a4a4' }, '点文字 = 筛选同域名　点 ↗ = 看推广数据'),
                                         ]),
+                                }
+                            )
+                        }
+                    },
+                }) as any,
+            },
+            {
+                // 上级（邀请人）：谁邀请他注册的；悬浮看邀请人 ID/编号/绑定时间；无记录=自然注册
+                label: '上级（邀请人）',
+                prop: 'inviter_label',
+                align: 'center',
+                operator: false,
+                width: 140,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const label = row?.inviter_label || ''
+                            if (!label) {
+                                return h('span', { style: 'color:#c0c4cc' }, '自然注册')
+                            }
+                            return h(
+                                ElTooltip,
+                                { effect: 'dark', placement: 'top', disabled: !row?.inviter_detail },
+                                {
+                                    default: () => h('span', { style: 'cursor:pointer' }, label),
+                                    content: () =>
+                                        h('div', { style: 'white-space:pre-line;line-height:1.8' }, row?.inviter_detail || label),
+                                }
+                            )
+                        }
+                    },
+                }) as any,
+            },
+            {
+                // 下级（邀请）：他邀请来的人数；悬浮看明细；点数字弹窗列出下级会员
+                label: '下级（邀请）',
+                prop: 'invite_count',
+                align: 'center',
+                operator: false,
+                width: 120,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const n = Number(row?.invite_count || 0)
+                            if (!n) {
+                                return h('span', { style: 'color:#c0c4cc' }, '—')
+                            }
+                            return h(
+                                ElTooltip,
+                                { effect: 'dark', placement: 'top', disabled: !row?.invite_detail },
+                                {
+                                    default: () =>
+                                        h(
+                                            ElTag,
+                                            {
+                                                size: 'small',
+                                                effect: 'light',
+                                                type: 'success',
+                                                style: 'cursor:pointer',
+                                                onClick: (e: any) => {
+                                                    e.stopPropagation()
+                                                    openInvitees(row)
+                                                },
+                                            },
+                                            () => n + ' 人'
+                                        ),
+                                    content: () =>
+                                        h('div', { style: 'white-space:pre-line;line-height:1.8' }, row?.invite_detail || ''),
                                 }
                             )
                         }
