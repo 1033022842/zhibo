@@ -164,16 +164,22 @@ final class CustomVideo extends BaseController
         }
 
         if ($kind === 'image') {
-            // 图片编辑：正向词固定在 AI 电脑的工作流文件里（qwenedit_api.json 节点76），
-            // 支持可选覆盖（后台/前端传 prompt 时优先）
-            $prompt = trim((string) $this->request->post('prompt', ''));
-            if (mb_strlen($prompt) > 500) {
+            // 图片编辑（换装）：正向词由「商品描述 / 用户指令」拼装，随任务落库传给 worker
+            // （worker 用 content.prompt 覆盖 qwenedit_query.json 节点76 的默认词）
+            $userPrompt = trim((string) $this->request->post('prompt', ''));
+            if (mb_strlen($userPrompt) > 500) {
                 return $this->jsonFail(ResultCode::PARAM_ERROR, 'Instruction is too long (max 500 characters).');
             }
+
+            // 统一的换装后缀：保证「换衣」诉求（全身出镜、原样保留人脸/发型/姿态/背景）
+            $suffix = ' Replace her current clothing completely with this outfit, head to toe. '
+                . 'Keep her face, hairstyle, body, pose and background exactly the same. '
+                . 'Show her full body so the entire outfit is visible. Photorealistic, high quality detail.';
 
             // 选中商店里的服装：必须是已购商品，指令由商品描述拼装（不信任前端传的 prompt）
             $itemId = (int) $this->request->post('item_id/d', 0);
             $label  = 'AI Edit';
+            $prompt = '';
             if ($itemId > 0) {
                 $db     = Db::connect('live_mysql');
                 $owns   = $db->table('lp_user_item')
@@ -189,19 +195,24 @@ final class CustomVideo extends BaseController
                     return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Outfit not found or removed.');
                 }
 
-                $base = trim((string) $item['description']);
-                if ($base === '') {
-                    $base = 'Dress the person in the outfit "' . (string) $item['title']
-                        . '" — replace her current clothing with it, keep the same face, hairstyle, pose and background.';
+                $title = (string) $item['title'];
+                $desc  = trim((string) $item['description']);
+                $prompt = 'Dress the woman in the following outfit — ' . $title
+                    . ($desc !== '' ? ': ' . $desc : '.') . $suffix;
+                if ($userPrompt !== '') {
+                    $prompt .= ' ' . $userPrompt;
                 }
-                $prompt = $base . ($prompt !== '' ? ' ' . $prompt : '');
-                if (mb_strlen($prompt) > 500) {
-                    $prompt = mb_substr($prompt, 0, 500);
-                }
-                $label = 'Outfit · ' . (string) $item['title'];
+                $label = 'Outfit · ' . $title;
+            } elseif ($userPrompt !== '') {
+                // 无选品（自由指令）：直接按用户指令换装
+                $prompt = $userPrompt . $suffix;
             }
 
-            $style = ['key' => 'image_edit', 'label' => $label];
+            if (mb_strlen($prompt) > 500) {
+                $prompt = mb_substr($prompt, 0, 500);
+            }
+
+            $style = ['key' => 'image_edit', 'label' => $label, 'prompt' => $prompt];
         } else {
             // 视频：style 选工作流（worker v5.0）；兼容旧前端传 preset
             $styleKey = strtolower(trim((string) ($this->request->post('style', '') ?: $this->request->post('preset', ''))));
@@ -260,6 +271,7 @@ final class CustomVideo extends BaseController
         $task->content     = json_encode([
             'style'     => $style['key'],
             'label'     => $style['label'],
+            'prompt'    => (string) ($style['prompt'] ?? ''),
             'image_url' => $imageUrl,
         ], JSON_UNESCAPED_UNICODE);
         $task->callback_mode = 'none';
