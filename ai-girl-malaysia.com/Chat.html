@@ -41,7 +41,7 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./Chat_files/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261015c"></script>
+    <script src="./js/chat.js?v=20261015d"></script>
 	<script src="./js/chat-gift.js?v=20261014f"></script>
     <script src="./plugins/lodash.js"></script>
     
@@ -79,6 +79,12 @@
 	.list-container::-webkit-scrollbar-thumb:hover,
 	#conversation-container::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
 	#messages,.list-container,#conversation-container{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+.scene-pill{position:relative;height:32px;padding:0 10px;border-radius:9999px;background:rgba(46,46,46,.9);border:1px solid #4a4a4a;color:#e5e5e5;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .3s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.scene-pill:hover{background:#3a3a3a}
+.scene-pill svg{color:#e5e5e5;flex:0 0 auto}
+.scene-pill[disabled]{opacity:.35;cursor:not-allowed;pointer-events:none}
+.scene-pill.loading{opacity:.6;pointer-events:none}
+
 	/* 消息区底部留白：输入框上方悬浮的 Suggestion 建议条（top:-40px）会遮住最后一条消息的上沿 */
 	#messages{padding-bottom:64px}
 	</style>
@@ -570,30 +576,11 @@
         <turbo-frame id="new_message_form">
           
 
-<div id="form" class="z-10 h-[40px] fixed w-full bottom-[85px] lg:relative lg:bottom-[17px]">
+<div id="form" class="z-10 fixed w-full bottom-[85px] lg:relative lg:bottom-[17px] pb-1">
     <div data-controller="message-form">
   <div class="flex flex-row items-center h-12 w-full px-4">
     <div class="flex w-full relative" data-controller="message-ask">
       <div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-full">
-        <div class="animate-slideFromBottom duration-500 h-7 justify-start items-center gap-2.5 inline-flex absolute top-[-40px] hidden" id="image-suggestion">
-  <div class="text-neutral-200 text-sm font-normal leading-tight">Suggestion:</div>
-  <div class="cursor-pointer justify-start items-start gap-2.5 flex" data-action="click-&gt;message-ask#appendSuggestion">
-    <div class="p-1 rounded-md border-2 border-violet-400 justify-center items-center gap-2 flex">
-      <div class="text-white text-sm font-normal leading-tight">a picture of you</div>
-    </div>
-  </div>
-</div>
-
-        <div class="animate-slideFromBottom duration-500 h-7 justify-start items-center gap-2.5 inline-flex absolute top-[-40px]" id="answer-suggestion">
-  <div class="text-neutral-200 text-sm font-medium hidden md:block leading-tight">Suggestion:</div>
-  <div class="cursor-pointer justify-start items-start gap-2.5 flex" data-redirect-url="/ai-girlfriend/priya-mehta" data-action="click-&gt;main#openRegistrationModal">
-    <div class="p-1 rounded-md border-2 border-violet-400 justify-center items-center gap-2 flex">
-      <div class="text-white text-sm font-normal leading-tight">Hello! In the mood for some good conversation. How are you?</div>
-    </div>
-  </div>
-</div>
-
-
         <div class="bg-[#252525] justify-between rounded-xl border-none placeholder-[#E0E0E0] text-white no-focus-border flex items-center h-12 w-full px-3 text-[16px]">
           <input data-action="keydown.enter-&gt;main#openRegistrationModal" data-redirect-url="/ai-girlfriend/priya-mehta" data-message-ask-target="inputField" data-message-form-target="messageInput" placeholder="Type a message" autocomplete="off" class="px-1 bg-[#252525] border-none placeholder-[#E0E0E0] text-white w-[87%] no-focus-border flex items-center text-[16px]" required="required" type="text" id="message_body">
 
@@ -727,6 +714,21 @@
 
     </div>
   </div>
+    <!-- Show me the scene: Image / Video（candy 新版交互：点击直接把素材发进会话；无素材的角色隐藏，无视频的角色按钮置灰） -->
+    <div id="scene-row" style="display:none" class="flex items-center gap-2 px-6 lg:px-10 pt-2">
+      <p class="text-[11px] text-neutral-200/60 leading-none">Show me the scene:</p>
+      <div class="flex items-center gap-2">
+        <button type="button" id="scene-image-btn" class="scene-pill" title="Send a photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span>Image</span>
+        </button>
+        <button type="button" id="scene-video-btn" class="scene-pill" title="Send a video">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+          <span>Video</span>
+        </button>
+      </div>
+    </div>
+
 </div>
 
 </div>
@@ -902,15 +904,7 @@
     </div>
   </div>
     
-    <script>
-      setTimeout(function () {
-          var loader = $('.no-user-loader')[0];
-          var greeting = $('.no-user-greeting')[0];
-          if (loader) loader.style.visibility = 'hidden';
-          if (greeting) greeting.style.visibility = 'visible';
-          $('#answer-suggestion').removeClass('hidden');
-      }, 1000); // 2000 milliseconds or 2 seconds delay
-    </script>
+    
   
   
   <div>
@@ -1322,25 +1316,4 @@
 </div>
 
     </div>
-      <div id="cookie-banner-container" data-controller="cookie-banner" data-cookie-banner-show-cookie-consent="false">
-      </div>
-  
-
-
-
-<script>
-  // 璧勬枡绌哄€艰涓嶅睍绀猴細浠庨椤佃烦杩囨潵鐨勮鑹叉病鏈夈€岃亴涓?鍏崇郴/韬潗/绉嶆棌銆嶇瓑瀛楁
-  (function () {
-    setTimeout(function () {
-      ['occupation', 'hobbies', 'relationship', 'body', 'ethnicity'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        var row = el.closest('.flex.my-2');
-        if (row && !el.textContent.trim()) { row.style.display = 'none'; }
-      });
-    }, 1800);
-  })();
-</script>
-	<script src="./js/promo-popup.js?v=20261008a"></script>
-	<script src="./js/creator-guide.js?v=20261011a"></script>
-</body></html>
+      >

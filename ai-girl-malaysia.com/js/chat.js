@@ -76,8 +76,8 @@
             setupRebootDialog()
             avatarFallback()
         }
-        // 建议语每次进入都要重新消毒（Turbo 快照恢复会丢掉克隆元素上的监听）
-        setupSuggestionSend()
+        // 场景按钮（candy 新版 Show me the scene）每次进入重绑（Turbo 快照恢复丢监听）
+        setupSceneButtons()
         // 会话/历史/开场白每次进入都要重建（Turbo 恢复的快照是旧 DOM）
         channelDetail(id)
     }
@@ -528,6 +528,10 @@
                 '<div style="display:flex;align-items:flex-end;height:28px">' + voiceBarsHtml(barColor) + '</div>' +
                 '<span class="js-voice-dur" style="color:' + barColor + ';font-size:12px">0:00</span></div>'
             bindVoicePlayer(node, media.url)
+        } else if (media.kind === 'chat_scene_image') {
+            // 场景图片（点 Image 按钮发来的）：粉色气泡里一张图，点击放大
+            node.innerHTML = '<div style="background:' + bg + ';border-radius:10px;padding:6px;max-width:280px">' +
+                '<a href="' + esc(media.url) + '" target="_blank" rel="noopener"><img src="' + esc(media.url) + '" loading="lazy" alt="" style="display:block;width:260px;border-radius:8px;object-fit:cover"></a></div>'
         } else {
             // 聊天礼物：视频上方加礼物标签（历史与送礼后的实时渲染一致）
             var giftTag = media.kind === 'chat_gift'
@@ -915,28 +919,92 @@
     }
 
     /* ---------- Suggestion 建议语：点击直接作为消息发送（捕获阶段拦截，避免触发原站注册弹窗） ---------- */
-    function setupSuggestionSend() {
-        // candy 模板在建议语上挂了 Stimulus 钩子（data-action=openRegistrationModal → 弹它的登录框）。
-        // 用克隆替换元素：一次性拔掉原站全部监听，再绑自己的「点击直接发送」。
-        ['#answer-suggestion', '#image-suggestion'].forEach(function (sel) {
-            var wrap = document.querySelector(sel)
-            if (!wrap) return
-            var inner = wrap.querySelector('.cursor-pointer')
-            if (!inner) return
-            var clone = inner.cloneNode(true)
-            clone.removeAttribute('data-action')
-            clone.removeAttribute('data-redirect-url')
-            clone.removeAttribute('data-controller')
-            inner.parentNode.replaceChild(clone, inner)
-            clone.addEventListener('click', function (e) {
-                e.preventDefault()
-                e.stopPropagation()
-                var txt = (clone.textContent || '').trim()
-                if (txt === '') return
-                if (!token) { goLoginPage(); return }
-                sendMessage({ text: txt })
+    /* ---------- 场景媒体（candy 新版「Show me the scene」：点按钮发图/发视频） ---------- */
+    var sceneMedia = { images: [], videos: [], loading: false, sending: false }
+
+    // 场景媒体的角色键：home-N 原样、纯数字（= lp_ai_content.id）补成 home-N；自建/默认会话无媒体
+    // 场景媒体的角色键：只有 home-N（首页角色）有素材目录；数字=平台内容角色、my-*=自建 → 无场景媒体
+    // 注意：数字 id 与 lp_home_character.id 是两套空间，不能把数字补成 home-N（会串到别的角色的素材）
+    function sceneRoleKey() {
+        var id = String(currentConversation().id || '')
+        if (id === '') id = String(getParam('id') || '')
+        return /^home-\d+$/.test(id) ? id : ''
+    }
+
+    function refreshSceneRow() {
+        var row = document.getElementById('scene-row')
+        if (!row) return
+        var hasImg = sceneMedia.images.length > 0
+        var hasVid = sceneMedia.videos.length > 0
+        // 角色一个素材都没有：整行隐藏（老角色无媒体）
+        row.style.display = (hasImg || hasVid) ? '' : 'none'
+        var imgBtn = document.getElementById('scene-image-btn')
+        var vidBtn = document.getElementById('scene-video-btn')
+        if (imgBtn) imgBtn.disabled = !hasImg
+        if (vidBtn) vidBtn.disabled = !hasVid   // 男角色等无视频 → 置灰
+    }
+
+    function loadSceneMedia() {
+        refreshSceneRow()
+        var rkey = sceneRoleKey()
+        if (rkey === '' || sceneMedia.loading) return
+        sceneMedia.loading = true
+        fetch('/api/live/chatMedia?role_key=' + encodeURIComponent(rkey), { headers: authHeaders(false) })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                sceneMedia.loading = false
+                var data = (d && d.code === '00000' && d.data) ? d.data : null
+                sceneMedia.images = (data && data.images) || []
+                sceneMedia.videos = (data && data.videos) || []
+                refreshSceneRow()
             })
+            .catch(function () { sceneMedia.loading = false })
+    }
+
+    function sendSceneMedia(type) {
+        if (!token) { goLoginPage(); return }
+        if (sceneMedia.sending) return
+        var rkey = sceneRoleKey()
+        if (rkey === '') return
+        var btn = document.getElementById(type === 'video' ? 'scene-video-btn' : 'scene-image-btn')
+        if (btn) btn.classList.add('loading')
+        sceneMedia.sending = true
+        var typing = appendTyping()
+        fetch('/api/live/sendChatMedia', {
+            method: 'POST',
+            headers: authHeaders(true),
+            body: JSON.stringify({ role_key: rkey, type: type, index: 0, device_id: deviceId(), lang: uiLang() })
         })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                sceneMedia.sending = false
+                if (btn) btn.classList.remove('loading')
+                if (typing) typing.remove()
+                if (!d || d.code !== '00000' || !d.data) {
+                    appendError((d && d.msg) || 'Send failed, please try again later')
+                    return
+                }
+                // 素材消息（左侧角色侧）+ 人设化文案气泡
+                if (d.data.media) paintMedia(mediaRow(d.data.media, false), d.data.media, false)
+                if (d.data.caption) appendBubble(d.data.caption, false)
+                scrollMessagesToBottom()
+            })
+            .catch(function () {
+                sceneMedia.sending = false
+                if (btn) btn.classList.remove('loading')
+                if (typing) typing.remove()
+                appendError('Network error, please try again later')
+            })
+    }
+
+    function setupSceneButtons() {
+        var row = document.getElementById('scene-row')
+        if (!row) return
+        var imgBtn = document.getElementById('scene-image-btn')
+        var vidBtn = document.getElementById('scene-video-btn')
+        if (imgBtn) imgBtn.addEventListener('click', function () { sendSceneMedia('image') })
+        if (vidBtn) vidBtn.addEventListener('click', function () { sendSceneMedia('video') })
+        refreshSceneRow()
     }
 
     /* ---------- 头像兜底：图片裂开时换成角色首字母渐变占位 ---------- */
@@ -1746,6 +1814,7 @@
         // 列表里没有任何会话（直接打开 Chat.html）也要加载历史，否则刷新后看不到记录
         loadChatHistory()
         loadAffection()
+        loadSceneMedia()
     }
 
     // 切换会话：高亮 + 右侧资料 + 历史消息 + URL 同步（skipHistory=初始化时历史已并行预拉，避免重复请求）
@@ -1773,6 +1842,8 @@
         // 历史与好感并行（各省一个 RTT 的串行等待）
         loadChatHistory()
         loadAffection()
+        // 场景媒体（Image/Video 按钮）：按角色素材显示/隐藏、置灰
+        loadSceneMedia()
     }
 
 })()
