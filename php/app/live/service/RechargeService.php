@@ -17,32 +17,34 @@ final class RechargeService
      *
      *  - pegged=true ：1 币 ≈ 1 美元，应付金额直接等于 USD 金额（USDT/USDC/DAI/TUSD 这类稳定币）
      *  - pegged=false：按后台 lp_platform_config 的 <type>_usd_rate 折算，精度取 decimals
-     *  - scan=true   ：已有链上自动到账任务（recharge:scan 处理 usdt_trc20，recharge:scan-eth 处理 eth）；
+     *  - scan=true   ：已有链上自动到账任务 ——
+     *                  recharge:scan（usdt_trc20）、recharge:scan-eth（eth）、recharge:scan-trx（trx）、
+     *                  recharge:scan-alt（ERC-20 代币 / BEP-20 代币 / bnb / btc / ton / sol / xrp）；
      *                  其余币种没有扫链实现，即使后台勾了「自动」也会退化成人工审核，避免订单永远不到账
      */
     public const COINS = [
         // 稳定币 / 多链（1:1 美元）
         'usdt_trc20'    => ['label' => 'USDT · TRON (TRC-20)',    'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'TRON (TRC-20)',   'scan' => true],
-        'usdt_erc20'    => ['label' => 'USDT · Ethereum (ERC-20)', 'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'Ethereum (ERC-20)', 'scan' => false],
-        'usdt_bep20'    => ['label' => 'USDT · BNB Chain (BEP-20)', 'unit' => 'USDT', 'decimals' => 2, 'pegged' => true, 'chain' => 'BNB Chain (BEP-20)', 'scan' => false],
+        'usdt_erc20'    => ['label' => 'USDT · Ethereum (ERC-20)', 'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'Ethereum (ERC-20)', 'scan' => true],
+        'usdt_bep20'    => ['label' => 'USDT · BNB Chain (BEP-20)', 'unit' => 'USDT', 'decimals' => 2, 'pegged' => true, 'chain' => 'BNB Chain (BEP-20)', 'scan' => true],
         'usdt_polygon'  => ['label' => 'USDT · Polygon',          'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'Polygon',         'scan' => false],
         'usdt_sol'      => ['label' => 'USDT · Solana',           'unit' => 'USDT', 'decimals' => 2, 'pegged' => true,  'chain' => 'Solana',          'scan' => false],
-        'usdc_erc20'    => ['label' => 'USDC · Ethereum (ERC-20)', 'unit' => 'USDC', 'decimals' => 2, 'pegged' => true, 'chain' => 'Ethereum (ERC-20)', 'scan' => false],
+        'usdc_erc20'    => ['label' => 'USDC · Ethereum (ERC-20)', 'unit' => 'USDC', 'decimals' => 2, 'pegged' => true, 'chain' => 'Ethereum (ERC-20)', 'scan' => true],
         'usdc_sol'      => ['label' => 'USDC · Solana',           'unit' => 'USDC', 'decimals' => 2, 'pegged' => true,  'chain' => 'Solana',          'scan' => false],
-        'dai_erc20'     => ['label' => 'DAI · Ethereum (ERC-20)', 'unit' => 'DAI',  'decimals' => 2, 'pegged' => true,  'chain' => 'Ethereum (ERC-20)', 'scan' => false],
-        'tusd_erc20'    => ['label' => 'TUSD · Ethereum (ERC-20)', 'unit' => 'TUSD', 'decimals' => 2, 'pegged' => true, 'chain' => 'Ethereum (ERC-20)', 'scan' => false],
+        'dai_erc20'     => ['label' => 'DAI · Ethereum (ERC-20)', 'unit' => 'DAI',  'decimals' => 2, 'pegged' => true,  'chain' => 'Ethereum (ERC-20)', 'scan' => true],
+        'tusd_erc20'    => ['label' => 'TUSD · Ethereum (ERC-20)', 'unit' => 'TUSD', 'decimals' => 2, 'pegged' => true, 'chain' => 'Ethereum (ERC-20)', 'scan' => true],
         // 主流币（按后台汇率折算）
-        'btc'           => ['label' => 'BTC · Bitcoin',           'unit' => 'BTC',  'decimals' => 8, 'pegged' => false, 'chain' => 'Bitcoin',         'scan' => false],
+        'btc'           => ['label' => 'BTC · Bitcoin',           'unit' => 'BTC',  'decimals' => 8, 'pegged' => false, 'chain' => 'Bitcoin',         'scan' => true],
         'ltc'           => ['label' => 'LTC · Litecoin',          'unit' => 'LTC',  'decimals' => 8, 'pegged' => false, 'chain' => 'Litecoin',        'scan' => false],
         'bch'           => ['label' => 'BCH · Bitcoin Cash',      'unit' => 'BCH',  'decimals' => 8, 'pegged' => false, 'chain' => 'Bitcoin Cash',    'scan' => false],
         'doge'          => ['label' => 'DOGE · Dogecoin',         'unit' => 'DOGE', 'decimals' => 8, 'pegged' => false, 'chain' => 'Dogecoin',        'scan' => false],
         // 公链原生币
         'eth'           => ['label' => 'ETH · Ethereum',          'unit' => 'ETH',  'decimals' => 8, 'pegged' => false, 'chain' => 'Ethereum',        'scan' => true],
-        'trx'           => ['label' => 'TRX · TRON',              'unit' => 'TRX',  'decimals' => 6, 'pegged' => false, 'chain' => 'TRON',            'scan' => false],
-        'bnb'           => ['label' => 'BNB · BNB Chain',         'unit' => 'BNB',  'decimals' => 6, 'pegged' => false, 'chain' => 'BNB Chain',       'scan' => false],
-        'sol'           => ['label' => 'SOL · Solana',            'unit' => 'SOL',  'decimals' => 6, 'pegged' => false, 'chain' => 'Solana',          'scan' => false],
-        'ton'           => ['label' => 'TON · Toncoin',           'unit' => 'TON',  'decimals' => 6, 'pegged' => false, 'chain' => 'TON',             'scan' => false],
-        'xrp'           => ['label' => 'XRP · XRP Ledger',        'unit' => 'XRP',  'decimals' => 6, 'pegged' => false, 'chain' => 'XRP Ledger',      'scan' => false],
+        'trx'           => ['label' => 'TRX · TRON',              'unit' => 'TRX',  'decimals' => 6, 'pegged' => false, 'chain' => 'TRON',            'scan' => true],
+        'bnb'           => ['label' => 'BNB · BNB Chain',         'unit' => 'BNB',  'decimals' => 6, 'pegged' => false, 'chain' => 'BNB Chain',       'scan' => true],
+        'sol'           => ['label' => 'SOL · Solana',            'unit' => 'SOL',  'decimals' => 6, 'pegged' => false, 'chain' => 'Solana',          'scan' => true],
+        'ton'           => ['label' => 'TON · Toncoin',           'unit' => 'TON',  'decimals' => 6, 'pegged' => false, 'chain' => 'TON',             'scan' => true],
+        'xrp'           => ['label' => 'XRP · XRP Ledger',        'unit' => 'XRP',  'decimals' => 6, 'pegged' => false, 'chain' => 'XRP Ledger',      'scan' => true],
     ];
 
     /**
@@ -156,7 +158,7 @@ final class RechargeService
         $diamondAmount = bcmul((string)floor($amount), (string)$channel->diamond_rate, 2);
 
         $confirmMode = self::effectiveConfirmMode($row);
-        $payAmount   = $this->channelPayAmount($row, $amount, $confirmMode, $channelId, false);
+        $payAmount   = $this->channelPayAmount($row, $amount, $confirmMode, $channelId);
         $expireAt    = date('Y-m-d H:i:s', time() + ($confirmMode === 'auto' ? 7200 : 86400));
 
         $order = [
@@ -182,12 +184,12 @@ final class RechargeService
     /**
      * 渠道应付金额
      *
-     * 自动确认（仅 usdt_trc20 / eth 有扫链实现）带唯一尾数，扫链按金额精确匹配；
+     * 自动确认（已有扫链实现的币种）带唯一标识尾数，扫链按金额精确匹配：
+     *   非稳定币先按后台汇率折算到该币精度，尾数加在末两位（价值守恒）；
+     *   稳定币 1:1 锚定，按标价收，只有同渠道撞到相同待支付金额时才叠加 6 位小数微尾数。
      * 人工审核不带尾数：稳定币直接用 USD 金额，其它币按后台汇率折算到该币精度。
-     *
-     * @param bool $vip 会员订单优先用原价当匹配标识（同金额才退化），充代币订单直接带随机尾数
      */
-    private function channelPayAmount(array $channel, float $usd, string $confirmMode, int $channelId, bool $vip): string
+    private function channelPayAmount(array $channel, float $usd, string $confirmMode, int $channelId): string
     {
         $spec = self::specOf($channel);
         $type = (string) ($channel['type'] ?? '');
@@ -196,7 +198,16 @@ final class RechargeService
             if ($type === 'eth') {
                 return $this->uniqueEthPayAmount($usd, $channelId);
             }
-            return $vip ? $this->vipPayAmount($usd, $channelId) : $this->uniquePayAmount(floor($usd), $channelId);
+            // TRX 与 ETH 同属「非稳定币自动扫链」：先按汇率折成 TRX，再加随机尾数当匹配标识
+            if ($type === 'trx') {
+                return $this->uniqueTrxPayAmount($usd, $channelId);
+            }
+            // 其余已支持扫链的非稳定币（BTC / TON / SOL / XRP）：统一按汇率折算 + 精度尾数
+            if ($spec['scan'] && !$spec['pegged']) {
+                return $this->uniqueCoinPayAmount($usd, $type, $spec, $channelId);
+            }
+            // 稳定币（USDT/USDC/DAI/TUSD 各链版本）1:1 锚定，按标价收，撞车才加微尾数
+            return $this->peggedPayAmount($usd, $channelId);
         }
 
         if ($spec['pegged']) {
@@ -322,44 +333,33 @@ final class RechargeService
     }
 
     /**
-     * 生成链上唯一应付金额：整数部分 + 随机 0.01~0.99 尾数（多用户并发充值区分标识）
+     * 稳定币（1:1 锚定）的链上收款金额：直接按标价收（金额本身就是识别标识），
+     * 只有该渠道已有同金额的待支付单时才叠加 6 位小数微尾数——金额几乎不变，同时保持唯一可匹配。
      */
-    private function uniquePayAmount(float $base, int $channelId): string
+    private function peggedPayAmount(float $usd, int $channelId): string
     {
-        $db = Db::connect('live_mysql');
-        for ($i = 0; $i < 30; $i++) {
-            $cents = random_int(1, 99);
-            $amt = bcadd((string)(int)$base, sprintf('0.%02d', $cents), 2);
-            $exists = $db->table('lp_recharge_order')
-                ->where('channel_id', $channelId)
-                ->where('pay_amount', $amt)
-                ->where('status', 0)
-                ->where('expire_at', '>', date('Y-m-d H:i:s'))
-                ->count();
-            if (!$exists) {
+        $exact = number_format($usd, 2, '.', '');
+        if (!$this->hasPendingAmount($channelId, $exact)) {
+            return $exact;
+        }
+        for ($i = 0; $i < 99; $i++) {
+            $amt = bcadd($exact, sprintf('0.0000%02d', random_int(1, 99)), 6);
+            if (!$this->hasPendingAmount($channelId, $amt)) {
                 return $amt;
             }
         }
         throw new BusinessException(ResultCode::SERVER_ERROR, '下单繁忙请稍后再试');
     }
 
-    /**
-     * 会员订单的链上收款金额：优先就用套餐原价（金额本身就是识别标识），
-     * 只有该渠道已有同金额的待支付单时才退化成带随机尾数的唯一金额。
-     */
-    private function vipPayAmount(float $amount, int $channelId): string
+    /** 该渠道是否已有相同金额的待支付订单（扫链按金额精确匹配，同金额必须区分开） */
+    private function hasPendingAmount(int $channelId, string $amount): bool
     {
-        $exact  = number_format($amount, 2, '.', '');
-        $exists = Db::connect('live_mysql')->table('lp_recharge_order')
+        return (bool) Db::connect('live_mysql')->table('lp_recharge_order')
             ->where('channel_id', $channelId)
-            ->where('pay_amount', $exact)
+            ->where('pay_amount', $amount)
             ->where('status', 0)
             ->where('expire_at', '>', date('Y-m-d H:i:s'))
             ->count();
-        if (!$exists) {
-            return $exact;
-        }
-        return $this->uniquePayAmount($amount, $channelId);
     }
 
     /**
@@ -406,7 +406,58 @@ final class RechargeService
     }
 
     /**
-     * 链上自动确认入账（由 recharge:scan / recharge:scan-eth 扫描任务调用，幂等）
+     * TRX 自动扫链收款金额：USD → TRX（按 trx_usd_rate 折算，6 位精度），
+     * 再往小数第 5/6 位加随机尾数当匹配标识（TRON 原生转账只有 6 位小数）
+     */
+    private function uniqueTrxPayAmount(float $usd, int $channelId): string
+    {
+        $db   = Db::connect('live_mysql');
+        $spec = self::COINS['trx'];
+        $base = $this->usdToCoin($usd, 'trx', $spec);
+
+        for ($i = 0; $i < 30; $i++) {
+            $amt = bcadd($base, sprintf('0.0000%02d', random_int(1, 99)), 6);
+            $exists = $db->table('lp_recharge_order')
+                ->where('channel_id', $channelId)
+                ->where('pay_amount', $amt)
+                ->where('status', 0)
+                ->where('expire_at', '>', date('Y-m-d H:i:s'))
+                ->count();
+            if (!$exists) {
+                return $amt;
+            }
+        }
+        throw new BusinessException(ResultCode::SERVER_ERROR, '下单繁忙请稍后再试');
+    }
+
+    /**
+     * 通用「非稳定币」链上唯一应付金额（BTC / TON / SOL / XRP）：
+     * USD 按 <type>_usd_rate 折算成币，再在末两位加随机尾数当匹配标识，精度随币种
+     */
+    private function uniqueCoinPayAmount(float $usd, string $type, array $spec, int $channelId): string
+    {
+        $db   = Db::connect('live_mysql');
+        $dec  = max(2, (int) $spec['decimals']);
+        $base = $this->usdToCoin($usd, $type, $spec);          // 例：BTC 8 位 / XRP 6 位
+        $tail = '0.' . str_repeat('0', $dec - 2) . '%02d';     // 例：BTC '0.000000%02d'
+
+        for ($i = 0; $i < 30; $i++) {
+            $amt = bcadd($base, sprintf($tail, random_int(1, 99)), $dec);
+            $exists = $db->table('lp_recharge_order')
+                ->where('channel_id', $channelId)
+                ->where('pay_amount', $amt)
+                ->where('status', 0)
+                ->where('expire_at', '>', date('Y-m-d H:i:s'))
+                ->count();
+            if (!$exists) {
+                return $amt;
+            }
+        }
+        throw new BusinessException(ResultCode::SERVER_ERROR, '下单繁忙请稍后再试');
+    }
+
+    /**
+     * 链上自动确认入账（由 recharge:scan / recharge:scan-eth / recharge:scan-trx / recharge:scan-alt 扫描任务调用，幂等）
      */
     public function confirmByChain(int $orderId, array $tx, string $label = 'USDT链上自动充值'): void
     {
@@ -609,7 +660,7 @@ final class RechargeService
         $row         = $channel->toArray();
         $type        = (string) $channel->type;
         $confirmMode = self::effectiveConfirmMode($row);
-        $payAmount   = $this->channelPayAmount($row, $amount, $confirmMode, $channelId, true);
+        $payAmount   = $this->channelPayAmount($row, $amount, $confirmMode, $channelId);
         $expireAt    = date('Y-m-d H:i:s', time() + ($confirmMode === 'auto' ? 7200 : 86400));
 
         $chainType = ['eth' => 'ETH', 'usdt_trc20' => 'TRC20'][$type] ?? strtoupper($type);

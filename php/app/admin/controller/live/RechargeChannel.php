@@ -153,7 +153,6 @@ final class RechargeChannel extends Backend
                     'sort'         => $this->request->post('sort/d', 0),
                     'status'       => $this->request->post('status/d', 0),
                     'confirm_mode' => $this->request->post('confirm_mode', 'auto') === 'manual' ? 'manual' : 'auto',
-                    'api_key'      => (string) $this->request->post('api_key', ''),
                 ];
                 // 服务端校验
                 if (empty(trim($data['name']))) {
@@ -257,7 +256,6 @@ final class RechargeChannel extends Backend
         $typeOptions .= '<option value="other"' . (((string) $r['type'] === 'other') ? ' selected' : '') . '>其他（币种代号取渠道名，1:1 美元）</option>';
         $selAuto = (($r['confirm_mode'] ?? 'auto') == 'auto') ? 'selected' : '';
         $selManual = (($r['confirm_mode'] ?? 'auto') == 'manual') ? 'selected' : '';
-        $apiKey = htmlspecialchars((string) ($r['api_key'] ?? ''), ENT_QUOTES);
         // 该币种兑 USD 价格（非稳定币才有），键名 <type>_usd_rate
         $curType = (string) $r['type'];
         $curSpec = RechargeService::specOf($r);
@@ -319,8 +317,7 @@ final class RechargeChannel extends Backend
                 <div class="field"><label>收款二维码图片</label><input type="file" name="qr_image" accept="image/*" />{$qrPreview}</div>
                 <div class="field"><label>收款地址</label><input name="address" value="{$addr}" placeholder="按所选币种填对应链的收款地址" /></div>
                 <div class="field"><label>转账备注 / Memo / Tag（XRP、TON 必填，其它币种留空）</label><input name="memo" value="{$memo}" placeholder="如 XRP Destination Tag、TON Comment" /></div>
-                <div class="field"><label>链上确认方式</label><select name="confirm_mode"><option value="auto" {$selAuto}>自动（扫链到账，仅 USDT-TRC20 / ETH 支持）</option><option value="manual" {$selManual}>人工审核（后台订单列表核对后放行）</option></select></div>
-                <div class="field"><label>链上扫描 API Key（可选，自动确认时建议填）</label><input name="api_key" value="{$apiKey}" placeholder="TronGrid API Key / Etherscan API Key" /></div>
+                <div class="field"><label>链上确认方式</label><select name="confirm_mode"><option value="auto" {$selAuto}>自动（扫链到账，支持 TRC-20 / ERC-20 / BEP-20 / ETH / TRX / BNB / BTC / TON / SOL / XRP）</option><option value="manual" {$selManual}>人工审核（后台订单列表核对后放行）</option></select></div>
                 <div class="field"><label>{$rateLabel}</label><input type="number" step="0.01" name="coin_usd_rate" value="{$ethRate}" placeholder="非稳定币必填，如 BTC=65000" /></div>
                 <div class="field"><label>汇率（1USD=N代币）</label><input type="number" step="0.01" name="diamond_rate" value="{$rate}" required /></div>
                 <div class="field"><label>最低充值金额（USD）</label><input type="number" step="0.01" name="min_amount" value="{$min}" required /></div>

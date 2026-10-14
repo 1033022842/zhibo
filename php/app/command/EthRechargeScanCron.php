@@ -12,18 +12,21 @@ use think\facade\Db;
  * ETH（以太坊主链）链上充值扫描（recharge:scan-eth）
  *
  * 与 recharge:scan（USDT-TRC20）同构，由 crontab 每分钟调度：
- * 1. 查询各 ETH 收款地址最新入账（首选 Etherscan v2，无 Key / 失败时回退 Blockscout）
+ * 1. 查询各 ETH 收款地址最新入账（首选 Etherscan v2，无 Key / 失败时回退 Routescan，再兜底 Blockscout）
  * 2. 金额精确匹配待支付订单（第 7/8 位随机尾数标识）→ 自动确认入账
  * 3. 未匹配交易记入 lp_payment_callback_log(verify_status=0) 供后台人工处理
  *
  * 幂等性：tx hash 在 lp_payment_callback_log 唯一索引去重
  *
  * 注意：Etherscan v2 强制要求 API Key（无 Key 直接返回 Missing/Invalid API Key），
- * 所以这里补了完全免 Key 的 Blockscout 兜底，保证 ETH 扫链在没有 Key 时也能跑。
+ * 所以这里备了两级免 Key 兜底：
+ *   - Routescan（Etherscan 兼容协议，稳定，首选兜底）
+ *   - Blockscout（公共额度常被 429 限流，仅作最后兜底）
  */
 final class EthRechargeScanCron extends Command
 {
-    private const ETHERSCAN_API = 'https://api.etherscan.io/v2/api';
+    private const ETHERSCAN_API  = 'https://api.etherscan.io/v2/api';
+    private const ROUTESCAN_API  = 'https://api.routescan.io/v2/network/mainnet/evm/1/etherscan/api';
     private const BLOCKSCOUT_API = 'https://eth.blockscout.com/api';
     private const CHAIN_ID      = 1;   // 1 = Ethereum mainnet
     private const GATEWAY       = 'eth';
@@ -41,6 +44,7 @@ final class EthRechargeScanCron extends Command
         $badAddress   = 0;
         $noKey        = 0;
         $viaBlockscout = 0;
+        $viaRoutescan  = 0;
         $fetchFailed  = 0;
 
         try {
@@ -69,6 +73,8 @@ final class EthRechargeScanCron extends Command
                 [$txs, $via, $ok] = $this->fetchEthTransfers((string) $ch['address'], (string) ($ch['api_key'] ?? ''));
                 if ($via === 'blockscout') {
                     $viaBlockscout++;
+                } elseif ($via === 'routescan') {
+                    $viaRoutescan++;
                 }
                 if (!$ok) {
                     // 抓取失败（限流/网络/接口报错）：本轮扫不到，订单会留在待审核等人工补单，
@@ -90,6 +96,9 @@ final class EthRechargeScanCron extends Command
             $extra = '';
             if ($badAddress > 0 || $noKey > 0) {
                 $extra .= sprintf(' bad_addr=%d no_key=%d', $badAddress, $noKey);
+            }
+            if ($viaRoutescan > 0) {
+                $extra .= sprintf(' via_routescan=%d', $viaRoutescan);
             }
             if ($viaBlockscout > 0) {
                 $extra .= sprintf(' via_blockscout=%d', $viaBlockscout);
@@ -199,9 +208,40 @@ final class EthRechargeScanCron extends Command
             }
         }
 
-        // 兜底 Blockscout：Etherscan 兼容协议，完全免 Key（注意公共额度会限流 429）
+        // 一级兜底 Routescan：Etherscan 兼容协议，免 Key 且稳定
+        $txs = $this->fetchFromRoutescan($address);
+        if ($txs !== null) {
+            return [$txs, 'routescan', true];
+        }
+
+        // 二级兜底 Blockscout：Etherscan 兼容协议，免 Key，但公共额度常被 429 限流
         $txs = $this->fetchFromBlockscout($address);
         return [$txs ?? [], 'blockscout', $txs !== null];
+    }
+
+    private function fetchFromRoutescan(string $address): ?array
+    {
+        try {
+            $url = self::ROUTESCAN_API . '?' . http_build_query([
+                'module'     => 'account',
+                'action'     => 'txlist',
+                'address'    => $address,
+                'startblock' => 0,
+                'endblock'   => 99999999,
+                'page'       => 1,
+                'offset'     => 50,
+                'sort'       => 'desc',
+            ]);
+            $raw = $this->httpGet($url);
+            $txs = $this->parseTxList((array) json_decode($raw, true));
+            if ($txs === null) {
+                \think\facade\Log::warning('[recharge:scan-eth] Routescan 返回异常，回退 Blockscout：' . substr($raw, 0, 200));
+            }
+            return $txs;
+        } catch (\Throwable $e) {
+            \think\facade\Log::warning('[recharge:scan-eth] Routescan 查询失败，回退 Blockscout：' . $e->getMessage());
+            return null;
+        }
     }
 
     private function fetchFromEtherscan(string $address, string $apiKey): ?array
