@@ -146,7 +146,7 @@ final class VipService
         // 会员到期时间被人工设置、查不到订单时按基础层兜底
         $plan = $plan ?: [
             'level' => 'premium', 'name' => 'Premium', 'daily_diamond' => 20, 'benefits' => '',
-            'chat_daily_limit' => 0, 'image_daily_limit' => 3, 'discount_percent' => 10, 'custom_video' => 1,
+            'chat_daily_limit' => 0, 'image_daily_limit' => 2, 'discount_percent' => 10, 'custom_video' => 1,
         ];
 
         $level     = (string) ($plan['level'] ?? 'premium');

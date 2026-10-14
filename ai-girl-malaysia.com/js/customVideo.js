@@ -123,7 +123,7 @@
             imagePresets = d.data.image_presets || []
             currentPresets = d.data.styles || d.data.presets || []
             renderPresets(mode === 'outfit' ? imagePresets : currentPresets)
-            $('cvRemain').textContent = d.data.quota ? (d.data.quota.daily_limit + '/day') : '-'
+            applyQuota(d.data.quota)
         }).catch(function () { toast('Network error', 'error') })
 
         fetch('/api/vip/status', { headers: { Authorization: 'Bearer ' + token } })
@@ -134,6 +134,24 @@
                 $('cvCreateForm').style.display = vip ? '' : 'none'
             })
             .catch(function () { /* submit 兜底校验 */ })
+    }
+
+    // 剩余次数：quota 里 remaining<0 / unlimited 显示 ∞，否则显示「剩余 / 上限」并随每次生成递减
+    var cvDailyLimit = 0
+    function applyQuota(q) {
+        var el = $('cvRemain')
+        if (!el) return
+        if (!q) { el.textContent = '-'; return }
+        if (q.unlimited || typeof q.remaining === 'number' && q.remaining < 0) { el.textContent = '∞'; return }
+        if (typeof q.daily_limit === 'number') cvDailyLimit = q.daily_limit
+        var left = typeof q.remaining === 'number' ? q.remaining : (qrLeft())
+        el.textContent = left + (cvDailyLimit > 0 ? ' / ' + cvDailyLimit : ' left')
+    }
+    function qrLeft() {
+        // 无 remaining 字段的老响应：从「剩余 / 上限」文本里兜底
+        var el = $('cvRemain')
+        var m = el && /\d+/.exec(el.textContent || '')
+        return m ? parseInt(m[0], 10) : 0
     }
 
     function switchMode(m) {
@@ -175,7 +193,8 @@
             btn.disabled = false
             btn.textContent = mode === 'outfit' ? '✨ Edit Image' : '✨ Generate Video'
             if (!d || d.code !== '00000') { toast((d && d.msg) || 'Submit failed', 'error'); return }
-            if (d.data && typeof d.data.remain === 'number') $('cvRemain').textContent = d.data.remain + ' left'
+            // 提交成功即刻刷新剩余次数（remain=-1 不限量）
+            if (d.data && typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: cvDailyLimit })
             toast('Task submitted! Track it in My Works', 'success')
             switchTab(false)
         }).catch(function () {
