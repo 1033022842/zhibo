@@ -41,7 +41,7 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./Chat_files/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261015d"></script>
+    <script src="./js/chat.js?v=20261015e"></script>
 	<script src="./js/chat-gift.js?v=20261014f"></script>
     <script src="./plugins/lodash.js"></script>
     
@@ -578,7 +578,20 @@
 
 <div id="form" class="z-10 fixed w-full bottom-[85px] lg:relative lg:bottom-[17px] pb-1">
     <div data-controller="message-form">
-  <div class="flex flex-row items-center h-12 w-full px-4">
+      <!-- Show me the scene: Image / Video（candy 新版交互：点击直接把素材发进会话；无素材的角色隐藏，无视频的角色按钮置灰） -->
+    <div id="scene-row" style="display:none" class="flex items-center gap-2 px-6 lg:px-10 pb-2">
+      <p class="text-[11px] text-neutral-200/60 leading-none">Show me the scene:</p>
+      <div class="flex items-center gap-2">
+        <button type="button" id="scene-image-btn" class="scene-pill" title="Send a photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span>Image</span>
+        </button>
+        <button type="button" id="scene-video-btn" class="scene-pill" title="Send a video">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+          <span>Video</span>
+        </button>
+      </div>
+<div class="flex flex-row items-center h-12 w-full px-4">
     <div class="flex w-full relative" data-controller="message-ask">
       <div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-full">
         <div class="bg-[#252525] justify-between rounded-xl border-none placeholder-[#E0E0E0] text-white no-focus-border flex items-center h-12 w-full px-3 text-[16px]">
@@ -714,19 +727,6 @@
 
     </div>
   </div>
-    <!-- Show me the scene: Image / Video（candy 新版交互：点击直接把素材发进会话；无素材的角色隐藏，无视频的角色按钮置灰） -->
-    <div id="scene-row" style="display:none" class="flex items-center gap-2 px-6 lg:px-10 pt-2">
-      <p class="text-[11px] text-neutral-200/60 leading-none">Show me the scene:</p>
-      <div class="flex items-center gap-2">
-        <button type="button" id="scene-image-btn" class="scene-pill" title="Send a photo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span>Image</span>
-        </button>
-        <button type="button" id="scene-video-btn" class="scene-pill" title="Send a video">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
-          <span>Video</span>
-        </button>
-      </div>
     </div>
 
 </div>
