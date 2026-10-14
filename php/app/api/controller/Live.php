@@ -1554,6 +1554,130 @@ final class Live extends BaseController
     }
 
     /**
+     * AI 前端：角色聊天媒体（新版 chat「Show me the scene」—— 图片/视频按钮）。
+     * GET { role_key } —— 扫描 /storage/chat_media/<role_key>/（persona.* + N.jpg + N.mp4）
+     * 男角色只有图片无视频（videos 空 → 前端视频按钮置灰）
+     */
+    public function chatMedia()
+    {
+        $roleKey = $this->normalizeRoleKey((string) $this->request->get('role_key', ''));
+        if ($roleKey === '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '参数无效');
+        }
+        $data = $this->scanChatMedia($roleKey);
+        return $this->jsonSuccess($data);
+    }
+
+    /** 扫描角色媒体目录：{enabled, persona, images[], videos[]} */
+    private function scanChatMedia(string $roleKey): array
+    {
+        $base = dirname(__DIR__, 3) . '/public/storage/chat_media/' . $roleKey . '/';
+        $urlBase = '/storage/chat_media/' . $roleKey . '/';
+        $images = [];
+        $videos = [];
+        for ($i = 1; $i <= 9; $i++) {
+            if (is_file($base . $i . '.jpg')) {
+                $images[] = $urlBase . $i . '.jpg';
+            }
+            if (is_file($base . $i . '.mp4')) {
+                $videos[] = $urlBase . $i . '.mp4';
+            }
+        }
+        $persona = '';
+        foreach (['persona.jpg', 'persona.webp', 'persona.png'] as $p) {
+            if (is_file($base . $p)) {
+                $persona = $urlBase . $p;
+                break;
+            }
+        }
+        return [
+            'enabled' => count($images) > 0,
+            'persona' => $persona,
+            'images'  => $images,
+            'videos'  => $videos,
+        ];
+    }
+
+    /**
+     * AI 前端：发送场景媒体（登录）—— 点击 Image/Video 按钮把对应素材发给用户。
+     * POST { role_key, type: image|video, index?, lang? } —— index 省略/0 = 随机
+     * 免费（不扣代币）；落一条 assistant 媒体消息（历史可见）+ 人设化短文案
+     */
+    public function sendChatMedia()
+    {
+        $userId = $this->optionalAuthUserId();
+        if ($userId <= 0) {
+            return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, '请先登录');
+        }
+        $roleKey = $this->normalizeRoleKey((string) $this->request->post('role_key', ''));
+        $type    = (string) $this->request->post('type', 'image');
+        $index   = (int) $this->request->post('index', 0);
+        if ($roleKey === '' || !in_array($type, ['image', 'video'], true)) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '参数无效');
+        }
+
+        $media = $this->scanChatMedia($roleKey);
+        $pool  = $type === 'video' ? $media['videos'] : $media['images'];
+        if (empty($pool)) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '该角色暂无' . ($type === 'video' ? '视频' : '图片'));
+        }
+        if ($index > 0) {
+            $url = $urlBase = '/storage/chat_media/' . $roleKey . '/' . $index . '.' . ($type === 'video' ? 'mp4' : 'jpg');
+            if (!in_array($url, $pool, true)) {
+                return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '素材不存在');
+            }
+        } else {
+            $url = $pool[array_rand($pool)];
+        }
+
+        // 角色信息（人设文案用）：home-N → lp_home_character（与送礼同源）
+        $cid = (int) preg_replace('/^home-/', '', $roleKey);
+        $home = \think\facade\Db::connect('live_mysql')->table('lp_home_character')
+            ->where('id', $cid)->field('id, name, tagline, description')->find();
+        $personaName = (string) ($home['name'] ?? $roleKey);
+        $personaDesc = trim((string) ($home['tagline'] ?? '') . "\n" . (string) ($home['description'] ?? ''));
+        $deviceId = (string) $this->request->post('device_id', '');
+
+        // 落一条场景媒体消息（历史可见；与首页角色聊天记录同口径：content_id=0 + role_key 归档）
+        $this->saveChatMessage($userId, $deviceId, 0, 'assistant', '', [
+            'kind' => 'chat_scene_' . $type,
+            'url'  => $url,
+        ], false, $roleKey);
+
+        // 人设化短文案（LLM 失败静默降级为空，前端只显示媒体）
+        $caption = '';
+        try {
+            $system = '你是「' . $personaName . '」，一个真实、鲜活的 AI 虚拟伴侣。请完全代入角色，用第一人称、口语化、自然的方式说话。';
+            if ($personaDesc !== '') {
+                $system .= "\n\n角色人设：" . mb_substr($personaDesc, 0, 500);
+            }
+            $langRule = $this->langRule((string) $this->request->post('lang', ''));
+            $userMsg = sprintf(
+                '（你刚刚在聊天里给对方发了一张你的%s。）请以角色身份配一句简短的文字：贴合人设、俏皮撩人，1 句话（不超过 25 个词），带 1 个 emoji。只输出这句话本身。',
+                $type === 'video' ? '视频' : '私密照'
+            );
+            if ($langRule !== '') {
+                $userMsg .= "\n" . $langRule;
+            }
+            $caption = (new LlmService())->chat([
+                ['role' => 'system', 'content' => $system],
+                ['role' => 'user', 'content' => $userMsg],
+            ], ['max_tokens' => 90]);
+            $caption = trim(preg_replace('/^(["\'“”‘’]+)(.*)\\1$/us', '$2', trim((string) $caption)) ?? '');
+            if ($caption !== '') {
+                $this->saveChatMessage($userId, $deviceId, 0, 'assistant', $caption, [], false, $roleKey);
+            }
+        } catch (\Throwable $e) {
+            $caption = '';
+        }
+
+        return $this->jsonSuccess([
+            'media'   => ['kind' => 'chat_scene_' . $type, 'url' => $url],
+            'caption' => $caption,
+        ]);
+    }
+
+    /**
      * AI 前端：送礼（登录）。校验角色有素材 + 礼物启用 → 扣代币 → 落一条礼物媒体消息并返回素材地址。
      * POST { role_key, gift_id }
      */
