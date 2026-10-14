@@ -19,8 +19,8 @@ use think\facade\Log;
  */
 final class CustomVideo extends BaseController
 {
-    /** 每日生成配额（AI 电脑单卡串行，防爆队列） */
-    private const DAILY_LIMIT = 3;
+    /** 每日生成配额（兜底；实际以套餐 image_daily_limit 为准） */
+    private const DAILY_LIMIT = 2;
 
     /** 无限配额白名单（测试账号不限量） */
     private const UNLIMITED_USER_IDS = [16];
@@ -67,17 +67,34 @@ final class CustomVideo extends BaseController
         $ent = (new VipService())->entitlements($userId);
         $unlimited = in_array($userId, self::UNLIMITED_USER_IDS, true);
 
+        $limit = (int) ($ent['image_daily_limit'] ?? 0);
+        $used  = $userId > 0 ? $this->todayUsed($userId) : 0;
+
         return $this->jsonSuccess([
             'styles' => self::STYLES,
             // Outfit 模式的服装卡片 = 商店商品（owned=0 的前端提示去购买）
             'image_presets' => $this->outfitPresets($userId),
             'quota'   => [
-                'daily_limit' => $unlimited ? '∞' : (int) ($ent['image_daily_limit'] ?? 0),
+                'daily_limit' => $unlimited ? '∞' : $limit,
+                'used'        => $used,
+                // remaining < 0 表示不限量（与后端 submit 的 remain 口径一致）
+                'remaining'   => $unlimited ? -1 : max(0, $limit - $used),
                 'level'       => (string) ($ent['level_name'] ?? 'Free'),
                 'is_vip'      => (bool) ($ent['is_vip'] ?? false),
                 'unlimited'   => $unlimited,
             ],
         ]);
+    }
+
+    /**
+     * 当日已用生成次数（图片 + 视频同算一个池子，与配额上限口径一致）
+     */
+    private function todayUsed(int $userId): int
+    {
+        return (int) AiTask::whereIn('source_type', ['custom_video', 'custom_image'])
+            ->where('source_ref_id', $userId)
+            ->whereLike('created_at', date('Y-m-d') . '%')
+            ->count();
     }
 
     /**
@@ -197,7 +214,7 @@ final class CustomVideo extends BaseController
             }
         }
 
-        // 会员层级校验：定制视频/图片生成仅会员可用，额度按层级（Premium 3/天、Premium Plus 10/天）
+        // 会员层级校验：定制视频/图片生成仅会员可用，额度按套餐 image_daily_limit（当前各档统一 2/天）
         $ent = (new VipService())->entitlements($userId);
         if (empty($ent['is_vip']) || empty($ent['custom_video'])) {
             return $this->jsonFail(ResultCode::NO_PERMISSION, 'Custom video is a Premium feature. Please subscribe to unlock it.');
@@ -225,10 +242,7 @@ final class CustomVideo extends BaseController
         $unlimited = in_array($userId, self::UNLIMITED_USER_IDS, true);
         $todayCount = 0;
         if (!$unlimited) {
-            $todayCount = AiTask::whereIn('source_type', ['custom_video', 'custom_image'])
-                ->where('source_ref_id', $userId)
-                ->whereLike('created_at', date('Y-m-d') . '%')
-                ->count();
+            $todayCount = $this->todayUsed($userId);
             if ($todayCount >= $dailyLimit) {
                 return $this->jsonFail(ResultCode::PARAM_ERROR, 'Daily limit reached (' . $dailyLimit . '/day). Try again tomorrow or upgrade to Premium Plus.');
             }
@@ -258,7 +272,8 @@ final class CustomVideo extends BaseController
             'task_id' => (int) $task->id,
             'task_no' => $task->task_no,
             'status'  => $task->status,
-            'remain'  => $unlimited ? '∞' : max(0, $dailyLimit - $todayCount - 1),
+            // remain：提交后当日剩余次数；-1 表示不限量（前端按此显示）
+            'remain'  => $unlimited ? -1 : max(0, $dailyLimit - $todayCount - 1),
         ]);
     }
 

@@ -346,7 +346,7 @@ final class RechargeChannel extends Backend
         $row = $id ? Db::connect('live_mysql')->table('lp_vip_plan')->where('id', $id)->find() : null;
 
         $r = $row ? $row : ['id' => '', 'name' => '', 'months' => '1', 'usd_price' => '', 'diamond_price' => '', 'daily_diamond' => '', 'sort' => '0',
-            'level' => 'premium', 'benefits' => '', 'chat_daily_limit' => '0', 'image_daily_limit' => '3', 'discount_percent' => '10', 'custom_video' => '1'];
+            'level' => 'premium', 'benefits' => '', 'chat_daily_limit' => '0', 'image_daily_limit' => '2', 'discount_percent' => '10', 'custom_video' => '1'];
         $vName = htmlspecialchars((string)$r['name'], ENT_QUOTES);
         $vMonths = (int)$r['months'];
         $vUsd = htmlspecialchars((string)$r['usd_price'], ENT_QUOTES);
