@@ -932,16 +932,16 @@
     }
 
     function refreshSceneRow() {
-        var row = document.getElementById('scene-row')
-        if (!row) return
-        var hasImg = sceneMedia.images.length > 0
-        var hasVid = sceneMedia.videos.length > 0
-        // 角色一个素材都没有：整行隐藏（老角色无媒体）
-        row.style.display = (hasImg || hasVid) ? '' : 'none'
+        // 按钮与输入框同一行：无素材的按钮直接隐藏；有图片但没视频（男角色）→ Video 显示但置灰
         var imgBtn = document.getElementById('scene-image-btn')
         var vidBtn = document.getElementById('scene-video-btn')
-        if (imgBtn) imgBtn.disabled = !hasImg
-        if (vidBtn) vidBtn.disabled = !hasVid   // 男角色等无视频 → 置灰
+        var hasImg = sceneMedia.images.length > 0
+        var hasVid = sceneMedia.videos.length > 0
+        if (imgBtn) imgBtn.style.display = hasImg ? '' : 'none'
+        if (vidBtn) {
+            vidBtn.style.display = (hasVid || hasImg) ? '' : 'none'
+            vidBtn.disabled = !hasVid   // 男角色等无视频 → 置灰
+        }
     }
 
     function loadSceneMedia() {
@@ -1671,6 +1671,8 @@
             var guestBox = messagesBox()
             if (guestBox) guestBox.innerHTML = ''
             showIceBreaker()
+            // 场景按钮（未登录也展示，点击跳登录——candy 同款门禁）
+            loadSceneMedia()
             return
         }
         // 本机没有角色缓存（新设备）：等预热拉取完成后继续（会话列表来自服务端，不依赖它）
@@ -1838,12 +1840,12 @@
                 appendTyping()
             }
         }
+        // 场景媒体（Image/Video 按钮）：按角色素材显示/隐藏、置灰（须在早退前——初始化选中当前会话走 skipHistory&&sameConv 分支）
+        loadSceneMedia()
         if (skipHistory && sameConv) return
         // 历史与好感并行（各省一个 RTT 的串行等待）
         loadChatHistory()
         loadAffection()
-        // 场景媒体（Image/Video 按钮）：按角色素材显示/隐藏、置灰
-        loadSceneMedia()
     }
 
 })()
