@@ -49,14 +49,14 @@ final class PrivateContent extends BaseController
         }
 
         if ($tab === 'most_liked') {
-            // 「Most liked」：点赞率降序，其次权重降序，最后 id 兜底
+            // 「Most liked」：点赞率降序，其次权重降序，最后新上传在前（id 降序）
             $query->order('like_rate', 'desc')
                 ->order('weigh', 'desc')
-                ->order('id', 'asc');
+                ->order('id', 'desc');
         } else {
-            // 「All」：权重降序，其次 id 兜底
+            // 「All」：权重降序，同权重时新上传的排前面（id 降序）——新素材自动置顶
             $query->order('weigh', 'desc')
-                ->order('id', 'asc');
+                ->order('id', 'desc');
         }
 
         $rows = $query->select()->toArray();
