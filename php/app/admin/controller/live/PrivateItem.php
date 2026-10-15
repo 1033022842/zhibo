@@ -21,7 +21,7 @@ final class PrivateItem extends Backend
     protected object $model;
     protected string|array $quickSearchField = ['title', 'creator', 'id'];
     protected bool $modelValidate = false;
-    protected string|array $defaultSortField = 'weigh,desc';
+    protected string|array $defaultSortField = ['weigh' => 'desc', 'id' => 'desc'];
 
     public function initialize(): void
     {
