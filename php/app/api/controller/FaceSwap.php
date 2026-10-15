@@ -41,7 +41,8 @@ final class FaceSwap extends BaseController
             ->where('status', 1)
             ->field('id, title, video_url, cover_url, duration_sec, description')
             ->order('weigh', 'desc')
-            ->order('id', 'asc')
+            ->order('updated_at', 'desc')
+            ->order('id', 'desc')
             ->select()
             ->toArray();
 

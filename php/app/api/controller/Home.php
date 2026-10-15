@@ -42,6 +42,8 @@ final class Home extends BaseController
             $query = $query->where('category', $category);
         }
         $list = $query->order('weigh', 'desc')
+            // 更新过素材的老条目也要浮到前面（同事「完善角色」常是更新已有行，仅 id 排序会沉底）
+            ->order('updated_at', 'desc')
             ->order('id', 'desc')
             ->limit($limit)
             ->select();
@@ -80,6 +82,8 @@ final class Home extends BaseController
             $query = $query->where('category', $category);
         }
         $list = $query->order('weigh', 'desc')
+            // 更新过素材的老条目也要浮到前面（同事「完善角色」常是更新已有行，仅 id 排序会沉底）
+            ->order('updated_at', 'desc')
             ->order('id', 'desc')
             ->limit($limit)
             ->select();

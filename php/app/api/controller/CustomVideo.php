@@ -107,7 +107,8 @@ final class CustomVideo extends BaseController
             ->where('status', 1)
             ->field('id, title, description, cover_url, price')
             ->order('weigh', 'desc')
-            ->order('id', 'asc')
+            ->order('updated_at', 'desc')
+            ->order('id', 'desc')
             ->limit(100)
             ->select()->toArray();
         if (!$items) {

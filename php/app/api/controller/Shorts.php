@@ -85,7 +85,8 @@ final class Shorts extends BaseController
             // 同一分区内：top_series 按 rank 升序，其它按 weigh 降序，最后用 id 兜底
             ->order('rank', 'asc')
             ->order('weigh', 'desc')
-            ->order('id', 'asc')
+            ->order('updated_at', 'desc')
+            ->order('id', 'desc')
             ->limit($limit)
             ->select()
             ->toArray();
