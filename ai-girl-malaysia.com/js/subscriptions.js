@@ -51,6 +51,9 @@
         bindEvents()
         loadPlans()
         loadStatus()
+        // 卡支付按钮在 HTML 里是静态写死的，默认先藏起来，等接口确认可用再显示；
+        // 否则后台关了开关（或商户参数没配）时，那个按钮会留在页面上但点不动
+        hideCardButtons()
         loadCardChannels()
         pollOrder(pendingOrderNo(), POLL_TRIES)
     }
@@ -88,6 +91,29 @@
     }
 
     /**
+     * 卡支付按钮（HTML 里静态写死的「Continue with card」）藏 / 显。
+     *
+     * 第一个弹窗里按钮外面还包了一层 <div>，要一并藏掉，否则父容器的 flex gap
+     * 会留下一条空当；第二个弹窗里按钮是 .sub-modal-buttons 的直接子元素
+     * （加密货币按钮也在里面），所以只在父节点「只有这一个子元素」时才藏父节点。
+     */
+    function hideCardButtons() {
+        $(CARD_BUTTONS.join(',')).each(function () {
+            var $btn = $(this)
+            var $wrap = $btn.parent()
+            $btn.hide()
+            if ($wrap.children().length === 1) { $wrap.hide() }
+        })
+    }
+
+    function showCardButtons() {
+        $(CARD_BUTTONS.join(',')).each(function () {
+            $(this).parent().css('display', '')
+            $(this).show()
+        })
+    }
+
+    /**
      * 支付方式：/recharge/packages 下发 FlowPay 收单通道 + 后台法币通道
      */
     function loadCardChannels() {
@@ -95,16 +121,24 @@
             url: base + '/recharge/packages',
             timeout: API_TIMEOUT,
         }).done(function (r) {
-            if (!r || r.code !== '00000' || !r.data) { return }
+            if (!r || r.code !== '00000' || !r.data) {
+                hideCardButtons()
+                return
+            }
             // 法币通道（后台 lp_fiat_channel，单国本币收款）
             if (r.data.fiat && r.data.fiat.length) {
                 fiatChannels = r.data.fiat
                 renderFiatButtons()
             }
-            if (!r.data.flowpay) { return }
-            cardChannels = r.data.flowpay.channels || []
-            if (r.data.flowpay.enabled && cardChannels.length) { renderCardButtons() }
-        })
+            // 卡支付：开关关掉 / 商户参数没配齐 / 没有收单通道，三种情况都不显示按钮
+            cardChannels = (r.data.flowpay && r.data.flowpay.channels) || []
+            if (!r.data.flowpay || !r.data.flowpay.enabled || !cardChannels.length) {
+                hideCardButtons()
+                return
+            }
+            showCardButtons()
+            renderCardButtons()
+        }).fail(hideCardButtons)
     }
 
     /**
