@@ -79,6 +79,8 @@
 	.list-container::-webkit-scrollbar-thumb:hover,
 	#conversation-container::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
 	#messages,.list-container,#conversation-container{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+/* Chat 页隐藏右下角客服悬浮球（挡住发送/Ask 按钮）；其它页面不受影响 */
+#fyCsFab,.fy-cs-fab{display:none!important}
 .scene-pill{position:relative;height:30px;padding:0 9px;border-radius:9999px;background:rgba(46,46,46,.9);border:1px solid #4a4a4a;color:#e5e5e5;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .3s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 .scene-pill:hover{background:#3a3a3a}
 .scene-pill svg{color:#e5e5e5;flex:0 0 auto}
