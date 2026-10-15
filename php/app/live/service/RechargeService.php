@@ -867,6 +867,9 @@ final class RechargeService
         if (!$flowPay->enabled()) {
             throw new BusinessException(ResultCode::PARAM_ERROR, 'FlowPay 支付方式未配置');
         }
+        if (!$flowPay->switchOn()) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '信用卡支付当前已关闭');
+        }
         $min = (float) config('flowpay.min_amount');
         if ((float) $amount < $min) {
             throw new BusinessException(ResultCode::PARAM_ERROR, '订单金额低于网关最小支付金额 ' . number_format($min, 2));

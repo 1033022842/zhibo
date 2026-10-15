@@ -6,6 +6,7 @@ namespace app\live\service;
 use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use GuzzleHttp\Client;
+use think\facade\Db;
 
 /**
  * FlowPay（safepaycash）支付网关对接
@@ -46,6 +47,9 @@ final class FlowPayService
         return $out;
     }
 
+    /** 后台开关存在 lp_platform_config 里的键名 */
+    public const SWITCH_KEY = 'flowpay_enabled';
+
     /**
      * 商户参数是否已配置齐全
      */
@@ -54,6 +58,47 @@ final class FlowPayService
         return (string) $this->cfg['mchid'] !== ''
             && (string) $this->cfg['key'] !== ''
             && $this->defaultChannel() !== '';
+    }
+
+    /**
+     * 运营开关是否打开（lp_platform_config.flowpay_enabled，缺省视为开启）
+     *
+     * 故意与 enabled() 分开：查单补单只需要商户参数齐全，不该被运营开关拦住，
+     * 否则关掉开关后，之前已经支付、回调丢失的订单就再也补不回来了。
+     */
+    public function switchOn(): bool
+    {
+        $v = Db::connect('live_mysql')->table('lp_platform_config')
+            ->where('key', self::SWITCH_KEY)->value('value');
+        return $v === null || (string) $v === '' ? true : ((string) $v === '1');
+    }
+
+    /**
+     * 前台是否可以提供卡支付 = 商户参数齐全 + 运营开关打开
+     *
+     * 前台三处入口（充值页 / 订阅页 / 设置页支付方式）都用它判断。
+     */
+    public function available(): bool
+    {
+        return $this->enabled() && $this->switchOn();
+    }
+
+    /** 写入运营开关 */
+    public function setSwitch(bool $on): void
+    {
+        $db  = Db::connect('live_mysql');
+        $now = date('Y-m-d H:i:s');
+        if ($db->table('lp_platform_config')->where('key', self::SWITCH_KEY)->find()) {
+            $db->table('lp_platform_config')->where('key', self::SWITCH_KEY)
+                ->update(['value' => $on ? '1' : '0', 'updated_at' => $now]);
+            return;
+        }
+        $db->table('lp_platform_config')->insert([
+            'key'        => self::SWITCH_KEY,
+            'value'      => $on ? '1' : '0',
+            'remark'     => '信用卡支付（FlowPay）总开关，1=开启 0=关闭',
+            'updated_at' => $now,
+        ]);
     }
 
     /**

@@ -58,7 +58,7 @@ final class Recharge extends BaseController
             'products' => $starPay->products(),
             // 卡支付：是否可用 + 可选通道（前台平铺成多个按钮由用户自选）
             'flowpay'  => [
-                'enabled'  => $flowPay->enabled(),
+                'enabled'  => $flowPay->available(),
                 'channels' => $flowPay->channels(),
             ],
             // 法币通道（单国本币收款）：下单时按这条通道的汇率把 USD 折算成本币

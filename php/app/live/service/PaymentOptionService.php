@@ -21,8 +21,8 @@ final class PaymentOptionService
     {
         $out = [];
 
-        // 卡支付：FlowPay 收银台（配置齐全时才出现）
-        if ((new FlowPayService())->enabled()) {
+        // 卡支付：FlowPay 收银台（商户参数齐全 + 后台开关打开时才出现）
+        if ((new FlowPayService())->available()) {
             $out[] = [
                 'key'  => 'card',
                 'name' => 'Credit / Debit Card',
