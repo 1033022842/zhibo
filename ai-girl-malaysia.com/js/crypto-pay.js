@@ -17,14 +17,28 @@
     var API = '/api/v1'
     var POLL_MS = 5000
 
-    // 币种图标：站内有素材的用真图，其余统一用「品牌色圆标 + 币种代号」兜底，
-    // 这样后台新增任何币种都能正常显示，不需要再补图
+    // 币种图标：全部用官方币种 logo。先按渠道 type 精确匹配，未收录的 type 再按渠道名兜底；
+    // 两者都没命中才退回「品牌色圆标 + 币种代号」，这样后台新增任何币种都不会显示成空白
+    var COIN_ICON_BY_TYPE = {
+        usdt_trc20: './assets/USDT.png',
+        usdt_erc20: './assets/USDT.png',
+        usdt_bep20: './assets/USDT.png',
+        usdc_erc20: './assets/USDC.png',
+        bnb:        './assets/BNB.png',
+        trx:        './assets/TRX.png',
+        eth:        './taocan_files/ethereum-v2-ecf882da6f36e48fb026b5731691a0247652e78fae91381e9cc9aa3609af0c83.svg',
+        btc:        './taocan_files/bitcoin-v2-4140d64c9d7108dbd4a9db1a64c4eaceee0728a7c2a478b78c6840e29031e480.svg',
+        ltc:        './taocan_files/litecoin-v2-97c556a98f274c6101b73d45322bbbef6705be18330cc00bc3ed442d28899336.svg'
+    }
+
     var COIN_ICONS = [
-        { re: /usdt.*trc20|trc20.*usdt|tether.*tron/i, src: './assets/USDT-TRC20.png' },
+        { re: /usdt|tether/i, src: './assets/USDT.png' },
+        { re: /usdc/i, src: './assets/USDC.png' },
+        { re: /bnb|binance/i, src: './assets/BNB.png' },
+        { re: /\btrx\b|tron/i, src: './assets/TRX.png' },
         { re: /btc|bitcoin/i, src: './taocan_files/bitcoin-v2-4140d64c9d7108dbd4a9db1a64c4eaceee0728a7c2a478b78c6840e29031e480.svg' },
-        { re: /^eth|ethereum mainnet|eth ·/i, src: './taocan_files/ethereum-v2-ecf882da6f36e48fb026b5731691a0247652e78fae91381e9cc9aa3609af0c83.svg' },
-        { re: /ltc|litecoin/i, src: './taocan_files/litecoin-v2-97c556a98f274c6101b73d45322bbbef6705be18330cc00bc3ed442d28899336.svg' },
-        { re: /\btrx\b/i, src: './assets/TRX.png' }
+        { re: /eth|ethereum/i, src: './taocan_files/ethereum-v2-ecf882da6f36e48fb026b5731691a0247652e78fae91381e9cc9aa3609af0c83.svg' },
+        { re: /ltc|litecoin/i, src: './taocan_files/litecoin-v2-97c556a98f274c6101b73d45322bbbef6705be18330cc00bc3ed442d28899336.svg' }
     ]
 
     // 币种代号 → 圆标底色（品牌色，仅用于兜底圆标）
@@ -67,7 +81,9 @@
     }
 
     function coinIcon(ch) {
-        var t = String((ch && ch.type) || '') + ' ' + String((ch && ch.name) || '')
+        var t = String((ch && ch.type) || '')
+        if (COIN_ICON_BY_TYPE[t]) { return COIN_ICON_BY_TYPE[t] }
+        t += ' ' + String((ch && ch.name) || '')
         for (var i = 0; i < COIN_ICONS.length; i++) {
             if (COIN_ICONS[i].re.test(t)) { return COIN_ICONS[i].src }
         }
