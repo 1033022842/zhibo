@@ -976,15 +976,21 @@
   function loadPaymentOptions() {
     var box = document.getElementById('fy-payment-methods')
     if (!box) return
+    var block = document.getElementById('payment_methods')
+    // 先藏起来，接口确认有可用支付方式再显示：卡支付被后台开关关掉时，
+    // 这里就没有任何一项，留个只有标题的空区块很难看
+    if (block) { block.style.display = 'none' }
 
     fetch(API.paymentOptions)
       .then(function (r) { return r.json() })
       .then(function (res) {
         var list = res && res.code === '00000' && res.data ? res.data : []
+        if (!list.length) return
         box.innerHTML = ''
         list.forEach(function (option) { box.appendChild(paymentRow(option)) })
+        if (block) { block.style.display = '' }
       })
-      .catch(function () { /* 拉取失败保持空列表 */ })
+      .catch(function () { /* 拉取失败就保持隐藏 */ })
   }
 
   /* Achievements 卡：存档页是抓取账号的假进度，这里换成真实数据 */
