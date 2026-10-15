@@ -639,6 +639,20 @@
         })
     }
 
+    /**
+     * 卡支付兜底入口：后台开关关掉 / 商户参数没配齐时，把这条「Continue with card」
+     * 连同上面的「or choose other methods」一起藏掉，否则页面上会留一个点了没反应的死链接
+     */
+    function syncCardEntry() {
+        api('/recharge/packages').then(function (r) {
+            var fp = (r && r.code === '00000' && r.data) ? r.data.flowpay : null
+            if (fp && fp.enabled) { return }
+            [$('cp-or'), $('cp-alt-panel')].forEach(function (el) {
+                if (el) { el.hidden = true }
+            })
+        }).catch(function () { /* 状态拿不到就保持原样，不影响下单 */ })
+    }
+
     function init() {
         if (!token()) {
             location.replace('./Login.html?redirect=' + encodeURIComponent(location.pathname + location.search))
@@ -651,6 +665,7 @@
         if ($('cp-alt-card')) {
             $('cp-alt-card').href = kind === 'vip' ? './Subscriptions.html' : './purchasePoints.html'
         }
+        syncCardEntry()
         // 预估价要用套餐价格，所以摘要渲染完再拉法币通道配置
         var summary = kind === 'vip' ? loadVipSummary() : Promise.resolve(renderCoinSummary())
         if (isFiat) {
