@@ -78,6 +78,19 @@
         }
         // 场景按钮（candy 新版 Show me the scene）每次进入重绑（Turbo 快照恢复丢监听）
         setupSceneButtons()
+        // 首页角色目录预热：home-N 人设不再依赖 localStorage（被清/被替换会导致串号或空白）
+        loadHomeRoles(function () {
+            var info = chatItemById(activeConvId)
+            if (info && info.title && String(activeConvId).indexOf('home-') === 0) {
+                convItems[activeConvId] = info
+                // 只补人设，不动消息区（否则会把已显示的开场问候清掉）
+                var cur = document.getElementById('chat-name')
+                if (!cur || cur.textContent !== info.title) paintPersona(info)
+            }
+        })
+        // PC 端资料面板：默认展开（右侧人设区），并按用户上次的手动折叠选择恢复
+        // （之前不持久化 + Turbo 快照恢复，会把折叠态带进下一次进入，表现为「右侧那块区域没了」）
+        initProfilePanel()
         // 会话/历史/开场白每次进入都要重建（Turbo 恢复的快照是旧 DOM）
         channelDetail(id)
     }
@@ -137,25 +150,81 @@
     }
 
     // 会话项 data-id -> 角色对象（原来直接传 id 字符串会让 getDetail 报错）
+    // 首页角色服务端目录（lp_home_character）：home-N 的权威人设来源，免疫 localStorage 被清/被替换
+    var homeRolesLoading = false
+    var homeRolesCbs = []
+    function homeRoleMap() {
+        return window.__homeRoleMap || (window.__homeRoleMap = {})
+    }
+    function loadHomeRoles(cb) {
+        if (cb) homeRolesCbs.push(cb)
+        if (homeRolesLoading) return
+        if (Object.keys(homeRoleMap()).length > 0) { flushHomeRoles(); return }
+        homeRolesLoading = true
+        var cats = ['girls', 'anime', 'guys']
+        var done = 0
+        var map = homeRoleMap()
+        cats.forEach(function (cat) {
+            fetch('/api/v1/home/characters?limit=50&category=' + cat)
+                .then(function (r) { return r.json() })
+                .then(function (d) {
+                    var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                    list.forEach(function (c) { if (c && c.id) map['home-' + c.id] = c })
+                    if (++done === cats.length) { homeRolesLoading = false; flushHomeRoles() }
+                })
+                .catch(function () { if (++done === cats.length) { homeRolesLoading = false; flushHomeRoles() } })
+        })
+    }
+    function flushHomeRoles() {
+        var cbs = homeRolesCbs; homeRolesCbs = []
+        cbs.forEach(function (cb) { try { cb() } catch (e) {} })
+    }
+
     function chatItemById(id) {
         if (id && typeof id === 'object') return id
         id = String(id || '')
         if (id === '') return null
+        // home-N 优先走服务端首页角色目录：convItems/pageList 里可能存着早前数字撞号写入的错误条目
+        if (/^home-\d+$/.test(id)) {
+            var hr0 = homeRoleMap()[id]
+            if (hr0) {
+                var it0 = {
+                    id: id,
+                    title: hr0.name || '',
+                    image: hr0.cover_url || '',
+                    description: hr0.description || hr0.tagline || '',
+                    time: '',
+                    age: hr0.age || '',
+                    hobbies: (hr0.tags || []).join(', '),
+                    occupation: '', relationship: '', body: '', ethnicity: '',
+                    messageList: []
+                }
+                convItems[id] = it0
+                return it0
+            }
+        }
         if (convItems[id]) return convItems[id]
         var list = readPageList()
         // 1) 先按完整 id 精确匹配（Home 页写入的条目 id 就是 'home-14' 这种完整键）
         for (var i = 0; i < list.length; i++) {
             if (String(list[i] && list[i].id) === id) return list[i]
         }
-        // 2) home-N 没精确命中时，回退按数字 N 匹配首页角色目录（id=14 的条目）
-        var m = /^home-(\d+)$/.exec(id)
-        if (m) {
-            for (var j = 0; j < list.length; j++) {
-                if (String(list[j] && list[j].id) === m[1]) {
-                    var hit = $.extend({}, list[j])
-                    hit.id = id
-                    if (!hit.image && hit.cover_url) hit.image = hit.cover_url
-                    return hit
+        // 2) home-N 没精确命中：回退「首页角色服务端目录」（lp_home_character，按 id 命中）。
+        //    绝不能拿数字 N 去 pageList 里撞——数字 id 是平台内容角色（lp_ai_content）的命名空间，
+        //    两套 id 大量同号（如 home-54=Alice Bloom vs 内容表 54=Grace），撞上就会显示成别人的角色
+        if (/^home-\d+$/.test(id)) {
+            var hr = homeRoleMap()[id]
+            if (hr) {
+                return {
+                    id: id,
+                    title: hr.name || '',
+                    image: hr.cover_url || '',
+                    description: hr.description || hr.tagline || '',
+                    time: '',
+                    age: hr.age || '',
+                    hobbies: (hr.tags || []).join(', '),
+                    occupation: '', relationship: '', body: '', ethnicity: '',
+                    messageList: []
                 }
             }
         }
@@ -1014,6 +1083,41 @@
             })
     }
 
+    function initProfilePanel() {
+        try {
+            var pcEl = document.querySelector('.profile-container')
+            var mcEl = document.querySelector('.messages-container')
+            if (!pcEl || !mcEl) return
+            var desktop = window.matchMedia('(min-width: 1024px)').matches
+            if (!desktop) return
+            var collapsed = '0'
+            try { collapsed = localStorage.getItem('chatPanelCollapsed') || '0' } catch (e) {}
+            if (collapsed === '1') {
+                pcEl.classList.remove('lg:block')
+                mcEl.classList.add('w-[70%]')
+            } else {
+                pcEl.classList.add('lg:block')
+                mcEl.classList.remove('w-[70%]')
+            }
+        } catch (e) {}
+    }
+
+    // 记住用户对右侧面板的折叠选择（candy 的 profile-toggle 控制器点完后再读一次结果）
+    if (!window.__chatPanelPrefBound) {
+        window.__chatPanelPrefBound = true
+        document.addEventListener('click', function (e) {
+            var t = e.target && e.target.closest ? e.target.closest('[data-action*="profile-toggle#toggle"]') : null
+            if (!t) return
+            setTimeout(function () {
+                try {
+                    var pcEl = document.querySelector('.profile-container')
+                    if (!pcEl) return
+                    localStorage.setItem('chatPanelCollapsed', pcEl.className.indexOf('lg:block') < 0 ? '1' : '0')
+                } catch (err) {}
+            }, 350)
+        })
+    }
+
     function setupSceneButtons() {
         // 事件委托绑在 document 上：Turbo 快照恢复/局部重渲染不会丢监听
         if (!window.__sceneBtnDelegated) {
@@ -1537,9 +1641,9 @@
         var $active = $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').first()
         if ($active.length) $active.addClass('px-[6px] bg-[#303030] border border-zinc-600').addClass('active')
     }
-    function getDetail(info) {
-        if(!info) return
-        try { (window.__chatTrace = window.__chatTrace || []).push('getDetail id=' + String(info.id) + ' title=' + String(info.title)) } catch (e) {}
+    // 只刷人设（名字/资料/轮播），不碰消息区——用于补人设时不打断已渲染的开场问候
+    function paintPersona(info) {
+        if (!info) return
         var pictures = String(info.image || '').split(',')
         $('#chat-name').html(info.title)
         $('#infomation').html(info.description)
@@ -1551,19 +1655,19 @@
         if (pictures[0]) $('#chat-img').attr('src', pictures[0])
         $('#ethnicity').html(info.ethnicity)
         $('#name').html(info.title)
-       
-        if(pictures[0]) {
+        if (pictures[0]) {
             var html = ''
-            pictures.forEach((t, index) => {
-                if(index === 0) {
-                    html += "<div class='carousel-item active'><img src='"+t+"' class='w-full object-top object-cover h-[483px]'></div>"
-                }
-                else {
-                    html += "<div class='carousel-item'><img src='"+t+"' class='w-full object-top object-cover h-[483px]'></div>"
-                }
-            });
+            pictures.forEach(function (t, index) {
+                html += "<div class='carousel-item" + (index === 0 ? ' active' : '') + "'><img src='" + t + "' class='w-full object-top object-cover h-[483px]'></div>"
+            })
             $('.carousel').html(html)
         }
+    }
+
+    function getDetail(info) {
+        if(!info) return
+        try { (window.__chatTrace = window.__chatTrace || []).push('getDetail id=' + String(info.id) + ' title=' + String(info.title)) } catch (e) {}
+        paintPersona(info)
         $('#messages-list').html(cacheTemplate);
         $('#phone-btn').on('click', function () {
             location.href = './Game.html?id=' + info.id
@@ -1757,8 +1861,14 @@
         if (!src) {
             var mHome = /^home-(\d+)$/.exec(activeConvId)
             if (mHome) {
-                for (var k = 0; k < (local || []).length; k++) {
-                    if (String(local[k] && local[k].id) === mHome[1]) { src = local[k]; break }
+                // 数字 N 在 pageList 里撞号（同号平台内容角色）——改用服务端首页角色目录
+                var hrSrc = homeRoleMap()[activeConvId]
+                if (hrSrc) {
+                    src = { title: hrSrc.name || '', cover_url: hrSrc.cover_url || '', description: hrSrc.description || hrSrc.tagline || '' }
+                } else {
+                    for (var k = 0; k < (local || []).length; k++) {
+                        if (String(local[k] && local[k].id) === mHome[1]) { src = local[k]; break }
+                    }
                 }
             }
         }
