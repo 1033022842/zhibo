@@ -6,6 +6,7 @@ use Throwable;
 use think\facade\Db;
 use app\common\controller\Backend;
 use app\admin\model\live\LiveUser as LiveUserModel;
+use app\live\service\UserService;
 
 class LiveUser extends Backend
 {
@@ -58,6 +59,7 @@ class LiveUser extends Backend
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
                 IFNULL(lp_user_profile.last_login_ip, \'\') as last_login_ip,
                 IFNULL(lp_user_profile.last_login_at, NULL) as last_login_at,
+                IFNULL(lp_user_profile.last_active_at, NULL) as last_active_at,
                 IFNULL(cert.status, -1) as cert_status,
                 IFNULL(cert.id, 0) as cert_id
             ')
@@ -108,6 +110,11 @@ class LiveUser extends Backend
             $row['account_label'] = (string) ($row['email'] ?? '') !== ''
                 ? (string) $row['email']
                 : (string) ($row['auth_account'] ?? '');
+
+            // 在线/离线：最近有过带 token 的接口请求（窗口见 UserService::ONLINE_WINDOW）
+            $activeAt = (string) ($row['last_active_at'] ?? '');
+            $row['online']       = $activeAt !== '' && (time() - strtotime($activeAt)) <= UserService::ONLINE_WINDOW;
+            $row['online_label'] = $row['online'] ? '在线' : '离线';
 
             // 会员身份标签
             $vipExpire   = (string) ($row['vip_expire_at'] ?? '');

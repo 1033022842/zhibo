@@ -325,6 +325,18 @@ const baTable = new baTableClass(
             { type: 'selection', align: 'center', operator: false },
             { label: 'ID', prop: 'id', align: 'center', operator: '=', width: 70 },
             { label: '昵称', prop: 'nickname', align: 'center', operator: 'LIKE', width: 130, showOverflowTooltip: true, show: true },
+            {
+                // 在线/离线：按 lp_user_profile.last_active_at（接口心跳）判定，
+                // 窗口是 UserService::ONLINE_WINDOW（5 分钟）
+                label: '在线',
+                prop: 'online_label',
+                align: 'center',
+                width: 80,
+                operator: false,
+                render: 'tag',
+                custom: { 在线: 'success', 离线: 'info' },
+                show: true,
+            },
             { label: '代币余额', prop: 'diamond_balance', align: 'center', width: 110, operator: false },
             {
                 // 会员账号：邮箱优先，无邮箱时显示用户名/手机号账号；悬浮显示注册认证方式
