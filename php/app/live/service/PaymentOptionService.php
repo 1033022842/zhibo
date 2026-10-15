@@ -19,6 +19,9 @@ final class PaymentOptionService
     private const CRYPTO_LABELS = [
         'usdt_trc20' => ['name' => 'USDT (TRC-20)', 'desc' => 'TRON network transfer'],
         'usdt_erc20' => ['name' => 'USDT (ERC-20)', 'desc' => 'Ethereum network transfer'],
+        'usdc_erc20' => ['name' => 'USDC (ERC-20)', 'desc' => 'Ethereum network transfer'],
+        'usdt_bep20' => ['name' => 'USDT (BEP-20)', 'desc' => 'BNB Chain network transfer'],
+        'bnb'        => ['name' => 'BNB', 'desc' => 'BNB Chain network transfer'],
         'eth'        => ['name' => 'ETH', 'desc' => 'Ethereum mainnet transfer'],
         'btc'        => ['name' => 'Bitcoin', 'desc' => 'Bitcoin network transfer'],
         'ltc'        => ['name' => 'Litecoin', 'desc' => 'Litecoin network transfer'],
