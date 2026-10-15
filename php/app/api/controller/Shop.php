@@ -39,7 +39,8 @@ final class Shop extends BaseController
             ->where('status', 1)
             ->field(self::FIELDS)
             ->order('weigh', 'desc')
-            ->order('id', 'asc')
+            ->order('updated_at', 'desc')
+            ->order('id', 'desc')
             ->limit($limit)
             ->select()
             ->toArray();

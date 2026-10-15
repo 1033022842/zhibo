@@ -903,8 +903,9 @@ final class Live extends BaseController
             ->table('lp_ai_content')
             ->where('status', 1)
             ->where('is_public', 1)
-            ->field(['id', 'title', 'category', 'cover_url', 'video_url', 'description', 'personality', 'weigh', 'created_at', '(SELECT COUNT(*) FROM lp_ai_collect c WHERE c.content_id = lp_ai_content.id) AS collect_count'])
+            ->field(['id', 'title', 'category', 'cover_url', 'video_url', 'description', 'personality', 'weigh', 'created_at', 'updated_at', '(SELECT COUNT(*) FROM lp_ai_collect c WHERE c.content_id = lp_ai_content.id) AS collect_count'])
             ->order('weigh', 'desc')
+            ->order('updated_at', 'desc')
             ->order('id', 'desc')
             ->select()
             ->toArray();

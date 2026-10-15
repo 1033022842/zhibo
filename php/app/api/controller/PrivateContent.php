@@ -52,10 +52,12 @@ final class PrivateContent extends BaseController
             // 「Most liked」：点赞率降序，其次权重降序，最后新上传在前（id 降序）
             $query->order('like_rate', 'desc')
                 ->order('weigh', 'desc')
+                ->order('updated_at', 'desc')
                 ->order('id', 'desc');
         } else {
-            // 「All」：权重降序，同权重时新上传的排前面（id 降序）——新素材自动置顶
+            // 「All」：权重降序，同权重时最近更新/新上传的排前面（updated_at 降序，id 兜底）
             $query->order('weigh', 'desc')
+                ->order('updated_at', 'desc')
                 ->order('id', 'desc');
         }
 
