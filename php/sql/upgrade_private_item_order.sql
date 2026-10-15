@@ -1,0 +1,5 @@
+-- 私人内容排序修正：同权重时新上传在前
+-- 原 order = weigh desc, id asc → 同权重(100)时最旧的排最前，新条目沉底
+-- 前台 PrivateContent::items() 与后台 PrivateItem 默认排序均已改为 weigh desc, id desc
+-- 本文件仅作变更记录（排序在代码层，无需改数据）；如需把历史条目按新规则重排权重可参考：
+-- UPDATE lp_private_item SET weigh = weigh;  -- 触发 updated_at 刷新（可选）
