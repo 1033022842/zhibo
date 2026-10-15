@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
+use app\live\service\FlowPayService;
 use app\live\service\RechargeService;
 use think\facade\Db;
 use app\admin\model\live\RechargeChannel as ChannelModel;
@@ -17,7 +18,7 @@ final class RechargeChannel extends Backend
     protected object $model;
 
     // 绕过登录检查（iframe 模式下 cookie 不共享）
-    protected array $noNeedLogin = ['index', 'editChannel', 'vipPlanSave', 'vipPlanToggle', 'editVip', 'editPackage', 'packageSave', 'packageToggle'];
+    protected array $noNeedLogin = ['index', 'editChannel', 'vipPlanSave', 'vipPlanToggle', 'editVip', 'editPackage', 'packageSave', 'packageToggle', 'flowpayToggle'];
 
     // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
     protected array $middleware = [
@@ -133,6 +134,17 @@ final class RechargeChannel extends Backend
             ->where('id', $id)
             ->update(['status' => ((int) $row['status'] === 1) ? 0 : 1]);
         $this->renderSuccess('状态已切换');
+    }
+
+    /**
+     * 信用卡支付（FlowPay）总开关：关闭后前台三处入口都不再出现卡支付
+     */
+    public function flowpayToggle(): void
+    {
+        $flowPay = new FlowPayService();
+        $on      = !$flowPay->switchOn();
+        $flowPay->setSwitch($on);
+        $this->renderSuccess($on ? '信用卡支付已开启' : '信用卡支付已关闭');
     }
 
     public function editChannel(): void
@@ -555,6 +567,23 @@ final class RechargeChannel extends Backend
             $rows .= "<tr><td>{$rid}</td><td>{$rname}</td><td>{$rtype}</td><td>{$rmode}</td><td>{$qr}</td><td>{$raddr}</td><td>{$rrate}</td><td>{$rmin}</td><td>{$rsort}</td><td>{$st}</td><td><a href='/admin/live.RechargeChannel/editChannel?id={$rid}' class='btn-edit'>编辑</a></td></tr>";
         }
         $pager = $list->render();
+
+        // ===== 信用卡支付（FlowPay）总开关 =====
+        $flowPay = new FlowPayService();
+        $fpOn    = $flowPay->switchOn();
+        $fpReady = $flowPay->enabled();
+        $fpState = $fpOn ? '<span style="color:#00a870">已开启</span>' : '<span style="color:#ff2d55">已关闭</span>';
+        $fpNote  = $fpReady
+            ? '关闭后 充值页 / 订阅页 / 设置页「Payment methods」都不再出现信用卡入口；链上加密货币不受影响。'
+            : '注意：.env 里 FlowPay 商户参数（MCHID / KEY / GCODE）没配齐，即使打开前台也不会出现信用卡。';
+        $fpAct   = $fpOn ? '关闭' : '开启';
+        $fpColor = $fpOn ? '#ff2d55' : '#00a870';
+        $switchBox = '<div class="switch-box"><div style="min-width:0">'
+            . '<div class="switch-title">信用卡支付（FlowPay 收银台）　' . $fpState . '</div>'
+            . '<div class="switch-desc">' . $fpNote . '</div></div>'
+            . '<a class="btn-switch" style="background:' . $fpColor . '" href="/admin/live.RechargeChannel/flowpayToggle"'
+            . " onclick=\"return confirm('确定" . $fpAct . "信用卡支付？')\">" . $fpAct . '</a></div>';
+
         return <<<HTML
         <!DOCTYPE html><html lang="zh-CN">
         <head><meta charset="UTF-8"><title>充值渠道管理</title>
@@ -571,9 +600,14 @@ final class RechargeChannel extends Backend
             .pager ul{display:inline-flex;gap:4px;list-style:none}
             .pager li a,.pager li span{padding:6px 12px;border:1px solid #ddd;border-radius:4px;color:#333;text-decoration:none;font-size:13px}
             .pager .active span{background:#409eff;color:#fff;border-color:#409eff}
+            .switch-box{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#fff;border-radius:8px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+            .switch-title{font-weight:600;margin-bottom:6px}
+            .switch-desc{font-size:13px;color:#888;line-height:1.6}
+            .btn-switch{display:inline-block;padding:8px 20px;border-radius:6px;color:#fff;text-decoration:none;font-size:14px;white-space:nowrap}
         </style></head><body>
         <div class="container">
             <h1>充值渠道 & VIP 会员套餐</h1>
+            {$switchBox}
             <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editChannel">+ 新增渠道</a></div>
             <table><thead><tr><th>ID</th><th>名称</th><th>类型</th><th>确认方式</th><th>二维码</th><th>地址</th><th>汇率</th><th>最低(USD)</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$rows}</tbody></table>
             <div class="pager">{$pager}</div>
