@@ -6,6 +6,7 @@ namespace app\websocket;
 use app\service\ChatService;
 use app\service\GiftService;
 use app\service\JwtAuthService;
+use app\service\PresenceService;
 use app\service\RoomRealtimeService;
 use app\service\WsSessionManager;
 use app\websocket\protocol\ClientMessageType;
@@ -20,6 +21,7 @@ final class LiveRoomSocket
     private GiftService $giftService;
     private JwtAuthService $jwtAuthService;
     private RoomRealtimeService $roomRealtimeService;
+    private PresenceService $presenceService;
 
     public function __construct()
     {
@@ -27,6 +29,7 @@ final class LiveRoomSocket
         $this->giftService = new GiftService();
         $this->jwtAuthService = new JwtAuthService();
         $this->roomRealtimeService = new RoomRealtimeService();
+        $this->presenceService = new PresenceService();
     }
 
     public function onWorkerStart(): void
@@ -95,6 +98,9 @@ final class LiveRoomSocket
 
     public function onClose(TcpConnection $connection): void
     {
+        // 先把用户连接拆下来：remaining 为 0 说明是该用户的最后一个连接
+        [$userId, $remaining] = WsSessionManager::detachUser($connection);
+
         $leftRoomId = WsSessionManager::leaveRoom($connection);
         if ($leftRoomId > 0) {
             $snapshot = $this->roomRealtimeService->leaveRoom($leftRoomId);
@@ -106,6 +112,11 @@ final class LiveRoomSocket
         }
 
         WsSessionManager::destroy($connection);
+
+        // 关页面 / 退出登录 → 立即置为离线（多标签页时以最后一个连接为准）
+        if ($userId > 0 && $remaining === 0) {
+            $this->presenceService->offline($userId, $connection->id);
+        }
     }
 
     private function handleAuth(TcpConnection $connection, array $message, string $traceId): void
@@ -123,6 +134,13 @@ final class LiveRoomSocket
         }
 
         WsSessionManager::authenticate($connection, $payload);
+
+        // 鉴权通过即登记为在线（后台会员列表的「在线」）
+        $userId = (int) ($payload['user_id'] ?? 0);
+        if ($userId > 0) {
+            $this->presenceService->online($userId);
+        }
+
         $connection->send(MessageBuilder::encode(ServerMessageType::AUTH_OK, $traceId, [
             'user_id' => $payload['user_id'],
             'user_no' => $payload['user_no'],
@@ -162,6 +180,13 @@ final class LiveRoomSocket
     private function handleHeartbeat(TcpConnection $connection, string $traceId): void
     {
         WsSessionManager::touch($connection);
+
+        // 心跳续期在线状态（内部有 20s 写库节流，避免每个心跳都写一次库）
+        $userId = (int) (WsSessionManager::session($connection)['user_id'] ?? 0);
+        if ($userId > 0) {
+            $this->presenceService->online($userId, $connection->id);
+        }
+
         $connection->send(MessageBuilder::encode(ServerMessageType::HEARTBEAT_ACK, $traceId, [
             'server_ts' => time(),
         ]));
