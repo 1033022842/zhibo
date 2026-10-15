@@ -41,7 +41,7 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./Chat_files/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261015n"></script>
+    <script src="./js/chat.js?v=20261015o"></script>
 	<script src="./js/chat-gift.js?v=20261014f"></script>
     <script src="./plugins/lodash.js"></script>
     
@@ -491,7 +491,7 @@
 </turbo-frame>    <div class="main-content-container" data-main-target="contentContainer">
       <div data-controller="profile-toggle message-edit-form feedback-dislike-modal" data-paid-user="" x-data="{ isPhoneCallModalOpen: false, isPremiumSubscriptionModalOpen: false, isGuestModalOpen: false, isRatingModalOpen: false, isInsufficientTokenModalOpen: false, isPhoneCallConfirmationModalOpen: false, isAllowPermissionModal: false, isBlockPermissionModal: false }" data-phone-call-is-guest-user="true" data-phone-call-is-free-user="false" data-phone-call-conversation-id="" data-phone-call-default-user-phone-number="" data-phone-call-paid-user="" data-phone-call-start-time="" data-phone-call-moderation-message="Hey wait, I cannot talk about this" data-phone-call-is-free-user-value="false" data-phone-call-is-guest-user-value="true" data-phone-call-conversation-id-value="" data-phone-call-has-user-checked-dont-show-again-value="false">
   <div id="conversation-container" class="fixed bottom-0 top-0 text-xs lg:flex lg:flex-grow fill-available w-full rounded-lg lg:pl-[440px] pr-0" style="background-size: cover; background-image: url(&quot;/assets/pattern-73e01b5144fed554ae9bf7baf0280ee22448f1dfc05ef616e85bef1e486c37cc.png&quot;); padding-left: 440px;" data-main-target="conversationContainer">
-    <div class="relative mt-16 lg:w-[70%] text-xs flex flex-col flex-grow rounded-lg shadow-xl overflow-hidden messages-container" data-target="profile-toggle.messagesContainer">
+    <div class="relative mt-16 lg:w-[70%] text-xs flex flex-col flex-grow rounded-lg shadow-xl overflow-hidden messages-container" data-profile-toggle-target="messagesContainer">
       <div id="pfp-banner-container" class="lg:relative fixed w-full z-10">
         <div class="relative h-[68px] bg-main md:h-[88px] border-[#363636] border-b flex lg:justify-between">
   <div class="flex-1 justify-start items-center gap-3.5 inline-flex relative py-2 ml-[6px] lg:ml-[20px]">
@@ -737,7 +737,7 @@
 </div>
 
 </turbo-frame>    </div>
-    <div class="pt-16 lg:w-[30%] lg:max-w-[400px] overflow-auto h-full profile-container hidden lg:block" data-target="profile-toggle.profileContainer">
+    <div class="pt-16 lg:w-[30%] lg:max-w-[400px] overflow-auto h-full profile-container hidden lg:block" data-profile-toggle-target="profileContainer">
       <div id="profile-partial-turbo">
         <div class="relative bg-neutral-900">
   <div class="w-full h-auto relative" id="pfp-carousel">
