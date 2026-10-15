@@ -463,6 +463,14 @@
         return h
     }
 
+    function toastMsg(msg) {
+        var el = document.createElement('div')
+        el.textContent = msg
+        el.style.cssText = 'position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:rgba(20,20,20,.95);color:#fff;font-size:13px;padding:10px 18px;border-radius:10px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.4)'
+        document.body.appendChild(el)
+        setTimeout(function () { el.remove() }, 2600)
+    }
+
     function esc(s) {
         return String(s === null || s === undefined ? '' : s)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -947,6 +955,7 @@
     function loadSceneMedia() {
         refreshSceneRow()
         var rkey = sceneRoleKey()
+        sceneMedia.roleKey = rkey
         if (rkey === '' || sceneMedia.loading) return
         sceneMedia.loading = true
         fetch('/api/live/chatMedia?role_key=' + encodeURIComponent(rkey), { headers: authHeaders(false) })
@@ -963,21 +972,28 @@
 
     function sendSceneMedia(type) {
         if (!token) { goLoginPage(); return }
-        if (sceneMedia.sending) return
-        var rkey = sceneRoleKey()
-        if (rkey === '') return
+        if (sceneMedia.sending) {  return }
+        // 用加载素材时的角色键（与按钮可见性一致）；现场重算可能在会话切换后拿到空键
+        var rkey = sceneMedia.roleKey || sceneRoleKey()
+        
+        if (rkey === '') {  return }
         var btn = document.getElementById(type === 'video' ? 'scene-video-btn' : 'scene-image-btn')
         if (btn) btn.classList.add('loading')
         sceneMedia.sending = true
         var typing = appendTyping()
+        // 90s 超时：LLM 文案慢或网络悬挂时自动解除 sending，按钮不会永久失灵
+        var abortCtl = (typeof AbortController !== 'undefined') ? new AbortController() : null
+        var abortTimer = abortCtl ? setTimeout(function () { abortCtl.abort() }, 90000) : null
         fetch('/api/live/sendChatMedia', {
             method: 'POST',
             headers: authHeaders(true),
-            body: JSON.stringify({ role_key: rkey, type: type, index: 0, device_id: deviceId(), lang: uiLang() })
+            body: JSON.stringify({ role_key: rkey, type: type, index: 0, device_id: deviceId(), lang: uiLang() }),
+            signal: abortCtl ? abortCtl.signal : undefined
         })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 sceneMedia.sending = false
+                if (abortTimer) clearTimeout(abortTimer)
                 if (btn) btn.classList.remove('loading')
                 if (typing) typing.remove()
                 if (!d || d.code !== '00000' || !d.data) {
@@ -991,6 +1007,7 @@
             })
             .catch(function () {
                 sceneMedia.sending = false
+                if (abortTimer) clearTimeout(abortTimer)
                 if (btn) btn.classList.remove('loading')
                 if (typing) typing.remove()
                 appendError('Network error, please try again later')
@@ -998,8 +1015,15 @@
     }
 
     function setupSceneButtons() {
-        var row = document.getElementById('scene-row')
-        if (!row) return
+        // 事件委托绑在 document 上：Turbo 快照恢复/局部重渲染不会丢监听
+        if (!window.__sceneBtnDelegated) {
+            window.__sceneBtnDelegated = true
+            document.addEventListener('click', function (e) {
+                var b = e.target && e.target.closest ? e.target.closest('#scene-image-btn, #scene-video-btn') : null
+                if (!b || b.disabled) return
+                sendSceneMedia(b.id === 'scene-video-btn' ? 'video' : 'image')
+            })
+        }
         var imgBtn = document.getElementById('scene-image-btn')
         var vidBtn = document.getElementById('scene-video-btn')
         if (imgBtn) imgBtn.addEventListener('click', function () { sendSceneMedia('image') })
@@ -1653,7 +1677,14 @@
                     var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
                     if (list.length > 0) {
                         window.__roleList = list
-                        try { localStorage.setItem('pageList', JSON.stringify(list)) } catch (e) {}
+                        // 合并而非整表替换：保留 Home 页写入的 home-N / 自建 my-N 条目，
+                        // 否则按 ?id=home-N 进入时会退化成数字 N 命中错误的平台角色
+                        try {
+                            var prev = []
+                            try { prev = JSON.parse(localStorage.getItem('pageList') || '[]') || [] } catch (e2) {}
+                            var keep = prev.filter(function (t) { return t && !/^\d+$/.test(String(t.id)) })
+                            localStorage.setItem('pageList', JSON.stringify(keep.concat(list)))
+                        } catch (e) {}
                     }
                 })
                 .catch(function () { window.__roleListLoading = false })
