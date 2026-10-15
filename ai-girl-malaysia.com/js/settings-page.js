@@ -923,8 +923,12 @@
   var PAYMENT_ICONS = {
     card: './settings_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg',
     eth: './tokens_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg',
-    usdt_trc20: './assets/USDT-TRC20.png',
-    usdt_erc20: './assets/USDT-ERC20.png'
+    usdt_trc20: './assets/USDT.png',
+    usdt_erc20: './assets/USDT.png',
+    usdc_erc20: './assets/USDC.png',
+    usdt_bep20: './assets/USDT.png',
+    bnb: './assets/BNB.png',
+    trx: './assets/TRX.png?v=20261015h'
   }
 
   function paymentRow(option) {

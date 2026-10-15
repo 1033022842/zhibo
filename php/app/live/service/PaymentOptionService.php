@@ -22,6 +22,7 @@ final class PaymentOptionService
         'eth'        => ['name' => 'ETH', 'desc' => 'Ethereum mainnet transfer'],
         'btc'        => ['name' => 'Bitcoin', 'desc' => 'Bitcoin network transfer'],
         'ltc'        => ['name' => 'Litecoin', 'desc' => 'Litecoin network transfer'],
+        'trx'        => ['name' => 'TRX', 'desc' => 'TRON network transfer'],
     ];
 
     /**

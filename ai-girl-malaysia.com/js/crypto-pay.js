@@ -23,7 +23,8 @@
         { re: /usdt.*trc20|trc20.*usdt|tether.*tron/i, src: './assets/USDT-TRC20.png' },
         { re: /btc|bitcoin/i, src: './taocan_files/bitcoin-v2-4140d64c9d7108dbd4a9db1a64c4eaceee0728a7c2a478b78c6840e29031e480.svg' },
         { re: /^eth|ethereum mainnet|eth ·/i, src: './taocan_files/ethereum-v2-ecf882da6f36e48fb026b5731691a0247652e78fae91381e9cc9aa3609af0c83.svg' },
-        { re: /ltc|litecoin/i, src: './taocan_files/litecoin-v2-97c556a98f274c6101b73d45322bbbef6705be18330cc00bc3ed442d28899336.svg' }
+        { re: /ltc|litecoin/i, src: './taocan_files/litecoin-v2-97c556a98f274c6101b73d45322bbbef6705be18330cc00bc3ed442d28899336.svg' },
+        { re: /\btrx\b/i, src: './assets/TRX.png' }
     ]
 
     // 币种代号 → 圆标底色（品牌色，仅用于兜底圆标）
