@@ -6,6 +6,7 @@ namespace app\live\middleware;
 use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use app\live\service\JwtService;
+use app\live\service\UserService;
 use Closure;
 use think\Request;
 use think\Response;
@@ -38,6 +39,9 @@ final class Auth
         $request->userId   = (int)($payload['sub'] ?? 0);
         $request->userNo   = $payload['user_no'] ?? '';
         $request->nickname = $payload['nickname'] ?? '';
+
+        // 活跃心跳：后台会员列表的「在线/离线」按它判定（同一个用户最多每分钟写一次）
+        UserService::touchActive($request->userId);
 
         return $next($request);
     }

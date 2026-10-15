@@ -16,6 +16,40 @@ use think\facade\Log;
 
 final class UserService
 {
+    /** 在线判定窗口（秒）：这个时间内有过带 token 的接口请求就算在线 */
+    public const ONLINE_WINDOW = 300;
+
+    /** 心跳最小写入间隔（秒）：避免每个请求都去写一次库 */
+    private const HEARTBEAT_GAP = 60;
+
+    /** 本次请求内已写过心跳的用户，防止一次请求里重复写 */
+    private static array $touched = [];
+
+    /**
+     * 活跃心跳：把最近一次接口请求时间落到 lp_user_profile.last_active_at
+     *
+     * 后台会员列表的「在线/离线」就按这个字段判定（见 UserService::ONLINE_WINDOW）。
+     * 心跳丢一次不影响功能，所以这里把异常吞掉，绝不能让鉴权失败。
+     */
+    public static function touchActive(int $userId): void
+    {
+        if ($userId <= 0 || isset(self::$touched[$userId])) {
+            return;
+        }
+        self::$touched[$userId] = true;
+
+        try {
+            $now = time();
+            Db::connect('live_mysql')->execute(
+                'UPDATE lp_user_profile SET last_active_at = ? WHERE user_id = ?'
+                . ' AND (last_active_at IS NULL OR last_active_at < ?)',
+                [date('Y-m-d H:i:s', $now), $userId, date('Y-m-d H:i:s', $now - self::HEARTBEAT_GAP)]
+            );
+        } catch (\Throwable) {
+            // 心跳失败忽略
+        }
+    }
+
     public function register(string $email, string $code, string $password, string $nickname, string $ip = '', string $inviteCode = '', array $attr = []): array
     {
         $verifyService = new EmailVerifyService();
@@ -293,8 +327,9 @@ final class UserService
     {
         $profile = UserProfile::find($user->id);
         if ($profile) {
-            $profile->last_login_ip = $ip;
-            $profile->last_login_at = date('Y-m-d H:i:s');
+            $profile->last_login_ip  = $ip;
+            $profile->last_login_at  = date('Y-m-d H:i:s');
+            $profile->last_active_at = date('Y-m-d H:i:s');
             $profile->save();
         }
 
