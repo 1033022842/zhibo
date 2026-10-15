@@ -1638,3 +1638,129 @@
     run()
   }
 })()
+
+/* ---------- 在线状态：全站 WebSocket 长连接 ----------
+ * 登录后连上 ws(s)://<host>/ws/ 并完成 auth，服务端随即把该会员登记为「在线」；
+ * 关标签页 / 页内跳转 / 退出登录时连接断开，服务端立刻置为「离线」。
+ * 后台会员列表的「在线/离线」因此是实时的（不再靠 5 分钟的心跳窗口猜）。
+ * 游客（没有 token）不建立连接。
+ */
+;(function () {
+  'use strict'
+  if (window.__fyPresence) return
+  window.__fyPresence = true
+
+  var HEARTBEAT_MS = 30000   // 服务端 heartbeat_ttl=150s，留足「后台标签页被浏览器节流」的余量
+  var RETRY_MIN = 3000
+  var RETRY_MAX = 30000
+  var WS_PATH = '/ws/'
+
+  var sock = null
+  var hbTimer = null
+  var retryTimer = null
+  var retryDelay = RETRY_MIN
+
+  function token() {
+    try {
+      if (window.LiveAuth && window.LiveAuth.token) return window.LiveAuth.token()
+      return localStorage.getItem('live_access_token') || ''
+    } catch (e) { return '' }
+  }
+
+  function send(obj) {
+    if (!sock || sock.readyState !== 1) return
+    try { sock.send(JSON.stringify(obj)) } catch (e) { /* 忽略 */ }
+  }
+
+  function stopHeartbeat() {
+    if (hbTimer) { clearInterval(hbTimer); hbTimer = null }
+  }
+
+  function clearRetry() {
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
+  }
+
+  function scheduleRetry() {
+    if (retryTimer || !token()) return
+    retryTimer = setTimeout(function () {
+      retryTimer = null
+      retryDelay = Math.min(retryDelay * 2, RETRY_MAX)
+      connect()
+    }, retryDelay)
+  }
+
+  function connect() {
+    if (sock && (sock.readyState === 0 || sock.readyState === 1)) return
+    if (!token()) return
+
+    var url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + WS_PATH
+    try { sock = new WebSocket(url) } catch (e) { sock = null; scheduleRetry(); return }
+
+    sock.onopen = function () {
+      retryDelay = RETRY_MIN
+      send({ type: 'auth', token: token() })
+    }
+
+    sock.onmessage = function (ev) {
+      var msg = null
+      try { msg = JSON.parse(ev.data) } catch (e) { return }
+      if (!msg || msg.type !== 'auth_ok') return
+      stopHeartbeat()
+      hbTimer = setInterval(function () {
+        send({ type: 'heartbeat', timestamp: Date.now() })
+      }, HEARTBEAT_MS)
+    }
+
+    sock.onclose = function () {
+      sock = null
+      stopHeartbeat()
+      scheduleRetry()
+    }
+
+    sock.onerror = function () { /* onclose 随后触发，重连交给它 */ }
+  }
+
+  /** 主动断开：服务端收到连接关闭后立即判定「离线」 */
+  function teardown() {
+    stopHeartbeat()
+    clearRetry()
+    if (sock) {
+      try { sock.onclose = null; sock.close() } catch (e) { /* 忽略 */ }
+      sock = null
+    }
+  }
+
+  // 登录成功后立刻连上（登录页不跳转也生效）
+  document.addEventListener('live:login', function () { retryDelay = RETRY_MIN; connect() })
+
+  // 退出登录：点了按钮就先断开，不等接口返回与跳转
+  document.addEventListener('click', function (e) {
+    var el = e.target
+    while (el && el !== document) {
+      if (el.classList && el.classList.contains('logout')) { teardown(); return }
+      el = el.parentNode
+    }
+  }, true)
+
+  // 关标签页 / 页面跳转
+  window.addEventListener('pagehide', teardown)
+  window.addEventListener('beforeunload', teardown)
+  // 从往返缓存恢复（手机端返回上一页）：重新连上
+  window.addEventListener('pageshow', function (e) {
+    if (e && e.persisted) { retryDelay = RETRY_MIN; connect() }
+  })
+
+  // 回到前台：后台标签页里定时器被节流，连接可能已被服务端回收，补一次
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return
+    if (!sock || sock.readyState > 1) connect()
+  })
+
+  // 其它标签页退出登录
+  window.addEventListener('storage', function (e) {
+    if (e && e.key === 'live_access_token' && !e.newValue) teardown()
+  })
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', connect)
+  else connect()
+})()

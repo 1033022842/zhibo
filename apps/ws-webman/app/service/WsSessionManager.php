@@ -16,6 +16,9 @@ final class WsSessionManager
     /** @var array<int, array<int, true>> */
     private static array $rooms = [];
 
+    /** @var array<int, array<int, true>> 用户 id => [连接 id => true]（同一用户可能多标签页在线） */
+    private static array $userConnections = [];
+
     public static function boot(TcpConnection $connection): void
     {
         self::$connections[$connection->id] = $connection;
@@ -33,6 +36,7 @@ final class WsSessionManager
     public static function destroy(TcpConnection $connection): void
     {
         self::leaveRoom($connection);
+        self::forgetUserConnection($connection);
         unset(self::$sessions[$connection->id], self::$connections[$connection->id]);
     }
 
@@ -42,7 +46,44 @@ final class WsSessionManager
         self::$sessions[$connection->id]['user_id'] = (int) ($payload['user_id'] ?? 0);
         self::$sessions[$connection->id]['user_no'] = (string) ($payload['user_no'] ?? '');
         self::$sessions[$connection->id]['nickname'] = (string) ($payload['nickname'] ?? '');
+
+        $userId = (int) ($payload['user_id'] ?? 0);
+        if ($userId > 0) {
+            self::$userConnections[$userId][$connection->id] = true;
+        }
+
         self::touch($connection);
+    }
+
+    /**
+     * 拆掉该连接的用户登记，返回 [用户 id, 该用户剩余连接数]。
+     * 剩余为 0 说明这是该用户的最后一个连接，调用方可据此判定「离线」。
+     *
+     * @return array{0: int, 1: int}
+     */
+    public static function detachUser(TcpConnection $connection): array
+    {
+        $userId = (int) (self::$sessions[$connection->id]['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return [0, 0];
+        }
+
+        self::forgetUserConnection($connection);
+
+        return [$userId, count(self::$userConnections[$userId] ?? [])];
+    }
+
+    private static function forgetUserConnection(TcpConnection $connection): void
+    {
+        $userId = (int) (self::$sessions[$connection->id]['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return;
+        }
+
+        unset(self::$userConnections[$userId][$connection->id]);
+        if (empty(self::$userConnections[$userId])) {
+            unset(self::$userConnections[$userId]);
+        }
     }
 
     public static function touch(TcpConnection $connection): void

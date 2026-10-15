@@ -50,6 +50,26 @@ final class UserService
         }
     }
 
+    /**
+     * 主动退出登录：立刻置为离线。
+     * （不依赖 WebSocket 断开，保证「退出后马上显示离线」）
+     */
+    public static function clearActive(int $userId): void
+    {
+        if ($userId <= 0) {
+            return;
+        }
+
+        try {
+            Db::connect('live_mysql')->execute(
+                'UPDATE lp_user_profile SET last_active_at = NULL WHERE user_id = ?',
+                [$userId]
+            );
+        } catch (\Throwable) {
+            // 忽略
+        }
+    }
+
     public function register(string $email, string $code, string $password, string $nickname, string $ip = '', string $inviteCode = '', array $attr = []): array
     {
         $verifyService = new EmailVerifyService();
@@ -396,6 +416,9 @@ final class UserService
         if ($refreshToken) {
             JwtService::blacklist($refreshToken, 604800);
         }
+
+        // 退出登录即离线（后台会员列表的「在线」立刻变成「离线」）
+        self::clearActive($userId);
     }
 
     public function profile(int $userId): array

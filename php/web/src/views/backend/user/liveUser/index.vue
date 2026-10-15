@@ -130,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { provide, reactive, h, defineComponent } from 'vue'
+import { provide, reactive, h, defineComponent, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElTag, ElTooltip } from 'element-plus'
 import baTableClass from '/@/utils/baTable'
@@ -677,4 +677,23 @@ const baTable = new baTableClass(
 baTable.mount()
 baTable.getData()
 provide('baTable', baTable)
+
+// 「在线/离线」是实时状态（服务端按 WebSocket 连接判定）：
+// 列表每 30 秒自动刷新一次；标签页切到后台时跳过，避免无谓请求。
+let autoRefreshTimer: number | undefined
+const stopAutoRefresh = () => {
+    if (autoRefreshTimer) {
+        window.clearInterval(autoRefreshTimer)
+        autoRefreshTimer = undefined
+    }
+}
+
+onMounted(() => {
+    autoRefreshTimer = window.setInterval(() => {
+        if (document.hidden) return
+        baTable.getData()
+    }, 30 * 1000)
+})
+
+onUnmounted(stopAutoRefresh)
 </script>
