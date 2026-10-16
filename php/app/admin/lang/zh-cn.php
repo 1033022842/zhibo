@@ -37,6 +37,8 @@ return [
     'Username is incorrect'                                                               => '用户名不正确',
     'Please try again after 1 day'                                                        => '登录失败次数超限，请在1天后再试',
     'Password is incorrect'                                                               => '密码不正确',
+    'Please enter the 6-digit code from your authenticator app'                           => '请输入验证器 App 上的 6 位动态验证码',
+    'Invalid authenticator code'                                                          => '动态验证码不正确',
     'You are not logged in'                                                               => '你没有登录',
     // 权限类语言包-e
     // 时间格式化-s

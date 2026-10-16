@@ -162,10 +162,11 @@ class Auth extends \ba\Auth
      * @param string $username 用户名
      * @param string $password 密码
      * @param bool   $keep     是否保持登录
+     * @param string $totp     谷歌验证码（该账号启用 2FA 时必填）
      * @return bool
      * @throws Throwable
      */
-    public function login(string $username, string $password, bool $keep = false): bool
+    public function login(string $username, string $password, bool $keep = false, string $totp = ''): bool
     {
         $this->model = Admin::where('username', $username)->find();
         if (!$this->model) {
@@ -203,6 +204,23 @@ class Auth extends \ba\Auth
             return false;
         }
 
+        // 谷歌验证码(2FA)：该账号已绑定且总开关开启时必须校验
+        if ($this->totpRequired($this->model)) {
+            $code = preg_replace('/\D/', '', $totp) ?? '';
+            if ($code === '') {
+                $this->setError('TOTP_REQUIRED');
+                return false;
+            }
+            // 先按 TOTP 动态码校验；失败再尝试一次性恢复码（用后作废）
+            $okTotp = \app\common\library\Totp::verify((string) $this->model->totp_secret, $code)
+                || $this->consumeRecoveryCode($this->model, $totp);
+            if (!$okTotp) {
+                $this->loginFailed();
+                $this->setError('TOTP_INVALID');
+                return false;
+            }
+        }
+
         // 清理 token
         if (Config::get('buildadmin.admin_sso')) {
             Token::clear(self::TOKEN_TYPE, $this->model->id);
@@ -224,6 +242,54 @@ class Auth extends \ba\Auth
     {
         $this->refreshToken = Random::uuid();
         Token::set($this->refreshToken, self::TOKEN_TYPE . '-refresh', $this->model->id, $keepTime);
+    }
+
+    /**
+     * 该管理员是否需要 TOTP 二次验证
+     * 条件：全局开关 admin_totp_enabled=1 且该账号已绑定并启用
+     */
+    public function totpRequired(object $model): bool
+    {
+        try {
+            $on = trim((string) \think\facade\Db::connect('live_mysql')->table('lp_platform_config')
+                ->where('key', 'admin_totp_enabled')->value('value'));
+        } catch (\Throwable $e) {
+            return false;
+        }
+        return $on === '1'
+            && (int) ($model->totp_enabled ?? 0) === 1
+            && trim((string) ($model->totp_secret ?? '')) !== '';
+    }
+
+    /**
+     * 校验并消费一次性恢复码（命中后从列表移除，防重放）
+     * @param string $code 形如 XXXX-XXXX（大小写不敏感）
+     */
+    private function consumeRecoveryCode(object $model, string $code): bool
+    {
+        $code = strtoupper(trim($code));
+        if (!preg_match('/^[A-Z0-9]{4}-[A-Z0-9]{4}$/', $code)) {
+            return false;
+        }
+        $hashes = json_decode((string) ($model->totp_recovery ?? ''), true);
+        if (!is_array($hashes) || !$hashes) {
+            return false;
+        }
+        $hash = hash('sha256', $code);
+        $hit  = false;
+        $left = [];
+        foreach ($hashes as $h) {
+            if (!$hit && is_string($h) && hash_equals($h, $hash)) {
+                $hit = true;
+                continue; // 消耗掉，不保留
+            }
+            $left[] = $h;
+        }
+        if ($hit) {
+            $model->totp_recovery = json_encode(array_values($left));
+            $model->save();
+        }
+        return $hit;
     }
 
     /**
