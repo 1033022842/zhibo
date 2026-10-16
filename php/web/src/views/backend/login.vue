@@ -50,6 +50,20 @@
                                     </template>
                                 </el-input>
                             </el-form-item>
+                            <el-form-item v-if="state.totpRequired" prop="totp">
+                                <el-input
+                                    ref="totpRef"
+                                    v-model="form.totp"
+                                    type="text"
+                                    maxlength="6"
+                                    clearable
+                                    :placeholder="t('login.Please enter the 6-digit authenticator code')"
+                                >
+                                    <template #prefix>
+                                        <Icon name="fa fa-shield" class="form-item-icon" size="16" color="var(--el-input-icon-color)" />
+                                    </template>
+                                </el-input>
+                            </el-form-item>
                             <el-checkbox v-model="form.keep" :label="t('login.Hold session')" size="default"></el-checkbox>
                             <el-form-item>
                                 <el-button
@@ -95,15 +109,18 @@ toggleDark(config.layout.isDark)
 const formRef = useTemplateRef('formRef')
 const usernameRef = useTemplateRef('usernameRef')
 const passwordRef = useTemplateRef('passwordRef')
+const totpRef = useTemplateRef('totpRef')
 
 const state = reactive({
     showCaptcha: false,
     submitLoading: false,
+    totpRequired: false,
 })
 const form = reactive({
     username: '',
     password: '',
     keep: false,
+    totp: '',
     captchaId: uuid(),
     captchaInfo: '',
 })
@@ -114,6 +131,15 @@ const { t } = useI18n()
 const rules = reactive({
     username: [buildValidatorData({ name: 'required', message: t('login.Please enter an account') }), buildValidatorData({ name: 'account' })],
     password: [buildValidatorData({ name: 'required', message: t('login.Please input a password') }), buildValidatorData({ name: 'password' })],
+    totp: [
+        {
+            validator: (_rule: any, value: string, callback: (err?: Error) => void) => {
+                if (!state.totpRequired) return callback()
+                if (!value || value.trim().length === 0) return callback(new Error(t('login.Please enter the 6-digit authenticator code')))
+                callback()
+            },
+        },
+    ],
 })
 
 const focusInput = () => {
@@ -121,6 +147,8 @@ const focusInput = () => {
         usernameRef.value?.focus()
     } else if (form.password === '') {
         passwordRef.value?.focus()
+    } else if (state.totpRequired && form.totp === '') {
+        totpRef.value?.focus()
     }
 }
 
@@ -132,6 +160,7 @@ onMounted(() => {
     login('get')
         .then((res) => {
             state.showCaptcha = res.data.captcha
+            state.totpRequired = !!res.data.totp_required
             nextTick(() => focusInput())
         })
         .catch((err) => {
@@ -163,6 +192,14 @@ const onSubmit = (captchaInfo = '') => {
         .then((res) => {
             adminInfo.dataFill(res.data.userInfo, false)
             router.push({ path: adminBaseRoutePath })
+        })
+        .catch((err) => {
+            // 后端返回 totp_required：显示动态验证码输入框并聚焦（提示消息由 axios 拦截器统一弹出）
+            if (err && err.data && err.data.totp_required) {
+                state.totpRequired = true
+                form.totp = ''
+                nextTick(() => totpRef.value?.focus())
+            }
         })
         .finally(() => {
             state.submitLoading = false

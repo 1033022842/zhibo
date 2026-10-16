@@ -100,21 +100,52 @@ class Index extends Backend
 
             AdminLog::instance()->setTitle(__('Login'));
 
-            $res = $this->auth->login($username, $password, (bool)$keep);
+            $res = $this->auth->login($username, $password, (bool)$keep, (string)$this->request->post('totp', ''));
             if ($res === true) {
                 $this->success(__('Login succeeded!'), [
                     'userInfo' => $this->auth->getInfo()
                 ]);
             } else {
                 $msg = $this->auth->getError();
+                // 2FA 相关错误：透出明确标记，前端据此提示/显示验证码框
+                if ($msg === 'TOTP_REQUIRED') {
+                    $this->error(__('Please enter the 6-digit code from your authenticator app'), [
+                        'totp_required' => true,
+                    ], 0);
+                }
+                if ($msg === 'TOTP_INVALID') {
+                    $this->error(__('Invalid authenticator code'), [
+                        'totp_required' => true,
+                    ], 0);
+                }
                 $msg = $msg ?: __('Incorrect user name or password!');
                 $this->error($msg);
             }
         }
 
         $this->success('', [
-            'captcha' => $captchaSwitch
+            'captcha' => $captchaSwitch,
+            // 是否已有账号启用 2FA（前端据此决定是否显示「动态验证码」输入框）
+            'totp_required' => $this->anyTotpEnabled(),
         ]);
+    }
+
+    /**
+     * 是否有管理员启用了 2FA（且全局开关打开）
+     */
+    private function anyTotpEnabled(): bool
+    {
+        try {
+            $on = trim((string) \think\facade\Db::connect('live_mysql')->table('lp_platform_config')
+                ->where('key', 'admin_totp_enabled')->value('value'));
+            if ($on !== '1') {
+                return false;
+            }
+            return (int) \app\admin\model\Admin::where('totp_enabled', 1)
+                ->where('totp_secret', '<>', '')->count() > 0;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**

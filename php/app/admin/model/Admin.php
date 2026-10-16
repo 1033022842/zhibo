@@ -18,6 +18,9 @@ use think\facade\Db;
  * @property string $password        密码密文
  * @property string $salt            密码盐（废弃待删）
  * @property string $status          状态:enable=启用,disable=禁用,...(string存储，可自定义其他)
+ * @property string $totp_secret     谷歌验证码(2FA)密钥(base32，空=未绑定)
+ * @property int    $totp_enabled    是否启用2FA:1是 0否
+ * @property string $totp_recovery   一次性恢复码(sha256后JSON数组)
  */
 class Admin extends Model
 {

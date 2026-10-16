@@ -33,6 +33,8 @@ return [
     'Username is incorrect'                                                               => 'Incorrect username',
     'Please try again after 1 day'                                                        => 'The number of login failures exceeds the limit, please try again after 24 hours',
     'Password is incorrect'                                                               => 'Wrong password',
+    'Please enter the 6-digit code from your authenticator app'                            => 'Please enter the 6-digit code from your authenticator app',
+    'Invalid authenticator code'                                                          => 'Invalid authenticator code',
     'You are not logged in'                                                               => 'You are not logged in',
     'Cache cleaned~'                                                                      => 'The cache has been cleaned up, please refresh the page.',
 ];
