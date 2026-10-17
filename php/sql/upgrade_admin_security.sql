@@ -53,20 +53,34 @@ CALL `_add_totp_cols`();
 DROP PROCEDURE IF EXISTS `_add_totp_cols`;
 
 -- ---- 5. 后台菜单：访问控制（IP白名单）----
-SET @sec_pid = IFNULL((SELECT `id` FROM `ba_admin_rule` WHERE `title` = '安全管理' AND `type` = 'menu_dir' ORDER BY `id` DESC LIMIT 1),
+-- 归属父级优先「数据安全管理」，其次「安全管理」→「直播运营」→ live 目录
+SET @sec_pid = IFNULL((SELECT `id` FROM `ba_admin_rule` WHERE `title` = '数据安全管理' AND `type` = 'menu_dir' ORDER BY `id` DESC LIMIT 1),
+              IFNULL((SELECT `id` FROM `ba_admin_rule` WHERE `title` = '安全管理' AND `type` = 'menu_dir' ORDER BY `id` DESC LIMIT 1),
               IFNULL((SELECT `id` FROM `ba_admin_rule` WHERE `title` = '直播运营' AND `type` = 'menu_dir' ORDER BY `id` DESC LIMIT 1),
-              IFNULL((SELECT `id` FROM `ba_admin_rule` WHERE `name` = 'live' AND `type` = 'menu_dir' ORDER BY `id` DESC LIMIT 1), 0)));
+              IFNULL((SELECT `id` FROM `ba_admin_rule` WHERE `name` = 'live' AND `type` = 'menu_dir' ORDER BY `id` DESC LIMIT 1), 0))));
+
+-- 目标父级下现有子项的最大权重，两个菜单排在其后
+SET @sec_maxw = IFNULL((SELECT MAX(`weigh`) FROM `ba_admin_rule` WHERE `pid` = @sec_pid), 0);
 
 INSERT INTO `ba_admin_rule` (`pid`, `type`, `title`, `name`, `path`, `icon`, `menu_type`, `url`, `component`, `keepalive`, `extend`, `remark`, `weigh`, `status`)
-SELECT @sec_pid, 'menu', '访问控制', 'live/accessSetting', 'live/accessSetting', 'fa fa-shield', 'iframe', '/admin/live.AccessSetting/index', '', 0, 'none', '后台IP白名单管理', 20, 1
+SELECT @sec_pid, 'menu', '访问控制', 'live/accessSetting', 'live/accessSetting', 'fa fa-shield', 'iframe', '/admin/live.AccessSetting/index', '', 0, 'none', '后台IP白名单管理', @sec_maxw + 1, 1
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `ba_admin_rule` WHERE `name` = 'live/accessSetting');
 
 -- ---- 6. 后台菜单：谷歌验证码绑定 ----
 INSERT INTO `ba_admin_rule` (`pid`, `type`, `title`, `name`, `path`, `icon`, `menu_type`, `url`, `component`, `keepalive`, `extend`, `remark`, `weigh`, `status`)
-SELECT @sec_pid, 'menu', '谷歌验证码', 'live/totpSetup', 'live/totpSetup', 'fa fa-key', 'iframe', '/admin/live.TotpSetup/index', '', 0, 'none', '管理员的2FA绑定/解绑', 21, 1
+SELECT @sec_pid, 'menu', '谷歌验证码', 'live/totpSetup', 'live/totpSetup', 'fa fa-key', 'iframe', '/admin/live.TotpSetup/index', '', 0, 'none', '管理员的2FA绑定/解绑', @sec_maxw + 2, 1
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `ba_admin_rule` WHERE `name` = 'live/totpSetup');
+
+-- ---- 7. 归属修正：确保这两个菜单挂在「数据安全管理」下 ----
+-- 早期版本会挂到「直播运营」下，本段幂等，已执行过的实例会被自动纠正
+UPDATE `ba_admin_rule`
+SET `pid` = @sec_pid,
+    `weigh` = @sec_maxw + IF(`name` = 'live/accessSetting', 1, 2)
+WHERE `name` IN ('live/accessSetting', 'live/totpSetup')
+  AND @sec_pid IS NOT NULL AND @sec_pid > 0
+  AND `pid` <> @sec_pid;
 
 -- 完成
 SELECT 'admin security upgrade done' AS result;
