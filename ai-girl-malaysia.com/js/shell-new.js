@@ -913,9 +913,10 @@
         '<img alt="' + esc(item.label) + '" src="' + I[icon].src + '">' +
         '<span class="fy-bnav-label">' + esc(item.label) + '</span></button>'
     }
-    /* Premium 格：金色渐变底 + 左右两颗小星（照参考站底栏 Premium 页签） */
+    /* Premium 格：金色渐变底 + 左右两颗小星（照参考站底栏 Premium 页签）
+       所有链接都带 data-turbo="false"：旧包 Turbo 对 frame 内链接即使 drive=false 也会拦截 */
     if (item.premium) {
-      return '<a class="' + cls + '" href="' + item.href + '">' +
+      return '<a class="' + cls + '" data-turbo="false" href="' + item.href + '">' +
         '<span class="fy-bnav-premium">' +
         '<img class="fy-bnav-star fy-bnav-star-l" alt="" src="' + I.bPremiumStar.src + '">' +
         '<img class="fy-bnav-star fy-bnav-star-r" alt="" src="' + I.bPremiumStar.src + '">' +
@@ -923,7 +924,7 @@
         '</span>' +
         '<span class="fy-bnav-label">' + esc(item.label) + '</span></a>'
     }
-    return '<a class="' + cls + '" href="' + item.href + '">' +
+    return '<a class="' + cls + '" data-turbo="false" href="' + item.href + '">' +
       '<img alt="' + esc(item.label) + '" src="' + I[icon].src + '">' +
       '<span class="fy-bnav-label">' + esc(item.label) + '</span></a>'
   }
@@ -940,7 +941,7 @@
 
   function createMenuHtml() {
     var items = CREATE_MENU.map(function (m) {
-      return '<a class="fy-createmenu-item" href="' + m.href + '">' +
+      return '<a class="fy-createmenu-item" data-turbo="false" href="' + m.href + '">' +
         '<span class="fy-createmenu-tile"><img alt="" src="' + I[m.icon].src + '"></span>' +
         '<span class="fy-createmenu-text">' +
         '<span class="fy-createmenu-title">' + esc(m.title) +
@@ -983,6 +984,8 @@
     bar.className = 'fy-bnav'
     bar.setAttribute('data-variant', signedIn ? 'auth' : 'guest')
     bar.innerHTML = items.map(function (it) { return bottomItemHtml(it, key) }).join('')
+    /* 挂到 body 最外层：个别页（Girls）老底栏在 <turbo-frame> 里，留在原位会被 frame 拦截/换掉 */
+    if (bar.parentElement !== document.body) document.body.appendChild(bar)
   }
 
   function bindBottomBar() {
