@@ -68,6 +68,7 @@ class LiveUser extends Backend
             ->leftJoin('lp_user_profile', 'lp_user_profile.user_id = live_user.id')
             ->leftJoin('lp_merchant_certification cert', 'cert.user_id = live_user.id')
             ->where($where)
+            ->where('live_user.is_deleted', 0)
             ->order($order)
             ->paginate($limit);
 
@@ -326,10 +327,11 @@ class LiveUser extends Backend
     }
 
     /**
-     * 删除会员
+     * 删除会员（伪删除）
      * 前端：DELETE /admin/user.LiveUser/del?ids[]=1&ids[]=2
      *
-     * 删除账号与其个人数据；充值/会员订单、钱包流水、提现等财务记录保留，便于对账追溯。
+     * 只在 lp_user 上打删除标记并禁用登录，数据全部保留在库里，可随时恢复：
+     *   UPDATE lp_user SET is_deleted = 0, deleted_at = NULL, status = 1 WHERE id = 用户ID;
      */
     public function del(): void
     {
@@ -341,39 +343,20 @@ class LiveUser extends Backend
             $this->error(__('Parameter error'));
         }
 
-        // 会员个人数据（均以 user_id 关联）
-        $userTables = [
-            'lp_user_profile', 'lp_user_auth', 'lp_user_setting', 'lp_user_device', 'lp_user_quota',
-            'lp_user_item', 'lp_user_persona', 'lp_wallet_account', 'lp_merchant_certification',
-            'lp_payout_account', 'lp_ai_affection', 'lp_ai_chat_message', 'lp_ai_collect',
-            'lp_ai_media_unlock', 'lp_ai_task', 'lp_chat_message', 'lp_post_like',
-            'lp_like_action_log', 'lp_creator_submission',
-        ];
-
-        $db = Db::connect('live_mysql');
-        $db->startTrans();
-        try {
-            foreach ($userTables as $table) {
-                $db->table($table)->whereIn('user_id', $ids)->delete();
-            }
-            // 邀请关系：他邀请的人 + 邀请他的人，两个方向都要清掉
-            $db->table('lp_invite_record')
-                ->where(function ($query) use ($ids) {
-                    $query->whereIn('inviter_id', $ids)->whereOr('invitee_id', 'in', $ids);
-                })
-                ->delete();
-            $count = $db->table('lp_user')->whereIn('id', $ids)->delete();
-            $db->commit();
-        } catch (Throwable $e) {
-            $db->rollback();
-            $this->error($e->getMessage());
-            return;
-        }
+        $count = Db::connect('live_mysql')->table('lp_user')
+            ->whereIn('id', $ids)
+            ->where('is_deleted', 0)
+            ->update([
+                'is_deleted' => 1,
+                'deleted_at' => date('Y-m-d H:i:s'),
+                // 置为禁用，避免被删除的账号还能继续登录；恢复时一并改回 1
+                'status'     => 0,
+            ]);
 
         if (!$count) {
             $this->error(__('No rows were deleted'));
         }
-        $this->success('已删除 ' . $count . ' 个会员');
+        $this->success('已删除 ' . $count . ' 个会员（可在数据库中恢复）');
     }
 
     public function quickSearch(): void
@@ -381,8 +364,11 @@ class LiveUser extends Backend
         $search = $this->request->get('search', '');
         $users  = $this->model
             ->field('id, user_no, nickname')
-            ->where('nickname', 'like', "%{$search}%")
-            ->whereOr('user_no', 'like', "%{$search}%")
+            ->where('is_deleted', 0)
+            ->where(function ($query) use ($search) {
+                $query->where('nickname', 'like', "%{$search}%")
+                    ->whereOr('user_no', 'like', "%{$search}%");
+            })
             ->limit(20)
             ->select();
 
@@ -414,6 +400,7 @@ class LiveUser extends Backend
         $rows = Db::connect('live_mysql')->table('lp_invite_record')->alias('ir')
             ->join('lp_user u', 'u.id = ir.invitee_id')
             ->where('ir.inviter_id', $userId)
+            ->where('u.is_deleted', 0)
             ->field('ir.invitee_id, ir.invite_code, ir.registered_at, ir.premium_at, ir.reward_tokens,
                      u.nickname, u.user_no, u.vip_expire_at')
             ->order('ir.id', 'desc')
