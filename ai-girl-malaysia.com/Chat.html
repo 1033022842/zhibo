@@ -102,7 +102,7 @@
 /* 手机端输入区照 candy：悬浮圆角玻璃面板（左右 12px、距底 16px、圆角 26px、12.5px 模糊）
    注意：不能靠 Tailwind 的 bottom-[Npx] 任意值——这页的编译版 CSS 里没有这些类，会失效落回静态位置 */
 @media (max-width:1023px){
-  #messages{height:auto!important;flex:1 1 auto;min-height:0;padding-bottom:110px!important}
+  #messages{height:auto!important;flex:1 1 auto;min-height:0;padding-bottom:132px!important}
   .messages-container{height:calc(100% - 64px)!important}
   #form,#edit-message-form{
     position:fixed!important;left:12px!important;right:12px!important;width:auto!important;
@@ -117,15 +117,18 @@
   }
   #form>div>.flex.flex-row,#edit-message-form>div>.flex.flex-row{padding-left:12px;padding-right:4px}
   /* 输入框占满剩余宽度、发送钮不参与收缩：否则发送钮会被挤出面板右侧 */
-  #form>div>.flex.flex-row>.flex.w-full.relative{flex:1 1 0!important;width:auto!important;min-width:0!important}
+  #form>div>.flex.flex-row>.flex.w-full.relative{flex:1 1 auto!important;width:auto!important;min-width:0!important}
   #form #message-button{flex:0 0 auto!important}
-  #form>div>.flex.flex-row{overflow:hidden}
-  /* 有场景按钮时输入框会被挤到几十像素：留最小可输入宽度，胶囊收紧一点 */
-  #form #message_body{min-width:76px}
-  .scene-pill{height:30px;padding:0 7px;gap:4px;font-size:11px}
-  #ask-button{height:28px;padding:0 8px!important}
-  #ask-button .text-sm{font-size:12px}
-  #form .bg-\[\#252525\]{background:transparent!important}
+  /* 两行布局（照 candy）：第一行大输入框 + 发送钮，第二行 Image/Video/Ask
+     这样输入框不会被三个胶囊横向挤扁 */
+  #form>div>.flex.flex-row,#edit-message-form>div>.flex.flex-row{align-items:flex-start!important;height:auto!important;overflow:visible}
+  #form .bg-\[\#252525\]{flex-wrap:wrap!important;height:auto!important;padding:0!important;row-gap:6px;background:transparent!important}
+  #form #message_body{flex:1 1 100%!important;min-width:0!important;height:44px!important;font-size:16px}
+  #form #message-button{align-self:flex-start;margin-top:2px}
+  /* 第二行胶囊：整体收紧，靠左排列 */
+  #form .scene-pill{height:30px;padding:0 9px;gap:4px;font-size:11px}
+  #form #ask-button{height:30px;padding:0 9px!important;margin-top:0}
+  #form #ask-button .text-sm{font-size:12px}
 }
 	</style>
 <script src="./js/tracking.js?v=20261018a"></script>
