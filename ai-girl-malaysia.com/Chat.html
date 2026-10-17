@@ -81,11 +81,20 @@
 	#messages,.list-container,#conversation-container{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
 /* Chat 页隐藏右下角客服悬浮球（挡住发送/Ask 按钮）；其它页面不受影响 */
 #fyCsFab,.fy-cs-fab{display:none!important}
-.scene-pill{position:relative;height:30px;padding:0 9px;border-radius:9999px;background:rgba(46,46,46,.9);border:1px solid #4a4a4a;color:#e5e5e5;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .3s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
-.scene-pill:hover{background:#3a3a3a}
-.scene-pill svg{color:#e5e5e5;flex:0 0 auto}
+/* 底部按钮对齐 candy.ai：透明玻璃质感（半透明渐变 + 细灰圈 + 背景模糊，若隐若现） */
+.scene-pill{position:relative;height:32px;padding:0 10px;border-radius:9999px;background:linear-gradient(rgba(77,77,77,.3) 0%,rgba(55,55,55,.3) 100%);border:1px solid rgba(82,82,82,.9);color:#d4d4d4;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .3s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.scene-pill:hover{background:linear-gradient(rgba(99,99,99,.4) 0%,rgba(72,72,72,.4) 100%)}
+.scene-pill svg{color:#d4d4d4;flex:0 0 auto}
 .scene-pill[disabled]{opacity:.35;cursor:not-allowed;pointer-events:none}
 .scene-pill.loading{opacity:.6;pointer-events:none}
+/* 发送按钮：candy 同款紫色渐变圆形 */
+#send-question,#send-question-with-token{width:40px;height:40px;padding:0!important;border-radius:9999px;background:linear-gradient(90deg,#4346e6 0%,#6143e6 100%);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;transition:all .3s ease;flex-shrink:0}
+#send-question:hover,#send-question-with-token:hover{background:linear-gradient(90deg,#3a3dd9 0%,#5239d9 100%)}
+#send-question[disabled],#send-question-with-token[disabled]{opacity:.3}
+#send-question img,#send-question-with-token img{width:20px;height:20px;padding-left:0!important}
+/* Ask 按钮同款玻璃质感，与 Image/Video 一致 */
+#ask-button{height:30px;padding:0 10px!important;background:linear-gradient(rgba(77,77,77,.3) 0%,rgba(55,55,55,.3) 100%)!important;border:1px solid rgba(82,82,82,.9);border-radius:9999px!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:all .3s ease}
+#ask-button:hover{background:linear-gradient(rgba(99,99,99,.4) 0%,rgba(72,72,72,.4) 100%)!important}
 
 	/* 消息区底部留白：输入框上方悬浮的 Suggestion 建议条（top:-40px）会遮住最后一条消息的上沿 */
 	#messages{padding-bottom:64px}
