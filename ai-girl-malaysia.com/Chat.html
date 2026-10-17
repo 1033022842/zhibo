@@ -120,6 +120,11 @@
   #form>div>.flex.flex-row>.flex.w-full.relative{flex:1 1 0!important;width:auto!important;min-width:0!important}
   #form #message-button{flex:0 0 auto!important}
   #form>div>.flex.flex-row{overflow:hidden}
+  /* 有场景按钮时输入框会被挤到几十像素：留最小可输入宽度，胶囊收紧一点 */
+  #form #message_body{min-width:76px}
+  .scene-pill{height:30px;padding:0 7px;gap:4px;font-size:11px}
+  #ask-button{height:28px;padding:0 8px!important}
+  #ask-button .text-sm{font-size:12px}
   #form .bg-\[\#252525\]{background:transparent!important}
 }
 	</style>
