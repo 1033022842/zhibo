@@ -180,6 +180,11 @@
       .switch-link { margin-top: 22px; }
       .skip-link { margin-top: 14px; }
     }
+    /* 登录页手机端不显示底部导航与右下角客服球（会挡住「登录」按钮） */
+    @media (max-width:1023px){
+      .fy-bnav{display:none!important}
+      .fy-cs-fab,.fy-cs-tip{display:none!important}
+    }
   </style>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
