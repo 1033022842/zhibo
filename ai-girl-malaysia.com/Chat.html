@@ -116,6 +116,10 @@
     padding:6px;
   }
   #form>div>.flex.flex-row,#edit-message-form>div>.flex.flex-row{padding-left:12px;padding-right:4px}
+  /* 输入框占满剩余宽度、发送钮不参与收缩：否则发送钮会被挤出面板右侧 */
+  #form>div>.flex.flex-row>.flex.w-full.relative{flex:1 1 0!important;width:auto!important;min-width:0!important}
+  #form #message-button{flex:0 0 auto!important}
+  #form>div>.flex.flex-row{overflow:hidden}
   #form .bg-\[\#252525\]{background:transparent!important}
 }
 	</style>
