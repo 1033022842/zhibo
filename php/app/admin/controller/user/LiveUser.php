@@ -325,35 +325,55 @@ class LiveUser extends Backend
         $this->success('已开通「' . $result['plan_name'] . '」，到期时间 ' . $result['expire_to'], $result);
     }
 
+    /**
+     * 删除会员
+     * 前端：DELETE /admin/user.LiveUser/del?ids[]=1&ids[]=2
+     *
+     * 删除账号与其个人数据；充值/会员订单、钱包流水、提现等财务记录保留，便于对账追溯。
+     */
     public function del(): void
     {
-        $pk  = $this->model->getPk();
-        $ids = $this->request->param($pk);
-        if (!$ids) {
+        $ids = array_values(array_filter(
+            array_map('intval', (array) $this->request->param('ids/a', [])),
+            static fn($v) => $v > 0
+        ));
+        if ($ids === []) {
             $this->error(__('Parameter error'));
         }
 
-        $where = [];
-        if (str_contains($ids, ',')) {
-            $where[] = [$pk, 'in', $ids];
-        } else {
-            $where[] = [$pk, '=', $ids];
-        }
+        // 会员个人数据（均以 user_id 关联）
+        $userTables = [
+            'lp_user_profile', 'lp_user_auth', 'lp_user_setting', 'lp_user_device', 'lp_user_quota',
+            'lp_user_item', 'lp_user_persona', 'lp_wallet_account', 'lp_merchant_certification',
+            'lp_payout_account', 'lp_ai_affection', 'lp_ai_chat_message', 'lp_ai_collect',
+            'lp_ai_media_unlock', 'lp_ai_task', 'lp_chat_message', 'lp_post_like',
+            'lp_like_action_log', 'lp_creator_submission',
+        ];
 
-        $this->model->startTrans();
+        $db = Db::connect('live_mysql');
+        $db->startTrans();
         try {
-            foreach ($this->model->where($where)->select() as $user) {
-                $user->profile()->delete();
-                $user->auth()->delete();
-                $user->delete();
+            foreach ($userTables as $table) {
+                $db->table($table)->whereIn('user_id', $ids)->delete();
             }
-            $this->model->commit();
+            // 邀请关系：他邀请的人 + 邀请他的人，两个方向都要清掉
+            $db->table('lp_invite_record')
+                ->where(function ($query) use ($ids) {
+                    $query->whereIn('inviter_id', $ids)->whereOr('invitee_id', 'in', $ids);
+                })
+                ->delete();
+            $count = $db->table('lp_user')->whereIn('id', $ids)->delete();
+            $db->commit();
         } catch (Throwable $e) {
-            $this->model->rollback();
+            $db->rollback();
             $this->error($e->getMessage());
+            return;
         }
 
-        $this->success(__('Deleted successfully'));
+        if (!$count) {
+            $this->error(__('No rows were deleted'));
+        }
+        $this->success('已删除 ' . $count . ' 个会员');
     }
 
     public function quickSearch(): void
