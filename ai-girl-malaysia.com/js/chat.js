@@ -1137,20 +1137,23 @@
 
     /* ---------- 头像兜底：图片裂开时换成角色首字母渐变占位 ---------- */
     function avatarFallback() {
-        var img = document.getElementById('chat-img')
-        if (!img) return
-        img.addEventListener('error', function () {
-            var conv = chatItemById(activeConvId) || {}
-            var name = String(conv.title || 'AI')
-            var letter = (name.trim()[0] || 'A').toUpperCase()
-            img.onerror = null
-            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-                '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">' +
-                '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
-                '<stop offset="0" stop-color="#fc768a"/><stop offset="1" stop-color="#e65073"/>' +
-                '</linearGradient></defs>' +
-                '<rect width="120" height="120" fill="url(#g)"/>' +
-                '<text x="60" y="76" font-family="Arial,sans-serif" font-size="52" font-weight="700" fill="#fff" text-anchor="middle">' + letter + '</text></svg>')
+        // PC 与手机顶部头像是两个 <img>，都要挂兜底
+        ['chat-img', 'chat-img-mobile'].forEach(function (id) {
+            var img = document.getElementById(id)
+            if (!img) return
+            img.addEventListener('error', function () {
+                var conv = chatItemById(activeConvId) || {}
+                var name = String(conv.title || 'AI')
+                var letter = (name.trim()[0] || 'A').toUpperCase()
+                img.onerror = null
+                img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">' +
+                    '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+                    '<stop offset="0" stop-color="#fc768a"/><stop offset="1" stop-color="#e65073"/>' +
+                    '</linearGradient></defs>' +
+                    '<rect width="120" height="120" fill="url(#g)"/>' +
+                    '<text x="60" y="76" font-family="Arial,sans-serif" font-size="52" font-weight="700" fill="#fff" text-anchor="middle">' + letter + '</text></svg>')
+            })
         })
     }
 
@@ -1652,7 +1655,8 @@
         $('#relationship').html(info.relationship)
         $('#body').html(info.body)
         $('#age').html(info.age)
-        if (pictures[0]) $('#chat-img').attr('src', pictures[0])
+        // 顶部头像：PC(#chat-img) 与手机(#chat-img-mobile) 两份都要换，否则手机端一直显示默认头像
+        if (pictures[0]) { $('#chat-img').attr('src', pictures[0]); $('#chat-img-mobile').attr('src', pictures[0]) }
         $('#ethnicity').html(info.ethnicity)
         $('#name').html(info.title)
         if (pictures[0]) {

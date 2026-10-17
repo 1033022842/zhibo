@@ -89,15 +89,19 @@
 .scene-pill.loading{opacity:.6;pointer-events:none}
 /* 发送按钮：candy 同款紫色渐变圆形 */
 #send-question,#send-question-with-token{width:40px;height:40px;padding:0!important;border-radius:9999px;background:linear-gradient(90deg,#4346e6 0%,#6143e6 100%);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;transition:all .3s ease;flex-shrink:0}
+/* 修复双发送按钮：ID 选择器优先级盖过了 Tailwind 的 .hidden，这里必须补回隐藏规则 */
+#send-question.hidden,#send-question-with-token.hidden{display:none!important}
 #send-question:hover,#send-question-with-token:hover{background:linear-gradient(90deg,#3a3dd9 0%,#5239d9 100%)}
 #send-question[disabled],#send-question-with-token[disabled]{opacity:.3}
 #send-question img,#send-question-with-token img{width:20px;height:20px;padding-left:0!important}
 /* Ask 按钮同款玻璃质感，与 Image/Video 一致 */
 #ask-button{height:30px;padding:0 10px!important;background:linear-gradient(rgba(77,77,77,.3) 0%,rgba(55,55,55,.3) 100%)!important;border:1px solid rgba(82,82,82,.9);border-radius:9999px!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:all .3s ease}
 #ask-button:hover{background:linear-gradient(rgba(99,99,99,.4) 0%,rgba(72,72,72,.4) 100%)!important}
+/* Chat 页不显示底部导航（candy 聊天页无底栏，输入区悬浮即可）；其它页面不受影响 */
+.fy-bnav{display:none!important}
 
-	/* 消息区底部留白：输入框上方悬浮的 Suggestion 建议条（top:-40px）会遮住最后一条消息的上沿 */
-	#messages{padding-bottom:64px}
+		/* 消息区底部留白：悬浮输入区（24px 边距 + 48px 高）不遮住最后一条消息 */
+		#messages{padding-bottom:96px}
 	</style>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
@@ -505,7 +509,7 @@
         <div class="relative h-[68px] bg-main md:h-[88px] border-[#363636] border-b flex lg:justify-between">
   <div class="flex-1 justify-start items-center gap-3.5 inline-flex relative py-2 ml-[6px] lg:ml-[20px]">
     <div class="md:w-[58px] md:h-[58px] w-[44px] h-[44px] relative" id="change-pfp-banner">
-        <img src="./Chat_files/35470499-533d6000-9d7e-44a8-92e5-8693e7e71a97" data-action="click-&gt;profile-toggle#toggleMobile" class="cursor-pointer inline-flex lg:hidden md:w-[58px] md:h-[58px] w-[44px] h-[44px] object-cover object-top left-0 top-0 absolute rounded-full">
+        <img id="chat-img-mobile" src="./Chat_files/35470499-533d6000-9d7e-44a8-92e5-8693e7e71a97" data-action="click-&gt;profile-toggle#toggleMobile" class="cursor-pointer inline-flex lg:hidden md:w-[58px] md:h-[58px] w-[44px] h-[44px] object-cover object-top left-0 top-0 absolute rounded-full">
         <img id="chat-img" src="./Chat_files/35470499-533d6000-9d7e-44a8-92e5-8693e7e71a97" data-action="click-&gt;profile-toggle#toggle" class="cursor-pointer hidden lg:inline-flex md:w-[58px] md:h-[58px] w-[44px] h-[44px] object-cover object-top left-0 top-0 absolute rounded-full">
     </div>
     <div class="flex-col justify-start items-start gap-1 inline-flex">
@@ -587,7 +591,7 @@
         <turbo-frame id="new_message_form">
           
 
-<div id="form" class="z-10 fixed w-full bottom-[92px] lg:relative lg:bottom-[17px] pb-1">
+<div id="form" class="z-10 fixed w-full bottom-[24px] lg:relative lg:bottom-[17px] pb-1">
     <div data-controller="message-form">
 <div class="flex flex-row items-center h-12 w-full px-4">
     <div class="flex w-full relative" data-controller="message-ask">
@@ -741,7 +745,7 @@
 </div>
 
 </turbo-frame>        <turbo-frame id="edit_message_form">
-          <div id="edit-message-form" class="z-10 fixed w-full bottom-[75px] lg:relative lg:bottom-[17px] overflow-hidden hidden" data-message-edit-form-target="editForm">
+          <div id="edit-message-form" class="z-10 fixed w-full bottom-[24px] lg:relative lg:bottom-[17px] overflow-hidden hidden" data-message-edit-form-target="editForm">
 </div>
 
 </turbo-frame>    </div>
