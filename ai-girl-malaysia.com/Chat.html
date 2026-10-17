@@ -99,9 +99,25 @@
 #ask-button:hover{background:linear-gradient(rgba(99,99,99,.4) 0%,rgba(72,72,72,.4) 100%)!important}
 /* Chat 页不显示底部导航（candy 聊天页无底栏，输入区悬浮即可）；其它页面不受影响 */
 .fy-bnav{display:none!important}
-
-		/* 消息区底部留白：悬浮输入区（24px 边距 + 48px 高）不遮住最后一条消息 */
-		#messages{padding-bottom:96px}
+/* 手机端输入区照 candy：悬浮圆角玻璃面板（左右 12px、距底 16px、圆角 26px、12.5px 模糊）
+   注意：不能靠 Tailwind 的 bottom-[Npx] 任意值——这页的编译版 CSS 里没有这些类，会失效落回静态位置 */
+@media (max-width:1023px){
+  #messages{height:auto!important;flex:1 1 auto;min-height:0;padding-bottom:110px!important}
+  .messages-container{height:calc(100% - 64px)!important}
+  #form,#edit-message-form{
+    position:fixed!important;left:12px!important;right:12px!important;width:auto!important;
+    bottom:calc(16px + env(safe-area-inset-bottom,0px))!important;padding:0!important;
+  }
+  #form>div,#edit-message-form>div{
+    border-radius:26px;border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg,rgba(38,38,38,.92) 0%,rgba(46,46,46,.86) 100%);
+    -webkit-backdrop-filter:blur(12.5px) saturate(1.2);backdrop-filter:blur(12.5px) saturate(1.2);
+    box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.10);
+    padding:6px;
+  }
+  #form>div>.flex.flex-row,#edit-message-form>div>.flex.flex-row{padding-left:12px;padding-right:4px}
+  #form .bg-\[\#252525\]{background:transparent!important}
+}
 	</style>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
