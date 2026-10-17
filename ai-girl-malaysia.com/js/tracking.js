@@ -477,6 +477,8 @@
     '.fy-cs-fab .fy-cs-dot{position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:#28c76f;border:2px solid #e65073}',
     '.fy-cs-tip{position:fixed;right:86px;bottom:38px;z-index:125;padding:7px 12px;border-radius:10px;background:#18181b;border:1px solid #2f2f34;color:#fff;font-size:12.5px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;transform:translateX(6px);transition:opacity .18s,transform .18s}',
     '.fy-cs-fab:hover + .fy-cs-tip{opacity:1;transform:translateX(0)}',
+    /* 手机端底栏改为悬浮胶囊后，客服球抬到底栏上方，避免压住最右侧的导航格 */
+    '@media (max-width:1023px){.fy-cs-fab{bottom:calc(92px + env(safe-area-inset-bottom,0px))}.fy-cs-tip{bottom:calc(106px + env(safe-area-inset-bottom,0px))}}',
     '.fy-cs-mask{position:fixed;inset:0;z-index:128;background:rgba(0,0,0,.66);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}',
     '.fy-cs-panel{position:fixed;z-index:129;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100vw - 32px);max-width:392px;max-height:calc(100vh - 60px);overflow:hidden;border-radius:18px;border:1px solid #2f2f34;background:#0f0f11;box-shadow:0 26px 64px rgba(0,0,0,.62);font-family:Poppins,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;display:flex;flex-direction:column}',
     '.fy-cs-head{position:relative;padding:20px 20px 14px;background:linear-gradient(160deg,rgba(231,82,117,.16),rgba(15,15,17,0) 72%)}',

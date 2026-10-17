@@ -14,6 +14,53 @@
 (function () {
   'use strict'
 
+  /* ---------- 关闭旧包遗留的 Turbo Drive（修「点导航后底栏变 4 格」的 bug） ----------
+   * 镜像页带的 candy 旧 application.js 里 Turbo Drive 会拦截 <a> 点击做局部换页；
+   * 换页后 head 里的 shell-new.js 不会重跑，页面就露出自带的老底栏（shorts 页只有 4 格，
+   * 且没有 Home/Chat），局部换页还经常卡死不动。静态镜像站不需要 Turbo，统一整页跳转。 */
+  ;(function turboOff() {
+    if (window.__fyTurboOff) return
+    window.__fyTurboOff = true
+    function off() {
+      try { if (window.Turbo && window.Turbo.session) window.Turbo.session.drive = false } catch (e) {}
+    }
+    off()
+    document.addEventListener('DOMContentLoaded', off)
+    window.addEventListener('load', off)
+    setTimeout(off, 300)
+    setTimeout(off, 1500)
+    // 兜底：Drive 已经发起某次 visit 时，取消它并强制整页跳转
+    document.addEventListener('turbo:before-visit', function (e) {
+      off()
+      var url = e.detail && e.detail.url
+      e.preventDefault()
+      if (url) location.href = url
+    })
+  })()
+
+  /* ---------- 手机底栏滚动自动隐藏（参数照 candy bottom-bar-autohide） ----------
+   * 往下滑(>4px 且页面滚过 60px)隐藏；往上滑或回到顶部(40px 内)显示；停止滚动 420ms 自动显示。 */
+  ;(function bnavAutohide() {
+    if (window.__fyBnavAutohide) return
+    window.__fyBnavAutohide = true
+    var DELTA = 4, HIDE_AFTER = 60, SHOW_BELOW = 40, SETTLE = 420
+    var lastY = window.scrollY || 0
+    var timer = null
+    function bar() { return document.querySelector('.fy-bnav') }
+    function show() { var b = bar(); if (b) b.classList.remove('is-hidden') }
+    function hide() { var b = bar(); if (b) b.classList.add('is-hidden') }
+    function onScroll() {
+      var y = window.scrollY || 0
+      var dy = y - lastY
+      lastY = y
+      if (dy > DELTA && y > HIDE_AFTER) hide()
+      else if (dy < -DELTA || y < SHOW_BELOW) show()
+      clearTimeout(timer)
+      timer = setTimeout(show, SETTLE)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+  })()
+
   var T = './taocan_files/'
   // 参考页没有的菜单项：形状沿用站点旧侧边栏，描边统一成新版侧栏的浅灰
   var S = 'fill="none" stroke="#D1D1D1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"'

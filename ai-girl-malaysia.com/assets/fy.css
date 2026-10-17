@@ -339,15 +339,17 @@ body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
 
 /* 手机端底部导航（≤1023px）：两种状态都是 5 格 —— 登录态 Home/Shorts/Create/Chat/Tokens、
    未登录 Home/Explore/Generate/Create/Premium，内容由 js/shell-new.js 渲染；
-   尺寸/间距/颜色照参考站「图片/home.html 的 mobile_bottom_bar」翻译 */
-.fy-bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;width:100%;height:70px;padding:8px 12px;background:#131313;border-top:1px solid rgba(255,255,255,.2);}
+   2026-10-18 对齐 candy.ai 新版：悬浮玻璃胶囊（左右/底部留边、圆角、毛玻璃、细白圈、投影），
+   滚动自动隐藏（.is-hidden，逻辑在 shell-new.js，参数照 candy bottom-bar-autohide） */
+.fy-bnav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;width:auto;max-width:560px;margin:0 auto;height:66px;padding:6px 8px;border-radius:9999px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.03) 100%),rgba(14,12,18,.66);-webkit-backdrop-filter:blur(14px) saturate(1.4) brightness(.85);backdrop-filter:blur(14px) saturate(1.4) brightness(.85);box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(255,255,255,.06);transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .32s ease;will-change:transform,opacity;}
+.fy-bnav.is-hidden{transform:translateY(140%);opacity:0;pointer-events:none;}
 .fy-bnav[data-variant="guest"]{grid-template-columns:repeat(5,minmax(0,1fr));}
 .fy-bnav-item{display:flex;flex-direction:column;align-items:center;min-width:0;}
 .fy-bnav-item>img,.fy-bnav-item>svg{width:24px;height:24px;flex:0 0 auto;}
-.fy-bnav-label{margin-top:4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:1;color:#A1A1A1;}
+.fy-bnav-label{margin-top:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:1;color:#A1A1A1;}
 .fy-bnav-item.is-active .fy-bnav-label{color:var(--primary-color,#F97187);}
 .fy-bnav-create{display:flex;flex-direction:column;align-items:center;min-width:0;padding:0;border:0;background:transparent;background-image:none;font:inherit;cursor:pointer;}
-.fy-bnav-premium{position:relative;display:flex;align-items:center;justify-content:center;width:64px;height:48px;padding-top:2px;border-radius:10px;background:linear-gradient(to top,#5B4514 2%,rgba(91,69,20,0) 98%);}
+.fy-bnav-premium{position:relative;display:flex;align-items:center;justify-content:center;width:64px;height:48px;padding-top:2px;border-radius:9999px;background:transparent;}
 .fy-bnav-premium>img{width:24px;height:24px;flex:0 0 auto;}
 .fy-bnav-star,.fy-bnav-premium>img.fy-bnav-star{position:absolute;top:1px;width:10px;height:10px;}
 .fy-bnav-star-l{left:8px;}
