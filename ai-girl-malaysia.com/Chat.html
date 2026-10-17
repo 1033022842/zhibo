@@ -41,7 +41,7 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./Chat_files/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261018a"></script>
+    <script src="./js/chat.js?v=20261018b"></script>
 	<script src="./js/chat-gift.js?v=20261014f"></script>
     <script src="./plugins/lodash.js"></script>
     
@@ -119,16 +119,19 @@
   /* 输入框占满剩余宽度、发送钮不参与收缩：否则发送钮会被挤出面板右侧 */
   #form>div>.flex.flex-row>.flex.w-full.relative{flex:1 1 auto!important;width:auto!important;min-width:0!important}
   #form #message-button{flex:0 0 auto!important}
-  /* 两行布局（照 candy）：第一行大输入框 + 发送钮，第二行 Image/Video/Ask
-     这样输入框不会被三个胶囊横向挤扁 */
-  #form>div>.flex.flex-row,#edit-message-form>div>.flex.flex-row{align-items:flex-start!important;height:auto!important;overflow:visible;column-gap:8px}
-  #form .bg-\[\#252525\]{flex-wrap:wrap!important;height:auto!important;padding:0!important;row-gap:6px;background:transparent!important}
-  #form #message_body{flex:1 1 100%!important;min-width:0!important;height:44px!important;font-size:16px}
-  #form #message-button{align-self:flex-start;margin-top:2px}
-  /* 第二行胶囊：整体收紧，靠左排列 */
-  #form .scene-pill{height:30px;padding:0 9px;gap:4px;font-size:11px}
-  #form #ask-button{height:30px;padding:0 9px!important;margin-top:0}
-  #form #ask-button .text-sm{font-size:12px}
+  #form>div>.flex.flex-row{align-items:center!important;height:auto!important;overflow:visible;column-gap:8px}
+  #form .bg-\[\#252525\]{background:transparent!important}
+  /* 输入框加高（原来 21px 的输入行太扁，手指出不来字） */
+  #form #message_body{height:44px!important;font-size:16px;min-width:0!important}
+  #form .bg-\[\#252525\]{height:auto!important;min-height:56px;padding:0!important;flex-wrap:nowrap!important}
+  /* ---- 有场景素材（Image/Video）时折成两行，输入框独占第一行 ----
+     candy 手机端也是把场景胶囊放在输入框下方，避免三个胶囊把输入框挤成一条缝 */
+  #form.fy-scene-on .bg-\[\#252525\]{flex-wrap:wrap!important;row-gap:6px;align-content:center}
+  #form.fy-scene-on #message_body{flex:1 1 100%!important}
+  #form.fy-scene-on #message-button{align-self:flex-end}
+  #form.fy-scene-on .scene-pill{height:30px;padding:0 9px;gap:4px;font-size:11px}
+  #form.fy-scene-on #ask-button{height:30px;padding:0 9px!important;margin-top:0}
+  #form.fy-scene-on #ask-button .text-sm{font-size:12px}
 }
 	</style>
 <script src="./js/tracking.js?v=20261018a"></script>

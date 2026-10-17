@@ -1019,6 +1019,9 @@
             vidBtn.style.display = (hasVid || hasImg) ? '' : 'none'
             vidBtn.disabled = !hasVid   // 男角色等无视频 → 置灰
         }
+        // 手机端输入区据此决定是否折成两行（有场景按钮才需要第二行）
+        var formEl = document.getElementById('form')
+        if (formEl) formEl.classList.toggle('fy-scene-on', hasImg || hasVid)
     }
 
     function loadSceneMedia() {
