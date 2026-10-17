@@ -54,6 +54,14 @@ FROM DUAL
 WHERE @live_user_pid IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM `ba_admin_rule` WHERE `name` = 'user/liveUser/del');
 
+-- ---- 3. 修正菜单 path 与权限节点 name 不一致 ----
+-- 前端路由按 path 拼（/admin/live/liveUser），权限节点按 name 拼
+-- （/admin/user/liveUser/del），两者不一致时按钮永远不显示。
+-- 统一成 name，与控制器 user.LiveUser 的权限节点保持一致。
+UPDATE `ba_admin_rule`
+SET `path` = 'user/liveUser'
+WHERE `name` = 'user/liveUser' AND `type` = 'menu' AND `path` <> 'user/liveUser';
+
 -- 超级管理员组（*）天然拥有全部节点；其他分组如果也授予了「会员列表」，
 -- 需要把上面两个节点 id 追加进分组 rules 才可见删除按钮。
 UPDATE `ba_admin_group`
