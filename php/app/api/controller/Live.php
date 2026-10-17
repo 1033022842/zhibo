@@ -4,11 +4,14 @@ declare(strict_types=1);
 namespace app\api\controller;
 
 use think\App;
+use think\facade\Db;
 use app\BaseController;
 use app\common\exception\BusinessException;
 use app\common\service\LlmService;
 use app\common\web\ResultCode;
+use app\live\model\UserAuth;
 use app\live\service\AffectionService;
+use app\live\service\EmailVerifyService;
 use app\live\service\FbCapiService;
 use app\live\service\JwtService;
 use app\live\service\UserService;
@@ -76,13 +79,23 @@ final class Live extends BaseController
     }
 
     /**
-     * AI 前端注册（无需邮箱验证码）
+     * AI 前端注册（可按开关强制邮箱验证码）
      */
     public function registerFromAi()
     {
         $params = $this->request->post();
         $this->validate($params, UserValidate::class . '.registerAi');
         $ip = $this->request->ip();
+
+        // 开启后必须携带注册邮箱收到的 6 位验证码
+        if ($this->emailVerifyRequired()) {
+            $code = trim((string) ($params['code'] ?? ''));
+            if ($code === '') {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, '请填写邮箱验证码');
+            }
+            (new EmailVerifyService())->verify((string) $params['email'], $code);
+        }
+
         $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''), $this->buildAttr($params));
         // 服务端回传：注册完成（与浏览器端 CompleteRegistration 用同一个 event_id 去重）
         try {
@@ -102,6 +115,48 @@ final class Live extends BaseController
         // 注册成功后自动登录
         $result = $this->userService->login($params['email'], $params['password'], $ip);
         return $this->jsonSuccess($result);
+    }
+
+    /**
+     * 注册页配置：是否需要邮箱验证码（前端据此显示验证码输入框）
+     * GET /api/live/registerConfig
+     */
+    public function registerConfig()
+    {
+        return $this->jsonSuccess(['email_verify' => $this->emailVerifyRequired()]);
+    }
+
+    /**
+     * 发送注册邮箱验证码
+     * POST /api/live/sendEmailCode
+     */
+    public function sendEmailCode()
+    {
+        $email = trim((string) $this->request->post('email', ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '邮箱格式错误');
+        }
+        // 已注册（含后台伪删除）的邮箱不再发码
+        if (UserAuth::where('auth_type', 'email')->where('auth_key', $email)->find()) {
+            return $this->jsonFail(ResultCode::EMAIL_ALREADY_REGISTERED);
+        }
+
+        (new EmailVerifyService())->sendCode($email);
+        return $this->jsonSuccess(null, '验证码已发送');
+    }
+
+    /**
+     * 注册是否强制邮箱验证码（lp_platform_config: ai_register_email_verify = 1 开启）
+     */
+    private function emailVerifyRequired(): bool
+    {
+        try {
+            $value = Db::connect('live_mysql')->table('lp_platform_config')
+                ->where('key', 'ai_register_email_verify')->value('value');
+            return (string) $value === '1';
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function login()

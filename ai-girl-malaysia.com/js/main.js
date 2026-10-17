@@ -2,6 +2,8 @@
     var cacheTemplate = ''
     var base = '/api/live'
     var isSubmittingValue = false;
+    // 注册邮箱验证码开关（后台 lp_platform_config.ai_register_email_verify）
+    var emailVerifyRequired = false
 
     // 订阅促销位：已是会员的用户不该再看到促销（顶栏 "Subscribe 75% OFF" 与首充横幅）
     var VIP_PROMO_SEL = '.nav-zk, a.w-full.h-14.cursor-pointer.z-10'
@@ -180,6 +182,15 @@
         form.append("email", $('#user_email_registration').val());
         form.append("password", $('#user_password_registration').val());
         form.append("invite_code", inviteCode());
+        // 开启邮箱验证后，必须带上邮箱收到的 6 位验证码
+        if (emailVerifyRequired) {
+          var emailCode = $.trim($('#email_code_registration').val() || '')
+          if (!/^\d{6}$/.test(emailCode)) {
+            layer.msg('Please enter the 6-digit email code')
+            return
+          }
+          form.append("code", emailCode)
+        }
         // 推广来源归因：来源域名 + 渠道参数（由 tracking.js 首次落地时写入 localStorage）
         var regEventId = ''
         try {
@@ -681,5 +692,76 @@
       setTimeout(initGoogleLogin, 120)
       $(document).on('turbo:load turbo:render', function () { initGoogleLogin() })
       $(document).on('click', '[data-action*="openSignInModal"], [data-action*="openRegistrationModal"]', function () { initGoogleLogin() })
+
+      /* ---------- 注册邮箱验证码：开关打开后在邮箱输入框下方插入验证码行 ---------- */
+      function ensureEmailCodeField() {
+        if (!emailVerifyRequired || $('#email_code_registration').length) return
+        var $email = $('#user_email_registration')
+        if (!$email.length) return
+        var row = $(
+          '<div class="email-code-group" style="display:flex;align-items:center;gap:8px;margin-top:12px;">' +
+            '<span class="icon" style="flex:0 0 auto;">✉️</span>' +
+            '<input id="email_code_registration" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Email code" ' +
+              'style="flex:1;min-width:0;padding:12px 14px;border-radius:10px;border:1px solid #2a2a2a;background:#131313;color:#E0E0E0;font-size:14px;">' +
+            '<button type="button" id="email_code_send" ' +
+              'style="flex:0 0 auto;padding:12px 14px;border-radius:10px;border:1px solid #E75275;background:transparent;color:#E75275;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;">Send code</button>' +
+          '</div>'
+        )
+        var $anchor = $email.closest('.input-group')
+        if (!$anchor.length) { $anchor = $email.closest('.input') }
+        if (!$anchor.length) { $anchor = $email.parent() }
+        $anchor.after(row)
+      }
+
+      $(document).on('click', '#email_code_send', function () {
+        var $btn = $(this)
+        if ($btn.prop('disabled')) return
+        var email = $.trim($('#user_email_registration').val() || '')
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          layer.msg('Please enter a valid email')
+          return
+        }
+        $btn.prop('disabled', true).css('opacity', '.6').text('Sending...')
+        $.ajax({ url: base + '/sendEmailCode', method: 'POST', data: { email: email }, dataType: 'json' })
+          .done(function (res) {
+            if (res && (res.code === '00000' || res.code === 1)) {
+              layer.msg('Code sent, please check your email')
+              var left = 60
+              $btn.text(left + 's')
+              var timer = setInterval(function () {
+                left--
+                if (left <= 0) {
+                  clearInterval(timer)
+                  $btn.prop('disabled', false).css('opacity', '1').text('Send code')
+                } else {
+                  $btn.text(left + 's')
+                }
+              }, 1000)
+            } else {
+              $btn.prop('disabled', false).css('opacity', '1').text('Send code')
+              layer.msg((res && res.msg) || 'Send failed')
+            }
+          })
+          .fail(function () {
+            $btn.prop('disabled', false).css('opacity', '1').text('Send code')
+            layer.msg('Network error, please try again')
+          })
+      })
+
+      function initRegisterEmailVerify() {
+        fetch(base + '/registerConfig')
+          .then(function (r) { return r.json() })
+          .then(function (d) {
+            emailVerifyRequired = !!(d && d.code === '00000' && d.data && d.data.email_verify)
+            if (!emailVerifyRequired) return
+            ensureEmailCodeField()
+            // 弹窗可能由 Turbo 异步挂载，持续兜底补齐
+            setInterval(ensureEmailCodeField, 2000)
+          })
+          .catch(function () { /* 接口不可用时保持原注册流程 */ })
+      }
+
+      setTimeout(initRegisterEmailVerify, 150)
+      $(document).on('turbo:load turbo:render', function () { ensureEmailCodeField() })
 
 })()

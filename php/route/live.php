@@ -54,6 +54,8 @@ Route::post('customVideo/uploadVideo', '\app\api\controller\CustomVideo@uploadVi
 
 // 公开接口 - 显式注册
 Route::post('live/registerFromAi',   '\app\api\controller\Live@registerFromAi');
+Route::get('live/registerConfig',    '\app\api\controller\Live@registerConfig');
+Route::post('live/sendEmailCode',    '\app\api\controller\Live@sendEmailCode');
 Route::post('live/login',            '\app\api\controller\Live@login');
 Route::post('live/googleLogin',      '\app\api\controller\Live@googleLogin');
 Route::get('live/googleClientId',    '\app\api\controller\Live@googleClientId');
