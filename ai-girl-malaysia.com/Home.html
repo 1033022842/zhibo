@@ -358,6 +358,9 @@
 				/* 手机端：保持两排+横滚，卡缩小到一屏可见 ~3列x2排 */
 				.c-row{padding:10px 16px}
 				.c-row-grid{grid-auto-flow:column;grid-template-rows:repeat(2,158px);gap:10px}
+				/* Private Content 卡片是 9/16 竖版（190 宽 ≈ 338 高），套上面的 2×158px 轨道会纵向溢出、
+				   两排叠在一起；这里恢复横向单排，行高由卡片自己撑开 */
+				#privateGrid{grid-template-rows:auto}
 				.c-card{width:96px;height:158px;border-radius:10px}
 				.c-skeleton{width:96px;height:158px;border-radius:10px}
 				.c-card-short{width:96px;height:137px;border-radius:10px}
