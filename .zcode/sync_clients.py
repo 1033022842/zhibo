@@ -60,7 +60,7 @@ CLIENTS = {
         "brand_kit": "/opt/brand-kit",
         "verify_url": "https://kelymi.autos/ai/Home.html",
         "verify_expect": "Kelymi",
-        "repo": None,  # TODO: kelymi 客户仓库未建（按 SOP 三.A 初始化后补路径）
+        "repo": r"D:\ever\kelymi",   # 2026-10-18 按 SOP 三.A 初始化（douyin 基线 + brand kit）
     },
 }
 
