@@ -1651,6 +1651,8 @@
     // 顶栏右上角：统一成新版形态（并修正 #user-setting 落在顶栏之外的历史结构）
     var hamburger = document.getElementById('nav-hamburger')
     var topbar = hamburger && hamburger.parentElement
+    // 标记顶栏：手机端 logo/分类下拉/登录注册之间的间距由 fy.css 里 .fy-topbar 规则统一控制
+    if (topbar) topbar.classList.add('fy-topbar')
     var us = findUserSetting(topbar)
     if (us) {
       if (topbar && us.parentElement !== topbar) topbar.appendChild(us)
