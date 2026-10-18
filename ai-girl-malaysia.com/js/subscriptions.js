@@ -544,7 +544,7 @@
             layer.close(loadIdx)
             if (r && (r.code === 'A0100' || r.code === 'A0101')) { backToLogin(r.msg); return }
             if (r && r.code === '00000' && r.data && r.data.pay_url) {
-                savePending(r.data.order_no)
+                savePending(r.data.order_no, r.data.pay_url)
                 location.href = r.data.pay_url
             } else {
                 toast((r && r.msg) || 'Create order failed')
@@ -588,8 +588,8 @@
 
     // ===== 支付回跳 =====
     /** 记录待支付订单（含下单时间，用于判断是不是「刚支付回来」） */
-    function savePending(orderNo) {
-        try { localStorage.setItem(PENDING_KEY, JSON.stringify({ o: orderNo, t: Date.now() })) } catch (e) {}
+    function savePending(orderNo, payUrl) {
+        try { localStorage.setItem(PENDING_KEY, JSON.stringify({ o: orderNo, t: Date.now(), u: payUrl || '', k: 'vip' })) } catch (e) {}
     }
 
     function readPending() {

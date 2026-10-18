@@ -411,7 +411,7 @@
                 toast('Payment url unavailable')
                 return
             }
-            savePending(res.data.order_no)
+            savePending(res.data.order_no, payUrl)
             location.href = payUrl
         }).fail(function () {
             toast('Network error, please retry')
@@ -430,8 +430,8 @@
     var TK_PENDING_TTL = 2 * 60 * 60 * 1000
 
     /** 记录待支付订单（含下单时间，用于判断是不是「刚支付回来」） */
-    function savePending(orderNo) {
-        try { localStorage.setItem(TK_PENDING_KEY, JSON.stringify({ o: orderNo, t: Date.now() })) } catch (e) {}
+    function savePending(orderNo, payUrl) {
+        try { localStorage.setItem(TK_PENDING_KEY, JSON.stringify({ o: orderNo, t: Date.now(), u: payUrl || '', k: 'tk' })) } catch (e) {}
     }
 
     function readPending() {
