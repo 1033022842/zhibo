@@ -34,9 +34,13 @@ python .zcode/sync_clients.py --client heygirl --init-snapshot   # 只记快照�
 1. `git clone` douyin 仓库为初始基线，删掉与部署无关引用后作为客户仓库首提交
 2. 建 `brand/<client>/`（manifest.env + assets：favicon/touch/wordmark(+2x)/icon192/share_card/manifest/svg）
 3. 建 `tools/apply_brand.sh`（从 heygirl 仓库拷，改正则目标值）
-4. **业务文件保持中性**：品牌零残留（`grep -ri sugus ai-girl-malaysia.com/*.html` 只应命中 SugusDialog/SugusTrack 等 JS 标识符）
+4. **业务文件保持中性**（= 与上游完全一致，`git diff douyin/main -- ai-girl-malaysia.com` 应为空）：
+   html 里出现 Sugus 文案属预期（上游本身就是 Sugus 生产，品牌只在客户服务器上打）；
+   要零残留的是**客户自己的品牌词**（kelymi 仓库 html 不应出现 kelymi）
 
-> kelymi 客户仓库尚待按 A 初始化（sync_clients.py 里 repo=None）；
+> kelymi 客户仓库已建（2026-10-18，本地 `D:\ever\kelymi`，origin=gitee kelymi.git，douyin=上游 zhibo）：
+> douyin 本地克隆为基线 + brand kit 提交（init 88af874），master 分支，完整继承上游历史；
+> `tools/apply_brand.sh` 需 `git add -f`（上游 .gitignore 全局忽略 `tools/`）。
 > brand kit 源码在 douyin 仓库 `.zcode/brand_kit_kelymi/`，与服务器 /opt/brand-kit 同源。
 
 ### B. 客户服务器
@@ -87,7 +91,7 @@ python .zcode/sync_clients.py --client heygirl --init-snapshot   # 只记快照�
 |---|---|---|---|
 | heygirl | 172.81.99.11（heygirl.live） | /opt/brand-kit（heygirl） | gitee autumn_birds_in_the_moon_sea/heygirl（本地 D:\ever\heygirl） |
 | sugus | 172.81.98.55（上游生产） | 无需（自己就是 Sugus） | gitee autumn_birds_in_the_moon_sea/zhibo |
-| kelymi | 172.81.99.42（kelymi.autos，nginx 单站点 zhibo.conf） | /opt/brand-kit（kelymi，源码 `.zcode/brand_kit_kelymi/`） | 待建（SOP 三.A，建好后在 sync_clients.py 补 repo 路径） |
+| kelymi | 172.81.99.42（kelymi.autos，nginx 单站点 zhibo.conf） | /opt/brand-kit（kelymi，源码 `.zcode/brand_kit_kelymi/`） | gitee autumn_birds_in_the_moon_sea/kelymi（本地 D:\ever\kelymi） |
 
 kelymi 备份：同步前全量 `html/js/manifest` 在服务器 `/root/kelymi_pre_sync_20261018/`（7.1M）；
 apply_brand 每日回滚备份在 `/tmp/brand_bak_kelymi_<日期>/`。
