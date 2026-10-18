@@ -98,6 +98,49 @@
     .lang-active {
         display: block;
     }
+    /* ===== 手机端顶栏间距（对齐 candy.ai）=====
+       candy：汉堡 36 + logo 100 + 分类下拉 43 + 20px 间隔 + 右侧按钮 156
+       这里把 logo 收到 100、去掉 logo 后的竖线、分类下拉与登录注册之间留 20px，
+       登录/注册改成 candy 同款胶囊（34 高 / 圆角 100 / 13px 600）。 */
+    @media (max-width: 1023px) {
+        .fy-topbar{gap:0 !important;}
+        .fy-topbar > a{display:inline-flex;align-items:center;flex:0 0 auto;padding:0 !important;margin:0 !important;}
+        .fy-topbar > a > img{width:100px !important;height:30px !important;max-width:none;object-fit:contain;object-position:left center;}
+        /* logo 后那条竖分隔线（candy 没有） */
+        .fy-topbar > .h-6.w-px{display:none !important;}
+        .fy-topbar .fy-catdd{margin-left:8px !important;margin-right:0 !important;flex:0 0 auto;}
+        /* 右侧一簇：与左侧（logo + 分类）之间留 20px，不再贴在一起 */
+        .fy-topbar .pc-user-login{padding-left:20px !important;min-width:0;gap:0 !important;}
+        .fy-topbar .pc-rg-login{margin-left:auto !important;gap:8px !important;align-items:center;}
+        .fy-topbar .pc-rg-login > div{display:flex;align-items:center;padding-left:0 !important;margin-left:0 !important;}
+        .fy-topbar .pc-rg-login a,
+        .fy-topbar .pc-rg-login > div > div{
+            height:34px !important;
+            padding:0 13px !important;
+            border-radius:100px !important;
+            display:inline-flex;align-items:center;justify-content:center;
+        }
+        .fy-topbar .pc-rg-login a div,
+        .fy-topbar .pc-rg-login > div > div > div{
+            font-size:13px !important;font-weight:600 !important;line-height:18px !important;white-space:nowrap;
+        }
+        /* 第一个（Register/Join）实心粉，第二个（Login）透明白描边 —— 照 candy */
+        .fy-topbar .pc-rg-login > div:first-child a,
+        .fy-topbar .pc-rg-login > div:first-child > div{
+            background:#ee5876 !important;border:0 !important;
+        }
+        .fy-topbar .pc-rg-login > div:first-child a div,
+        .fy-topbar .pc-rg-login > div:first-child > div > div{color:#fff !important;}
+        .fy-topbar .pc-rg-login > div:last-child a,
+        .fy-topbar .pc-rg-login > div:last-child > div{
+            background:transparent !important;border:1px solid rgba(255,255,255,.22) !important;
+        }
+        .fy-topbar .pc-rg-login > div:last-child a div,
+        .fy-topbar .pc-rg-login > div:last-child > div > div{color:#fff !important;}
+        /* 已登录：右上角（余额 / 消息 / 头像）同样与左侧隔开 20px */
+        .fy-topbar > #user-setting{padding-left:20px !important;min-width:0;}
+        .fy-topbar .fy-navright{gap:10px !important;}
+    }
     .van-popover__content {
         background-color: #18181B;
         color: #FFFFFF;
