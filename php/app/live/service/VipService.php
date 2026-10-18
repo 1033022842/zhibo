@@ -22,7 +22,7 @@ final class VipService
         $rows = Db::connect('live_mysql')->table('lp_vip_plan')
             ->where('status', 1)
             ->order('sort', 'asc')
-            ->field('id, name, level, months, tokens_month, usd_price, diamond_price, daily_diamond, benefits, chat_daily_limit, image_daily_limit, discount_percent, custom_video')
+            ->field('id, name, level, months, tokens_month, usd_price, diamond_price, daily_diamond, benefits, chat_daily_limit, image_daily_limit, image_daily_refill, discount_percent, custom_video')
             ->select()->toArray();
 
         // 同层级同 tokens 档位的「1 个月价」：作为多月档的对比划线价
@@ -137,6 +137,7 @@ final class VipService
                 'benefits'          => [],
                 'chat_daily_limit'  => $freeLimit,
                 'image_daily_limit' => 0,
+                'image_daily_refill' => 0,
                 'discount_percent'  => 0,
                 'custom_video'      => false,
                 'chat_quota'        => $quota->info($userId, 'chat', $freeLimit),
@@ -146,7 +147,7 @@ final class VipService
         // 会员到期时间被人工设置、查不到订单时按基础层兜底
         $plan = $plan ?: [
             'level' => 'premium', 'name' => 'Premium', 'daily_diamond' => 20, 'benefits' => '',
-            'chat_daily_limit' => 0, 'image_daily_limit' => 2, 'discount_percent' => 10, 'custom_video' => 1,
+            'chat_daily_limit' => 0, 'image_daily_limit' => 2, 'image_daily_refill' => 1, 'discount_percent' => 10, 'custom_video' => 1,
         ];
 
         $level     = (string) ($plan['level'] ?? 'premium');
@@ -163,6 +164,7 @@ final class VipService
             'benefits'          => $this->decodeBenefits($plan['benefits'] ?? ''),
             'chat_daily_limit'  => $chatLimit,
             'image_daily_limit' => (int) ($plan['image_daily_limit'] ?? 0),
+            'image_daily_refill' => max(0, (int) ($plan['image_daily_refill'] ?? 1)),
             'discount_percent'  => max(0, min(90, (int) ($plan['discount_percent'] ?? 0))),
             'custom_video'      => (bool) ($plan['custom_video'] ?? false),
             // 解锁「未购买内容的封面去模糊」由平台开关控制（默认关闭，避免泄露付费内容）

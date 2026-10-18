@@ -137,15 +137,33 @@
     }
 
     // 剩余次数：quota 里 remaining<0 / unlimited 显示 ∞，否则显示「剩余 / 上限」并随每次生成递减
+    // 额度规则：每天补充 refill_daily 次，余额最多累积到 daily_limit
     var cvDailyLimit = 0
+    var cvRefillDaily = 0
     function applyQuota(q) {
         var el = $('cvRemain')
         if (!el) return
+        var tip = $('cvRefillTip')
         if (!q) { el.textContent = '-'; return }
-        if (q.unlimited || typeof q.remaining === 'number' && q.remaining < 0) { el.textContent = '∞'; return }
+        if (q.unlimited || typeof q.remaining === 'number' && q.remaining < 0) {
+            el.textContent = '∞'
+            if (tip) tip.style.display = 'none'
+            return
+        }
         if (typeof q.daily_limit === 'number') cvDailyLimit = q.daily_limit
+        if (q.refill_daily !== undefined) cvRefillDaily = parseInt(q.refill_daily, 10) || 0
         var left = typeof q.remaining === 'number' ? q.remaining : (qrLeft())
         el.textContent = left + (cvDailyLimit > 0 ? ' / ' + cvDailyLimit : ' left')
+        // 「每天 +N，上限 M」说明，避免用户以为是固定每天重置满额
+        if (tip) {
+            var n = parseInt(q.refill_daily, 10)
+            if (n > 0 && cvDailyLimit > 0) {
+                tip.textContent = ' · +' + n + '/day, max ' + cvDailyLimit
+                tip.style.display = ''
+            } else {
+                tip.style.display = 'none'
+            }
+        }
     }
     function qrLeft() {
         // 无 remaining 字段的老响应：从「剩余 / 上限」文本里兜底
@@ -193,8 +211,8 @@
             btn.disabled = false
             btn.textContent = mode === 'outfit' ? '✨ Edit Image' : '✨ Generate Video'
             if (!d || d.code !== '00000') { toast((d && d.msg) || 'Submit failed', 'error'); return }
-            // 提交成功即刻刷新剩余次数（remain=-1 不限量）
-            if (d.data && typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: cvDailyLimit })
+            // 提交成功即刻刷新剩余次数（remain=-1 不限量）；保留 refill 提示
+            if (d.data && typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: cvDailyLimit, refill_daily: cvRefillDaily })
             toast('Task submitted! Track it in My Works', 'success')
             switchTab(false)
         }).catch(function () {

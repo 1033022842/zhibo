@@ -358,7 +358,7 @@ final class RechargeChannel extends Backend
         $row = $id ? Db::connect('live_mysql')->table('lp_vip_plan')->where('id', $id)->find() : null;
 
         $r = $row ? $row : ['id' => '', 'name' => '', 'months' => '1', 'usd_price' => '', 'diamond_price' => '', 'daily_diamond' => '', 'sort' => '0',
-            'level' => 'premium', 'benefits' => '', 'chat_daily_limit' => '0', 'image_daily_limit' => '2', 'discount_percent' => '10', 'custom_video' => '1'];
+            'level' => 'premium', 'benefits' => '', 'chat_daily_limit' => '0', 'image_daily_limit' => '2', 'image_daily_refill' => '1', 'discount_percent' => '10', 'custom_video' => '1'];
         $vName = htmlspecialchars((string)$r['name'], ENT_QUOTES);
         $vMonths = (int)$r['months'];
         $vUsd = htmlspecialchars((string)$r['usd_price'], ENT_QUOTES);
@@ -372,6 +372,7 @@ final class RechargeChannel extends Backend
         $vLevel = htmlspecialchars((string)($r['level'] ?? 'premium'), ENT_QUOTES);
         $vChat = (int)($r['chat_daily_limit'] ?? 0);
         $vImage = (int)($r['image_daily_limit'] ?? 0);
+        $vRefill = (int)($r['image_daily_refill'] ?? 1);
         $vDiscount = (int)($r['discount_percent'] ?? 0);
         $vCustomVideo = (int)($r['custom_video'] ?? 1);
         $selPremium = $vLevel === 'premium' ? ' selected' : '';
@@ -413,7 +414,10 @@ final class RechargeChannel extends Backend
                 <div class="field"><label>每日领取代币</label><input type="number" step="0.01" name="daily_diamond" value="{$vDaily}" required /></div>
                 <div class="field"><label>权益列表（每行一条，展示在订阅页）</label><textarea name="benefits" rows="6">{$vBenefits}</textarea></div>
                 <div class="field"><label>每日聊天条数（0=不限）</label><input type="number" name="chat_daily_limit" value="{$vChat}" /></div>
-                <div class="field"><label>每日图片/视频生成次数</label><input type="number" name="image_daily_limit" value="{$vImage}" /></div>
+                <div class="field"><label>每日图片/视频生成次数（余额上限）</label><input type="number" name="image_daily_limit" value="{$vImage}" />
+                    <div class="tip">余额最多累积到这个数</div></div>
+                <div class="field"><label>每天补充次数</label><input type="number" name="image_daily_refill" value="{$vRefill}" min="0" />
+                    <div class="tip">例：上限 2、每天补充 1 → 用完后每天恢复 1 次，最多累积到 2</div></div>
                 <div class="field"><label>内容/商城折扣百分比（10=9折，20=8折）</label><input type="number" name="discount_percent" value="{$vDiscount}" min="0" max="90" /></div>
                 <div class="field"><label>可用定制视频/图片生成</label>
                     <select name="custom_video"><option value="1">可用</option><option value="0"{$selCustomVideoOff}>不可用</option></select>
@@ -448,6 +452,7 @@ final class RechargeChannel extends Backend
             'benefits'          => json_encode($benefits, JSON_UNESCAPED_UNICODE),
             'chat_daily_limit'  => max(0, (int) $this->request->post('chat_daily_limit', 0)),
             'image_daily_limit' => max(0, (int) $this->request->post('image_daily_limit', 0)),
+            'image_daily_refill' => max(0, (int) $this->request->post('image_daily_refill', 1)),
             'discount_percent'  => max(0, min(90, (int) $this->request->post('discount_percent', 0))),
             'custom_video'      => (int) $this->request->post('custom_video', 1) === 1 ? 1 : 0,
             'sort'              => (int) $this->request->post('sort', 0),
