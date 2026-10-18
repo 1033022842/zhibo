@@ -9,6 +9,7 @@ use app\common\enums\TaskStatus;
 use app\common\exception\BusinessException;
 use app\common\util\StrHelper;
 use app\common\web\ResultCode;
+use app\live\service\GenCreditService;
 use app\live\service\VipService;
 use think\App;
 use think\facade\Db;
@@ -67,21 +68,35 @@ final class CustomVideo extends BaseController
         $ent = (new VipService())->entitlements($userId);
         $unlimited = in_array($userId, self::UNLIMITED_USER_IDS, true);
 
-        $limit = (int) ($ent['image_daily_limit'] ?? 0);
-        $used  = $userId > 0 ? $this->todayUsed($userId) : 0;
+        $limit  = (int) ($ent['image_daily_limit'] ?? 0);
+        $refill = (int) ($ent['image_daily_refill'] ?? 1);
+
+        // 额度改为「余额 + 每天补充」：每天 +refill，最多累积到 limit
+        // 首次建记录时按「上限 - 当天已用」初始化，保证上线当天行为与旧逻辑一致
+        $balance = -1;
+        if (!$unlimited && $userId > 0) {
+            $balance = (new GenCreditService())->refillAndGet(
+                $userId,
+                $limit,
+                $refill,
+                max(0, $limit - $this->todayUsed($userId))
+            );
+        }
 
         return $this->jsonSuccess([
             'styles' => self::STYLES,
             // Outfit 模式的服装卡片 = 商店商品（owned=0 的前端提示去购买）
             'image_presets' => $this->outfitPresets($userId),
             'quota'   => [
-                'daily_limit' => $unlimited ? '∞' : $limit,
-                'used'        => $used,
-                // remaining < 0 表示不限量（与后端 submit 的 remain 口径一致）
-                'remaining'   => $unlimited ? -1 : max(0, $limit - $used),
-                'level'       => (string) ($ent['level_name'] ?? 'Free'),
-                'is_vip'      => (bool) ($ent['is_vip'] ?? false),
-                'unlimited'   => $unlimited,
+                'daily_limit'  => $unlimited ? '∞' : $limit,
+                // used 仍按当天已用统计，仅作展示
+                'used'         => $userId > 0 ? $this->todayUsed($userId) : 0,
+                // remaining = 当前可用余额；-1 表示不限量
+                'remaining'    => $balance,
+                'refill_daily' => $refill,   // 每天补充次数（前端展示「每天 +1」）
+                'level'        => (string) ($ent['level_name'] ?? 'Free'),
+                'is_vip'       => (bool) ($ent['is_vip'] ?? false),
+                'unlimited'    => $unlimited,
             ],
         ]);
     }
@@ -226,67 +241,81 @@ final class CustomVideo extends BaseController
             }
         }
 
-        // 会员层级校验：定制视频/图片生成仅会员可用，额度按套餐 image_daily_limit（当前各档统一 2/天）
+        // 会员层级校验：定制视频/图片生成仅会员可用，额度按套餐 image_daily_limit（上限）与 image_daily_refill（每天补充）
         $ent = (new VipService())->entitlements($userId);
         if (empty($ent['is_vip']) || empty($ent['custom_video'])) {
             return $this->jsonFail(ResultCode::NO_PERMISSION, 'Custom video is a Premium feature. Please subscribe to unlock it.');
         }
         $dailyLimit = max(1, (int) ($ent['image_daily_limit'] ?? self::DAILY_LIMIT));
+        $refillPerDay = max(0, (int) ($ent['image_daily_refill'] ?? 1));
+        $unlimited = in_array($userId, self::UNLIMITED_USER_IDS, true);
+
+        // 先扣额度再上传：原来先存图再校验，超额时会白落一份文件
+        $credits = new GenCreditService();
+        if (!$unlimited) {
+            $credits->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
+            if (!$credits->consume($userId)) {
+                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . '). Upgrade to Premium Plus for more.');
+            }
+        }
 
         // 图片（≤10MB，jpg/png/webp；经 Upload 库自动压缩）
         $file = $this->request->file('image');
         if (!$file) {
+            if (!$unlimited) { $credits->refund($userId, $dailyLimit); }
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please upload an image.');
         }
         if ((int) $file->getSize() > 10 * 1024 * 1024) {
+            if (!$unlimited) { $credits->refund($userId, $dailyLimit); }
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Image must be under 10MB.');
         }
         $ext = strtolower((string) $file->getOriginalExtension());
         if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            if (!$unlimited) { $credits->refund($userId, $dailyLimit); }
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Only jpg / png / webp images are supported.');
         }
-        $upload = new \app\common\library\Upload($file);
-        $upload->setTopic('custom_video');
-        $attachment = $upload->upload(null, 0, $userId);
-        $imageUrl = (string) $attachment['url'];
 
-        // 每日配额（白名单用户不限量）
-        $unlimited = in_array($userId, self::UNLIMITED_USER_IDS, true);
-        $todayCount = 0;
-        if (!$unlimited) {
-            $todayCount = $this->todayUsed($userId);
-            if ($todayCount >= $dailyLimit) {
-                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Daily limit reached (' . $dailyLimit . '/day). Try again tomorrow or upgrade to Premium Plus.');
-            }
+        try {
+            $upload = new \app\common\library\Upload($file);
+            $upload->setTopic('custom_video');
+            $attachment = $upload->upload(null, 0, $userId);
+            $imageUrl = (string) $attachment['url'];
+
+            // 建任务
+            $task = new AiTask();
+            $task->task_no     = StrHelper::orderNo($kind === 'image' ? 'CI' : 'CV');
+            $task->room_id     = 0;
+            $task->task_type   = $kind === 'image' ? 'custom_image' : 'custom_video';
+            $task->priority    = 5;
+            $task->source_type = 'custom_video';
+            $task->source_ref_id = $userId;
+            $task->persona_id  = 0;
+            $task->content     = json_encode([
+                'style'     => $style['key'],
+                'label'     => $style['label'],
+                'prompt'    => (string) ($style['prompt'] ?? ''),
+                'image_url' => $imageUrl,
+            ], JSON_UNESCAPED_UNICODE);
+            $task->callback_mode = 'none';
+            $task->status      = TaskStatus::PENDING->value;
+            $task->created_at  = date('Y-m-d H:i:s');
+            $task->updated_at  = date('Y-m-d H:i:s');
+            $task->save();
+        } catch (\Throwable $e) {
+            // 上传或入库失败：把额度退回去，不让用户白扣
+            if (!$unlimited) { $credits->refund($userId, $dailyLimit); }
+            Log::error('[customVideo] submit failed: ' . $e->getMessage());
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Submit failed, your generation credit has been refunded. Please retry.');
         }
 
-        // 建任务
-        $task = new AiTask();
-        $task->task_no     = StrHelper::orderNo($kind === 'image' ? 'CI' : 'CV');
-        $task->room_id     = 0;
-        $task->task_type   = $kind === 'image' ? 'custom_image' : 'custom_video';
-        $task->priority    = 5;
-        $task->source_type = 'custom_video';
-        $task->source_ref_id = $userId;
-        $task->persona_id  = 0;
-        $task->content     = json_encode([
-            'style'     => $style['key'],
-            'label'     => $style['label'],
-            'prompt'    => (string) ($style['prompt'] ?? ''),
-            'image_url' => $imageUrl,
-        ], JSON_UNESCAPED_UNICODE);
-        $task->callback_mode = 'none';
-        $task->status      = TaskStatus::PENDING->value;
-        $task->created_at  = date('Y-m-d H:i:s');
-        $task->updated_at  = date('Y-m-d H:i:s');
-        $task->save();
+        $remain = $unlimited ? -1 : (new GenCreditService())->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
 
         return $this->jsonSuccess([
             'task_id' => (int) $task->id,
             'task_no' => $task->task_no,
             'status'  => $task->status,
-            // remain：提交后当日剩余次数；-1 表示不限量（前端按此显示）
-            'remain'  => $unlimited ? -1 : max(0, $dailyLimit - $todayCount - 1),
+            // remain：提交后剩余余额；-1 表示不限量（前端按此显示）
+            'remain'  => $remain,
         ]);
     }
 
