@@ -17,5 +17,6 @@ return [
         \app\command\WithdrawPayoutCron::class,
         \app\command\PayoutInfo::class,
         \app\command\FiatRateCron::class,
+        \app\command\MediaMigrate::class,
     ],
 ];

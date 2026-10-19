@@ -16,6 +16,7 @@ channel-worker Python 版 — HTTP 源 + 单 ffmpeg 永不重启 + RTMP 推流�
 """
 
 import argparse
+import base64
 import hashlib
 import http.server
 import json
@@ -27,6 +28,7 @@ import sys
 import threading
 import time
 import urllib.request
+from urllib.parse import quote
 
 import pymysql
 import redis
@@ -100,6 +102,18 @@ def load_config():
             'port': int(os.environ.get('REDIS_PORT', '6379')),
             'password': os.environ.get('REDIS_PASSWORD', ''),
             'db': int(os.environ.get('REDIS_SELECT', '0')),
+        },
+        # ── 素材独立存储（可选）：配置后 /storage/xxx 从存储服务器拉取并本地缓存 ──
+        # 留空则保持原行为：直接读本机 php/public/storage
+        'media': {
+            'endpoint': os.environ.get('MEDIA_ENDPOINT', ''),          # https://155-103-194-69.sslip.io
+            'sign_secret': os.environ.get('MEDIA_SIGN_SECRET', ''),
+            'project': os.environ.get('MEDIA_PROJECT', 'sugus'),
+            'cache_dir': os.environ.get('MEDIA_CACHE_DIR', ''),
+            'public_prefixes': {
+                'covers', 'home_banner', 'home_character', 'gift_effect', 'loops', 'default',
+                'shop', 'posts', 'shorts',
+            },
         },
     }
 
@@ -221,6 +235,13 @@ class PlaylistRepository:
             return ''
         if re.match(r'^[a-zA-Z]:[\\/]', file_url):
             return file_url.replace('/', os.sep)
+        # 已经是本机绝对路径（重复调用 / 上层已解析）直接返回
+        if os.path.isabs(file_url) and os.path.isfile(file_url):
+            return file_url
+        if self._media_enabled():
+            local = self._fetch_remote_media(file_url)
+            if local:
+                return local
         if file_url.startswith('http://') or file_url.startswith('https://'):
             from urllib.parse import urlparse
             path = urlparse(file_url).path
@@ -230,6 +251,70 @@ class PlaylistRepository:
         if self.media_base_dir:
             return os.path.join(self.media_base_dir, file_url.replace('/', os.sep))
         return file_url
+
+    # ── 素材独立存储：/storage/xxx → 签名 URL → 本地缓存 ──────────────────
+
+    def _media_enabled(self):
+        m = self.config.get('media') or {}
+        return bool(m.get('endpoint') and m.get('sign_secret'))
+
+    def _media_rel(self, file_url):
+        """把 /storage/xxx、带域名的同款地址、已签名地址统一还原成相对路径"""
+        from urllib.parse import urlparse
+        path = urlparse(file_url).path if '://' in file_url else file_url
+        path = path.replace('\\', '/')
+        path = re.sub(r'^/?(?:public/)?storage/', '', path)
+        project = (self.config.get('media') or {}).get('project', 'sugus')
+        path = re.sub(rf'^/?(?:sec|pub)/{re.escape(project)}/', '', path)
+        return path.lstrip('/')
+
+    def _media_key(self, rel):
+        first = rel.split('/', 1)[0].lower()
+        prefixes = (self.config.get('media') or {}).get('public_prefixes') or set()
+        tier = 'pub' if first in prefixes else 'sec'
+        return f"{tier}/{(self.config.get('media') or {}).get('project', 'sugus')}/{rel}"
+
+    def _sign(self, uri, exp):
+        m = self.config.get('media') or {}
+        raw = hashlib.md5(f'{exp}{uri} {m.get("sign_secret", "")}'.encode()).digest()
+        return base64.urlsafe_b64encode(raw).decode().rstrip('=')
+
+    def _fetch_remote_media(self, file_url):
+        """下载到本地缓存（按相对路径分目录），返回本地绝对路径；失败返回 None"""
+        m = self.config.get('media') or {}
+        rel = self._media_rel(file_url)
+        if not rel:
+            return None
+        cache_dir = m.get('cache_dir') or os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '..', 'runtime', 'media_cache')
+        local = os.path.normpath(os.path.join(cache_dir, rel.replace('/', os.sep)))
+        if os.path.isfile(local) and os.path.getsize(local) > 0:
+            return local
+
+        key = self._media_key(rel)
+        exp = int(time.time()) + 6 * 3600
+        sig = self._sign('/' + key, exp)
+        url = f"{m['endpoint'].rstrip('/')}/" + '/'.join(
+            quote(seg) for seg in key.split('/')) + f'?e={exp}&s={sig}'
+        try:
+            os.makedirs(os.path.dirname(local), exist_ok=True)
+            tmp = local + '.part'
+            with urllib.request.urlopen(url, timeout=120) as resp, open(tmp, 'wb') as fh:
+                while True:
+                    chunk = resp.read(1 << 20)
+                    if not chunk:
+                        break
+                    fh.write(chunk)
+            os.replace(tmp, local)
+            return local
+        except Exception as e:
+            log(f'[素材] 下载失败 {rel}: {e}')
+            try:
+                if os.path.exists(local + '.part'):
+                    os.remove(local + '.part')
+            except Exception:
+                pass
+            return None
 
 
 # ─── Redis ──────────────────────────────────────────────────────────────
