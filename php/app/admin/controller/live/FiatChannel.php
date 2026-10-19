@@ -30,6 +30,7 @@ final class FiatChannel extends Backend
     private const GATEWAYS = [
         'manual'  => '人工审核（暂不接网关，订单进「充值审核」等运营核对）',
         'starpay' => 'star-pay（金额传本币，币种走 extra.fiat_currency）',
+        'mkpay'   => 'MKPay（巴西 BRL，金额传分；收银台内自选 Pix/GGPay/ApplePay 等）',
     ];
 
     /**
@@ -82,9 +83,9 @@ final class FiatChannel extends Backend
                 <div class="field"><label>前台展示名</label><input name="name" value="{$v('name')}" placeholder="如 Malaysia · FPX" required /></div>
                 <div class="field"><label>对接方式</label>
                     <select name="gateway">{$gwOptions}</select>
-                    <div class="tip">选「人工审核」时不需要网关，用户下单后订单进「充值审核」等你核对收款；选 star-pay 才走网关收银台。</div>
+                    <div class="tip">选「人工审核」时不需要网关，用户下单后订单进「充值审核」等你核对收款；选 star-pay / mkpay 才走网关收银台。</div>
                 </div>
-                <div class="field"><label>网关标识（starpay 填 product 产品码，人工通道留空）</label>
+                <div class="field"><label>网关标识（starpay 填 product 产品码，mkpay / 人工通道留空）</label>
                     <input name="gateway_ref" value="{$v('gateway_ref')}" placeholder="留空则用 .env 里的默认 product" />
                 </div>
                 <div class="field"><label>结算币种代码</label><input name="currency" value="{$v('currency')}" placeholder="如 MYR / VND / IDR" required /></div>
