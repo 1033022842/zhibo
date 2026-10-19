@@ -110,6 +110,8 @@ def load_config():
             'sign_secret': os.environ.get('MEDIA_SIGN_SECRET', ''),
             'project': os.environ.get('MEDIA_PROJECT', 'sugus'),
             'cache_dir': os.environ.get('MEDIA_CACHE_DIR', ''),
+            # 本机素材根目录（/storage/xxx 对应的物理目录），留空自动探测 php/public/storage
+            'local_storage_root': os.environ.get('MEDIA_STORAGE_ROOT', ''),
             'public_prefixes': {
                 'covers', 'home_banner', 'home_character', 'gift_effect', 'loops', 'default',
             },
@@ -255,16 +257,19 @@ class PlaylistRepository:
         return file_url
 
     def _local_storage_path(self, file_url):
-        """/storage/xxx（或带域名的同款地址）→ 本机 php/public/storage/xxx"""
+        """/storage/xxx（或带域名的同款地址）→ 本机素材物理路径"""
         from urllib.parse import urlparse
         path = urlparse(file_url).path if '://' in file_url else file_url
-        if '/storage/' not in path and not path.startswith('/storage/'):
+        if '/storage/' not in path:
             return ''
         rel = self._media_rel(path)
         if not rel:
             return ''
-        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        return os.path.join(base, 'php', 'public', 'storage', rel.replace('/', os.sep))
+        root = (self.media_config or {}).get('local_storage_root') or ''
+        if not root:
+            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            root = os.path.join(base, 'php', 'public', 'storage')
+        return os.path.join(root, rel.replace('/', os.sep))
 
     # ── 素材独立存储：/storage/xxx → 签名 URL → 本地缓存 ──────────────────
 
