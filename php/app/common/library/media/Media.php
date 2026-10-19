@@ -82,13 +82,25 @@ final class Media
         return $tier . '/' . $project . '/' . $rel;
     }
 
-    /** 是否公开素材（首层目录命中白名单） */
+    /**
+     * 是否公开素材：首层目录在白名单内 **且** 是图片
+     *
+     * 「公开图 + 私有视频」—— 目录白名单只对图片生效，
+     * 同目录里的 mp4/webm 仍然走 /sec/ 签名（防止付费视频被直接搬走）。
+     */
     public static function isPublic(string $rel): bool
     {
         $rel = ltrim($rel, '/');
         $first = strtolower((string) (explode('/', $rel)[0] ?? ''));
-        $prefixes = (array) (self::config()['public_prefixes'] ?? []);
-        return $first !== '' && in_array($first, array_map('strtolower', $prefixes), true);
+        if ($first === '') {
+            return false;
+        }
+        $prefixes = array_map('strtolower', (array) (self::config()['public_prefixes'] ?? []));
+        if (!in_array($first, $prefixes, true)) {
+            return false;
+        }
+        $ext = strtolower((string) pathinfo($rel, PATHINFO_EXTENSION));
+        return in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'ico', 'avif'], true);
     }
 
     /** 去掉 /storage 或 /sec|<pub>/<project> 前缀，返回纯相对路径 */
