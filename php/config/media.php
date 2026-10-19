@@ -27,6 +27,9 @@ return [
     'sign_ttl'        => (int) env('media.sign_ttl', 21600),
     'sign_bucket_sec' => (int) env('media.sign_bucket_sec', 3600),
 
+    // 目录列举（ListObjects）本地缓存秒数：0=不缓存。存储服务器在海外，单次往返 ~180ms
+    'list_cache_ttl'  => (int) env('media.list_cache_ttl', 60),
+
     // 公开素材的顶层目录（这些走 /pub/，不签名，可被浏览器/CDN 长缓存）
     // 只放装饰性素材；付费内容（shorts/posts/private/chat_*）一律走 /sec/ 签名
     'public_prefixes' => [

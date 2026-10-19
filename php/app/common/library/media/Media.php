@@ -248,12 +248,22 @@ final class Media
         return self::s3()->delete(self::keyFor($storagePath));
     }
 
-    /** 列出某个目录下的对象 key，返回相对该目录的文件名 */
+    /** 列出某个目录下的对象 key，返回相对该目录的文件名（带本地短缓存） */
     public static function listDir(string $storageDir): array
     {
         $prefix = self::keyFor(rtrim($storageDir, '/') . '/');
-        $keys   = self::s3()->list($prefix);
-        $out    = [];
+        $ttl    = max(0, (int) (self::config()['list_cache_ttl'] ?? 60));
+        $cache  = $ttl > 0 ? self::cacheFile('list_' . md5($prefix) . '.json') : '';
+
+        if ($cache !== '' && is_file($cache) && (time() - (int) filemtime($cache)) < $ttl) {
+            $cached = json_decode((string) @file_get_contents($cache), true);
+            if (is_array($cached)) {
+                return $cached;
+            }
+        }
+
+        $keys = self::s3()->list($prefix);
+        $out  = [];
         foreach ($keys as $k) {
             $name = substr($k, strlen($prefix));
             if ($name !== '' && !str_contains($name, '/')) {
@@ -261,7 +271,26 @@ final class Media
             }
         }
         sort($out);
+
+        if ($cache !== '') {
+            @file_put_contents($cache . '.tmp', json_encode($out));
+            @rename($cache . '.tmp', $cache);
+        }
         return $out;
+    }
+
+    /** 目录列举的本地缓存路径（默认放 runtime，可被清理） */
+    private static function cacheFile(string $name): string
+    {
+        try {
+            $dir = app()->getRuntimePath() . 'media_cache';
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+            return is_writable($dir) ? $dir . DIRECTORY_SEPARATOR . $name : '';
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     public static function guessMime(string $file): string
