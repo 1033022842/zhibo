@@ -257,6 +257,66 @@ final class Recharge extends BaseController
     }
 
     /**
+     * MKPay（越南）异步通知（免登录，需验签）
+     *
+     * 回调 JSON：pay_order_id / merchant_order_id / status_code / amount / timestamp / sign
+     * 文档口径：只要返回 2xx 网关即认为成功；验签失败返回 400 触发重推，便于修复后补单。
+     */
+    public function notifyMkPayVn()
+    {
+        $vn  = new \app\live\service\MkPayVnService();
+        // 网关以 JSON 推送，读原始 body（全局输入过滤会破坏签名原文）
+        $raw  = (string) $this->request->getContent();
+        $post = json_decode($raw, true);
+        if (!is_array($post)) {
+            $post = (array) $this->request->post();
+        }
+
+        try {
+            $params = $vn->verifyNotify($post);
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyMkPayVn] 验签失败：' . $e->getMessage() . ' raw=' . mb_substr($raw, 0, 2000));
+            return response('INVALID SIGN', 400, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $orderNo = (string) ($params['merchant_order_id'] ?? '');
+        $payId   = (string) ($params['pay_order_id'] ?? '');
+        $code    = (int) ($params['status_code'] ?? 0);
+        \think\facade\Log::info(sprintf(
+            '[recharge:notifyMkPayVn] merchant_order_id=%s pay_order_id=%s status_code=%d(%s)',
+            $orderNo,
+            $payId,
+            $code,
+            \app\live\service\MkPayVnService::statusText($code)
+        ));
+
+        if ($orderNo === '') {
+            return response('SUCCESS', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        // status_code=2 成功 → 入账（confirmByGateway 幂等）
+        if (\app\live\service\MkPayVnService::isSuccess($code)) {
+            $exists = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+                ->where('order_no', $orderNo)->value('id');
+            if (!$exists) {
+                \think\facade\Log::warning('[recharge:notifyMkPayVn] 成功回调但订单不存在，已 ack order=' . $orderNo);
+                return response('SUCCESS', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+            }
+            try {
+                $this->service->confirmByGateway($orderNo, $payId, '', 'MKPay-VN');
+            } catch (\Throwable $e) {
+                \think\facade\Log::error('[recharge:notifyMkPayVn] 入账失败：' . $e->getMessage() . ' order=' . $orderNo);
+                // 非 2xx 让网关重推，避免钱到账但没入账
+                return response('ERROR', 500, ['Content-Type' => 'text/plain;charset=utf-8']);
+            }
+            return response('SUCCESS', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        // 0/1 处理中、3 失败、4 过期取消、6 关闭、7 异常：无需处理，ack 停止重推
+        return response('SUCCESS', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+    }
+
+    /**
      * 提交充值订单
      */
     public function submit()
