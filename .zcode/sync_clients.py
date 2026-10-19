@@ -16,7 +16,7 @@
 首次给新客户使用前：先按 SOP 完成服务器 brand kit 初始化 + 客户仓库中性基线，
 并在下面 CLIENTS 里补齐该客户配置。
 """
-import argparse, json, os, posixpath, subprocess, sys, posixpath
+import argparse, json, os, posixpath, subprocess, sys, time, posixpath
 import paramiko
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -62,6 +62,21 @@ CLIENTS = {
         "verify_expect": "Kelymi",
         "repo": r"D:\ever\kelymi",   # 2026-10-18 按 SOP 三.A 初始化（douyin 基线 + brand kit）
     },
+    # kiss（第四项目）：2026-10-19 初始化；无独立域名，IP 直连；换脸只砍前台（kit 每次同步后执行）
+    "kiss": {
+        "host": "103.217.252.52", "user": "root", "password": "Aa1033022842",
+        "site": "/www/wwwroot/douyin/ai-girl-malaysia.com",
+        "brand": "kiss",
+        "brand_kit": "/opt/brand-kit",
+        "verify_url": "http://103.217.252.52/ai/Home.html",  # kisss.ai 解析+证书就绪后改 https://kisss.ai/ai/Home.html
+        "verify_expect": "Kisss",
+        "repo": None,
+        # 换脸前台文件不同步（apply_brand 也会兜底删除，这里避免白推）
+        "exclude": [
+            "ai-girl-malaysia.com/face_swap.html",
+            "ai-girl-malaysia.com/js/face_swap.js",
+        ],
+    },
 }
 
 def sh(cmd, cwd=None):
@@ -102,6 +117,8 @@ def connect(cfg):
 
 def upload(cli, local_root, files, site):
     sftp = cli.open_sftp()
+    # 长连接静默挂死时，写阻塞会在超时后抛异常，交给外层重连续传
+    sftp.get_channel().settimeout(120)
     n = 0
     for rel in files:
         lp = os.path.join(local_root, rel.replace("/", os.sep))
@@ -120,6 +137,12 @@ def upload(cli, local_root, files, site):
             except IOError:
                 try: sftp.mkdir(acc)
                 except IOError: pass
+        # 断点续传：远端同尺寸视为已就位（大目录全量推送被断连后，重跑不必从头再来）
+        try:
+            if sftp.stat(rp).st_size == os.path.getsize(lp):
+                continue
+        except IOError:
+            pass
         sftp.put(lp, rp); n += 1
     sftp.close()
     return n
@@ -128,13 +151,16 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False):
     print(f"\n===== [{name}] =====")
     if not cfg.get("host") and not cfg.get("jump"):
         print("  !! 未配置服务器（占位），跳过。补齐 CLIENTS 配置后重试。"); return
-    # 0) 源头必须干净
-    rc, out, _ = sh(f'git status --short -- {SITE_DIR}', cwd=REPO)
+    # 0) 源头必须干净（只看已跟踪文件；未跟踪的本地抓页残留不会被推送）
+    rc, out, _ = sh(f'git status --short --untracked-files=no -- {SITE_DIR}', cwd=REPO)
     if out.strip():
         sys.exit(f"!! douyin 工作区 {SITE_DIR} 有未提交改动，先提交再分发：\n{out}")
 
     cur, changed = changed_files(name, full)
     changed = [p for p in changed if in_scope(p, include_files)]
+    excluded = set(cfg.get("exclude", []))
+    if excluded:
+        changed = [p for p in changed if p not in excluded]
     print(f"  变更文件 {len(changed)} 个（范围: html/js/assets/manifest{' +_files' if include_files else ''}）")
     if init_snapshot:
         json.dump(cur, open(STATE_FILE(name), "w", encoding="utf-8"))
@@ -146,29 +172,59 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False):
         for p in changed[:20]: print("   dry:", p)
         return
 
-    if cfg.get("jump"):  # 两跳：先到跳板，再 scp 过去
-        j = connect(cfg["jump"])
+    if cfg.get("jump"):  # 两跳：先到跳板，再一次 tar 流过去（逐文件 scp = 几百次建连，必被限流）
         tmp = f"/tmp/sync_{name}"
+        j = connect(cfg["jump"])
         _, out, err = j.exec_command(f"rm -rf {tmp} && mkdir -p {tmp}", timeout=30); err.channel.recv_exit_status()
-        n = upload(j, REPO, changed, tmp)
+        j.close()
+        n = 0
+        for attempt in range(1, 4):  # 断连后重连续传（同尺寸文件跳过）
+            j = connect(cfg["jump"])
+            try:
+                n += upload(j, REPO, changed, tmp)
+                break
+            except Exception as e:
+                print(f"  跳板上传中断（第 {attempt}/3 次）: {e}")
+                if attempt == 3:
+                    raise
+                time.sleep(20)
+            finally:
+                try: j.close()
+                except Exception: pass
         key = cfg["key_on_jump"]
+        j = connect(cfg["jump"])
         _, out, err = j.exec_command(
-            f"cd {tmp} && find . -type f -exec scp -i {key} -o StrictHostKeyChecking=no -o BatchMode=yes "
-            f'{{}} {cfg["user"]}@{cfg["host"]}:{cfg["site"]}/{{}} \\;', timeout=600)
-        out.channel.recv_exit_status()
-        print(f"  经跳板推送 {n} 个文件 -> {cfg['host']}")
+            f'cd {tmp} && tar -cf - . | ssh -i {key} -o StrictHostKeyChecking=no -o BatchMode=yes '
+            f'{cfg["user"]}@{cfg["host"]} "tar -xf - -C {cfg["site"]}"', timeout=1800)
+        rc = out.channel.recv_exit_status()
+        print(f"  经跳板推送 {n} 个文件 -> {cfg['host']}（tar rc={rc}）")
         j.close()
     else:
-        cli = connect(cfg)
-        n = upload(cli, REPO, changed, cfg["site"])
+        n = 0
+        for attempt in range(1, 4):
+            cli = None
+            try:
+                cli = connect(cfg)
+                n += upload(cli, REPO, changed, cfg["site"])
+                break
+            except Exception as e:
+                print(f"  上传中断（第 {attempt}/3 次）: {e}")
+                if attempt == 3:
+                    raise
+                time.sleep(20)
+            finally:
+                if cli:
+                    try: cli.close()
+                    except Exception: pass
         print(f"  推送 {n} 个文件 -> {cfg['host']}")
         # 打品牌
         if cfg.get("brand"):
+            cli = connect(cfg)
             _, out, err = cli.exec_command(
                 f'bash {cfg["brand_kit"]}/tools/apply_brand.sh {cfg["brand"]} {cfg["site"]} {cfg["brand_kit"]} 2>&1 | tail -3',
                 timeout=180)
             print("  apply_brand:", out.read().decode().strip())
-        cli.close()
+            cli.close()
 
     # 记录快照（推送成功后才落）
     json.dump(cur, open(STATE_FILE(name), "w", encoding="utf-8"))
