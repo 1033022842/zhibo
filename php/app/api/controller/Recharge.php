@@ -179,6 +179,76 @@ final class Recharge extends BaseController
     }
 
     /**
+     * MKPay 异步通知（免登录，需验签）
+     *
+     * 网关要求：处理成功、重复回调、无需处理的回调都返回纯文本 success，
+     * 否则网关会在一定次数内重试；只有「确认失败需要重推」才返回其它内容。
+     */
+    public function notifyMkPay()
+    {
+        $mkPay = new \app\live\service\MkPayService();
+        // 网关以 JSON 推送，读原始 body（全局输入过滤会破坏签名原文）
+        $raw  = (string) $this->request->getContent();
+        $post = json_decode($raw, true);
+        if (!is_array($post)) {
+            $post = (array) $this->request->post();
+        }
+
+        try {
+            $params = $mkPay->verifyNotify($post);
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyMkPay] 验签失败：' . $e->getMessage() . ' raw=' . mb_substr($raw, 0, 2000));
+            // 验签失败不能 ack，返回非 success 让网关重推（可能是我方验签实现有误，重试期间可修复）
+            return response('error', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $orderNo = (string) ($params['merchantOrderId'] ?? '');
+        $status  = (string) ($params['status'] ?? '');
+        $payType = (string) ($params['payType'] ?? '');
+        \think\facade\Log::info(sprintf(
+            '[recharge:notifyMkPay] merchantOrderId=%s orderId=%s status=%s(%s) payType=%s',
+            $orderNo,
+            (string) ($params['orderId'] ?? ''),
+            $status,
+            \app\live\service\MkPayService::STATUS[$status] ?? '?',
+            $payType
+        ));
+
+        if ($orderNo === '' || $payType !== \app\live\service\MkPayService::PAY_TYPE_COLLECTION) {
+            return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        // 代收成功 → 入账（confirmByGateway 幂等：已入账直接返回、已关闭的补入账）
+        if (\app\live\service\MkPayService::isSuccess($status)) {
+            try {
+                $this->service->confirmByGateway($orderNo, (string) ($params['orderId'] ?? ''), '', 'MKPay');
+            } catch (\Throwable $e) {
+                \think\facade\Log::error('[recharge:notifyMkPay] 入账失败：' . $e->getMessage() . ' order=' . $orderNo);
+                return response('error', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+            }
+            return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        // 04 退款：平台会扣减商户余额，已入账订单需要人工反向处理（不自动扣用户代币，避免误伤），记备注等运营核对
+        if ($status === '04') {
+            try {
+                \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+                    ->where('order_no', $orderNo)->where('status', 1)
+                    ->update([
+                        'admin_remark' => 'MKPay 回调退款(endToEndId=' . (string) ($params['endToEndId'] ?? '') . ')，需人工核对处理',
+                        'updated_at'   => date('Y-m-d H:i:s'),
+                    ]);
+                \think\facade\Log::warning('[recharge:notifyMkPay] 收到退款回调 order=' . $orderNo);
+            } catch (\Throwable $e) {
+                \think\facade\Log::error('[recharge:notifyMkPay] 退款备注写入失败：' . $e->getMessage() . ' order=' . $orderNo);
+            }
+        }
+
+        // 其余状态（00/06/90/99 处理中、02 失败、03 超时）：无需处理，ack 停止重推
+        return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+    }
+
+    /**
      * 提交充值订单
      */
     public function submit()

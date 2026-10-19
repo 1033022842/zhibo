@@ -219,7 +219,7 @@ final class RechargeOrder extends Backend
             $sels .= '<option value="' . $val . '"' . ($f['channel'] === (string) $c['type'] ? ' selected' : '') . '>'
                 . htmlspecialchars((string) $c['name'], ENT_QUOTES) . '</option>';
         }
-        foreach (['starpay' => 'star-pay（网关）', 'flowpay' => 'FlowPay（网关）'] as $val => $label) {
+        foreach (['starpay' => 'star-pay（网关）', 'flowpay' => 'FlowPay（网关）', 'mkpay' => 'MKPay（巴西网关）'] as $val => $label) {
             $sels .= '<option value="' . $val . '"' . ($f['channel'] === $val ? ' selected' : '') . '>' . $label . '</option>';
         }
 

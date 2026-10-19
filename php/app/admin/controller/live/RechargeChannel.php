@@ -502,7 +502,8 @@ final class RechargeChannel extends Backend
                 : '<span style="color:#ff2d55">已下架</span>';
             $fc  = htmlspecialchars((string) $r['currency'], ENT_QUOTES);
             $fs  = htmlspecialchars((string) $r['currency_symbol'], ENT_QUOTES);
-            $fgw = ((string) $r['gateway'] === 'starpay') ? 'star-pay' : '人工审核';
+            $gw  = (string) $r['gateway'];
+            $fgw = $gw === 'starpay' ? 'star-pay' : ($gw === 'mkpay' ? 'MKPay(巴西)' : '人工审核');
 
             // 拿 $15 举例把折算结果写出来，运营填错汇率能一眼看出来
             $sample = '—';
