@@ -367,9 +367,10 @@
         return null
     }
 
-    // 法币通道品牌标（如巴西 PIX）：按通道名匹配，匹配不到只显示文字
+    // 法币通道品牌标（巴西 PIX / 越南 MKPay）：按通道名匹配，匹配不到只显示文字
     var FIAT_LOGOS = [
-        { re: /\bpix\b/i, src: './assets/pix.svg', alt: 'PIX' }
+        { re: /\bpix\b/i, src: './assets/pix.svg', alt: 'PIX' },
+        { re: /mkpay/i, src: './assets/mkpay.svg', alt: 'MkPay' }
     ]
 
     function fiatLogo(name) {
