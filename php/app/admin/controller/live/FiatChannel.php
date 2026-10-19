@@ -44,6 +44,7 @@ final class FiatChannel extends Backend
         $r = $row ?: [
             'id' => '', 'name' => '', 'gateway' => 'manual', 'gateway_ref' => '',
             'currency' => '', 'currency_symbol' => '', 'usd_rate' => '',
+            'auto_rate' => 0,
             'decimals' => 2, 'min_amount' => 0, 'diamond_rate' => 100,
             'pay_instructions' => '', 'sort' => 0, 'status' => 1,
         ];
@@ -57,6 +58,11 @@ final class FiatChannel extends Backend
             $sel = $cur === $code ? ' selected' : '';
             $gwOptions .= '<option value="' . $code . '"' . $sel . '>' . htmlspecialchars($label, ENT_QUOTES) . '</option>';
         }
+
+        // 自动汇率选中态（heredoc 里只能放简单变量，先算好）
+        $autoOn      = ((int) ($r['auto_rate'] ?? 0)) === 1;
+        $selAutoRate = $autoOn ? ' selected' : '';
+        $selKeepRate = $autoOn ? '' : ' selected';
 
         $v = static fn($key): string => htmlspecialchars((string) $r[$key], ENT_QUOTES);
 
@@ -94,6 +100,13 @@ final class FiatChannel extends Backend
                     <input type="number" step="0.000001" name="usd_rate" value="{$v('usd_rate')}" placeholder="如 4.7020" required />
                     <div class="tip">下单时按这个汇率把套餐 USD 价折算成本币，并锁定写进订单；之后改汇率不影响已生成的订单。</div>
                 </div>
+                <div class="field"><label>自动汇率（每小时按中间价刷新）</label>
+                    <select name="auto_rate">
+                        <option value="1"{$selAutoRate}>开启（定时任务 fiat:rate 拉取 USD 中间价覆盖此值，含异常区间保护）</option>
+                        <option value="0"{$selKeepRate}>关闭（手动维护汇率）</option>
+                    </select>
+                    <div class="tip">已支持的币种以任务代码里的数据源为准（当前：BRL）；其余币种选了也不会生效。</div>
+                </div>
                 <div class="field"><label>本币金额小数位</label><input type="number" name="decimals" value="{$v('decimals')}" min="0" max="8" />
                     <div class="tip">多数币种填 2；VND、IDR 这类没有小数的填 0。</div>
                 </div>
@@ -126,6 +139,7 @@ final class FiatChannel extends Backend
             'currency'        => strtoupper(trim((string) $this->request->post('currency', ''))),
             'currency_symbol' => trim((string) $this->request->post('currency_symbol', '')),
             'usd_rate'        => (float) $this->request->post('usd_rate', 0),
+            'auto_rate'       => $this->request->post('auto_rate', 0) === '1' ? 1 : 0,
             'decimals'        => max(0, min(8, (int) $this->request->post('decimals', 2))),
             'min_amount'      => max(0, (float) $this->request->post('min_amount', 0)),
             'diamond_rate'    => max(0, (float) $this->request->post('diamond_rate', 0)),

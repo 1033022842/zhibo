@@ -16,5 +16,6 @@ return [
         \app\command\AltRechargeScanCron::class,
         \app\command\WithdrawPayoutCron::class,
         \app\command\PayoutInfo::class,
+        \app\command\FiatRateCron::class,
     ],
 ];
