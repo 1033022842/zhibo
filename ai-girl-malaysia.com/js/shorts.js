@@ -468,11 +468,30 @@
         renderExplore(groups.explore)
     }
 
-    function load() {
-        fetch(API_LIST, { method: 'GET' })
+    function fetchList(url) {
+        return fetch(url, { method: 'GET' })
             .then(function (r) { return r.json() })
             .then(function (d) {
-                var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                return (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+            })
+            .catch(function () { return [] })
+    }
+
+    function load() {
+        // 公开短剧 + 私人短剧都要展示：接口默认排除 section=private，这里单独拉一次再合并
+        Promise.all([fetchList(API_LIST), fetchList(API_LIST + '?section=private')])
+            .then(function (parts) {
+                var list = [], seen = {}
+                for (var p = 0; p < parts.length; p++) {
+                    var arr = parts[p] || []
+                    for (var i = 0; i < arr.length; i++) {
+                        var item = arr[i]
+                        var id = item && item.id !== undefined ? String(item.id) : ''
+                        if (id !== '' && seen[id]) continue
+                        if (id !== '') seen[id] = 1
+                        list.push(item)
+                    }
+                }
                 allItems = list
                 indexItems(list)
                 renderCategoryPills()

@@ -32,7 +32,7 @@ final class MediaAsset extends Backend
             ->where('source', 'machine')
             ->where('machine_id', '<>', '')
             ->field('machine_id, persona, COUNT(*) AS cnt')
-            ->group('machine_id', 'persona')
+            ->group('machine_id, persona')
             ->order('machine_id', 'asc')
             ->select()
             ->toArray();

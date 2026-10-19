@@ -160,6 +160,19 @@
         return null
     }
 
+    // 法币通道品牌标（如巴西 PIX）：按通道名匹配，匹配不到只显示文字
+    var FIAT_LOGOS = [
+        { re: /\bpix\b/i, src: './assets/pix.svg', alt: 'PIX' }
+    ]
+
+    function fiatLogo(name) {
+        var text = String(name || '')
+        for (var i = 0; i < FIAT_LOGOS.length; i++) {
+            if (FIAT_LOGOS[i].re.test(text)) { return FIAT_LOGOS[i] }
+        }
+        return null
+    }
+
     /**
      * 卡支付：上方是一个渐变胶囊按钮（Continue with card + Apple Pay / Google Pay / Visa / Mastercard，
      * 与 candy 未登录版那个按钮同一形态），点它就地展开下方三条收单通道，选通道下单；
@@ -204,12 +217,16 @@
                 var unit = fc.symbol || fc.currency || ''
                 var label = fc.name + (unit !== '' ? ' · ' + unit : '')
                 var $wrap = $('<div></div>')
-                $('<button type="button" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex"></button>')
+                var $btn = $('<button type="button" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex"></button>')
                     .attr('id', pair[0].replace('#', '') + '-fiat-' + fc.id)
                     .attr('data-fiat-id', fc.id)
                     .attr('data-fiat-level', pair[1])
-                    .append($('<div class="text-white text-xs sm:text-sm font-medium leading-tight"></div>').text(label))
-                    .appendTo($wrap)
+                var logo = fiatLogo(fc.name)
+                $btn.append($('<div class="text-white text-xs sm:text-sm font-medium leading-tight"></div>').text(label))
+                if (logo) {
+                    $('<img alt="' + logo.alt + '" src="' + logo.src + '" style="height:20px;width:20px;display:block;flex:0 0 auto">').appendTo($btn)
+                }
+                $btn.appendTo($wrap)
                 $crypto.closest('div').after($wrap)
             })
         })
