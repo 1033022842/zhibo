@@ -288,9 +288,12 @@ class PlaylistRepository:
         return path.lstrip('/')
 
     def _media_key(self, rel):
+        # 与 PHP 侧 Media::isPublic 保持一致：白名单目录 + 图片扩展名才进 pub/
         first = rel.split('/', 1)[0].lower()
-        prefixes = (self.media_config or {}).get('public_prefixes') or set()
-        tier = 'pub' if first in prefixes else 'sec'
+        prefixes = {p.lower() for p in ((self.media_config or {}).get('public_prefixes') or set())}
+        ext = rel.rsplit('.', 1)[-1].lower() if '.' in rel else ''
+        is_public = first in prefixes and ext in ('jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'ico', 'avif')
+        tier = 'pub' if is_public else 'sec'
         return f"{tier}/{(self.media_config or {}).get('project', 'sugus')}/{rel}"
 
     def _sign(self, uri, exp):
