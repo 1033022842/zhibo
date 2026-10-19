@@ -237,19 +237,33 @@ class PlaylistRepository:
         # 已经是本机绝对路径（重复调用 / 上层已解析）直接返回
         if os.path.isabs(file_url) and os.path.isfile(file_url):
             return file_url
+
+        # 1) 本机还有副本就先用本机（零带宽、零延迟；迁移完成后本地删除会自动落到 2）
+        local = self._local_storage_path(file_url)
+        if local and os.path.isfile(local):
+            return local
+
+        # 2) 本机没有 → 从存储服务器按签名 URL 拉取并缓存
         if self._media_enabled():
-            local = self._fetch_remote_media(file_url)
-            if local:
-                return local
-        if file_url.startswith('http://') or file_url.startswith('https://'):
-            from urllib.parse import urlparse
-            path = urlparse(file_url).path
-            if path and '/storage/' in path:
-                base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-                return os.path.join(base, 'php', 'public', path.lstrip('/'))
+            remote = self._fetch_remote_media(file_url)
+            if remote:
+                return remote
+
         if self.media_base_dir:
             return os.path.join(self.media_base_dir, file_url.replace('/', os.sep))
         return file_url
+
+    def _local_storage_path(self, file_url):
+        """/storage/xxx（或带域名的同款地址）→ 本机 php/public/storage/xxx"""
+        from urllib.parse import urlparse
+        path = urlparse(file_url).path if '://' in file_url else file_url
+        if '/storage/' not in path and not path.startswith('/storage/'):
+            return ''
+        rel = self._media_rel(path)
+        if not rel:
+            return ''
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        return os.path.join(base, 'php', 'public', 'storage', rel.replace('/', os.sep))
 
     # ── 素材独立存储：/storage/xxx → 签名 URL → 本地缓存 ──────────────────
 
