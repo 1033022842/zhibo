@@ -77,10 +77,20 @@ GGPay / ApplePay / CashPay 无独立通道参数（文档代收接口无 gcode �
 
 ## 6. 后台运营
 
-1. 执行 `sql/upgrade_mkpay.sql`（幂等）→ 生成「巴西 · Pix (MKPay)」通道，BRL / R$
-2. **充值渠道 → 法币通道**里把汇率 `usd_rate`（种子占位 5.40）改成实时值，确认最低金额（种子 5.00 BRL）
-3. 通道「对接方式」选 **MKPay（巴西 BRL…）**；网关标识留空
-4. 订单列表可按「MKPay（巴西网关）」筛选；法币单金额显示 BRL
+1. 执行 `sql/upgrade_mkpay.sql`（幂等）→ 生成「巴西 · Pix (MKPay)」通道，BRL / R$，并开启**自动汇率**
+2. 通道「对接方式」选 **MKPay（巴西 BRL…）**；网关标识留空
+3. 订单列表可按「MKPay（巴西网关）」筛选；法币单金额显示 BRL
+
+### 汇率自动更新（fiat:rate 定时任务）
+
+- 通道行 `auto_rate=1` 时，每小时按 USD 中间价刷新 `usd_rate`（主源 open.er-api.com，备源 frankfurter.app）
+- 双保险边界：币种绝对区间（BRL 3~8）+ 偏离当前值 ±30% 以内才落库，否则保持原值并告警日志
+- 中间价默认不加点；要覆盖波动/手续费改 `app/command/FiatRateCron.php` 的 `MARKUP_PERCENT`
+- 后台「法币通道」编辑里可随时关掉自动汇率改手动
+- 服务器 crontab（/etc/cron.d/douyin）加一行，每小时第 17 分执行：
+  ```
+  17 * * * * root cd /www/wwwroot/douyin/php && php think fiat:rate >> /root/cron_fiat_rate.log 2>&1
+  ```
 
 ## 7. 上线前清单
 

@@ -517,7 +517,8 @@ final class RechargeChannel extends Backend
             $fiatRows .= "<tr><td>{$fid}</td>"
                 . '<td>' . htmlspecialchars((string) $r['name'], ENT_QUOTES) . '</td>'
                 . "<td>{$fgw}</td><td>{$fc}</td>"
-                . '<td>' . htmlspecialchars((string) $r['usd_rate'], ENT_QUOTES) . "</td>"
+                . '<td>' . htmlspecialchars((string) $r['usd_rate'], ENT_QUOTES)
+                    . ((int) ($r['auto_rate'] ?? 0) === 1 ? ' <span style="color:#00d4aa">自动</span>' : '') . "</td>"
                 . "<td>{$sample}</td>"
                 . '<td>' . (int) $r['decimals'] . '</td>'
                 . '<td>' . htmlspecialchars((string) $r['min_amount'], ENT_QUOTES) . '</td>'
