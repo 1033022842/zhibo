@@ -178,14 +178,15 @@ final class Media
         return '/storage/' . ltrim($rel, '/');
     }
 
-    /** 判定是否本站存储路径（/storage/xxx、/public/storage/xxx、带域名的同款路径、已签名地址） */
+    /** 判定是否本站存储路径（/storage/xxx、/public/storage/xxx、带本站域名的同款路径、已签名地址） */
     public static function isStoragePath(string $url): bool
     {
         if (str_starts_with($url, 'data:') || str_starts_with($url, 'blob:')) {
             return false;
         }
-        if (preg_match('#^(?:https?:)?//[^/]+/(?:public/)?storage/#i', $url)) {
-            return true;
+        // 只有本站域名（或存储服务器域名）才当作自有素材，避免误改第三方外链
+        if (preg_match('#^(?:https?:)?//([^/]+)/(?:public/)?storage/#i', $url, $m)) {
+            return self::isOwnHost($m[1]);
         }
         if (preg_match('#^/?(?:public/)?storage/#i', $url)) {
             return true;
@@ -193,6 +194,30 @@ final class Media
         $project = preg_quote(trim((string) (self::config()['project'] ?? 'sugus'), '/'), '#');
         return (bool) preg_match('#^(?:https?:)?//[^/]+/(?:sec|pub)/' . $project . '/#i', $url)
             || (bool) preg_match('#^/(?:sec|pub)/' . $project . '/#i', $url);
+    }
+
+    /** 是否本站/存储服务器的域名 */
+    private static function isOwnHost(string $host): bool
+    {
+        $host = strtolower(preg_replace('/:\d+$/', '', $host) ?? $host);
+        $cfgHost = strtolower((string) parse_url((string) (self::config()['endpoint'] ?? ''), PHP_URL_HOST));
+        if ($cfgHost !== '' && $host === $cfgHost) {
+            return true;
+        }
+        if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+            return true;
+        }
+        try {
+            if (function_exists('request')) {
+                $req = request();
+                if ($req && strtolower((string) $req->host()) === $host) {
+                    return true;
+                }
+            }
+        } catch (\Throwable) {
+            // CLI / 无请求上下文
+        }
+        return false;
     }
 
     public static function encodePath(string $key): string
