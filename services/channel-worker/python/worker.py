@@ -158,10 +158,11 @@ class Database:
 # ─── 播单仓库 ────────────────────────────────────────────────────────────
 
 class PlaylistRepository:
-    def __init__(self, db, media_base_dir='', ffprobe_bin='ffprobe'):
+    def __init__(self, db, media_base_dir='', ffprobe_bin='ffprobe', media_config=None):
         self.db = db
         self.media_base_dir = media_base_dir
         self.ffprobe_bin = ffprobe_bin
+        self.media_config = media_config or {}
 
     def room_stream_info(self, room_id):
         rows = self.db.query(
@@ -268,7 +269,7 @@ class PlaylistRepository:
     # ── 素材独立存储：/storage/xxx → 签名 URL → 本地缓存 ──────────────────
 
     def _media_enabled(self):
-        m = self.config.get('media') or {}
+        m = self.media_config or {}
         return bool(m.get('endpoint') and m.get('sign_secret'))
 
     def _media_rel(self, file_url):
@@ -277,24 +278,24 @@ class PlaylistRepository:
         path = urlparse(file_url).path if '://' in file_url else file_url
         path = path.replace('\\', '/')
         path = re.sub(r'^/?(?:public/)?storage/', '', path)
-        project = (self.config.get('media') or {}).get('project', 'sugus')
+        project = (self.media_config or {}).get('project', 'sugus')
         path = re.sub(rf'^/?(?:sec|pub)/{re.escape(project)}/', '', path)
         return path.lstrip('/')
 
     def _media_key(self, rel):
         first = rel.split('/', 1)[0].lower()
-        prefixes = (self.config.get('media') or {}).get('public_prefixes') or set()
+        prefixes = (self.media_config or {}).get('public_prefixes') or set()
         tier = 'pub' if first in prefixes else 'sec'
-        return f"{tier}/{(self.config.get('media') or {}).get('project', 'sugus')}/{rel}"
+        return f"{tier}/{(self.media_config or {}).get('project', 'sugus')}/{rel}"
 
     def _sign(self, uri, exp):
-        m = self.config.get('media') or {}
+        m = self.media_config or {}
         raw = hashlib.md5(f'{exp}{uri} {m.get("sign_secret", "")}'.encode()).digest()
         return base64.urlsafe_b64encode(raw).decode().rstrip('=')
 
     def _fetch_remote_media(self, file_url):
         """下载到本地缓存（按相对路径分目录），返回本地绝对路径；失败返回 None"""
-        m = self.config.get('media') or {}
+        m = self.media_config or {}
         rel = self._media_rel(file_url)
         if not rel:
             return None
@@ -742,7 +743,7 @@ def main():
     signal.signal(signal.SIGINT, on_signal)
 
     db = Database(config['db'])
-    repo = PlaylistRepository(db, config['media_base_dir'], config['ffprobe_bin'])
+    repo = PlaylistRepository(db, config['media_base_dir'], config['ffprobe_bin'], config.get('media'))
     rds = RedisConsumer(config['redis'])
 
     # 1. 读房间配置
