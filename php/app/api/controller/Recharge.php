@@ -220,6 +220,14 @@ final class Recharge extends BaseController
 
         // 代收成功 → 入账（confirmByGateway 幂等：已入账直接返回、已关闭的补入账）
         if (\app\live\service\MkPayService::isSuccess($status)) {
+            // 订单不存在（别站订单打错回调 / 历史遗留单 / 伪造报文）：ack 掉止住网关重试，
+            // 返回 error 只会换来无限重推（文档：无需处理的回调返回 success）
+            $exists = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+                ->where('order_no', $orderNo)->value('id');
+            if (!$exists) {
+                \think\facade\Log::warning('[recharge:notifyMkPay] 成功回调但订单不存在，已 ack order=' . $orderNo);
+                return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+            }
             try {
                 $this->service->confirmByGateway($orderNo, (string) ($params['orderId'] ?? ''), '', 'MKPay');
             } catch (\Throwable $e) {
