@@ -1,4 +1,4 @@
-# 多客户同步 SOP（douyin 上游 → 3 个客户项目）
+# 多客户同步 SOP（douyin 上游 → 4 个客户项目）
 
 > **给使用者的 30 秒版本**：功能只改 douyin 仓库 → 提交 → 跑一条同步命令，脚本自动把变更推到客户服务器、打上客户品牌、线上验证、客户仓库跟进提交。**永远不要直接 rsync/手改客户服务器。**
 >
@@ -77,7 +77,7 @@ git add -A && git commit -m "feat: xxx" && git push    # ① 源头先提交（�
 
 python .zcode/sync_clients.py --client heygirl --dry-run   # ② 预览变更清单（强烈建议）
 python .zcode/sync_clients.py --client heygirl             # ③ 执行同步
-python .zcode/sync_clients.py                              #    全部客户（heygirl / sugus / kelymi）
+python .zcode/sync_clients.py                              #    全部客户（heygirl / sugus / kelymi / kiss）
 ```
 
 每次同步脚本自动完成：**推变更文件 → 服务器 apply_brand 打品牌 → 线上验证 → 客户仓库内容对齐 + 提交推送**。
@@ -176,6 +176,17 @@ ssh root@<客户服务器> "grep -riE 'sugus' /www/wwwroot/douyin/ai-girl-malays
   无独立 192 资产就不写 192 条目
 - **服务器资产就地取材**：客户的 png 若已在站点目录里，服务器上 `cp` 进 kit 即可，不必回传本地
 
+### B''. kiss 全栈初始化实录（2026-10-19，裸机 Ubuntu 22.04）
+
+- 裸机装机：nginx 1.18 + php8.3（ondrej PPA，缺 `php8.3-gmp` 会导致 composer 解析 kornrunner/secp256k1 失败）+ mysql 8 + redis 6
+- 代码来源：服务器直连 gitee `zhibo.git`（`--depth 1`，约 30 秒），大陆本机上传只有 ~68KB/s，不要从本机推大文件
+- 静态站/后端/DB 首装：站点与 php 均取 gitee HEAD；DB 结构 + 种子数据从 kelymi 导出（93 表），**kelymi 库落后上游近期 SQL**，需补跑 `upgrade_gen_credit / upgrade_mkpay / upgrade_popup_settings / upgrade_vip_order_admin / upgrade_register_email_verify` 等（否则 `image_daily_refill` 之类列缺失会 500）
+- 媒体：kelymi `php/public/storage` 只迁 `default/ai_media/chat_media/gift_*/home_*/covers/recharge*/brand/upload/loops/ai/media/shorts`（约 3.1G，kelymi→kiss 实测 ~3.8MB/s）；`private*/certification` 不迁
+- 后台：`/www/wwwroot/douyin/admin/dist` 从 kelymi 打包迁移；管理员用 PHP `password_hash` 生成 bcrypt 后**用 SQL 文件导入**（命令行 `mysql -e` 会被 bash 吃掉 `$2y$10$` 里的 `$`，密码永远不对）
+- nginx 关键：`.php` location 必须 `fastcgi_split_path_info ^(.+\.php)(/.*)$` + `PATH_INFO $fastcgi_path_info`，否则 `/api/*` 全部落到后台默认响应
+- 换脸：kiss 只砍前台（页面 / JS / 导航 / 弹窗 CTA），删除动作写在 `apply_brand.sh` 末尾，每次同步自动复原；后台路由与模板表保留
+- 品牌：`.zcode/brand_kit_kiss/`（naming 同 kelymi）；图片为 Segoe UI Bold 文字版，拿到官方素材后替换同名 PNG 即可
+
 ### C. heygirl 特有文件的先例（客户可以有，同步不会被冲掉）
 
 - `privacy.html` / `terms.html`（合规页）：上游没有，`git checkout` 不会删
@@ -207,10 +218,11 @@ ssh root@<客户服务器> "grep -riE 'sugus' /www/wwwroot/douyin/ai-girl-malays
 | heygirl | 172.81.99.11（heygirl.live） | /opt/brand-kit（heygirl） | gitee `heygirl.git`（D:\ever\heygirl，master） |
 | sugus | 172.81.98.55（上游生产） | 无需（自己就是 Sugus） | gitee `zhibo.git`（= 上游 douyin 仓库） |
 | kelymi | 172.81.99.42（kelymi.autos，nginx 单站点 zhibo.conf） | /opt/brand-kit（kelymi，源码 `.zcode/brand_kit_kelymi/`） | gitee `kelymi.git`（D:\ever\kelymi，master） |
+| kiss | 103.217.252.52（kisss.ai，解析中；暂 IP 直连） | /opt/brand-kit（kiss，源码 `.zcode/brand_kit_kiss/`） | 暂无（repo=None，本机未建 D:\ever\kiss） |
 
-- 三台站点路径均为 `/www/wwwroot/douyin/ai-girl-malaysia.com`，URL 前缀均为 `/ai/`
+- 四台站点路径均为 `/www/wwwroot/douyin/ai-girl-malaysia.com`，URL 前缀均为 `/ai/`
 - sugus 链路走 99.11 跳板（跳板上有 `n99_pull` key 直连 98.55），无需额外凭据
-- 线上验证地址：`https://heygirl.live/ai/Home.html` ｜ `http://172.81.98.55/ai/Home.html` ｜ `https://kelymi.autos/ai/Home.html`
+- 线上验证地址：`https://heygirl.live/ai/Home.html` ｜ `http://172.81.98.55/ai/Home.html` ｜ `https://kelymi.autos/ai/Home.html` ｜ `http://103.217.252.52/ai/Home.html`
 - kelymi 备份：同步前全量在 `/root/kelymi_pre_sync_20261018/`（7.1M）；apply_brand 每日回滚备份在 `/tmp/brand_bak_<客户>_<日期>/`
 
 ---
