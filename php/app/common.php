@@ -154,6 +154,14 @@ if (!function_exists('full_url')) {
      */
     function full_url(string $relativeUrl = '', string|bool $domain = true, string $default = ''): string
     {
+        $relativeUrl = $relativeUrl ?: $default;
+
+        // 素材独立存储：本站 /storage/ 资源统一换成存储服务器的签名地址
+        if ($relativeUrl !== '' && \app\common\library\media\Media::enabled()
+            && \app\common\library\media\Media::isStoragePath($relativeUrl)) {
+            return \app\common\library\media\Media::url($relativeUrl);
+        }
+
         // 存储/上传资料配置
         Event::trigger('uploadConfigInit', App::getInstance());
 
@@ -168,7 +176,6 @@ if (!function_exists('full_url')) {
             $domain = '';
         }
 
-        $relativeUrl = $relativeUrl ?: $default;
         if (!$relativeUrl) return $domain;
 
         $regex = "/^((?:[a-z]+:)?\/\/|data:image\/)(.*)/i";
@@ -184,6 +191,29 @@ if (!function_exists('full_url')) {
         }
 
         return $url;
+    }
+}
+
+if (!function_exists('media_url')) {
+
+    /**
+     * 素材地址（独立存储 + 签名防盗链）
+     *
+     * /storage/xxx → 存储服务器签名 URL；纯外链原样返回；
+     * 未启用独立存储时等同原路径，行为与改造前一致。
+     */
+    function media_url(?string $path): string
+    {
+        return \app\common\library\media\Media::url((string) $path);
+    }
+}
+
+if (!function_exists('media_path')) {
+
+    /** 任意素材地址（含签名 URL）→ 可入库的站内路径 /storage/xxx */
+    function media_path(?string $path): string
+    {
+        return \app\common\library\media\Media::toStoragePath((string) $path);
     }
 }
 

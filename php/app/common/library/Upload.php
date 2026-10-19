@@ -65,6 +65,11 @@ class Upload
         $upload       = Config::get('upload');
         $this->config = array_merge($upload, $config);
 
+        // 素材独立存储：上传直接落对象存储（数据库仍记 /storage/xxx 逻辑路径）
+        if (\app\common\library\media\Media::storageEnabled()) {
+            $this->driver['name'] = 'S3';
+        }
+
         if ($file) {
             $this->setFile($file);
         }

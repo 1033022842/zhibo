@@ -449,24 +449,32 @@ final class RoomService
         }
 
         if (preg_match('/^https?:\/\//i', $fileUrl)) {
-            return $fileUrl;
+            // 本站 /storage/ 地址也交给统一签名层（外链原样返回）
+            return \app\common\library\media\Media::isStoragePath($fileUrl)
+                ? \app\common\library\media\Media::url($fileUrl)
+                : $fileUrl;
         }
 
         $normalizedPath = '/' . ltrim(str_replace('\\', '/', $fileUrl), '/');
+        $storagePath    = '';
         if (str_starts_with($normalizedPath, '/storage/')) {
-            return rtrim($domain, '/') . $normalizedPath;
+            $storagePath = $normalizedPath;
+        } elseif (str_starts_with($normalizedPath, '/public/storage/')) {
+            $storagePath = '/storage/' . ltrim(substr($normalizedPath, strlen('/public/storage/')), '/');
+        } else {
+            $publicStorageRoot = rtrim(str_replace('\\', '/', root_path() . 'public/storage'), '/');
+            if (str_starts_with(str_replace('\\', '/', $fileUrl), $publicStorageRoot . '/')) {
+                $storagePath = '/storage/' . ltrim(substr(str_replace('\\', '/', $fileUrl), strlen($publicStorageRoot) + 1), '/');
+            }
         }
 
-        if (str_starts_with($normalizedPath, '/public/storage/')) {
-            return rtrim($domain, '/') . '/storage/' . ltrim(substr($normalizedPath, strlen('/public/storage/')), '/');
+        if ($storagePath === '') {
+            return '';
         }
-
-        $publicStorageRoot = rtrim(str_replace('\\', '/', root_path() . 'public/storage'), '/');
-        if (str_starts_with(str_replace('\\', '/', $fileUrl), $publicStorageRoot . '/')) {
-            return rtrim($domain, '/') . '/storage/' . ltrim(substr(str_replace('\\', '/', $fileUrl), strlen($publicStorageRoot) + 1), '/');
+        if (\app\common\library\media\Media::enabled()) {
+            return \app\common\library\media\Media::url($storagePath);
         }
-
-        return '';
+        return rtrim($domain, '/') . $storagePath;
     }
 
     private function encodeCursor(int $sort, int $id): string
