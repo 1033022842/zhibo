@@ -28,6 +28,11 @@
   // Track which login this guide was already shown for (per browser session)
   var TOKEN_KEY = 'live_access_token';
   var SESS_KEY = 'creator_guide_tok';
+  var SESSION_KEY = 'creator_guide_session';
+  var LAST_KEY = 'creator_guide_last';
+
+  /** 后台配置（GET /api/live/popupConfig），失败时保持旧版行为 */
+  var DEFAULTS = { enabled: true, delay: 1, frequency: 'login', interval_hours: 24 };
 
   function getToken() {
     try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
@@ -35,8 +40,13 @@
   function shownToken() {
     try { return sessionStorage.getItem(SESS_KEY); } catch (e) { return null; }
   }
-  function markShown() {
-    try { sessionStorage.setItem(SESS_KEY, getToken()); } catch (e) {}
+  function markShown(freq) {
+    try {
+      if (freq === 'login') sessionStorage.setItem(SESS_KEY, getToken());
+      else if (freq === 'session') sessionStorage.setItem(SESSION_KEY, '1');
+      else if (freq === 'interval') localStorage.setItem(LAST_KEY, String(Date.now()));
+      else if (freq === 'once') setSeen();
+    } catch (e) {}
   }
 
   function isSeen() {
@@ -46,14 +56,40 @@
     try { localStorage.setItem(KEY, '1'); } catch (e) {}
   }
 
+  function loadConfig() {
+    return fetch('/api/live/popupConfig?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json() })
+      .then(function (d) {
+        var c = d && d.code === '00000' && d.data && d.data.guide;
+        if (!c) return DEFAULTS;
+        return {
+          enabled: c.enabled !== false,
+          delay: parseInt(c.delay, 10) || 0,
+          frequency: c.frequency || 'login',
+          interval_hours: parseInt(c.interval_hours, 10) || 24
+        };
+      })
+      .catch(function () { return DEFAULTS; });
+  }
+
   /**
-   * 登录后才弹：每次登录（token 变化）后的第一个页面弹一次，同一登录的后续页面不再弹。
-   * 未登录（含登录页）从不弹——Creator Earning Guide 只对已登录的创作者有意义。
+   * 是否到弹出时机（登录后才弹；同一登录/会话/间隔/永久只弹一次）
    */
-  function shouldShow() {
-    if (isSeen()) return false;
+  function freqAllows(freq, hours) {
     var tok = getToken();
     if (tok === '') return false;
+
+    if (freq === 'session') {
+      try { return sessionStorage.getItem(SESSION_KEY) !== '1'; } catch (e) { return true; }
+    }
+    if (freq === 'interval') {
+      var last = 0;
+      try { last = parseInt(localStorage.getItem(LAST_KEY) || '0', 10) || 0; } catch (e) { last = 0; }
+      return Date.now() - last >= Math.max(1, hours) * 3600 * 1000;
+    }
+    if (freq === 'always' || freq === 'once') return true;
+
+    // login（默认）：每次登录后的第一个页面弹一次，同一登录的后续页面不再弹
     var prev = shownToken();
     if (prev === null || prev === '') return true;
     return tok !== prev;
@@ -129,10 +165,21 @@
     ensure();
     if (FORCE) {
       setTimeout(function(){ autoShow(true) }, 200);
-    } else if (shouldShow()) {
-      // Small delay so it does not collide with the promo popup
-      setTimeout(function(){ autoShow(true); markShown() }, 1200);
+      return;
     }
+    if (isSeen()) return;
+    if (getToken() === '') return;
+
+    loadConfig().then(function (cfg) {
+      if (!cfg || !cfg.enabled) return;
+      if (!freqAllows(cfg.frequency, cfg.interval_hours)) return;
+      var delay = Math.max(0, Math.min(60, parseInt(cfg.delay, 10) || 0)) * 1000;
+      setTimeout(function () {
+        if (isSeen()) return;
+        autoShow(true);
+        markShown(cfg.frequency);
+      }, delay);
+    });
   }
 
   if (document.readyState === 'loading') {

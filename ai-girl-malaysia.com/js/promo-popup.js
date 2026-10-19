@@ -4,12 +4,17 @@
   if (window.__sugusPromoReady) return
   window.__sugusPromoReady = true
 
-  /* 总开关：弹窗导流到 face_swap（AI 换脸），该功能尚未上线，暂时不弹；
-     上线后改回 true 恢复（HTML 引用版本号记得同步升级） */
-  var ENABLED = false
-
+  /* 开关 / 延迟 / 弹出频率由后台「营销推广 → 弹窗设置」控制，
+     前端通过 /api/live/popupConfig 读取；接口异常时保持默认（开启 + 每会话一次）。 */
   var DISMISS_KEY = 'sugus.promo.dismissed'
   var LOGIN_EVENT = 'live:login'
+  var TOKEN_KEY = 'live_access_token'
+  var TOK_KEY = 'promo_popup_tok'
+  var SESSION_KEY = 'promo_popup_session'
+  var LAST_KEY = 'promo_popup_last'
+  var ONCE_KEY = 'promo_popup_seen'
+  var DEFAULTS = { enabled: true, delay: 1, frequency: 'session', interval_hours: 24 }
+  var closedThisPage = false
 
   var CSS = [
     '.c-promo{display:none}',
@@ -58,6 +63,7 @@
   function close() {
     var el = document.getElementById('cPromo')
     if (el) el.classList.remove('open')
+    closedThisPage = true
     writeS(DISMISS_KEY, '1')
   }
 
@@ -84,17 +90,79 @@
     return true
   }
 
-  /* 已登录 + 本会话没关闭过 → 弹出 */
-  function maybeShow() {
-    if (!ENABLED) return
-    if (!build()) return
-    if (!token()) return
-    if (readS(DISMISS_KEY) === '1') return
-    document.getElementById('cPromo').classList.add('open')
+  function readL(k) { try { return localStorage.getItem(k) || '' } catch (e) { return '' } }
+  function writeL(k, v) { try { localStorage.setItem(k, v) } catch (e) { /* 隐私模式忽略 */ } }
+
+  function loadConfig() {
+    return fetch('/api/live/popupConfig?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json() })
+      .then(function (d) {
+        var c = d && d.code === '00000' && d.data && d.data.promo
+        if (!c) return DEFAULTS
+        return {
+          enabled: c.enabled !== false,
+          delay: parseInt(c.delay, 10) || 0,
+          frequency: c.frequency || 'session',
+          interval_hours: parseInt(c.interval_hours, 10) || 24
+        }
+      })
+      .catch(function () { return DEFAULTS })
   }
 
-  /* 登录成功：清掉关闭标记，跳转后的新页面会重新弹 */
-  document.addEventListener(LOGIN_EVENT, function () { dropS(DISMISS_KEY) })
+  /** 按后台频率判断本次是否可以弹 */
+  function freqAllows(freq, hours) {
+    if (freq === 'login') {
+      var prev = readS(TOK_KEY)
+      if (prev === '') return true
+      return token() !== prev
+    }
+    if (freq === 'session') {
+      if (readS(DISMISS_KEY) === '1') return false
+      return readS(SESSION_KEY) !== '1'
+    }
+    if (freq === 'interval') {
+      var last = parseInt(readL(LAST_KEY) || '0', 10) || 0
+      return Date.now() - last >= Math.max(1, hours) * 3600 * 1000
+    }
+    if (freq === 'once') return readL(ONCE_KEY) !== '1'
+    return true // always：每次打开页面都弹
+  }
+
+  function markShown(freq) {
+    if (freq === 'login') writeS(TOK_KEY, token())
+    else if (freq === 'session') writeS(SESSION_KEY, '1')
+    else if (freq === 'interval') writeL(LAST_KEY, String(Date.now()))
+    else if (freq === 'once') writeL(ONCE_KEY, '1')
+  }
+
+  /* 已登录 → 读后台配置，按延迟与频率弹出 */
+  function maybeShow() {
+    if (closedThisPage) return
+    if (!build()) return
+    if (!token()) return
+
+    loadConfig().then(function (cfg) {
+      if (!cfg || !cfg.enabled) return
+      if (!freqAllows(cfg.frequency, cfg.interval_hours)) return
+      var delay = Math.max(0, Math.min(60, parseInt(cfg.delay, 10) || 0)) * 1000
+      setTimeout(function () {
+        if (closedThisPage) return
+        if (!freqAllows(cfg.frequency, cfg.interval_hours)) return
+        var el = document.getElementById('cPromo')
+        if (!el) return
+        el.classList.add('open')
+        markShown(cfg.frequency)
+      }, delay)
+    })
+  }
+
+  /* 登录成功：清掉会话级标记，跳转后的新页面可以重新弹 */
+  document.addEventListener(LOGIN_EVENT, function () {
+    dropS(DISMISS_KEY)
+    dropS(TOK_KEY)
+    dropS(SESSION_KEY)
+    closedThisPage = false
+  })
 
   function boot() { maybeShow() }
 

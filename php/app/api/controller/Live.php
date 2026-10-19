@@ -127,6 +127,60 @@ final class Live extends BaseController
     }
 
     /**
+     * 登录后弹窗配置（创作指南 / 18+ 进场弹窗）
+     * GET /api/live/popupConfig
+     *
+     * 后台「营销推广 → 弹窗设置」可控制开关、延迟秒数、弹出频率与间隔小时。
+     */
+    public function popupConfig()
+    {
+        $defaults = [
+            'popup_guide_enabled'   => '1',
+            'popup_guide_delay'     => '1',
+            'popup_guide_freq'      => 'login',
+            'popup_guide_interval'  => '24',
+            'popup_promo_enabled'   => '1',
+            'popup_promo_delay'     => '1',
+            'popup_promo_freq'      => 'session',
+            'popup_promo_interval'  => '24',
+        ];
+        $values = [];
+        try {
+            $values = Db::connect('live_mysql')->table('lp_platform_config')
+                ->whereIn('key', array_keys($defaults))
+                ->column('value', 'key');
+        } catch (\Throwable) {
+            $values = [];
+        }
+
+        $freqs = ['login', 'session', 'interval', 'always', 'once'];
+        $pick = static function (string $key) use ($values, $defaults): string {
+            $val = trim((string) ($values[$key] ?? ''));
+            return $val === '' ? $defaults[$key] : $val;
+        };
+        $int = static fn(string $key, int $min, int $max): int => max($min, min($max, (int) $pick($key)));
+        $freq = static function (string $key) use ($pick, $freqs): string {
+            $val = $pick($key);
+            return in_array($val, $freqs, true) ? $val : 'login';
+        };
+
+        return $this->jsonSuccess([
+            'guide' => [
+                'enabled'        => $pick('popup_guide_enabled') === '1',
+                'delay'          => $int('popup_guide_delay', 0, 60),
+                'frequency'      => $freq('popup_guide_freq'),
+                'interval_hours' => $int('popup_guide_interval', 1, 720),
+            ],
+            'promo' => [
+                'enabled'        => $pick('popup_promo_enabled') === '1',
+                'delay'          => $int('popup_promo_delay', 0, 60),
+                'frequency'      => $freq('popup_promo_freq'),
+                'interval_hours' => $int('popup_promo_interval', 1, 720),
+            ],
+        ]);
+    }
+
+    /**
      * 发送注册邮箱验证码
      * POST /api/live/sendEmailCode
      */
@@ -1600,18 +1654,9 @@ final class Live extends BaseController
                 ->where('role_key', $roleKey)->where('status', 1)->count() > 0;
             // 按角色实际素材过滤：缺视频的礼物不下发（面板不显示，杜绝送礼后 404）
             if ($enabled) {
-                $dir = 'chat_gifts/' . $roleKey . '/';
-                if (\app\common\library\media\Media::storageEnabled()) {
-                    $files = array_flip(\app\common\library\media\Media::listDir($dir));
-                } else {
-                    $base  = dirname(__DIR__, 3) . '/public/storage/' . $dir;
-                    $files = [];
-                    foreach ((array) @scandir($base) as $f) {
-                        $files[(string) $f] = true;
-                    }
-                }
-                $gifts = array_values(array_filter($gifts, function ($g) use ($files) {
-                    return isset($files[$g['gift_key'] . '.mp4']);
+                $base = dirname(__DIR__, 3) . '/public/storage/chat_gifts/' . $roleKey . '/';
+                $gifts = array_values(array_filter($gifts, function ($g) use ($base) {
+                    return is_file($base . $g['gift_key'] . '.mp4');
                 }));
             }
         }
@@ -1636,38 +1681,10 @@ final class Live extends BaseController
     /** 扫描角色媒体目录：{enabled, persona, images[], videos[]} */
     private function scanChatMedia(string $roleKey): array
     {
-        $dir     = 'chat_media/' . $roleKey . '/';
-        $urlBase = '/storage/' . $dir;
-        $images  = [];
-        $videos  = [];
-        $persona = '';
-
-        if (\app\common\library\media\Media::storageEnabled()) {
-            // 素材在对象存储：一次 ListObjects 拿到目录清单，避免 9×2 次 HEAD
-            $files = array_flip(\app\common\library\media\Media::listDir($dir));
-            for ($i = 1; $i <= 9; $i++) {
-                if (isset($files[$i . '.jpg'])) {
-                    $images[] = $urlBase . $i . '.jpg';
-                }
-                if (isset($files[$i . '.mp4'])) {
-                    $videos[] = $urlBase . $i . '.mp4';
-                }
-            }
-            foreach (['persona.jpg', 'persona.webp', 'persona.png'] as $p) {
-                if (isset($files[$p])) {
-                    $persona = $urlBase . $p;
-                    break;
-                }
-            }
-            return [
-                'enabled' => count($images) > 0,
-                'persona' => $persona,
-                'images'  => $images,
-                'videos'  => $videos,
-            ];
-        }
-
-        $base = dirname(__DIR__, 3) . '/public/storage/' . $dir;
+        $base = dirname(__DIR__, 3) . '/public/storage/chat_media/' . $roleKey . '/';
+        $urlBase = '/storage/chat_media/' . $roleKey . '/';
+        $images = [];
+        $videos = [];
         for ($i = 1; $i <= 9; $i++) {
             if (is_file($base . $i . '.jpg')) {
                 $images[] = $urlBase . $i . '.jpg';
@@ -1676,6 +1693,7 @@ final class Live extends BaseController
                 $videos[] = $urlBase . $i . '.mp4';
             }
         }
+        $persona = '';
         foreach (['persona.jpg', 'persona.webp', 'persona.png'] as $p) {
             if (is_file($base . $p)) {
                 $persona = $urlBase . $p;
@@ -1796,11 +1814,8 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '该角色暂不支持送礼');
         }
         // 素材存在性校验：缺视频的礼物不允许送（防 404）
-        $relMedia = '/storage/chat_gifts/' . $roleKey . '/' . $gift['gift_key'] . '.mp4';
-        $hasMedia = \app\common\library\media\Media::storageEnabled()
-            ? \app\common\library\media\Media::exists($relMedia)
-            : is_file(dirname(__DIR__, 3) . '/public' . $relMedia);
-        if (!$hasMedia) {
+        $mediaPath = dirname(__DIR__, 3) . '/public/storage/chat_gifts/' . $roleKey . '/' . $gift['gift_key'] . '.mp4';
+        if (!is_file($mediaPath)) {
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '该礼物暂不可用');
         }
 

@@ -694,23 +694,61 @@
       $(document).on('click', '[data-action*="openSignInModal"], [data-action*="openRegistrationModal"]', function () { initGoogleLogin() })
 
       /* ---------- 注册邮箱验证码：开关打开后在邮箱输入框下方插入验证码行 ---------- */
+      function ensureEmailCodeStyle() {
+        if (document.getElementById('email-code-style')) return
+        var style = document.createElement('style')
+        style.id = 'email-code-style'
+        style.textContent =
+          // 登录页（.input-group 旧版表单）
+          '.input-group.email-code-group input{padding-right:112px}' +
+          '.input-group.email-code-group .email-code-send{position:absolute;right:10px;top:50%;transform:translateY(-50%);' +
+            'padding:7px 12px;border-radius:6px;border:1px solid #f35b7a;background:transparent;color:#f35b7a;' +
+            'font-size:.82rem;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer}' +
+          // 站点公共弹窗（Tailwind 表单）
+          '.email-code-send-tw{position:absolute;right:8px;top:50%;transform:translateY(-50%);' +
+            'padding:7px 10px;border-radius:8px;border:1px solid #E75275;background:transparent;color:#E75275;' +
+            'font-size:12px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer}' +
+          '.email-code-send:disabled,.email-code-send-tw:disabled{opacity:.55;cursor:not-allowed}'
+        document.head.appendChild(style)
+      }
+
       function ensureEmailCodeField() {
         if (!emailVerifyRequired || $('#email_code_registration').length) return
         var $email = $('#user_email_registration')
         if (!$email.length) return
-        var row = $(
-          '<div class="email-code-group" style="display:flex;align-items:center;gap:8px;margin-top:12px;">' +
-            '<span class="icon" style="flex:0 0 auto;">✉️</span>' +
-            '<input id="email_code_registration" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Email code" ' +
-              'style="flex:1;min-width:0;padding:12px 14px;border-radius:10px;border:1px solid #2a2a2a;background:#131313;color:#E0E0E0;font-size:14px;">' +
-            '<button type="button" id="email_code_send" ' +
-              'style="flex:0 0 auto;padding:12px 14px;border-radius:10px;border:1px solid #E75275;background:transparent;color:#E75275;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;">Send code</button>' +
+        ensureEmailCodeStyle()
+
+        // 登录页：沿用 .input-group 结构，图标/输入框/按钮与其他输入行完全一致
+        var $group = $email.closest('.input-group')
+        if ($group.length) {
+          $group.after(
+            '<div class="input-group email-code-group">' +
+              '<span class="icon">🔑</span>' +
+              '<input id="email_code_registration" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Email code">' +
+              '<button type="button" id="email_code_send" class="email-code-send">Send code</button>' +
+            '</div>'
+          )
+          return
+        }
+
+        // 公共弹窗：复制邮箱行的 Tailwind 结构与间距
+        var $wrap = $email.closest('.w-full.flex-col')
+        if (!$wrap.length) return
+        var iconSrc = $email.closest('.self-stretch').find('img').first().attr('src') || ''
+        var iconHtml = iconSrc ? '<div class="w-5 h-5 absolute top-[13px] left-[10px]"><img alt="Email icon" src="' + iconSrc + '"></div>' : ''
+        var plClass = iconSrc ? 'pl-10' : 'pl-4'
+        $wrap.after(
+          '<div class="w-full flex-col justify-start items-start inline-flex mt-4">' +
+            '<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">' +
+              iconHtml +
+              '<div class="input email required user_email w-full">' +
+                '<input id="email_code_registration" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Email code" ' +
+                  'class="string email required w-full ' + plClass + ' pr-[108px] py-3 rounded-[10px] border border-black-light bg-black-medium text-sm font-medium text-[#E0E0E0] placeholder-[#E0E0E0]">' +
+              '</div>' +
+              '<button type="button" id="email_code_send" class="email-code-send-tw">Send code</button>' +
+            '</div>' +
           '</div>'
         )
-        var $anchor = $email.closest('.input-group')
-        if (!$anchor.length) { $anchor = $email.closest('.input') }
-        if (!$anchor.length) { $anchor = $email.parent() }
-        $anchor.after(row)
       }
 
       $(document).on('click', '#email_code_send', function () {

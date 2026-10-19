@@ -125,7 +125,7 @@
 
     var payUrl = cur.u || ord.pay_url || ''
     var amount = money(ord.pay_amount)
-    show(cur, amount, payUrl)
+    waitOtherPopup(function () { show(cur, amount, payUrl) }, 0)
   })
 
   /* ---------------- 弹窗（自包含样式，不依赖 SugusDialog） ---------------- */
@@ -138,6 +138,22 @@
     document.body.appendChild(el)
     setTimeout(function () { el.style.transition = 'opacity .3s'; el.style.opacity = '0' }, 2600)
     setTimeout(function () { el.remove() }, 3000)
+  }
+
+  // 与其它登录后弹窗错峰：创作指南 / 18+ 弹窗 / 订阅弹窗打开时先等待
+  function otherPopupOpen() {
+    return !!(document.querySelector('.cg-overlay.cg-show') ||
+      document.querySelector('.c-promo.open') ||
+      document.querySelector('.sgd-overlay'))
+  }
+
+  function waitOtherPopup(fn, tries) {
+    if (tries >= 20) { fn(); return }
+    if (otherPopupOpen()) {
+      setTimeout(function () { waitOtherPopup(fn, tries + 1) }, 700)
+      return
+    }
+    fn()
   }
 
   function show(ord, amount, payUrl) {

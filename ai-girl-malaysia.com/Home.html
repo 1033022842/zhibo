@@ -25,9 +25,9 @@
 
 		<script src="./_shared/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
-		<script src="./js/main.js?v=20261006e"></script>
+		<script src="./js/main.js?v=20261018b"></script>
 		<script src="./js/shell-new.js?v=20261018c"></script>
-		<script src="./js/pending-order.js?v=20261018a"></script>
+		<script src="./js/pending-order.js?v=20261018b"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20261007a"></script>
 
@@ -206,6 +206,20 @@
 			.c-s-lock svg{width:11px;height:11px;fill:currentColor}
 			.c-card-short{width:190px;height:271px;aspect-ratio:7/10;background:#131313}
 
+			/* ---------- 列表末位「View All」卡片 ---------- */
+			.c-viewall{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+				width:180px;height:300px;padding:16px;border-radius:18px;
+				border:1px dashed rgba(255,255,255,.22);background:rgba(255,255,255,.04);
+				text-decoration:none;transition:transform .22s cubic-bezier(0,0,.2,1),background .2s ease,border-color .2s ease}
+			.c-viewall:hover{transform:scale(1.05);background:rgba(231,82,117,.12);border-color:#E75275;z-index:6}
+			.c-viewall i{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:9999px;
+				background:rgba(231,82,117,.16);color:#E75275;font-style:normal;transition:background .2s ease,color .2s ease}
+			.c-viewall:hover i{background:#E75275;color:#fff}
+			.c-viewall svg{width:22px;height:22px}
+			.c-viewall b{font-size:15px;font-weight:700;line-height:20px;color:#fff;text-align:center}
+			.c-viewall-short{width:190px;height:271px}
+			.c-viewall-tall{width:190px;height:auto;aspect-ratio:9/16}
+
 			/* ---------- Private Content 卡片：样式对齐 candy.ai/private-content（参考页 siren.html）
 			   栏目布局（横向单排）不变，只统一卡片本身的观感：模糊封面 + 头像/昵称 + New 角标
 			   + 播放按钮与视频/图片数 + 代币价与星级 + 两行简介 + Unlock/Watch 按钮 ---------- */
@@ -365,6 +379,12 @@
 				.c-card{width:96px;height:158px;border-radius:10px}
 				.c-skeleton{width:96px;height:158px;border-radius:10px}
 				.c-card-short{width:96px;height:137px;border-radius:10px}
+				.c-viewall{width:96px;height:158px;padding:8px;border-radius:10px;gap:6px}
+				.c-viewall i{width:28px;height:28px}
+				.c-viewall svg{width:14px;height:14px}
+				.c-viewall b{font-size:11px;line-height:14px}
+				.c-viewall-short{width:96px;height:137px}
+				.c-viewall-tall{width:190px;height:auto;aspect-ratio:9/16}
 				.c-shelf-head{padding:0 16px}
 				.c-shelf-title{font-size:17px}
 				.c-card-info{padding:7px 8px}
@@ -1077,6 +1097,14 @@
 				'</a></li>'
 			}
 
+			// 列表末位「View All」卡片：短剧 / 私密内容等有独立列表页的栏目使用
+			function viewAllHtml(cls, href) {
+				return '<li><a class="c-viewall' + (cls ? ' ' + cls : '') + '" href="' + href + '" draggable="false">' +
+					'<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></i>' +
+					'<b>View All</b>' +
+				'</a></li>'
+			}
+
 			// 第一个列表：板块为空（未分组）的角色
 			function sectionless() {
 				return curChars().filter(function(c) { return !String(c.section || '').trim() })
@@ -1404,7 +1432,7 @@
 				var grid = document.getElementById('shortsGrid')
 				if (!sec || !grid || !list.length) return
 				list.forEach(function(s) { shortsById[String(s.id)] = s })
-				grid.innerHTML = list.map(shortCardHtml).join('')
+				grid.innerHTML = list.map(shortCardHtml).join('') + viewAllHtml('c-viewall-short', './shorts.html')
 				sec.style.display = ''
 				initShelf(sec)
 			}
@@ -1575,7 +1603,7 @@
 				var list = (isVip && privStore[activeCat]) ? privStore[activeCat] : []
 				sec.style.display = list.length ? '' : 'none'
 				if (!list.length) return
-				grid.innerHTML = list.map(privCardHtml).join('')
+				grid.innerHTML = list.map(privCardHtml).join('') + viewAllHtml('c-viewall-tall', './private_content.html')
 				initShelf(sec)
 			}
 			function watchPriv(item) {
@@ -1692,7 +1720,7 @@
 				var show = isVip && privateShorts.length
 				sec.style.display = show ? '' : 'none'
 				if (!show) return
-				grid.innerHTML = privateShorts.map(shortCardHtml).join('')
+				grid.innerHTML = privateShorts.map(shortCardHtml).join('') + viewAllHtml('c-viewall-short', './shorts.html')
 				initShelf(sec)
 			}
 
@@ -1840,7 +1868,7 @@ document.addEventListener('click', function (e) {
 	</script>
 
 	<!-- ===== 进场弹窗（已登录用户进入任意页面自动弹出） ===== -->
-	<script src="./js/promo-popup.js?v=20261008a"></script>
-	<script src="./js/creator-guide.js?v=20261011a"></script>
+	<script src="./js/promo-popup.js?v=20261018b"></script>
+	<script src="./js/creator-guide.js?v=20261018b"></script>
 </body>
 </html>

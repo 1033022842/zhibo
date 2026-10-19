@@ -320,9 +320,11 @@
         fiatChannels.forEach(function (fc) {
             var unit = fc.symbol || fc.currency || ''
             var name = String(fc.name || '').replace(/[<>"]/g, '')
+            var logo = fiatLogo(name)
             html +=
                 '<button type="button" class="tk-method" data-fiat-id="' + parseInt(fc.id, 10) + '">' +
                 '<span class="tk-method-text">' + name + (unit !== '' ? ' · ' + unit : '') + '</span>' +
+                (logo ? '<img class="fiat-brand-logo" style="width:20px;height:20px" src="' + logo.src + '" alt="' + logo.alt + '">' : '') +
                 '</button>'
         })
         // 银行卡收银台：FlowPay 商户参数配置齐全后自动出现。
@@ -361,6 +363,19 @@
         var text = String(label || '')
         for (var i = 0; i < CHANNEL_LOGOS.length; i++) {
             if (CHANNEL_LOGOS[i].re.test(text)) { return CHANNEL_LOGOS[i] }
+        }
+        return null
+    }
+
+    // 法币通道品牌标（如巴西 PIX）：按通道名匹配，匹配不到只显示文字
+    var FIAT_LOGOS = [
+        { re: /\bpix\b/i, src: './assets/pix.svg', alt: 'PIX' }
+    ]
+
+    function fiatLogo(name) {
+        var text = String(name || '')
+        for (var i = 0; i < FIAT_LOGOS.length; i++) {
+            if (FIAT_LOGOS[i].re.test(text)) { return FIAT_LOGOS[i] }
         }
         return null
     }

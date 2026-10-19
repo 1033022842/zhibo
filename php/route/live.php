@@ -55,6 +55,8 @@ Route::post('customVideo/uploadVideo', '\app\api\controller\CustomVideo@uploadVi
 // 公开接口 - 显式注册
 Route::post('live/registerFromAi',   '\app\api\controller\Live@registerFromAi');
 Route::get('live/registerConfig',    '\app\api\controller\Live@registerConfig');
+// 登录后弹窗配置（创作指南 / 18+ 进场弹窗，后台可控制开关/延迟/频率）
+Route::get('live/popupConfig',       '\app\api\controller\Live@popupConfig');
 Route::post('live/sendEmailCode',    '\app\api\controller\Live@sendEmailCode');
 Route::post('live/login',            '\app\api\controller\Live@login');
 Route::post('live/googleLogin',      '\app\api\controller\Live@googleLogin');
