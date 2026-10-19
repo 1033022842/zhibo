@@ -35,8 +35,8 @@ class MediaMigrate extends Command
 
     protected function execute(Input $input, Output $output): int
     {
-        if (!Media::storageEnabled()) {
-            $output->error('未启用对象存储写入（media.storage_enabled=1 才可用）');
+        if (!Media::s3Configured()) {
+            $output->error('未配置对象存储（需 media.s3_endpoint / media.bucket）');
             return 1;
         }
 

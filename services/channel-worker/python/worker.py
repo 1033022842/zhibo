@@ -112,7 +112,6 @@ def load_config():
             'cache_dir': os.environ.get('MEDIA_CACHE_DIR', ''),
             'public_prefixes': {
                 'covers', 'home_banner', 'home_character', 'gift_effect', 'loops', 'default',
-                'shop', 'posts', 'shorts',
             },
         },
     }

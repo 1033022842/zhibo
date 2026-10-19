@@ -41,9 +41,14 @@ final class Media
     /** 对象存储是否接入写路径（上传落 S3） */
     public static function storageEnabled(): bool
     {
+        return !empty(self::config()['storage_enabled']) && self::s3Configured();
+    }
+
+    /** S3 连接参数是否齐全（迁移命令等运维工具用它，不看业务开关） */
+    public static function s3Configured(): bool
+    {
         $cfg = self::config();
-        return !empty($cfg['storage_enabled'])
-            && (string) ($cfg['s3_endpoint'] ?? '') !== ''
+        return (string) ($cfg['s3_endpoint'] ?? '') !== ''
             && (string) ($cfg['bucket'] ?? '') !== '';
     }
 

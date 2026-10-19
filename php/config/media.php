@@ -27,10 +27,10 @@ return [
     'sign_ttl'        => (int) env('media.sign_ttl', 21600),
     'sign_bucket_sec' => (int) env('media.sign_bucket_sec', 3600),
 
-    // 公开素材的顶层目录（这些走 /pub/，可被 CDN 长缓存，不签名）
+    // 公开素材的顶层目录（这些走 /pub/，不签名，可被浏览器/CDN 长缓存）
+    // 只放装饰性素材；付费内容（shorts/posts/private/chat_*）一律走 /sec/ 签名
     'public_prefixes' => [
         'covers', 'home_banner', 'home_character', 'gift_effect', 'loops', 'default',
-        'shop', 'posts', 'shorts',
     ],
 
     // ───── 写路径（上传落对象存储） ─────
