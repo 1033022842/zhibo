@@ -12,11 +12,14 @@
   python .zcode/sync_clients.py --client heygirl     # 单客户
   python .zcode/sync_clients.py --client heygirl --dry-run
   python .zcode/sync_clients.py --client heygirl --full   # 忽略快照，全量推送
+  python .zcode/sync_clients.py --client kiss --seed-snapshot-from 7a38a72
+                              # 服务器已部署该提交 → 用它做基线，首次只推之后的变更
+                              # （不预热快照的话首次会把 assets/ 几十 MB 全量重传）
 
 首次给新客户使用前：先按 SOP 完成服务器 brand kit 初始化 + 客户仓库中性基线，
 并在下面 CLIENTS 里补齐该客户配置。
 """
-import argparse, json, os, posixpath, subprocess, sys, time, posixpath
+import argparse, json, os, posixpath, subprocess, sys, time
 import paramiko
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -62,15 +65,16 @@ CLIENTS = {
         "verify_expect": "Kelymi",
         "repo": r"D:\ever\kelymi",   # 2026-10-18 按 SOP 三.A 初始化（douyin 基线 + brand kit）
     },
-    # kiss（第四项目）：2026-10-19 初始化；无独立域名，IP 直连；换脸只砍前台（kit 每次同步后执行）
+    # kiss（第四项目）：2026-10-19 初始化；kisss.ai 已解析+证书（10-20）；换脸只砍前台
     "kiss": {
         "host": "103.217.252.52", "user": "root", "password": "Aa1033022842",
         "site": "/www/wwwroot/douyin/ai-girl-malaysia.com",
         "brand": "kiss",
         "brand_kit": "/opt/brand-kit",
+        # 80 端口是 Certbot 的 default_server return 404，必须走域名 https
         "verify_url": "https://kisss.ai/ai/Home.html",
-        "verify_expect": "Kisss",
-        "repo": None,
+        "verify_expect": "Kiss",
+        "repo": r"D:\ever\kiss",   # 2026-10-20 按 SOP 三.A 初始化（douyin 基线 + brand kit）
         # 换脸前台文件不同步（apply_brand 也会兜底删除，这里避免白推）
         "exclude": [
             "ai-girl-malaysia.com/face_swap.html",
@@ -83,17 +87,21 @@ def sh(cmd, cwd=None):
     r = subprocess.run(cmd, shell=True, capture_output=True, cwd=cwd)
     return r.returncode, r.stdout.decode("utf-8", "replace"), r.stderr.decode("utf-8", "replace")
 
+def tree_hashes(rev):
+    """返回 <rev> 下站点目录的 {路径: blob hash}"""
+    rc, out, err = sh(f'git ls-tree -r "{rev}" "{SITE_DIR}"', cwd=REPO)
+    if rc: sys.exit(f"git ls-tree {rev} 失败: {err}")
+    cur = {}
+    for line in out.splitlines():
+        meta, path = line.split("\t", 1)
+        cur[path.strip()] = meta.split()[2]
+    return cur
+
 def changed_files(client, full):
     """git blob 快照对比：返回自上次同步以来 ai-girl 目录变更/新增的文件（相对仓库根）
     默认只管 *.html / js/** / assets/** / site-manifest.json；
     _files/（保存页素材，几十万文件）默认不同步，--include-files 开启。"""
-    rc, out, err = sh(f'git ls-tree -r HEAD --name-only "{SITE_DIR}"', cwd=REPO)
-    if rc: sys.exit(f"git ls-tree 失败: {err}")
-    rc, hashes, err = sh(f'git ls-tree -r HEAD "{SITE_DIR}"', cwd=REPO)
-    cur = {}
-    for line in hashes.splitlines():
-        meta, path = line.split("\t", 1)
-        cur[path.strip()] = meta.split()[2]
+    cur = tree_hashes("HEAD")
     state = {} if full else json.load(open(STATE_FILE(client), encoding="utf-8")) if os.path.exists(STATE_FILE(client)) else {}
     changed = [p for p, h in cur.items() if state.get(p) != h]
     return cur, changed
@@ -147,7 +155,7 @@ def upload(cli, local_root, files, site):
     sftp.close()
     return n
 
-def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False):
+def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, seed_from=None):
     print(f"\n===== [{name}] =====")
     if not cfg.get("host") and not cfg.get("jump"):
         print("  !! 未配置服务器（占位），跳过。补齐 CLIENTS 配置后重试。"); return
@@ -155,6 +163,14 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False):
     rc, out, _ = sh(f'git status --short --untracked-files=no -- {SITE_DIR}', cwd=REPO)
     if out.strip():
         sys.exit(f"!! douyin 工作区 {SITE_DIR} 有未提交改动，先提交再分发：\n{out}")
+
+    if seed_from:
+        # 服务器已部署 seed_from 时用它当基线：首次同步只推该提交之后的变更
+        # （--init-snapshot 记的是 HEAD，会把没推过的变更一并标成「已同步」）
+        base = tree_hashes(seed_from)
+        json.dump(base, open(STATE_FILE(name), "w", encoding="utf-8"))
+        print(f"  已用 {seed_from} 的 blob 快照初始化基线（不推送）。")
+        return
 
     cur, changed = changed_files(name, full)
     changed = [p for p in changed if in_scope(p, include_files)]
@@ -264,7 +280,10 @@ if __name__ == "__main__":
     ap.add_argument("--full", action="store_true", help="忽略快照全量对比")
     ap.add_argument("--init-snapshot", action="store_true", help="只记录当前 blob 快照，不推送（服务器已是最新时预热用）")
     ap.add_argument("--include-files", action="store_true", help="连 *_files/ 素材目录一起同步（默认排除）")
+    ap.add_argument("--seed-snapshot-from", metavar="REV",
+                    help="服务器已部署该提交时，用它（而非 HEAD）初始化快照基线，首次只推之后的变更")
     a = ap.parse_args()
     names = list(CLIENTS) if a.client == "all" else [a.client]
     for n in names:
-        sync_client(n, CLIENTS[n], a.dry_run, a.full, a.init_snapshot, a.include_files)
+        sync_client(n, CLIENTS[n], a.dry_run, a.full, a.init_snapshot, a.include_files,
+                    a.seed_snapshot_from)
