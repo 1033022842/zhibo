@@ -358,7 +358,8 @@ final class RechargeChannel extends Backend
         $row = $id ? Db::connect('live_mysql')->table('lp_vip_plan')->where('id', $id)->find() : null;
 
         $r = $row ? $row : ['id' => '', 'name' => '', 'months' => '1', 'usd_price' => '', 'diamond_price' => '', 'daily_diamond' => '', 'sort' => '0',
-            'level' => 'premium', 'benefits' => '', 'chat_daily_limit' => '0', 'image_daily_limit' => '2', 'image_daily_refill' => '1', 'discount_percent' => '10', 'custom_video' => '1'];
+            // 新套餐默认按会员规则：5 次上限、每天回满 5 次（普通用户是 2 次上限、+1/天，见 VipService::FREE_IMAGE_*）
+            'level' => 'premium', 'benefits' => '', 'chat_daily_limit' => '0', 'image_daily_limit' => '5', 'image_daily_refill' => '5', 'discount_percent' => '10', 'custom_video' => '1'];
         $vName = htmlspecialchars((string)$r['name'], ENT_QUOTES);
         $vMonths = (int)$r['months'];
         $vUsd = htmlspecialchars((string)$r['usd_price'], ENT_QUOTES);
@@ -415,9 +416,9 @@ final class RechargeChannel extends Backend
                 <div class="field"><label>权益列表（每行一条，展示在订阅页）</label><textarea name="benefits" rows="6">{$vBenefits}</textarea></div>
                 <div class="field"><label>每日聊天条数（0=不限）</label><input type="number" name="chat_daily_limit" value="{$vChat}" /></div>
                 <div class="field"><label>每日图片/视频生成次数（余额上限）</label><input type="number" name="image_daily_limit" value="{$vImage}" />
-                    <div class="tip">余额最多累积到这个数</div></div>
+                    <div class="tip">余额最多累积到这个数。当前规则：会员 5；普通用户固定 2（不受此表控制）</div></div>
                 <div class="field"><label>每天补充次数</label><input type="number" name="image_daily_refill" value="{$vRefill}" min="0" />
-                    <div class="tip">例：上限 2、每天补充 1 → 用完后每天恢复 1 次，最多累积到 2</div></div>
+                    <div class="tip">等于上限 = 每天回满（会员 5/5）；小于上限 = 每天只补 N 次（普通用户 2 上限、+1/天）</div></div>
                 <div class="field"><label>内容/商城折扣百分比（10=9折，20=8折）</label><input type="number" name="discount_percent" value="{$vDiscount}" min="0" max="90" /></div>
                 <div class="field"><label>可用定制视频/图片生成</label>
                     <select name="custom_video"><option value="1">可用</option><option value="0"{$selCustomVideoOff}>不可用</option></select>

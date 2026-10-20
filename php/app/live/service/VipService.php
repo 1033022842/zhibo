@@ -15,6 +15,19 @@ use think\facade\Log;
 final class VipService
 {
     /**
+     * AI 生成额度（图片/视频共用一个池子）
+     *
+     *   普通用户：上限 2 次，每天补充 1 次（不能攒超过 2）
+     *   会员    ：上限 5 次，每天回满 5 次（refill 与 limit 相同）
+     *
+     * lp_vip_plan.image_daily_limit / image_daily_refill 是权威配置，
+     * 这两个常量只用于免费额度与非会员相关的兜底。
+     */
+    public const FREE_IMAGE_DAILY_LIMIT  = 2;
+    public const FREE_IMAGE_DAILY_REFILL = 1;
+    public const VIP_IMAGE_DAILY_LIMIT   = 5;
+
+    /**
      * 启用套餐列表（公开，含层级与权益）
      */
     public function plans(): array
@@ -136,18 +149,22 @@ final class VipService
                 'daily_diamond'     => 0,
                 'benefits'          => [],
                 'chat_daily_limit'  => $freeLimit,
-                'image_daily_limit' => 0,
-                'image_daily_refill' => 0,
+                // 生成额度（普通用户）：余额上限 2 次，每天补充 1 次（最多累积到 2）
+                // 会员对应 5 次 / 每天回满，见下方 plan 字段（lp_vip_plan.image_daily_*）
+                'image_daily_limit' => self::FREE_IMAGE_DAILY_LIMIT,
+                'image_daily_refill' => self::FREE_IMAGE_DAILY_REFILL,
                 'discount_percent'  => 0,
-                'custom_video'      => false,
+                // 普通用户也能生成（额度更少），不再需要订阅才能用
+                'custom_video'      => true,
                 'chat_quota'        => $quota->info($userId, 'chat', $freeLimit),
             ];
         }
 
-        // 会员到期时间被人工设置、查不到订单时按基础层兜底
+        // 会员到期时间被人工设置、查不到订单时按基础层兜底：5 次 / 每天回满
         $plan = $plan ?: [
             'level' => 'premium', 'name' => 'Premium', 'daily_diamond' => 20, 'benefits' => '',
-            'chat_daily_limit' => 0, 'image_daily_limit' => 2, 'image_daily_refill' => 1, 'discount_percent' => 10, 'custom_video' => 1,
+            'chat_daily_limit' => 0, 'image_daily_limit' => self::VIP_IMAGE_DAILY_LIMIT,
+            'image_daily_refill' => self::VIP_IMAGE_DAILY_LIMIT, 'discount_percent' => 10, 'custom_video' => 1,
         ];
 
         $level     = (string) ($plan['level'] ?? 'premium');

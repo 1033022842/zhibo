@@ -103,7 +103,7 @@
             card.addEventListener('click', function () {
                 var item = presets.filter(function (p) { return p.key === card.getAttribute('data-key') })[0]
                 if (isOutfit && item && !item.owned) {
-                    toast('Buy this outfit in the Shop first', 'warn')
+                    toast('Unlock this outfit in the Shop first', 'warn')
                     setTimeout(function () { location.href = './shop.html' }, 900)
                     return
                 }
@@ -128,12 +128,12 @@
             applyQuota(d.data.quota)
         }).catch(function () { toast('Network error', 'error') })
 
-        fetch('/api/vip/status', { headers: { Authorization: 'Bearer ' + token } })
+        fetch('/api/vip/status', { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 var vip = d && d.code === '00000' && d.data && d.data.is_vip
+                // 非会员也能用（Free 每天 2 次，+1/天）：只展示升级提示条，不隐藏表单
                 $('cvVipGate').style.display = vip ? 'none' : ''
-                $('cvCreateForm').style.display = vip ? '' : 'none'
             })
             .catch(function () { /* submit 兜底校验 */ })
     }
@@ -156,10 +156,15 @@
         if (q.refill_daily !== undefined) cvRefillDaily = parseInt(q.refill_daily, 10) || 0
         var left = typeof q.remaining === 'number' ? q.remaining : (qrLeft())
         el.textContent = left + (cvDailyLimit > 0 ? ' / ' + cvDailyLimit : ' left')
-        // 「每天 +N，上限 M」说明，避免用户以为是固定每天重置满额
+        // 说明文案区分两种规则：
+        //   每天回满（refill >= limit，会员 5/天）→ 「resets to N/day」
+        //   逐步补充（refill < limit，普通用户上限 2、+1/天）→ 「+N/day, max M」
         if (tip) {
             var n = parseInt(q.refill_daily, 10)
-            if (n > 0 && cvDailyLimit > 0) {
+            if (n > 0 && cvDailyLimit > 0 && n >= cvDailyLimit) {
+                tip.textContent = ' · resets to ' + cvDailyLimit + '/day'
+                tip.style.display = ''
+            } else if (n > 0 && cvDailyLimit > 0) {
                 tip.textContent = ' · +' + n + '/day, max ' + cvDailyLimit
                 tip.style.display = ''
             } else {
@@ -184,7 +189,7 @@
         $('cvPromptWrap').style.display = isEdit ? '' : 'none'
         // 两种模式都要卡片：视频=风格，图片=商店已购服装
         $('cvPresetWrap').style.display = ''
-        $('cvSubmit').textContent = isEdit ? '✨ Edit Image' : '✨ Generate Video'
+        $('cvSubmit').textContent = isEdit ? '✨ Apply Outfit' : '✨ Generate Video'
         renderPresets(isEdit ? imagePresets : currentPresets)
     }
 
@@ -192,7 +197,7 @@
     function submit() {
         if (!selFile) { toast('Please upload her picture first', 'warn'); return }
         if (!selPreset) {
-            toast(mode === 'outfit' ? 'Please pick an outfit to dress her in' : 'Please pick a style', 'warn')
+            toast(mode === 'outfit' ? 'Please pick a shop outfit for her' : 'Please pick a style', 'warn')
             return
         }
         if (!$('cvPolicy').checked) { toast('Please confirm the upload policy', 'warn'); return }
@@ -211,7 +216,7 @@
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             btn.disabled = false
-            btn.textContent = mode === 'outfit' ? '✨ Edit Image' : '✨ Generate Video'
+            btn.textContent = mode === 'outfit' ? '✨ Apply Outfit' : '✨ Generate Video'
             if (!d || d.code !== '00000') { toast((d && d.msg) || 'Submit failed', 'error'); return }
             // 提交成功即刻刷新剩余次数（remain=-1 不限量）；保留 refill 提示
             if (d.data && typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: cvDailyLimit, refill_daily: cvRefillDaily })
@@ -219,7 +224,7 @@
             switchTab(false)
         }).catch(function () {
             btn.disabled = false
-            btn.textContent = mode === 'outfit' ? '✨ Edit Image' : '✨ Generate Video'
+            btn.textContent = mode === 'outfit' ? '✨ Apply Outfit' : '✨ Generate Video'
             toast('Network error', 'error')
         })
     }
