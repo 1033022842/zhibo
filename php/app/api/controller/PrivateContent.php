@@ -74,6 +74,27 @@ final class PrivateContent extends BaseController
     }
 
     /**
+     * 单条私密内容（观看历史点回来时用；已解锁才下发媒体地址）
+     */
+    public function detail()
+    {
+        $id = (int) $this->request->get('id/d', 0);
+        if ($id <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'id 不能为空');
+        }
+
+        $row = $this->table()->table('lp_private_item')->where('id', $id)->where('status', 1)->find();
+        if (!$row) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '内容不存在或已下架');
+        }
+
+        $unlocked = $this->unlockedSet([$id]);
+        return $this->jsonSuccess([
+            'item' => $this->formatItem($row, isset($unlocked[$id])),
+        ]);
+    }
+
+    /**
      * 解锁私密内容：扣代币 → 记录已购（需登录）
      *
      * 已解锁的直接返回，不重复扣费（幂等）。
