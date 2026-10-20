@@ -71,7 +71,7 @@
 <script src="./js/shell-new.js?v=20261018c"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 <script src="./js/ui-dialog.js?v=20260927a"></script>
-<script src="./js/subscriptions.js?v=20261019h"></script>
+<script src="./js/subscriptions.js?v=20261020b"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
 <!-- 未登录版式钩子：给 <html> 加 no-auth 类，未登录相关的差异全部由页面 CSS 控制
      （隐藏 Premium / Premium Plus 切换、卡片不带 tokens 档位下拉、卡片高度 250px）。
@@ -1566,22 +1566,22 @@
 
 <style>
   #payment-method-modal, #payment-method-modal-premium-plus { padding: 16px; }
-  #payment-method-modal .pm-box, #payment-method-modal-premium-plus .pm-box { position: relative; width: 480px; max-width: 100%; max-height: calc(100vh - 32px); overflow: auto; padding: 24px 22px 22px; border: 1px solid #2b2b2e; border-radius: 16px; background: #1b1b1d; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); font-family: Roboto, -apple-system, "Segoe UI", sans-serif; }
-  .pm-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
-  .pm-head-title { color: #fff; font-size: 19px; font-weight: 700; line-height: 1.2; }
-  .pm-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: #f2d06b; color: #1b1b1d; font-size: 13px; font-weight: 700; white-space: nowrap; }
-  .pm-info { display: inline-flex; flex: 0 0 auto; }
-  .pm-close { margin-left: auto; width: 28px; height: 28px; padding: 0; border: 0; background: none; color: #a1a1a6; font-size: 24px; line-height: 1; cursor: pointer; }
+  #payment-method-modal .pm-box, #payment-method-modal-premium-plus .pm-box { position: relative; width: 480px; max-width: 100%; max-height: calc(100vh - 32px); overflow: auto; padding: 30px 20px 34px; border: 1px solid #282828; border-radius: 12px; background: #1a1a1a; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); font-family: Roboto, -apple-system, "Segoe UI", sans-serif; }
+  .pm-close { position: absolute; top: 20px; right: 18px; width: 28px; height: 28px; padding: 0; border: 0; background: none; color: #c9c9ce; font-size: 26px; line-height: 1; cursor: pointer; }
   .pm-close:hover { color: #fff; }
-  .pm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pm-title { margin: 0 0 24px; padding: 0 36px; color: #fff; font-size: 24px; font-weight: 700; line-height: 1.2; text-align: center; }
+  .pm-plan { display: flex; align-items: center; justify-content: space-between; height: 52px; padding: 0 16px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; }
+  .pm-plan-title { color: #fff; font-size: 14px; font-weight: 600; line-height: 1.5; }
+  .pm-plan-price { color: #fff; font-size: 14px; font-weight: 500; line-height: 1.5; }
+  .pm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
   .pm-grid .pm-row:first-child { grid-column: 1 / -1; }
-  .pm-row { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 10px 12px; border: 1px solid transparent; border-radius: 8px; background: #2c2c2f; color: #fff; font-size: 13px; font-weight: 500; line-height: 1.35; text-align: center; cursor: pointer; transition: background .15s, border-color .15s; }
-  .pm-row:hover { background: #35353a; }
-  .pm-row.is-on { border-color: #e8508a; background: rgba(232, 80, 138, .10); box-shadow: inset 0 0 0 1px #e8508a; }
+  .pm-row { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 16px; border: 0; border-radius: 8px; background: #404040; color: #fff; font-size: 12px; font-weight: 500; line-height: 1.25; text-align: center; cursor: pointer; transition: filter .2s; }
+  .pm-row:hover { filter: brightness(1.1); }
+  .pm-row[disabled] { opacity: .6; cursor: default; }
   .pm-row-text { min-width: 0; overflow-wrap: anywhere; }
-  .pm-row-icons { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; }
+  .pm-row-icons { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; }
   .pm-row-icons img { display: block; height: 20px; width: auto; }
-  @media (max-width: 420px) { .pm-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 420px) { .pm-grid { grid-template-columns: 1fr; } .pm-title { font-size: 20px; } }
   .pm-sub[hidden] { display: none; }
   .pm-sub { margin-top: 12px; }
   .pm-sub-label { margin-bottom: 8px; color: #9a9a9f; font-size: 12px; }
@@ -1589,41 +1589,25 @@
   .pm-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid #3a3a3e; border-radius: 999px; background: #232326; color: #e8e8ea; font-size: 12.5px; font-weight: 500; cursor: pointer; }
   .pm-chip.is-on { border-color: #e8508a; background: rgba(232, 80, 138, .12); color: #fff; }
   .pm-chip img { display: block; height: 16px; width: auto; }
-  .pm-secure { margin-top: 20px; color: #d6d6d8; font-size: 13px; }
-  .pm-secure p { margin: 0 0 6px; font-weight: 600; }
-  .pm-secure ul { margin: 0; padding-left: 18px; color: #b9b9be; font-size: 13px; line-height: 1.7; }
-  .pm-note { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 14px 15px; border-radius: 10px; background: #2a2a2d; color: #e8e8ea; font-size: 12.5px; line-height: 1.45; }
-  .pm-note-ico { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: #3a3a3e; color: #fff; font-size: 18px; font-weight: 700; }
-  .pm-cta { display: block; width: 100%; height: 52px; margin-top: 16px; border: 0; border-radius: 10px; background: #f2568f; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: filter .2s; }
-  .pm-cta:hover { filter: brightness(1.06); }
-  .pm-cta[disabled] { opacity: .6; cursor: default; }
+  .pm-notes { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 25px; }
+  .pm-note { margin: 0; color: #a4a4a4; font-size: 13px; font-weight: 500; line-height: 16px; text-align: center; }
 </style>
 <dialog class="modal modal-bottom sm:modal-middle" id="payment-method-modal" data-controller="dialog " data-dialog-on-disconnect-value="close">
   <div class="pm-box" role="dialog" aria-modal="true">
-    <div class="pm-head">
-      <span class="pm-head-title">Plan selected:</span>
-      <span class="pm-badge">Premium</span>
-      <span class="pm-info" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.2" stroke="#8e8e93" stroke-width="1.3"/><path d="M9 8.1v4.2" stroke="#8e8e93" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="5.7" r=".9" fill="#8e8e93"/></svg></span>
-      <button type="button" data-action="click-&gt;dialog#close" class="pm-close" aria-label="Close">&times;</button>
+    <button type="button" data-action="click-&gt;dialog#close" class="pm-close" aria-label="Close">&times;</button>
+    <h2 class="pm-title">Choose payment method</h2>
+    <div class="pm-plan">
+      <span class="pm-plan-title" id="sub-modal-plan-title" data-payment-method-modal-target="planTitle">1 Month</span>
+      <span class="pm-plan-price" id="sub-modal-plan-price" data-payment-method-modal-target="planPrice">$13.99</span>
+      <span data-payment-method-modal-target="planPricePeriod" hidden>month</span>
     </div>
-    <span id="sub-modal-plan-title" data-payment-method-modal-target="planTitle" hidden>1 Month</span>
-    <span id="sub-modal-plan-price" data-payment-method-modal-target="planPrice" hidden>$13.99</span>
-    <span data-payment-method-modal-target="planPricePeriod" hidden>month</span>
     <div class="pm-grid" id="sub-pm-grid"></div>
     <div class="pm-sub" id="sub-pm-sub" hidden></div>
-    <div class="pm-secure">
-      <p>Pay securely with</p>
-      <ul>
-        <li>VISA</li>
-        <li>Mastercard</li>
-        <li>Or other available methods</li>
-      </ul>
+    <div class="pm-notes">
+      <p class="pm-note">One-time payment.</p>
+      <p class="pm-note">Your membership starts instantly after payment.</p>
+      <p class="pm-note">Additional local taxes may apply</p>
     </div>
-    <div class="pm-note">
-      <span class="pm-note-ico">$</span>
-      <div>This is a one-time purchase. No auto-renewal.<br>Please feel free to make your payment.</div>
-    </div>
-    <button type="button" class="pm-cta" id="sub-pay-card" data-pm-cta="premium">Pay with Card</button>
   </div>
   <form method="dialog" class="modal-backdrop ">
     <button>close</button>
@@ -2228,30 +2212,20 @@
     
 <dialog class="modal modal-bottom sm:modal-middle" id="payment-method-modal-premium-plus" data-controller="dialog " data-dialog-on-disconnect-value="close">
   <div class="pm-box" role="dialog" aria-modal="true">
-    <div class="pm-head">
-      <span class="pm-head-title">Plan selected:</span>
-      <span class="pm-badge">Premium Plus</span>
-      <span class="pm-info" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.2" stroke="#8e8e93" stroke-width="1.3"/><path d="M9 8.1v4.2" stroke="#8e8e93" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="5.7" r=".9" fill="#8e8e93"/></svg></span>
-      <button type="button" data-action="click-&gt;dialog#close" class="pm-close" aria-label="Close">&times;</button>
+    <button type="button" data-action="click-&gt;dialog#close" class="pm-close" aria-label="Close">&times;</button>
+    <h2 class="pm-title">Choose payment method</h2>
+    <div class="pm-plan">
+      <span class="pm-plan-title" id="sub-modal-plan-title-premium-plus" data-payment-method-modal-target="planTitle">1 Month</span>
+      <span class="pm-plan-price" id="sub-modal-plan-price-premium-plus" data-payment-method-modal-target="planPrice">$13.99</span>
+      <span data-payment-method-modal-target="planPricePeriod" hidden>month</span>
     </div>
-    <span id="sub-modal-plan-title-premium-plus" data-payment-method-modal-target="planTitle" hidden>1 Month</span>
-    <span id="sub-modal-plan-price-premium-plus" data-payment-method-modal-target="planPrice" hidden>$13.99</span>
-    <span data-payment-method-modal-target="planPricePeriod" hidden>month</span>
     <div class="pm-grid" id="sub-pm-grid-plus"></div>
     <div class="pm-sub" id="sub-pm-sub-plus" hidden></div>
-    <div class="pm-secure">
-      <p>Pay securely with</p>
-      <ul>
-        <li>VISA</li>
-        <li>Mastercard</li>
-        <li>Or other available methods</li>
-      </ul>
+    <div class="pm-notes">
+      <p class="pm-note">One-time payment.</p>
+      <p class="pm-note">Your membership starts instantly after payment.</p>
+      <p class="pm-note">Additional local taxes may apply</p>
     </div>
-    <div class="pm-note">
-      <span class="pm-note-ico">$</span>
-      <div>This is a one-time purchase. No auto-renewal.<br>Please feel free to make your payment.</div>
-    </div>
-    <button type="button" class="pm-cta" id="sub-pay-card-plus" data-pm-cta="premium_plus">Pay with Card</button>
   </div>
   <form method="dialog" class="modal-backdrop ">
     <button>close</button>
