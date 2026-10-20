@@ -49,8 +49,9 @@
 		<script src="./js/main.js?v=20261020d"></script>
 		<script src="./js/shell-new.js?v=20261018c"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
-		<script src="./js/watch-dialog.js?v=20260917"></script>
-		<script src="./js/private_content.js?v=20261013b"></script>
+		<script src="./js/watch-dialog.js?v=20261020c"></script>
+		<script src="./js/watch-history.js?v=20261020c"></script>
+		<script src="./js/private_content.js?v=20261020c"></script>
 
 			<script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
@@ -314,6 +315,12 @@
 								<a data-tab="most_liked" class="shrink-0 h-9 px-4 inline-flex items-center rounded-full text-xs md:text-sm font-semibold transition-colors border bg-white/5 text-white/80 border-white/15 hover:bg-white/10" href="./private_content.html?tab=most_liked">Most liked</a>
 							</div>
 						</div>
+
+						<!-- Continue watching：当前登录用户最近看过的私密内容（数据 /api/live/watchHistory） -->
+						<section id="private-history-shelf" class="hidden mb-5 lg:mb-7">
+							<h2 class="text-[18px] leading-[27px] font-semibold text-white lg:text-xl lg:leading-6"><span class="text-pink-dark">Continue</span> <span>watching</span></h2>
+							<div id="private-history-row" class="mt-3 lg:mt-4 flex gap-[10px] overflow-x-auto no-scrollbar pb-1"></div>
+						</section>
 
 						<div id="private-content-lobby-content"></div>
 

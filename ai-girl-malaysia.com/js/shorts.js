@@ -35,23 +35,26 @@
         document.addEventListener('click', function (e) {
             var el = e.target.closest ? e.target.closest('[data-short-id]') : null
             if (!el) return
-            var item = byId[String(el.getAttribute('data-short-id') || '')]
-            if (!item) return
+            var shortId = Number(el.getAttribute('data-short-id')) || 0
+            if (!shortId) return
+            var item = byId[String(shortId)] || null
             e.preventDefault()
 
             // 一律弹 candy.ai 同款的剧集弹窗（左视频 / 右介绍+剧集）：
             // 后台配了剧集就列多集，没配就用剧自身视频兜底成第 1 集
+            // 观看历史卡片带 data-episode-id，直接恢复到当时那一集
             if (window.CandySeries) {
                 window.CandySeries.open({
-                    shortId: item.id,
-                    title: item.title || '',
-                    description: item.description || '',
+                    shortId: shortId,
+                    title: item ? (item.title || '') : (el.getAttribute('aria-label') || ''),
+                    description: item ? (item.description || '') : '',
+                    episodeId: Number(el.getAttribute('data-episode-id')) || 0,
                 })
                 return
             }
 
             // 极端情况（新版弹窗脚本没加载出来）才回退到旧的单视频弹窗
-            if (!window.CandyWatch) return
+            if (!item || !window.CandyWatch) return
 
             window.CandyWatch.open({
                 title: item.title || '',
@@ -142,7 +145,7 @@
     /* ---------- Continue watching 货架卡片（带进度条） ---------- */
     function shelfCard(item) {
         var p = num(item.progress)
-        return '<a class="cs-shelf-card group flex shrink-0 snap-start cursor-pointer flex-col text-left" data-short-id="' + esc(item.id) + '" aria-label="' + esc(item.title) + '" href="javascript:void(0)">' +
+        return '<a class="cs-shelf-card group flex shrink-0 snap-start cursor-pointer flex-col text-left" data-short-id="' + esc(item.id) + '" data-episode-id="' + esc(item.episode_id || 0) + '" aria-label="' + esc(item.title) + '" href="javascript:void(0)">' +
             '<div class="relative aspect-[240/342] w-full overflow-hidden rounded-[11px] bg-black-default ring-1 ring-white/5 drop-shadow-candy-shorts-card lg:rounded-[18px] lg:transition lg:duration-300 lg:group-hover:ring-white/20">' +
             '<img class="absolute inset-0 size-full object-cover lg:transition-transform lg:duration-300 lg:ease-out lg:group-hover:scale-[1.04]" loading="lazy" alt="" aria-hidden="true" src="' + esc(item.poster) + '">' +
             '<div class="pointer-events-none absolute inset-x-0 bottom-0 hidden h-1/4 bg-gradient-to-t from-black/50 to-transparent opacity-0 lg:block lg:transition-opacity lg:duration-300 lg:group-hover:opacity-100" aria-hidden="true"></div>' +
@@ -461,9 +464,29 @@
         return groups
     }
 
+    /* ---------- 当前用户的观看历史：登录且有记录时替换后台静态的 Continue watching ---------- */
+    var userHistory = null
+
+    function loadUserHistory() {
+        if (!window.WatchHistory || !window.WatchHistory.token()) return
+        window.WatchHistory.load('short', 20).then(function (list) {
+            if (!list.length) return
+            userHistory = list.map(function (h) {
+                return {
+                    id: h.id,
+                    title: h.title,
+                    poster: h.poster,
+                    progress: h.progress,
+                    episode_id: h.episode_id,
+                }
+            })
+            renderContinueWatching(userHistory)
+        })
+    }
+
     function render(list) {
         var groups = groupBySection(list)
-        renderContinueWatching(groups.continue_watching)
+        renderContinueWatching(userHistory && userHistory.length ? userHistory : groups.continue_watching)
         renderTopSeries(groups.top_series)
         renderExplore(groups.explore)
     }
@@ -496,6 +519,7 @@
                 indexItems(list)
                 renderCategoryPills()
                 applyFilter()
+                loadUserHistory()
             })
             .catch(function () {
                 allItems = []

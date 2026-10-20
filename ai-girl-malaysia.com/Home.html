@@ -31,7 +31,7 @@
 		<script src="./js/shell-new.js?v=20261018c"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 		<script src="./js/event.js"></script>
-		<script src="./js/series-dialog.js?v=20261020a"></script>
+		<script src="./js/series-dialog.js?v=20261020c"></script>
 
 		<title>Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams</title>
 		<meta name="description" content="Your dream companion awaits! Create your own AI girlfriend or connect instantly with realistic AI characters. Chat, voice calls, image generation, live streams and more — all private, secure and discreet.">
@@ -466,7 +466,8 @@
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <script src="./js/ui-dialog.js?v=20260928d"></script>
-    <script src="./js/watch-dialog.js?v=20260917"></script>
+    <script src="./js/watch-dialog.js?v=20261020c"></script>
+    <script src="./js/watch-history.js?v=20261020c"></script>
     <script src="./js/tracking.js?v=20261018a"></script>
 </head>
 	<body class="bg-main pages home" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
@@ -670,6 +671,27 @@
 						<div class="c-hero-dots" id="heroDots"></div>
 					</section>
 					</div>
+
+					<!-- Continue watching：按当前登录用户的观看历史（短剧 + 私密内容） -->
+					<section class="c-shelf" id="continueShelf" style="display:none">
+						<div class="c-shelf-head">
+							<h2 class="c-shelf-title"><em>Continue</em> watching</h2>
+							<button class="c-arrow c-title-arrow" type="button" data-scroll="next" aria-label="Scroll right">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
+						</div>
+						<div class="c-row-wrap">
+							<div class="c-row" data-row>
+								<ul class="c-row-grid c-row-grid-short" id="continueGrid"></ul>
+							</div>
+							<button class="c-row-arrow left" type="button" data-scroll="prev" aria-label="Scroll left">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+							</button>
+							<button class="c-row-arrow right" type="button" data-scroll="next" aria-label="Scroll right">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+							</button>
+						</div>
+					</section>
 
 					<!-- 第一个列表：Explore Featured Characters（两排） -->
 					<section class="c-featured" id="featured">
@@ -1621,6 +1643,7 @@
 					videoUrl: item.video_url || '',
 					images: Array.isArray(item.images) ? item.images : [],
 					emptyText: 'This pack has no media yet.',
+					history: { type: 'private', id: item.id },
 				})
 			}
 			function unlockPriv(item) {
@@ -1699,8 +1722,25 @@
 				renderAll()
 			})
 
+			/* ---------- Continue watching：当前用户最近观看（短剧 + 私密内容） ---------- */
+			function loadContinueWatching() {
+				if (!window.WatchHistory) return
+				window.WatchHistory.load('all', 12).then(function (list) {
+					var sec = document.getElementById('continueShelf')
+					var grid = document.getElementById('continueGrid')
+					if (!sec || !grid || !list.length) return
+					grid.innerHTML = list.map(function (it) {
+						return '<li>' + window.WatchHistory.card(it, { width: 190, aspect: '7 / 10' }) + '</li>'
+					}).join('')
+					sec.style.display = ''
+					initShelf(sec)
+					window.WatchHistory.bind()
+				})
+			}
+
 			// Private Content：会员状态 + 各分类内容独立加载
 			checkVip()
+			loadContinueWatching()
 			CATS.forEach(function (cat) { loadPrivate(cat) })
 
 			// Private Shorts 私人短剧：VIP 可见，卡片复用短剧播放弹窗

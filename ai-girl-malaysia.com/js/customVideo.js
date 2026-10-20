@@ -124,6 +124,9 @@
             if (!d || d.code !== '00000' || !d.data) { toast((d && d.msg) || 'Load failed', 'error'); return }
             imagePresets = d.data.image_presets || []
             currentPresets = d.data.styles || d.data.presets || []
+            // 免费次数用尽后的代币单价 + 当前余额（后台「功能定价」可改）
+            cvPrice = Number(d.data.video_price) || 0
+            cvBalance = Number(d.data.balance) || 0
             renderPresets(mode === 'outfit' ? imagePresets : currentPresets)
             applyQuota(d.data.quota)
         }).catch(function () { toast('Network error', 'error') })
@@ -139,17 +142,24 @@
     }
 
     // 剩余次数：quota 里 remaining<0 / unlimited 显示 ∞，否则显示「剩余 / 上限」并随每次生成递减
-    // 额度规则：每天补充 refill_daily 次，余额最多累积到 daily_limit
+    // 额度规则（2026-10 起）：
+    //   普通用户 2 次上限、每天 +1（refill < limit → 显示「+1/day, max 2」）
+    //   会员 5 次上限、每天回满（refill = limit → 显示「resets to 5/day」）
+    //   额度用尽后按 video_price 用代币续生成（后台「功能定价」可改，0=关闭）
     var cvDailyLimit = 0
     var cvRefillDaily = 0
+    var cvPrice = 0      // 免费次数用尽后每次生成扣的代币
+    var cvBalance = 0    // 当前代币余额
     function applyQuota(q) {
         var el = $('cvRemain')
         if (!el) return
         var tip = $('cvRefillTip')
+        var note = $('cvPriceNote')
         if (!q) { el.textContent = '-'; return }
         if (q.unlimited || typeof q.remaining === 'number' && q.remaining < 0) {
             el.textContent = '∞'
             if (tip) tip.style.display = 'none'
+            if (note) note.style.display = 'none'
             return
         }
         if (typeof q.daily_limit === 'number') cvDailyLimit = q.daily_limit
@@ -164,11 +174,26 @@
             if (n > 0 && cvDailyLimit > 0 && n >= cvDailyLimit) {
                 tip.textContent = ' · resets to ' + cvDailyLimit + '/day'
                 tip.style.display = ''
-            } else if (n > 0 && cvDailyLimit > 0) {
-                tip.textContent = ' · +' + n + '/day, max ' + cvDailyLimit
-                tip.style.display = ''
             } else {
-                tip.style.display = 'none'
+                var parts = []
+                if (n > 0 && cvDailyLimit > 0) parts.push('+' + n + '/day, max ' + cvDailyLimit)
+                if (left <= 0 && cvPrice > 0) parts.push('then ' + cvPrice + ' tokens each')
+                if (parts.length) {
+                    tip.textContent = ' · ' + parts.join(' · ')
+                    tip.style.display = ''
+                } else {
+                    tip.style.display = 'none'
+                }
+            }
+        }
+        // 免费次数用完后可用代币继续生成：常驻说明 + 当前余额
+        if (note) {
+            if (cvPrice > 0) {
+                note.textContent = 'Free generations used up? Keep creating for ' + cvPrice +
+                    ' tokens per generation · Balance: ' + cvBalance + ' tokens'
+                note.style.display = ''
+            } else {
+                note.style.display = 'none'
             }
         }
     }
@@ -191,6 +216,23 @@
         $('cvPresetWrap').style.display = ''
         $('cvSubmit').textContent = isEdit ? '✨ Apply Outfit' : '✨ Generate Video'
         renderPresets(isEdit ? imagePresets : currentPresets)
+    }
+
+    /* ---------- 代币不足：引导充值 ---------- */
+    function showTopUp(msg) {
+        var text = msg || 'Not enough tokens. Please top up to keep generating.'
+        if (window.SugusDialog && window.SugusDialog.confirm) {
+            window.SugusDialog.confirm({
+                title: 'Not enough tokens',
+                message: text,
+                confirmText: 'Top up',
+                cancelText: 'Later'
+            }).then(function (ok) {
+                if (ok) location.href = './purchasePoints.html'
+            })
+            return
+        }
+        toast(text, 'error')
     }
 
     /* ---------- 提交 ---------- */
@@ -217,10 +259,26 @@
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             btn.disabled = false
             btn.textContent = mode === 'outfit' ? '✨ Apply Outfit' : '✨ Generate Video'
-            if (!d || d.code !== '00000') { toast((d && d.msg) || 'Submit failed', 'error'); return }
+            if (!d || d.code !== '00000') {
+                // 免费次数用尽且代币不足：引导去充值
+                if (d && d.code === 'C0100') { showTopUp(d.msg); return }
+                toast((d && d.msg) || 'Submit failed', 'error')
+                return
+            }
+            var paid = d.data ? Number(d.data.paid_tokens) || 0 : 0
+            if (d.data && typeof d.data.balance === 'number' && d.data.balance >= 0) {
+                cvBalance = d.data.balance
+            } else if (paid > 0) {
+                cvBalance = Math.max(0, cvBalance - paid)
+            }
             // 提交成功即刻刷新剩余次数（remain=-1 不限量）；保留 refill 提示
             if (d.data && typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: cvDailyLimit, refill_daily: cvRefillDaily })
-            toast('Task submitted! Track it in My Works', 'success')
+            if (paid > 0) {
+                if (window.refreshTokenBalance) window.refreshTokenBalance()
+                toast('Paid ' + paid + ' tokens — task submitted!', 'success')
+            } else {
+                toast('Task submitted! Track it in My Works', 'success')
+            }
             switchTab(false)
         }).catch(function () {
             btn.disabled = false
