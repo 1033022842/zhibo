@@ -40,7 +40,9 @@ final class S3Client
         $this->region    = (string) ($cfg['region'] ?? 'us-east-1');
         $this->accessKey = (string) ($cfg['access_key'] ?? '');
         $this->secretKey = (string) ($cfg['secret_key'] ?? '');
-        $this->verify    = $cfg['verify'] ?? true;
+        $verify          = $cfg['verify'] ?? true;
+        // env 里 S3_VERIFY = （留空）会得到空字符串，视为默认校验，不能传给 CURLOPT_CAINFO
+        $this->verify    = ($verify === '' || $verify === null) ? true : $verify;
         $this->pathMode  = (string) ($cfg['path_mode'] ?? 'bucket');
 
         foreach ((array) ($cfg['headers'] ?? []) as $k => $v) {
