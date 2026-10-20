@@ -61,7 +61,7 @@
 		<script src="./js/pending-order.js?v=20261018b"></script>
 		<!--<script src="./js/event.js"></script>-->
 		<script src="./js/ui-dialog.js?v=20260927a"></script>
-		<script src="./js/purchasePoints.js?v=20261019c"></script>
+		<script src="./js/purchasePoints.js?v=20261019g"></script>
 
 
 
@@ -691,30 +691,71 @@
 				</div>
 			</div>
 
-			<!-- 支付方式弹窗（版式对齐 Subscriptions.html 的 payment-method-modal） -->
-			<div class="tk-modal" id="tk-payment-modal" style="display:none;">
-				<div class="tk-modal-backdrop" data-tk-close="1"></div>
-				<div class="tk-modal-box" role="dialog" aria-modal="true" aria-labelledby="tk-modal-title">
-					<button type="button" class="tk-modal-close" data-tk-close="1" aria-label="Close">
-						<img src="./tokens_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" alt="Close">
-					</button>
-					<h2 class="tk-modal-title" id="tk-modal-title">Choose payment method</h2>
-					<div class="tk-modal-body">
-						<div class="tk-pay-plan">
-							<span class="tk-pay-plan-title" id="tk-plan-title"></span>
-							<span class="tk-pay-plan-price" id="tk-plan-price"></span>
-						</div>
-						<div class="tk-modal-methods" id="tk-modal-methods"></div>
-						<div class="tk-modal-notes">
-							<div class="tk-note-block">
-								<p class="tk-note" id="tk-modal-summary"></p>
-								<p class="tk-note tk-note-second">Tokens are credited instantly after payment.</p>
-							</div>
-							<p class="tk-note">Additional local taxes may apply</p>
-						</div>
+			<!-- 支付方式弹窗（版式：Plan selected + 方式格子 + 底部 Pay 按钮） -->
+			<div class="pm-modal" id="tk-payment-modal" style="display:none;">
+				<div class="pm-backdrop" data-tk-close="1"></div>
+				<div class="pm-box" role="dialog" aria-modal="true" aria-labelledby="tk-modal-title">
+					<div class="pm-head">
+						<span class="pm-head-title" id="tk-modal-title">Plan selected:</span>
+						<span class="pm-badge" id="pm-badge">—</span>
+						<span class="pm-info" aria-hidden="true">
+							<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.2" stroke="#8e8e93" stroke-width="1.3"/><path d="M9 8.1v4.2" stroke="#8e8e93" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="5.7" r=".9" fill="#8e8e93"/></svg>
+						</span>
+						<button type="button" class="pm-close" data-tk-close="1" aria-label="Close">&times;</button>
 					</div>
+					<div class="pm-grid" id="pm-grid"></div>
+					<div class="pm-sub" id="pm-sub" hidden></div>
+					<div class="pm-secure">
+						<p>Pay securely with</p>
+						<ul>
+							<li>VISA</li>
+							<li>Mastercard</li>
+							<li>Or other available methods</li>
+						</ul>
+					</div>
+					<div class="pm-note">
+						<span class="pm-note-ico">$</span>
+						<div>This is a one-time purchase. No auto-renewal.<br>Please feel free to make your payment.</div>
+					</div>
+					<button type="button" class="pm-cta" id="tk-pay-cta">Pay with Card</button>
 				</div>
 			</div>
+
+			<style>
+				.pm-modal { position: fixed; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; padding: 16px; }
+				.pm-modal .pm-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .62); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+				.pm-box { position: relative; width: 480px; max-width: 100%; max-height: calc(100vh - 32px); overflow: auto; padding: 24px 22px 22px; border: 1px solid #2b2b2e; border-radius: 16px; background: #1b1b1d; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); font-family: Roboto, -apple-system, "Segoe UI", sans-serif; }
+				.pm-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+				.pm-head-title { color: #fff; font-size: 19px; font-weight: 700; line-height: 1.2; }
+				.pm-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: #f2d06b; color: #1b1b1d; font-size: 13px; font-weight: 700; white-space: nowrap; }
+				.pm-info { display: inline-flex; flex: 0 0 auto; }
+				.pm-close { margin-left: auto; width: 28px; height: 28px; padding: 0; border: 0; background: none; color: #a1a1a6; font-size: 24px; line-height: 1; cursor: pointer; }
+				.pm-close:hover { color: #fff; }
+				.pm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+				.pm-grid .pm-row:first-child { grid-column: 1 / -1; }
+				.pm-row { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 10px 12px; border: 1px solid transparent; border-radius: 8px; background: #2c2c2f; color: #fff; font-size: 13px; font-weight: 500; line-height: 1.35; text-align: center; cursor: pointer; transition: background .15s, border-color .15s; }
+				.pm-row:hover { background: #35353a; }
+				.pm-row.is-on { border-color: #e8508a; background: rgba(232, 80, 138, .10); box-shadow: inset 0 0 0 1px #e8508a; }
+				.pm-row-text { min-width: 0; overflow-wrap: anywhere; }
+				.pm-row-icons { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; }
+				.pm-row-icons img { display: block; height: 20px; width: auto; }
+				@media (max-width: 420px) { .pm-grid { grid-template-columns: 1fr; } }
+				.pm-sub[hidden] { display: none; }
+				.pm-sub { margin-top: 12px; }
+				.pm-sub-label { margin-bottom: 8px; color: #9a9a9f; font-size: 12px; }
+				.pm-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+				.pm-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid #3a3a3e; border-radius: 999px; background: #232326; color: #e8e8ea; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+				.pm-chip.is-on { border-color: #e8508a; background: rgba(232, 80, 138, .12); color: #fff; }
+				.pm-chip img { display: block; height: 16px; width: auto; }
+				.pm-secure { margin-top: 20px; color: #d6d6d8; font-size: 13px; }
+				.pm-secure p { margin: 0 0 6px; font-weight: 600; }
+				.pm-secure ul { margin: 0; padding-left: 18px; color: #b9b9be; font-size: 13px; line-height: 1.7; }
+				.pm-note { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 14px 15px; border-radius: 10px; background: #2a2a2d; color: #e8e8ea; font-size: 12.5px; line-height: 1.45; }
+				.pm-note-ico { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: #3a3a3e; color: #fff; font-size: 18px; font-weight: 700; }
+				.pm-cta { display: block; width: 100%; height: 52px; margin-top: 16px; border: 0; border-radius: 10px; background: #f2568f; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: filter .2s; }
+				.pm-cta:hover { filter: brightness(1.06); }
+				.pm-cta[disabled] { opacity: .6; cursor: default; }
+			</style>
 
 			<style>
 				/* ===== Tokens（充值）页样式：按 candy.ai tokens 页复刻 ===== */

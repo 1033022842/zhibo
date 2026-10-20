@@ -27,12 +27,12 @@
     var picked = null
     // 会员状态（/vip/status）
     var vipState = null
-    // FlowPay 可选收单通道：[{ gcode, label }]，点卡按钮后展开成多个通道按钮
+    // FlowPay 可选收单通道：[{ gcode, label }]，可多条时在弹窗里横向切换
     var cardChannels = []
+    // FlowPay 是否可用（运营开关 + 商户参数 + 有收单通道）
+    var flowpayEnabled = false
     // 后台法币通道（lp_fiat_channel）：每个国家一条，点进去按后台汇率折算成本币收款
     var fiatChannels = []
-    // 页面里两个弹窗各有一个卡支付按钮（保留原 id，校验脚本会数它）
-    var CARD_BUTTONS = ['#sub-pay-card', '#sub-pay-card-plus']
 
     var PANEL_LEVEL = { 'premium': 'premium', 'premium-plus': 'premium_plus' }
     var TYPE_MONTHS = { yearly: 12, quarterly: 3, monthly: 1 }
@@ -51,9 +51,6 @@
         bindEvents()
         loadPlans()
         loadStatus()
-        // 卡支付按钮在 HTML 里是静态写死的，默认先藏起来，等接口确认可用再显示；
-        // 否则后台关了开关（或商户参数没配）时，那个按钮会留在页面上但点不动
-        hideCardButtons()
         loadCardChannels()
         pollOrder(pendingOrderNo(), POLL_TRIES)
     }
@@ -91,29 +88,6 @@
     }
 
     /**
-     * 卡支付按钮（HTML 里静态写死的「Continue with card」）藏 / 显。
-     *
-     * 第一个弹窗里按钮外面还包了一层 <div>，要一并藏掉，否则父容器的 flex gap
-     * 会留下一条空当；第二个弹窗里按钮是 .sub-modal-buttons 的直接子元素
-     * （加密货币按钮也在里面），所以只在父节点「只有这一个子元素」时才藏父节点。
-     */
-    function hideCardButtons() {
-        $(CARD_BUTTONS.join(',')).each(function () {
-            var $btn = $(this)
-            var $wrap = $btn.parent()
-            $btn.hide()
-            if ($wrap.children().length === 1) { $wrap.hide() }
-        })
-    }
-
-    function showCardButtons() {
-        $(CARD_BUTTONS.join(',')).each(function () {
-            $(this).parent().css('display', '')
-            $(this).show()
-        })
-    }
-
-    /**
      * 支付方式：/recharge/packages 下发 FlowPay 收单通道 + 后台法币通道
      */
     function loadCardChannels() {
@@ -121,24 +95,118 @@
             url: base + '/recharge/packages',
             timeout: API_TIMEOUT,
         }).done(function (r) {
-            if (!r || r.code !== '00000' || !r.data) {
-                hideCardButtons()
-                return
+            if (r && r.code === '00000' && r.data) {
+                fiatChannels = r.data.fiat || []
+                cardChannels = (r.data.flowpay && r.data.flowpay.channels) || []
+                flowpayEnabled = !!(r.data.flowpay && r.data.flowpay.enabled) && cardChannels.length > 0
             }
-            // 法币通道（后台 lp_fiat_channel，单国本币收款）
-            if (r.data.fiat && r.data.fiat.length) {
-                fiatChannels = r.data.fiat
-                renderFiatButtons()
-            }
-            // 卡支付：开关关掉 / 商户参数没配齐 / 没有收单通道，三种情况都不显示按钮
-            cardChannels = (r.data.flowpay && r.data.flowpay.channels) || []
-            if (!r.data.flowpay || !r.data.flowpay.enabled || !cardChannels.length) {
-                hideCardButtons()
-                return
-            }
-            showCardButtons()
-            renderCardButtons()
-        }).fail(hideCardButtons)
+            pmRenderAll()
+        }).fail(pmRenderAll)
+    }
+
+    // 两个弹窗各有独立的选中状态（Premium / Premium Plus）
+    var PM_MODALS = [
+        { id: 'payment-method-modal', level: 'premium', grid: '#sub-pm-grid', sub: '#sub-pm-sub', cta: '#sub-pay-card' },
+        { id: 'payment-method-modal-premium-plus', level: 'premium_plus', grid: '#sub-pm-grid-plus', sub: '#sub-pm-sub-plus', cta: '#sub-pay-card-plus' }
+    ]
+    var PM_STATE = {
+        premium: { method: '', gcode: '', fiatId: '' },
+        premium_plus: { method: '', gcode: '', fiatId: '' }
+    }
+
+    var PM_CARD_ICON = '<img src="./subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg" alt="Visa">' +
+        '<img src="./subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg" alt="Mastercard">'
+    var PM_COIN_ICONS = '<img src="./taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg" alt="Bitcoin">' +
+        '<img src="./taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg" alt="Ethereum">' +
+        '<img src="./taocan_files/litecoin-39b215ee717df466cd2599dc7a1f63ad0e05d619dca3a8b1a74be7112954086d.svg" alt="Litecoin">'
+
+    function pmClean(s) { return String(s || '').replace(/[<>"]/g, '') }
+
+    /** 收单通道名 → 展示名（Amopay-applepay → Apple Pay） */
+    function pmCardLabel(s) {
+        var t = String(s || '')
+        if (/apple/i.test(t)) { return 'Apple Pay' }
+        if (/google|gpay|ggpay/i.test(t)) { return 'Google Pay' }
+        if (/master/i.test(t)) { return 'Mastercard' }
+        if (/visa/i.test(t)) { return 'Visa' }
+        return pmClean(t.replace(/^amopay[-_\s]*/i, '')) || 'Card'
+    }
+
+    function pmRenderAll() {
+        PM_MODALS.forEach(function (m) {
+            if ($(m.grid).length) { pmRender(m) }
+        })
+    }
+
+    /** 当前可用方式：卡（FlowPay 开关 + 收单通道）/ 加密货币（始终）/ 法币（后台配了几条） */
+    function pmAvailable() {
+        return {
+            card: !!(flowpayEnabled && cardChannels.length),
+            crypto: true,
+            cash: fiatChannels.length > 0
+        }
+    }
+
+    function pmRender(m) {
+        var st = PM_STATE[m.level]
+        var avail = pmAvailable()
+        if (!st.method || !avail[st.method]) {
+            st.method = avail.card ? 'card' : (avail.crypto ? 'crypto' : 'cash')
+        }
+        st.gcode = avail.card ? (st.gcode || String(cardChannels[0].gcode || '')) : ''
+        if (avail.cash) {
+            var hit = false
+            fiatChannels.forEach(function (fc) { if (String(fc.id) === String(st.fiatId)) hit = true })
+            if (!hit) st.fiatId = String(fiatChannels[0].id)
+        } else {
+            st.fiatId = ''
+        }
+
+        // 整行长条：加密货币固定在最上面，其次是信用卡，再往下每个本币通道一条
+        var html = ''
+        html += '<button type="button" class="pm-row' + (st.method === 'crypto' ? ' is-on' : '') + '" data-pm-method="crypto">' +
+            '<span class="pm-row-text">Continue with</span>' +
+            '<span class="pm-row-icons">' + PM_COIN_ICONS + '</span></button>'
+        if (avail.card) {
+            html += '<button type="button" class="pm-row' + (st.method === 'card' ? ' is-on' : '') + '" data-pm-method="card">' +
+                '<span class="pm-row-text">Credit Card</span>' +
+                '<span class="pm-row-icons">' + PM_CARD_ICON + '</span></button>'
+        }
+        if (avail.cash) {
+            fiatChannels.forEach(function (fc) {
+                var logo = fiatLogo(fc.name)
+                var unit = fc.symbol || fc.currency || ''
+                var on = st.method === 'cash' && String(fc.id) === String(st.fiatId)
+                html += '<button type="button" class="pm-row' + (on ? ' is-on' : '') +
+                    '" data-pm-method="cash" data-pm-fiat="' + parseInt(fc.id, 10) + '">' +
+                    '<span class="pm-row-text">' + pmClean(fc.name) + (unit !== '' ? ' · ' + pmClean(unit) : '') + '</span>' +
+                    (logo ? '<span class="pm-row-icons"><img src="' + logo.src + '" alt="' + logo.alt + '"></span>' : '') +
+                    '</button>'
+            })
+        }
+        $(m.grid).html(html)
+
+        pmRenderSub(m, avail)
+        $(m.cta).text(st.method === 'card' ? 'Pay with Card'
+            : (st.method === 'crypto' ? 'Pay with Crypto' : 'Pay with Cash'))
+    }
+
+    /** 信用卡有多条收单通道时，在下方给一排小胶囊 */
+    function pmRenderSub(m, avail) {
+        var st = PM_STATE[m.level]
+        var html = ''
+        if (st.method === 'card' && avail.card && cardChannels.length > 1) {
+            html += '<div class="pm-sub-label">Choose card network</div><div class="pm-chips">'
+            cardChannels.forEach(function (ch) {
+                var logo = channelLogo(ch.label)
+                var label = pmCardLabel(ch.label)
+                html += '<button type="button" class="pm-chip' + (String(ch.gcode) === String(st.gcode) ? ' is-on' : '') +
+                    '" data-pm-gcode="' + pmClean(ch.gcode) + '">' +
+                    (logo ? '<img src="' + logo.src + '" alt="' + logo.alt + '">' : '') + label + '</button>'
+            })
+            html += '</div>'
+        }
+        if (html) { $(m.sub).html(html).prop('hidden', false) } else { $(m.sub).html('').prop('hidden', true) }
     }
 
     /**
@@ -172,65 +240,6 @@
             if (FIAT_LOGOS[i].re.test(text)) { return FIAT_LOGOS[i] }
         }
         return null
-    }
-
-    /**
-     * 卡支付：上方是一个渐变胶囊按钮（Continue with card + Apple Pay / Google Pay / Visa / Mastercard，
-     * 与 candy 未登录版那个按钮同一形态），点它就地展开下方三条收单通道，选通道下单；
-     * 每条通道按钮前带自己的品牌标。
-     */
-    function renderCardButtons() {
-        CARD_BUTTONS.forEach(function (sel) {
-            var $btn = $(sel)
-            if (!$btn.length) { return }
-            var baseId = sel.replace('#', '')
-            var $box = $('<div class="sub-card-channels" style="display:none"></div>')
-            cardChannels.forEach(function (ch) {
-                var $b = $('<button type="button" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex mt-4"></button>')
-                    .attr('id', baseId + '-' + ch.gcode)
-                    .attr('data-gcode', ch.gcode)
-                var logo = channelLogo(ch.label)
-                if (logo) {
-                    $('<img class="w-8 h-5" alt="' + logo.alt + '" src="' + logo.src + '">').appendTo($b)
-                }
-                $b.append($('<div class="text-white text-xs sm:text-sm font-medium leading-tight"></div>').text(ch.label))
-                    .appendTo($box)
-            })
-            $btn.after($box)
-            $btn.on('click', function (e) {
-                e.preventDefault()
-                $box.slideToggle(140)
-            })
-        })
-    }
-
-    /**
-     * 法币通道：每条通道一个按钮（如 "Malaysia · FPX · RM"），
-     * 点它进站内收款页，金额在服务端按该通道的后台汇率把 USD 折算成本币
-     */
-    function renderFiatButtons() {
-        [['#sub-pay-crypto', 'premium'], ['#sub-pay-crypto-plus', 'premium_plus']].forEach(function (pair) {
-            var $crypto = $(pair[0])
-            if (!$crypto.length) { return }
-            var $host = $crypto.closest('.sub-modal-buttons')
-            if (!$host.length || $host.find('[data-fiat-id]').length) { return }
-            fiatChannels.forEach(function (fc) {
-                var unit = fc.symbol || fc.currency || ''
-                var label = fc.name + (unit !== '' ? ' · ' + unit : '')
-                var $wrap = $('<div></div>')
-                var $btn = $('<button type="button" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex"></button>')
-                    .attr('id', pair[0].replace('#', '') + '-fiat-' + fc.id)
-                    .attr('data-fiat-id', fc.id)
-                    .attr('data-fiat-level', pair[1])
-                var logo = fiatLogo(fc.name)
-                $btn.append($('<div class="text-white text-xs sm:text-sm font-medium leading-tight"></div>').text(label))
-                if (logo) {
-                    $('<img alt="' + logo.alt + '" src="' + logo.src + '" style="height:20px;width:20px;display:block;flex:0 0 auto">').appendTo($btn)
-                }
-                $btn.appendTo($wrap)
-                $crypto.closest('div').after($wrap)
-            })
-        })
     }
 
     /** 会员状态：用于渲染卡片按钮文案（Select / Extend / Current Plan） */
@@ -467,21 +476,46 @@
             var $w = $(this).closest('[data-plan-type]')
             if ($w.length) { remember($w) }
         })
-        // 加密货币：跳站内收款页（后台链上渠道，自持地址）
-        $(document).on('click', '#sub-pay-crypto, #sub-pay-crypto-plus', function (e) {
-            e.preventDefault()
-            cryptoPay($(this).attr('id'))
+        // 支付方式长条：只做选中，真正下单统一走底部按钮
+        $(document).on('click', '[data-pm-method]', function () {
+            var m = pmModalOf(this)
+            if (!m) { return }
+            var st = PM_STATE[m.level]
+            st.method = String($(this).attr('data-pm-method') || '')
+            // 本币通道行同时带 data-pm-fiat，必须在同一次事件里取完再重渲染
+            var fid = $(this).attr('data-pm-fiat')
+            if (fid) { st.fiatId = String(fid) }
+            pmRender(m)
         })
-        // 银行卡收银台（FlowPay）· 每个通道一个按钮，用户点哪个走哪条
-        $(document).on('click', '[data-gcode]', function (e) {
-            e.preventDefault()
-            pay($(this).attr('id'), 'flowpay', String($(this).attr('data-gcode') || ''))
+        // 卡组织 / 本币通道切换
+        $(document).on('click', '[data-pm-gcode]', function () {
+            var m = pmModalOf(this)
+            if (!m) { return }
+            PM_STATE[m.level].gcode = String($(this).attr('data-pm-gcode') || '')
+            pmRender(m)
         })
-        // 法币通道（单国本币收款）
-        $(document).on('click', '[data-fiat-id]', function (e) {
-            e.preventDefault()
-            fiatPay($(this).attr('data-fiat-id'), String($(this).attr('data-fiat-level') || 'premium'))
+        // 底部 Pay 按钮：按当前选中的方式执行
+        $(document).on('click', '[data-pm-cta]', function () {
+            var m = pmModalOf(this)
+            if (!m) { return }
+            var st = PM_STATE[m.level]
+            if (st.method === 'card') {
+                payLevel(m.level, 'flowpay', st.gcode)
+            } else if (st.method === 'crypto') {
+                cryptoPayLevel(m.level)
+            } else if (st.method === 'cash' && st.fiatId) {
+                fiatPay(st.fiatId, m.level)
+            }
         })
+    }
+
+    /** 事件源所在的弹窗配置 */
+    function pmModalOf(el) {
+        var id = $(el).closest('dialog').attr('id') || ''
+        for (var i = 0; i < PM_MODALS.length; i++) {
+            if (PM_MODALS[i].id === id) { return PM_MODALS[i] }
+        }
+        return null
     }
 
     function remember($w) {
@@ -507,8 +541,7 @@
 
     // ===== 下单 =====
     /** 加密货币：跳站内收款页（后台链上收款渠道，金额取当前选中的套餐） */
-    function cryptoPay(btnId) {
-        var level = /-plus/.test(btnId || '') ? 'premium_plus' : 'premium'
+    function cryptoPayLevel(level) {
         var sel = readSelection(level)
         var plan = findPlan(level, sel.months, sel.tokens)
         if (!plan) {
@@ -530,15 +563,13 @@
             '&plan_id=' + encodeURIComponent(plan.id)
     }
 
-    function pay(btnId, gateway, gcode) {
+    function payLevel(level, gateway, gcode) {
         if (!token) {
             toast('Please log in first')
             setTimeout(function () { location.href = './Login.html' }, 900)
             return
         }
 
-        // 按钮 id 带 -plus 的属于 premium-plus 弹窗（否则会读到另一个弹窗的档位）
-        var level = /-plus/.test(btnId || '') ? 'premium_plus' : 'premium'
         var sel = readSelection(level)
         var plan = findPlan(level, sel.months, sel.tokens)
         if (!plan) {

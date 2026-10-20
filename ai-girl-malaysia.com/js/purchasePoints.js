@@ -265,6 +265,7 @@
             fiatChannels = res.data.fiat || []
             renderPlans()
             renderCustom(normalizeTokens(DEFAULT_TOKENS))
+            if ($('#tk-payment-modal').css('display') === 'flex') renderMethods()
         })
         loadChannels()
     }
@@ -298,64 +299,103 @@
         })
     }
 
-    // ---------- 支付弹窗 ----------
-    // 「Continue with」按钮里的币种图标：与 Subscriptions.html 支付弹窗同一组
-    var PAY_LOGOS = [
-        { src: './taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg', alt: 'Bitcoin' },
-        { src: './taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg', alt: 'Ethereum' },
-        { src: './taocan_files/litecoin-39b215ee717df466cd2599dc7a1f63ad0e05d619dca3a8b1a74be7112954086d.svg', alt: 'Litecoin' }
-    ]
+    // ---------- 支付弹窗（Plan selected + 方式格子 + 底部 Pay 按钮） ----------
+    // 选中的支付方式：card / crypto / cash；子选项分别落在 gcode / fiatId
+    var PM = { method: '', gcode: '', fiatId: '' }
+
+    var PM_CARD_ICON = '<img src="' + VISA_ICON + '" alt="Visa"><img src="' + MASTERCARD_ICON + '" alt="Mastercard">'
+    var PM_COIN_ICONS = '<img src="./taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg" alt="Bitcoin">' +
+        '<img src="./taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg" alt="Ethereum">' +
+        '<img src="./taocan_files/litecoin-39b215ee717df466cd2599dc7a1f63ad0e05d619dca3a8b1a74be7112954086d.svg" alt="Litecoin">'
+
+    function pmClean(s) { return String(s || '').replace(/[<>"]/g, '') }
+
+    /** 收单通道名 → 展示名（Amopay-applepay → Apple Pay） */
+    function pmCardLabel(s) {
+        var t = String(s || '')
+        if (/apple/i.test(t)) { return 'Apple Pay' }
+        if (/google|gpay|ggpay/i.test(t)) { return 'Google Pay' }
+        if (/master/i.test(t)) { return 'Mastercard' }
+        if (/visa/i.test(t)) { return 'Visa' }
+        return pmClean(t.replace(/^amopay[-_\s]*/i, '')) || 'Card'
+    }
+
+    /** 当前可用方式：卡（FlowPay 开关 + 收单通道）/ 加密货币（始终）/ 法币（后台配了几条） */
+    function pmAvailable() {
+        return {
+            card: !!(flowpayEnabled && flowpayChannels.length),
+            crypto: true,
+            cash: fiatChannels.length > 0
+        }
+    }
 
     function renderMethods() {
-        // 加密货币走站内收款页（后台自持渠道），与 starpay 网关是否启用无关，始终可点
-        var logos = PAY_LOGOS.map(function (l) {
-            return '<img class="tk-method-logo" src="' + l.src + '" alt="' + l.alt + '">'
-        }).join('')
-        var html =
-            '<button type="button" class="tk-method" data-code="crypto">' +
-            '<span class="tk-method-text">Continue with</span>' +
-            '<span class="tk-method-icons">' + logos + '</span>' +
-            '</button>'
-        // 法币通道（后台 lp_fiat_channel，单国本币收款）：每条通道一个按钮
-        fiatChannels.forEach(function (fc) {
-            var unit = fc.symbol || fc.currency || ''
-            var name = String(fc.name || '').replace(/[<>"]/g, '')
-            var logo = fiatLogo(name)
-            html +=
-                '<button type="button" class="tk-method" data-fiat-id="' + parseInt(fc.id, 10) + '">' +
-                '<span class="tk-method-text">' + name + (unit !== '' ? ' · ' + unit : '') + '</span>' +
-                (logo ? '<img class="fiat-brand-logo" style="width:20px;height:20px" src="' + logo.src + '" alt="' + logo.alt + '">' : '') +
-                '</button>'
-        })
-        // 银行卡收银台：FlowPay 商户参数配置齐全后自动出现。
-        // 形态与 Subscriptions.html 一致：一个渐变胶囊按钮，点开后就地展开各条收单通道
-        if (flowpayEnabled) {
-            var pillIcons = CARD_PILL_ICONS.map(function (l) {
-                return '<img src="' + l.src + '" alt="' + l.alt + '">'
-            }).join('')
-            html +=
-                '<button type="button" class="tk-pay-pill">' +
-                '<span class="tk-pay-pill-bg"></span>' +
-                '<span class="tk-pay-pill-shine"></span>' +
-                '<span class="tk-pay-pill-content">' +
-                '<span class="tk-pay-pill-text">Continue with card</span>' +
-                '<span class="tk-pay-pill-icons">' + pillIcons + '</span>' +
-                '</span>' +
-                '</button>'
-            var cards = flowpayChannels.length ? flowpayChannels : [{ gcode: '', label: 'Card' }]
-            var subs = cards.map(function (ch) {
-                var logo = channelLogo(ch.label)
-                return (
-                    '<button type="button" class="tk-method tk-method-sub" data-flowpay="1" data-gcode="' +
-                    String(ch.gcode || '').replace(/"/g, '') + '">' +
-                    (logo ? '<img src="' + logo.src + '" alt="' + logo.alt + '">' : '') +
-                    '<span class="tk-method-text">' + ch.label + '</span>' +
-                    '</button>'
-                )
-            }).join('')
-            html += '<div class="tk-method-channels" style="display:none;">' + subs + '</div>'
+        var box = $('#pm-grid')
+        if (!box.length) return
+        var avail = pmAvailable()
+        if (!PM.method || !avail[PM.method]) {
+            PM.method = avail.card ? 'card' : (avail.crypto ? 'crypto' : 'cash')
         }
-        $('#tk-modal-methods').html(html)
+        PM.gcode = avail.card ? (PM.gcode || String(flowpayChannels[0].gcode || '')) : ''
+        if (avail.cash) {
+            var hit = false
+            fiatChannels.forEach(function (fc) { if (String(fc.id) === String(PM.fiatId)) hit = true })
+            if (!hit) PM.fiatId = String(fiatChannels[0].id)
+        } else {
+            PM.fiatId = ''
+        }
+
+        // 整行长条：加密货币固定在最上面，其次是信用卡，再往下每个本币通道一条
+        var html = ''
+        html += '<button type="button" class="pm-row' + (PM.method === 'crypto' ? ' is-on' : '') + '" data-pm-method="crypto">' +
+            '<span class="pm-row-text">Continue with</span>' +
+            '<span class="pm-row-icons">' + PM_COIN_ICONS + '</span></button>'
+        if (avail.card) {
+            html += '<button type="button" class="pm-row' + (PM.method === 'card' ? ' is-on' : '') + '" data-pm-method="card">' +
+                '<span class="pm-row-text">Credit Card</span>' +
+                '<span class="pm-row-icons">' + PM_CARD_ICON + '</span></button>'
+        }
+        if (avail.cash) {
+            fiatChannels.forEach(function (fc) {
+                var logo = fiatLogo(fc.name)
+                var unit = fc.symbol || fc.currency || ''
+                var on = PM.method === 'cash' && String(fc.id) === String(PM.fiatId)
+                html += '<button type="button" class="pm-row' + (on ? ' is-on' : '') +
+                    '" data-pm-method="cash" data-pm-fiat="' + parseInt(fc.id, 10) + '">' +
+                    '<span class="pm-row-text">' + pmClean(fc.name) + (unit !== '' ? ' · ' + pmClean(unit) : '') + '</span>' +
+                    (logo ? '<span class="pm-row-icons"><img src="' + logo.src + '" alt="' + logo.alt + '"></span>' : '') +
+                    '</button>'
+            })
+        }
+        box.html(html)
+
+        renderPmSub(avail)
+        renderPmCta()
+    }
+
+    /** 信用卡有多条收单通道时，在下方给一排小胶囊 */
+    function renderPmSub(avail) {
+        var box = $('#pm-sub')
+        var html = ''
+        if (PM.method === 'card' && avail.card && flowpayChannels.length > 1) {
+            html += '<div class="pm-sub-label">Choose card network</div><div class="pm-chips">'
+            flowpayChannels.forEach(function (ch) {
+                var logo = channelLogo(ch.label)
+                var label = pmCardLabel(ch.label)
+                html += '<button type="button" class="pm-chip' + (String(ch.gcode) === String(PM.gcode) ? ' is-on' : '') +
+                    '" data-pm-gcode="' + pmClean(ch.gcode) + '">' +
+                    (logo ? '<img src="' + logo.src + '" alt="' + logo.alt + '">' : '') +
+                    label + '</button>'
+            })
+            html += '</div>'
+        }
+        if (html) { box.html(html).prop('hidden', false) } else { box.html('').prop('hidden', true) }
+    }
+
+    function renderPmCta() {
+        var label = PM.method === 'card' ? 'Pay with Card'
+            : (PM.method === 'crypto' ? 'Pay with Crypto' : 'Pay with Cash')
+        $('#tk-pay-cta').text(label)
     }
 
     /** 通道名 → 品牌标（匹配不到就只显示文字） */
@@ -385,10 +425,8 @@
     function openModal(sel) {
         if (!sel) return
         selected = sel
+        $('#pm-badge').text(sel.tokens + ' Tokens')
         renderMethods()
-        $('#tk-plan-title').text(sel.tokens + ' tokens')
-        $('#tk-plan-price').text(money(sel.price))
-        $('#tk-modal-summary').text('One-time payment billed as ' + money(sel.price))
         $('#tk-payment-modal').css('display', 'flex')
         hideBubble()
     }
@@ -406,7 +444,7 @@
             return
         }
         loading = true
-        $('#tk-payment-modal .tk-method').attr('disabled', true).css('opacity', .6)
+        $('#tk-payment-modal .pm-tile, #tk-payment-modal .pm-chip, #tk-pay-cta').attr('disabled', true).css('opacity', .6)
         var payload = selected.packageId
             ? { package_id: selected.packageId, product: code }
             : { tokens: selected.tokens, product: code }
@@ -433,7 +471,7 @@
             toast('Network error, please retry')
         }).always(function () {
             loading = false
-            $('#tk-payment-modal .tk-method').removeAttr('disabled').css('opacity', 1)
+            $('#tk-payment-modal .pm-tile, #tk-payment-modal .pm-chip, #tk-pay-cta').removeAttr('disabled').css('opacity', 1)
         })
     }
 
@@ -552,28 +590,36 @@
             openModal({ tokens: parseInt(pkg.tokens, 10), price: parseFloat(pkg.price), packageId: pkg.id })
         })
         $(document).on('click', '#tk-payment-modal [data-tk-close]', closeModal)
-        // 加密货币：跳站内收款页（后台链上渠道，自持地址，币种在那边选）
-        $(document).on('click', '#tk-payment-modal .tk-method[data-code]', function () {
-            if (!selected) return
-            location.href = './CryptoPay.html?kind=coin' +
+        // 支付方式长条：只做选中，真正下单统一走底部按钮
+        $(document).on('click', '#tk-payment-modal [data-pm-method]', function () {
+            PM.method = String($(this).attr('data-pm-method') || '')
+            // 本币通道行同时带 data-pm-fiat，必须在同一次事件里取完再重渲染
+            var fid = $(this).attr('data-pm-fiat')
+            if (fid) { PM.fiatId = String(fid) }
+            renderMethods()
+        })
+        // 卡组织 / 本币通道切换
+        $(document).on('click', '#tk-payment-modal [data-pm-gcode]', function () {
+            PM.gcode = String($(this).attr('data-pm-gcode') || '')
+            renderMethods()
+        })
+        // 底部按钮：按当前选中的方式执行
+        $(document).on('click', '#tk-pay-cta', function () {
+            if (!selected || loading) return
+            if (PM.method === 'card') {
+                submitOrder('', 'flowpay', PM.gcode)
+                return
+            }
+            var base = './CryptoPay.html?kind=coin' +
                 '&tokens=' + encodeURIComponent(selected.tokens) +
                 '&price=' + encodeURIComponent(selected.price)
-        })
-        // 法币通道（单国本币收款）：跳站内收款页，金额由服务端按后台汇率折算成本币
-        $(document).on('click', '#tk-payment-modal .tk-method[data-fiat-id]', function () {
-            if (!selected) return
-            location.href = './CryptoPay.html?kind=coin' +
-                '&fiat_id=' + encodeURIComponent($(this).attr('data-fiat-id')) +
-                '&tokens=' + encodeURIComponent(selected.tokens) +
-                '&price=' + encodeURIComponent(selected.price)
-        })
-        // 卡支付：点渐变胶囊按钮就地展开各条收单通道（与 Subscriptions.html 同一交互）
-        $(document).on('click', '#tk-payment-modal .tk-pay-pill', function () {
-            $('#tk-payment-modal .tk-method-channels').slideToggle(140)
-        })
-        // 银行卡收银台（FlowPay）· 展开后每条通道一个按钮
-        $(document).on('click', '#tk-payment-modal .tk-method[data-flowpay]', function () {
-            submitOrder('', 'flowpay', String($(this).attr('data-gcode') || ''))
+            if (PM.method === 'crypto') {
+                location.href = base
+                return
+            }
+            if (PM.method === 'cash' && PM.fiatId) {
+                location.href = base + '&fiat_id=' + encodeURIComponent(PM.fiatId)
+            }
         })
         $(document).on('input', '#tk-custom-slider', function () {
             showBubble()

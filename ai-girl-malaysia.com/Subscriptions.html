@@ -71,7 +71,7 @@
 <script src="./js/shell-new.js?v=20261018c"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 <script src="./js/ui-dialog.js?v=20260927a"></script>
-<script src="./js/subscriptions.js?v=20261019d"></script>
+<script src="./js/subscriptions.js?v=20261019h"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
 <!-- 未登录版式钩子：给 <html> 加 no-auth 类，未登录相关的差异全部由页面 CSS 控制
      （隐藏 Premium / Premium Plus 切换、卡片不带 tokens 档位下拉、卡片高度 250px）。
@@ -1564,137 +1564,70 @@
 </div>
 
 
-          <dialog class="modal modal-bottom sm:modal-middle " id="payment-method-modal" data-controller="dialog " data-dialog-on-disconnect-value="close">
-  <div class="modal-box  rounded-t-[10px] sm:rounded-[10px] bg-[#1A1A1A] relative w-full min-w-full md:min-w-0 md:max-w-2xl p-0 mx-auto flex flex-col !bg-[#1A1A1A] !border !border-[#282828] !rounded-t-[10px] sm:!rounded-[10px] !w-full !min-w-full sm:!min-w-0 sm:!w-[456px] sm:!max-w-[456px] !p-0">
-    <div id="payment-method-modal-banner">
+<style>
+  #payment-method-modal, #payment-method-modal-premium-plus { padding: 16px; }
+  #payment-method-modal .pm-box, #payment-method-modal-premium-plus .pm-box { position: relative; width: 480px; max-width: 100%; max-height: calc(100vh - 32px); overflow: auto; padding: 24px 22px 22px; border: 1px solid #2b2b2e; border-radius: 16px; background: #1b1b1d; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); font-family: Roboto, -apple-system, "Segoe UI", sans-serif; }
+  .pm-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .pm-head-title { color: #fff; font-size: 19px; font-weight: 700; line-height: 1.2; }
+  .pm-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: #f2d06b; color: #1b1b1d; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .pm-info { display: inline-flex; flex: 0 0 auto; }
+  .pm-close { margin-left: auto; width: 28px; height: 28px; padding: 0; border: 0; background: none; color: #a1a1a6; font-size: 24px; line-height: 1; cursor: pointer; }
+  .pm-close:hover { color: #fff; }
+  .pm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pm-grid .pm-row:first-child { grid-column: 1 / -1; }
+  .pm-row { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 10px 12px; border: 1px solid transparent; border-radius: 8px; background: #2c2c2f; color: #fff; font-size: 13px; font-weight: 500; line-height: 1.35; text-align: center; cursor: pointer; transition: background .15s, border-color .15s; }
+  .pm-row:hover { background: #35353a; }
+  .pm-row.is-on { border-color: #e8508a; background: rgba(232, 80, 138, .10); box-shadow: inset 0 0 0 1px #e8508a; }
+  .pm-row-text { min-width: 0; overflow-wrap: anywhere; }
+  .pm-row-icons { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; }
+  .pm-row-icons img { display: block; height: 20px; width: auto; }
+  @media (max-width: 420px) { .pm-grid { grid-template-columns: 1fr; } }
+  .pm-sub[hidden] { display: none; }
+  .pm-sub { margin-top: 12px; }
+  .pm-sub-label { margin-bottom: 8px; color: #9a9a9f; font-size: 12px; }
+  .pm-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pm-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid #3a3a3e; border-radius: 999px; background: #232326; color: #e8e8ea; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+  .pm-chip.is-on { border-color: #e8508a; background: rgba(232, 80, 138, .12); color: #fff; }
+  .pm-chip img { display: block; height: 16px; width: auto; }
+  .pm-secure { margin-top: 20px; color: #d6d6d8; font-size: 13px; }
+  .pm-secure p { margin: 0 0 6px; font-weight: 600; }
+  .pm-secure ul { margin: 0; padding-left: 18px; color: #b9b9be; font-size: 13px; line-height: 1.7; }
+  .pm-note { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 14px 15px; border-radius: 10px; background: #2a2a2d; color: #e8e8ea; font-size: 12.5px; line-height: 1.45; }
+  .pm-note-ico { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: #3a3a3e; color: #fff; font-size: 18px; font-weight: 700; }
+  .pm-cta { display: block; width: 100%; height: 52px; margin-top: 16px; border: 0; border-radius: 10px; background: #f2568f; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: filter .2s; }
+  .pm-cta:hover { filter: brightness(1.06); }
+  .pm-cta[disabled] { opacity: .6; cursor: default; }
+</style>
+<dialog class="modal modal-bottom sm:modal-middle" id="payment-method-modal" data-controller="dialog " data-dialog-on-disconnect-value="close">
+  <div class="pm-box" role="dialog" aria-modal="true">
+    <div class="pm-head">
+      <span class="pm-head-title">Plan selected:</span>
+      <span class="pm-badge">Premium</span>
+      <span class="pm-info" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.2" stroke="#8e8e93" stroke-width="1.3"/><path d="M9 8.1v4.2" stroke="#8e8e93" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="5.7" r=".9" fill="#8e8e93"/></svg></span>
+      <button type="button" data-action="click-&gt;dialog#close" class="pm-close" aria-label="Close">&times;</button>
     </div>
-
-    <div class="flex flex-col px-4 md:px-6 py-8 h-full !pt-[30px] !pb-[34px] !px-5 sm:!px-[40px] relative">
-        <button type="button" data-action="click-&gt;dialog#close" class="w-[27px] h-[27px] aspect-square hover:opacity-80 focus-visible:outline-none transition-opacity duration-200 absolute right-6 top-8 !right-[20px] !top-[33px] sm:!right-[12px] sm:!top-[14px]">
-  <img alt="Close" class="w-full h-full" src="./taocan_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
-</button>
-
-
-        <h2 class="font-semibold text-[24px] leading-[24px] text-white text-left whitespace-nowrap !text-[20px] sm:!text-[24px] !leading-[34px] !font-bold !text-left sm:!text-center !whitespace-normal !w-full">    Choose payment method
-</h2>
-
-        <div class="flex-1 mt-8 !mt-[25px] !flex-none">
-
-    <div class="
-        w-full flex items-center justify-between h-[52px] sm:h-[53px]
-        shrink-0 px-[16px] rounded-[10px] border
-        border-[rgba(255,255,255,0.1)]
-      ">
-      <span id="sub-modal-plan-title" data-payment-method-modal-target="planTitle" class="text-white text-[14px] font-semibold">
-        1 Month
-      </span>
-
-      <span class="text-[14px] font-medium">
-        <span id="sub-modal-plan-price" data-payment-method-modal-target="planPrice" class="text-white">
-          $13.99
-        </span><span class="text-white">/</span><span data-payment-method-modal-target="planPricePeriod" class="text-[rgba(255,255,255,0.5)]">month</span>
-      </span>
+    <span id="sub-modal-plan-title" data-payment-method-modal-target="planTitle" hidden>1 Month</span>
+    <span id="sub-modal-plan-price" data-payment-method-modal-target="planPrice" hidden>$13.99</span>
+    <span data-payment-method-modal-target="planPricePeriod" hidden>month</span>
+    <div class="pm-grid" id="sub-pm-grid"></div>
+    <div class="pm-sub" id="sub-pm-sub" hidden></div>
+    <div class="pm-secure">
+      <p>Pay securely with</p>
+      <ul>
+        <li>VISA</li>
+        <li>Mastercard</li>
+        <li>Or other available methods</li>
+      </ul>
     </div>
-
-    <div class="flex flex-col gap-4 w-full sub-modal-buttons mt-4">
-        
-    <div>
-          <button type="button" id="sub-pay-crypto" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex mb-3">
-          <div class="text-white text-xs sm:text-sm font-medium leading-tight">Continue with</div>
-          <div class="w-16 h-5 flex gap-[4px]">
-            <img class="w-16 h-5" alt="Bitcoin" src="./taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg">
-            <img class="w-16 h-5" src="./taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg">
-            <img class="w-16 h-5" src="./taocan_files/litecoin-39b215ee717df466cd2599dc7a1f63ad0e05d619dca3a8b1a74be7112954086d.svg">
-          </div>
-        </button>        </div>
-    <div>
-          <button type="button" id="sub-pay-card" class="w-full h-14 rounded-full overflow-hidden relative group">
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-brand to-pink-dark"></div>
-            <div class="animate-shine absolute h-14 w-[123px] left-[-123px] top-1/2 -translate-y-1/2 rounded-[10000px] opacity-20 bg-gradient-to-l from-transparent via-white/70 to-transparent"></div>
-            <div class="relative flex items-center justify-center gap-3">
-              <span class="text-white text-base leading-5 font-semibold whitespace-nowrap">
-                Continue with card
-              </span>
-              <div class="flex items-center gap-1.5">
-                <img class="w-8 h-5" alt="Apple Pay" src="./subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg">
-                <img class="w-8 h-5" alt="Google Pay" src="./subscriptions2_files/google-pay-mark.svg">
-                <img class="w-8 h-5" alt="Visa" src="./subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg">
-                <img class="w-8 h-5" alt="Mastercard" src="./subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg">
-              </div>
-            </div>
-          </button></div>
+    <div class="pm-note">
+      <span class="pm-note-ico">$</span>
+      <div>This is a one-time purchase. No auto-renewal.<br>Please feel free to make your payment.</div>
     </div>
-
-      <div class="flex flex-col gap-3 items-center mt-[25px] w-full">
-
-          <div data-subscription-target="annualBillingInfo" class="text-center hidden" style="display: none;">
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px]">
-                <span data-token-tier-picker-target="billingText" data-tier-billing100="Annual payment billed as $47.88" data-tier-billing200="Annual payment billed as $119.88" data-tier-billing300="Annual payment billed as $191.88">Annual payment billed as $47.88</span>
-              Cancel any time.
-            </p>
-
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px] mt-3">
-                Renews automatically for the same price and term.
-            </p>
-          </div>
-
-          <div data-subscription-target="quarterBillingInfo" class="text-center hidden" style="display: none;">
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px]">
-                <span data-token-tier-picker-target="billingText" data-tier-billing100="Quarterly payment billed as $26.97" data-tier-billing200="Quarterly payment billed as $44.97" data-tier-billing300="Quarterly payment billed as $62.97">Quarterly payment billed as $26.97</span>
-              Cancel any time.
-            </p>
-
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px] mt-3">
-                Renews automatically for the same price and term.
-            </p>
-          </div>
-
-          <div data-subscription-target="monthlyBillingInfo" class="text-center hidden" style="display: block;">
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px]">
-                <span data-token-tier-picker-target="billingText" data-tier-billing100="Monthly payment billed as $13.99" data-tier-billing200="Monthly payment billed as $19.99" data-tier-billing300="Monthly payment billed as $25.99">Monthly payment billed as $13.99</span>
-              Cancel any time.
-            </p>
-
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px] mt-3">
-                Renews automatically for the same price and term.
-            </p>
-          </div>
-
-          <div data-subscription-target="biweeklyBillingInfo" class="text-center hidden" style="display: none;">
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px]">
-                Payment every 2 weeks billed as $9.79
-              Cancel any time.
-            </p>
-
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px] mt-3">
-                Renews automatically for the same price and term.
-            </p>
-          </div>
-
-          <div data-subscription-target="weeklyBillingInfo" class="text-center hidden" style="display: none;">
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px]">
-                Weekly payment billed as $5.6
-              Cancel any time.
-            </p>
-
-            <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px] mt-3">
-                Renews automatically for the same price and term.
-            </p>
-          </div>
-
-        <p class="text-[13px] font-medium text-[#a4a4a4] leading-[16px] text-center">
-          Additional local taxes may apply
-        </p>
-      </div>
-</div>
-
-    </div>
+    <button type="button" class="pm-cta" id="sub-pay-card" data-pm-cta="premium">Pay with Card</button>
   </div>
-
-
-    <form method="dialog" class="modal-backdrop ">
-      <button>close</button>
-    </form>
+  <form method="dialog" class="modal-backdrop ">
+    <button>close</button>
+  </form>
 </dialog>
 
       </div>
@@ -2294,72 +2227,35 @@
 
     
 <dialog class="modal modal-bottom sm:modal-middle" id="payment-method-modal-premium-plus" data-controller="dialog " data-dialog-on-disconnect-value="close">
-  <div class="modal-box  rounded-t-[10px] sm:rounded-[10px] bg-[#1A1A1A] relative w-full min-w-full md:min-w-0 md:max-w-2xl p-0 mx-auto flex flex-col !bg-black-dark !border !border-black-stroke !rounded-t-[10px] sm:!rounded-[10px] !w-full !min-w-full sm:!min-w-0 sm:!w-[456px] sm:!max-w-[456px] !p-0">
-    <div id="payment-method-modal-premium-plus-banner">
+  <div class="pm-box" role="dialog" aria-modal="true">
+    <div class="pm-head">
+      <span class="pm-head-title">Plan selected:</span>
+      <span class="pm-badge">Premium Plus</span>
+      <span class="pm-info" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.2" stroke="#8e8e93" stroke-width="1.3"/><path d="M9 8.1v4.2" stroke="#8e8e93" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="5.7" r=".9" fill="#8e8e93"/></svg></span>
+      <button type="button" data-action="click-&gt;dialog#close" class="pm-close" aria-label="Close">&times;</button>
     </div>
-
-    <div class="flex flex-col px-4 md:px-6 py-8 h-full !pt-[30px] !pb-[34px] !px-5 sm:!px-[40px] relative">
-        <button type="button" data-action="click-&gt;dialog#close" class="w-[27px] h-[27px] aspect-square hover:opacity-80 focus-visible:outline-none transition-opacity duration-200 absolute right-6 top-8 !right-[20px] !top-[33px] sm:!right-[12px] sm:!top-[14px]">
-  <img alt="Close" class="w-full h-full" src="./taocan_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg">
-</button>
-
-
-        <h2 class="font-semibold text-[24px] leading-[24px] text-white text-left whitespace-nowrap !text-[20px] sm:!text-1xl !leading-[34px] !font-bold !text-left sm:!text-center !whitespace-normal !w-full">    Choose payment method
-</h2>
-
-        <div class="flex-1 mt-8 !mt-[25px] !flex-none">    <div class="
-        w-full h-12 shrink-0 flex items-center justify-between px-4 py-3
-        rounded-[10px] border border-[#3c3c3c]
-      ">
-      <span id="sub-modal-plan-title-premium-plus" class="text-sm font-semibold text-white">12 Months · 330 tokens/mo</span>
-
-      <span class="text-sm font-medium">
-        <span id="sub-modal-plan-price-premium-plus" class="text-white">$18</span><span class="text-white">/</span><span class="text-white/40">month</span>
-      </span>
+    <span id="sub-modal-plan-title-premium-plus" data-payment-method-modal-target="planTitle" hidden>1 Month</span>
+    <span id="sub-modal-plan-price-premium-plus" data-payment-method-modal-target="planPrice" hidden>$13.99</span>
+    <span data-payment-method-modal-target="planPricePeriod" hidden>month</span>
+    <div class="pm-grid" id="sub-pm-grid-plus"></div>
+    <div class="pm-sub" id="sub-pm-sub-plus" hidden></div>
+    <div class="pm-secure">
+      <p>Pay securely with</p>
+      <ul>
+        <li>VISA</li>
+        <li>Mastercard</li>
+        <li>Or other available methods</li>
+      </ul>
     </div>
-
-          
-        <p class="mt-3.5 text-xxs font-normal leading-4 text-grey-default" data-subscription-target="upgradePricingNote" style="display: block;">
-          Your new plan starts immediately. Benefits and tokens are added right away, and your current token balance carries over.
-        </p>
-      <div class="flex flex-col gap-1 w-full sub-modal-buttons mt-4" data-controller="pix-modal">
-          
-      <button type="button" id="sub-pay-crypto-plus" class="w-full px-4 py-4 bg-neutral-700 rounded-lg justify-center items-center gap-2 inline-flex mb-3">
-          <div class="text-white text-xs sm:text-sm font-medium leading-tight">Continue with</div>
-          <div class="w-16 h-5 flex gap-[4px]">
-            <img class="w-16 h-5" alt="Bitcoin" src="./taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg">
-            <img class="w-16 h-5" src="./taocan_files/eth-0f77f739edf37b7fc60d467b5fb8317f4467f3bfce952c865551f5d8f4953124.svg">
-            <img class="w-16 h-5" src="./taocan_files/litecoin-39b215ee717df466cd2599dc7a1f63ad0e05d619dca3a8b1a74be7112954086d.svg">
-          </div>
-        </button>
-
-      <button type="button" id="sub-pay-card-plus" class="w-full h-14 rounded-full overflow-hidden relative group">
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-brand to-pink-dark"></div>
-            <div class="animate-shine absolute h-14 w-[123px] left-[-123px] top-1/2 -translate-y-1/2 rounded-[10000px] opacity-20 bg-gradient-to-l from-transparent via-white/70 to-transparent"></div>
-            <div class="relative flex items-center justify-center gap-3">
-              <span class="text-white text-base leading-5 font-semibold whitespace-nowrap">
-                Continue with card
-              </span>
-              <div class="flex items-center gap-1.5">
-                <img class="w-8 h-5" alt="Apple Pay" src="./subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg">
-                <img class="w-8 h-5" alt="Google Pay" src="./subscriptions2_files/google-pay-mark.svg">
-                <img class="w-8 h-5" alt="Visa" src="./subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg">
-                <img class="w-8 h-5" alt="Mastercard" src="./subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg">
-              </div>
-            </div>
-          </button>
-
-
-      </div>
-</div>
-
+    <div class="pm-note">
+      <span class="pm-note-ico">$</span>
+      <div>This is a one-time purchase. No auto-renewal.<br>Please feel free to make your payment.</div>
     </div>
+    <button type="button" class="pm-cta" id="sub-pay-card-plus" data-pm-cta="premium_plus">Pay with Card</button>
   </div>
-
-
-    <form method="dialog" class="modal-backdrop ">
-      <button>close</button>
-    </form>
+  <form method="dialog" class="modal-backdrop ">
+    <button>close</button>
+  </form>
 </dialog>
 
   </div>
