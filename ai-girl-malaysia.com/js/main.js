@@ -506,6 +506,8 @@
           var res = response
            if(res.code === 1 || res.code === '00000') {
             localStorage.setItem('pageList', JSON.stringify(res.data.pagelist.data))
+            // 记录写入时间：chat.js 用它判断签名是否还可能有效，避免旧签名缓存导致图片裂开
+            try { localStorage.setItem('pageList_saved_at', String(Date.now())) } catch (e) {}
             getInfoList(res.data.pagelist.data)
           } else {
             layer.msg(res.msg);  

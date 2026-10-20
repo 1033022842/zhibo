@@ -135,10 +135,49 @@
     var convItems = {}
 
     // 本地会话列表（首页/Explore 点进角色时写入）
+    // 素材已迁到独立存储：接口下发的是带时效的签名地址（如 .../sec/...?e=&s=），
+    // 这里缓存的绝对地址会随签名过期 / 旧版裸路径失效，读取时统一清掉，触发重新拉取。
+    var PAGE_LIST_TTL = 30 * 60 * 1000   // 缓存 30 分钟，保证签名始终有效
+
+    function signedUrlAlive(url) {
+        if (!url) return true
+        var s = String(url)
+        // 未签名的 /storage/ 裸路径（含旧数据里的本站绝对地址）：主站已禁止直读，一律视为过期
+        if (/^\/(?:public\/)?storage\//.test(s) || /^https?:\/\/[^/]+\/(?:public\/)?storage\//.test(s)) return false
+        var m = /[?&]e=(\d+)/.exec(s)
+        if (m) return Number(m[1]) * 1000 > Date.now() + 60 * 1000
+        return true
+    }
+
+    function convAlive(item) {
+        if (!item || typeof item !== 'object') return false
+        var urls = [item.cover_url, item.video_url, item.image]
+        for (var i = 0; i < urls.length; i++) {
+            if (urls[i] && !signedUrlAlive(urls[i])) return false
+        }
+        return true
+    }
+
     function readPageList() {
         var list = []
         try { list = JSON.parse(localStorage.getItem('pageList') || '[]') || [] } catch (e) { list = [] }
-        return Array.isArray(list) ? list : []
+        if (!Array.isArray(list)) return []
+        var alive = list.filter(convAlive)
+        if (alive.length !== list.length) {
+            // 有失效条目：写回干净列表，并让上层重新拉取互补数据
+            try { localStorage.setItem('pageList', JSON.stringify(alive)) } catch (e) {}
+            try { localStorage.removeItem('pageList_saved_at') } catch (e) {}
+        }
+        return alive
+    }
+
+    // 缓存是否新鲜（过期则强制重新拉取，避免签名失效后图片裂开）
+    function pageListFresh() {
+        try {
+            var t = Number(localStorage.getItem('pageList_saved_at') || 0)
+            if (!t) return false
+            return Date.now() - t < PAGE_LIST_TTL
+        } catch (e) { return false }
     }
 
     // 会话条目默认结构，保证 getDetail 不会因为缺字段报错
@@ -1777,7 +1816,8 @@
 
     // 角色目录预热：独立请求写缓存（随机开场/资料补全都依赖它）
     function preloadRoleList() {
-        if (roleListCached().length > 0) return
+        // 缓存里的签名地址有时效：过期或超过 TTL 都重新拉，否则封面/预览视频会裂开
+        if (roleListCached().length > 0 && pageListFresh()) return
         if (window.__roleListLoading) return
         window.__roleListLoading = true
         try {
@@ -1793,8 +1833,9 @@
                         try {
                             var prev = []
                             try { prev = JSON.parse(localStorage.getItem('pageList') || '[]') || [] } catch (e2) {}
-                            var keep = prev.filter(function (t) { return t && !/^\d+$/.test(String(t.id)) })
+                            var keep = prev.filter(function (t) { return t && !/^\d+$/.test(String(t.id)) && convAlive(t) })
                             localStorage.setItem('pageList', JSON.stringify(keep.concat(list)))
+                            localStorage.setItem('pageList_saved_at', String(Date.now()))
                         } catch (e) {}
                     }
                 })
