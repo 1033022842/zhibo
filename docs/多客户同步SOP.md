@@ -206,7 +206,13 @@ ssh root@<客户服务器> "grep -riE 'sugus' /www/wwwroot/douyin/ai-girl-malays
 
 - `kisss.ai` / `www.kisss.ai` 已解析到 103.217.252.52，Certbot 证书生效（2026-10-20 → 2027-01-18，自动续）
 - 80 端口被 Certbot 改成 `default_server { return 404; }`，所以**只能走 https 域名**验证
-- 站点仓库仍是 gitee `zhibo.git` 的克隆，但本地 HEAD 停在 `7a38a72`（10-19 部署点），线上已有 10-20 上游的会员短剧 / MKPay / 登录页修复等变更，靠 `git status` 与 `git diff origin/main` 逐文件核对过
+- **服务器上的 git 状态：HEAD 停在 `7a38a72`，工作区却已被手工更新到接近上游 HEAD**——两者不一致，
+  且工作区里还混着品牌替换（~70 个 html/js）、`face_swap` 已删、以及 `admin/`（未跟踪）。因此：
+  既不能 `git reset --hard`（丢手工更新），也不能信 `git status` 判断线上版本；
+  核对版本一律用 `git diff --ignore-cr-at-eol origin/main -- <文件>` 逐文件看真实差异
+  （合并 CRLF 噪声；品牌行属预期，非品牌差异才是要关注的）
+- 首次接同步时服务器基线提交就取 `7a38a72`（`--seed-snapshot-from 7a38a72`），
+  它之后的上游变更会再推一遍（同尺寸文件自动跳过，只是幂等重放，不会重复上传大文件）
 - **服务器上 `php/` 与上游的差异**（同步工具不覆盖后端，需手工对齐）：`php/config/buildadmin.php` 的
   `admin_login_captcha` 被改成 `false`（kiss 后台不要验证码）——**这是客户差异，下次 `git checkout` php 时别冲掉**
 - **`apps/ws-webman/start.php` 曾被改回不含 `support\Env::load()` 的版本**：本机 webman vendor 里没有
