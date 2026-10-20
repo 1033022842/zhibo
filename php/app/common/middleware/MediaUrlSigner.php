@@ -40,8 +40,12 @@ class MediaUrlSigner
         try {
             if (str_contains($type, 'application/json')) {
                 $this->signJson($response);
+                // 响应里带有时效签名地址，浏览器/代理不能再缓存这份 JSON：
+                // 否则过期后拿到的还是旧签名，图片/视频会 410 裂开（前端已有多处本地缓存，双保险）
+                $response->header(['Cache-Control' => 'no-store, no-cache, must-revalidate']);
             } elseif (str_contains($type, 'text/html')) {
                 $this->signHtml($response);
+                $response->header(['Cache-Control' => 'no-store, no-cache, must-revalidate']);
             }
         } catch (\Throwable) {
             // 改写失败不能影响正常响应

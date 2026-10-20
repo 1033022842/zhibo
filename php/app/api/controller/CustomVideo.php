@@ -430,7 +430,10 @@ final class CustomVideo extends BaseController
         }
 
         // 视频文件不计入图片自动压缩（Upload 内部已按类型判断）
-        $task->result_type = 'video_file';
+        $task->result_type = $task->task_type === 'custom_image' ? 'image_file' : 'video_file';
+        // 成品地址必须落库：万一 worker 随后的 /aiTask/complete 失败（任务状态已不是
+        // accepted/processing），前端仍能从 video_url 拿到结果，不会一直停在「生成中」
+        $task->video_url = $videoUrl;
         $task->cover_url = $coverUrl;
         $task->updated_at = date('Y-m-d H:i:s');
         $task->save();
