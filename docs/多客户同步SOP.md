@@ -304,3 +304,20 @@ python .zcode/sync_clients.py --client kiss                                    #
 
 *维护约定：本文档随体系演进同步更新（改了流程/加了客户/踩了新坑都要回来改），
 文档与 `.zcode/sync_clients.py` 一起提交在 douyin 仓库。*
+
+## 六、发布前自检（2026-10-21 新增）
+
+```bash
+python .zcode/sync_clients.py --client heygirl --check     # 只体检，不分发
+python .zcode/sync_clients.py --client heygirl --strict    # 有问题就中止分发
+```
+
+自检扫 `*.html` + `js/*.js`，分两类报告：
+
+| 类别 | 例子 | 处理 |
+|---|---|---|
+| **需手工修复**（脚本修不掉） | `uta-api` 埋点（数据会发往原站）、`og:url`/`canonical` 指向别家或不存在的根路径 | 改源码 |
+| **自动替换**（apply_brand 会处理） | `candy.ai` / `sugusmail.ai` / `MotionGen` 品牌串 | 无需处理 |
+
+判据来源：10-18~10-20 三次踩坑（品牌被冲、分享文案写成 Candy AI、uta-api 往别家发数据）。
+注意：开发注释里的 `/* 照 candy.ai 原版 */` 不算问题，已排除。

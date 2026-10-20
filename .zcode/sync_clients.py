@@ -19,7 +19,7 @@
 首次给新客户使用前：先按 SOP 完成服务器 brand kit 初始化 + 客户仓库中性基线，
 并在下面 CLIENTS 里补齐该客户配置。
 """
-import argparse, json, os, posixpath, subprocess, sys, time
+import argparse, json, os, posixpath, re, subprocess, sys, time
 import paramiko
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -117,6 +117,77 @@ def in_scope(path, include_files):
         return True
     return False
 
+# ── 发布前自检：原站残留 / 品牌串 / 错误 canonical ────────────────
+# 这些在同步上游时会反复出现（10-18~10-20 各踩过一次）：
+#   1) candy.ai / uta.candy.ai：原站品牌、JSON-LD、第三方埋点（会把数据发去别家）
+#   2) 非客户品牌串：sugusmail / MotionGen / 硬编码 sugus.ai 绝对地址
+#   3) og:url / canonical 指向别家域名或不存在的根路径（分享与 SEO 都会错）
+ORIGIN_PATTERNS = [
+    # (正则, 标签, 是否会被 apply_brand 自动修掉)
+    (re.compile(rb"\bcandy\.ai\b", re.I),          "candy.ai 原站引用",  True),
+    (re.compile(rb"uta-api|data-uta-api-", re.I),  "原站 uta-api 埋点",  False),
+    (re.compile(rb"sugusmail\.ai", re.I),          "sugus 客服邮箱",     True),
+    (re.compile(rb"MotionGen", re.I),              "MotionGen 旧品牌",   True),
+]
+CANON_PAT = re.compile(rb'<meta property="og:url" content="([^"]*)"|<link rel="canonical" href="([^"]*)"')
+COMMENT_HINT = re.compile(rb"/\*|^\s*//|<!--")
+
+def preflight(client, cfg, files=None, quiet=False):
+    """扫描仓库中将被发布的文件，返回问题列表。files=None 时扫整个 SITE_DIR。"""
+    import glob as _glob
+    targets = files or sorted(
+        p for p in _glob.glob(os.path.join(REPO, SITE_DIR, "*.html"))
+        + _glob.glob(os.path.join(REPO, SITE_DIR, "js", "*.js")))
+    problems = []
+    brand = (cfg.get("brand") or "").lower()
+
+    for p in targets:
+        if not os.path.isfile(p):
+            continue
+        rel = os.path.relpath(p, REPO).replace(os.sep, "/")
+        raw = open(p, "rb").read()
+        for pat, label, auto in ORIGIN_PATTERNS:
+            for m in pat.finditer(raw):
+                line = raw[:m.start()].count(b"\n") + 1
+                row = raw.splitlines()[line - 1]
+                if COMMENT_HINT.search(row):   # 开发注释里的参考说明不算问题
+                    continue
+                problems.append((rel, line, label, row.decode("utf-8", "replace")[:110], auto))
+        for m in CANON_PAT.finditer(raw):
+            val = (m.group(1) or m.group(2) or b"").decode("utf-8", "replace")
+            if not val:
+                continue
+            bad = ("candy.ai" in val.lower()
+                   or (val.startswith("/") and not val.startswith("//"))
+                   or (brand and brand not in val.lower() and val.startswith("http")
+                       and "heygirl" in val.lower() and brand != "heygirl"))
+            if bad:
+                line = raw[:m.start()].count(b"\n") + 1
+                auto = "candy.ai" in val.lower()   # apply_brand 会把 candy.ai 域转成客户域
+                problems.append((rel, line, "og:url/canonical 指向错误", val[:110], auto))
+    return problems
+
+def report_preflight(problems, client):
+    if not problems:
+        print("  自检: 通过（无原站残留）")
+        return True
+    fatal = [p for p in problems if not p[4]]      # 品牌脚本修不掉的
+    auto  = [p for p in problems if p[4]]          # apply_brand 会处理的
+    if fatal:
+        print(f"  !! 自检发现 {len(fatal)} 处【需手工修复】的问题：")
+        shown = set()
+        for rel, line, label, ctx, _ in fatal:
+            if (rel, label) in shown: continue
+            shown.add((rel, label))
+            print(f"     {rel}:{line}  [{label}]  {ctx}")
+        if len(fatal) > len(shown):
+            print(f"     …（同类问题共 {len(fatal)} 处，仅列每文件首个）")
+    if auto:
+        print(f"  ·  另有 {len(auto)} 处品牌残留，apply_brand.sh 会自动替换（无需处理）")
+    if fatal:
+        print("     提示：uta-api 埋点会把用户数据发往原站，务必手工删除。")
+    return not fatal
+
 def connect(cfg):
     cli = paramiko.SSHClient(); cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     cli.connect(cfg["host"], 22, cfg["user"], cfg.get("password", ""),
@@ -155,7 +226,7 @@ def upload(cli, local_root, files, site):
     sftp.close()
     return n
 
-def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, seed_from=None):
+def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, seed_from=None, strict=False):
     print(f"\n===== [{name}] =====")
     if not cfg.get("host") and not cfg.get("jump"):
         print("  !! 未配置服务器（占位），跳过。补齐 CLIENTS 配置后重试。"); return
@@ -182,6 +253,13 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
         json.dump(cur, open(STATE_FILE(name), "w", encoding="utf-8"))
         print("  已记录快照（不推送）。")
         return
+
+    # 发布前自检：扫本次要发布的文件（无变更时扫全站，便于随时体检）
+    check_targets = [os.path.join(REPO, p.replace("/", os.sep)) for p in changed] or None
+    problems = preflight(name, cfg, check_targets)
+    if not report_preflight(problems, name) and strict:
+        sys.exit(f"!! --strict: 自检未通过，已中止分发（共 {len(problems)} 处问题）")
+
     if not changed:
         print("  无变更，仅刷新验证。")
     if dry:
@@ -280,10 +358,16 @@ if __name__ == "__main__":
     ap.add_argument("--full", action="store_true", help="忽略快照全量对比")
     ap.add_argument("--init-snapshot", action="store_true", help="只记录当前 blob 快照，不推送（服务器已是最新时预热用）")
     ap.add_argument("--include-files", action="store_true", help="连 *_files/ 素材目录一起同步（默认排除）")
+    ap.add_argument("--strict", action="store_true", help="自检发现问题时中止分发（CI/发布前推荐）")
+    ap.add_argument("--check", action="store_true", help="只跑发布前自检，不分发")
     ap.add_argument("--seed-snapshot-from", metavar="REV",
                     help="服务器已部署该提交时，用它（而非 HEAD）初始化快照基线，首次只推之后的变更")
     a = ap.parse_args()
     names = list(CLIENTS) if a.client == "all" else [a.client]
     for n in names:
-        sync_client(n, CLIENTS[n], a.dry_run, a.full, a.init_snapshot, a.include_files,
-                    a.seed_snapshot_from)
+        if a.check:
+            p = preflight(n, CLIENTS[n])
+            report_preflight(p, n)
+        else:
+            sync_client(n, CLIENTS[n], a.dry_run, a.full, a.init_snapshot, a.include_files,
+                        a.seed_snapshot_from, a.strict)
