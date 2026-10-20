@@ -29,7 +29,7 @@ heygirl.live      （上游自己就是 Sugus）    kelymi.autos      kisss.ai
         │               │                       │               │
         ▼               ▼                       ▼               ▼
 heygirl 客户仓库   zhibo 仓库（即上游）    kelymi 客户仓库    kiss 客户仓库
-gitee heygirl.git  gitee zhibo.git         gitee kelymi.git   gitee kiss.git
+gitee heygirl.git  gitee zhibo.git         gitee kelymi.git   gitee kisss.git
 （脚本自动跟进）                            （脚本自动跟进）    （脚本自动跟进）
 ```
 
@@ -291,7 +291,7 @@ python .zcode/sync_clients.py --client kiss                                    #
 | heygirl | 172.81.99.11（heygirl.live） | /opt/brand-kit（heygirl） | gitee `heygirl.git`（D:\ever\heygirl，master） |
 | sugus | 172.81.98.55（上游生产） | 无需（自己就是 Sugus） | gitee `zhibo.git`（= 上游 douyin 仓库） |
 | kelymi | 172.81.99.42（kelymi.autos，nginx 单站点 zhibo.conf） | /opt/brand-kit（kelymi，源码 `.zcode/brand_kit_kelymi/`） | gitee `kelymi.git`（D:\ever\kelymi，master） |
-| kiss | 103.217.252.52（kisss.ai，nginx 单站点 kiss.conf，Certbot https） | /opt/brand-kit（kiss，源码 `.zcode/brand_kit_kiss/`，含 `tools/apply_brand.sh`） | gitee `kiss.git`（D:\ever\kiss，master） |
+| kiss | 103.217.252.52（kisss.ai，nginx 单站点 kiss.conf，Certbot https） | /opt/brand-kit（kiss，源码 `.zcode/brand_kit_kiss/`，含 `tools/apply_brand.sh`） | gitee `kisss.git`（D:\ever\kiss，master） |
 
 - 四台站点路径均为 `/www/wwwroot/douyin/ai-girl-malaysia.com`，URL 前缀均为 `/ai/`
 - sugus 链路走 99.11 跳板（跳板上有 `n99_pull` key 直连 98.55），无需额外凭据
