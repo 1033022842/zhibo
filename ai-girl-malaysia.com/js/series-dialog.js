@@ -50,12 +50,14 @@
         shortId: 0,
         title: '',
         description: '',
+        poster: '',
         freeEpisodes: 0,
         episodes: [],
         currentId: 0,   // 正在展示的剧集（手机端=当前那一屏）
         confirmId: 0,   // CTA 已点过一次、等待二次确认的剧集
         rateIndex: 0,
         autoPlay: false, // 只有刚解锁成功那一集才自动播放，其余保持暂停待播（同原站）
+        vipRequired: false, // 非会员：整部剧锁定，只能去开通会员
     }
 
     function esc(s) {
@@ -92,6 +94,7 @@
         var code = res && res.code
         if (code === 'C0100') return 'Not enough tokens. Please top up first.'
         if (code === 'C0101') return 'Your wallet is frozen. Please contact support.'
+        if (code === 'A0300') return 'Short dramas are for members only. Please subscribe first.'
         if (code === 'A0100' || code === 'A0101') return 'Session expired. Please sign in again.'
         return (res && res.msg) || 'Something went wrong. Please try again.'
     }
@@ -376,6 +379,26 @@
           '</button>'
     }
 
+    /* 非会员：整部剧锁定，CTA 直接去订阅页 */
+    function vipCta() {
+        return '<button type="button" class="cs-cta" data-cs-cta data-vip="1">Subscribe to watch</button>'
+    }
+
+    function vipGateHtml(poster, label) {
+        return '<div class="cs-locked">' +
+            (poster ? '<img class="cs-locked-poster" alt="" src="' + esc(poster) + '">' : '') +
+            '<div class="cs-locked-inner">' +
+              '<p class="cs-locked-text">' + (label ? esc(label) + ' · ' : '') + 'Members only</p>' +
+              vipCta() +
+            '</div>' +
+          '</div>'
+    }
+
+    function goVip() {
+        close()
+        location.href = './Subscriptions.html'
+    }
+
     function bindVideo(scope) {
         var v = scope.querySelector('video')
         if (!v) return
@@ -508,7 +531,19 @@
         if (!stage) return
 
         if (!ep) {
+            if (state.vipRequired) {
+                stageAttrs(true, false, false)
+                stage.innerHTML = vipGateHtml(state.poster, '')
+                return
+            }
             stageEmpty('This series has no episode yet. Please add it in the admin panel.')
+            return
+        }
+
+        // 非会员：目录可见、视频一律锁定
+        if (state.vipRequired) {
+            stageAttrs(true, false, false)
+            stage.innerHTML = vipGateHtml(ep.poster || state.poster, episodeLabel(ep))
             return
         }
 
@@ -566,11 +601,14 @@
     }
 
     function feedSlideHtml(ep, index) {
-        var locked = !ep.unlocked
+        var vipLocked = state.vipRequired
+        var locked = vipLocked || !ep.unlocked
         var hasVideo = !!ep.video_url
 
         var body
-        if (locked) {
+        if (vipLocked) {
+            body = vipGateHtml(ep.poster || state.poster, episodeLabel(ep))
+        } else if (locked) {
             var confirming = Number(state.confirmId) === Number(ep.id)
             body = '<div class="cs-locked">' +
                 (ep.poster ? '<img class="cs-locked-poster" style="' + (vipUnblur() ? 'filter:none;' : '') + '" alt="" src="' + esc(ep.poster) + '">' : '') +
@@ -611,6 +649,11 @@
         if (!feed) return
 
         if (!state.episodes.length) {
+            if (state.vipRequired) {
+                feed.innerHTML = '<div class="cs-slide" data-locked="1" data-empty="0" data-playing="0" data-active="1">' +
+                    vipGateHtml(state.poster, '') + feedTopHtml() + '</div>'
+                return
+            }
             feedMessage('This series has no episode yet. Please add it in the admin panel.')
             return
         }
@@ -684,7 +727,11 @@
         }
 
         var meta = count + (count === 1 ? ' episode' : ' episodes')
-        if (state.freeEpisodes > 0) meta += ' · first ' + state.freeEpisodes + ' free'
+        if (state.vipRequired) {
+            meta += ' · Members only'
+        } else if (state.freeEpisodes > 0) {
+            meta += ' · first ' + state.freeEpisodes + ' free'
+        }
         var countEl = dlg.querySelector('[data-series-count]')
         if (countEl) countEl.textContent = meta
     }
@@ -696,7 +743,9 @@
             var isCurrent = Number(ep.id) === Number(state.currentId)
 
             var right
-            if (ep.unlocked && ep.free) {
+            if (state.vipRequired) {
+                right = SVG_LOCK + '<span class="cs-price">VIP</span>'
+            } else if (ep.unlocked && ep.free) {
                 right = '<span class="cs-free">Free</span>'
             } else if (ep.unlocked) {
                 right = '<span class="cs-price" data-owned="1">' + ep.price + ' ' + TOKEN_ICON + '</span>'
@@ -737,6 +786,9 @@
         var ep = episodeById(id)
         if (!ep) return
 
+        // 非会员：只切到该集展示会员锁，不要求登录（点 CTA 再去订阅页）
+        if (state.vipRequired) { selectEpisode(ep); return }
+
         if (ep.unlocked) { selectEpisode(ep); return }
 
         if (needLogin()) return
@@ -745,6 +797,8 @@
     }
 
     function onCtaClick() {
+        if (state.vipRequired) { goVip(); return }
+
         var ep = current()
         if (!ep || ep.unlocked) return
         if (needLogin()) return
@@ -813,11 +867,13 @@
                 state.description = s.description || ''
                 state.freeEpisodes = Number(s.free_episodes || 0)
                 state.episodes = Array.isArray(res.data.episodes) ? res.data.episodes : []
+                state.vipRequired = Number(s.vip_required || 0) === 1
+                state.poster = s.poster || ''
                 state.confirmId = 0
 
                 // 没配剧集的剧：用剧自身的视频兜底成第 1 集（免费），
                 // 这样任何卡片点开都是同一个弹窗，不会一半新样式一半旧样式
-                if (!state.episodes.length && s.video_url) {
+                if (!state.episodes.length && s.video_url && !state.vipRequired) {
                     state.episodes = [{
                         id: 0,
                         short_id: state.shortId,
@@ -851,12 +907,14 @@
         state.shortId = Number(opt.shortId || 0)
         state.title = opt.title || ''
         state.description = opt.description || ''
+        state.poster = ''
         state.freeEpisodes = 0
         state.episodes = []
         state.currentId = 0
         state.confirmId = 0
         state.rateIndex = 0
         state.autoPlay = false
+        state.vipRequired = false
 
         var list = d.querySelector('[data-series-list]')
         if (list) list.innerHTML = '<p class="cs-skeleton">Loading...</p>'

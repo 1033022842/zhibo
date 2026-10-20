@@ -18,6 +18,8 @@ use think\facade\Db;
  *   POST /api/live/shortUnlock                       解锁某一集（扣代币，需登录）
  *
  * 收费规则（按集解锁）：
+ *   0) 会员门槛：必须开通有效会员（lp_user.vip_expire_at 未过期）才能观看，
+ *      非会员一律不下发 video_url，也不能解锁；
  *   1) 剧上 free_episodes = N：集号 <= N 的集免代币；
  *   2) 单集 price = 0 也算免费；
  *   3) 其余集要解锁（写入 lp_user_item，item_type = 'short'，item_id = 剧集 id），
@@ -92,10 +94,11 @@ final class Shorts extends BaseController
             ->toArray();
 
         $stats = $this->episodeStats($rows);
+        $isVip = $this->isVipUser($this->optionalAuthUserId());
 
         $list = [];
         foreach ($rows as $row) {
-            $item = $this->formatItem($row, $stats[(int) $row['id']] ?? null);
+            $item = $this->formatItem($row, $stats[(int) $row['id']] ?? null, $isVip);
             if ($owned) {
                 // 该剧已解锁的集数，前台卡片用「Owned N」
                 $item['owned_episodes'] = $ownedCounts[(int) $row['id']] ?? 0;
@@ -124,6 +127,9 @@ final class Shorts extends BaseController
 
         $freeEpisodes = max(0, (int) ($short['free_episodes'] ?? 0));
 
+        // 会员门槛：非会员只返回剧集目录，不下发任何视频地址
+        $isVip = $this->isVipUser($this->optionalAuthUserId());
+
         $rows = $db->table('lp_short_episode')
             ->where('short_id', $shortId)
             ->where('status', 1)
@@ -137,7 +143,7 @@ final class Shorts extends BaseController
 
         $episodes = [];
         foreach ($rows as $row) {
-            $episodes[] = $this->formatEpisode($row, $freeEpisodes, $unlocked);
+            $episodes[] = $this->formatEpisode($row, $freeEpisodes, $unlocked, $isVip);
         }
 
         return $this->jsonSuccess([
@@ -146,10 +152,13 @@ final class Shorts extends BaseController
                 'title'          => (string) $short['title'],
                 'description'    => (string) ($short['description'] ?? ''),
                 'poster'         => $this->absoluteUrl((string) $short['poster']),
-                'free_episodes'  => $freeEpisodes,
+                // 非会员不展示「前 N 集免费」，避免误解
+                'free_episodes'  => $isVip ? $freeEpisodes : 0,
                 'episode_count'  => count($episodes),
-                // 没有剧集时的兜底单视频（老卡片）
-                'video_url'      => $episodes ? '' : $this->absoluteUrl((string) ($short['video_url'] ?? '')),
+                'is_vip'         => $isVip ? 1 : 0,
+                'vip_required'   => $isVip ? 0 : 1,
+                // 没有剧集时的兜底单视频（老卡片）；非会员不下发
+                'video_url'      => ($episodes || !$isVip) ? '' : $this->absoluteUrl((string) ($short['video_url'] ?? '')),
             ],
             'episodes' => $episodes,
         ]);
@@ -164,6 +173,9 @@ final class Shorts extends BaseController
     public function unlock()
     {
         $userId = $this->getAuthUserId();
+        if (!$this->isVipUser($userId)) {
+            return $this->jsonFail(ResultCode::NO_PERMISSION, 'Short dramas are for members only. Please subscribe first.');
+        }
         $episodeId = (int) $this->request->post('episode_id/d', 0);
         if ($episodeId <= 0) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'episode_id 不能为空');
@@ -374,7 +386,7 @@ final class Shorts extends BaseController
     /**
      * @param array|null $stat 该剧的剧集聚合（null 表示没有剧集）
      */
-    private function formatItem(array $row, ?array $stat): array
+    private function formatItem(array $row, ?array $stat, bool $isVip = true): array
     {
         $episodeCount = $stat ? (int) $stat['total'] : 0;
         $hasEpisodes = $episodeCount > 0;
@@ -384,8 +396,9 @@ final class Shorts extends BaseController
             'title'         => (string) $row['title'],
             'description'   => (string) ($row['description'] ?? ''),
             'poster'        => $this->absoluteUrl((string) $row['poster']),
-            // 有剧集时以剧集为准，不再下发剧上的视频（避免绕过按集付费）
-            'video_url'     => $hasEpisodes ? '' : $this->absoluteUrl((string) ($row['video_url'] ?? '')),
+            // 有剧集时以剧集为准，不再下发剧上的视频（避免绕过按集付费）；
+            // 非会员连老卡片的单视频也不下发（会员门槛）
+            'video_url'     => (!$hasEpisodes && $isVip) ? $this->absoluteUrl((string) ($row['video_url'] ?? '')) : '',
             'href'          => (string) $row['href'],
             'section'       => (string) $row['section'],
             'rank'          => (int) $row['rank'],
@@ -393,9 +406,10 @@ final class Shorts extends BaseController
             'spicy'         => (bool) $row['spicy'],
             'featured'      => (string) $row['featured'],
             'new_episodes'  => (bool) $row['new_episodes'],
-            'free_episodes' => max(0, (int) ($row['free_episodes'] ?? 0)),
+            'free_episodes' => $isVip ? max(0, (int) ($row['free_episodes'] ?? 0)) : 0,
             'has_episodes'  => $hasEpisodes,
             'episode_count' => $episodeCount,
+            'vip_required'  => $isVip ? 0 : 1,
             // 0 表示全免费；>0 表示最低付费集的代币价
             'price_from'    => $stat ? (int) $stat['min_paid'] : 0,
             // 前台筛选栏用：分类标签数组（逗号分隔存库）+ 角色类型（creator/character/other）
@@ -420,27 +434,46 @@ final class Shorts extends BaseController
     }
 
     /**
-     * 剧集输出：未解锁不下发 video_url
+     * 剧集输出：会员门槛 + 未解锁不下发 video_url
      */
-    private function formatEpisode(array $row, int $freeEpisodes, array $unlocked): array
+    private function formatEpisode(array $row, int $freeEpisodes, array $unlocked, bool $isVip = true): array
     {
         $id = (int) $row['id'];
         $no = (int) $row['episode_no'];
         $price = max(0, (int) $row['price']);
+
+        // 非会员：目录照常返回，但没有任何可播放内容，也不能显示免费集
+        if (!$isVip) {
+            return [
+                'id'           => $id,
+                'short_id'     => (int) $row['short_id'],
+                'episode_no'   => $no,
+                'title'        => (string) $row['title'],
+                'poster'       => $this->absoluteUrl((string) $row['poster']),
+                'duration'     => (string) $row['duration'],
+                'price'        => $price,
+                'free'         => 0,
+                'unlocked'     => 0,
+                'vip_required' => 1,
+                'video_url'    => '',
+            ];
+        }
+
         $isFree = $no <= $freeEpisodes || $price === 0;
         $isUnlocked = $isFree || isset($unlocked[$id]);
 
         $episode = [
-            'id'         => $id,
-            'short_id'   => (int) $row['short_id'],
-            'episode_no' => $no,
-            'title'      => (string) $row['title'],
-            'poster'     => $this->absoluteUrl((string) $row['poster']),
-            'duration'   => (string) $row['duration'],
-            'price'      => $price,
-            'free'       => $isFree ? 1 : 0,
-            'unlocked'   => $isUnlocked ? 1 : 0,
-            'video_url'  => '',
+            'id'           => $id,
+            'short_id'     => (int) $row['short_id'],
+            'episode_no'   => $no,
+            'title'        => (string) $row['title'],
+            'poster'       => $this->absoluteUrl((string) $row['poster']),
+            'duration'     => (string) $row['duration'],
+            'price'        => $price,
+            'free'         => $isFree ? 1 : 0,
+            'unlocked'     => $isUnlocked ? 1 : 0,
+            'vip_required' => 0,
+            'video_url'    => '',
         ];
 
         if ($isUnlocked) {
@@ -448,6 +481,18 @@ final class Shorts extends BaseController
         }
 
         return $episode;
+    }
+
+    /**
+     * 是否有效会员（lp_user.vip_expire_at 未过期）
+     */
+    private function isVipUser(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        $ent = (new VipService())->entitlements($userId);
+        return !empty($ent['is_vip']);
     }
 
     /**
