@@ -162,13 +162,13 @@
             st.fiatId = ''
         }
 
-        // 整行长条：加密货币固定在最上面，其次是信用卡，再往下每个本币通道一条
+        // 版式：加密货币独占第一排，信用卡与各本币通道两列排；点任意一格直接进入支付
         var html = ''
-        html += '<button type="button" class="pm-row' + (st.method === 'crypto' ? ' is-on' : '') + '" data-pm-method="crypto">' +
+        html += '<button type="button" class="pm-row" data-pm-method="crypto">' +
             '<span class="pm-row-text">Continue with</span>' +
             '<span class="pm-row-icons">' + PM_COIN_ICONS + '</span></button>'
         if (avail.card) {
-            html += '<button type="button" class="pm-row' + (st.method === 'card' ? ' is-on' : '') + '" data-pm-method="card">' +
+            html += '<button type="button" class="pm-row" data-pm-method="card">' +
                 '<span class="pm-row-text">Credit Card</span>' +
                 '<span class="pm-row-icons">' + PM_CARD_ICON + '</span></button>'
         }
@@ -176,9 +176,7 @@
             fiatChannels.forEach(function (fc) {
                 var logo = fiatLogo(fc.name)
                 var unit = fc.symbol || fc.currency || ''
-                var on = st.method === 'cash' && String(fc.id) === String(st.fiatId)
-                html += '<button type="button" class="pm-row' + (on ? ' is-on' : '') +
-                    '" data-pm-method="cash" data-pm-fiat="' + parseInt(fc.id, 10) + '">' +
+                html += '<button type="button" class="pm-row" data-pm-method="cash" data-pm-fiat="' + parseInt(fc.id, 10) + '">' +
                     '<span class="pm-row-text">' + pmClean(fc.name) + (unit !== '' ? ' · ' + pmClean(unit) : '') + '</span>' +
                     (logo ? '<span class="pm-row-icons"><img src="' + logo.src + '" alt="' + logo.alt + '"></span>' : '') +
                     '</button>'
@@ -187,15 +185,13 @@
         $(m.grid).html(html)
 
         pmRenderSub(m, avail)
-        $(m.cta).text(st.method === 'card' ? 'Pay with Card'
-            : (st.method === 'crypto' ? 'Pay with Crypto' : 'Pay with Cash'))
     }
 
-    /** 信用卡有多条收单通道时，在下方给一排小胶囊 */
+    /** 信用卡有多条收单通道时，在方式下方给一排可切换的小胶囊（点了只切通道，不发起支付） */
     function pmRenderSub(m, avail) {
         var st = PM_STATE[m.level]
         var html = ''
-        if (st.method === 'card' && avail.card && cardChannels.length > 1) {
+        if (avail.card && cardChannels.length > 1) {
             html += '<div class="pm-sub-label">Choose card network</div><div class="pm-chips">'
             cardChannels.forEach(function (ch) {
                 var logo = channelLogo(ch.label)
@@ -461,7 +457,7 @@
         var title = $(MODAL_TITLE[level]).first()
         var price = $(MODAL_PRICE[level]).first()
         if (title.length) { title.text(tierTitle(months, tokens)) }
-        if (price.length) { price.text(money(base.price_per_month)) }
+        if (price.length) { price.text(money(base.usd_price)) }
     }
 
     function billText(months, amount) {
@@ -476,36 +472,29 @@
             var $w = $(this).closest('[data-plan-type]')
             if ($w.length) { remember($w) }
         })
-        // 支付方式长条：只做选中，真正下单统一走底部按钮
+        // 支付方式格子：点哪个就按哪种方式发起支付
         $(document).on('click', '[data-pm-method]', function () {
             var m = pmModalOf(this)
             if (!m) { return }
             var st = PM_STATE[m.level]
-            st.method = String($(this).attr('data-pm-method') || '')
-            // 本币通道行同时带 data-pm-fiat，必须在同一次事件里取完再重渲染
-            var fid = $(this).attr('data-pm-fiat')
-            if (fid) { st.fiatId = String(fid) }
-            pmRender(m)
+            var method = String($(this).attr('data-pm-method') || '')
+            if (method === 'card') {
+                payLevel(m.level, 'flowpay', st.gcode)
+            } else if (method === 'crypto') {
+                cryptoPayLevel(m.level)
+            } else if (method === 'cash') {
+                var fid = $(this).attr('data-pm-fiat')
+                if (fid) { fiatPay(fid, m.level) }
+            }
         })
-        // 卡组织 / 本币通道切换
-        $(document).on('click', '[data-pm-gcode]', function () {
+        // 卡组织切换：只改默认通道，真正发起支付仍点信用卡格子
+        $(document).on('click', '[data-pm-gcode]', function (e) {
+            e.preventDefault()
+            e.stopPropagation()
             var m = pmModalOf(this)
             if (!m) { return }
             PM_STATE[m.level].gcode = String($(this).attr('data-pm-gcode') || '')
             pmRender(m)
-        })
-        // 底部 Pay 按钮：按当前选中的方式执行
-        $(document).on('click', '[data-pm-cta]', function () {
-            var m = pmModalOf(this)
-            if (!m) { return }
-            var st = PM_STATE[m.level]
-            if (st.method === 'card') {
-                payLevel(m.level, 'flowpay', st.gcode)
-            } else if (st.method === 'crypto') {
-                cryptoPayLevel(m.level)
-            } else if (st.method === 'cash' && st.fiatId) {
-                fiatPay(st.fiatId, m.level)
-            }
         })
     }
 

@@ -345,13 +345,13 @@
             PM.fiatId = ''
         }
 
-        // 整行长条：加密货币固定在最上面，其次是信用卡，再往下每个本币通道一条
+        // 版式：加密货币独占第一排，信用卡与各本币通道两列排；点任意一格直接进入支付
         var html = ''
-        html += '<button type="button" class="pm-row' + (PM.method === 'crypto' ? ' is-on' : '') + '" data-pm-method="crypto">' +
+        html += '<button type="button" class="pm-row" data-pm-method="crypto">' +
             '<span class="pm-row-text">Continue with</span>' +
             '<span class="pm-row-icons">' + PM_COIN_ICONS + '</span></button>'
         if (avail.card) {
-            html += '<button type="button" class="pm-row' + (PM.method === 'card' ? ' is-on' : '') + '" data-pm-method="card">' +
+            html += '<button type="button" class="pm-row" data-pm-method="card">' +
                 '<span class="pm-row-text">Credit Card</span>' +
                 '<span class="pm-row-icons">' + PM_CARD_ICON + '</span></button>'
         }
@@ -359,9 +359,7 @@
             fiatChannels.forEach(function (fc) {
                 var logo = fiatLogo(fc.name)
                 var unit = fc.symbol || fc.currency || ''
-                var on = PM.method === 'cash' && String(fc.id) === String(PM.fiatId)
-                html += '<button type="button" class="pm-row' + (on ? ' is-on' : '') +
-                    '" data-pm-method="cash" data-pm-fiat="' + parseInt(fc.id, 10) + '">' +
+                html += '<button type="button" class="pm-row" data-pm-method="cash" data-pm-fiat="' + parseInt(fc.id, 10) + '">' +
                     '<span class="pm-row-text">' + pmClean(fc.name) + (unit !== '' ? ' · ' + pmClean(unit) : '') + '</span>' +
                     (logo ? '<span class="pm-row-icons"><img src="' + logo.src + '" alt="' + logo.alt + '"></span>' : '') +
                     '</button>'
@@ -370,14 +368,13 @@
         box.html(html)
 
         renderPmSub(avail)
-        renderPmCta()
     }
 
-    /** 信用卡有多条收单通道时，在下方给一排小胶囊 */
+    /** 信用卡有多条收单通道时，在方式下方给一排可切换的小胶囊（点了只切通道，不发起支付） */
     function renderPmSub(avail) {
         var box = $('#pm-sub')
         var html = ''
-        if (PM.method === 'card' && avail.card && flowpayChannels.length > 1) {
+        if (avail.card && flowpayChannels.length > 1) {
             html += '<div class="pm-sub-label">Choose card network</div><div class="pm-chips">'
             flowpayChannels.forEach(function (ch) {
                 var logo = channelLogo(ch.label)
@@ -390,12 +387,6 @@
             html += '</div>'
         }
         if (html) { box.html(html).prop('hidden', false) } else { box.html('').prop('hidden', true) }
-    }
-
-    function renderPmCta() {
-        var label = PM.method === 'card' ? 'Pay with Card'
-            : (PM.method === 'crypto' ? 'Pay with Crypto' : 'Pay with Cash')
-        $('#tk-pay-cta').text(label)
     }
 
     /** 通道名 → 品牌标（匹配不到就只显示文字） */
@@ -425,7 +416,9 @@
     function openModal(sel) {
         if (!sel) return
         selected = sel
-        $('#pm-badge').text(sel.tokens + ' Tokens')
+        $('#pm-plan-title').text(sel.tokens + ' tokens')
+        $('#pm-plan-price').text(money(sel.price))
+        $('#pm-summary').text('One-time payment billed as ' + money(sel.price))
         renderMethods()
         $('#tk-payment-modal').css('display', 'flex')
         hideBubble()
@@ -444,7 +437,7 @@
             return
         }
         loading = true
-        $('#tk-payment-modal .pm-tile, #tk-payment-modal .pm-chip, #tk-pay-cta').attr('disabled', true).css('opacity', .6)
+        $('#tk-payment-modal .pm-row, #tk-payment-modal .pm-chip').attr('disabled', true).css('opacity', .6)
         var payload = selected.packageId
             ? { package_id: selected.packageId, product: code }
             : { tokens: selected.tokens, product: code }
@@ -471,7 +464,7 @@
             toast('Network error, please retry')
         }).always(function () {
             loading = false
-            $('#tk-payment-modal .pm-tile, #tk-payment-modal .pm-chip, #tk-pay-cta').removeAttr('disabled').css('opacity', 1)
+            $('#tk-payment-modal .pm-row, #tk-payment-modal .pm-chip').removeAttr('disabled').css('opacity', 1)
         })
     }
 
@@ -590,36 +583,32 @@
             openModal({ tokens: parseInt(pkg.tokens, 10), price: parseFloat(pkg.price), packageId: pkg.id })
         })
         $(document).on('click', '#tk-payment-modal [data-tk-close]', closeModal)
-        // 支付方式长条：只做选中，真正下单统一走底部按钮
+        // 支付方式格子：点哪个就按哪种方式发起支付
         $(document).on('click', '#tk-payment-modal [data-pm-method]', function () {
-            PM.method = String($(this).attr('data-pm-method') || '')
-            // 本币通道行同时带 data-pm-fiat，必须在同一次事件里取完再重渲染
-            var fid = $(this).attr('data-pm-fiat')
-            if (fid) { PM.fiatId = String(fid) }
-            renderMethods()
-        })
-        // 卡组织 / 本币通道切换
-        $(document).on('click', '#tk-payment-modal [data-pm-gcode]', function () {
-            PM.gcode = String($(this).attr('data-pm-gcode') || '')
-            renderMethods()
-        })
-        // 底部按钮：按当前选中的方式执行
-        $(document).on('click', '#tk-pay-cta', function () {
             if (!selected || loading) return
-            if (PM.method === 'card') {
+            var method = String($(this).attr('data-pm-method') || '')
+            if (method === 'card') {
                 submitOrder('', 'flowpay', PM.gcode)
                 return
             }
             var base = './CryptoPay.html?kind=coin' +
                 '&tokens=' + encodeURIComponent(selected.tokens) +
                 '&price=' + encodeURIComponent(selected.price)
-            if (PM.method === 'crypto') {
+            if (method === 'crypto') {
                 location.href = base
                 return
             }
-            if (PM.method === 'cash' && PM.fiatId) {
-                location.href = base + '&fiat_id=' + encodeURIComponent(PM.fiatId)
+            var fid = $(this).attr('data-pm-fiat')
+            if (method === 'cash' && fid) {
+                location.href = base + '&fiat_id=' + encodeURIComponent(fid)
             }
+        })
+        // 卡组织切换：只改默认通道，真正发起支付仍点信用卡格子
+        $(document).on('click', '#tk-payment-modal [data-pm-gcode]', function (e) {
+            e.preventDefault()
+            e.stopPropagation()
+            PM.gcode = String($(this).attr('data-pm-gcode') || '')
+            renderMethods()
         })
         $(document).on('input', '#tk-custom-slider', function () {
             showBubble()
