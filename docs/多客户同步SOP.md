@@ -282,6 +282,7 @@ python .zcode/sync_clients.py --client kiss                                    #
 | **kiss 服务器 sshd 只有 rsa/dsa host key**（10-20） | paramiko 2.7 连 kiss 报 `Incompatible ssh peer (no acceptable host key)`，OpenSSH 客户端却正常——paramiko 2.7 的 `_preferred_keys` 只认 `ssh-rsa`（SHA-1 签名），OpenSSH 8.8+ 默认不再接受 | 服务器 `ssh-keygen -A` 补 ecdsa/ed25519 + `systemctl restart ssh`；本地把 paramiko 升到 ≥3（3.x 支持 `rsa-sha2-*`）。判别：`ssh-keyscan <host>` 只出 `ssh-rsa` 一行就是缺 key |
 | **服务器上 `git checkout` 会顺手冲掉客户后端差异**（10-20 kiss） | 排查时用 `git checkout origin/main -- apps/ws-webman/start.php` 归位，把「kiss 上不带 `support\Env::load()` 的本地改动」一起冲掉了；而 webman vendor 没有 `vlucas/phpdotenv` 时 `.env` 整体不被读，WS 的 DB 退化成硬编码 `zhibo`（kiss 库是 `live_platform`）→ 写库静默失败 | 后端文件 checkout 前先 `git diff <file>` 确认不是客户差异；客户后端差异（如 kiss 的 `buildadmin.php` `admin_login_captcha=false`）记进本文档，checkout 后补回 |
 | **`--init-snapshot` 用在「服务器落后上游」= 灾难**（10-20 kiss） | 新客户服务器 HEAD 常比上游旧（kiss 停在 `7a38a72`，上游已到 `8363173`）。`--init-snapshot` 记的是上游 HEAD，把没推过的变更全标成已同步，之后增量永远推不动 | 用 `--seed-snapshot-from <服务器实际HEAD>` 记基线，`--dry-run` 确认清单 = 服务器 HEAD..上游 HEAD 的变更后再真跑 |
+| **「客户仓库已提交推送」可能什么都没提交**（10-20 kiss 首同步） | 脚本无条件打印这行；客户仓库已与上游内容一致时 `git commit` 为空（`git add` 无改动），实际只有一次空 push | 别把它当提交凭证，去客户仓库 `git log --oneline -1` 核实；内容一致时没有新提交是正确结果 |
 | **kiss 的 80 端口被 Certbot 改成 `default_server { return 404; }`**（10-20） | `curl http://103.217.252.52/ai/Home.html` 永远 404，容易误判成「同步没生效/站点挂了」；IP + `Host: kisss.ai` 只会 301 到 https | 一律用 `https://kisss.ai/ai/...` 验证；`sync_clients.py` 里 kiss 的 `verify_url` 也必须是域名 |
 
 ## 八、四台服务器与仓库速查
