@@ -256,8 +256,10 @@
                 return
             }
             var paid = d.data ? Number(d.data.paid_tokens) || 0 : 0
-            if (paid > 0) {
-                cvBalance = d.data && typeof d.data.balance === 'number' ? d.data.balance : Math.max(0, cvBalance - paid)
+            if (d.data && typeof d.data.balance === 'number' && d.data.balance >= 0) {
+                cvBalance = d.data.balance
+            } else if (paid > 0) {
+                cvBalance = Math.max(0, cvBalance - paid)
             }
             // 提交成功即刻刷新剩余次数（remain=-1 不限量）；保留 refill 提示
             if (d.data && typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: cvDailyLimit, refill_daily: cvRefillDaily })
