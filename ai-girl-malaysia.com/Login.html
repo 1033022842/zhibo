@@ -12,7 +12,7 @@
 <script src="./_shared/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./_shared/jquery-3.6.0.min.js"></script>
 <script src="./assets/layer/3.1.1/layer.js"></script>
-  <script src="./js/main.js?v=20261018b"></script>
+  <script src="./js/main.js?v=20261020a"></script>
 		<script src="./js/shell-new.js?v=20261018c"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
   <script src="./js/event.js"></script>
@@ -39,7 +39,8 @@
     }
     .left-img {
       width: 400px;
-      height: 600px;
+      min-height: 600px;
+      align-self: stretch;
       background: #222 url('./assets/login-bg-full.jpg') center top / cover no-repeat;
       flex-shrink: 0;
     }
@@ -149,12 +150,84 @@
       color: #fff;
       border: none;
       border-radius: 8px;
+      font-family: inherit;
       font-size: 1.1rem;
       font-weight: bold;
       margin-top: 10px;
       cursor: pointer;
       transition: background 0.2s;
     }
+    /* 注册邮箱验证码行：由 main.js 注入（仅开启邮箱验证的站点出现），
+       这里统一成与其他输入行一致的样式，并兼容旧版内联样式注入 */
+    .form-area .email-code-group {
+      display: block !important;
+      position: relative;
+      margin: 0 0 20px !important;
+      padding: 0 !important;
+      align-items: stretch !important;
+      gap: 0 !important;
+    }
+    .form-area .email-code-group > .icon {
+      position: absolute !important;
+      left: 14px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      display: flex !important;
+      width: 20px !important;
+      height: 20px !important;
+      color: #8f8f96 !important;
+      pointer-events: none;
+    }
+    .form-area .email-code-group > .icon svg {
+      width: 20px !important;
+      height: 20px !important;
+      display: block;
+    }
+    /* 兼容旧版 main.js 注入的 emoji 图标：隐藏字符，用 mask 画成灰色信封 */
+    .form-area .email-code-group > .icon:not(:has(svg)) {
+      font-size: 0 !important;
+      color: transparent !important;
+      background-color: #8f8f96;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2.5'/%3E%3Cpath d='m3.8 7.2 8.2 5.6 8.2-5.6'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2.5'/%3E%3Cpath d='m3.8 7.2 8.2 5.6 8.2-5.6'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+    }
+    .form-area .email-code-group > input {
+      width: 100% !important;
+      height: 46px !important;
+      padding: 0 112px 0 44px !important;
+      border: 1px solid transparent !important;
+      border-radius: 8px !important;
+      background: #18181b !important;
+      color: #fff !important;
+      font-family: inherit !important;
+      font-size: 1rem !important;
+      line-height: normal !important;
+      box-sizing: border-box !important;
+      outline: none;
+    }
+    .form-area .email-code-group > input::placeholder { color: #8f8f96 !important; opacity: 1; }
+    .form-area .email-code-group > input:focus {
+      border-color: #f35b7a !important;
+      box-shadow: 0 0 0 3px rgba(243,91,122,0.18);
+    }
+    .form-area .email-code-group > button {
+      position: absolute !important;
+      right: 10px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      padding: 7px 12px !important;
+      border: 1px solid #f35b7a !important;
+      border-radius: 6px !important;
+      background: transparent !important;
+      color: #f35b7a !important;
+      font-family: inherit !important;
+      font-size: 0.82rem !important;
+      font-weight: 600 !important;
+      line-height: 1 !important;
+      white-space: nowrap !important;
+      cursor: pointer;
+    }
+    .form-area .email-code-group > button:disabled { opacity: 0.55; cursor: not-allowed; }
     .form-btn:hover {
       background: #e14a6a;
     }

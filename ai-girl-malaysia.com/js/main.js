@@ -723,7 +723,7 @@
         if ($group.length) {
           $group.after(
             '<div class="input-group email-code-group">' +
-              '<span class="icon">🔑</span>' +
+              '<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.8 7.2 8.2 5.6 8.2-5.6"/></svg></span>' +
               '<input id="email_code_registration" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Email code">' +
               '<button type="button" id="email_code_send" class="email-code-send">Send code</button>' +
             '</div>'
