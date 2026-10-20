@@ -34,6 +34,8 @@
     function authJson(url, opts) {
         opts = opts || {}
         opts.headers = Object.assign({}, token ? { Authorization: 'Bearer ' + token } : {}, opts.headers || {})
+        // 接口返回带时效签名地址，任何一层缓存都可能拿到过期链接（视频/图片裂开）
+        opts.cache = 'no-store'
         return fetch(url, opts).then(function (r) { return r.json() })
     }
 

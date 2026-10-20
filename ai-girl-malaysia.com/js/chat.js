@@ -350,7 +350,7 @@
             location.href = './Login.html?redirect=' + encodeURIComponent('./Chat.html?id=' + id)
             return
         }
-        fetch('/api/live/customOneList', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } })
+        fetch('/api/live/customOneList', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 if (!d || d.code !== '00000' || !Array.isArray(d.data)) {
@@ -833,7 +833,7 @@
 
     // 好感度奖励：满 100 可观看该角色的专属视频（scene_type=affection）
     function loadAffectionRewards(cid, unlocked) {
-        fetch('/api/live/roleMedia?content_id=' + cid + '&type=special', { headers: authHeaders(false) })
+        fetch('/api/live/roleMedia?content_id=' + cid + '&type=special', { headers: authHeaders(false), cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 var box = document.getElementById('js-spend')
@@ -912,7 +912,7 @@
         var cid = spendContentId()
         // 非平台角色 / 未登录：没有好感度，隐藏好感度区（代币余额入口仍然保留）
         if (cid === '0' || !token) { if (box) box.querySelector('.js-sp-aff').style.display = 'none'; return }
-        fetch('/api/live/affection?content_id=' + cid, { headers: authHeaders(false) })
+        fetch('/api/live/affection?content_id=' + cid, { headers: authHeaders(false), cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) { if (d && d.code === '00000' && d.data) renderAffection(d.data) })
             .catch(function () {})
@@ -921,7 +921,7 @@
     // 代币余额（消费入口展示）
     function loadTokens() {
         if (!token) return
-        fetch('/api/live/userInfo', { headers: authHeaders(false) })
+        fetch('/api/live/userInfo', { headers: authHeaders(false), cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) { if (d && d.code === '00000' && d.data) renderTokens(d.data.money) })
             .catch(function () {})
@@ -937,7 +937,8 @@
             '&device_id=' + encodeURIComponent(deviceId()) + '&limit=50'
         if (rkey !== '') url += '&role_key=' + encodeURIComponent(rkey)
         fetch(url, {
-            headers: authHeaders(false)
+            headers: authHeaders(false),
+            cache: 'no-store'
         })
             .then(function (r) { return r.json() })
             .then(function (d) {
@@ -1021,7 +1022,7 @@
             appendBubble(text, false)
         }
         var fallbackTimer = setTimeout(function () { finish(pickIceBreaker()) }, 8000)
-        fetch('/api/live/iceBreaker' + qs, { headers: authHeaders(false) })
+        fetch('/api/live/iceBreaker' + qs, { headers: authHeaders(false), cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 clearTimeout(fallbackTimer)
@@ -1069,7 +1070,7 @@
         sceneMedia.roleKey = rkey
         if (rkey === '' || sceneMedia.loading) return
         sceneMedia.loading = true
-        fetch('/api/live/chatMedia?role_key=' + encodeURIComponent(rkey), { headers: authHeaders(false) })
+        fetch('/api/live/chatMedia?role_key=' + encodeURIComponent(rkey), { headers: authHeaders(false), cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 sceneMedia.loading = false
@@ -1821,7 +1822,7 @@
         if (window.__roleListLoading) return
         window.__roleListLoading = true
         try {
-            fetch('/api/live/pagelist', { method: 'POST', headers: authHeaders(false) })
+            fetch('/api/live/pagelist', { method: 'POST', headers: authHeaders(false), cache: 'no-store' })
                 .then(function (r) { return r.json() })
                 .then(function (d) {
                     window.__roleListLoading = false
@@ -1877,7 +1878,7 @@
         if (activeConvId !== '' && token) loadChatHistory()
 
         // 拉服务端会话列表（真实聊天记录，按最近聊天排序）
-        fetch('/api/live/chatConversations?device_id=' + encodeURIComponent(deviceId()), { headers: authHeaders(false) })
+        fetch('/api/live/chatConversations?device_id=' + encodeURIComponent(deviceId()), { headers: authHeaders(false), cache: 'no-store' })
           .then(function (r) { return r.json() })
           .then(function (d) {
             var convs = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
