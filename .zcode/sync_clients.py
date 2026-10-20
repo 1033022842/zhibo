@@ -68,7 +68,7 @@ CLIENTS = {
         "site": "/www/wwwroot/douyin/ai-girl-malaysia.com",
         "brand": "kiss",
         "brand_kit": "/opt/brand-kit",
-        "verify_url": "http://103.217.252.52/ai/Home.html",  # kisss.ai 解析+证书就绪后改 https://kisss.ai/ai/Home.html
+        "verify_url": "https://kisss.ai/ai/Home.html",
         "verify_expect": "Kisss",
         "repo": None,
         # 换脸前台文件不同步（apply_brand 也会兜底删除，这里避免白推）
