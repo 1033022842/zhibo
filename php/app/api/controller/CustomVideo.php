@@ -333,13 +333,19 @@ final class CustomVideo extends BaseController
 
         return $this->jsonSuccess(array_map(function (array $t) {
             $c = json_decode((string) $t['content'], true) ?: [];
+            $status = (string) $t['status'];
+            // 成品已上传但 complete 回调没到（网络抖动/worker 中断）：对用户按已完成展示，
+            // 否则页面会永远停在「生成中」，明明文件已经在对象存储里却看不了
+            if ((string) $t['video_url'] !== '' && in_array($status, ['accepted', 'processing'], true)) {
+                $status = 'completed';
+            }
             return [
                 'task_id'    => (int) $t['id'],
                 'task_no'    => $t['task_no'],
                 'label'      => (string) ($c['label'] ?? ''),
                 'kind'       => $t['task_type'] === 'custom_image' ? 'image' : 'video',
                 'style'      => (string) ($c['style'] ?? ($c['action'] ?? '')),
-                'status'     => $t['status'],
+                'status'     => $status,
                 'video_url'  => $t['video_url'] ? $this->absUrl((string) $t['video_url']) : '',
                 'cover_url'  => $t['cover_url'] ? $this->absUrl((string) $t['cover_url']) : '',
                 'duration'   => (int) $t['duration_sec'],
