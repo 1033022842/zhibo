@@ -489,6 +489,22 @@
             videoUrl: item.video_url || '',
             images: Array.isArray(item.images) ? item.images : [],
             emptyText: 'This pack has no media yet. Please add video or images in the admin panel.',
+            history: { type: 'private', id: item.id },
+        })
+    }
+
+    /* ---------- 观看历史（Continue watching）：登录用户最近看过的私密内容 ---------- */
+    function loadHistory() {
+        if (!window.WatchHistory || !window.WatchHistory.token()) return
+        window.WatchHistory.load('private', 12).then(function (list) {
+            var sec = document.getElementById('private-history-shelf')
+            var row = document.getElementById('private-history-row')
+            if (!sec || !row || !list.length) return
+            row.innerHTML = list.map(function (item) {
+                return window.WatchHistory.card(item, { width: 170, aspect: '9 / 16' })
+            }).join('')
+            sec.classList.remove('hidden')
+            window.WatchHistory.bind()
         })
     }
 
@@ -586,6 +602,7 @@
         bindSearch()
         bindCards()
         load()
+        loadHistory()
     })
 
     // 会员状态是异步拿到的，拿到后按需重绘一次（只影响封面是否模糊）

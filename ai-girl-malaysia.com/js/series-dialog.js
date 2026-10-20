@@ -58,6 +58,7 @@
         rateIndex: 0,
         autoPlay: false, // 只有刚解锁成功那一集才自动播放，其余保持暂停待播（同原站）
         vipRequired: false, // 非会员：整部剧锁定，只能去开通会员
+        resumeEpisodeId: 0, // 从观看历史进来时要恢复的剧集
     }
 
     function esc(s) {
@@ -889,15 +890,74 @@
                 }
 
                 // 默认停在第一集：免费集直接播，锁着的第一集就展示它的解锁 CTA
-                var first = state.episodes[0] || null
+                // 从观看历史点回来时优先恢复当时那一集
+                var resume = state.resumeEpisodeId ? episodeById(state.resumeEpisodeId) : null
+                state.resumeEpisodeId = 0
+                var first = resume || state.episodes[0] || null
                 state.currentId = first ? Number(first.id) : 0
                 render()
+                startHistory()
             })
             .catch(function () {
                 if (list) list.innerHTML = '<p class="cs-skeleton">Network error, please try again.</p>'
                 if (isMobile()) feedMessage('Network error, please try again.')
                 else stageEmpty('Network error, please try again.')
             })
+    }
+
+    /* ---------- 观看历史：打开弹窗即记一条，播放中每 5 秒同步一次进度 ---------- */
+    var historyTimer = null
+
+    function activeVideo() {
+        if (isMobile()) {
+            var feed = feedScope()
+            var slide = feed ? feed.querySelector('[data-cs-slide][data-active="1"]') : null
+            return slide ? slide.querySelector('video') : null
+        }
+        var stage = stageScope()
+        return stage ? stage.querySelector('video') : null
+    }
+
+    function reportHistory(force) {
+        if (!window.WatchHistory || !token() || !state.shortId) return
+        var ep = episodeById(state.currentId)
+        if (!ep) return
+        // 锁着的集不记进度，避免把「点开解锁页」当成观看
+        if (Number(ep.unlocked) !== 1 && !Number(ep.free)) return
+
+        var v = activeVideo()
+        var progress = 0
+        var position = 0
+        var duration = 0
+        if (v && isFinite(v.duration) && v.duration > 0) {
+            duration = Math.floor(v.duration)
+            position = Math.floor(v.currentTime || 0)
+            progress = Math.min(100, Math.max(0, (position / duration) * 100))
+        } else if (!force) {
+            return
+        }
+
+        window.WatchHistory.report({
+            type: 'short',
+            id: state.shortId,
+            episode_id: ep.id,
+            progress: progress,
+            position: position,
+            duration: duration
+        })
+    }
+
+    function startHistory() {
+        stopHistory()
+        reportHistory(true)
+        historyTimer = setInterval(function () { reportHistory(false) }, 5000)
+    }
+
+    function stopHistory() {
+        if (historyTimer) {
+            clearInterval(historyTimer)
+            historyTimer = null
+        }
     }
 
     function open(opts) {
@@ -915,6 +975,7 @@
         state.rateIndex = 0
         state.autoPlay = false
         state.vipRequired = false
+        state.resumeEpisodeId = Number(opt.episodeId || 0)
 
         var list = d.querySelector('[data-series-list]')
         if (list) list.innerHTML = '<p class="cs-skeleton">Loading...</p>'
@@ -931,6 +992,7 @@
 
     function close() {
         if (!dlg) return
+        stopHistory()
         var vids = dlg.querySelectorAll('video')
         for (var i = 0; i < vids.length; i++) {
             vids[i].pause()

@@ -101,6 +101,25 @@
         d.querySelector('[data-watch-title]').textContent = opt.title || ''
         d.querySelector('[data-watch-sub]').textContent = opt.subtitle || ''
 
+        // 观看历史：打开即记一条；有视频时随播放同步进度（节流在 WatchHistory 内部）
+        var hist = opt.history || null
+        if (hist && hist.id && window.WatchHistory) {
+            window.WatchHistory.report({ type: hist.type, id: hist.id, progress: 0 })
+            var hv = media.querySelector('video')
+            if (hv) {
+                hv.addEventListener('timeupdate', function () {
+                    if (!isFinite(hv.duration) || hv.duration <= 0) return
+                    window.WatchHistory.report({
+                        type: hist.type,
+                        id: hist.id,
+                        progress: (hv.currentTime / hv.duration) * 100,
+                        position: hv.currentTime,
+                        duration: hv.duration
+                    })
+                })
+            }
+        }
+
         var notice = d.querySelector('[data-watch-notice]')
         notice.textContent = opt.notice || ''
         notice.style.display = opt.notice ? 'block' : 'none'

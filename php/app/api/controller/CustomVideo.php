@@ -11,6 +11,7 @@ use app\common\util\StrHelper;
 use app\common\web\ResultCode;
 use app\live\service\GenCreditService;
 use app\live\service\VipService;
+use app\live\service\WalletService;
 use think\App;
 use think\facade\Db;
 use think\facade\Log;
@@ -35,6 +36,9 @@ final class CustomVideo extends BaseController
     /** 普通用户（非会员）的余额上限与每日补充次数：2 次上限、每天 +1 */
     private const FREE_DAILY_LIMIT  = VipService::FREE_IMAGE_DAILY_LIMIT;
     private const FREE_DAILY_REFILL = VipService::FREE_IMAGE_DAILY_REFILL;
+
+    /** 免费次数用尽后每次生成扣的代币数（后台「功能定价」可改） */
+    private const VIDEO_PRICE_DEFAULT = 30;
 
     /** 无限配额白名单（测试账号不限量） */
     private const UNLIMITED_USER_IDS = [16];
@@ -100,6 +104,9 @@ final class CustomVideo extends BaseController
             'styles' => self::STYLES,
             // Outfit 模式的服装卡片 = 商店商品（owned=0 的前端提示去购买）
             'image_presets' => $this->outfitPresets($userId),
+            // 免费次数用尽后的续生成单价（代币）与当前代币余额
+            'video_price' => $this->videoPrice(),
+            'balance'     => (new WalletService())->balance($userId),
             'quota'   => [
                 'daily_limit'  => $unlimited ? '∞' : $limit,
                 // used 仍按当天已用统计，仅作展示
@@ -263,30 +270,62 @@ final class CustomVideo extends BaseController
         $unlimited    = in_array($userId, self::UNLIMITED_USER_IDS, true);
 
         // 先扣额度再上传：原来先存图再校验，超额时会白落一份文件
+        // 免费额度用尽后，按后台配置的单价用代币续生成（仍仅限会员）
         $credits = new GenCreditService();
+        $wallet = new WalletService();
+        $paidTokens = 0.0;
         if (!$unlimited) {
             $credits->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
             if (!$credits->consume($userId)) {
-                $tip = $refillPerDay >= $dailyLimit
-                    ? 'Your ' . $dailyLimit . ' free generations reset every day. Upgrade to Premium Plus for more.'
-                    : 'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . '). Upgrade to Premium for 5 / day.';
-                return $this->jsonFail(ResultCode::PARAM_ERROR, $tip);
+                // 免费额度用尽：优先用代币续生成（后台可配单价，0=关闭）
+                $price = $this->videoPrice();
+                if ($price <= 0) {
+                    $tip = $refillPerDay >= $dailyLimit
+                        ? 'Your free quota resets to ' . $dailyLimit . '/day. Top up tokens or upgrade for more.'
+                        : 'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . ').';
+                    return $this->jsonFail(ResultCode::PARAM_ERROR, $tip);
+                }
+                if ($wallet->balance($userId) < $price) {
+                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Your free generations are used up. Each extra generation costs ' . $this->fmtPrice($price) . ' tokens — please top up to continue.');
+                }
+                try {
+                    $wallet->debit($userId, $price, 'video_gen', 0, 'AI video generation');
+                } catch (BusinessException $e) {
+                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens. Please top up to continue generating.');
+                }
+                $paidTokens = $price;
             }
         }
+
+        // 失败补偿：免费额度退次数，代币支付退回代币
+        $refund = function () use (&$paidTokens, $credits, $wallet, $userId, $dailyLimit, $unlimited) {
+            if ($unlimited) {
+                return;
+            }
+            if ($paidTokens > 0) {
+                try {
+                    $wallet->credit($userId, $paidTokens, 'video_gen_refund', 0, 'AI video generation refund');
+                } catch (\Throwable $e) {
+                    Log::error('[customVideo] token refund failed: ' . $e->getMessage());
+                }
+                return;
+            }
+            $credits->refund($userId, $dailyLimit);
+        };
 
         // 图片（≤10MB，jpg/png/webp；经 Upload 库自动压缩）
         $file = $this->request->file('image');
         if (!$file) {
-            if (!$unlimited) { $credits->refund($userId, $dailyLimit); }
+            $refund();
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please upload an image.');
         }
         if ((int) $file->getSize() > 10 * 1024 * 1024) {
-            if (!$unlimited) { $credits->refund($userId, $dailyLimit); }
+            $refund();
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Image must be under 10MB.');
         }
         $ext = strtolower((string) $file->getOriginalExtension());
         if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-            if (!$unlimited) { $credits->refund($userId, $dailyLimit); }
+            $refund();
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Only jpg / png / webp images are supported.');
         }
 
@@ -317,8 +356,8 @@ final class CustomVideo extends BaseController
             $task->updated_at  = date('Y-m-d H:i:s');
             $task->save();
         } catch (\Throwable $e) {
-            // 上传或入库失败：把额度退回去，不让用户白扣
-            if (!$unlimited) { $credits->refund($userId, $dailyLimit); }
+            // 上传或入库失败：把额度/代币退回去，不让用户白扣
+            $refund();
             Log::error('[customVideo] submit failed: ' . $e->getMessage());
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Submit failed, your generation credit has been refunded. Please retry.');
         }
@@ -331,7 +370,24 @@ final class CustomVideo extends BaseController
             'status'  => $task->status,
             // remain：提交后剩余余额；-1 表示不限量（前端按此显示）
             'remain'  => $remain,
+            // paid_tokens：本次是否走了代币续生成（>0 为扣掉的代币数）
+            'paid_tokens' => $paidTokens,
+            'balance' => $unlimited ? -1 : (new WalletService())->balance($userId),
         ]);
+    }
+
+    /**
+     * 免费次数用尽后每次生成的代币单价（后台「功能定价」可改；0 = 关闭代币续生成）
+     */
+    private function videoPrice(): float
+    {
+        return max(0.0, (float) WalletService::config('video_gen_price', (string) self::VIDEO_PRICE_DEFAULT));
+    }
+
+    /** 价格展示：30.00 → 30 */
+    private function fmtPrice(float $price): string
+    {
+        return rtrim(rtrim(number_format($price, 2, '.', ''), '0'), '.');
     }
 
     /**

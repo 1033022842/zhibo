@@ -30,6 +30,7 @@ final class PayoutSetting extends Backend
         'crowdfunding_commission_rate' => ['float', '众筹收入平台抽成比例'],
         'chat_overage_price'          => ['float', '免费额度用尽后，用代币继续聊天的单条价格（代币）'],
         'call_price_per_minute'       => ['float', '语音通话每分钟价格（代币）'],
+        'video_gen_price'             => ['float', 'AI 视频/图片生成：免费次数用尽后每次扣代币（0=关闭）'],
         'withdraw_fee_rate'           => ['float', '提现手续费比例'],
         'min_withdraw_diamond'        => ['float', '最低提现代币数'],
         'payout_max_attempts'         => ['int', '单笔提现最多自动打款次数'],
@@ -111,6 +112,7 @@ final class PayoutSetting extends Backend
         $crowdComm = $f('crowdfunding_commission_rate', '0.30');
         $chatOverage = $f('chat_overage_price', '1');
         $callPrice   = $f('call_price_per_minute', '5');
+        $videoGenPrice = $f('video_gen_price', '30');
 
         echo <<<HTML
 <!DOCTYPE html>
@@ -170,12 +172,13 @@ final class PayoutSetting extends Backend
     </div>
 
     <div class="card">
-        <h2><span class="dot"></span>聊天消费价格</h2>
+        <h2><span class="dot"></span>聊天 / 生成消费价格</h2>
         <div class="grid">
             <div class="field"><label>免费额度用尽后，代币续聊单条价格（代币）</label><input name="chat_overage_price" value="{$chatOverage}" placeholder="1"></div>
             <div class="field"><label>语音通话每分钟价格（代币）</label><input name="call_price_per_minute" value="{$callPrice}" placeholder="5"></div>
+            <div class="field"><label>AI 视频/图片生成：免费次数用尽后每次扣代币</label><input name="video_gen_price" value="{$videoGenPrice}" placeholder="30"></div>
         </div>
-        <div class="tip">用户每日免费消息额度用完后，可选择用代币继续聊天（按条扣费）；语音通话按每分钟扣费，余额不足自动结束。填 0 表示关闭对应消费点，留空保存则恢复默认（续聊 1 / 通话 5）。</div>
+        <div class="tip">用户每日免费消息额度用完后，可选择用代币继续聊天（按条扣费）；语音通话按每分钟扣费，余额不足自动结束；AI 视频工作室的免费生成次数用尽后，按此单价扣代币继续生成（仅会员）。填 0 表示关闭对应消费点，留空保存则恢复默认（续聊 1 / 通话 5 / 生成 30）。</div>
     </div>
 
     <div class="card">
@@ -263,9 +266,9 @@ HTML;
                     $service->saveSetting($key, $value, $remark);
                     continue;
                 }
-                // 聊天消费价格：留空恢复默认（续聊 1 代币 / 通话 5 代币/分钟），0 表示关闭该消费点
-                if ($key === 'chat_overage_price' || $key === 'call_price_per_minute') {
-                    $default = $key === 'chat_overage_price' ? '1' : '5';
+                // 聊天/生成消费价格：留空恢复默认（续聊 1 / 通话 5 / 生成 30），0 表示关闭该消费点
+                if ($key === 'chat_overage_price' || $key === 'call_price_per_minute' || $key === 'video_gen_price') {
+                    $default = $key === 'chat_overage_price' ? '1' : ($key === 'call_price_per_minute' ? '5' : '30');
                     $value = $raw === '' ? $default : (string) round(max(0.0, (float) $raw), 2);
                     $service->saveSetting($key, $value, $remark);
                     continue;
