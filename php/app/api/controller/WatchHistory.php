@@ -138,7 +138,7 @@ final class WatchHistory extends BaseController
             return $this->jsonSuccess(['list' => []]);
         }
 
-        // 过滤已下架/删除的内容，避免首页出现点不开的死卡片
+        // 过滤已下架/删除的内容，并用当前后台数据回填标题/封面（避免历史快照里的签名地址过期）
         $shortIds = $privateIds = [];
         foreach ($rows as $row) {
             if ($row['content_type'] === 'short') {
@@ -147,31 +147,38 @@ final class WatchHistory extends BaseController
                 $privateIds[] = (int) $row['content_id'];
             }
         }
-        $valid = [];
+        $meta = [];
         if ($shortIds) {
-            foreach ($db->table('lp_short_item')->whereIn('id', $shortIds)->where('status', 1)->column('id') as $sid) {
-                $valid['short:' . (int) $sid] = true;
+            $fields = $db->table('lp_short_item')->whereIn('id', $shortIds)->where('status', 1)
+                ->field('id, title, poster')->select()->toArray();
+            foreach ($fields as $item) {
+                $meta['short:' . (int) $item['id']] = $item;
             }
         }
         if ($privateIds) {
-            foreach ($db->table('lp_private_item')->whereIn('id', $privateIds)->where('status', 1)->column('id') as $pid) {
-                $valid['private:' . (int) $pid] = true;
+            $fields = $db->table('lp_private_item')->whereIn('id', $privateIds)->where('status', 1)
+                ->field('id, title, poster')->select()->toArray();
+            foreach ($fields as $item) {
+                $meta['private:' . (int) $item['id']] = $item;
             }
         }
 
         $list = [];
         foreach ($rows as $row) {
             $key = $row['content_type'] . ':' . (int) $row['content_id'];
-            if (!isset($valid[$key])) {
+            if (!isset($meta[$key])) {
                 continue;
             }
+            $live = $meta[$key];
+            $title = trim((string) ($live['title'] ?? '')) !== '' ? (string) $live['title'] : (string) $row['title'];
+            $poster = trim((string) ($live['poster'] ?? '')) !== '' ? (string) $live['poster'] : (string) $row['poster'];
             $list[] = [
                 'type'       => (string) $row['content_type'],
                 'id'         => (int) $row['content_id'],
                 'episode_id' => (int) $row['episode_id'],
                 'episode_no' => (int) $row['episode_no'],
-                'title'      => (string) $row['title'],
-                'poster'     => $this->mediaUrl((string) $row['poster']),
+                'title'      => $title,
+                'poster'     => $this->mediaUrl($poster),
                 'progress'   => (float) $row['progress'],
                 'position'   => (int) $row['position'],
                 'duration'   => (int) $row['duration'],
