@@ -14,6 +14,9 @@ Route::post('v1/recharge/notifyMkPay', '\app\api\controller\Recharge@notifyMkPay
 // MKPay（越南）异步通知（免登录，回调方为支付网关）
 Route::post('v1/recharge/notifyMkPayVn', '\app\api\controller\Recharge@notifyMkPayVn');
 
+// MKPay（墨西哥）异步通知（免登录，回调方为支付网关）
+Route::post('v1/recharge/notifyMkPayMx', '\app\api\controller\Recharge@notifyMkPayMx');
+
 // AI 女友端充值套餐 + 支付方式（免登录展示）
 Route::get('v1/recharge/packages', '\app\api\controller\Recharge@packages');
 

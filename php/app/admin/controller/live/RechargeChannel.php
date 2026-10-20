@@ -504,8 +504,9 @@ final class RechargeChannel extends Backend
             $fs  = htmlspecialchars((string) $r['currency_symbol'], ENT_QUOTES);
             $gw  = (string) $r['gateway'];
             $fgw = $gw === 'starpay' ? 'star-pay'
-                : ($gw === 'mkpay' ? 'MKPay(巴西)'
-                    : ($gw === 'mkpay_vn' ? 'MKPay(越南)' : '人工审核'));
+            : ($gw === 'mkpay' ? 'MKPay(巴西)'
+                : ($gw === 'mkpay_vn' ? 'MKPay(越南)'
+                    : ($gw === 'mkpay_mx' ? 'MKPay(墨西哥)' : '人工审核')));
 
             // 拿 $15 举例把折算结果写出来，运营填错汇率能一眼看出来
             $sample = '—';

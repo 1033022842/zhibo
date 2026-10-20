@@ -705,17 +705,19 @@ final class RechargeService
         $db  = Db::connect('live_mysql');
         $now = date('Y-m-d H:i:s');
         $order = [
-            // 网关要求商户订单号「收+付全程唯一」，两家 MKPay 各用自己的前缀：
+            // 网关要求商户订单号「收+付全程唯一」，三家 MKPay 各用自己的前缀：
             //   巴西版：本站 MKS / hey girl MKH（config('mkpay.order_prefix')）
             //   越南版：sugus MKSV / hey girl MKHV（config('mkpay_vn.order_prefix')）
+            //   墨西哥版：sugus MKSM / hey girl MKHM（config('mkpay_mx.order_prefix')）
             'order_no'        => StrHelper::orderNo(
                 $gateway === 'mkpay' ? (string) config('mkpay.order_prefix')
-                    : ($gateway === 'mkpay_vn' ? (string) config('mkpay_vn.order_prefix') : 'RC')
+                    : ($gateway === 'mkpay_vn' ? (string) config('mkpay_vn.order_prefix')
+                        : ($gateway === 'mkpay_mx' ? (string) config('mkpay_mx.order_prefix') : 'RC'))
             ),
             'user_id'         => $userId,
             // 走网关的记网关 code，这样网关查单补单（reconcileGateway）能自动带上；
             // 纯人工通道记 'fiat'，订单直接进后台「充值审核」等运营核对
-            'pay_channel'     => in_array($gateway, ['starpay', 'mkpay', 'mkpay_vn'], true) ? $gateway : 'fiat',
+            'pay_channel'     => in_array($gateway, ['starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx'], true) ? $gateway : 'fiat',
             'channel_id'      => 0,
             'fiat_channel_id' => (int) $channel['id'],
             'package_id'      => $opt['package_id'] ?? null,
@@ -779,6 +781,8 @@ final class RechargeService
      *        加对账补单（reconcileGateway）双保险；
      * mkpay_vn：越南 VND，金额为整数 VND（factor=1），返回 redirect_url / qr_code_url，
      *           到账靠异步回调（notifyMkPayVn）加对账补单（reconcileGateway）双保险；
+     * mkpay_mx：墨西哥 MXN，金额为整数分（factor=100），返回 redirect_url / qr_code_url，
+     *           到账靠异步回调（notifyMkPayMx）加对账补单（reconcileGateway）双保险；
      * 其它 code 一律拒绝，避免「以为对接了其实没对接」把钱收错。
      */
     private function callFiatGateway(array $order, array $channel, array $fx, string $returnUrl): array
@@ -816,6 +820,25 @@ final class RechargeService
             return [
                 'system_ref' => (string) ($vn['pay_order_id'] ?? ''),
                 'pay_url'    => (string) ($vn['pay_url'] ?? ''),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        if ($gateway === 'mkpay_mx') {
+            // MXN 传分（factor=100）：20.00 MXN → 2000
+            $mx = (new MkPayMxService())->createCollection(
+                (string) $order['order_no'],
+                (int) round((float) $fx['amount'] * 100),
+                (string) config('mkpay_mx.notify_url'),
+                $returnUrl !== '' ? $returnUrl : (string) (
+                    $order['biz_type'] === 'vip'
+                        ? config('mkpay_mx.return_url_vip')
+                        : config('mkpay_mx.return_url')
+                )
+            );
+
+            return [
+                'system_ref' => (string) ($mx['pay_order_id'] ?? ''),
+                'pay_url'    => (string) ($mx['pay_url'] ?? ''),
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
         }
@@ -1076,7 +1099,7 @@ final class RechargeService
         $now = time();
 
         $rows = $db->table('lp_recharge_order')
-            ->whereIn('pay_channel', ['flowpay', 'starpay', 'mkpay', 'mkpay_vn'])
+            ->whereIn('pay_channel', ['flowpay', 'starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx'])
             ->whereIn('status', [0, 3])
             // 刚下完单还没付款的不用查；超过 7 天的直接放弃，避免每分钟白查历史单
             ->where('created_at', '<', date('Y-m-d H:i:s', $now - max(1, $staleMinutes) * 60))
@@ -1192,6 +1215,29 @@ final class RechargeService
                         continue;
                     }
                     if (MkPayVnService::isFailed($code)) {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
+                    }
+                    continue;
+                }
+
+                if ((string) $r['pay_channel'] === 'mkpay_mx') {
+                    // 墨西哥版：按商户订单号查单，以 status_code 为准（2 成功 / 3,4,6 终态失败）
+                    $mx = new MkPayMxService();
+                    if (!$mx->enabled()) {
+                        $stat['skipped']++;
+                        continue;
+                    }
+                    $res  = $mx->queryOrder($orderNo);
+                    $code = (int) ($res['status_code'] ?? 0);
+                    if (MkPayMxService::isSuccess($code)) {
+                        $this->markPayChecked((int) $r['id'], 1);
+                        $this->confirmByGateway($orderNo, (string) ($res['pay_order_id'] ?? ''), '', 'MKPay-MX(查单补单)');
+                        $stat['recovered']++;
+                        Log::info('[recharge:reconcile] MKPay-MX 补单成功 ' . $orderNo);
+                        continue;
+                    }
+                    if (MkPayMxService::isFailed($code)) {
                         $this->markPayChecked((int) $r['id'], 2);
                         $stat['unpaid']++;
                     }
