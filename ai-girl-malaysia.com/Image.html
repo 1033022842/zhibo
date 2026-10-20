@@ -64,7 +64,7 @@
 		
 
 
-	<script src="./js/customVideo.js?v=20261020a"></script>
+	<script src="./js/customVideo.js?v=20261020b"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
@@ -649,6 +649,12 @@
 .cv-gate h3{color:#fff;font-size:18px;font-weight:700;margin-bottom:8px}
 .cv-gate p{color:var(--sg-grey);font-size:13px;line-height:1.7;margin-bottom:22px}
 .cv-gate a{display:inline-block;text-decoration:none;border-radius:12px;padding:13px 36px;background:linear-gradient(135deg,var(--sg-accent),var(--sg-cta));color:#fff;font-weight:700;font-size:14px}
+/* 非会员升级提示条：不挡功能，只在表单上方提示额度差异 */
+.cv-upsell{display:flex;gap:10px;align-items:flex-start;background:rgba(249,113,135,.07);border:1px solid rgba(249,113,135,.25);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.cv-upsell .ic{font-size:16px;line-height:1.4}
+.cv-upsell .tx{color:var(--sg-grey);font-size:12px;line-height:1.7}
+.cv-upsell .tx b{color:#e6e6e6}
+.cv-upsell .tx a{color:var(--sg-pink);font-weight:700;text-decoration:none}
 .cv-works{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
 .cv-work{background:#17111c;border:1px solid var(--sg-line);border-radius:14px;overflow:hidden}
 .cv-work .hd{display:flex;align-items:center;justify-content:space-between;padding:12px 15px}
@@ -668,7 +674,7 @@
 <div class="cv-wrap">
 					<div class="cv-head">
 						<h1>AI Video Studio</h1>
-						<span class="vip-chip">VIP</span>
+						<span class="vip-chip">Free &amp; Premium</span>
 					</div>
 					<div class="cv-tabs">
 						<button class="cv-tab on" id="cvTabCreate">＋ Create</button>
@@ -677,11 +683,13 @@
 
 					<!-- Create -->
 					<div class="cv-panel" id="cvCreatePanel">
-						<div class="cv-gate" id="cvVipGate" style="display:none">
-							<div class="lock">🔒</div>
-							<h3>VIP Members Only</h3>
-							<p>Upload a picture of your AI girl and bring her to life.<br>Premium members can generate up to <b style="color:#fbbf24">2 / day</b>.</p>
-							<a href="./Subscriptions.html">Get VIP</a>
+						<!-- 非会员的升级提示条（不挡功能：Free 每天 2 次，+1/天；会员 5 次/天，每天回满） -->
+						<div class="cv-upsell" id="cvVipGate" style="display:none">
+							<span class="ic">⭐</span>
+							<div class="tx">
+								<b>Free plan: 2 generations</b>, +1 refilled per day (max 2).
+								<a href="./Subscriptions.html">Upgrade to Premium</a> for <b>5 / day, refilled to full every day</b>.
+							</div>
 						</div>
 
 						<div id="cvCreateForm">
@@ -705,8 +713,8 @@
 									<span class="tx"><span class="lb">Video</span><span class="sub">Bring her to life</span></span>
 								</button>
 								<button type="button" class="cv-mode" id="cvModeOutfit">
-									<span class="ic">✏️</span>
-									<span class="tx"><span class="lb">Edit</span><span class="sub">Dress her up</span></span>
+									<span class="ic">👗</span>
+									<span class="tx"><span class="lb">Outfit</span><span class="sub">Wear shop outfits</span></span>
 								</button>
 							</div>
 

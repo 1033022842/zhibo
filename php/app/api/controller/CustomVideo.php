@@ -16,12 +16,25 @@ use think\facade\Db;
 use think\facade\Log;
 
 /**
- * VIP 定制角色视频（AI 电脑 ComfyUI MiniMax-H3 生成）
+ * 定制角色视频 / 换装（AI 电脑 ComfyUI MiniMax-H3 生成）
+ *
+ * === 生成额度规则（2026-10 调整，前后端/套餐表口径必须一致）===
+ *   普通用户（未订阅）：余额上限 2 次，每天补充 1 次（最多累积到 2）
+ *   会员（Premium / Premium Plus）：余额上限 5 次，每天回满 5 次（refill = limit）
+ *   测试账号（UNLIMITED_USER_IDS）：不限量，前端显示 ∞
+ *
+ * 实际数值来自 lp_vip_plan.image_daily_limit / image_daily_refill，
+ * 非会员走 VipService::buildEntitlements() 里的免费额度分支。
+ * 余额模型见 GenCreditService：balance = min(cap, balance + 断签天数 × refill)。
  */
 final class CustomVideo extends BaseController
 {
-    /** 每日生成配额（兜底；实际以套餐 image_daily_limit 为准） */
-    private const DAILY_LIMIT = 2;
+    /** 每日生成配额兜底值：普通用户 2 次（实际以套餐配置为准） */
+    private const DAILY_LIMIT = VipService::FREE_IMAGE_DAILY_LIMIT;
+
+    /** 普通用户（非会员）的余额上限与每日补充次数：2 次上限、每天 +1 */
+    private const FREE_DAILY_LIMIT  = VipService::FREE_IMAGE_DAILY_LIMIT;
+    private const FREE_DAILY_REFILL = VipService::FREE_IMAGE_DAILY_REFILL;
 
     /** 无限配额白名单（测试账号不限量） */
     private const UNLIMITED_USER_IDS = [16];
@@ -241,21 +254,23 @@ final class CustomVideo extends BaseController
             }
         }
 
-        // 会员层级校验：定制视频/图片生成仅会员可用，额度按套餐 image_daily_limit（上限）与 image_daily_refill（每天补充）
+        // 额度校验：普通用户与会员都可生成，只是额度不同
+        //   普通用户：上限 2、每天 +1（见 VipService 免费分支 / self::FREE_*）
+        //   会员：上限 5、每天回满（lp_vip_plan.image_daily_limit = image_daily_refill = 5）
         $ent = (new VipService())->entitlements($userId);
-        if (empty($ent['is_vip']) || empty($ent['custom_video'])) {
-            return $this->jsonFail(ResultCode::NO_PERMISSION, 'Custom video is a Premium feature. Please subscribe to unlock it.');
-        }
-        $dailyLimit = max(1, (int) ($ent['image_daily_limit'] ?? self::DAILY_LIMIT));
-        $refillPerDay = max(0, (int) ($ent['image_daily_refill'] ?? 1));
-        $unlimited = in_array($userId, self::UNLIMITED_USER_IDS, true);
+        $dailyLimit   = max(1, (int) ($ent['image_daily_limit'] ?? self::DAILY_LIMIT));
+        $refillPerDay = max(0, (int) ($ent['image_daily_refill'] ?? self::FREE_DAILY_REFILL));
+        $unlimited    = in_array($userId, self::UNLIMITED_USER_IDS, true);
 
         // 先扣额度再上传：原来先存图再校验，超额时会白落一份文件
         $credits = new GenCreditService();
         if (!$unlimited) {
             $credits->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
             if (!$credits->consume($userId)) {
-                return $this->jsonFail(ResultCode::PARAM_ERROR, 'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . '). Upgrade to Premium Plus for more.');
+                $tip = $refillPerDay >= $dailyLimit
+                    ? 'Your ' . $dailyLimit . ' free generations reset every day. Upgrade to Premium Plus for more.'
+                    : 'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . '). Upgrade to Premium for 5 / day.';
+                return $this->jsonFail(ResultCode::PARAM_ERROR, $tip);
             }
         }
 
