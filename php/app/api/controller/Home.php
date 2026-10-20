@@ -59,7 +59,9 @@ final class Home extends BaseController
             ];
         }
 
-        return $this->jsonSuccess(['list' => $data]);
+        // 公开目录：内容变化不频繁，给 CDN 30 秒短缓存挡回源（签名地址 TTL 6h，不会过期）
+        return $this->jsonSuccess(['list' => $data])
+            ->header(['Cache-Control' => 'public, max-age=30, stale-while-revalidate=60']);
     }
 
     /**
@@ -109,7 +111,9 @@ final class Home extends BaseController
             ];
         }
 
-        return $this->jsonSuccess(['list' => $data]);
+        // 公开目录：同 banners，30 秒 CDN 缓存足够，避免每次首屏都回源
+        return $this->jsonSuccess(['list' => $data])
+            ->header(['Cache-Control' => 'public, max-age=30, stale-while-revalidate=60']);
     }
 
     /**
