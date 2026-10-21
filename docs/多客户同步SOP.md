@@ -103,7 +103,19 @@ python .zcode/sync_clients.py                              #    全部客户（h
 
 ### 同步后验证清单（别只看脚本输出 OK）
 
-脚本的关键词验证可能**假通过**（读的是旧文件/CDN 缓存，10-18 真实发生过）。关键变更按此清单复核：
+**首选：一条命令跑完全部硬验证**
+
+```bash
+python .zcode/verify_client.py --client heygirl          # 换客户名；--client all 跑四台
+python .zcode/verify_client.py --client sugus --payment  # 后端有改动时加 --payment
+```
+
+它做内容级检查，退出码非 0 就是没同步成功：`assets/ + _shared/` 全量 blob 与上游逐字节比对、
+`_shared` 内页引用且文件在、标题/logo 品牌、上游品牌泄漏、嵌套垃圾目录、
+（`--payment`）MKPAY 配置段/网关连通/回调路由。sugus 会自动走跳板，避开 CN 区域封锁误判。
+
+脚本的关键词验证可能**假通过**（读的是旧文件/CDN 缓存，10-18 真实发生过）。
+需要手工复核时按下面几条：
 
 ```bash
 # ① blob hash 硬校验：挑 1-2 个本次变更、且不打品牌的文件（assets/_shared 下）
