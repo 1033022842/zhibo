@@ -1127,6 +1127,11 @@ final class RechargeService
             $user    = $db->table('lp_user')->where('id', $userId)->find();
             $profile = $db->table('lp_user_profile')->where('user_id', $userId)->find();
             $isVip   = (string) ($order['biz_type'] ?? 'coin') === 'vip';
+            // 广告回传的价值统一按 USD：法币单 pay_amount 是本币实付，取折算前的原始标价
+            $usdValue = (float) ($order['usd_amount'] ?? 0);
+            if ($usdValue <= 0) {
+                $usdValue = (float) ($order['pay_amount'] ?? 0);
+            }
 
             FbCapiService::send($isVip ? 'subscribe' : 'recharge', [
                 'email'    => (string) ($user['email'] ?? ''),
@@ -1135,7 +1140,7 @@ final class RechargeService
                 'px'       => (string) ($user['reg_px'] ?? ''),
                 'domain'   => (string) ($user['reg_domain'] ?? ''),
                 'event_id' => (string) ($order['order_no'] ?? ''),
-                'value'    => (float) ($order['pay_amount'] ?? 0),
+                'value'    => $usdValue,
                 'currency' => 'USD',
             ]);
         } catch (\Throwable $e) {
