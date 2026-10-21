@@ -1,0 +1,21 @@
+[Unit]
+Description=AI custom video/image worker for %i (shared GPU node)
+After=network-online.target comfyui.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=administrator
+Group=administrator
+WorkingDirectory=/opt/cv/%i
+EnvironmentFile=/opt/cv/%i/env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/comfyui/venv/bin/python /opt/cv/tpl/worker_gpu.py
+Restart=always
+RestartSec=15
+# worker 崩溃时把已接单任务留在 accepted 是已知问题，systemd 只负责复活进程
+StandardOutput=append:/opt/cv/%i/service.log
+StandardError=append:/opt/cv/%i/service.log
+
+[Install]
+WantedBy=multi-user.target

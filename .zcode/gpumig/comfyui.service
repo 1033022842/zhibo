@@ -1,0 +1,22 @@
+[Unit]
+Description=ComfyUI (shared inference server, consolidated GPU node)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=administrator
+Group=administrator
+WorkingDirectory=/opt/comfyui/ComfyUI
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=PYTHONUNBUFFERED=1
+Environment=HF_ENDPOINT=https://hf-mirror.com
+# 四站 worker 共用同一个实例；ComfyUI 自带串行队列，不需要多开
+ExecStart=/opt/comfyui/venv/bin/python main.py --listen 127.0.0.1 --port 8000 --disable-auto-launch
+Restart=always
+RestartSec=10
+StandardOutput=append:/data/build/comfyui.log
+StandardError=append:/data/build/comfyui.log
+
+[Install]
+WantedBy=multi-user.target
