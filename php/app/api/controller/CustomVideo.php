@@ -37,8 +37,13 @@ final class CustomVideo extends BaseController
     private const FREE_DAILY_LIMIT  = VipService::FREE_IMAGE_DAILY_LIMIT;
     private const FREE_DAILY_REFILL = VipService::FREE_IMAGE_DAILY_REFILL;
 
-    /** 免费次数用尽后每次生成扣的代币数（后台「功能定价」可改） */
-    private const VIDEO_PRICE_DEFAULT = 30;
+    /**
+     * 免费次数用尽后每次生成扣的代币数（后台「功能定价」可改，写进 lp_platform_config.video_gen_price）
+     *
+     * 业务规则（2026-10-21）：普通用户 2 次免费额度用完后，按 100 代币/次续生成；
+     * 会员额度用完后同样按此价续生成。0 = 关闭代币续生成（只提示额度用尽）。
+     */
+    private const VIDEO_PRICE_DEFAULT = 100;
 
     /** 无限配额白名单（测试账号不限量） */
     private const UNLIMITED_USER_IDS = [16];
