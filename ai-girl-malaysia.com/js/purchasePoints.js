@@ -357,11 +357,13 @@
         }
         if (avail.cash) {
             fiatChannels.forEach(function (fc) {
-                var logo = fiatLogo(fc.name)
+                var mark = fiatMark(fc)
                 var unit = fc.symbol || fc.currency || ''
+                // 右侧已经是货币符号时，标题里不再重复「· ₹」
+                var unitText = (mark && mark.text) ? '' : (unit !== '' ? ' · ' + pmClean(unit) : '')
                 html += '<button type="button" class="pm-row" data-pm-method="cash" data-pm-fiat="' + parseInt(fc.id, 10) + '">' +
-                    '<span class="pm-row-text">' + pmClean(fc.name) + (unit !== '' ? ' · ' + pmClean(unit) : '') + '</span>' +
-                    (logo ? '<span class="pm-row-icons"><img src="' + logo.src + '" alt="' + logo.alt + '"></span>' : '') +
+                    '<span class="pm-row-text">' + pmClean(fc.name) + unitText + '</span>' +
+                    (mark ? '<span class="pm-row-icons">' + fiatMarkHtml(mark) + '</span>' : '') +
                     '</button>'
             })
         }
@@ -398,18 +400,26 @@
         return null
     }
 
-    // 法币通道品牌标（巴西 PIX / 越南 MKPay）：按通道名匹配，匹配不到只显示文字
-    var FIAT_LOGOS = [
-        { re: /\bpix\b/i, src: './assets/pix.svg', alt: 'PIX' },
-        { re: /mkpay/i, src: './assets/mkpay.svg', alt: 'MkPay' }
+    // 法币通道右侧标记：巴西 PIX 用品牌图，印度/越南/墨西哥直接显示当地货币符号
+    var FIAT_MARKS = [
+        { currency: 'BRL', src: './assets/pix.svg', alt: 'PIX' },
+        { currency: 'INR', text: '₹', alt: 'INR' },
+        { currency: 'VND', text: '₫', alt: 'VND' },
+        { currency: 'MXN', text: 'Mex$', alt: 'MXN' }
     ]
 
-    function fiatLogo(name) {
-        var text = String(name || '')
-        for (var i = 0; i < FIAT_LOGOS.length; i++) {
-            if (FIAT_LOGOS[i].re.test(text)) { return FIAT_LOGOS[i] }
+    function fiatMark(fc) {
+        var cur = String((fc && fc.currency) || '').toUpperCase()
+        for (var i = 0; i < FIAT_MARKS.length; i++) {
+            if (FIAT_MARKS[i].currency === cur) { return FIAT_MARKS[i] }
         }
         return null
+    }
+
+    /** 标记 HTML：品牌标用图片，货币符号用文字（内联样式，免改各页 CSS） */
+    function fiatMarkHtml(mark) {
+        if (mark.src) { return '<img src="' + mark.src + '" alt="' + mark.alt + '">' }
+        return '<span aria-label="' + mark.alt + '" style="display:block;font-size:16px;font-weight:600;line-height:1;white-space:nowrap">' + mark.text + '</span>'
     }
 
     // sel: { tokens, price, packageId }
