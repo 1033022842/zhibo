@@ -98,8 +98,8 @@ dpkg -S /etc/php/8.3/fpm/php.ini
 | kelymi | 300 | 256M | 512M | 512M |
 | kisss | 30 | 256M | 64M | 64M |
 
-> kisss 的 64M/30s 仍是旧值。如果需要和其余三站一致（AI 视频回传），
-> 建议同步改成 512M/300s —— 见「七、待办」。
+> kisss 的 64M/30s 曾在 2026-10-22 当天一并调到 `512M / 300s`（nginx 也是 `512m`），
+> 四站现已一致。详见「七、kisss 上传限制已对齐」。
 
 ## 六、验证结果
 
@@ -128,22 +128,65 @@ opcache：FPM 已启用（`opcache.enable => On`），CLI 关闭是默认行为�
 - **GPU worker 联动**：四站 `customVideo/pending` 均 200，`gpu-health` 全绿，
   四站积压均为 0 —— 昨天上线的单卡四站方案未受影响。
 
-## 七、待办
+## 七、kisss 上传限制已对齐（2026-10-22）
 
-1. **kisss 上传限制偏低**（64M / max_execution_time 30s），与其余三站不一致。
-   AI 视频成品回传可能 500。建议改成 `512M / 300s`：
-   ```bash
-   sed -i 's/^upload_max_filesize *=.*/upload_max_filesize = 512M/' /etc/php/8.3/fpm/php.ini
-   sed -i 's/^post_max_size *=.*/post_max_size = 512M/' /etc/php/8.3/fpm/php.ini
-   sed -i 's/^max_execution_time *=.*/max_execution_time = 300/' /etc/php/8.3/fpm/php.ini
-   systemctl reload php8.3-fpm
-   ```
+kisss 原本是四站里唯一的小额度配置，AI 视频成品回传有 500 风险。已调到与其余三站一致：
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| `upload_max_filesize` (fpm + cli) | 64M | **512M** |
+| `post_max_size` (fpm + cli) | 64M | **512M** |
+| `max_execution_time` (fpm) | 30 | **300** |
+| nginx `client_max_body_size` | 64m | **512m** |
+
+### ⚠️ 改 nginx 时踩的坑：`sites-enabled` 是实体文件，不是软链
+
+kisss 的 `/etc/nginx/sites-enabled/kiss.conf` 是**实体文件**（其它站通常是 `sites-available` 的软链），
+而且比 `sites-available/kiss.conf` **新**（多了 `kisss.si` 跳转、HLS `open_file_cache off`、http2）。
+一开始只改了 `sites-available`，`nginx -s reload` 后 `nginx -T` 里依然是 64m —— 等于没改。
+
+**判断方法**：
+```bash
+ls -l /etc/nginx/sites-enabled/        # 看是 lrwxrwxrwx 还是 -rw-r--r--
+nginx -T | grep client_max_body_size   # 以实际加载的配置为准，不看文件
+```
+
+### 验证（不只改配置，要实测）
+
+```
+FPM 运行时： upload_max_filesize=512M  post_max_size=512M  max_execution_time=300
+nginx -T  ： client_max_body_size 512m 已加载
+70MB 上传 ： 旧限制会 413，现在 nginx 完整接收 73,400,518 B
+```
+
+### 顺带修好的一个小问题
+
+kisss 的 nginx 把所有 `.php` 请求都 `fastcgi_param SCRIPT_FILENAME .../index.php`（ThinkPHP 单入口），
+所以往 `public/` 放临时探针 PHP 不会被执行，而是被 ThinkPHP 接走（302 到 `/install/`）。
+排查这类问题时别被误导 —— 该站的 PHP 行为验证一律走真实 API。
+
+### 实测业务链路
+
+插入一条真实的 `custom_image` 任务 → GPU worker 接单 → 生成 → 上传 → 回调：
+
+```
+18:42:52 [kiss] [task 2] 已接单: kind=image style=image_edit wf=qwenedit_api.json
+18:43:25 [kiss] [task 2] 图片已生成: task_2_00001_.png
+18:43:27 [kiss] [task 2] 完成 -> https://media.kisss.ai/sec/kiss/.../ci_kiss_*.png
+```
+
+DB `status=completed`、`result_type=image_file`，产物经 CDN 返回 **200**。
+测试数据已清理（该站 `lp_ai_task` 归零）。
+
+## 八、待办
+
+1. ~~kisss 上传限制偏低~~ —— **已完成**，见「七」。
 2. **恢复 launchpad PPA？** 不需要。`sury-php.list` 是作者官方源，长期更稳；
    `ondrej-ppa.disabled` 留在 `/root/` 备查即可。
 3. **后续安全更新**：三台 24.04 已补上 `noble-security` 源，
    以后 `apt upgrade` 就能直接拿到安全更新，不会再出现"升了但没修上"。
 
-## 八、回滚
+## 九、回滚
 
 每台升级前都留了完整备份：
 
@@ -163,7 +206,7 @@ systemctl reload php8.3-fpm
 
 kisss 额外备份：`/root/php_sec_kisss_20261022020153/`（第一次尝试时的记录）。
 
-## 九、工具
+## 十、工具
 
 ```bash
 python .zcode/php_security_patch.py --check              # 只读体检（四站一屏）
