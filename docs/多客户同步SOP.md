@@ -53,6 +53,9 @@ gitee heygirl.git  gitee zhibo.git         gitee kelymi.git   gitee kisss.git
    JS/CSS 整页 404（见踩坑表）
 6. **`/opt/brand-kit` 与仓库 `.zcode/brand_kit_<客户>/` 同源**：改哪边都要把另一边同步，
    否则下次从零装机就丢了这条客户差异
+7. **跨站改动 = 四站全验，不许抽样、不许推断**：文件推过去不等于生效。
+   必须用「代码标记 + 资源版本 + 运行时行为」三条独立证据核对**每一站**
+   （10-21 漏推 heygirl + kelymi 的教训，详见第九节「跨站功能改动核对」）
 
 ## 三、环境准备（一次性，新同事上手清单）
 
@@ -113,6 +116,11 @@ python .zcode/verify_client.py --client sugus --payment  # 后端有改动时加
 它做内容级检查，退出码非 0 就是没同步成功：`assets/ + _shared/` 全量 blob 与上游逐字节比对、
 `_shared` 内页引用且文件在、标题/logo 品牌、上游品牌泄漏、嵌套垃圾目录、
 （`--payment`）MKPAY 配置段/网关连通/回调路由。sugus 会自动走跳板，避开 CN 区域封锁误判。
+
+> **注意**：`verify_client.py` 只覆盖静态站内容（assets / _shared / 品牌 / 嵌套目录）。
+> **它检查不到 PHP 行为、数据库配置值、前端资源版本号**。凡改动涉及后端或库，
+> 必须再走 **第九节「跨站功能改动核对」** 的三条证据。10-21 的 heygirl 漏推就是
+> `verify_client` 全绿但功能没同步的实例。
 
 脚本的关键词验证可能**假通过**（读的是旧文件/CDN 缓存，10-18 真实发生过）。
 需要手工复核时按下面几条：
@@ -357,3 +365,72 @@ python .zcode/sync_clients.py --client heygirl --strict    # 有问题就中止�
 
 判据来源：10-18~10-20 三次踩坑（品牌被冲、分享文案写成 Candy AI、uta-api 往别家发数据）。
 注意：开发注释里的 `/* 照 candy.ai 原版 */` 不算问题，已排除。
+
+---
+
+## 九、跨站功能改动核对（2026-10-21 新增，强制）
+
+> **这是本文件关于「跨站改动核对」的唯一权威章节**（第四节不再重复，只在红线里引用）。
+> **任何跨站改动完成前必须过这一节。**
+
+### 9.1 三条独立证据，缺一不可
+
+「文件推过去了」不等于「功能生效了」。每站都要验三个维度，**任一维度只能证明一部分**：
+
+| 维度 | 证明什么 | 不能证明什么 |
+|---|---|---|
+| ① 代码标记（grep 特征串） | 文件内容确实更新了 | 浏览器是否加载到 |
+| ② 资源版本（`?v=` 与发布号一致） | 缓存不会给旧文件 | 后端逻辑是否对 |
+| ③ 运行时行为（接口 JSON / DB 值 / 真实扣费） | 端到端确实生效 | 其他站也这样 |
+
+### 9.2 检查清单（每次复制执行）
+
+```bash
+# 1) 四站逐站跑，不许抽样、不许"其他应该一样"
+for each site in [sugus, heygirl, kisss, kelymi]:
+    ① grep  本次改动的特征串（期望值写死，不能只看有输出）
+    ② grep  HTML 里的 ?v= 是否等于本次发布号
+    ③ 调接口看 JSON 字段 / 查库看配置值
+
+# 2) 有扣费/额度类改动时，必须做一次真实业务流
+#    例：额度清零 → 提交 → 核对 返回的 paid_tokens 与 余额差额 一致 → 还原测试数据
+```
+
+### 9.3 数据库值优先于代码默认值
+
+凡是通过 `lp_platform_config` / `lp_vip_plan` 可配的项（价格、额度、开关）：
+
+```
+生效值 = 库里的值（非空时） > 代码默认常量
+```
+
+**所以改完代码默认值必须同时改库**，否则线上仍是旧值。查库命令：
+
+```sql
+SELECT `key`, `value` FROM lp_platform_config WHERE `key` IN ('video_gen_price', ...);
+SELECT image_daily_limit, image_daily_refill, COUNT(*) FROM lp_vip_plan GROUP BY 1,2;
+```
+
+### 9.4 本次（10-21）漏同步实例存档
+
+| 站点 | Outfit 按钮 | Apply Outfit | js 版本 | price | VIP 额度 |
+|---|---|---|---|---|---|
+| sugus（正确） | 1 | 3 | 20261020c | 30→100 | 5/5 |
+| heygirl（漏） | **0** | 3 | **20261018a** | 30 | **3/1×12 + 10/1×12** |
+| kisss（漏） | 1 | 3 | 20261020c | 30 | **2/1×24** |
+| kelymi（漏） | **0** | **0** | 20261020d | 30 | 5/5 |
+
+根因：10-20 只核对了「代码文件已推送」，没核对 `Image.html` 与 `customVideo.js` 是否真到 heygirl；
+套餐额度也只改了 sugus + kelymi，忘了 heygirl / kisss。
+
+### 9.5 新客户站额外前置检查
+
+老客户站可能落后上游好几个版本。动手前先探基线：
+
+```bash
+ssh root@<host> 'cd /www/wwwroot/douyin && git rev-parse --short HEAD'
+git -C D:/ever/douyin/douyin diff --name-status <服务器HEAD>..HEAD -- php/
+```
+
+差异大时按 `docs/kelymi对齐sugus.md` 的九步流程整体追平，**不要只推单个文件**
+（会因缺依赖类而 500，kelymi 的 `Class "app\common\library\media\Media" not found` 就是这么来的）。
