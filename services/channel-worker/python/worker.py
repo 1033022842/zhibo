@@ -46,6 +46,17 @@ GIFT_QUEUE_MAX = 6              # 礼物视频队列上限：防连击排队数�
 TS_SCALE = os.environ.get('TS_SCALE', '360:640')   # 输出分辨率（降画质省带宽）
 TS_FPS = os.environ.get('TS_FPS', '24')            # 输出帧率
 TS_CQ = os.environ.get('TS_CQ', '26')              # 预转质量（nvenc cq / x264 crf）
+# 关键帧间隔（帧数）。HLS 只能在关键帧切分片，故 GOP 决定实际分片时长：
+#   GOP=fps → 分片 1s；GOP=2*fps → 2s（推荐，兼顾恢复速度与开销）
+# 不设时 x264 默认 keyint=250 + 场景切换插帧，实测分片 4.2s 且不稳定
+TS_GOP = os.environ.get('TS_GOP', str(int(TS_FPS) * 2))
+# x264 预设：ultrafast 关了 CABAC/去块滤波，压缩效率极差——实测同 CRF 下
+# ultrafast 3.7~9.1 Mbps 而 veryfast 只要 1.1~2.4 Mbps，PSNR 基本持平。
+# 预转只在首次播放时跑一次（之后命中缓存），多一点 CPU 换一半带宽很值。
+TS_PRESET = os.environ.get('TS_PRESET', 'veryfast')
+# 码率上限（kbps）：0 = 不限（纯 CRF）。设了就是 capped-CRF，
+# 画面复杂时最高不超过该值，防个别素材飙到 9 Mbps 拖垮移动端。
+TS_MAXRATE = int(os.environ.get('TS_MAXRATE', '2500'))
 # copy 推流开关：1 = 推流时不再重编码（预转 TS 已是目标规格），直播中 CPU≈0
 PUSH_COPY = os.environ.get('PUSH_COPY', '') == '1'
 
@@ -492,7 +503,7 @@ def ts_cache_path(config, source_path):
         rel = rel.replace('\\', '/')
     except Exception:
         rel = source_path
-    key = f"{rel}|{TS_SCALE}|{TS_FPS}"
+    key = f"{rel}|{TS_SCALE}|{TS_FPS}|{TS_CQ}|{TS_GOP}|{TS_PRESET}|{TS_MAXRATE}"
     digest = hashlib.md5(key.encode('utf-8')).hexdigest()[:12]
     base = os.path.basename(source_path)
     name, _ = os.path.splitext(base)
@@ -524,10 +535,20 @@ def ensure_ts(config, source_path):
         return ts_path  # 缓存命中
 
     os.makedirs(os.path.dirname(ts_path), exist_ok=True)
-    log(f"[预转] {os.path.basename(source_path)} → TS({TS_SCALE}@{TS_FPS})")
-    venc = (['-c:v', 'h264_nvenc', '-preset', 'p4', '-rc', 'vbr', '-cq', TS_CQ, '-b:v', '0']
-            if _ts_nvenc_ok(config) else
-            ['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', TS_CQ])
+    log(f"[预转] {os.path.basename(source_path)} → TS({TS_SCALE}@{TS_FPS} gop={TS_GOP} preset={TS_PRESET} cq={TS_CQ} maxrate={TS_MAXRATE}k)")
+    # GOP 固定为 TS_GOP：禁用场景切换插帧（sc_threshold=0 / no-scenecut），
+    # 否则素材切镜头时会在非整数位置插 I 帧，HLS 分片长度忽长忽短
+    if _ts_nvenc_ok(config):
+        venc = ['-c:v', 'h264_nvenc', '-preset', 'p4', '-rc', 'vbr', '-cq', TS_CQ, '-b:v', '0',
+                '-g', TS_GOP, '-no-scenecut', '1']
+    else:
+        venc = ['-c:v', 'libx264', '-preset', TS_PRESET,
+                '-g', TS_GOP, '-keyint_min', TS_GOP, '-sc_threshold', '0']
+        if TS_MAXRATE > 0:
+            # capped-CRF：先按质量编码，超过上限再压
+            venc += ['-crf', TS_CQ, '-maxrate', f'{TS_MAXRATE}k', '-bufsize', f'{TS_MAXRATE*2}k']
+        else:
+            venc += ['-crf', TS_CQ]
     cmd = [
         config['ffmpeg_bin'], '-hide_banner', '-y', '-loglevel', 'error',
         '-i', source_path,
