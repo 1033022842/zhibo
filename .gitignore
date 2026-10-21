@@ -67,3 +67,12 @@ vue/dist.zip
 
 # backup files
 *.bak
+
+# 角色素材同步的中间产物（.zcode/chat_gift_staging.py 产出，勿入库）
+.zcode/_staging/
+.zcode/chat_gifts_new.tar
+.zcode/part[0-9][0-9]
+.zcode/_speedtest*.bin
+
+# AI 电脑素材源目录的本地镜像（1GB+）
+_roles2/
