@@ -702,6 +702,12 @@ final class RechargeService
         $fx      = FiatChannelService::convert($usd, $channel);
         $gateway = (string) $channel['gateway'];
 
+        // 印度网关只认整数卢比：带派萨的金额（如 ₹949.95）会返回 submitted 但收银台地址为空，
+        // 用户点支付没有任何反应。落单前就抹平到整卢比，保证页面展示金额与实际扣款一致。
+        if ($gateway === 'mkpay_in') {
+            $fx['amount'] = (string) (int) round((float) $fx['amount']);
+        }
+
         $db  = Db::connect('live_mysql');
         $now = date('Y-m-d H:i:s');
         $order = [
@@ -847,10 +853,10 @@ final class RechargeService
             ];
         }
         if ($gateway === 'mkpay_in') {
-            // INR 传分（factor=100）：100.00 INR → 10000
+            // INR 只支持整卢比（带派萨的金额网关返回空收银台地址），传「整卢比 × 100」
             $in = (new MkPayInService())->createCollection(
                 (string) $order['order_no'],
-                (int) round((float) $fx['amount'] * 100),
+                (int) round((float) $fx['amount']) * 100,
                 (string) config('mkpay_in.notify_url'),
                 $returnUrl !== '' ? $returnUrl : (string) (
                     $order['biz_type'] === 'vip'
