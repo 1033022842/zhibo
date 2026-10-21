@@ -38,7 +38,16 @@ ORDER = ["kisss", "kelymi", "heygirl", "sugus"]
 
 FIXED = {
     "noble": "8.3.6-0ubuntu0.24.04.13",
-    "ondrej": "8.3.36-1+ubuntu22.04.1+deb.sury.org+1",
+    # ondrej PPA 与 packages.sury.org 的版本号后缀不同，但都 ≥ 8.3.36 即可
+    "ondrej": "8.3.36",
+}
+
+# 冒烟用公网域名：kisss 的 IP 直连是 default_server{return 404}，必须走域名
+DOMAINS = {
+    "sugus": "https://www.sugus.ai",
+    "heygirl": "https://heygirl.live",
+    "kisss": "https://kisss.ai",
+    "kelymi": "https://kelymi.autos",
 }
 
 SEC_SOURCE = """Types: deb
@@ -208,10 +217,13 @@ def apply_site(name):
         rc, o, e = run(c, "systemctl reload php8.3-fpm && sleep 2 && systemctl is-active php8.3-fpm", 120)
         print("  php8.3-fpm reload → %s" % o)
 
-        # 7) 冒烟
+        # 7) 冒烟（走公网域名：kisss 的 IP 直连是 default_server{return 404}）
+        dom = DOMAINS[name]
         smoke = [
-            ("本站首页", "curl -sk -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1/ai/Home.html"),
-            ("后台登录页", "curl -sk -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:8081/admin/ 2>/dev/null || echo 000"),
+            ("首页", "curl -sk -o /dev/null -w '%{http_code}' --max-time 20 %s/ai/Home.html" % dom),
+            ("Image页", "curl -sk -o /dev/null -w '%{http_code}' --max-time 20 %s/ai/Image.html" % dom),
+            ("PHP+DB", "curl -sk -o /dev/null -w '%{http_code}' --max-time 20 "
+                       "-H 'X-Api-Key: live-ai-api-key-2026' %s/api/customVideo/stats" % dom),
         ]
         healthy = True
         for label, cmd in smoke:
