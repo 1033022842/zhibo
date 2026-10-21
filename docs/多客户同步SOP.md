@@ -296,6 +296,11 @@ python .zcode/sync_clients.py --client kiss                                    #
 | **`--init-snapshot` 用在「服务器落后上游」= 灾难**（10-20 kiss） | 新客户服务器 HEAD 常比上游旧（kiss 停在 `7a38a72`，上游已到 `8363173`）。`--init-snapshot` 记的是上游 HEAD，把没推过的变更全标成已同步，之后增量永远推不动 | 用 `--seed-snapshot-from <服务器实际HEAD>` 记基线，`--dry-run` 确认清单 = 服务器 HEAD..上游 HEAD 的变更后再真跑 |
 | **「客户仓库已提交推送」可能什么都没提交**（10-20 kiss 首同步） | 脚本无条件打印这行；客户仓库已与上游内容一致时 `git commit` 为空（`git add` 无改动），实际只有一次空 push | 别把它当提交凭证，去客户仓库 `git log --oneline -1` 核实；内容一致时没有新提交是正确结果 |
 | **kiss 的 80 端口被 Certbot 改成 `default_server { return 404; }`**（10-20） | `curl http://103.217.252.52/ai/Home.html` 永远 404，容易误判成「同步没生效/站点挂了」；IP + `Host: kisss.ai` 只会 301 到 https | 一律用 `https://kisss.ai/ai/...` 验证；`sync_clients.py` 里 kiss 的 `verify_url` 也必须是域名 |
+| **`open_file_cache` 让直播 m3u8 冻住 60 秒**（10-21 kiss） | 10-20 加的「性能调优」`/etc/nginx/conf.d/zz-perf.conf` 里有 `open_file_cache max=20000 inactive=30s; open_file_cache_valid 60s;`。nginx 缓存的是**打开的文件描述符**，而 SRS 写 m3u8 是「写临时文件 + rename」换 inode → nginx 手里的 fd 仍指向旧 inode，**m3u8 最长 60 秒不更新**。播放器拿旧播放列表去请求已被 `hls_cleanup` 删掉的 ts 段 → 404 → 画面卡住反复重试。实测修复前 disk 落后 https 10 段（40 秒） | 两个 HLS location 加 `open_file_cache off;`（只关 HLS，静态资源照旧享受缓存）。**heygirl / sugus / kelymi 也有同一份 zz-perf.conf，同样受影响**，新客户初始化时要一起加 |
+| **直播没接 CDN（`HLS_CDN_DOMAIN` 指向自己）**（10-21 kiss） | `.env` 里 `HLS_CDN_DOMAIN = https://kisss.ai` = 源站直连（荷兰机房），大陆拉单段 ts 实测 21 KB/s，而 3.5 Mbps 需要 437 KB/s，差 20 倍 → 完全播不动。参考：sugus=`ever-candy.b-cdn.net`、heygirl=`hey-girl.b-cdn.net` | 建 Bunny Pull Zone（Origin 指向 CDN 专用回源口）→ `.env` 改 `HLS_CDN_DOMAIN` → 重启 php-fpm。核对 `curl -s https://<域名>/api/v1/feed/live \| grep hls_url` 应为 CDN 域 |
+| **CDN 回源后真实 IP 丢失 → 全站共用一个限流额度**（10-21 kiss） | `php/config/throttle.php` 按 IP 限流 `120/m`。挂 CDN 后 `$remote_addr` 全是边缘 IP，所有用户共用配额；后台 IP 白名单与日志同样失真 | nginx 加 `real_ip_header X-Forwarded-For; real_ip_recursive on;` + Bunny 边缘 IP 段 `set_real_ip_from`（`/etc/nginx/bunny_realip.conf`，584 条，每月 1 号刷新）。**必须先装 realip 再切 CDN** |
+| **MPA 静态资源走 CDN 的零风险做法**（10-21 kiss） | 想让首页也加速，但直接把 `kisss.ai` 的 A 记录指到 CDN 会连带支付回调 `/api/v1/recharge/notify*`、后台 `/admin/`、WebSocket 一起过 CDN，风险高 | 只改 HTML 里的**子资源引用**（`./js/ ./_shared/ ./assets/ ./<页面>_files/` → CDN 域名），页面跳转 `.html`、favicon、`/api/`、`/ws/` 保持同源。登录态是 localStorage + `Authorization` 头，不依赖同源 cookie，不受影响。实现：`apply_brand.sh` 第 3.5 节 + `brand/<客户>/cdn_assets.env`（留空=关闭） |
+| **Bunny zone 挂 `/api/` 能通，但 WebSocket 必须 HTTP/1.1**（10-21） | 用 `curl` 测 WebSocket 升级通常拿到 `000`，因为 curl 默认 HTTP/2，而 WS 升级要求 HTTP/1.1 | 加 `--http1.1` 或用 Python 原生 socket 握手；正确结果 `101 Switching Protocols`。Bunny Pull Zone 支持 WS 透传，无需额外开关 |
 
 ## 八、四台服务器与仓库速查
 
@@ -305,10 +310,12 @@ python .zcode/sync_clients.py --client kiss                                    #
 | sugus | 172.81.98.55（上游生产） | 无需（自己就是 Sugus） | gitee `zhibo.git`（= 上游 douyin 仓库） |
 | kelymi | 172.81.99.42（kelymi.autos，nginx 单站点 zhibo.conf） | /opt/brand-kit（kelymi，源码 `.zcode/brand_kit_kelymi/`） | gitee `kelymi.git`（D:\ever\kelymi，master） |
 | kiss | 103.217.252.52（kisss.ai，nginx 单站点 kiss.conf，Certbot https） | /opt/brand-kit（kiss，源码 `.zcode/brand_kit_kiss/`，含 `tools/apply_brand.sh`） | gitee `kisss.git`（D:\ever\kiss，master） |
+| kiss 回源口 | 103.217.252.52**:8080**（`kiss-cdn-origin.conf`，只放 /ai/ /hls/ /api/ /ws/，/admin/ 与 /storage/ 404） | — | Bunny zone `kisss-live`（含 HLS + /ai/ 静态资源） |
 
 - 四台站点路径均为 `/www/wwwroot/douyin/ai-girl-malaysia.com`，URL 前缀均为 `/ai/`
 - sugus 链路走 99.11 跳板（跳板上有 `n99_pull` key 直连 98.55），无需额外凭据
 - 线上验证地址：`https://heygirl.live/ai/Home.html` ｜ `http://172.81.98.55/ai/Home.html` ｜ `https://kelymi.autos/ai/Home.html` ｜ **`https://kisss.ai/ai/Home.html`**（kiss 的 IP:80 是 404，别用）
+- kiss 的 JS/CSS/图片已改走 `https://kisss-live.b-cdn.net/ai/...`（HTML 与 /api/ /ws/ 仍同源）；关掉整个 CDN 只需删服务器上 `/opt/brand-kit/brand/kiss/cdn_assets.env` 再跑一次 apply_brand
 - kelymi 备份：同步前全量在 `/root/kelymi_pre_sync_20261018/`（7.1M）；apply_brand 每日回滚备份在 `/tmp/brand_bak_<客户>_<日期>/`
 - kiss 服务器上站点目录本身就是 gitee `zhibo.git` 的克隆（HEAD 停在部署点），可用于逐文件核对与回滚
 

@@ -60,6 +60,25 @@ cp -f "$BRAND"/assets/brand.js "$SITE"/js/brand.js
 rm -f "$SITE"/face_swap.html "$SITE"/js/face_swap.js
 sed -i '/face_swap\.html/d' "$SITE"/js/site-shell.js "$SITE"/js/promo-popup.js 2>/dev/null || true
 
+# ── 3.5) 静态资源改走 CDN（可选；由 brand/<client>/cdn_assets.env 的 CDN_ASSET_BASE 控制）──
+# 只改 HTML 里的相对资源引用，页面跳转（*.html）、favicon 根级小图、/api/ /ws/ 均不动——
+# 因此同源会话（localStorage JWT）不受影响，只有 js/css/图片从 CDN 边缘加载。
+# 资源名自带 hash 或 ?v=，可长缓存；源站仍是本机，CDN 未命中时回源。
+if [ -f "$BRAND/cdn_assets.env" ]; then
+  # shellcheck disable=SC1090
+  . "$BRAND/cdn_assets.env"
+  if [ -n "${CDN_ASSET_BASE:-}" ]; then
+    CDN_ASSET_BASE=${CDN_ASSET_BASE%/}
+    echo "== 静态资源改走 CDN: $CDN_ASSET_BASE =="
+    sed -i -E \
+      -e "s#(src|href)=\"\./(js|_shared|assets)/#\1=\"$CDN_ASSET_BASE/\2/#g" \
+      -e "s#(src|href)=\"\./([A-Za-z0-9_-]+_files)/#\1=\"$CDN_ASSET_BASE/\2/#g" \
+      -e "s#url\((['\"]?)\./(assets|_shared)/#url(\1$CDN_ASSET_BASE/\2/#g" \
+      "${FILES[@]}"
+    echo "   剩余相对资源引用（应为 0）: $(grep -ohE '(src|href)=\"\./(js|_shared|assets)/' "${FILES[@]}" 2>/dev/null | wc -l)"
+  fi
+fi
+
 # ── 4) 自检 ──
 LEFT=$(grep -lE 'Sugus|sugusmail' "${FILES[@]}" 2>/dev/null | grep -vE 'js/' || true)
 if [ -n "$LEFT" ]; then
