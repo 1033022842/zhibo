@@ -709,15 +709,17 @@ final class RechargeService
             //   巴西版：本站 MKS / hey girl MKH（config('mkpay.order_prefix')）
             //   越南版：sugus MKSV / hey girl MKHV（config('mkpay_vn.order_prefix')）
             //   墨西哥版：sugus MKSM / hey girl MKHM（config('mkpay_mx.order_prefix')）
+            //   印度版：sugus MKSI / hey girl MKHI（config('mkpay_in.order_prefix')）
             'order_no'        => StrHelper::orderNo(
                 $gateway === 'mkpay' ? (string) config('mkpay.order_prefix')
                     : ($gateway === 'mkpay_vn' ? (string) config('mkpay_vn.order_prefix')
-                        : ($gateway === 'mkpay_mx' ? (string) config('mkpay_mx.order_prefix') : 'RC'))
+                        : ($gateway === 'mkpay_mx' ? (string) config('mkpay_mx.order_prefix')
+                            : ($gateway === 'mkpay_in' ? (string) config('mkpay_in.order_prefix') : 'RC')))
             ),
             'user_id'         => $userId,
             // 走网关的记网关 code，这样网关查单补单（reconcileGateway）能自动带上；
             // 纯人工通道记 'fiat'，订单直接进后台「充值审核」等运营核对
-            'pay_channel'     => in_array($gateway, ['starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx'], true) ? $gateway : 'fiat',
+            'pay_channel'     => in_array($gateway, ['starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in'], true) ? $gateway : 'fiat',
             'channel_id'      => 0,
             'fiat_channel_id' => (int) $channel['id'],
             'package_id'      => $opt['package_id'] ?? null,
@@ -783,6 +785,8 @@ final class RechargeService
      *           到账靠异步回调（notifyMkPayVn）加对账补单（reconcileGateway）双保险；
      * mkpay_mx：墨西哥 MXN，金额为整数分（factor=100），返回 redirect_url / qr_code_url，
      *           到账靠异步回调（notifyMkPayMx）加对账补单（reconcileGateway）双保险；
+     * mkpay_in：印度 INR，金额为整数分（factor=100），返回 redirect_url / qr_code_url，
+     *           到账靠异步回调（notifyMkPayIn）加对账补单（reconcileGateway）双保险；
      * 其它 code 一律拒绝，避免「以为对接了其实没对接」把钱收错。
      */
     private function callFiatGateway(array $order, array $channel, array $fx, string $returnUrl): array
@@ -839,6 +843,25 @@ final class RechargeService
             return [
                 'system_ref' => (string) ($mx['pay_order_id'] ?? ''),
                 'pay_url'    => (string) ($mx['pay_url'] ?? ''),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        if ($gateway === 'mkpay_in') {
+            // INR 传分（factor=100）：100.00 INR → 10000
+            $in = (new MkPayInService())->createCollection(
+                (string) $order['order_no'],
+                (int) round((float) $fx['amount'] * 100),
+                (string) config('mkpay_in.notify_url'),
+                $returnUrl !== '' ? $returnUrl : (string) (
+                    $order['biz_type'] === 'vip'
+                        ? config('mkpay_in.return_url_vip')
+                        : config('mkpay_in.return_url')
+                )
+            );
+
+            return [
+                'system_ref' => (string) ($in['pay_order_id'] ?? ''),
+                'pay_url'    => (string) ($in['pay_url'] ?? ''),
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
         }
@@ -1099,7 +1122,7 @@ final class RechargeService
         $now = time();
 
         $rows = $db->table('lp_recharge_order')
-            ->whereIn('pay_channel', ['flowpay', 'starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx'])
+            ->whereIn('pay_channel', ['flowpay', 'starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in'])
             ->whereIn('status', [0, 3])
             // 刚下完单还没付款的不用查；超过 7 天的直接放弃，避免每分钟白查历史单
             ->where('created_at', '<', date('Y-m-d H:i:s', $now - max(1, $staleMinutes) * 60))
@@ -1238,6 +1261,29 @@ final class RechargeService
                         continue;
                     }
                     if (MkPayMxService::isFailed($code)) {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
+                    }
+                    continue;
+                }
+
+                if ((string) $r['pay_channel'] === 'mkpay_in') {
+                    // 印度版：按商户订单号查单，以 status_code 为准（2 成功 / 3,4,6 终态失败）
+                    $in = new MkPayInService();
+                    if (!$in->enabled()) {
+                        $stat['skipped']++;
+                        continue;
+                    }
+                    $res  = $in->queryOrder($orderNo);
+                    $code = (int) ($res['status_code'] ?? 0);
+                    if (MkPayInService::isSuccess($code)) {
+                        $this->markPayChecked((int) $r['id'], 1);
+                        $this->confirmByGateway($orderNo, (string) ($res['pay_order_id'] ?? ''), '', 'MKPay-IN(查单补单)');
+                        $stat['recovered']++;
+                        Log::info('[recharge:reconcile] MKPay-IN 补单成功 ' . $orderNo);
+                        continue;
+                    }
+                    if (MkPayInService::isFailed($code)) {
                         $this->markPayChecked((int) $r['id'], 2);
                         $stat['unpaid']++;
                     }

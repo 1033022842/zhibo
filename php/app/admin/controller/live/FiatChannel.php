@@ -33,6 +33,7 @@ final class FiatChannel extends Backend
         'mkpay'    => 'MKPay（巴西 BRL，金额传分；收银台内自选 Pix/GGPay/ApplePay 等）',
         'mkpay_vn' => 'MKPay（越南 VND，金额传整数 VND；返回收银台/二维码）',
         'mkpay_mx' => 'MKPay（墨西哥 MXN，金额传分；返回收银台/二维码）',
+        'mkpay_in' => 'MKPay（印度 INR，金额传分；返回收银台/二维码）',
     ];
 
     /**
@@ -91,9 +92,9 @@ final class FiatChannel extends Backend
                 <div class="field"><label>前台展示名</label><input name="name" value="{$v('name')}" placeholder="如 Malaysia · FPX" required /></div>
                 <div class="field"><label>对接方式</label>
                     <select name="gateway">{$gwOptions}</select>
-                    <div class="tip">选「人工审核」时不需要网关，用户下单后订单进「充值审核」等你核对收款；选 star-pay / mkpay / mkpay_vn / mkpay_mx 才走网关收银台。</div>
+                    <div class="tip">选「人工审核」时不需要网关，用户下单后订单进「充值审核」等你核对收款；选 star-pay / mkpay / mkpay_vn / mkpay_mx / mkpay_in 才走网关收银台。</div>
                 </div>
-                <div class="field"><label>网关标识（starpay 填 product 产品码，mkpay / mkpay_vn / mkpay_mx / 人工通道留空）</label>
+                <div class="field"><label>网关标识（starpay 填 product 产品码，mkpay / mkpay_vn / mkpay_mx / mkpay_in / 人工通道留空）</label>
                     <input name="gateway_ref" value="{$v('gateway_ref')}" placeholder="留空则用 .env 里的默认 product" />
                 </div>
                 <div class="field"><label>结算币种代码</label><input name="currency" value="{$v('currency')}" placeholder="如 MYR / VND / IDR" required /></div>
@@ -107,7 +108,7 @@ final class FiatChannel extends Backend
                         <option value="1"{$selAutoRate}>开启（定时任务 fiat:rate 拉取 USD 中间价覆盖此值，含异常区间保护）</option>
                         <option value="0"{$selKeepRate}>关闭（手动维护汇率）</option>
                     </select>
-                    <div class="tip">已支持的币种以任务代码里的数据源为准（当前：BRL / VND / MXN）；其余币种选了也不会生效。</div>
+                    <div class="tip">已支持的币种以任务代码里的数据源为准（当前：BRL / VND / MXN / INR）；其余币种选了也不会生效。</div>
                 </div>
                 <div class="field"><label>本币金额小数位</label><input type="number" name="decimals" value="{$v('decimals')}" min="0" max="8" />
                     <div class="tip">多数币种填 2；VND、IDR 这类没有小数的填 0。</div>
