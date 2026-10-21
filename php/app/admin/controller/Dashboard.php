@@ -25,10 +25,13 @@ class Dashboard extends Backend
         $roomsTotal = $db->table('lp_room')->where('status', 1)->count();
         $roomsLive  = $this->srsLiveCount();
 
-        // ── 充值（USDT，status: 0待审 1已通过 2拒绝 3关闭）──
+        // ── 充值（统一折算成 USD，status: 0待审 1已通过 2拒绝 3关闭）──
+        // 法币单的 pay_amount 存的是本币实付（如 4748.81 INR），不能直接当 USD 累加；
+        // 有 usd_amount 的按原始 USD 标价，其余（链上 / 网关）本来就是 USD。
+        $usdSum = "SUM(CASE WHEN usd_amount > 0 THEN usd_amount ELSE pay_amount END)";
         $rechargeTodayCount = $db->table('lp_recharge_order')->where('status', 1)->whereLike('paid_at', $today . '%')->count();
-        $rechargeTodayUsd   = (float) $db->table('lp_recharge_order')->where('status', 1)->whereLike('paid_at', $today . '%')->sum('pay_amount');
-        $rechargeTotalUsd   = (float) $db->table('lp_recharge_order')->where('status', 1)->sum('pay_amount');
+        $rechargeTodayUsd   = (float) ($db->table('lp_recharge_order')->where('status', 1)->whereLike('paid_at', $today . '%')->value($usdSum) ?: 0);
+        $rechargeTotalUsd   = (float) ($db->table('lp_recharge_order')->where('status', 1)->value($usdSum) ?: 0);
         $rechargePending    = $db->table('lp_recharge_order')->where('status', 0)->count();
 
         // ── 送礼（代币消耗）──
@@ -48,7 +51,7 @@ class Dashboard extends Backend
         $giftByDay = array_column($rows, null, 'd');
 
         $rows = $db->table('lp_recharge_order')
-            ->field("DATE(paid_at) d, SUM(pay_amount) usd")
+            ->field("DATE(paid_at) d, {$usdSum} usd")
             ->where('status', 1)->where('paid_at', '>=', $start)
             ->group('d')->select()->toArray();
         $rechargeByDay = array_column($rows, null, 'd');
@@ -73,8 +76,9 @@ class Dashboard extends Backend
 
         // ── 最近充值订单 ──
         $latestRecharge = $db->table('lp_recharge_order')->alias('o')
-            ->field("o.order_no, o.pay_amount, o.diamond_amount, o.status, o.created_at, u.nickname")
+            ->field("o.order_no, o.pay_amount, o.usd_amount, o.pay_currency, o.fiat_channel_id, o.diamond_amount, o.status, o.created_at, u.nickname, fc.name as fiat_channel_name")
             ->leftJoin('lp_user u', 'u.id = o.user_id')
+            ->leftJoin('lp_fiat_channel fc', 'fc.id = o.fiat_channel_id')
             ->order('o.id', 'desc')->limit(8)->select()->toArray();
         $statusMap = [0 => '待审核', 1 => '已通过', 2 => '已拒绝', 3 => '已关闭'];
 
@@ -108,6 +112,17 @@ class Dashboard extends Backend
                 $r['status_text']    = $statusMap[(int) $r['status']] ?? '未知';
                 $r['pay_amount']     = (float) $r['pay_amount'];
                 $r['diamond_amount'] = (int) $r['diamond_amount'];
+
+                // 法币单：法币实付单独成列，USDT 列回到原始 USD 标价，避免「49.99 显示成 4748.81」
+                $currency = strtoupper(trim((string) ($r['pay_currency'] ?? '')));
+                $isFiat   = $currency !== '';
+                $r['fiat_currency'] = $isFiat ? $currency : '';
+                $r['fiat_amount']   = $isFiat ? (float) $r['pay_amount'] : null;
+                $r['fiat_channel']  = $isFiat ? trim((string) ($r['fiat_channel_name'] ?? '')) : '';
+                $r['usd_amount']    = $isFiat && (float) $r['usd_amount'] > 0
+                    ? (float) $r['usd_amount']
+                    : (float) $r['pay_amount'];
+                unset($r['pay_currency'], $r['fiat_channel_id'], $r['fiat_channel_name']);
                 return $r;
             }, $latestRecharge),
             'latest_gift'    => array_map(function ($r) {

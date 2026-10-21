@@ -205,8 +205,10 @@ final class RechargeOrder extends Backend
         // ---- 顶部统计 ----
         $today          = date('Y-m-d');
         $pending        = (int) $db->table('lp_recharge_order')->where('status', 0)->count();
+        // 法币单的 pay_amount 是本币金额，统计统一按原始 USD 标价折算，避免混币相加
+        $usdSum         = 'SUM(CASE WHEN usd_amount > 0 THEN usd_amount ELSE pay_amount END)';
         $todayCount     = (int) $db->table('lp_recharge_order')->where('status', 1)->whereLike('paid_at', $today . '%')->count();
-        $todayAmount    = (float) $db->table('lp_recharge_order')->where('status', 1)->whereLike('paid_at', $today . '%')->sum('pay_amount');
+        $todayAmount    = (float) ($db->table('lp_recharge_order')->where('status', 1)->whereLike('paid_at', $today . '%')->value($usdSum) ?: 0);
         $unmatchedCount = (int) $db->table('lp_payment_callback_log')->where('verify_status', 0)->count();
         // 已支付但订单没入账（关单后补偿失败等）：最需要人工介入的一类
         $paidUncredited = (int) $db->table('lp_recharge_order')->where('status', 3)->where('pay_state', 1)->count();
@@ -296,6 +298,20 @@ final class RechargeOrder extends Backend
                 : '';
             $usdTipText = ($isFiatPay && $usdAmount > 0) ? '（≈ $' . number_format($usdAmount, 2) . '）' : '';
 
+            // 法币列：单独展示本币币种，避免把本币金额误读成 USDT；
+            // 悬浮显示法币通道名与下单时锁定的汇率，方便财务对账
+            $fiatName  = trim((string) ($r['fiat_channel_name'] ?? ''));
+            $fiatRate  = (float) ($r['fx_rate'] ?? 0);
+            $fiatTitle = trim($fiatName . ($fiatRate > 0 ? ' · 1 USD = ' . rtrim(rtrim(number_format($fiatRate, 4, '.', ''), '0'), '.') . ' ' . strtoupper((string) $r['pay_currency']) : ''));
+            $fiatCell  = $isFiatPay
+                ? '<span class="fiat-tag" title="' . htmlspecialchars($fiatTitle, ENT_QUOTES) . '">'
+                    . htmlspecialchars(strtoupper((string) $r['pay_currency']), ENT_QUOTES) . '</span>'
+                : '<span style="color:#bbb">-</span>';
+
+            // 金额按两位小数展示（本币可能是 VND / IDR），代币去掉多余的 .00
+            $amountText  = number_format((float) $r['pay_amount'], 2);
+            $diamondText = rtrim(rtrim(number_format((float) $r['diamond_amount'], 2, '.', ''), '0'), '.');
+
             $actions = '';
             if ($st === 0) {
                 $actions = "<button class='btn btn-sm btn-success' onclick=\"showApprove({$rid})\">通过</button>"
@@ -312,9 +328,10 @@ final class RechargeOrder extends Backend
                 . '<td>' . (int) $r['user_id'] . '</td>'
                 . '<td><a href="javascript:void(0)" onclick="showDetail(' . $rid . ')" class="olink">' . htmlspecialchars((string) $r['order_no'], ENT_QUOTES) . '</a></td>'
                 . '<td>' . htmlspecialchars($channelLbl, ENT_QUOTES) . '</td>'
+                . '<td>' . $fiatCell . '</td>'
                 . '<td>' . htmlspecialchars($bizLbl, ENT_QUOTES) . '</td>'
-                . '<td>' . htmlspecialchars((string) $r['pay_amount'], ENT_QUOTES) . ' ' . $unit . $usdTipHtml . '</td>'
-                . '<td>' . htmlspecialchars((string) $r['diamond_amount'], ENT_QUOTES) . ($isVip ? '' : ' 代币') . '</td>'
+                . '<td>' . htmlspecialchars($amountText, ENT_QUOTES) . ' ' . $unit . $usdTipHtml . '</td>'
+                . '<td>' . $diamondText . ($isVip ? '' : ' 代币') . '</td>'
                 . '<td>' . $refCell . '</td>'
                 . '<td>' . $proof . '</td>'
                 . '<td><span class="status-badge ' . $stCls . '">' . $stName . '</span>'
@@ -332,14 +349,15 @@ final class RechargeOrder extends Backend
                 '订单号'     => (string) $r['order_no'],
                 '用户'       => ($r['nickname'] ?: '-') . ' (id=' . (int) $r['user_id'] . ')',
                 '渠道'       => $channelLbl,
+                '法币'       => $isFiatPay ? strtoupper((string) $r['pay_currency']) . ($fiatTitle !== '' ? '（' . $fiatTitle . '）' : '') : '-',
                 '渠道类型'   => $payChannel . ($r['chain_type'] ? ' / ' . $r['chain_type'] : ''),
                 '支付通道'   => $payChannel === 'flowpay' && $payGcode !== ''
                     ? $payGcode . '（' . (string) (config('flowpay.channels')[$payGcode] ?? '未收录') . '）'
                     : '-',
                 '业务'       => $bizLbl . ($isVip && !empty($r['vip_plan_id']) ? '（套餐 #' . (int) $r['vip_plan_id'] . '）' : '')
                     . ($r['package_id'] ? '（充值套餐 #' . (int) $r['package_id'] . '）' : ''),
-                '应付金额'   => (string) $r['pay_amount'] . ' ' . $unit . $usdTipText,
-                '到账'       => (string) $r['diamond_amount'] . ($isVip ? '（会员天数按套餐）' : ' 代币'),
+                '应付金额'   => $amountText . ' ' . $unit . $usdTipText,
+                '到账'       => $diamondText . ($isVip ? '（会员天数按套餐）' : ' 代币'),
                 '网关/链上单号' => $ref !== '' ? $ref : '-',
                 '收银台链接' => (string) ($r['pay_url'] ?? '') !== '' ? (string) $r['pay_url'] : '-',
                 '状态'       => $stName . ($expired ? '（已过期，待关单）' : ''),
@@ -353,7 +371,7 @@ final class RechargeOrder extends Backend
             ];
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="16" style="text-align:center;color:#999;padding:26px">暂无符合条件的订单</td></tr>';
+            $rows = '<tr><td colspan="17" style="text-align:center;color:#999;padding:26px">暂无符合条件的订单</td></tr>';
         }
 
         // ---- 异常链上转账（扫链没匹配到订单的入账）----
@@ -402,7 +420,7 @@ final class RechargeOrder extends Backend
         $statsHtml = '<div class="stats">'
             . '<div class="stat"><span>待审核</span><strong class="c-orange">' . $pending . '</strong></div>'
             . '<div class="stat"><span>今日到账</span><strong class="c-green">' . $todayCount . ' 笔</strong></div>'
-            . '<div class="stat"><span>今日金额</span><strong class="c-green">' . number_format($todayAmount, 2) . ' USD</strong></div>'
+            . '<div class="stat"><span>今日金额（USD）</span><strong class="c-green">' . number_format($todayAmount, 2) . ' USD</strong></div>'
             . '<div class="stat"><span>已支付未入账</span><strong class="' . ($paidUncredited > 0 ? 'c-red' : 'c-green') . '">' . $paidUncredited . '</strong></div>'
             . '<div class="stat"><span>异常链上转账</span><strong class="c-red">' . $unmatchedCount . '</strong></div>'
             . '</div>';
@@ -505,6 +523,7 @@ final class RechargeOrder extends Backend
     td.remark{max-width:180px;overflow:hidden;text-overflow:ellipsis}
     .olink{color:#409eff;text-decoration:none}
     .status-badge{padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;display:inline-block}
+    .fiat-tag{padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;display:inline-block;background:rgba(64,158,255,.12);color:#409eff;cursor:default}
     .pending{background:rgba(245,158,11,.12);color:#f59e0b}
     .passed{background:rgba(0,212,170,.12);color:#00b894}
     .rejected{background:rgba(255,45,85,.12);color:#ff2d55}
@@ -560,7 +579,7 @@ final class RechargeOrder extends Backend
 <div style="overflow-x:auto">
 <table><thead><tr>
     <th><input type="checkbox" id="chkAll" onclick="toggleAll(this)"></th>
-    <th>ID</th><th>用户</th><th>用户ID</th><th>订单号</th><th>渠道</th><th>业务</th><th>支付金额</th><th>到账</th>
+    <th>ID</th><th>用户</th><th>用户ID</th><th>订单号</th><th>渠道</th><th>法币</th><th>业务</th><th>支付金额</th><th>到账</th>
     <th>网关/链上单号</th><th>凭证</th><th>订单状态</th><th>支付状态</th><th>备注</th><th>下单时间</th><th>操作</th>
 </tr></thead><tbody>{{ROWS}}</tbody></table>
 </div>

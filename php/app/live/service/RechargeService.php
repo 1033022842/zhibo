@@ -780,11 +780,32 @@ final class RechargeService
      * 法币通道充值代币：到账代币按通道的 diamond_rate（每 1 USD）折算，
      * 与链上渠道 submitOrder 同一口径（取 USD 整数部分 × 单价）
      */
-    public function submitFiatCoinOrder(int $userId, int $fiatChannelId, float $usd, ?int $packageId = null): array
+    public function submitFiatCoinOrder(int $userId, int $fiatChannelId, float $usd, ?int $packageId = null, int $tokens = 0): array
     {
         $this->assertMemberForTokens($userId);
-        $channel  = FiatChannelService::find($fiatChannelId);
-        $diamonds = bcmul((string) floor($usd), (string) $channel['diamond_rate'], 2);
+        $channel = FiatChannelService::find($fiatChannelId);
+
+        // 到账代币与网关同口径：固定套餐 = 套餐 tokens（含赠送）；自选点数 = 报价 tokens；
+        // 两者都校验提交金额，防止改参数套利。都没有时才退回「整美元 × 每美元代币数」。
+        if ($packageId) {
+            $pkg = Db::connect('live_mysql')->table('lp_recharge_package')
+                ->where('id', $packageId)->where('status', 1)->find();
+            if (!$pkg) {
+                throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '充值套餐不存在或已下架');
+            }
+            if (abs((float) $pkg['price'] - $usd) > 0.01) {
+                throw new BusinessException(ResultCode::PARAM_ERROR, '套餐金额不匹配，请刷新后重试');
+            }
+            $diamonds = (string) (int) $pkg['tokens'];
+        } elseif ($tokens > 0) {
+            $quote = $this->quoteByTokens($tokens);
+            if (abs((float) $quote['price'] - $usd) > 0.02) {
+                throw new BusinessException(ResultCode::PARAM_ERROR, '点数价格已变动，请刷新后重试');
+            }
+            $diamonds = (string) (int) $quote['tokens'];
+        } else {
+            $diamonds = bcmul((string) floor($usd), (string) $channel['diamond_rate'], 2);
+        }
 
         return $this->submitFiatOrder($userId, $fiatChannelId, $usd, [
             'biz_type'       => 'coin',
