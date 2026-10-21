@@ -343,8 +343,9 @@ def process(task):
         log("[task %d] 接单失败，放弃: %s" % (tid, acc.get("msg") if isinstance(acc, dict) else acc))
         return
 
-    style, wf_video = pick_video_wf(task.get("style"))
-    log("[task %d] 已接单: kind=%s style=%s wf=%s" % (tid, kind, style, wf_video.name))
+    style, wf_video = pick_video_wf(task.get("style")) if kind != "image" else ("image_edit", None)
+    log("[task %d] 已接单: kind=%s style=%s wf=%s"
+        % (tid, kind, style, wf_video.name if wf_video else "qwenedit_api.json"))
     stop_ev = threading.Event()
     hb = None
     try:
