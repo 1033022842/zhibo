@@ -416,6 +416,17 @@ final class AiTaskService
         $task->updated_at = $now;
         $task->save();
 
+        // 定制生成失败要把额度/代币退给用户：worker 报失败时前面已经扣过费，
+        // 不退就等于「生成失败还收钱」。其它任务类型（互动/换脸）不收用户额度，跳过。
+        if (in_array($task->task_type, ['custom_video', 'custom_image'], true)) {
+            $content = json_decode((string) $task->content, true) ?: [];
+            $this->refundCustomTask(
+                (int) $task->source_ref_id,
+                (float) ($content['paid_tokens'] ?? 0),
+                (int) ($content['retry'] ?? 0)
+            );
+        }
+
         $this->writeLog($taskId, 'failed', ['error' => $errorMsg]);
 
         Log::warning("AiTaskService: task {$task->task_no} failed: {$errorMsg}");
@@ -599,6 +610,125 @@ final class AiTaskService
         }
 
         return $result;
+    }
+
+    /**
+     * 回收「worker 接单后卡死」的定制生成任务
+     *
+     * 背景：custom_video / custom_image 走的是最长 90 分钟的排队 + 生成，
+     * worker 若在 accept 之后挂掉（OOM、重启、跨境断线），任务会永久停在
+     * accepted/processing，前端一直「生成中」，而额度/代币早已扣掉。
+     *
+     * 策略（幂等、保守）：
+     *   1. 超时且 content.retry < 1  → 退回 pending 重试一次（重置 accepted_at）
+     *   2. 超时且已重试过          → 置 failed，并按 content.paid_tokens 退款 / 退免费额度
+     *   3. 已有 video_url（成品其实已落库）→ 直接判 completed，绝不重复扣费
+     *
+     * 只处理 task_type in (custom_video, custom_image)，不碰其它 AI 任务类型。
+     *
+     * @param int $ttlMin 接单后允许的最长处理时间（分钟）
+     * @return array 处理明细
+     */
+    public function reapStuckCustomTasks(int $ttlMin = 90): array
+    {
+        $db = Db::connect('live_mysql');
+        $cutoff = date('Y-m-d H:i:s', time() - max(10, $ttlMin) * 60);
+
+        $rows = $db->table('lp_ai_task')
+            ->whereIn('task_type', ['custom_video', 'custom_image'])
+            ->whereIn('status', [TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])
+            ->where(function ($q) use ($cutoff) {
+                $q->where('accepted_at', '<=', $cutoff)
+                  ->whereOr(function ($q2) use ($cutoff) {
+                      // accepted_at 为空但已过 deadline 的，也一并回收
+                      $q2->whereNull('accepted_at')->where('deadline_at', '<=', $cutoff);
+                  });
+            })
+            ->select()
+            ->toArray();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            $content = json_decode((string) ($row['content'] ?? ''), true) ?: [];
+            $paid = (float) ($content['paid_tokens'] ?? 0);
+            $retry = (int) ($content['retry'] ?? 0);
+            $now = date('Y-m-d H:i:s');
+
+            // 成品已落库：worker 只是没回调成功，别当失败
+            if ((string) ($row['video_url'] ?? '') !== '') {
+                $db->table('lp_ai_task')->where('id', $id)->update([
+                    'status'      => TaskStatus::COMPLETED->value,
+                    'finished_at' => $now,
+                    'updated_at'  => $now,
+                ]);
+                $this->writeLog($id, 'reaped_completed', ['reason' => 'video_url already stored']);
+                $result[] = ['task_id' => $id, 'action' => 'completed'];
+                continue;
+            }
+
+            if ($retry < 1) {
+                $content['retry'] = $retry + 1;
+                $db->table('lp_ai_task')->where('id', $id)->update([
+                    'status'      => TaskStatus::PENDING->value,
+                    'content'     => json_encode($content, JSON_UNESCAPED_UNICODE),
+                    'worker_id'   => null,
+                    'accepted_at' => null,
+                    'deadline_at' => date('Y-m-d H:i:s', time() + max(10, $ttlMin) * 60),
+                    'updated_at'  => $now,
+                ]);
+                $this->writeLog($id, 'reaped_retry', ['worker_id' => $row['worker_id'] ?? '']);
+                $result[] = ['task_id' => $id, 'action' => 'retry'];
+                continue;
+            }
+
+            $db->table('lp_ai_task')->where('id', $id)->update([
+                'status'    => TaskStatus::FAILED->value,
+                'failed_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $refunded = $this->refundCustomTask((int) ($row['source_ref_id'] ?? 0), $paid, $retry);
+            $this->writeLog($id, 'reaped_failed', [
+                'worker_id'  => $row['worker_id'] ?? '',
+                'paid_tokens' => $paid,
+                'refunded'   => $refunded,
+            ]);
+            $result[] = ['task_id' => $id, 'action' => 'failed', 'refunded' => $refunded];
+        }
+
+        if ($result) {
+            Log::info('AiTaskService: reaped ' . count($result) . ' stuck custom tasks');
+        }
+
+        return $result;
+    }
+
+    /**
+     * 卡死任务退款：付了代币退代币，走免费额度退一次额度
+     */
+    private function refundCustomTask(int $userId, float $paidTokens, int $retry): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        try {
+            if ($paidTokens > 0.0) {
+                (new \app\live\service\WalletService())->credit(
+                    $userId, $paidTokens, 'video_gen_refund', 0, 'AI generation timeout refund'
+                );
+                return true;
+            }
+            // 免费额度：兜底上限按免费档（普通用户 2 / 会员 5 由 lp_vip_plan 决定，
+            // 这里退 1 次，上限取 entitlements 实际值）
+            $ent = (new \app\live\service\VipService())->entitlements($userId);
+            (new \app\live\service\GenCreditService())->refund(
+                $userId, max(1, (int) ($ent['image_daily_limit'] ?? 1))
+            );
+            return true;
+        } catch (\Throwable $e) {
+            Log::error("[reap] refund failed user={$userId}: {$e->getMessage()}");
+            return false;
+        }
     }
 
     public function expireOverdueStreams(): array

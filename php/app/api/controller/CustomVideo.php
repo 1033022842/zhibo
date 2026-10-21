@@ -49,6 +49,15 @@ final class CustomVideo extends BaseController
     private const UNLIMITED_USER_IDS = [16];
 
     /**
+     * 任务存活上限（分钟）
+     *
+     * 四站共用一张显卡，ComfyUI 队列串行，高峰期排队 + 生成可能超过 30 分钟。
+     * 超过这个时间仍未完成、且已被 worker 接单的任务，由 ai:task:cron 回收：
+     * 先重试一次，再失败退款（见 AiTaskService::reapStuckCustomTasks）。
+     */
+    private const TASK_TTL_MIN = 90;
+
+    /**
      * 视频风格卡片（worker v5.0 按 style 选工作流）
      * key   = style 传值，须与 AI 电脑 worker_v50.py 的 WF_VIDEO_MAP 键一致（空/未知值 worker 回退 fingering）
      * label = 卡片标题、desc = 卡片描述 —— 展示文案，按需填写
@@ -73,7 +82,7 @@ final class CustomVideo extends BaseController
 
     protected array $middleware = [
         \app\live\middleware\Auth::class => ['only' => ['options', 'submit', 'myList']],
-        \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'uploadVideo']],
+        \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'uploadVideo', 'stats']],
     ];
 
     public function __construct(App $app)
@@ -349,14 +358,21 @@ final class CustomVideo extends BaseController
             $task->source_type = 'custom_video';
             $task->source_ref_id = $userId;
             $task->persona_id  = 0;
+            // paid_tokens / retry 一并落库：worker 接单后挂掉时，定时任务要靠这两个值
+            // 决定「重试一次」还是「置失败并把额度/代币退给用户」
             $task->content     = json_encode([
-                'style'     => $style['key'],
-                'label'     => $style['label'],
-                'prompt'    => (string) ($style['prompt'] ?? ''),
-                'image_url' => $imageUrl,
+                'style'       => $style['key'],
+                'label'       => $style['label'],
+                'prompt'      => (string) ($style['prompt'] ?? ''),
+                'image_url'   => $imageUrl,
+                'paid_tokens' => $paidTokens,
+                'retry'       => 0,
             ], JSON_UNESCAPED_UNICODE);
             $task->callback_mode = 'none';
             $task->status      = TaskStatus::PENDING->value;
+            // 排队上限：四站共用一张卡，ComfyUI 串行执行，给足 90 分钟
+            // （AiTaskCron 会回收「accepted 但超过这个时间没完成」的任务）
+            $task->deadline_at = date('Y-m-d H:i:s', time() + self::TASK_TTL_MIN * 60);
             $task->created_at  = date('Y-m-d H:i:s');
             $task->updated_at  = date('Y-m-d H:i:s');
             $task->save();
@@ -480,6 +496,31 @@ final class CustomVideo extends BaseController
         $task->updated_at = $now;
         $task->save();
         return $this->jsonSuccess(['task_id' => $taskId, 'status' => $task->status]);
+    }
+
+    /**
+     * worker：队列概况（供 GPU 节点的 gpu-health 做积压监控）
+     *
+     * MySQL 默认不对外开 3306，运维脚本拿不到库，所以由各站自己算好返回。
+     * 只暴露计数，不含任何用户数据。
+     */
+    public function stats()
+    {
+        $base = AiTask::whereIn('task_type', ['custom_video', 'custom_image']);
+        $pending  = (clone $base)->where('status', TaskStatus::PENDING->value)->count();
+        $running  = (clone $base)->whereIn('status', [TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])->count();
+        $stuck    = (clone $base)
+            ->whereIn('status', [TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])
+            ->whereNotNull('accepted_at')
+            ->where('accepted_at', '<', date('Y-m-d H:i:s', time() - 90 * 60))
+            ->count();
+
+        return $this->jsonSuccess([
+            'pending'  => $pending,
+            'running'  => $running,
+            'stuck'    => $stuck,
+            'server_time' => date('Y-m-d H:i:s'),
+        ]);
     }
 
     /**
