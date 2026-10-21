@@ -262,9 +262,16 @@ def vid_nodes(wf):
 
 
 def stage_input(source_img: Path, task_id: int) -> str:
-    """把参考图放进 ComfyUI 共用 input/，文件名带站点标签防串台。"""
+    """把参考图放进 ComfyUI 共用 input/，文件名带站点标签防串台。
+
+    参考图 URL 可能没有扩展名（历史数据 `/storage/custom_video/20260920/photo_2026-09-2ef053...`），
+    ComfyUI 的 LoadImage 在下拉列表里按扩展名过滤，没有后缀会看不到，所以兜底补 .jpg。
+    """
     cin, _ = COMFY_PATHS.get(COMFY, (H3_BASE / "input", H3_BASE / "output"))
-    img_name = "task_%s_%d%s" % (WORKER_TAG, task_id, source_img.suffix.lower())
+    ext = source_img.suffix.lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
+        ext = ".jpg"
+    img_name = "task_%s_%d%s" % (WORKER_TAG, task_id, ext)
     target = cin / img_name
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(source_img, target)
@@ -346,10 +353,14 @@ def process(task):
 
         tmp = ROOT / "tmp"
         tmp.mkdir(parents=True, exist_ok=True)
-        src = tmp / ("%s_%d_src" % (WORKER_TAG, tid))
+        # 参考图 URL 常常没有扩展名：补一个 .jpg 让 ComfyUI 的 LoadImage 能识别
+        raw = tmp / ("%s_%d_src" % (WORKER_TAG, tid))
         api("/aiTask/progress", "post", timeout=30, retries=2,
             data={"task_id": tid, "percent": 15, "message": "downloading"})
-        download(task["image_url"], src)
+        download(task["image_url"], raw)
+        src = raw.with_suffix(".jpg") if raw.suffix == "" else raw
+        if src is not raw:
+            raw.replace(src)
 
         api("/aiTask/progress", "post", timeout=30, retries=2,
             data={"task_id": tid, "percent": 35, "message": "generating"})
