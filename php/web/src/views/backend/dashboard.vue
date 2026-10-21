@@ -100,10 +100,18 @@
                         </div>
                     </template>
                     <el-table :data="latestRecharge" size="small" :show-header="true">
-                        <el-table-column prop="order_no" label="订单号" width="180" show-overflow-tooltip />
-                        <el-table-column prop="nickname" label="用户" width="90" show-overflow-tooltip />
-                        <el-table-column prop="pay_amount" label="USDT" width="80">
-                            <template #default="s">${{ s.row.pay_amount }}</template>
+                        <el-table-column prop="order_no" label="订单号" width="170" show-overflow-tooltip />
+                        <el-table-column prop="nickname" label="用户" width="80" show-overflow-tooltip />
+                        <el-table-column label="法币" width="110">
+                            <template #default="s">
+                                <el-tooltip v-if="s.row.fiat_currency" :content="s.row.fiat_channel || s.row.fiat_currency" placement="top">
+                                    <span class="fiat-amount">{{ s.row.fiat_amount }} {{ s.row.fiat_currency }}</span>
+                                </el-tooltip>
+                                <span v-else class="muted">-</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="usd_amount" label="USDT" width="80">
+                            <template #default="s">${{ s.row.usd_amount }}</template>
                         </el-table-column>
                         <el-table-column prop="diamond_amount" label="代币" width="70" />
                         <el-table-column label="状态" width="80">
@@ -113,7 +121,7 @@
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="created_at" label="时间" show-overflow-tooltip />
+                        <el-table-column prop="created_at" label="时间" min-width="150" show-overflow-tooltip />
                     </el-table>
                 </el-card>
             </el-col>
@@ -328,6 +336,14 @@ onUnmounted(() => {
             display: flex;
             align-items: center;
             justify-content: space-between;
+        }
+        .fiat-amount {
+            color: var(--el-color-primary);
+            font-weight: 600;
+            cursor: default;
+        }
+        .muted {
+            color: var(--el-text-color-placeholder);
         }
     }
 }

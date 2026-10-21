@@ -122,6 +122,7 @@
     var planId = parseInt(q.get('plan_id') || '0', 10)
     var tokens = String(q.get('tokens') || '')
     var price = String(q.get('price') || '')
+    var packageId = parseInt(q.get('package_id') || '0', 10)
     // 法币通道（后台 lp_fiat_channel，单国本币收款）：kind=fiat&fiat_id=1
     var fiatId = parseInt(q.get('fiat_id') || '0', 10)
     var isFiat = fiatId > 0
@@ -300,7 +301,10 @@
             req = api('/recharge/submit', {
                 method: 'POST',
                 form: true,
-                body: 'fiat_channel_id=' + encodeURIComponent(fiatId) + '&amount=' + encodeURIComponent(price)
+                body: 'fiat_channel_id=' + encodeURIComponent(fiatId) +
+                    '&amount=' + encodeURIComponent(price) +
+                    (tokens ? '&tokens=' + encodeURIComponent(tokens) : '') +
+                    (packageId ? '&package_id=' + encodeURIComponent(packageId) : '')
             })
         }
         return req.then(function (r) {

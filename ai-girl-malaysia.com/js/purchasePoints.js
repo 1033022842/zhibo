@@ -648,7 +648,8 @@
             }
             var base = './CryptoPay.html?kind=coin' +
                 '&tokens=' + encodeURIComponent(selected.tokens) +
-                '&price=' + encodeURIComponent(selected.price)
+                '&price=' + encodeURIComponent(selected.price) +
+                (selected.packageId ? '&package_id=' + encodeURIComponent(selected.packageId) : '')
             if (method === 'crypto') {
                 location.href = base
                 return

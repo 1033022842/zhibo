@@ -448,8 +448,11 @@ final class Recharge extends BaseController
         // 法币通道：按后台汇率折算成本币收款（pay_amount 即本币实付金额）
         $fiatChannelId = $this->request->post('fiat_channel_id/d', 0);
         if ($fiatChannelId > 0) {
+            // 到账代币口径与网关一致：套餐按套餐 tokens，自选点数按报价 tokens（服务端会校验价格）
+            $packageId = $this->request->post('package_id/d', 0);
+            $tokens    = $this->request->post('tokens/d', 0);
             return $this->jsonSuccess(
-                $this->service->submitFiatCoinOrder($userId, $fiatChannelId, $amount),
+                $this->service->submitFiatCoinOrder($userId, $fiatChannelId, $amount, $packageId ?: null, $tokens),
                 '订单已提交，请按本币金额支付'
             );
         }
