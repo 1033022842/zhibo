@@ -1654,9 +1654,19 @@ final class Live extends BaseController
                 ->where('role_key', $roleKey)->where('status', 1)->count() > 0;
             // 按角色实际素材过滤：缺视频的礼物不下发（面板不显示，杜绝送礼后 404）
             if ($enabled) {
-                $base = dirname(__DIR__, 3) . '/public/storage/chat_gifts/' . $roleKey . '/';
-                $gifts = array_values(array_filter($gifts, function ($g) use ($base) {
-                    return is_file($base . $g['gift_key'] . '.mp4');
+                $dir = 'chat_gifts/' . $roleKey . '/';
+                if (\app\common\library\media\Media::storageEnabled()) {
+                    // 素材已在对象存储：一次 ListObjects 拿目录清单（本地文件可能只是历史残留）
+                    $files = array_flip(\app\common\library\media\Media::listDir($dir));
+                } else {
+                    $base  = dirname(__DIR__, 3) . '/public/storage/' . $dir;
+                    $files = [];
+                    foreach ((array) @scandir($base) as $f) {
+                        $files[(string) $f] = true;
+                    }
+                }
+                $gifts = array_values(array_filter($gifts, function ($g) use ($files) {
+                    return isset($files[$g['gift_key'] . '.mp4']);
                 }));
             }
         }
@@ -1681,10 +1691,38 @@ final class Live extends BaseController
     /** 扫描角色媒体目录：{enabled, persona, images[], videos[]} */
     private function scanChatMedia(string $roleKey): array
     {
-        $base = dirname(__DIR__, 3) . '/public/storage/chat_media/' . $roleKey . '/';
-        $urlBase = '/storage/chat_media/' . $roleKey . '/';
-        $images = [];
-        $videos = [];
+        $dir     = 'chat_media/' . $roleKey . '/';
+        $urlBase = '/storage/' . $dir;
+        $images  = [];
+        $videos  = [];
+        $persona = '';
+
+        if (\app\common\library\media\Media::storageEnabled()) {
+            // 素材在对象存储：一次 ListObjects 拿到目录清单，避免 9×2 次 HEAD
+            $files = array_flip(\app\common\library\media\Media::listDir($dir));
+            for ($i = 1; $i <= 9; $i++) {
+                if (isset($files[$i . '.jpg'])) {
+                    $images[] = $urlBase . $i . '.jpg';
+                }
+                if (isset($files[$i . '.mp4'])) {
+                    $videos[] = $urlBase . $i . '.mp4';
+                }
+            }
+            foreach (['persona.jpg', 'persona.webp', 'persona.png'] as $p) {
+                if (isset($files[$p])) {
+                    $persona = $urlBase . $p;
+                    break;
+                }
+            }
+            return [
+                'enabled' => count($images) > 0,
+                'persona' => $persona,
+                'images'  => $images,
+                'videos'  => $videos,
+            ];
+        }
+
+        $base = dirname(__DIR__, 3) . '/public/storage/' . $dir;
         for ($i = 1; $i <= 9; $i++) {
             if (is_file($base . $i . '.jpg')) {
                 $images[] = $urlBase . $i . '.jpg';
@@ -1693,7 +1731,6 @@ final class Live extends BaseController
                 $videos[] = $urlBase . $i . '.mp4';
             }
         }
-        $persona = '';
         foreach (['persona.jpg', 'persona.webp', 'persona.png'] as $p) {
             if (is_file($base . $p)) {
                 $persona = $urlBase . $p;
@@ -1814,8 +1851,11 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '该角色暂不支持送礼');
         }
         // 素材存在性校验：缺视频的礼物不允许送（防 404）
-        $mediaPath = dirname(__DIR__, 3) . '/public/storage/chat_gifts/' . $roleKey . '/' . $gift['gift_key'] . '.mp4';
-        if (!is_file($mediaPath)) {
+        $relMedia = '/storage/chat_gifts/' . $roleKey . '/' . $gift['gift_key'] . '.mp4';
+        $hasMedia = \app\common\library\media\Media::storageEnabled()
+            ? \app\common\library\media\Media::exists($relMedia)
+            : is_file(dirname(__DIR__, 3) . '/public' . $relMedia);
+        if (!$hasMedia) {
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '该礼物暂不可用');
         }
 
