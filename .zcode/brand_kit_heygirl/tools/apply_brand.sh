@@ -43,6 +43,7 @@ sed -i -E \
   -e 's/sugus-wordmark\.png/heygirl-wordmark.png/g' \
   -e 's/icon-192-v3\.png/icon-192-heygirl.png/g' \
   -e 's#(/assets/brand/)share_card\.png#\1share_card_heygirl.png#g' \
+  -e 's#media\.sugus\.ai#media.heygirl.live#g' \
   -e 's#https://(www\.)?sugus\.ai#https://heygirl.live#g' \
   -e 's#https://(www\.)?candy\.ai#https://heygirl.live#g' \
   -e 's/Candy AI/heygirl.live/g' \

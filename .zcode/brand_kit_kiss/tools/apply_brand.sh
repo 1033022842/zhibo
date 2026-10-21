@@ -36,6 +36,7 @@ sed -i -E \
   -e "s/sugus-wordmark\.png/kisss-wordmark.png?v=$STAMP/g" \
   -e "s/sugus-logo\.png/kisss-logo.png?v=$STAMP/g" \
   -e 's#(/assets/brand/)share_card\.png#\1share_card_kisss.png#g' \
+  -e 's#media\.sugus\.ai#media.kisss.ai#g' \
   -e 's#(https?:)?//(www\.)?sugus\.ai#https://kisss.ai#g' \
   -e 's/support@sugusmail\.ai/support@kisss.ai/g' \
   -e 's/Sugus\.ai/Kisss/g' \

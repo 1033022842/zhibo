@@ -112,7 +112,7 @@ final class PayoutSetting extends Backend
         $crowdComm = $f('crowdfunding_commission_rate', '0.30');
         $chatOverage = $f('chat_overage_price', '1');
         $callPrice   = $f('call_price_per_minute', '5');
-        $videoGenPrice = $f('video_gen_price', '30');
+        $videoGenPrice = $f('video_gen_price', '100');
 
         echo <<<HTML
 <!DOCTYPE html>
