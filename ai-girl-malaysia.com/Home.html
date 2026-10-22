@@ -28,7 +28,7 @@
 		<script src="./_shared/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/main.js?v=20261020d"></script>
-		<script src="./js/shell-new.js?v=20261022a"></script>
+		<script src="./js/shell-new.js?v=20261022b"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20261020c"></script>
@@ -647,7 +647,7 @@
 					</div>
 				</div>
 			</div>
-			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js?v=20261022a 渲染成新版导航形态） -->
+			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js?v=20261022b 渲染成新版导航形态） -->
 			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main"></div>
 		</div>
 
@@ -976,6 +976,11 @@
 			var base = '/api/v1'
 			var CATS = ['girls', 'anime', 'guys']
 			var store = {}, activeCat = 'girls'
+			// 支持从其它页面带分类进入（如 Chat 页点 Girls/Anime/Guys → Home.html?cat=anime）
+			try {
+				var _qc = (location.search.match(/[?&]cat=([a-z]+)/i) || [])[1]
+				if (_qc && CATS.indexOf(_qc.toLowerCase()) >= 0) activeCat = _qc.toLowerCase()
+			} catch (e) {}
 			var slides = [], cur = 0, timer = null, activeChip = 'All', keyword = ''
 			function curChars() { return (store[activeCat] && store[activeCat].chars) || [] }
 			function curBanners() { return (store[activeCat] && store[activeCat].banners) || [] }
@@ -1480,6 +1485,12 @@
 				closeDd()
 				var lbl = document.getElementById('catDdLabel')
 				if (lbl) lbl.textContent = activeCat.charAt(0).toUpperCase() + activeCat.slice(1)
+				// 顶栏 Tab 高亮：?cat=anime 进入时也要选中对应 Tab（静态 HTML 里 girls 写死 active）
+				document.querySelectorAll('[data-cat]').forEach(function(b) {
+					if (b.classList.contains('head-btn')) {
+						b.classList.toggle('active', b.getAttribute('data-cat') === activeCat)
+					}
+				})
 				activeChip = 'All'
 				keyword = ''
 				var si = document.getElementById('heroSearch')
