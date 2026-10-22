@@ -7,10 +7,11 @@
 没有服务端兜底就会再次打垮 PHP-FPM 池。
 
 策略：
-  - nginx http 块加 `limit_req_zone $binary_remote_addr zone=userinfo:10m rate=5r/s`
-  - vhost 内加 `location = /api/live/userInfo { limit_req zone=userinfo burst=20 nodelay; ... }`
+  - nginx http 块加 `limit_req_zone $binary_remote_addr zone=userinfo:10m rate=30r/m`
+  - vhost 内加 `location = /api/live/userInfo { limit_req zone=userinfo burst=15 nodelay; ... }`
   - 超限返回 429（前端已有 catch，静默失败不影响功能）
-  - 单用户正常使用远低于 5 r/s（页面加载 1 次、操作后 1 次），不会误伤
+  - 正常用户远低于 30 r/m（页面加载 1 次 + 操作后若干次），不会误伤
+  - 实测：300ms 间隔连发 40 次 → 22 通过 / 18 被 429
 
 用法：
   python .zcode/add_userinfo_ratelimit.py --check
@@ -30,18 +31,20 @@ SITES = {
 }
 ORDER = ["sugus", "heygirl", "kisss", "kelymi"]
 
-ZONE = """# userInfo 限流：单 IP 5 r/s + burst 20。
+ZONE = """# userInfo 限流：单 IP 30 r/m（0.5 次/秒）+ burst 15。
+# ⚠️ 参数必须按真实故障速率校准：第一版设 5r/s，对 1 次/秒的循环完全无效
+#    （浏览器后台标签限流后正好 1 次/秒）。30r/m 实测能拦住 300ms 间隔的循环。
 # 2026-10-22 事故：前端 fetch 钩子自触发导致每标签页约 3.3 r/s 的 userInfo 死循环，
 # 数个标签页即吃满 PHP-FPM 40 个 worker，customVideo/submit 排队到无响应。
 # 前端已修（shell-new.js 排除 userInfo + 单飞），这里是服务端兜底：
 # 即便将来再出现客户端 bug 或恶意刷，也不会打垮整个 FPM 池。
-limit_req_zone $binary_remote_addr zone=userinfo:10m rate=5r/s;
+limit_req_zone $binary_remote_addr zone=userinfo:10m rate=30r/m;
 
 """
 
 LOCATION = """    # userInfo 精确匹配 + 限流（见文件顶部 limit_req_zone 注释）
     location = /api/live/userInfo {
-        limit_req zone=userinfo burst=20 nodelay;
+        limit_req zone=userinfo burst=15 nodelay;
         limit_req_status 429;
 %s
     }
