@@ -641,6 +641,45 @@
     { key: 'guys', label: 'Guys', href: './Guys.html', icon: 'catMale' }
   ]
 
+  /* 分类导航的落点：
+     首页（Home.html）用页内 [data-cat] 按钮切换，本来就是对的；
+     其它页面（Chat / Game / purchasePoints …）的顶栏 Girls/Anime/Guys 是
+     <a href="./Girls.html">，点了会跳到分类列表页。
+     客户希望「在聊天页点这三个按钮依然是回到首页选角色」，所以这些页面统一
+     改写为 Home.html?cat=<key>，由 Home.html 读取该参数选中对应分类。
+
+     Girls/Anime/Guys.html 三个分类列表页除外：它们自身的分类互跳保持原样
+     （这三个页面只可能被旧链接/书签到达，别顺手改掉它们的行为）。 */
+  function isHomePage() {
+    var p = (location.pathname || '').toLowerCase()
+    return p === '/' || /\/home\.html$/.test(p)
+  }
+
+  function isCatListPage() {
+    var p = (location.pathname || '').toLowerCase()
+    return /\/(girls|anime|guys)\.html$/.test(p)
+  }
+
+  function catKeyFromHref(href) {
+    if (!href) return ''
+    if (/girls\.html/i.test(href)) return 'girls'
+    if (/anime\.html/i.test(href)) return 'anime'
+    if (/guys\.html/i.test(href)) return 'guys'
+    return ''
+  }
+
+  // 非首页 / 非分类列表页：把分类链接改写成回首页带分类（保持 <a href> 形态，新窗口/中键都正常）
+  function normalizeCatLinks() {
+    if (isHomePage() || isCatListPage()) return
+    var links = document.querySelectorAll(
+      'a.head-btn[href], #fyCatDdPanel a[href], a.fy-cat-item[href]'
+    )
+    for (var i = 0; i < links.length; i++) {
+      var k = catKeyFromHref(links[i].getAttribute('href'))
+      if (k) links[i].setAttribute('href', './Home.html?cat=' + k)
+    }
+  }
+
   // Home.html 那个站内分类切换（顶栏 .c-tab / 移动端 #catDdPanel，都由 [data-cat] 驱动）
   function pageCatBtn(key) {
     var list = document.querySelectorAll('[data-cat="' + key + '"]')
@@ -1603,7 +1642,9 @@
       var a = e.target.closest ? e.target.closest('a.head-btn') : null
       if (!a) return
       var href = a.getAttribute('href') || ''
-      var k = href.indexOf('Anime') >= 0 ? 'anime' : (href.indexOf('Guys') >= 0 ? 'guys' : 'girls')
+      // href 可能已被改写成 ./Home.html?cat=anime，用统一解析避免误判成 girls
+      var k = catKeyFromHref(href) ||
+        (href.indexOf('Anime') >= 0 ? 'anime' : (href.indexOf('Guys') >= 0 ? 'guys' : 'girls'))
       var list = document.querySelectorAll('a.head-btn')
       for (var i = 0; i < list.length; i++) {
         if (list[i] === a) {
@@ -1669,6 +1710,7 @@
     }
     ensureCatBar(topbar)
     injectCatDropdown()
+    normalizeCatLinks()
     return true
   }
 
@@ -1676,6 +1718,9 @@
     try {
       var __bound = render()
       if (__bound) bind()
+      // 独立于 render()：页面没有侧栏容器时 render() 会提前 return，
+      // 但顶栏分类链接仍然要改写（Chat / Game 等页就是这种情况）
+      normalizeCatLinks()
       syncPageLangButtons()
       syncAuth()
       bindPageCatSync()
