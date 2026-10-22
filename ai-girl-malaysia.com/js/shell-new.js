@@ -771,6 +771,10 @@
     var tk = null
     try { tk = localStorage.getItem('live_access_token') } catch (e) { return }
     if (!tk) return
+    // 单飞：上一次请求未回来前不重复发（防抖之外的兜底，任何调用方都不会造成并发风暴）
+    if (window.__tokenBalanceInflight) return
+    window.__tokenBalanceInflight = true
+    var done = function () { window.__tokenBalanceInflight = false }
     fetch('/api/live/userInfo', { method: 'POST', headers: { token: tk } })
       .then(function (r) { return r.json() })
       .then(function (d) {
@@ -781,6 +785,7 @@
         })
       })
       .catch(function () {})
+      .then(done, done)
   }
 
   // 站内 API（/api/live/）请求完成后自动刷新顶栏余额（聊天扣费/解锁/充值后实时更新），300ms 防抖合并
@@ -801,7 +806,11 @@
       try {
         var u = String((arguments[0] && (arguments[0].url || arguments[0])) || '')
         // 站内实时接口的变更类调用（POST）后刷新余额；只读接口不刷
-        if (/\/api\/live\//.test(u)) {
+        // ⚠️ 必须排除 userInfo 本身：refreshTokenBalance() 就是 POST /api/live/userInfo，
+        //    若不排除会「userInfo 完成 → 触发刷新 → 再发 userInfo」无限循环，
+        //    每个标签页 300ms 一次，数个标签页即可吃满 PHP-FPM 40 个 worker，
+        //    导致 customVideo/submit 等请求排队到超时（2026-10-22 线上事故）
+        if (/\/api\/live\//.test(u) && !/\/api\/live\/userInfo(\?|$)/.test(u)) {
           var opts = arguments[1] || {}
           var method = String(opts.method || (arguments[0] && arguments[0].method) || 'GET').toUpperCase()
           if (method === 'POST') p.then(function () { scheduleRefresh() }).catch(function () {})
