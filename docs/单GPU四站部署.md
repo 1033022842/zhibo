@@ -108,6 +108,29 @@ python .zcode/gpu.py --sudo "systemctl restart comfyui"
 python .zcode/gpu.py --put 本地文件 /data/xxx
 ```
 
+### AI 电脑旧 worker（必须保持停止）
+
+AI 电脑（`192.168.31.225`）上还留着 v5.0 的 `worker_v50.py`。**它必须停着**，否则会和 GPU 节点抢单：
+
+- v5.0 不校验 `accept` 的返回值（后端失败是 HTTP 200 + `code!=00000`），抢单失败照样跑 →
+  2026-10-22 出现过任务 139 被两台机器各生成一份、DB 只留后者的情况；
+- v5.0 没有产物黑图兜底、没有站点隔离。
+
+停止（2026-10-22 已执行，PID 28944/38216）：
+
+```powershell
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+  Where-Object { $_.CommandLine -match 'worker_v50' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+```
+
+`sugus` 的 `SugusWorker` 计划任务本来就是 `Disabled`，不会自动拉起。
+确认没有抢单：`SELECT worker_id, COUNT(*) FROM lp_ai_task WHERE created_at >= NOW()-INTERVAL 1 DAY GROUP BY 1;`
+应只出现 `sugus-gpu-h3` / `heygirl-h3` / `kiss-gpu-h3` / `kelymi-gpu-h3`。
+
+要把它当冷备重新启用：手动起 `worker_v50.py` 即可，但**必须先给 v5.0 补上 accept 校验**，
+否则重复生成会立刻回来。
+
 ## 六·五、性能实测（2026-10-21）
 
 冒烟用工作流 = 生产 `h3_fingering_api.json`，输入 800×800 → 输出 **960×960 / 10.1s / 48fps / 带 AAC 音频**：
@@ -116,13 +139,17 @@ python .zcode/gpu.py --put 本地文件 /data/xxx
 |---|---|---|---|---|
 | pytorch attention（首次含 RIFE TRT 建引擎 341s） | 1097 s | 51.5 s/it | 60.8 GB | `smoke/vidsmoke_*` |
 | pytorch attention（扣掉建引擎） | ≈756 s | 51.5 s/it | 60.8 GB | — |
-| **sage attention** | **462.8 s** | **44.9 s/it** | 42.3 GB | `smoke/vidsage_*`，**快 1.63×** |
+| **sage attention（仅视频）** | **462.8 s** | **44.9 s/it** | 42.3 GB | `smoke/vidsage_*`，**快 1.63×** |
 
-- **必须开 `--use-sage-attention`**（已写进 `comfyui.service`）：`pip install sageattention` + 该参数，
-  否则回退 pytorch attention，单条慢 60%。`sageattn` 在 Blackwell 上实测可用。
+- **视频走 sage attention，图片必须走 pytorch attention**（2026-10-22 起）。
+  `--use-sage-attention` 是全局开关，会同时作用于 Qwen-Image-Edit 的 fp8 UNET，
+  在 sm_120(Blackwell) 上产生 NaN → 纯黑图（详见 §七 第一条与
+  `docs/黑图事故复盘-sageattention.md`）。因此该参数**已从 `comfyui.service` 移除**，
+  视频单条回到 ≈756s。若要重新打开，必须先确认 Qwen 图片分支不会命中 sage 路径。
+- `sageattn` 本身在 Blackwell 上跑视频是正常的（上表实测），问题只出在图片分支。
 - RIFE TensorRT 引擎**首次**跑视频时构建（341s，一次性），之后命中
   `models/tensorrt/rife/*.trt` 直接加载。
-- 图片工作流（Qwen-Image-Edit）单条 **235.7s**，显存峰值 28.5 GB。
+- 图片工作流（Qwen-Image-Edit）单条 **30~40s**（pytorch attention，2026-10-22 实测）。
 - **生产真实任务**（heygirl 站，7s 片长）：458s / 条；同时排队的第 2 条 924s（含等待）。
   即**四站串行，第 N 个用户等待 ≈ N × 单条耗时**。
 
@@ -133,7 +160,8 @@ python .zcode/gpu.py --put 本地文件 /data/xxx
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| 单条视频突然变慢 60% | `comfyui.service` 丢了 `--use-sage-attention`，或 sageattention 被卸 | `grep 'Using sage attention' /data/build/comfyui.log`；没有就 `pip install sageattention` + 加参数重启 |
+| **生成的图片是纯黑**（~5.6KB PNG，0% 非黑像素） | `--use-sage-attention` 在 sm_120 上跑 Qwen-Image-Edit fp8 产生 NaN，VAEDecode 静默截断成 0 | 从 `comfyui.service` 去掉该参数并重启；`grep 'Using sage attention' /data/build/comfyui.log` 出现即中招。worker v6.1 会主动拦截全黑产物 |
+| 单条视频突然变慢 60% | `comfyui.service` 当前**故意**没开 `--use-sage-attention`（图片会黑）。要提速必须先解决图片分支 | 见上一条，不要盲目加回来 |
 | `gpu-health` 报 ComfyUI 不通 | 节点依赖或模型路径问题 | `tail -50 /data/build/comfyui.log`，看 `IMPORT FAILED` |
 | 4 个 worker 全 inactive | 极少见（各自独立单元） | `journalctl -u custom-video-worker@sugus -n 50` |
 | 某站任务一直 pending | 该站 `.env` 的 `[AI] api_key` 与 `live-ai-api-key-2026` 不一致 | 改 `.env`，reload php-fpm |

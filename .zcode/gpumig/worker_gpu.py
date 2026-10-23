@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-"""VIP 定制内容 worker v6.0 — 单 GPU 多站共用版
+"""VIP 定制内容 worker v6.1 — 单 GPU 多站共用版
+
+v6.1（2026-10-22）：产物层加「全黑」兜底检测。见 assert_not_black 注释。
 
 与 v5.1-linux 的差异（四站共用一台 GPU 必须解决的三个真故障）：
 1. **站点隔离**：ComfyUI 的 input/output 是四站共用的，而 task_id 各站各自从 1 开始。
@@ -278,6 +280,46 @@ def stage_input(source_img: Path, task_id: int) -> str:
     return img_name
 
 
+def assert_not_black(path: Path, what: str, min_luma: int = 8) -> None:
+    """拦截「跑成功但全黑」的产物。
+
+    2026-10-22 事故：`--use-sage-attention` 在 sm_120(Blackwell) 上跑
+    Qwen-Image-Edit fp8 会让 latent 变 NaN，VAEDecode 里
+    `np.clip(x,0,255).astype(np.uint8)` 静默全变 0，落盘是一张 5.6KB 的纯黑 PNG，
+    而 ComfyUI 认为成功 → worker 上传 → 后端置 completed → 用户照样被扣费。
+    SageAttention 的 `attention_sage` 只 catch 异常、不 catch NaN，所以在产物层兜底。
+    判定失败会抛 RuntimeError，由 process() 走 /aiTask/fail，failTask 会退款。
+    """
+    from PIL import Image
+    im = Image.open(path)
+    im.load()
+    peak = max(im.convert("L").resize((64, 64)).getdata())
+    if peak <= min_luma:
+        raise RuntimeError("%s 全黑（max luminance=%d），判定生成失败" % (what, peak))
+
+
+def assert_video_not_black(video: Path, duration: float) -> None:
+    """视频取 25%/50%/75% 三帧，任意一帧有内容就算正常。
+
+    只看第一帧会误杀：「淡入」类视频首帧本来就是黑的。
+    """
+    from PIL import Image
+    peaks = []
+    for frac in (0.25, 0.5, 0.75):
+        frame = video.with_suffix(".probe_%d.jpg" % int(frac * 100))
+        subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                        "-ss", "%.2f" % max(0.0, duration * frac), "-i", str(video),
+                        "-vframes", "1", "-q:v", "6", str(frame)],
+                       check=False, capture_output=True)
+        try:
+            if frame.exists() and frame.stat().st_size > 0:
+                peaks.append(max(Image.open(frame).convert("L").resize((64, 64)).getdata()))
+        finally:
+            frame.unlink(missing_ok=True)
+    if peaks and max(peaks) <= 8:
+        raise RuntimeError("视频全黑（三帧 max luminance=%s），判定生成失败" % peaks)
+
+
 def generate_video(task, source_img: Path, task_id: int, wf_path: Path, style: str):
     wf = json.loads(wf_path.read_text(encoding="utf-8"))
     img_name = stage_input(source_img, task_id)
@@ -318,6 +360,7 @@ def generate_image(task, source_img: Path, task_id: int):
     entry = wait_prompt(pid)
     img = _find_output(entry, I_SAVE)
     log("[task %d] 图片已生成: %s" % (task_id, img.name))
+    assert_not_black(img, "图片")
     return img, None, "image"
 
 
@@ -377,14 +420,15 @@ def process(task):
             dur = 0
         else:
             out, cover, _ = generate_video(task, src, tid, wf_video, style)
+            d = subprocess.run(["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+                                "-of", "csv=p=0", str(out)], capture_output=True, text=True)
+            dur = int(float(d.stdout.strip() or 10))
+            assert_video_not_black(out, dur)
             with open(out, "rb") as fv, open(cover, "rb") as fc:
                 up = api("/customVideo/uploadVideo", "post", timeout=UPLOAD_TIMEOUT, retries=4,
                          data={"task_id": tid},
                          files={"video": ("cv_%s_%d.mp4" % (WORKER_TAG, tid), fv, "video/mp4"),
                                 "cover": ("cv_%s_%d.jpg" % (WORKER_TAG, tid), fc, "image/jpeg")})
-            d = subprocess.run(["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
-                                "-of", "csv=p=0", str(out)], capture_output=True, text=True)
-            dur = int(float(d.stdout.strip() or 10))
 
         stop_ev.set()
 
@@ -414,7 +458,7 @@ def main():
     ROOT.mkdir(parents=True, exist_ok=True)
     if not acquire_singleton():
         return
-    log("worker v6.0 启动 tag=%s api=%s root=%s poll=%ds comfy=%s"
+    log("worker v6.1 启动 tag=%s api=%s root=%s poll=%ds comfy=%s"
         % (WORKER_TAG, API_BASE, ROOT, POLL_SEC, COMFY if probe_comfy() else "unreachable"))
     while True:
         try:
