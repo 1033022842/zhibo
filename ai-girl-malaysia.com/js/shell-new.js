@@ -1,7 +1,7 @@
 /**
  * 新版外壳渲染（侧边栏 + 顶栏右上角）
  * 样式目标：Subscriptions.html / tokens.html 使用的新版外壳。
- * 菜单内容：沿用站点原有的菜单项与顺序（Home / Explore / Chat / Gallery / Generate Image /
+ * 菜单内容：沿用站点原有的菜单项与顺序（Home / Explore / Chat / Generate Image /
  *          Create Character / My AI / Upload Media / Face Swap / Shop / Shorts / Posts /
  *          Private Content / Tokens / Crowdfunding，底部 Contact Us / Affiliate Program /
  *          Become Premium），只换外观，不改入口。
@@ -139,7 +139,6 @@
     { href: './index.html', label: 'Crowdfunding', icon: 'crowd' },
     { href: './Girls.html', label: 'Explore', icon: 'explore' },
     { href: './Chat.html', label: 'Chat', icon: 'chat' },
-    { href: './Gallery.html', label: 'Gallery', icon: 'gallery' },
     { href: './achievements.html', label: 'Achievements', icon: 'achv' },
     { href: './Image.html', label: 'Generate Image', icon: 'generate', top: true },
     { href: './characters.html', label: 'Create Character', icon: 'wand' },
