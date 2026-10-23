@@ -506,19 +506,23 @@ final class CustomVideo extends BaseController
      */
     public function stats()
     {
-        $base = AiTask::whereIn('task_type', ['custom_video', 'custom_image']);
-        $pending  = (clone $base)->where('status', TaskStatus::PENDING->value)->count();
-        $running  = (clone $base)->whereIn('status', [TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])->count();
-        $stuck    = (clone $base)
-            ->whereIn('status', [TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])
-            ->whereNotNull('accepted_at')
-            ->where('accepted_at', '<', date('Y-m-d H:i:s', time() - 90 * 60))
-            ->count();
+        // 一条聚合 SQL 取三个计数（避免 clone 查询对象，ThinkPHP 版本差异大）
+        $row = Db::connect('live_mysql')
+            ->table('lp_ai_task')
+            ->whereIn('task_type', ['custom_video', 'custom_image'])
+            ->fieldRaw(
+                "SUM(status = 'pending') AS pending,
+                 SUM(status IN ('accepted','processing')) AS running,
+                 SUM(status IN ('accepted','processing')
+                     AND accepted_at IS NOT NULL
+                     AND accepted_at < '" . date('Y-m-d H:i:s', time() - self::TASK_TTL_MIN * 60) . "') AS stuck"
+            )
+            ->find() ?: [];
 
         return $this->jsonSuccess([
-            'pending'  => $pending,
-            'running'  => $running,
-            'stuck'    => $stuck,
+            'pending'     => (int) ($row['pending'] ?? 0),
+            'running'     => (int) ($row['running'] ?? 0),
+            'stuck'       => (int) ($row['stuck'] ?? 0),
             'server_time' => date('Y-m-d H:i:s'),
         ]);
     }
