@@ -310,6 +310,8 @@ python .zcode/sync_clients.py --client kiss                                    #
 | **`--use-sage-attention` 打黑图片**（10-22 黑图） | sage attention 只给视频做过 A/B；写成全局开关后，Qwen-Image-Edit 的 **fp8 UNET** 在 sm_120 上溢出成 NaN，`VAEDecode` 里 `np.clip().astype(uint8)` 静默把 NaN 变 0 → 5.6KB 纯黑 PNG，**任务状态仍是 completed、用户照样扣费**。日志只有一行 `RuntimeWarning: invalid value encountered in cast` | 性能开关要按**工作流分支**验证，不能按整机；产物层加内容断言（worker v6.1 的 `assert_not_black`）；`invalid value encountered` 出现即 NaN，必须当报警看。详见 `docs/黑图事故复盘-sageattention.md` |
 | **"跑成功" ≠ "产物可用"**（10-22 黑图） | ComfyUI 返回 success、文件是合法 PNG、HTTP 200 —— 三个都过，图仍可能全黑。冒烟用 800×800 测试图 + 短提示词都正常，生产是 1079×1920 竖图 + 长英文提示词才暴露 | 验收必须用**真实源图 + 真实提示词**各跑一次；关键产物做内容断言（尺寸/大小/亮度占比），不要只看状态码 |
 | **nginx 备份不能放 sites-enabled/**（10-22） | 备份成 `zhibo.conf.bak.userinfo` 放在 `sites-enabled/`，nginx 把 `*.bak` 也当配置加载 → `duplicate default server` → `nginx -t` 失败 | 备份统一放 `/root/nginx_bak/`；只信 `nginx -T` 的实际输出，不看源文件 |
+| **chnroutes.mmdb 无 v6 → 大陆手机绕过封锁**（10-25 sugus） | geoip2 的 mmdb 只有 IPv4 段；手机蜂窝网 IPv6 访客经 XFF 还原出 v6 地址后查无记录 → 判不出 CN → 能打开站点。PC（v4）curl 却是 403，极具迷惑性 | 改用 APNIC 生成、v4+v6 全覆盖的 geo 名单（第十节）；验证封锁必须含手机蜂窝网真机 |
+| **「CN 出口 curl 403」≠「封锁完好」**（10-25） | v4 链路正常时 IPv6 通道可能仍在漏；反之只测真机手机也会漏掉 v4 边缘名单过期（Bunny 新增边缘不在 realip 信任列表 → 源站把边缘 IP 当访客） | 封锁验证 = v4 curl（403）+ admin 豁免（200）+ 海外出口（200）+ 手机蜂窝网真机，缺一不可；realip 名单月度 cron 别停 |
 | **kiss 所有 `.php` 都被硬指到 index.php**（10-22） | kiss 的 php location 写死 `fastcgi_param SCRIPT_FILENAME .../index.php`（ThinkPHP 单入口），往 `public/` 放临时探针 PHP 不执行，被 TP 接走跳 `/install/` | 该站 PHP 行为验证走真实 API；别用探针文件判断配置是否生效 |
 | **`--init-snapshot` 用在「服务器落后上游」= 灾难**（10-20 kiss） | 新客户服务器 HEAD 常比上游旧（kiss 停在 `7a38a72`，上游已到 `8363173`）。`--init-snapshot` 记的是上游 HEAD，把没推过的变更全标成已同步，之后增量永远推不动 | 用 `--seed-snapshot-from <服务器实际HEAD>` 记基线，`--dry-run` 确认清单 = 服务器 HEAD..上游 HEAD 的变更后再真跑 |
 | **「客户仓库已提交推送」可能什么都没提交**（10-20 kiss 首同步） | 脚本无条件打印这行；客户仓库已与上游内容一致时 `git commit` 为空（`git add` 无改动），实际只有一次空 push | 别把它当提交凭证，去客户仓库 `git log --oneline -1` 核实；内容一致时没有新提交是正确结果 |
@@ -444,3 +446,61 @@ git -C D:/ever/douyin/douyin diff --name-status <服务器HEAD>..HEAD -- php/
 
 差异大时按 `docs/kelymi对齐sugus.md` 的九步流程整体追平，**不要只推单个文件**
 （会因缺依赖类而 500，kelymi 的 `Class "app\common\library\media\Media" not found` 就是这么来的）。
+
+---
+
+## 十、大陆访问封锁（2026-10-25 四站统一上线）
+
+> 客户要求四个站都禁止大陆访问。此封锁在 **nginx 层**，不属于 sync_clients 的静态站分发范围，
+> 改封锁配置 = 直接改各服务器 nginx（备份在 `/root/nginx_bak/cnblock_20261025/`）。
+
+### 10.1 判定链与漏洞复盘
+
+```
+访客 → Bunny 边缘(v4 回源) → set_real_ip_from 还原真实 IP(XFF) → geo 名单判 CN → if ($is_cn*) return 403
+```
+
+旧 sugus 方案（geoip2 + chnroutes.mmdb）的漏洞：**mmdb 只有 IPv4 段**。手机蜂窝网默认
+IPv6 优先，访客 v6 经 XFF 还原后 mmdb 查无记录 → 判不出 CN → 绕过封锁（大陆手机能打开
+www.sugus.ai 的事故，2026-10-25）。v2 方案改用 APNIC delegated 数据生成的纯 geo 名单
+（v4 8797 段 + v6 2046 段），四站统一。
+
+### 10.2 各机文件清单（全部同源，改动时四台同步）
+
+| 文件 | 作用 |
+|---|---|
+| `/etc/nginx/cn_geo.conf` | CN v4+v6 段（APNIC 生成，勿手改） |
+| `/etc/nginx/bunny_realip.conf` | Bunny 边缘 v4 信任列表（584 条，v6 不需要——源站无 AAAA，回源恒为 v4） |
+| `conf.d/00-cn-geo.conf`（客户站）/ `conf.d/00-cn-block.conf`（sugus，含 realip） | geo + map 判定层 |
+| `snippets/cn-block-site.conf` / `cn-block-full.conf` | 挂到 server 块：site=豁免 /admin*，full=不豁免 |
+| `/root/deploy/{cn_geo.py,bunny_realip.py,update_cn_block.sh}` | 月度刷新脚本（cron `0 4 1 * *`，APNIC latest + Bunny edges） |
+
+变量语义：`$is_cn`=CN 访客；`$is_cn_site`=CN 且非 /admin（**运营在国内，/admin 必须豁免**，
+后台自身有 IP 白名单 + 2FA 兜底）。
+
+### 10.3 封锁面（10-25 实施记录）
+
+| 服务器 | 加封锁（snippet） | 明确不封 |
+|---|---|---|
+| sugus 98.55 | 80 主站 + 8082（10 月既有 if 块，换 v2 判定层） | 8081 / sugus.it.com（后台） |
+| heygirl | zhibo.conf 80+443（site）、99.49 HLS 口 + 8081 回源口（full） | heygirl.sbs（后台域） |
+| kelymi | zhibo.conf 80+443（site）、8081 回源口（full） | admin.kelymi.autos（.73） |
+| kiss | kiss.conf HTTP 站块 + 443（site）、80 default(HLS 回源) + 8080 回源口（full） | kisss.si（后台域） |
+
+### 10.4 验证清单（改封锁后必跑）
+
+```bash
+# ① CN 出口（本机即大陆）→ 四站全 403
+curl -sk -o /dev/null -w '%{http_code}\n' https://<域名>/ai/Home.html
+
+# ② admin 豁免 → 应 200 不是 403
+curl -sk -o /dev/null -w '%{http_code}\n' https://<域名>/admin/
+
+# ③ 非 CN 出口（99.11）→ 应 200
+ssh 99.11 curl -sk -o /dev/null -w '%{http_code}\n' https://<域名>/ai/Home.html
+
+# ④ 手机蜂窝网（IPv6）复查——v6 是 10-25 之前的漏洞通道，必须真机验证
+```
+
+注意：kiss 的 80 端口是 HLS 明文回源口 + Certbot 404 兜底，验证一律走 https 域名；
+heygirl/kelymi 的 nginx listen 绑定具体 IP，本机 curl 测试用 `--resolve <域名>:443:<本机IP>`。
