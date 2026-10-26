@@ -118,8 +118,14 @@ def in_scope(path, include_files):
     if path.endswith(".html") or path == f"{SITE_DIR}/site-manifest.json":
         return True
     rel = path[len(SITE_DIR) + 1:]
+    # 站点根 index.php：后台「站点首页」的入口（/ 与 /ai/ 302），见 .zcode/sitehome/
+    if rel == "index.php":
+        return True
     # _shared/：10-18 起页面间共享大资源（52 个内页引用），漏推会整页 404 JS/CSS
     if rel.startswith(("js/", "assets/", "_shared/")):
+        return True
+    # media/：站点本地素材（如 media/gs 的 clip 视频/封图），漏推列表页整屏空白
+    if rel.startswith("media/"):
         return True
     if include_files and rel.split("/", 1)[0].endswith("_files"):
         return True
