@@ -1464,8 +1464,12 @@
         var ss = (secs % 60 < 10 ? '0' : '') + (secs % 60)
         var ppm = Number(consumeOptions.call_price_per_minute || 0)
         el.querySelector('.jcs-sub').textContent = mm + ':' + ss + (ppm > 0 ? ' · ' + ppm + ' tokens/min' : '')
-        el.querySelector('.jcs-status-text').textContent =
-            callMuted ? 'Muted' : (callSpeaking ? 'Speaking…' : (secs < 2 ? 'Connecting…' : 'Listening…'))
+        var stateText
+        if (callMuted) stateText = 'Muted'
+        else if (callSpeaking) stateText = 'Speaking…'
+        else if (callListenState) stateText = callListenState
+        else stateText = secs < 2 ? 'Connecting…' : 'Listening…'
+        el.querySelector('.jcs-status-text').textContent = stateText
         if (el.getAttribute('data-muted') !== (callMuted ? '1' : '0')) {
             el.setAttribute('data-muted', callMuted ? '1' : '0')
             var mic = el.querySelector('.jcs-mic')
@@ -1647,12 +1651,14 @@
     var callMicSource = null
     var callMicSink = null
     var callMicSamples = null
+    var callMicPermStream = null   // 通话期间常驻的麦克风流（在手势内申请，避免每轮重新要权限）
     var callMicStartedAt = 0
     var callMicLastVoice = 0
     var callMicSawVoice = false
     var callMicAbort = false
     var callSttBusy = false
     var callSttFailures = 0
+    var callListenState = ''   // 'Recording…' / 'Processing…'，仅用于通话界面状态文案
     // 20ms 静音 WAV：浏览器没有 Web Speech（微信/IG 内置浏览器、iOS Chrome）时改走服务端 TTS，
     // 用 <audio> 播放；iOS 要求首次 play() 发生在用户手势内，先用它把元素解锁
     var CALL_SILENT_WAV = 'data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YaAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA'
@@ -1713,6 +1719,17 @@
                 if (AC) callRecCtx = new AC()
             }
             if (callRecCtx && callRecCtx.state === 'suspended') { try { callRecCtx.resume() } catch (e) {} }
+            // iOS 部分 WebView 只允许在用户手势内 getUserMedia：点通话时就把麦克风权限/流拿到，
+            // 后续每轮录音直接复用，避免「自动开始录音」时被系统拒绝
+            if (!callMicPermStream && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+                    if (callActive) {
+                        callMicPermStream = s
+                    } else {
+                        try { s.getTracks().forEach(function (t) { t.stop() }) } catch (e) {}
+                    }
+                }).catch(function () {})
+            }
             window.jsCallAudioUnlocked = true
         } catch (e) {}
     }
@@ -1842,8 +1859,11 @@
             }
             callRec.onerror = function (e) {
                 var err = String((e && e.error) || '')
-                if (/not-allowed|service-not-allowed/i.test(err)) {
-                    callMicHint('Microphone access is blocked — allow it in browser settings, or type your message.')
+                callDiag('sr-error', { err: err })
+                // 权限被拒 / 无麦克风 / 无语音服务 / 网络：都直接改走录音 + 服务端 STT（录音失败会再提示）
+                if (/not-allowed|service-not-allowed|audio-capture|network/i.test(err)) {
+                    window.jsCallSrDisabled = true
+                    if (callActive && !callMuted && !callSpeaking) callStartRecording()
                     return
                 }
                 // 有些 WebView 暴露了 SpeechRecognition 却没有可用引擎：连续失败两次就改走录音 + 服务端 STT
@@ -1857,10 +1877,44 @@
             }
             callRec.onend = function () { if (callActive && !callMuted && !callSpeaking) setTimeout(callStartListening, 300) }
         }
-        try { callRec.start() } catch (e) {}
+        try { callRec.start() } catch (e) {
+            // 有些 WebView 里 start() 直接同步抛错（不会有 onerror）：立刻改走录音 + 服务端 STT
+            callDiag('sr-throw', { name: (e && e.name) || '', msg: String((e && e.message) || e) })
+            window.jsCallSrFailures = (window.jsCallSrFailures || 0) + 1
+            if (window.jsCallSrFailures >= 1) {
+                window.jsCallSrDisabled = true
+                if (callActive && !callMuted && !callSpeaking) callStartRecording()
+            } else {
+                setTimeout(callStartListening, 500)
+            }
+        }
+    }
+
+    // 通话能力/阶段上报：线上定位「说话没反应」时看 php 日志的 [voiceDiag]
+    function callDiag(stage, extra) {
+        if (callDiag.count >= 30) return
+        callDiag.count = (callDiag.count || 0) + 1
+        try {
+            var body = {
+                stage: stage,
+                ua: navigator.userAgent,
+                tts: ('speechSynthesis' in window),
+                sr: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+                media: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+                ctx: !!(window.AudioContext || window.webkitAudioContext),
+                sp: !!(callRecCtx && callRecCtx.createScriptProcessor)
+            }
+            if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) body[k] = extra[k]
+            fetch('/api/live/voiceDiag', {
+                method: 'POST',
+                headers: authHeaders(true),
+                body: JSON.stringify(body)
+            }).catch(function () {})
+        } catch (e) {}
     }
 
     function callMicHint(msg) {
+        callListenState = ''
         if (!window.jsCallSttErrorShown) {
             window.jsCallSttErrorShown = true
             appendError(msg)
@@ -1871,6 +1925,17 @@
     /* ---------- 录音 + 服务端 STT（无 SpeechRecognition 的浏览器） ----------
        用 WebAudio 直接收 PCM（避开 MediaRecorder 的 webm 编码，xAI STT 对容器格式有限制）：
        静音 900ms 或最长 12s 自动结束，降采样到 16k 转 WAV 上传 /api/live/stt。 */
+    function callGetMic() {
+        var live = callMicPermStream && callMicPermStream.getAudioTracks
+            ? callMicPermStream.getAudioTracks().some(function (t) { return t.readyState === 'live' })
+            : false
+        if (live) return Promise.resolve(callMicPermStream)
+        return navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+            callMicPermStream = s
+            return s
+        })
+    }
+
     function callStartRecording() {
         if (callMicStream || callSttBusy || !callActive || callMuted || callSpeaking) return
         if (!callRecCtx || !callRecCtx.createScriptProcessor) {
@@ -1881,18 +1946,21 @@
             callMicHint('Voice input is not supported in this browser — please type your message.')
             return
         }
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        callGetMic().then(function (stream) {
             if (!callActive || callMuted || callSpeaking) {
-                try { stream.getTracks().forEach(function (t) { t.stop() }) } catch (e) {}
+                // 流是通话级常驻的，这里只放弃本轮，不 stop（closeCall 统一释放）
                 return
             }
             var ctx = callRecCtx
+            if (ctx.state === 'suspended' && ctx.resume) { try { ctx.resume() } catch (e) {} }
             callMicStream = stream
             callMicSamples = []
             callMicAbort = false
             callMicSawVoice = false
             callMicStartedAt = Date.now()
             callMicLastVoice = Date.now()
+            callListenState = 'Recording…'
+            callDiag('rec-start', { cstate: ctx.state, rate: ctx.sampleRate })
             callMicSource = ctx.createMediaStreamSource(stream)
             callMicNode = ctx.createScriptProcessor(4096, 1, 1)
             callMicSink = ctx.createGain()
@@ -1906,20 +1974,22 @@
                     if (v > peak) peak = v
                 }
                 var now = Date.now()
-                if (peak > 0.02) { callMicSawVoice = true; callMicLastVoice = now }
+                if (peak > 0.012) { callMicSawVoice = true; callMicLastVoice = now }
                 var copy = new Float32Array(input.length)
                 copy.set(input)
                 callMicSamples.push(copy)
-                // 有语音后静音 900ms 视为说完；最长 12s；一直没检测到语音 2.5s 就放弃
+                // 有语音后静音 900ms 视为说完；最长 12s；一直没检测到语音 4s 就放弃
                 if ((callMicSawVoice && now - callMicLastVoice > 900) || now - callMicStartedAt > 12000
-                    || (!callMicSawVoice && now - callMicStartedAt > 2500)) {
+                    || (!callMicSawVoice && now - callMicStartedAt > 4000)) {
                     callStopRecording(false)
                 }
             }
             callMicSource.connect(callMicNode)
             callMicNode.connect(callMicSink)
             callMicSink.connect(ctx.destination)
-        }).catch(function () {
+        }).catch(function (err) {
+            callListenState = ''
+            callDiag('mic-error', { name: (err && err.name) || '', msg: String((err && err.message) || err) })
             callMicHint('Microphone permission is required for voice input — allow it and try again.')
         })
     }
@@ -1930,7 +2000,7 @@
         if (callMicNode) { try { callMicNode.disconnect() } catch (e) {} }
         if (callMicSource) { try { callMicSource.disconnect() } catch (e) {} }
         if (callMicSink) { try { callMicSink.disconnect() } catch (e) {} }
-        if (callMicStream) { try { callMicStream.getTracks().forEach(function (t) { t.stop() }) } catch (e) {} }
+        // 常驻麦克风流不在这里停止（每轮录音复用），挂断时统一 stop
         var chunks = callMicSamples || []
         var rate = (callRecCtx && callRecCtx.sampleRate) || 48000
         callMicNode = null
@@ -1938,10 +2008,12 @@
         callMicSink = null
         callMicStream = null
         callMicSamples = null
+        callListenState = ''
         if (!hadStream || callMicAbort || !callActive || callMuted || callSpeaking) return
 
         var total = 0
         for (var i = 0; i < chunks.length; i++) total += chunks[i].length
+        callDiag('rec-stop', { samples: total, ms: Date.now() - callMicStartedAt, chunks: chunks.length })
         if (total < rate * 0.3) { setTimeout(callStartListening, 250); return }
         var all = new Float32Array(total)
         var off = 0
@@ -1949,15 +2021,18 @@
         var wav = callEncodeWav(callDownsample(all, rate, 16000), 16000)
 
         callSttBusy = true
+        callListenState = 'Processing…'
         callTranscribe(wav).then(function (text) {
             callSttBusy = false
             callSttFailures = 0
+            callListenState = ''
             if (!callActive) return
             text = String(text || '').trim()
             if (text) callSend(text)
             else setTimeout(callStartListening, 300)
         }).catch(function () {
             callSttBusy = false
+            callListenState = ''
             if (!callActive) return
             callSttFailures++
             if (callSttFailures >= 2) {
@@ -1970,6 +2045,9 @@
 
     function callTranscribe(blob) {
         var lang = callLocale().split('-')[0]
+        var ctrl = window.AbortController ? new AbortController() : null
+        var timer = ctrl ? setTimeout(function () { try { ctrl.abort() } catch (e) {} }, 20000) : null
+        var done = function () { if (timer) { clearTimeout(timer); timer = null } }
         return fetch('/api/live/stt?lang=' + encodeURIComponent(lang), {
             method: 'POST',
             headers: (function () {
@@ -1977,12 +2055,18 @@
                 if (token) h.Authorization = 'Bearer ' + token
                 return h
             })(),
-            body: blob
+            body: blob,
+            signal: ctrl ? ctrl.signal : undefined
         }).then(function (r) {
             return r.json()
         }).then(function (d) {
+            done()
             if (!d || d.code !== '00000') throw new Error('stt ' + (d && d.code))
             return (d.data && d.data.text) || ''
+        }).catch(function (e) {
+            done()
+            callDiag('stt-error', { name: (e && e.name) || '', msg: String((e && e.message) || e) })
+            throw e
         })
     }
 
@@ -2102,6 +2186,11 @@
         if (callActive) return
         // 必须在点击手势内同步解锁 TTS；放到 callChargeOnce().then 里就晚了（iOS/Android 会静音）
         callUnlockSpeech()
+        // 一次性上报浏览器通话能力，线上定位「说话没反应」时直接看 php 日志的 [voiceDiag]
+        if (!window.jsCallDiagSent) {
+            window.jsCallDiagSent = true
+            callDiag('call-start')
+        }
         // 先扣第一分钟，余额不足则不接通
         callChargeOnce().then(function (ok) {
             if (!ok || callActive) return
@@ -2135,6 +2224,7 @@
         callScreenClose()
         callStopListening()
         if (callAudioEl) { try { callAudioEl.pause(); callAudioEl.currentTime = 0 } catch (e) {} }
+        if (callMicPermStream) { try { callMicPermStream.getTracks().forEach(function (t) { t.stop() }) } catch (e) {} ; callMicPermStream = null }
         if (callBillTimer) { clearInterval(callBillTimer); callBillTimer = null }
         if ('speechSynthesis' in window && window.speechSynthesis) window.speechSynthesis.cancel()
         callSetStatus(false)

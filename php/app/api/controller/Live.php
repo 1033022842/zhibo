@@ -31,7 +31,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt', 'voiceDiag']],
     ];
 
     private UserService $userService;
@@ -2057,14 +2057,33 @@ final class Live extends BaseController
     {
         $audio = (string) file_get_contents('php://input');
         $lang  = (string) $this->request->get('lang', 'en');
+        \think\facade\Log::info('[stt] in bytes=' . strlen($audio) . ' lang=' . $lang
+            . ' ua=' . mb_substr((string) $this->request->header('user-agent', ''), 0, 120));
 
         try {
             $text = (new SttService())->transcribe($audio, 'voice.wav', $lang);
         } catch (BusinessException $e) {
+            \think\facade\Log::warning('[stt] fail ' . $e->resultCode . ' ' . $e->getMessage());
             return $this->jsonFail($e->resultCode, $e->getMessage());
         }
 
+        \think\facade\Log::info('[stt] out chars=' . mb_strlen($text));
         return $this->jsonSuccess(['text' => $text]);
+    }
+
+    /**
+     * AI 前端：通话能力自检（需登录，只写日志，便于定位「说话没反应」）
+     * POST { ua, tts, sr, media, ctx, sp }
+     */
+    public function voiceDiag()
+    {
+        $d  = $this->request->post();
+        $ua = (string) ($d['ua'] ?? '');
+        unset($d['ua']);
+        \think\facade\Log::info('[voiceDiag] '
+            . json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            . ' ua=' . mb_substr($ua, 0, 180));
+        return $this->jsonSuccess(null);
     }
 
     /**
