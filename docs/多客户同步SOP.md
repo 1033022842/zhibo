@@ -53,6 +53,8 @@ gitee heygirl.git  gitee zhibo.git         gitee kelymi.git   gitee kisss.git
    JS/CSS 整页 404（见踩坑表）
 6. **`/opt/brand-kit` 与仓库 `.zcode/brand_kit_<客户>/` 同源**：改哪边都要把另一边同步，
    否则下次从零装机就丢了这条客户差异
+7. **客户差异化页面只改 `client_overrides/<变体>/`**（见第四节末）：改上游同名文件只会影响
+   没配 `overrides` 的客户；配了覆盖的客户永远以覆盖目录为准
 
 ## 三、环境准备（一次性，新同事上手清单）
 
@@ -147,6 +149,37 @@ ssh root@<客户服务器> "grep -riE 'sugus' /www/wwwroot/douyin/ai-girl-malays
 | 客户仓库 | git | `git revert <sync 提交>` 后照常同步即回滚服务器 |
 | 上游 | git | 常规 git 操作，回滚后重新同步 |
 
+### 客户差异化页面（client_overrides，2026-10-25 新增）
+
+某个页面在某些客户上要**完全不同的实现**时，不改上游同名文件、也不手改服务器，
+而是把客户版放进 `client_overrides/<变体>/`（目录结构 = 站点根镜像），
+再在 `CLIENTS` 里给客户加 `"overrides": "client_overrides/<变体>"`。
+
+```
+client_overrides/
+  README.md              # 变体 → 客户 → 覆盖文件 的对照表（改这里必读）
+  image-sugus/           # 变体名按客户或版本命名
+    Image.html           # → 站点 /Image.html
+    js/xxx.js            # → 站点 /js/xxx.js
+  image-heygirl/
+    Image.html
+```
+
+| 变体 | 客户 | 覆盖文件 | 说明 |
+|---|---|---|---|
+| `image-sugus` | sugus | `Image.html` | 新版图片页，仅 sugus |
+| `image-heygirl` | heygirl | `Image.html` | 新版图片页，仅 heygirl |
+
+脚本自动完成四件事：① 被覆盖路径从增量推送中剔除（不推上游版）→ ② 增量推完后补传覆盖文件
+（跳板/直连都支持）→ ③ 直连客户再跑 `apply_brand.sh`（品牌替换作用于覆盖页）→
+④ 客户仓库 `checkout` 后把覆盖文件写回 `ai-girl-malaysia.com/` 再提交（服务器 = 仓库）。
+
+注意：
+- 覆盖文件**不在 blob 快照里**，每次同步都会重传（同尺寸跳过），请保持体积小
+- 覆盖目录以 `.` 开头的文件（`.gitkeep`）不会发布
+- 新增/改名/换客户时，同步更新 `client_overrides/README.md`、本文档、`.zcode/skills/client-sync/SKILL.md`
+- 上游 `Image.html` 头部已有提示注释，指向本目录；同事打开文件即可看到
+
 ## 五、故障排查
 
 | 现象 | 原因 | 处理 |
@@ -160,6 +193,9 @@ ssh root@<客户服务器> "grep -riE 'sugus' /www/wwwroot/douyin/ai-girl-malays
 | 怀疑服务器被改过/漂移 | 手改或事故 | `--full` 全量重推 + apply_brand 重打，一切归位 |
 | 客户仓库推送失败 | gitee SSH key / 权限 | `ssh -T git@gitee.com` 检查；仓库地址见速查表 |
 | `curl http://<kiss IP>/ai/...` 永远 404 | kiss 的 80 端口是 Certbot 的 `default_server { return 404; }` | 用 `https://kisss.ai/ai/...` 验证；80 上带 `Host: kisss.ai` 只会 301 |
+| 改了上游 `Image.html`，sugus / heygirl 没变化 | 预期：这两家配了 `overrides`，只读 `client_overrides/image-*/` | 要改它们就改对应覆盖目录；要确认谁在用 `grep -n overrides .zcode/sync_clients.py` |
+| 覆盖页被还原成上游版 | 有人在客户仓库手敲了 `git checkout douyin/main -- ...` | 重跑一次同步（脚本会把覆盖文件写回）；提交后再核对 blob hash |
+| 通话在 App 内置浏览器里完全没声音 | 微信/Instagram/Facebook 内置浏览器、iOS Chrome（WKWebView）没有 Web Speech API（`speechSynthesis`） | 前端已自动改走服务端 TTS `/api/live/tts`（xAI `/v1/tts` 代理，需登录、600 字符上限、1 小时缓存）；php 侧需部署 `app/common/service/TtsService.php` 与 `app/api/controller/Live.php`。该接口只影响无 TTS 的浏览器，正常 Safari/Chrome 仍走本地合成，不产生额外费用 |
 
 ## 六、新客户一次性初始化（kelymi 已于 2026-10-18 照此完成，可作范本）
 
