@@ -1,13 +1,10 @@
-/* Image.html — AI Video Studio（上传图片 → H3 生成视频）candy 暗色风 */
+/* Image.html — 参考站风格首屏：角色瀑布流 + 卡片详情弹窗 + 我的作品
+   上传/生成视频弹窗已下线，这里只负责浏览、看详情、进聊天 */
 (function () {
-    var API = '/api/customVideo'
     var token = localStorage.getItem('live_access_token')
+    var WORKS_API = '/api/customVideo/myList'
 
-    var selFile = null
-    var selPreset = null
-    var mode = 'video'          // video | outfit
-    var imagePresets = []
-    var currentPresets = []
+    function $(id) { return document.getElementById(id) }
 
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -15,286 +12,582 @@
         })
     }
 
-    function $(id) { return document.getElementById(id) }
-
-    function toast(msg, type) {
-        var el = $('cvToast')
-        if (!el) {
-            el = document.createElement('div')
-            el.id = 'cvToast'
-            el.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;box-shadow:0 8px 30px rgba(0,0,0,.4);color:#fff;font-family:Poppins,sans-serif'
-            document.body.appendChild(el)
+    // 接口里部分文案被多重转义（例如 she&amp;#039;s），展示前逐层还原
+    function decodeEntities(s) {
+        s = String(s == null ? '' : s)
+        for (var i = 0; i < 3 && s.indexOf('&') >= 0; i++) {
+            var t = document.createElement('textarea')
+            t.innerHTML = s
+            if (t.value === s) break
+            s = t.value
         }
-        el.style.background = type === 'error' ? '#ef4444' : type === 'warn' ? '#f59e0b' : '#10b981'
-        el.textContent = msg
-        el.style.display = 'block'
-        setTimeout(function () { el.style.display = 'none' }, 3000)
+        return s
+    }
+
+    /* ---------- 弹窗：通用壳（遮罩 .45 + blur8，#121212，16 圆角） ---------- */
+    function openModal(id) {
+        var m = $(id)
+        if (!m) return
+        m.classList.add('on')
+        m.setAttribute('aria-hidden', 'false')
+        document.documentElement.style.overflow = 'hidden'
+    }
+
+    function closeModal(id) {
+        var m = $(id)
+        if (!m) return
+        m.classList.remove('on')
+        m.setAttribute('aria-hidden', 'true')
+        if (id === 'gsCardModal') {
+            var v = $('gsGenVideo')
+            if (v) v.pause()
+            initAutoplay()
+        }
+        if (!document.querySelector('.gs-modal.on')) document.documentElement.style.overflow = ''
+    }
+
+    function bindModalClose() {
+        document.querySelectorAll('[data-gs-close]').forEach(function (btn) {
+            btn.addEventListener('click', function () { closeModal(btn.getAttribute('data-gs-close')) })
+        })
+        document.querySelectorAll('.gs-modal').forEach(function (m) {
+            m.addEventListener('click', function (e) { if (e.target === m) closeModal(m.id) })
+        })
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return
+            document.querySelectorAll('.gs-modal.on').forEach(function (m) { closeModal(m.id) })
+        })
+    }
+
+    /* ---------- 首屏瀑布流：站内短剧素材（视频自动播放 + 封面兜底） ---------- */
+    var gsList = []
+    var gsFilter = 'all'
+    var gsKw = ''
+    var gsLoaded = false
+    var gsLoading = false
+    var gsObserver = null
+
+    function gsSkeleton() {
+        var box = $('gsGrid')
+        if (!box) return
+        var html = ''
+        for (var i = 0; i < 8; i++) html += '<div class="gs-skel"></div>'
+        box.innerHTML = html
+    }
+
+    function loadGallery() {
+        if (!$('gsGrid') || gsLoaded || gsLoading) return
+        gsLoading = true
+        gsSkeleton()
+        fetch('/api/live/shorts', { cache: 'no-store' })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                gsList = list.filter(function (c) {
+                    return c && c.id && (c.preview_url || c.video_url)
+                })
+            })
+            .catch(function () { gsList = [] })
+            .then(function () {
+                gsLoading = false
+                gsLoaded = true
+                renderGallery()
+            })
+    }
+
+    function gsView() {
+        var list = gsList.slice()
+        if (gsKw) {
+            var k = gsKw.toLowerCase()
+            list = list.filter(function (c) { return decodeEntities(c.title).toLowerCase().indexOf(k) >= 0 })
+        }
+        if (gsFilter === 'trending') {
+            list.sort(function (a, b) { return (Number(b.likes) || 0) - (Number(a.likes) || 0) })
+        } else if (gsFilter === 'new') {
+            list.sort(function (a, b) { return (Number(b.id) || 0) - (Number(a.id) || 0) })
+        } else if (gsFilter === 'vip') {
+            list = list.filter(function (c) { return Number(c.vip_required) === 1 })
+        } else if (gsFilter === 'free') {
+            list = list.filter(function (c) { return Number(c.vip_required) !== 1 })
+        }
+        return list
+    }
+
+    // 只让视口内的卡片播放，滚出即暂停（几十个视频同时解码会卡）
+    function initAutoplay() {
+        var vids = document.querySelectorAll('#gsGrid video')
+        if (!vids.length) return
+        if (!('IntersectionObserver' in window)) {
+            vids.forEach(function (v) { v.play && v.play().catch(function () {}) })
+            return
+        }
+        if (gsObserver) gsObserver.disconnect()
+        gsObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) {
+                var v = en.target
+                if (en.isIntersecting) {
+                    v.preload = 'auto'
+                    var p = v.play()
+                    if (p && p.catch) p.catch(function () {})
+                } else {
+                    v.pause()
+                }
+            })
+        }, { root: null, rootMargin: '200px 0px', threshold: 0.1 })
+        vids.forEach(function (v) { gsObserver.observe(v) })
+    }
+
+    function renderGallery() {
+        var box = $('gsGrid')
+        if (!box) return
+        var list = gsView()
+        if (!list.length) {
+            box.innerHTML = '<div class="gs-empty">Nothing here yet.</div>'
+            return
+        }
+        box.innerHTML = list.map(function (c) {
+            var title = esc(decodeEntities(c.title))
+            var poster = esc(c.poster || '')
+            var vid = esc(c.preview_url || c.video_url || '')
+            var eps = Number(c.episode_count) || 0
+            var tag = eps ? eps + ' EP' : (Number(c.vip_required) === 1 ? 'VIP' : 'Preview')
+            return '<a class="gs-card" href="./shorts.html?short=' + esc(c.id) + '" data-gs-card="' + esc(c.id) + '">' +
+                '<video class="gs-card__video" src="' + vid + '" poster="' + poster + '" muted loop playsinline webkit-playsinline preload="none"></video>' +
+                '<span class="gs-card__avatar" style="background-image:url(&quot;' + poster + '&quot;)"></span>' +
+                '<span class="gs-card__details">' +
+                '<span class="gs-card__title">' + title + '</span>' +
+                '<span class="gs-card__creator">@sugus</span>' +
+                '<span class="gs-card__tag">' + esc(tag) + '</span>' +
+                '</span></a>'
+        }).join('')
+        initAutoplay()
+    }
+
+    /* ---------- 卡片弹窗 = 参考站的生成器面板（真接 /api/customVideo 生成） ---------- */
+    var API = '/api/customVideo'
+    var gen = {
+        mode: 'video',          // video | outfit
+        file: null,
+        presets: [],
+        imagePresets: [],
+        sel: null,
+        videoPrice: 0,
+        imagePrice: 0,
+        balance: 0,
+        remain: 0,
+        limit: 0,
+        refill: 0,
+        unlimited: false,
+        submitting: false,
+        pollTimer: null,
+        current: null
     }
 
     function authJson(url, opts) {
         opts = opts || {}
         opts.headers = Object.assign({}, token ? { Authorization: 'Bearer ' + token } : {}, opts.headers || {})
-        // 接口返回带时效签名地址，任何一层缓存都可能拿到过期链接（视频/图片裂开）
         opts.cache = 'no-store'
         return fetch(url, opts).then(function (r) { return r.json() })
     }
 
-    /* ---------- Tab ---------- */
-    function switchTab(create) {
-        $('cvTabCreate').className = 'cv-tab' + (create ? ' on' : '')
-        $('cvTabWorks').className = 'cv-tab' + (!create ? ' on' : '')
-        $('cvCreatePanel').style.display = create ? '' : 'none'
-        $('cvWorksPanel').style.display = create ? 'none' : ''
-        if (!create) loadWorks()
+    function toast(msg) {
+        var el = $('gsToast')
+        if (!el) {
+            el = document.createElement('div')
+            el.id = 'gsToast'
+            el.style.cssText = 'position:fixed;left:50%;top:80px;transform:translateX(-50%);z-index:1200;padding:10px 18px;' +
+                'border-radius:12px;background:rgba(20,20,22,.96);border:1px solid rgba(255,255,255,.14);color:#fff;' +
+                'font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.45);max-width:80vw'
+            document.body.appendChild(el)
+        }
+        el.textContent = msg
+        el.style.display = 'block'
+        clearTimeout(el.__t)
+        el.__t = setTimeout(function () { el.style.display = 'none' }, 2800)
     }
 
-    /* ---------- 上传区 ---------- */
-    function bindUpload() {
-        var drop = $('cvDrop'), file = $('cvFile')
-        drop.addEventListener('click', function () { file.click() })
-        ;['dragenter', 'dragover'].forEach(function (ev) {
-            drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over') })
-        })
-        ;['dragleave', 'drop'].forEach(function (ev) {
-            drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over') })
-        })
-        drop.addEventListener('drop', function (e) {
-            if (e.dataTransfer.files && e.dataTransfer.files[0]) pickFile(e.dataTransfer.files[0])
-        })
-        file.addEventListener('change', function () {
-            if (file.files[0]) pickFile(file.files[0])
-        })
-        $('cvRemove').addEventListener('click', function () {
-            selFile = null
-            $('cvUploaded').style.display = 'none'
-            drop.style.display = ''
-            file.value = ''
-        })
+    function showNote(msg) {
+        var n = $('gsGenNote')
+        if (!n) return
+        n.textContent = msg
+        n.style.display = ''
     }
 
-    function pickFile(f) {
-        if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { toast('Only jpg / png / webp', 'warn'); return }
-        if (f.size > 10 * 1024 * 1024) { toast('Image must be under 10MB', 'warn'); return }
-        selFile = f
-        $('cvPreview').src = URL.createObjectURL(f)
-        $('cvUploaded').style.display = ''
-        $('cvDrop').style.display = 'none'
+    function setState(txt) {
+        var s = $('gsGenState')
+        if (!s) return
+        s.textContent = txt || ''
+        s.style.display = txt ? '' : 'none'
     }
 
-    /* ---------- 风格卡片（key 对应后端 STYLES / worker 的 style 值） ---------- */
-    var STYLE_ICONS = { fingering: '💋', mysticxxx: '✨' }
-    var OUTFIT_ICONS = { qipao: '🥻', dress: '👗', jk: '🎀', maid: '🧹', office: '💼', wedding: '👰' }
+    function genPrice() { return gen.mode === 'outfit' ? gen.imagePrice : gen.videoPrice }
 
-    function renderPresets(presets) {
-        var box = $('cvPresets')
-        var isOutfit = mode === 'outfit'
-        box.innerHTML = presets.map(function (p) {
-            var sel = selPreset && selPreset.key === p.key
-            var locked = isOutfit && !p.owned
-            var thumb = p.cover_url
-                ? '<img class="ic-img" src="' + esc(p.cover_url) + '" alt="" loading="lazy">'
-                : '<div class="ic">' + ((isOutfit ? OUTFIT_ICONS : STYLE_ICONS)[p.key] || '✨') + '</div>'
-            return '<div class="cv-preset' + (sel ? ' on' : '') + (locked ? ' lock' : '') + '" data-key="' + esc(p.key) + '">' +
-                thumb +
-                '<div class="n">' + esc(p.label) + '</div>' +
-                '<div class="d">' + (locked ? ('<img src="./taocan_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg" alt="" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-right:3px">' + esc(p.price + ' · buy in Shop')) : esc(p.desc || '')) + '</div></div>'
+    function genPresets() { return gen.mode === 'outfit' ? gen.imagePresets : gen.presets }
+
+    function renderCost() {
+        var el = $('gsGenCost')
+        if (!el) return
+        var p = genPrice()
+        el.textContent = (!gen.unlimited && gen.remain <= 0 && p > 0) ? '🪙 ' + p : 'Free'
+    }
+
+    function renderAddons() {
+        var box = $('gsGenAddons')
+        if (!box) return
+        var list = genPresets()
+        if (!list.length) {
+            // 未登录或选项还没回来：给一行占位，避免面板出现空洞
+            box.innerHTML = '<button type="button" class="gs-gen__addon" id="gsGenAddonHint">' +
+                '<span>' + (token ? 'Loading styles…' : 'Sign in to pick a style') + '</span>' +
+                '<span class="gs-gen__radio"></span></button>'
+            var hint = $('gsGenAddonHint')
+            if (hint && !token) {
+                hint.addEventListener('click', function () {
+                    location.href = './Login.html?redirect=' + encodeURIComponent('./Image.html')
+                })
+            }
+            return
+        }
+        box.innerHTML = list.map(function (p) {
+            var on = gen.sel && gen.sel.key === p.key
+            var lock = gen.mode === 'outfit' && !p.owned
+            return '<button type="button" class="gs-gen__addon' + (on ? ' on' : '') + '" data-key="' + esc(p.key) + '">' +
+                '<span>' + esc(p.label) + (lock ? ' · ' + esc(p.price || '') + ' in Shop' : '') + '</span>' +
+                '<span class="gs-gen__radio"></span></button>'
         }).join('')
-        box.querySelectorAll('.cv-preset').forEach(function (card) {
-            card.addEventListener('click', function () {
-                var item = presets.filter(function (p) { return p.key === card.getAttribute('data-key') })[0]
-                if (isOutfit && item && !item.owned) {
-                    toast('Unlock this outfit in the Shop first', 'warn')
+        box.querySelectorAll('.gs-gen__addon').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var item = null
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i].key === b.getAttribute('data-key')) { item = list[i]; break }
+                }
+                if (!item) return
+                if (gen.mode === 'outfit' && !item.owned) {
+                    toast('Unlock this outfit in the Shop first')
                     setTimeout(function () { location.href = './shop.html' }, 900)
                     return
                 }
-                selPreset = item
-                // 只切 on 类，别把未购卡片的 lock 类一起抹掉
-                box.querySelectorAll('.cv-preset').forEach(function (c) { c.classList.remove('on') })
-                card.classList.add('on')
+                gen.sel = item
+                renderAddons()
             })
         })
     }
 
-    function loadOptions() {
+    function applyQuota(q) {
+        if (!q) return
+        if (q.unlimited || (typeof q.remaining === 'number' && q.remaining < 0)) {
+            gen.unlimited = true
+            gen.remain = -1
+            renderCost()
+            return
+        }
+        gen.unlimited = false
+        if (typeof q.daily_limit === 'number') gen.limit = q.daily_limit
+        if (q.refill_daily !== undefined) gen.refill = parseInt(q.refill_daily, 10) || 0
+        if (typeof q.remaining === 'number') gen.remain = q.remaining
+        renderCost()
+    }
+
+    function loadGenOptions() {
+        if (!token) { renderAddons(); renderCost(); return }
+        authJson(API + '/options').then(function (d) {
+            if (!d || d.code !== '00000' || !d.data) return
+            gen.presets = d.data.styles || d.data.presets || []
+            gen.imagePresets = d.data.image_presets || []
+            gen.videoPrice = Number(d.data.video_price) || 0
+            gen.imagePrice = Number(d.data.image_price) || 0
+            gen.balance = Number(d.data.balance) || 0
+            applyQuota(d.data.quota)
+            if (!gen.sel && genPresets().length) gen.sel = genPresets()[0]
+            renderAddons()
+            renderCost()
+        }).catch(function () {})
+    }
+
+    function switchGenMode(m) {
+        gen.mode = m
+        gen.sel = null
+        $('gsGenTabVideo').className = 'gs-gen__tab' + (m === 'video' ? ' on' : '')
+        $('gsGenTabImage').className = 'gs-gen__tab' + (m === 'outfit' ? ' on' : '')
+        $('gsGenSubmitText').textContent = m === 'outfit' ? 'Apply Outfit' : 'Generate'
+        renderAddons()
+        renderCost()
+    }
+
+    function openCardModal(id) {
+        var c = null
+        for (var i = 0; i < gsList.length; i++) {
+            if (String(gsList[i].id) === String(id)) { c = gsList[i]; break }
+        }
+        if (!c || !$('gsCardModal')) return
+        gen.current = c
+        gen.file = null
+        gen.sel = null
+        gen.mode = 'video'
+
+        // 弹窗打开时先把列表里的视频停掉，省解码
+        document.querySelectorAll('#gsGrid video').forEach(function (x) { x.pause() })
+
+        $('gsGenTitle').textContent = decodeEntities(c.title)
+        var pills = [
+            '<a class="gs-gen__owner" href="./shorts.html?short=' + encodeURIComponent(c.id) + '">@sugus</a>',
+            '<span class="gs-gen__dot">·</span>'
+        ]
+        var tags = []
+        if (Number(c.episode_count) > 0) tags.push(Number(c.episode_count) + ' EP')
+        tags.push(Number(c.vip_required) === 1 ? 'VIP' : 'Free')
+        if (Number(c.price_from) > 0) tags.push('from ' + c.price_from + ' tokens')
+        if (Number(c.likes) > 0) tags.push('♥ ' + c.likes)
+        pills = pills.concat(tags.map(function (t) {
+            return '<span class="gs-gen__pill">' + esc(t) + '</span>'
+        }))
+        $('gsGenPills').innerHTML = pills.join('')
+
+        // 左框：参考图片（可被自己的图替换）
+        var pv = $('gsGenPreview')
+        pv.src = c.poster || ''
+        pv.style.display = 'block'
+        $('gsGenUploadText').textContent = 'upload image'
+        $('gsGenFile').value = ''
+
+        // 右框：参考视频（静音循环自动播放）
+        var outImg = $('gsGenOutImg')
+        outImg.style.display = 'none'
+        outImg.classList.remove('is-sharp')
+        var v = $('gsGenVideo')
+        v.style.display = 'block'
+        v.muted = true
+        v.loop = true
+        v.src = c.preview_url || c.video_url || ''
+        var play = v.play()
+        if (play && play.catch) play.catch(function () {})
+        var snd = $('gsGenSound')
+        snd.style.display = 'inline-flex'
+        snd.classList.add('is-off')
+        $('gsGenNote').style.display = 'none'
+        setState('')
+
+        $('gsGenTabVideo').className = 'gs-gen__tab on'
+        $('gsGenTabImage').className = 'gs-gen__tab'
+        $('gsGenSubmitText').textContent = 'Generate'
+        renderAddons()
+        renderCost()
+        openModal('gsCardModal')
+        loadGenOptions()
+    }
+
+    function pickFile(f) {
+        if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { toast('Only jpg / png / webp'); return }
+        if (f.size > 10 * 1024 * 1024) { toast('Image must be under 10MB'); return }
+        gen.file = f
+        var img = $('gsGenPreview')
+        img.src = URL.createObjectURL(f)
+        img.style.display = 'block'
+        $('gsGenUploadText').textContent = 'change image'
+    }
+
+    function submitGen(confirmed) {
+        if (gen.submitting) return
         if (!token) {
             location.href = './Login.html?redirect=' + encodeURIComponent('./Image.html')
             return
         }
-        authJson(API + '/options').then(function (d) {
-            if (!d || d.code !== '00000' || !d.data) { toast((d && d.msg) || 'Load failed', 'error'); return }
-            imagePresets = d.data.image_presets || []
-            currentPresets = d.data.styles || d.data.presets || []
-            // 免费次数用尽后的代币单价 + 当前余额（后台「功能定价」可改）
-            cvPrice = Number(d.data.video_price) || 0
-            cvBalance = Number(d.data.balance) || 0
-            renderPresets(mode === 'outfit' ? imagePresets : currentPresets)
-            applyQuota(d.data.quota)
-        }).catch(function () { toast('Network error', 'error') })
-
-        fetch('/api/vip/status', { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' })
-            .then(function (r) { return r.json() })
-            .then(function (d) {
-                var vip = d && d.code === '00000' && d.data && d.data.is_vip
-                // 非会员也能用（Free 每天 2 次，+1/天）：只展示升级提示条，不隐藏表单
-                $('cvVipGate').style.display = vip ? 'none' : ''
-            })
-            .catch(function () { /* submit 兜底校验 */ })
-    }
-
-    // 剩余次数：quota 里 remaining<0 / unlimited 显示 ∞，否则显示「剩余 / 上限」并随每次生成递减
-    // 额度规则（2026-10 起）：
-    //   普通用户 2 次上限、每天 +1（refill < limit → 显示「+1/day, max 2」）
-    //   会员 5 次上限、每天回满（refill = limit → 显示「resets to 5/day」）
-    //   额度用尽后按 video_price 用代币续生成（后台「功能定价」可改，0=关闭）
-    var cvDailyLimit = 0
-    var cvRefillDaily = 0
-    var cvPrice = 0      // 免费次数用尽后每次生成扣的代币
-    var cvBalance = 0    // 当前代币余额
-    function applyQuota(q) {
-        var el = $('cvRemain')
-        if (!el) return
-        var tip = $('cvRefillTip')
-        var note = $('cvPriceNote')
-        if (!q) { el.textContent = '-'; return }
-        if (q.unlimited || typeof q.remaining === 'number' && q.remaining < 0) {
-            el.textContent = '∞'
-            if (tip) tip.style.display = 'none'
-            if (note) note.style.display = 'none'
-            return
-        }
-        if (typeof q.daily_limit === 'number') cvDailyLimit = q.daily_limit
-        if (q.refill_daily !== undefined) cvRefillDaily = parseInt(q.refill_daily, 10) || 0
-        var left = typeof q.remaining === 'number' ? q.remaining : (qrLeft())
-        el.textContent = left + (cvDailyLimit > 0 ? ' / ' + cvDailyLimit : ' left')
-        // 说明文案区分两种规则：
-        //   每天回满（refill >= limit，会员 5/天）→ 「resets to N/day」
-        //   逐步补充（refill < limit，普通用户上限 2、+1/天）→ 「+N/day, max M」
-        if (tip) {
-            var n = parseInt(q.refill_daily, 10)
-            if (n > 0 && cvDailyLimit > 0 && n >= cvDailyLimit) {
-                tip.textContent = ' · resets to ' + cvDailyLimit + '/day'
-                tip.style.display = ''
-            } else {
-                var parts = []
-                if (n > 0 && cvDailyLimit > 0) parts.push('+' + n + '/day, max ' + cvDailyLimit)
-                if (left <= 0 && cvPrice > 0) parts.push('then ' + cvPrice + ' tokens each')
-                if (parts.length) {
-                    tip.textContent = ' · ' + parts.join(' · ')
-                    tip.style.display = ''
-                } else {
-                    tip.style.display = 'none'
-                }
-            }
-        }
-        // 免费次数用完后可用代币继续生成：常驻说明 + 当前余额
-        if (note) {
-            if (cvPrice > 0) {
-                note.textContent = 'Free generations used up? Keep creating for ' + cvPrice +
-                    ' tokens per generation · Balance: ' + cvBalance + ' tokens'
-                note.style.display = ''
-            } else {
-                note.style.display = 'none'
-            }
-        }
-    }
-    function qrLeft() {
-        // 无 remaining 字段的老响应：从「剩余 / 上限」文本里兜底
-        var el = $('cvRemain')
-        var m = el && /\d+/.exec(el.textContent || '')
-        return m ? parseInt(m[0], 10) : 0
-    }
-
-    function switchMode(m) {
-        if (mode === m) return
-        mode = m
-        selPreset = null
-        $('cvModeVideo').className = 'cv-mode' + (m === 'video' ? ' on' : '')
-        $('cvModeOutfit').className = 'cv-mode' + (m === 'outfit' ? ' on' : '')
-        var isEdit = m === 'outfit'
-        $('cvPromptWrap').style.display = isEdit ? '' : 'none'
-        // 两种模式都要卡片：视频=风格，图片=商店已购服装
-        $('cvPresetWrap').style.display = ''
-        $('cvSubmit').textContent = isEdit ? '✨ Apply Outfit' : '✨ Generate Video'
-        renderPresets(isEdit ? imagePresets : currentPresets)
-    }
-
-    /* ---------- 代币不足：引导充值 ---------- */
-    function showTopUp(msg) {
-        var text = msg || 'Not enough tokens. Please top up to keep generating.'
-        if (window.SugusDialog && window.SugusDialog.confirm) {
-            window.SugusDialog.confirm({
-                title: 'Not enough tokens',
-                message: text,
-                confirmText: 'Top up',
-                cancelText: 'Later'
-            }).then(function (ok) {
-                if (ok) location.href = './purchasePoints.html'
-            })
-            return
-        }
-        toast(text, 'error')
-    }
-
-    /* ---------- 提交 ---------- */
-    function submit() {
-        if (!selFile) { toast('Please upload her picture first', 'warn'); return }
-        if (!selPreset) {
-            toast(mode === 'outfit' ? 'Please pick a shop outfit for her' : 'Please pick a style', 'warn')
-            return
-        }
-        if (!$('cvPolicy').checked) { toast('Please confirm the upload policy', 'warn'); return }
-
-        var btn = $('cvSubmit')
-        btn.disabled = true
-        btn.textContent = 'Submitting…'
-
-        var fd = new FormData()
-        fd.append('image', selFile)
-        fd.append('type', mode === 'outfit' ? 'image' : 'video')
-        fd.append('agreed_policy', '1')
-        if (mode !== 'outfit') fd.append('style', selPreset.key)
-        // 换装：把所选服饰的商品 id 带上（后端校验归属并用商品标题+描述拼「换上这套衣服」指令）
-        if (mode === 'outfit' && selPreset && selPreset.item_id) fd.append('item_id', String(selPreset.item_id))
-
-        authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
-            btn.disabled = false
-            btn.textContent = mode === 'outfit' ? '✨ Apply Outfit' : '✨ Generate Video'
-            if (!d || d.code !== '00000') {
-                // 免费次数用尽且代币不足：引导去充值
-                if (d && d.code === 'C0100') { showTopUp(d.msg); return }
-                toast((d && d.msg) || 'Submit failed', 'error')
+        if (!gen.file) { toast('Please upload her picture first'); return }
+        if (!gen.sel) { toast(gen.mode === 'outfit' ? 'Please pick an outfit' : 'Please pick a style'); return }
+        var p = genPrice()
+        if (confirmed !== true && !gen.unlimited && gen.remain <= 0 && p > 0) {
+            if (gen.balance < p) {
+                showNote('Free generations are used up. Each extra one costs ' + p +
+                    ' tokens, but your balance is ' + gen.balance + ' tokens.')
                 return
             }
-            var paid = d.data ? Number(d.data.paid_tokens) || 0 : 0
-            if (d.data && typeof d.data.balance === 'number' && d.data.balance >= 0) {
-                cvBalance = d.data.balance
-            } else if (paid > 0) {
-                cvBalance = Math.max(0, cvBalance - paid)
-            }
-            // 提交成功即刻刷新剩余次数（remain=-1 不限量）；保留 refill 提示
-            if (d.data && typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: cvDailyLimit, refill_daily: cvRefillDaily })
-            if (paid > 0) {
-                if (window.refreshTokenBalance) window.refreshTokenBalance()
-                toast('Paid ' + paid + ' tokens — task submitted!', 'success')
-            } else {
-                toast('Task submitted! Track it in My Works', 'success')
-            }
-            switchTab(false)
-        }).catch(function () {
+            if (!window.confirm('Free generations used up. This one costs ' + p + ' tokens. Continue?')) return
+            doSubmit(true)
+            return
+        }
+        doSubmit(confirmed === true)
+    }
+
+    function doSubmit(confirmed) {
+        gen.submitting = true
+        var btn = $('gsGenSubmit'), txt = $('gsGenSubmitText')
+        var idle = gen.mode === 'outfit' ? 'Apply Outfit' : 'Generate'
+        btn.disabled = true
+        txt.textContent = 'Submitting…'
+
+        var fd = new FormData()
+        fd.append('image', gen.file)
+        fd.append('type', gen.mode === 'outfit' ? 'image' : 'video')
+        fd.append('agreed_policy', '1')
+        if (confirmed === true) fd.append('confirm_paid', '1')
+        if (gen.mode !== 'outfit') fd.append('style', gen.sel.key)
+        if (gen.mode === 'outfit' && gen.sel.item_id) fd.append('item_id', String(gen.sel.item_id))
+
+        authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
+            gen.submitting = false
             btn.disabled = false
-            btn.textContent = mode === 'outfit' ? '✨ Apply Outfit' : '✨ Generate Video'
-            toast('Network error', 'error')
+            txt.textContent = idle
+            if (!d || d.code !== '00000') {
+                if (d && d.code === 'C0102') {
+                    if (genPrice() > 0 && window.confirm('This one costs ' + genPrice() + ' tokens. Continue?')) doSubmit(true)
+                    return
+                }
+                if (d && d.code === 'C0100') { showNote(d.msg || 'Not enough tokens.'); return }
+                toast((d && d.msg) || 'Submit failed')
+                return
+            }
+            if (d.data) {
+                if (typeof d.data.balance === 'number') gen.balance = d.data.balance
+                if (typeof d.data.remaining === 'number') applyQuota({ remaining: d.data.remaining, daily_limit: gen.limit, refill_daily: gen.refill })
+                else if (typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: gen.limit, refill_daily: gen.refill })
+            }
+            if (window.refreshTokenBalance) window.refreshTokenBalance()
+            setState('Queued…')
+            watchResult()
+        }).catch(function () {
+            gen.submitting = false
+            btn.disabled = false
+            txt.textContent = idle
+            toast('Network error')
         })
     }
 
-    /* ---------- My Works ---------- */
+    function watchResult() {
+        if (gen.pollTimer) clearInterval(gen.pollTimer)
+        var tries = 0
+        gen.pollTimer = setInterval(function () {
+            tries++
+            if (tries > 80) { clearInterval(gen.pollTimer); gen.pollTimer = null; return }
+            authJson(API + '/myList').then(function (d) {
+                var list = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
+                if (!list.length) return
+                var t = list[0]
+                var meta = STATUS_META[t.status] || {}
+                if (t.status === 'completed' && t.video_url) {
+                    clearInterval(gen.pollTimer)
+                    gen.pollTimer = null
+                    showResult(t)
+                } else if (t.status === 'failed') {
+                    clearInterval(gen.pollTimer)
+                    gen.pollTimer = null
+                    setState('Failed — please try again')
+                } else {
+                    setState(meta.label || 'Generating…')
+                }
+            }).catch(function () {})
+        }, 6000)
+    }
+
+    function showResult(t) {
+        setState('')
+        var img = $('gsGenOutImg'), v = $('gsGenVideo')
+        if (t.kind === 'image') {
+            img.src = t.video_url
+            img.classList.add('is-sharp')
+            img.style.display = 'block'
+            v.style.display = 'none'
+            $('gsGenSound').style.display = 'none'
+        } else {
+            v.src = t.video_url
+            v.style.display = 'block'
+            img.style.display = 'none'
+            $('gsGenSound').style.display = 'inline-flex'
+        }
+    }
+
+    function showQuotaInfo() {
+        var n = $('gsGenNote')
+        if (n.style.display !== 'none') { n.style.display = 'none'; return }
+        if (!token) { showNote('Sign in to generate.'); return }
+        var parts = []
+        if (gen.unlimited) parts.push('Unlimited free generations')
+        else {
+            parts.push('Free left: ' + Math.max(0, gen.remain) + (gen.limit ? ' / ' + gen.limit : ''))
+            if (gen.refill > 0) parts.push('refills +' + gen.refill + '/day')
+        }
+        if (gen.videoPrice) parts.push('extra video ' + gen.videoPrice + ' tokens')
+        if (gen.imagePrice) parts.push('extra image ' + gen.imagePrice + ' tokens')
+        parts.push('balance ' + gen.balance + ' tokens')
+        showNote(parts.join(' · '))
+    }
+
+    function bindGen() {
+        if (!$('gsGenSubmit')) return
+        $('gsGenTabVideo').addEventListener('click', function () { switchGenMode('video') })
+        $('gsGenTabImage').addEventListener('click', function () { switchGenMode('outfit') })
+        $('gsGenUpload').addEventListener('click', function () { $('gsGenFile').click() })
+        $('gsGenFile').addEventListener('change', function () {
+            if (this.files && this.files[0]) pickFile(this.files[0])
+        })
+        $('gsGenSubmit').addEventListener('click', function () { submitGen(false) })
+        $('gsGenInfo').addEventListener('click', showQuotaInfo)
+        $('gsGenLike').addEventListener('click', function () { this.classList.toggle('on') })
+        var snd = $('gsGenSound')
+        if (snd) {
+            snd.addEventListener('click', function () {
+                var v = $('gsGenVideo')
+                if (!v || !v.getAttribute('src')) return
+                v.muted = !v.muted
+                snd.classList.toggle('is-off', v.muted)
+                if (!v.muted) {
+                    var p = v.play()
+                    if (p && p.catch) p.catch(function () {})
+                }
+            })
+        }
+    }
+
+    function bindGallery() {
+        var grid = $('gsGrid')
+        if (grid && !grid.getAttribute('data-gs-bound')) {
+            grid.setAttribute('data-gs-bound', '1')
+            grid.addEventListener('click', function (e) {
+                var a = e.target.closest ? e.target.closest('[data-gs-card]') : null
+                if (!a) return
+                e.preventDefault()
+                openCardModal(a.getAttribute('data-gs-card'))
+            })
+        }
+        var bar = document.querySelector('.gs-filter')
+        if (bar) {
+            bar.addEventListener('click', function (e) {
+                var chip = e.target.closest ? e.target.closest('[data-gs-filter]') : null
+                if (!chip) return
+                gsFilter = chip.getAttribute('data-gs-filter')
+                bar.querySelectorAll('[data-gs-filter]').forEach(function (c) { c.classList.remove('on') })
+                chip.classList.add('on')
+                renderGallery()
+            })
+        }
+        var sBtn = $('gsSearchBtn'), sWrap = $('gsSearchWrap'), sInput = $('gsSearchInput')
+        if (sBtn && sWrap && sInput) {
+            sBtn.addEventListener('click', function () {
+                var shown = sWrap.style.display !== 'none'
+                sWrap.style.display = shown ? 'none' : ''
+                if (shown) {
+                    sInput.value = ''
+                    gsKw = ''
+                    renderGallery()
+                } else {
+                    sInput.focus()
+                }
+            })
+            sInput.addEventListener('input', function () {
+                gsKw = sInput.value.trim()
+                renderGallery()
+            })
+        }
+        loadGallery()
+    }
+
+    /* ---------- 我的作品（历史生成记录，只读） ---------- */
     var STATUS_META = {
-        pending:    { label: 'Queued',      cls: 'wait' },
-        accepted:   { label: 'Queued',      cls: 'wait' },
+        pending: { label: 'Queued', cls: 'wait' },
+        accepted: { label: 'Queued', cls: 'wait' },
         processing: { label: 'Generating…', cls: 'run' },
-        completed:  { label: 'Ready ✨',     cls: 'ok' },
-        failed:     { label: 'Failed',      cls: 'err' },
-        expired:    { label: 'Expired',     cls: 'wait' },
+        completed: { label: 'Ready ✨', cls: 'ok' },
+        failed: { label: 'Failed', cls: 'err' },
+        expired: { label: 'Expired', cls: 'wait' }
     }
 
     function workCard(t) {
@@ -302,12 +595,12 @@
         var body
         if (t.status === 'completed' && t.video_url) {
             body = t.kind === 'image'
-                ? '<a href="' + esc(t.video_url) + '" target="_blank"><img src="' + esc(t.video_url) + '" style="width:100%;display:block;background:#000" alt="outfit"></a>'
+                ? '<a href="' + esc(t.video_url) + '" target="_blank"><img src="' + esc(t.video_url) + '" style="width:100%;display:block;background:#000" alt=""></a>'
                 : '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '"></video>'
         } else if (t.status === 'failed') {
             body = '<div class="cv-wait-body">Generation failed — please retry later.</div>'
         } else {
-            body = '<div class="cv-wait-body">⏳ Your video is being generated…<br>usually 3-6 minutes</div>'
+            body = '<div class="cv-wait-body">⏳ Still generating…<br>usually 3-6 minutes</div>'
         }
         return '<div class="cv-work">' +
             '<div class="hd"><span class="n">' + esc(t.label || 'Custom video') + '</span>' +
@@ -318,12 +611,11 @@
             '</div></div>'
     }
 
-    var pollTimer = null
     var lastSig = ''
     var lastList = null
     var pendingRender = false
+    var pollTimer = null
 
-    // 有视频正在播放时不重绘列表（避免 innerHTML 重建打断播放）
     function anyVideoPlaying() {
         var vs = $('cvWorksGrid') ? $('cvWorksGrid').querySelectorAll('video') : []
         for (var i = 0; i < vs.length; i++) {
@@ -341,13 +633,12 @@
 
     function renderWorks(list) {
         lastList = list
-        // 数据没变化（id:状态:地址 签名一致）直接跳过，不重建 DOM
         var sig = list.map(function (t) { return t.id + ':' + t.status + ':' + (t.video_url || '') }).join('|')
         if (sig === lastSig) return
-        // 数据变了但有视频在播：挂起，等 pause/ended 再补刷
         if (anyVideoPlaying()) { pendingRender = true; return }
         lastSig = sig
         var grid = $('cvWorksGrid'), empty = $('cvWorksEmpty')
+        if (!grid || !empty) return
         empty.style.display = list.length ? 'none' : ''
         grid.innerHTML = list.map(workCard).join('')
         var vs = grid.querySelectorAll('video')
@@ -357,27 +648,35 @@
         }
     }
 
-    function loadWorks(silent) {
-        if (!token) return
-        authJson(API + '/myList').then(function (d) {
-            if (!d || d.code !== '00000' || !Array.isArray(d.data)) { if (!silent) toast((d && d.msg) || 'Load failed', 'error'); return }
-            renderWorks(d.data)
-            var active = d.data.some(function (t) { return ['pending', 'accepted', 'processing'].indexOf(t.status) >= 0 })
-            if (active && !pollTimer) pollTimer = setInterval(function () { loadWorks(true) }, 10000)
-            if (!active && pollTimer) { clearInterval(pollTimer); pollTimer = null }
-        }).catch(function () { if (!silent) toast('Network error', 'error') })
+    function loadWorks() {
+        if (!token) {
+            renderWorks([])
+            return
+        }
+        fetch(WORKS_API, { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                var list = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
+                renderWorks(list)
+                var active = list.some(function (t) { return ['pending', 'accepted', 'processing'].indexOf(t.status) >= 0 })
+                if (active && !pollTimer) pollTimer = setInterval(loadWorks, 10000)
+                if (!active && pollTimer) { clearInterval(pollTimer); pollTimer = null }
+            })
+            .catch(function () { renderWorks([]) })
+    }
+
+    function openWorks() {
+        openModal('gsWorksModal')
+        loadWorks()
     }
 
     function init() {
-        if (!$('cvTabCreate')) return
-        $('cvTabCreate').addEventListener('click', function () { switchTab(true) })
-        $('cvTabWorks').addEventListener('click', function () { switchTab(false) })
-        $('cvModeVideo').addEventListener('click', function () { switchMode('video') })
-        $('cvModeOutfit').addEventListener('click', function () { switchMode('outfit') })
-        $('cvSubmit').addEventListener('click', submit)
-        bindUpload()
-        loadOptions()
-        loadWorks(true)
+        if (!$('gsGrid')) return
+        bindModalClose()
+        bindGallery()
+        bindGen()
+        var works = $('cvTabWorks')
+        if (works) works.addEventListener('click', openWorks)
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init)
