@@ -24,7 +24,7 @@ git diff --stat HEAD -- ai-girl-malaysia.com php/
 | 改动落在 | 走哪条路 | 说明 |
 |---|---|---|
 | 只有 `ai-girl-malaysia.com/*.html`、`js/`、`assets/`、`_shared/` | **A. 纯静态**（最常见） | sync_clients.py 全自动 |
-| `client_overrides/<变体>/` 下的页面 | **A'. 客户差异化** | 只影响配了该 `overrides` 的客户（当前 sugus / heygirl 的 `Image.html`） |
+| `client_overrides/<变体>/` 下的页面 | **A'. 客户差异化** | 只影响配了该 `overrides` 的客户（当前 sugus / heygirl 的 `Image.html` + `js/customVideo.js`） |
 | 有 `php/`、`sql/`、`.env-example` | **B. 静态 + 后端** | 后端不在工具范围，见 `references/deploy-backend.md` |
 | `*_files/` 素材（图片/视频） | **C. 带素材** | 默认不同步，需 `--include-files`，先确认体积 |
 
@@ -66,6 +66,8 @@ python .zcode/sync_clients.py --client heygirl --strict   # 自检有问题就�
 `client_overrides/image-sugus/`、`client_overrides/image-heygirl/`（站点根镜像）。
 改它们只能改覆盖目录；改上游 `ai-girl-malaysia.com/Image.html` 只影响 kelymi / kiss。
 脚本会自动剔除上游同名文件、补传覆盖文件、`apply_brand` 后再回写客户仓库。
+**HTML 与它引用的本地脚本必须成对覆盖**：新版 `Image.html` 依赖 `js/customVideo.js`，
+只覆盖 HTML 会让客户页加载上游旧脚本，DOM 与逻辑不匹配（页面空白 / 控制台报错）。
 对照表与红线见 `client_overrides/README.md`，谁在用哪份：
 
 ```bash
