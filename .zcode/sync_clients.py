@@ -16,10 +16,14 @@
                               # 服务器已部署该提交 → 用它做基线，首次只推之后的变更
                               # （不预热快照的话首次会把 assets/ 几十 MB 全量重传）
 
+客户差异化页面：某个页面在个别客户上要完全不同的实现时，不要改上游同名文件、
+也不要手改客户服务器，而是把客户版放进 client_overrides/<变体>/（目录结构 = 站点根镜像），
+再在 CLIENTS 里给该客户加 "overrides": "client_overrides/<变体>"。详见 client_overrides/README.md。
+
 首次给新客户使用前：先按 SOP 完成服务器 brand kit 初始化 + 客户仓库中性基线，
 并在下面 CLIENTS 里补齐该客户配置。
 """
-import argparse, json, os, posixpath, re, subprocess, sys, time
+import argparse, json, os, posixpath, re, shutil, subprocess, sys, time
 import paramiko
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -43,6 +47,8 @@ CLIENTS = {
             "ai-girl-malaysia.com/privacy.html": "keep",   # 上游没有、客户有 → checkout 不动它
             "ai-girl-malaysia.com/terms.html": "keep",
         },
+        # 客户差异化页面：Image.html 与 sugus / kelymi / kiss 完全不同实现
+        "overrides": "client_overrides/image-heygirl",
     },
     # sugus（上游自己的生产）：走 99.11 跳板（99.11 有 n99_pull key 可连 172）
     "sugus": {
@@ -54,6 +60,8 @@ CLIENTS = {
         "verify_url": "http://172.81.98.55/ai/Home.html",
         "verify_expect": "Sugus",
         "repo": None,
+        # 客户差异化页面：Image.html 与 heygirl / kelymi / kiss 完全不同实现
+        "overrides": "client_overrides/image-sugus",
     },
     # kelymi（第三项目）：2026-10-18 初始化；服务器 brand kit 已就绪（/opt/brand-kit）
     "kelymi": {
@@ -116,6 +124,30 @@ def in_scope(path, include_files):
     if include_files and rel.split("/", 1)[0].endswith("_files"):
         return True
     return False
+
+# ── 客户差异化页面（overrides）─────────────────────────────────
+# 覆盖目录 = 站点根镜像：client_overrides/image-sugus/Image.html → 站点 /Image.html
+# 这些文件不在 SITE_DIR 里，天然不进 blob 快照；每次同步按需补传（同尺寸自动跳过）。
+def override_plan(cfg):
+    """返回 (覆盖目录绝对路径, [(本地绝对路径, 站点相对路径)])；未配置返回 (None, [])"""
+    od = cfg.get("overrides")
+    if not od:
+        return None, []
+    root = os.path.join(REPO, od.replace("/", os.sep))
+    if not os.path.isdir(root):
+        print(f"  !! 覆盖目录不存在: {od}（该客户将使用上游基线）")
+        return None, []
+    files = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for f in filenames:
+            if f.startswith("."):      # .gitkeep 等占位文件不发布
+                continue
+            lp = os.path.join(dirpath, f)
+            rel = os.path.relpath(lp, root).replace(os.sep, "/")
+            files.append((lp, rel))
+    files.sort(key=lambda x: x[1])
+    return root, files
 
 # ── 发布前自检：原站残留 / 品牌串 / 错误 canonical ────────────────
 # 这些在同步上游时会反复出现（10-18~10-20 各踩过一次）：
@@ -248,15 +280,24 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
     excluded = set(cfg.get("exclude", []))
     if excluded:
         changed = [p for p in changed if p not in excluded]
+    # 配了 overrides 的客户：同路径的上游文件不推（否则先推上游版再被覆盖，白传且易误判）
+    ov_root, ov_files = override_plan(cfg)
+    if ov_files:
+        ov_targets = {f"{SITE_DIR}/{rel}" for _, rel in ov_files}
+        changed = [p for p in changed if p not in ov_targets]
     print(f"  变更文件 {len(changed)} 个（范围: html/js/assets/manifest{' +_files' if include_files else ''}）")
+    if cfg.get("overrides"):
+        detail = "、".join(rel for _, rel in ov_files[:6]) if ov_files else "（目录为空，沿用上游版）"
+        print(f"  覆盖文件 {len(ov_files)} 个（{cfg['overrides']}）: {detail}")
     if init_snapshot:
         json.dump(cur, open(STATE_FILE(name), "w", encoding="utf-8"))
         print("  已记录快照（不推送）。")
         return
 
-    # 发布前自检：扫本次要发布的文件（无变更时扫全站，便于随时体检）
-    check_targets = [os.path.join(REPO, p.replace("/", os.sep)) for p in changed] or None
-    problems = preflight(name, cfg, check_targets)
+    # 发布前自检：扫本次要发布的文件（无变更时扫全站，便于随时体检）；覆盖文件一并体检
+    check_targets = [os.path.join(REPO, p.replace("/", os.sep)) for p in changed]
+    check_targets += [lp for lp, _ in ov_files]
+    problems = preflight(name, cfg, check_targets or None)
     if not report_preflight(problems, name) and strict:
         sys.exit(f"!! --strict: 自检未通过，已中止分发（共 {len(problems)} 处问题）")
 
@@ -264,6 +305,7 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
         print("  无变更，仅刷新验证。")
     if dry:
         for p in changed[:20]: print("   dry:", p)
+        for _, rel in ov_files[:20]: print("   dry: [覆盖]", rel)
         return
 
     if cfg.get("jump"):  # 两跳：先到跳板，再一次 tar 流过去（逐文件 scp = 几百次建连，必被限流）
@@ -276,6 +318,8 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
             j = connect(cfg["jump"])
             try:
                 n += upload(j, REPO, changed, tmp)
+                if ov_files:
+                    n += upload(j, ov_root, [rel for _, rel in ov_files], tmp)
                 break
             except Exception as e:
                 print(f"  跳板上传中断（第 {attempt}/3 次）: {e}")
@@ -300,6 +344,8 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
             try:
                 cli = connect(cfg)
                 n += upload(cli, REPO, changed, cfg["site"])
+                if ov_files:
+                    n += upload(cli, ov_root, [rel for _, rel in ov_files], cfg["site"])
                 break
             except Exception as e:
                 print(f"  上传中断（第 {attempt}/3 次）: {e}")
@@ -344,8 +390,17 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
             sh('git fetch douyin', cwd=repo)
             rc, _, err = sh(f'git checkout douyin/main -- {SITE_DIR}/', cwd=repo)
         print(f"  客户仓库内容对齐: {'OK' if rc == 0 else err}")
+        # 覆盖文件回写：checkout 会把覆盖页还原成上游版，必须把客户版写回仓库，
+        # 否则「服务器 = 仓库」这条约束当场破掉（下次同步又得靠脚本兜）
+        if ov_files:
+            for lp, rel in ov_files:
+                dest = os.path.join(repo, SITE_DIR, rel.replace("/", os.sep))
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.copyfile(lp, dest)
+            print(f"  覆盖文件已写回客户仓库: {len(ov_files)} 个")
         # keep 文件恢复：checkout 不会删除上游没有的文件，但被上游同名覆盖的需注意
-        msg = f"sync(upstream): 从 douyin 上游同步 {SITE_DIR}（{len(changed)} 文件）"
+        msg = f"sync(upstream): 从 douyin 上游同步 {SITE_DIR}（{len(changed)} 文件" \
+              f"{f'，含覆盖 {len(ov_files)} 个' if ov_files else ''}）"
         sh(f'git add -A {SITE_DIR} && git commit -m "{msg}"', cwd=repo)
         sh('git push origin master', cwd=repo)
         print(f"  客户仓库已提交推送: {msg}")
