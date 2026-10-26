@@ -76,3 +76,24 @@ vue/dist.zip
 
 # AI 电脑素材源目录的本地镜像（1GB+）
 _roles2/
+
+# ---- 2026-10-26 本地临时产物 / 参考稿，不入库 ----
+.trae/
+**/__pycache__/
+*.bak_card
+*.bak_gs
+*.bak_gs_*
+ai-girl-malaysia.com/ai_index.html
+ai-girl-malaysia.com/ai_index_files/
+ai-girl-malaysia.com/index44.html
+ai-girl-malaysia.com/index44_files/
+ai-girl-malaysia.com/_qa_*.html
+ai-girl-malaysia.com/__gs_preview.html
+ai-girl-malaysia.com/siren.html
+ai-girl-malaysia.com/siren_files/
+ai-girl-malaysia.com/subscriptions2_files/
+ai-girl-malaysia.com/tokens_files/
+完整视频/
+videos/
+brand-kisss/_render/
+*.docx
