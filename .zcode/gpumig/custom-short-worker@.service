@@ -1,0 +1,20 @@
+[Unit]
+Description=AI short-video preset worker for %i (50-preset channel, shared GPU node)
+After=network-online.target comfyui.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=administrator
+Group=administrator
+WorkingDirectory=/opt/cv/short/%i
+EnvironmentFile=/opt/cv/short/%i/env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/comfyui/venv/bin/python /opt/cv/short/worker_short.py
+Restart=always
+RestartSec=30
+StandardOutput=append:/opt/cv/short/%i/service.log
+StandardError=append:/opt/cv/short/%i/service.log
+
+[Install]
+WantedBy=multi-user.target
