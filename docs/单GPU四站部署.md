@@ -198,25 +198,40 @@ systemctl restart comfyui
 
 ## 附录 A · 模型清单（逐文件精确字节数）
 
-| 目录 | 文件名 | 字节 |
-|---|---|---|
-| diffusion_models | minimax_h3_fl2va_pruned_int8_convrot.safetensors | 20970379616 |
-| text_encoders | qwen3vl_32b_heretic_minimax_h3_nvfp4.safetensors | 15683129587 |
-| unet | qwen_image_edit_fp8_e4m3fn.safetensors | 20430635136 |
-| clip | qwen_2.5_vl_7b_fp8_scaled.safetensors | 9384670680 |
-| vae | minimax_h3_video_vae_fp16.safetensors | 5207808496 |
-| vae | minimax_h3_audio_vae_fp32.safetensors | 605254808 |
-| vae | qwen_image_vae.safetensors | 253806246 |
-| loras | minimax-h3_fl2v_8Step_motion_enhancer.safetensors | 1956171592 |
-| loras | MMH3_Perfect_fingering_v1_000002000.safetensors | 155110392 |
-| loras | MysticXXX_MMH3-V4.safetensors | 155095800 |
-| loras | MM-H3 - Pussy Lora.safetensors | 155132912 |
-| loras | soulmate_h3_v1.safetensors | 155095800 |
-| loras | Qwen-Image-Edit-Remove-Clothes_V.1.safetensors | 472047184 |
-| loras | cum_facial_000005400.safetensors | 310168760 |
-| onnx | rife425_ensemble_False_scale_1_sim.onnx | 22777748 |
+> 最后核对：2026-10-26。`/data/models` 由四站 worker 共用（ComfyUI `extra_model_paths` 指向此），
+> **加模型只传这一台**，不用逐站复制。新增后确认 ComfyUI 已扫到：
+> `curl -s 'http://127.0.0.1:8000/object_info/LoraLoaderModelOnly' | grep -o '"<文件名>"'`
 
-合计 **75,917,284,757 B = 70.7 GiB**。
+| 目录 | 文件名 | 字节 | 来源 |
+|---|---|---|---|
+| diffusion_models | minimax_h3_fl2va_pruned_int8_convrot.safetensors | 20970379616 | Civitai 2830065 `FL2VA INT8 Pruned` |
+| diffusion_models | minimax_h3_fl2va_int8_convrot.safetensors | 34038892334 | Civitai INT8 全量 |
+| diffusion_models | minimax_h3_ref2va_int8_convrot.safetensors | 34038894550 | Civitai INT8 全量 |
+| text_encoders | qwen3vl_32b_heretic_minimax_h3_nvfp4.safetensors | 15683129587 | — |
+| unet | qwen_image_edit_fp8_e4m3fn.safetensors | 20430635136 | — |
+| clip | qwen_2.5_vl_7b_fp8_scaled.safetensors | 9384670680 | — |
+| vae | minimax_h3_video_vae_fp16.safetensors | 5207808496 | — |
+| vae | minimax_h3_audio_vae_fp32.safetensors | 605254808 | — |
+| vae | qwen_image_vae.safetensors | 253806246 | — |
+| loras | minimax-h3_fl2v_8Step_motion_enhancer.safetensors | 1956171592 | AI 电脑原盘 |
+| loras | minimax_h3_turbo_4step_ema_comfyui.safetensors | 779858304 | Civitai |
+| loras | minimax_h3_turbo_4步加速_comfyui.safetensors | 208470016 | Civitai |
+| loras | MMH3_Perfect_fingering_v1_000002000.safetensors | 155110392 | AI 电脑原盘 |
+| loras | MysticXXX_MMH3-V4.safetensors | 155095800 | Civitai 2856467 `v4.0`（header+3 处数据块与官方逐字节一致） |
+| loras | MM-H3 - Pussy Lora.safetensors | 155132912 | — |
+| loras | soulmate_h3_v1.safetensors | 155095800 | — |
+| loras | Qwen-Image-Edit-Remove-Clothes_V.1.safetensors | 472047184 | — |
+| loras | cum_facial_000005400.safetensors | 310168760 | AI 电脑原盘（当前无工作流引用） |
+| loras | H3_slop_bounce.safetensors | 310169992 | Civitai 2876282 `H3 slop bounce lora`（SHA256 与官方一致） |
+| onnx | rife425_ensemble_False_scale_1_sim.onnx | 22777748 | — |
+
+合计约 **145 GB**（含 3 个 INT8 大模型；旧版记的 70.7 GiB 是只有 1 个 diffusion model 时的数字）。
+
+### 已知但未入库：Civitai 要求登录的资源
+
+| 资源 | Civitai | 状态 |
+|---|---|---|
+| H3 Ass jiggle (I2V) · `fl2va - i2v v1.0` | 2880033 / 版本 3255024 | **未下载**：作者设了 `usageControl: Download`，匿名请求 307 跳登录。需 Civitai API token（`?token=` 或 `Authorization: Bearer`）才能取，HF 与各镜像站均无同 hash（`384AE177B154…`）的副本。 |
 
 ## 附录 B · 从零重装这台 GPU 机
 
