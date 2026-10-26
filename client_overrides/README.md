@@ -7,7 +7,7 @@
 
 | 变体目录 | 应用客户 | 覆盖文件 | 说明 |
 |---|---|---|---|
-| `image-sugus/` | sugus | `Image.html`、`js/customVideo.js`、`media/gs/`（159 个 clip 素材，约 205MB，**不入 git**） | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗），仅 sugus |
+| `image-sugus/` | sugus | `Image.html`、`js/customVideo.js`（`media/gs/` 由服务器按 `media-src/` 清单自拉，不入库也不随同步上传） | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗），仅 sugus |
 | `image-heygirl/` | heygirl | `Image.html`、`js/customVideo.js` | 同新版图片页，仅 heygirl |
 
 页面若带专属脚本（`Image.html` 引用 `./js/customVideo.js`），**必须一并覆盖**：
@@ -26,9 +26,9 @@ grep -n overrides .zcode/sync_clients.py
   `client_overrides/image-sugus/js/foo.js` → 站点 `/js/foo.js`
 - 以 `.` 开头的文件（如 `.gitkeep`）不会发布
 - 覆盖文件不在 git blob 快照里，每次同步都会重传（同尺寸自动跳过），请保持体积小
-- **例外：`image-sugus/media/gs/`**（列表页 clip 视频/封图，约 205MB）属于内容资产，
-  已写进 `.gitignore` 不入库；以生产服务器
-  `/www/wwwroot/douyin/ai-girl-malaysia.com/media/gs` 为准，本地留一份用于分发（同尺寸跳过）
+- **素材目录不进站点**：`media-src/`（清单 `clips-manifest.json` + 抓取脚本 `fetch_media.py`）
+  由 `OVERRIDE_SKIP_DIRS` 排除；205MB 的 `media/gs/` 由服务器执行
+  `python3 fetch_media.py` 自己从公开 CDN 拉，**不要**放进覆盖目录（否则每次同步都会重传 205MB）
 - 没有配 `overrides` 的客户（kelymi、kiss）继续用上游基线，改这里不会影响它们
 
 ## 分发时脚本自动做什么
