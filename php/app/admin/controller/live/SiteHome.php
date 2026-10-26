@@ -51,6 +51,56 @@ final class SiteHome extends Backend
     }
 
     /**
+     * 从站点侧栏菜单配置里取「文件名 => 菜单名」
+     * 数据源：站点 js/shell-new.js（线上新版侧栏）、js/site-shell.js（旧版）
+     *   { href: './Image.html', label: 'AI Video Studio', icon: 'generate' }
+     *   ['home', './Home.html', 'Home', 'home', '']
+     *   ['./Subscriptions.html', 'Become Premium', 'premium']
+     * 页面 <title> 基本都一样（Sugus.ai: AI Girlfriend App...），靠菜单名才分得清。
+     *
+     * @return array<string,string> 小写文件名 => 菜单名
+     */
+    private function navLabels(): array
+    {
+        $out = [];
+        // 同一文件里可能有多份菜单（主侧栏 + 手机底栏），先出现的优先
+        $add = static function (array &$map, array $rows): void {
+            foreach ($rows as $row) {
+                $file = strtolower($row[1]);
+                if (!isset($map[$file])) {
+                    $map[$file] = $row[2];
+                }
+            }
+        };
+        // 新侧栏优先，旧版只补缺
+        foreach (['js/shell-new.js', 'js/site-shell.js'] as $rel) {
+            $js = @file_get_contents($this->siteDir() . '/' . $rel);
+            if ($js === false || $js === '') {
+                continue;
+            }
+            $found = [];
+            // { href: './X.html', label: 'Label' }
+            if (preg_match_all("/href:\s*'\.\/([^']+\.html)'\s*,\s*label:\s*'([^']+)'/u", $js, $m, PREG_SET_ORDER)) {
+                $add($found, $m);
+            }
+            // ['key', './X.html', 'Label', ...]
+            if (preg_match_all("/\[\s*'[^']*'\s*,\s*'\.\/([^']+\.html)'\s*,\s*'([^']+)'/u", $js, $m, PREG_SET_ORDER)) {
+                $add($found, $m);
+            }
+            // ['./X.html', 'Label', ...]
+            if (preg_match_all("/\[\s*'\.\/([^']+\.html)'\s*,\s*'([^']+)'/u", $js, $m, PREG_SET_ORDER)) {
+                $add($found, $m);
+            }
+            foreach ($found as $file => $label) {
+                if (!isset($out[$file])) {
+                    $out[$file] = $label;
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
      * 扫描站点可选的 HTML 页面，顺带取 <title> 方便运营辨认
      *
      * @return array<string,string> 文件名 => 展示名
@@ -58,6 +108,7 @@ final class SiteHome extends Backend
     private function pages(): array
     {
         $dir = $this->siteDir();
+        $nav = $this->navLabels();
         $out = [];
         foreach (glob($dir . '/*.html') ?: [] as $path) {
             $name = basename($path);
@@ -73,7 +124,14 @@ final class SiteHome extends Backend
                     $title = trim(preg_replace('/\s+/', ' ', strip_tags($m[1])));
                 }
             }
-            $out[$name] = $title !== '' ? ($name . ' — ' . $title) : $name;
+            $menu = $nav[strtolower($name)] ?? '';
+            if ($menu !== '') {
+                $out[$name] = $name . ' — ' . $menu;
+            } elseif ($title !== '') {
+                $out[$name] = $name . ' — ' . $title;
+            } else {
+                $out[$name] = $name;
+            }
         }
         ksort($out);
         return $out;
