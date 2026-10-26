@@ -43,7 +43,7 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./_shared/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261020d"></script>
+    <script src="./js/chat.js?v=20261026voice2"></script>
 	<script src="./js/chat-gift.js?v=20261014f"></script>
     
 
@@ -57,8 +57,8 @@
           
 
     
-  <link rel="stylesheet" href="./assets/fy.css?v=20261018c">
-		<script src="./js/shell-new.js?v=20261018c"></script>
+  <link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1">
+		<script src="./js/shell-new.js?v=20261021discover1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 	
 
@@ -104,7 +104,9 @@
 /* 手机端输入区照 candy：悬浮圆角玻璃面板（左右 12px、距底 16px、圆角 26px、12.5px 模糊）
    注意：不能靠 Tailwind 的 bottom-[Npx] 任意值——这页的编译版 CSS 里没有这些类，会失效落回静态位置 */
 @media (max-width:1023px){
-  #messages{height:auto!important;flex:1 1 auto;min-height:0;padding-bottom:132px!important}
+  /* 顶部固定聊天头 68px（md 88px），原来 pt-61/80 会把首条消息压住 7~8px；
+     底部输入面板实际只占 86px（面板 70 + 距底 16），原来预留 132 会多出 46px 空白 */
+  #messages{height:auto!important;flex:1 1 auto;min-height:0;padding-top:84px!important;padding-bottom:96px!important}
   .messages-container{height:calc(100% - 64px)!important}
   #form,#edit-message-form{
     position:fixed!important;left:12px!important;right:12px!important;width:auto!important;
@@ -134,6 +136,101 @@
   #form.fy-scene-on .scene-pill{height:30px;padding:0 9px;gap:4px;font-size:11px}
   #form.fy-scene-on #ask-button{height:30px;padding:0 9px!important;margin-top:0}
   #form.fy-scene-on #ask-button .text-sm{font-size:12px}
+  /* fy-chat-mobile-20261025：Ask 按钮不允许被压缩，压缩后尾部箭头会溢出压到发送按钮上 */
+  #form #ask-button{flex:0 0 auto!important;width:auto!important}
+  #form #ask-button>img{flex:0 0 auto}
+  /* 有场景素材时输入区折成两行（面板约 112px），底部预留同步放大 */
+  body:has(#form.fy-scene-on) #messages{padding-bottom:124px!important}
+}
+
+/* 小屏顶部导航：Register / Login 原本固定 90px，320 / 375 视口下 Login 会被挤出屏幕
+   （导航内容实测 385px 宽），改为按文案自适应 */
+@media (max-width:420px){
+  #user-login .w-\[90px\]{width:auto!important;padding-left:12px!important;padding-right:12px!important}
+  #user-login .text-sm{font-size:13px}
+}
+@media (max-width:360px){
+  #user-login .w-\[90px\]{padding-left:6px!important;padding-right:6px!important}
+  #user-login .text-sm{font-size:12px}
+  /* 320 段品牌标收一档，给右侧按钮留出边距 */
+  #nav-hamburger + a img{height:26px!important}
+  /* 320 段 Ask 只留图标 + 文案，尾部下拉箭头隐藏，把宽度让给输入框 */
+  #form #ask-button{padding:0 4px!important}
+  #form #ask-button>img:last-child{display:none}
+  #form #ask-button .text-sm{font-size:12px}
+  /* fy-chat-navright-20261025：登录态右侧是成就徽章 + 代币胶囊，320 下总宽超出视口，
+     隐藏徽章并收窄胶囊，避免余额和展开箭头被裁掉 */
+  .fy-navright{gap:6px}
+  .fy-achv{display:none}
+  .fy-chip{padding:6px 10px;font-size:13px;gap:5px}
+  .fy-chip-coin{width:16px;height:16px}
+  .fy-chip-arrow{width:14px;height:14px}
+}
+/* 平板段固定聊天头是 88px，顶部预留同步放大 */
+@media (min-width:768px) and (max-width:1023px){
+  #messages{padding-top:104px!important}
+}
+/* fy-call-fullscreen-20261025：手机端通话界面改为全屏
+   人像铺满整屏，上下加暗色渐变保证文字可读；挂断按钮不再绝对定位，
+   底部按「挂断 / 低余额提示 / 实时字幕」纵向排布，避免互相遮挡。
+   桌面（>=1024px）仍沿用原来的 480x620 卡片 */
+@media (max-width:1023px){
+  #phoneCallModal{height:100vh;height:100dvh;align-items:stretch}
+  #phoneCallModal>div{
+    width:100%!important;height:100%!important;max-width:none!important;
+    border:0!important;border-radius:0!important;
+    background-size:cover!important;background-position:center top!important;
+  }
+  #phoneCallModal>div::before,#phoneCallModal>div::after{
+    content:"";position:absolute;left:0;right:0;pointer-events:none;z-index:0;
+  }
+  #phoneCallModal>div::before{
+    top:0;height:30vh;
+    background:linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.34) 55%,rgba(0,0,0,0) 100%);
+  }
+  #phoneCallModal>div::after{
+    bottom:0;height:42vh;
+    background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.52) 45%,rgba(0,0,0,0) 100%);
+  }
+  #phoneCallModal .top-div{
+    position:relative;z-index:1;width:100%;margin-top:0!important;
+    padding:calc(env(safe-area-inset-top,0px) + 44px) 20px 0;text-align:center;
+  }
+  #phoneCallModal .top-div>span:first-child{
+    display:block;max-width:86vw;margin:0 auto;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    text-shadow:0 2px 12px rgba(0,0,0,.55);
+  }
+  #phoneCallModal .top-div [data-phone-call-target="ringingText"],
+  #phoneCallModal .top-div [data-phone-call-target="timer"],
+  #phoneCallModal .top-div [data-phone-call-target="listeningText"]{
+    text-shadow:0 1px 8px rgba(0,0,0,.6);
+  }
+  #phoneCallModal .bottom-div{
+    position:absolute!important;left:0;right:0;bottom:0;width:100%!important;
+    margin-bottom:0!important;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 26px);
+    display:flex;flex-direction:column;align-items:center;gap:12px;z-index:1;
+  }
+  #phoneCallModal .bottom-div>a[data-action*="endPhoneCall"]{position:static!important;order:3;margin-top:4px}
+  #phoneCallModal .bottom-div>a[data-action*="endPhoneCall"] img{filter:drop-shadow(0 8px 22px rgba(0,0,0,.55))}
+  #phoneCallModal [data-phone-call-target="lowBalanceWarning"]{
+    order:2;width:100%!important;max-width:460px;
+    background:rgba(18,18,18,.42)!important;border:1px solid rgba(255,255,255,.12);
+  }
+  /* fy-call-scroll-20261025：字幕框原本是 flex + items-center，长文本被垂直居中后
+     开头会被裁到框顶上方且滚不回来；改成块级，从第一行开始正常滚动 */
+  /* fy-call-scrollbar-20261025：字幕框滚动条改暗色细条 */
+  #phoneCallModal [data-phone-call-target="transcribedText"]{
+    order:1;width:100%!important;max-width:460px;margin:0!important;
+    height:auto!important;min-height:56px;max-height:26vh;
+    display:block!important;line-height:1.5;
+    scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent;
+    background:rgba(18,18,18,.42)!important;border:1px solid rgba(255,255,255,.12);
+    text-shadow:0 1px 6px rgba(0,0,0,.5);
+  }
+  #phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar{width:4px}
+  #phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar-track{background:transparent}
+  #phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:4px}
 }
 	</style>
 <script src="./js/tracking.js?v=20261018a"></script>
@@ -261,7 +358,7 @@
   <!-- Separator -->
   <div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
       <div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
-    <a href="./Girls.html" class="head-btn active w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Girls</div></div></a><a href="./Anime.html" class="head-btn w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Anime</div></div></a><a href="./Guys.html" class="head-btn w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path><path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path><path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Guys</div></div></a>
+    <a href="./Home.html?cat=girls" class="head-btn active w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Girls</div></div></a><a href="./Home.html?cat=anime" class="head-btn w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Anime</div></div></a><a href="./Home.html?cat=guys" class="head-btn w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path><path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path><path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Guys</div></div></a>
     
 </form>    </div>
 

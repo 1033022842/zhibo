@@ -8,6 +8,7 @@ use think\facade\Db;
 use app\BaseController;
 use app\common\exception\BusinessException;
 use app\common\service\LlmService;
+use app\common\service\TtsService;
 use app\common\web\ResultCode;
 use app\live\model\UserAuth;
 use app\live\service\AffectionService;
@@ -18,6 +19,7 @@ use app\live\service\UserService;
 use app\live\service\UserSettingService;
 use app\live\service\UserPersonaService;
 use app\live\service\PaymentOptionService;
+use app\live\service\RegistrationSettingService;
 use app\live\service\AchievementService;
 use app\live\service\PersonaService;
 use app\live\service\QuotaService;
@@ -28,7 +30,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts']],
     ];
 
     private UserService $userService;
@@ -44,9 +46,9 @@ final class Live extends BaseController
     public function register()
     {
         $params = $this->request->post();
-        $this->validate($params, UserValidate::class . '.register');
+        $this->validate($params, UserValidate::class . ($this->emailVerifyRequired() ? '.register' : '.registerUnverified'));
         $ip = $this->request->ip();
-        $this->userService->register($params['email'], $params['code'], $params['password'], $params['nickname'], $ip, (string) ($params['invite_code'] ?? ''), $this->buildAttr($params));
+        $this->userService->register($params['email'], (string) ($params['code'] ?? ''), $params['password'], $params['nickname'], $ip, (string) ($params['invite_code'] ?? ''), $this->buildAttr($params));
         return $this->jsonSuccess(null, '注册成功');
     }
 
@@ -87,16 +89,7 @@ final class Live extends BaseController
         $this->validate($params, UserValidate::class . '.registerAi');
         $ip = $this->request->ip();
 
-        // 开启后必须携带注册邮箱收到的 6 位验证码
-        if ($this->emailVerifyRequired()) {
-            $code = trim((string) ($params['code'] ?? ''));
-            if ($code === '') {
-                return $this->jsonFail(ResultCode::PARAM_ERROR, '请填写邮箱验证码');
-            }
-            (new EmailVerifyService())->verify((string) $params['email'], $code);
-        }
-
-        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''), $this->buildAttr($params));
+        $user = $this->userService->registerFromAi($params['username'], $params['email'], $params['password'], $ip, (string) ($params['invite_code'] ?? ''), $this->buildAttr($params), trim((string) ($params['code'] ?? '')));
         // 服务端回传：注册完成（与浏览器端 CompleteRegistration 用同一个 event_id 去重）
         try {
             FbCapiService::send('register', [
@@ -123,7 +116,8 @@ final class Live extends BaseController
      */
     public function registerConfig()
     {
-        return $this->jsonSuccess(['email_verify' => $this->emailVerifyRequired()]);
+        return $this->jsonSuccess(['email_verify' => $this->emailVerifyRequired()])
+            ->header(['Cache-Control' => 'no-store']);
     }
 
     /**
@@ -192,7 +186,7 @@ final class Live extends BaseController
         }
         // 已注册（含后台伪删除）的邮箱不再发码
         if (UserAuth::where('auth_type', 'email')->where('auth_key', $email)->find()) {
-            return $this->jsonFail(ResultCode::EMAIL_ALREADY_REGISTERED);
+            return $this->jsonFail(ResultCode::EMAIL_ALREADY_REGISTERED, '该邮箱已注册，请登录或找回密码');
         }
 
         (new EmailVerifyService())->sendCode($email);
@@ -200,17 +194,38 @@ final class Live extends BaseController
     }
 
     /**
+     * 发送密码找回验证码，不披露邮箱是否注册。
+     */
+    public function sendPasswordResetCode()
+    {
+        $email = strtolower(trim((string) $this->request->post('email', '')));
+        $this->validate(['email' => $email], UserValidate::class . '.sendCode');
+        $auth = UserAuth::where('auth_type', 'email')->where('auth_key', $email)->find();
+        if ($auth && $auth->user && (int) $auth->user->status === 1) {
+            (new EmailVerifyService())->sendResetCode((string) $auth->auth_key, $this->request->ip());
+        }
+        // 不暴露某个邮箱是否已经注册。
+        return $this->jsonSuccess(null, 'Request received. A reset code is sent only if this email belongs to an active account on this site. Check your inbox and spam folder. If no email arrives, verify the address or contact support. Codes expire in 5 minutes.');
+    }
+
+    public function resetPassword()
+    {
+        $params = $this->request->post();
+        $params['email'] = strtolower(trim((string) ($params['email'] ?? '')));
+        $this->validate($params, UserValidate::class . '.resetPassword');
+        if (!preg_match('/^\d{6}$/D', (string) $params['code'])) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please enter the 6-digit email code.');
+        }
+        $this->userService->resetPasswordByEmail($params['email'], $params['code'], $params['password']);
+        return $this->jsonSuccess(null, 'Password reset successfully. Please sign in.');
+    }
+
+    /**
      * 注册是否强制邮箱验证码（lp_platform_config: ai_register_email_verify = 1 开启）
      */
     private function emailVerifyRequired(): bool
     {
-        try {
-            $value = Db::connect('live_mysql')->table('lp_platform_config')
-                ->where('key', 'ai_register_email_verify')->value('value');
-            return (string) $value === '1';
-        } catch (\Throwable) {
-            return false;
-        }
+        return RegistrationSettingService::emailVerifyRequired();
     }
 
     public function login()
@@ -368,7 +383,7 @@ final class Live extends BaseController
             $token = (string)$this->request->header('token', '');
         }
         if ($token !== '') {
-            JwtService::blacklist($token, 7200);
+            JwtService::blacklist($token, JwtService::ACCESS_TTL);
         }
 
         return $this->jsonSuccess(null, '账号已注销');
@@ -2004,6 +2019,30 @@ final class Live extends BaseController
             'charged'          => $price,
             'price_per_minute' => $price,
             'balance'          => $debit['balance_after'],
+        ]);
+    }
+
+    /**
+     * AI 前端：服务端 TTS 兜底（需登录）
+     * POST { text, lang } → audio/mpeg
+     *
+     * 浏览器没有 Web Speech API 时（App 内置浏览器等）由服务端合成语音，前端用 <audio> 播放
+     */
+    public function tts()
+    {
+        $text = (string) $this->request->post('text', '');
+        $lang = (string) $this->request->post('lang', 'en');
+
+        try {
+            $audio = (new TtsService())->speak($text, $lang);
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+
+        return response($audio, 200, [
+            'Content-Type'   => 'audio/mpeg',
+            'Content-Length' => (string) strlen($audio),
+            'Cache-Control'  => 'no-store',
         ]);
     }
 
