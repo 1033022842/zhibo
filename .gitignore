@@ -97,3 +97,5 @@ ai-girl-malaysia.com/tokens_files/
 videos/
 brand-kisss/_render/
 *.docx
+services/channel-worker/bin/ffmpeg-tools/
+.zcode/.sync_state_*.json
