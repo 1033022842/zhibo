@@ -43,7 +43,7 @@ final class AiShort extends BaseController
 
     protected array $middleware = [
         \app\live\middleware\Auth::class => ['only' => ['detail', 'submit', 'myList', 'task']],
-        \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'upload', 'complete', 'fail', 'stats', 'progress']],
+        \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'upload', 'complete', 'fail', 'stats', 'progress', 'export']],
     ];
 
     public function __construct(App $app)
@@ -345,6 +345,36 @@ final class AiShort extends BaseController
     }
 
     // ───────────────────────── worker 侧 ─────────────────────────
+
+    /**
+     * 全量导出（X-Api-Key）：供批量验收脚本使用，含 prompt / lora_chain
+     *
+     * 与 /presets 的区别只有一处：这个带 prompt。批量 QA 需要按真实提示词
+     * 逐条跑，而 /presets 是公开接口、不能暴露提示词。此接口只对 worker key
+     * 开放，普通业务方拿不到。
+     */
+    public function export()
+    {
+        $rows = $this->db()->table('lp_short_preset')
+            ->where('status', 1)
+            ->order('id', 'asc')
+            ->select()
+            ->toArray();
+
+        return $this->jsonSuccess(array_map(function (array $r) {
+            return [
+                'code'         => (string) $r['code'],
+                'title'        => (string) $r['title'],
+                'category'     => (string) $r['category'],
+                'kind'         => (string) $r['kind'],
+                'prompt'       => (string) $r['prompt'],
+                'lora_chain'   => json_decode((string) $r['lora_chain'], true) ?: [],
+                'duration_sec' => (int) $r['duration_sec'],
+                'cover_url'    => $this->absUrl((string) $r['cover_url']),
+                'preview_url'  => $this->absUrl((string) $r['preview_url']),
+            ];
+        }, $rows));
+    }
 
     /**
      * worker 捞单（X-Api-Key）
