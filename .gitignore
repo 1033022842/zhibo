@@ -101,3 +101,4 @@ services/channel-worker/bin/ffmpeg-tools/
 .zcode/.sync_state_*.json
 图片/
 支付文档/
+文档/
