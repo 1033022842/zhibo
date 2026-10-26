@@ -94,7 +94,8 @@ python .zcode/sync_clients.py                              #    全部客户（h
 每次同步脚本自动完成：**推变更文件 → 服务器 apply_brand 打品牌 → 线上验证 → 客户仓库内容对齐 + 提交推送**。
 
 增量原理：脚本维护 git blob 快照（`.zcode/.sync_state_<客户>.json`），下次只推 hash 变了的文件；
-部署范围 = `*.html + js/ + assets/ + _shared/ + site-manifest.json`，`*_files/` 素材目录默认不同步。
+部署范围 = `*.html + js/ + assets/ + _shared/ + media/ + index.php + site-manifest.json`，
+`*_files/` 素材目录默认不同步。
 
 ### 变体参数
 
@@ -176,7 +177,7 @@ client_overrides/
 
 | 变体 | 客户 | 覆盖文件 | 说明 |
 |---|---|---|---|
-| `image-sugus` | sugus | `Image.html`、`js/customVideo.js` | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗） |
+| `image-sugus` | sugus | `Image.html`、`js/customVideo.js`、`media/gs/`（159 个 clip 素材 ≈205MB，不入 git） | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗） |
 | `image-heygirl` | heygirl | `Image.html`、`js/customVideo.js` | 同上 |
 
 **覆盖必须成对**：新版 `Image.html` 引用 `./js/customVideo.js`，只覆盖 HTML 会让客户页
@@ -189,6 +190,9 @@ client_overrides/
 
 注意：
 - 覆盖文件**不在 blob 快照里**，每次同步都会重传（同尺寸跳过），请保持体积小
+- 唯一例外：`image-sugus/media/gs/`（159 个 clip 视频/封图 ≈205MB）是内容资产，
+  已 `.gitignore` 不入库；以 sugus 服务器 `…/ai-girl-malaysia.com/media/gs` 为准，
+  本地留副本供分发（同尺寸跳过，不会每次重传）
 - 覆盖目录以 `.` 开头的文件（`.gitkeep`）不会发布
 - 新增/改名/换客户时，同步更新 `client_overrides/README.md`、本文档、`.zcode/skills/client-sync/SKILL.md`
 - 上游 `Image.html` 头部已有提示注释，指向本目录；同事打开文件即可看到

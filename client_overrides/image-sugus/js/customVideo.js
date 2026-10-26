@@ -59,19 +59,25 @@
         })
     }
 
-    /* ---------- 首屏瀑布流：站内短剧素材（视频自动播放 + 封面兜底） ---------- */
+    /* ---------- 首屏瀑布流：站内模板素材（视频自动播放 + 封面兜底） ---------- */
     var gsList = []
     var gsFilter = 'all'
     var gsKw = ''
     var gsLoaded = false
     var gsLoading = false
     var gsObserver = null
+    var GS_BASE = './media/gs/'
 
     function gsSkeleton() {
         var box = $('gsGrid')
         if (!box) return
+        var cols = window.innerWidth >= 720 ? 2 : 2
         var html = ''
-        for (var i = 0; i < 8; i++) html += '<div class="gs-skel"></div>'
+        for (var c = 0; c < cols; c++) {
+            html += '<div class="gs-col">'
+            for (var i = 0; i < 4; i++) html += '<div class="gs-skel"></div>'
+            html += '</div>'
+        }
         box.innerHTML = html
     }
 
@@ -79,12 +85,12 @@
         if (!$('gsGrid') || gsLoaded || gsLoading) return
         gsLoading = true
         gsSkeleton()
-        fetch('/api/live/shorts', { cache: 'no-store' })
+        fetch(GS_BASE + 'clips.json', { cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) {
-                var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                var list = (d && Array.isArray(d.clips)) ? d.clips : []
                 gsList = list.filter(function (c) {
-                    return c && c.id && (c.preview_url || c.video_url)
+                    return c && c.id && (c.video || c.image)
                 })
             })
             .catch(function () { gsList = [] })
@@ -102,23 +108,34 @@
             list = list.filter(function (c) { return decodeEntities(c.title).toLowerCase().indexOf(k) >= 0 })
         }
         if (gsFilter === 'trending') {
-            list.sort(function (a, b) { return (Number(b.likes) || 0) - (Number(a.likes) || 0) })
+            list.sort(function (a, b) { return (Number(b.duration) || 0) - (Number(a.duration) || 0) })
         } else if (gsFilter === 'new') {
-            list.sort(function (a, b) { return (Number(b.id) || 0) - (Number(a.id) || 0) })
+            list.sort(function (a, b) { return String(b.id).localeCompare(String(a.id)) })
         } else if (gsFilter === 'vip') {
-            list = list.filter(function (c) { return Number(c.vip_required) === 1 })
+            list = list.slice(0, Math.ceil(list.length / 4))
         } else if (gsFilter === 'free') {
-            list = list.filter(function (c) { return Number(c.vip_required) !== 1 })
+            list = list.slice(Math.ceil(list.length / 4))
         }
         return list
     }
 
     // 只让视口内的卡片播放，滚出即暂停（几十个视频同时解码会卡）
+    // 视频真正出画才淡入；加载失败则一直显示封面，不会留黑框
     function initAutoplay() {
         var vids = document.querySelectorAll('#gsGrid video')
         if (!vids.length) return
+        vids.forEach(function (v) {
+            if (v.getAttribute('data-gs-bound')) return
+            v.setAttribute('data-gs-bound', '1')
+            v.addEventListener('playing', function () { v.classList.add('is-on') })
+            v.addEventListener('error', function () { v.classList.remove('is-on') })
+        })
         if (!('IntersectionObserver' in window)) {
-            vids.forEach(function (v) { v.play && v.play().catch(function () {}) })
+            vids.forEach(function (v) {
+                var s = v.getAttribute('data-src')
+                if (s && !v.getAttribute('src')) v.src = s
+                v.play && v.play().catch(function () {})
+            })
             return
         }
         if (gsObserver) gsObserver.disconnect()
@@ -126,6 +143,10 @@
             entries.forEach(function (en) {
                 var v = en.target
                 if (en.isIntersecting) {
+                    if (!v.getAttribute('src')) {
+                        var s = v.getAttribute('data-src')
+                        if (s) v.src = s
+                    }
                     v.preload = 'auto'
                     var p = v.play()
                     if (p && p.catch) p.catch(function () {})
@@ -137,6 +158,55 @@
         vids.forEach(function (v) { gsObserver.observe(v) })
     }
 
+    // 按卡片原始宽高比分配列，尽量让两列高度接近（源站也是这个思路）
+    function distribute(list) {
+        var cols = 2
+        var buckets = []
+        for (var i = 0; i < cols; i++) buckets.push([])
+        var heights = [0, 0]
+        list.forEach(function (c) {
+            var ar = (Number(c.w) && Number(c.h)) ? Number(c.w) / Number(c.h) : 0.5625
+            var target = heights[0] <= heights[1] ? 0 : 1
+            buckets[target].push({ clip: c, ar: ar })
+            // 列宽相同，卡片高度与 1/ar 成正比
+            heights[target] += 1 / ar
+        })
+        return buckets
+    }
+
+    function cardHtml(c, ar) {
+        var title = esc(decodeEntities(c.title))
+        var poster = esc(GS_BASE + c.poster)
+        var tags = (c.tags || []).slice(0, 1)
+        var tagHtml = tags.length
+            ? '<div class="gs-card__tags"><span class="gs-card__tag">' + esc(tags[0]) + '</span></div>'
+            : ''
+        var corners = (c.corners || []).map(function (f) {
+            return '<span class="gs-card__mark" style="background-image:url(&quot;' +
+                esc(GS_BASE + f) + '&quot;)"></span>'
+        }).join('')
+
+        var media
+        if (c.video) {
+            media = '<img class="gs-card__media" src="' + poster + '" alt="' + title + '" loading="lazy" decoding="async">' +
+                '<video class="gs-card__video" data-src="' + esc(GS_BASE + c.video) + '" poster="' + poster +
+                '" muted loop playsinline webkit-playsinline preload="none"></video>'
+        } else {
+            media = '<img class="gs-card__media" src="' + esc(GS_BASE + (c.image || c.poster)) +
+                '" alt="' + title + '" loading="lazy" decoding="async">'
+        }
+
+        return '<a class="gs-card" href="javascript:void(0)" data-gs-card="' + esc(c.id) + '"' +
+            ' style="--ar:' + ar.toFixed(4) + '">' +
+            '<div class="gs-card__frame">' + media + '</div>' +
+            (corners ? '<div class="gs-card__creator">' + corners + '</div>' : '') +
+            '<span class="gs-card__details">' +
+            '<span class="gs-card__title">' + title + '</span>' +
+            '<span class="gs-card__creator-name">@' + esc(c.creator || 'genspicy') + '</span>' +
+            tagHtml +
+            '</span></a>'
+    }
+
     function renderGallery() {
         var box = $('gsGrid')
         if (!box) return
@@ -145,20 +215,10 @@
             box.innerHTML = '<div class="gs-empty">Nothing here yet.</div>'
             return
         }
-        box.innerHTML = list.map(function (c) {
-            var title = esc(decodeEntities(c.title))
-            var poster = esc(c.poster || '')
-            var vid = esc(c.preview_url || c.video_url || '')
-            var eps = Number(c.episode_count) || 0
-            var tag = eps ? eps + ' EP' : (Number(c.vip_required) === 1 ? 'VIP' : 'Preview')
-            return '<a class="gs-card" href="./shorts.html?short=' + esc(c.id) + '" data-gs-card="' + esc(c.id) + '">' +
-                '<video class="gs-card__video" src="' + vid + '" poster="' + poster + '" muted loop playsinline webkit-playsinline preload="none"></video>' +
-                '<span class="gs-card__avatar" style="background-image:url(&quot;' + poster + '&quot;)"></span>' +
-                '<span class="gs-card__details">' +
-                '<span class="gs-card__title">' + title + '</span>' +
-                '<span class="gs-card__creator">@sugus</span>' +
-                '<span class="gs-card__tag">' + esc(tag) + '</span>' +
-                '</span></a>'
+        var buckets = distribute(list)
+        box.innerHTML = buckets.map(function (bucket) {
+            var inner = bucket.map(function (it) { return cardHtml(it.clip, it.ar) }).join('')
+            return '<div class="gs-col">' + inner + '</div>'
         }).join('')
         initAutoplay()
     }
@@ -330,14 +390,12 @@
 
         $('gsGenTitle').textContent = decodeEntities(c.title)
         var pills = [
-            '<a class="gs-gen__owner" href="./shorts.html?short=' + encodeURIComponent(c.id) + '">@sugus</a>',
+            '<span class="gs-gen__owner">@' + esc(c.creator || 'genspicy') + '</span>',
             '<span class="gs-gen__dot">·</span>'
         ]
         var tags = []
-        if (Number(c.episode_count) > 0) tags.push(Number(c.episode_count) + ' EP')
-        tags.push(Number(c.vip_required) === 1 ? 'VIP' : 'Free')
-        if (Number(c.price_from) > 0) tags.push('from ' + c.price_from + ' tokens')
-        if (Number(c.likes) > 0) tags.push('♥ ' + c.likes)
+        if (Number(c.duration) > 0) tags.push(Number(c.duration) + 's')
+        ;(c.tags || []).slice(0, 3).forEach(function (t) { tags.push(t) })
         pills = pills.concat(tags.map(function (t) {
             return '<span class="gs-gen__pill">' + esc(t) + '</span>'
         }))
@@ -345,7 +403,7 @@
 
         // 左框：参考图片（可被自己的图替换）
         var pv = $('gsGenPreview')
-        pv.src = c.poster || ''
+        pv.src = GS_BASE + (c.corners && c.corners.length ? c.corners[0] : c.poster)
         pv.style.display = 'block'
         $('gsGenUploadText').textContent = 'upload image'
         $('gsGenFile').value = ''
@@ -358,7 +416,13 @@
         v.style.display = 'block'
         v.muted = true
         v.loop = true
-        v.src = c.preview_url || c.video_url || ''
+        v.src = c.video ? (GS_BASE + c.video) : ''
+        if (!c.video) {
+            v.pause()
+            outImg.src = GS_BASE + (c.image || c.poster)
+            outImg.style.display = 'block'
+            v.style.display = 'none'
+        }
         var play = v.play()
         if (play && play.catch) play.catch(function () {})
         var snd = $('gsGenSound')
