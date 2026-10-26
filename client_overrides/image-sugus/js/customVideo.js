@@ -59,19 +59,42 @@
         })
     }
 
-    /* ---------- 首屏瀑布流：站内短剧素材（视频自动播放 + 封面兜底） ---------- */
+    /* ---------- 首屏瀑布流：站内模板素材（视频自动播放 + 封面兜底） ---------- */
     var gsList = []
     var gsFilter = 'all'
     var gsKw = ''
     var gsLoaded = false
     var gsLoading = false
     var gsObserver = null
+    var gsWaitLayout = null
+    var GS_BASE = './media/gs/'
+
+    // 列数按「网格实际可用宽度」决定（页面有左侧栏，不能直接用 window.innerWidth）。
+    // 阈值对齐参考站观感：约 1150→5 / 880→4 / 640→3 / 更窄→2，单卡宽约 240px。
+    function gsWidth() {
+        var box = $('gsGrid')
+        var w = box ? box.clientWidth : 0
+        if (!w) w = document.documentElement.clientWidth || window.innerWidth || 0
+        return w || 0
+    }
+    function gsCols() {
+        var w = gsWidth()
+        if (w >= 1150) return 5
+        if (w >= 880) return 4
+        if (w >= 640) return 3
+        return 2
+    }
 
     function gsSkeleton() {
         var box = $('gsGrid')
         if (!box) return
+        var cols = gsCols()
         var html = ''
-        for (var i = 0; i < 8; i++) html += '<div class="gs-skel"></div>'
+        for (var c = 0; c < cols; c++) {
+            html += '<div class="gs-col">'
+            for (var i = 0; i < 3; i++) html += '<div class="gs-skel"></div>'
+            html += '</div>'
+        }
         box.innerHTML = html
     }
 
@@ -79,12 +102,12 @@
         if (!$('gsGrid') || gsLoaded || gsLoading) return
         gsLoading = true
         gsSkeleton()
-        fetch('/api/live/shorts', { cache: 'no-store' })
+        fetch(GS_BASE + 'clips.json', { cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) {
-                var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+                var list = (d && Array.isArray(d.clips)) ? d.clips : []
                 gsList = list.filter(function (c) {
-                    return c && c.id && (c.preview_url || c.video_url)
+                    return c && c.id && (c.video || c.image)
                 })
             })
             .catch(function () { gsList = [] })
@@ -92,6 +115,15 @@
                 gsLoading = false
                 gsLoaded = true
                 renderGallery()
+                // 内置浏览器 / 分屏场景下，首次渲染时视口宽度可能还没稳定，
+                // 且宽度变化不一定触发 resize。这里在最初几秒内自适应校正列数。
+                var tries = 0
+                var tid = setInterval(function () {
+                    tries++
+                    if (gsCols() !== gsRenderedCols) renderGallery()
+                    if (tries >= 20) clearInterval(tid)
+                }, 300)
+                setTimeout(function () { clearInterval(tid) }, 8000)
             })
     }
 
@@ -102,23 +134,34 @@
             list = list.filter(function (c) { return decodeEntities(c.title).toLowerCase().indexOf(k) >= 0 })
         }
         if (gsFilter === 'trending') {
-            list.sort(function (a, b) { return (Number(b.likes) || 0) - (Number(a.likes) || 0) })
+            list.sort(function (a, b) { return (Number(b.duration) || 0) - (Number(a.duration) || 0) })
         } else if (gsFilter === 'new') {
-            list.sort(function (a, b) { return (Number(b.id) || 0) - (Number(a.id) || 0) })
+            list.sort(function (a, b) { return String(b.id).localeCompare(String(a.id)) })
         } else if (gsFilter === 'vip') {
-            list = list.filter(function (c) { return Number(c.vip_required) === 1 })
+            list = list.slice(0, Math.ceil(list.length / 4))
         } else if (gsFilter === 'free') {
-            list = list.filter(function (c) { return Number(c.vip_required) !== 1 })
+            list = list.slice(Math.ceil(list.length / 4))
         }
         return list
     }
 
     // 只让视口内的卡片播放，滚出即暂停（几十个视频同时解码会卡）
+    // 视频真正出画才淡入；加载失败则一直显示封面，不会留黑框
     function initAutoplay() {
         var vids = document.querySelectorAll('#gsGrid video')
         if (!vids.length) return
+        vids.forEach(function (v) {
+            if (v.getAttribute('data-gs-bound')) return
+            v.setAttribute('data-gs-bound', '1')
+            v.addEventListener('playing', function () { v.classList.add('is-on') })
+            v.addEventListener('error', function () { v.classList.remove('is-on') })
+        })
         if (!('IntersectionObserver' in window)) {
-            vids.forEach(function (v) { v.play && v.play().catch(function () {}) })
+            vids.forEach(function (v) {
+                var s = v.getAttribute('data-src')
+                if (s && !v.getAttribute('src')) v.src = s
+                v.play && v.play().catch(function () {})
+            })
             return
         }
         if (gsObserver) gsObserver.disconnect()
@@ -126,6 +169,10 @@
             entries.forEach(function (en) {
                 var v = en.target
                 if (en.isIntersecting) {
+                    if (!v.getAttribute('src')) {
+                        var s = v.getAttribute('data-src')
+                        if (s) v.src = s
+                    }
                     v.preload = 'auto'
                     var p = v.play()
                     if (p && p.catch) p.catch(function () {})
@@ -137,28 +184,86 @@
         vids.forEach(function (v) { gsObserver.observe(v) })
     }
 
+    // 按卡片原始宽高比分配列，尽量让各列高度接近（源站也是这个思路）
+    var gsRenderedCols = 0
+    function distribute(list) {
+        var cols = gsCols()
+        gsRenderedCols = cols
+        var buckets = []
+        var heights = []
+        for (var i = 0; i < cols; i++) { buckets.push([]); heights.push(0) }
+        list.forEach(function (c) {
+            var ar = (Number(c.w) && Number(c.h)) ? Number(c.w) / Number(c.h) : 0.5625
+            var target = 0
+            for (var k = 1; k < cols; k++) if (heights[k] < heights[target]) target = k
+            buckets[target].push({ clip: c, ar: ar })
+            // 列宽相同，卡片高度与 1/ar 成正比
+            heights[target] += 1 / ar
+        })
+        return buckets
+    }
+
+    function cardHtml(c, ar) {
+        var title = esc(decodeEntities(c.title))
+        var poster = esc(GS_BASE + c.poster)
+        var tags = (c.tags || []).slice(0, 1)
+        var tagHtml = tags.length
+            ? '<div class="gs-card__tags"><span class="gs-card__tag">' + esc(tags[0]) + '</span></div>'
+            : ''
+        var corners = (c.corners || []).map(function (f) {
+            return '<span class="gs-card__mark" style="background-image:url(&quot;' +
+                esc(GS_BASE + f) + '&quot;)"></span>'
+        }).join('')
+
+        var media
+        if (c.video) {
+            media = '<img class="gs-card__media" src="' + poster + '" alt="' + title + '" loading="lazy" decoding="async">' +
+                '<video class="gs-card__video" data-src="' + esc(GS_BASE + c.video) + '" poster="' + poster +
+                '" muted loop playsinline webkit-playsinline preload="none"></video>'
+        } else {
+            media = '<img class="gs-card__media" src="' + esc(GS_BASE + (c.image || c.poster)) +
+                '" alt="' + title + '" loading="lazy" decoding="async">'
+        }
+
+        return '<a class="gs-card" href="javascript:void(0)" data-gs-card="' + esc(c.id) + '"' +
+            ' style="--ar:' + ar.toFixed(4) + '">' +
+            '<div class="gs-card__frame">' + media + '</div>' +
+            (corners ? '<div class="gs-card__creator">' + corners + '</div>' : '') +
+            '<span class="gs-card__details">' +
+            '<span class="gs-card__title">' + title + '</span>' +
+            '<span class="gs-card__creator-name">@' + esc(c.creator || 'genspicy') + '</span>' +
+            tagHtml +
+            '</span></a>'
+    }
+
     function renderGallery() {
         var box = $('gsGrid')
         if (!box) return
         var list = gsView()
+        // 后台/未布局时 clientWidth 为 0，此时算列数会退回 2 列（卡片显得很大）。
+        // 先渲染骨架，等真正拿到宽度再重排。
+        if (!gsWidth() && list.length) {
+            gsSkeleton()
+            if (!gsWaitLayout) {
+                var tries = 0
+                gsWaitLayout = setInterval(function () {
+                    tries++
+                    if (gsWidth() || tries > 40) {
+                        clearInterval(gsWaitLayout); gsWaitLayout = null
+                        if (gsWidth()) renderGallery()
+                    }
+                }, 250)
+            }
+            return
+        }
         if (!list.length) {
             box.innerHTML = '<div class="gs-empty">Nothing here yet.</div>'
             return
         }
-        box.innerHTML = list.map(function (c) {
-            var title = esc(decodeEntities(c.title))
-            var poster = esc(c.poster || '')
-            var vid = esc(c.preview_url || c.video_url || '')
-            var eps = Number(c.episode_count) || 0
-            var tag = eps ? eps + ' EP' : (Number(c.vip_required) === 1 ? 'VIP' : 'Preview')
-            return '<a class="gs-card" href="./shorts.html?short=' + esc(c.id) + '" data-gs-card="' + esc(c.id) + '">' +
-                '<video class="gs-card__video" src="' + vid + '" poster="' + poster + '" muted loop playsinline webkit-playsinline preload="none"></video>' +
-                '<span class="gs-card__avatar" style="background-image:url(&quot;' + poster + '&quot;)"></span>' +
-                '<span class="gs-card__details">' +
-                '<span class="gs-card__title">' + title + '</span>' +
-                '<span class="gs-card__creator">@sugus</span>' +
-                '<span class="gs-card__tag">' + esc(tag) + '</span>' +
-                '</span></a>'
+        var buckets = distribute(list)
+        box.innerHTML = buckets.map(function (bucket) {
+            var inner = bucket.map(function (it) { return cardHtml(it.clip, it.ar) }).join('')
+            return '<div class="gs-col">' + inner + '</div>'
         }).join('')
         initAutoplay()
     }
@@ -330,14 +435,12 @@
 
         $('gsGenTitle').textContent = decodeEntities(c.title)
         var pills = [
-            '<a class="gs-gen__owner" href="./shorts.html?short=' + encodeURIComponent(c.id) + '">@sugus</a>',
+            '<span class="gs-gen__owner">@' + esc(c.creator || 'genspicy') + '</span>',
             '<span class="gs-gen__dot">·</span>'
         ]
         var tags = []
-        if (Number(c.episode_count) > 0) tags.push(Number(c.episode_count) + ' EP')
-        tags.push(Number(c.vip_required) === 1 ? 'VIP' : 'Free')
-        if (Number(c.price_from) > 0) tags.push('from ' + c.price_from + ' tokens')
-        if (Number(c.likes) > 0) tags.push('♥ ' + c.likes)
+        if (Number(c.duration) > 0) tags.push(Number(c.duration) + 's')
+        ;(c.tags || []).slice(0, 3).forEach(function (t) { tags.push(t) })
         pills = pills.concat(tags.map(function (t) {
             return '<span class="gs-gen__pill">' + esc(t) + '</span>'
         }))
@@ -345,7 +448,7 @@
 
         // 左框：参考图片（可被自己的图替换）
         var pv = $('gsGenPreview')
-        pv.src = c.poster || ''
+        pv.src = GS_BASE + (c.corners && c.corners.length ? c.corners[0] : c.poster)
         pv.style.display = 'block'
         $('gsGenUploadText').textContent = 'upload image'
         $('gsGenFile').value = ''
@@ -358,7 +461,13 @@
         v.style.display = 'block'
         v.muted = true
         v.loop = true
-        v.src = c.preview_url || c.video_url || ''
+        v.src = c.video ? (GS_BASE + c.video) : ''
+        if (!c.video) {
+            v.pause()
+            outImg.src = GS_BASE + (c.image || c.poster)
+            outImg.style.display = 'block'
+            v.style.display = 'none'
+        }
         var play = v.play()
         if (play && play.catch) play.catch(function () {})
         var snd = $('gsGenSound')
@@ -547,6 +656,25 @@
                 e.preventDefault()
                 openCardModal(a.getAttribute('data-gs-card'))
             })
+            // 列数随视口变化，重排一次（跟参考站一样按断点切换）
+            // ResizeObserver 覆盖「容器尺寸变了但没触发 window.resize」的情况
+            // （内置浏览器/分屏首帧宽度未定），window.resize 兜底老浏览器
+            var lastCols = gsCols()
+            var rt = null
+            var schedule = function () {
+                if (rt) clearTimeout(rt)
+                rt = setTimeout(function () {
+                    var now = gsCols()
+                    if (now !== lastCols) {
+                        lastCols = now
+                        if (gsLoaded) renderGallery()
+                    }
+                }, 160)
+            }
+            if ('ResizeObserver' in window) {
+                new ResizeObserver(schedule).observe(grid)
+            }
+            window.addEventListener('resize', schedule, { passive: true })
         }
         var bar = document.querySelector('.gs-filter')
         if (bar) {
