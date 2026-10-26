@@ -1,7 +1,10 @@
 <!DOCTYPE html>
-<!-- 基线版：本文件只服务 kelymi / kiss。sugus 用 client_overrides/image-sugus/Image.html，
-     heygirl 用 client_overrides/image-heygirl/Image.html；改这里不会影响这两家。见 client_overrides/README.md -->
 <!-- saved from url=(0031)/characters/new -->
+<!--
+  【上游中性基线】本文件服务 kelymi / kiss。
+  sugus / heygirl 使用不同的图片页，见 client_overrides/image-sugus/ 与 image-heygirl/
+  （含本文件与 js/customVideo.js 成对覆盖）。改 sugus / heygirl 请改覆盖目录，不要改这里。
+-->
 <html lang="en">
 	<head>
     <link rel="preconnect" href="https://media.sugus.ai" crossorigin>
@@ -33,112 +36,6 @@
             .login-pf{display:none;}
             #user-login{display:none;}
 		</style>
-<style id="gs-style">
-/* genspicy 首屏排版（只取样式，素材全部站内角色） */
-.gs-banner{display:flex;align-items:center;justify-content:center;height:32px;margin-top:1px;padding:0 16px;border-radius:0 0 12px 12px;background:linear-gradient(90deg,#f53d99,#f56eb1);color:rgba(255,255,255,.9);font-size:14px;line-height:32px;font-weight:900;letter-spacing:.5px;text-decoration:none}
-.gs-page{max-width:1280px;margin:0 auto;padding:0 16px}
-.gs-nav{display:flex;align-items:center;gap:16px;margin:20px 0 16px;overflow-x:auto;scrollbar-width:none}
-.gs-nav::-webkit-scrollbar{display:none}
-.gs-nav-item{background:none;border:0;padding:0;color:#fff;font-size:18px;line-height:28px;font-weight:600;opacity:.5;cursor:pointer;white-space:nowrap;font-family:Inter,system-ui,sans-serif}
-.gs-nav-item.on,.gs-nav-item:hover{opacity:1}
-.gs-nav-new{display:inline-flex;align-items:center;height:12px;padding:0 4px;border-radius:6px 6px 6px 2px;background:#f54966;color:#fff;font-size:8px;line-height:12px;font-weight:600;transform:translateY(-6px)}
-.gs-filter{display:flex;align-items:center;gap:8px;margin:2px 0 12px}
-.gs-chips{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-.gs-chips::-webkit-scrollbar{display:none}
-/* 用 .gs-page 前缀提高优先级：Tailwind 预检的 [type=button]{background:none} 在本页排得更靠后 */
-.gs-page .gs-chip{flex:0 0 auto;height:40px;padding:0 12px;border-radius:20px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);font-size:12px;line-height:16px;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:8px;font-family:Inter,system-ui,sans-serif}
-.gs-page .gs-chip.on{background:rgba(255,255,255,.2);border-color:transparent;color:#fff}
-.gs-page .gs-chip--promo{color:#fff;background:linear-gradient(90deg,#f56eb1,#f556a4);border-color:transparent;font-weight:900}
-.gs-page .gs-icon{flex:0 0 auto;width:40px;height:40px;border-radius:20px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.05);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
-.gs-page .gs-icon:hover{background:rgba(255,255,255,.1)}
-.gs-search{margin:0 0 12px}
-.gs-search input{width:100%;height:40px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#121212;color:#fff;font-size:14px;outline:none}
-.gs-search input:focus{border-color:#f56eb1}
-.gs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding-bottom:28px}
-.gs-card{position:relative;display:block;border-radius:12px;overflow:hidden;background:#121212;aspect-ratio:3/4;text-decoration:none;cursor:pointer}
-.gs-card img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
-.gs-card__video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#000}
-.gs-card:hover img{transform:scale(1.04)}
-.gs-card__details{position:absolute;left:0;right:0;bottom:0;height:100px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end;z-index:1;background:linear-gradient(177deg,rgba(26,26,26,0) 2.49%,rgba(26,26,26,.15) 21.79%,rgba(26,26,26,.5) 49.91%,#1a1a1a 97.51%)}
-.gs-card__title{color:#fff;font-size:16px;line-height:19px;font-weight:700;text-transform:capitalize;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.gs-card__creator{color:#fff;opacity:.7;font-size:12px;line-height:15px;text-transform:capitalize;margin-top:2px}
-.gs-card__tag{align-self:flex-start;margin-top:6px;padding:6px 14px;border-radius:20px;background:linear-gradient(282deg,#ff75ba 8.01%,#ea1a80 69.29%);color:#fff;font-size:12px;line-height:16px;font-weight:900;text-transform:uppercase}
-.gs-card__avatar{position:absolute;top:6px;left:8px;width:40px;height:52px;border-radius:8px;border:1px solid #fff;background:#d9d9d9 center/cover no-repeat;transform:rotate(-6deg);z-index:1}
-.gs-skel{border-radius:12px;aspect-ratio:3/4;background:linear-gradient(100deg,#161616 20%,#1f1f1f 40%,#161616 60%);background-size:200% 100%;animation:gs-shimmer 1.2s linear infinite}
-@keyframes gs-shimmer{to{background-position:-200% 0}}
-.gs-empty{grid-column:1/-1;padding:56px 0;text-align:center;color:rgba(255,255,255,.55);font-size:14px}
-/* 通用弹窗壳（genspicy 通用款）：遮罩 rgba(0,0,0,.45)+blur(8px)，面板 min(100%,640px)/16/#121212/右上 32px 圆形关闭 */
-.gs-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .2s}
-.gs-modal.on{opacity:1;pointer-events:auto}
-.gs-modal__panel{position:relative;width:min(100%,640px);max-height:calc(100dvh - 32px);background:#121212;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.24);overflow:hidden;transform:translateY(12px) scale(.98);transition:transform .2s cubic-bezier(.22,1,.36,1)}
-.gs-modal.on .gs-modal__panel{transform:none}
-.gs-modal__close{position:absolute;top:14px;right:14px;z-index:30;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.2);color:#fff;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
-.gs-modal__close:hover{background:rgba(255,255,255,.12)}
-.gs-modal__body{max-height:calc(100dvh - 32px);overflow-y:auto;padding:22px}
-.gs-modal__title{color:#fff;font-size:20px;line-height:28px;font-weight:700;margin:0 0 16px;padding-right:36px}
-.gs-modal .cv-panel{background:transparent;border:0;border-radius:0;box-shadow:none;padding:0}
-.gs-modal .cv-works{grid-template-columns:1fr}
-/* 卡片弹窗：参考站的生成器面板（标题 + 作者/标签 + 双画面 + 加购项 + Generate） */
-.gs-gen{width:min(100%,560px);padding:12px;background:#131315;border:1px solid rgba(255,255,255,.08);border-radius:20px;box-shadow:0 25px 50px rgba(0,0,0,.35)}
-.gs-gen__head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 0}
-.gs-gen__title{margin:0;color:#fff;font-size:17px;line-height:22px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gs-gen__head-act{display:flex;align-items:center;gap:12px}
-.gs-gen .gs-gen__icon{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:rgba(255,255,255,.85);cursor:pointer;padding:0}
-.gs-gen .gs-gen__icon:hover{color:#fff}
-.gs-gen .gs-gen__icon.on{color:#ff5c9e}
-.gs-gen .gs-gen__icon.on svg{fill:#ff5c9e;stroke:#ff5c9e}
-.gs-gen__pills{display:flex;align-items:center;gap:6px;margin:9px 0 10px;overflow-x:auto;scrollbar-width:none}
-.gs-gen__pills::-webkit-scrollbar{display:none}
-.gs-gen__owner{flex:0 0 auto;padding:4px 10px;border-radius:999px;border:1px solid rgba(245,86,164,.5);background:rgba(245,86,164,.08);color:#f556a4;font-size:12px;line-height:16px;font-weight:600;text-decoration:none}
-.gs-gen__dot{color:rgba(255,255,255,.35);font-size:12px}
-.gs-gen__pill{flex:0 0 auto;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);font-size:12px;line-height:16px}
-.gs-gen__tabs{display:flex;gap:4px;height:36px;padding:4px;border-radius:12px;background:#1a1a1e}
-.gs-gen .gs-gen__tab{flex:1;border:0;border-radius:8px;background:transparent;color:#a1a1aa;font-size:12px;font-weight:600;cursor:pointer}
-.gs-gen .gs-gen__tab.on{background:#222228;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-.gs-gen__stage{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.gs-gen__frame{position:relative;aspect-ratio:3/4;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#000;overflow:hidden}
-.gs-gen__frame img,.gs-gen__frame video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-.gs-gen__frame--out img{filter:blur(16px);transform:scale(1.12);transition:filter .3s,transform .3s}
-.gs-gen__frame--out img.is-sharp{filter:none;transform:none}
-.gs-gen .gs-gen__upload{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:2}
-.gs-gen .gs-gen__upload:hover{background:rgba(0,0,0,.72)}
-.gs-gen__sound{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:inline-flex;align-items:center;justify-content:center;z-index:2;cursor:pointer}
-.gs-gen__sound.is-off{opacity:.55}
-.gs-gen__state{position:absolute;left:0;right:0;bottom:10px;padding:0 8px;text-align:center;color:rgba(255,255,255,.85);font-size:12px;font-weight:600;z-index:2;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.6)}
-.gs-gen__addons{display:grid;gap:6px;margin-top:8px}
-.gs-gen .gs-gen__addon{display:flex;align-items:center;justify-content:space-between;gap:8px;height:36px;padding:0 10px;border-radius:12px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.03);color:#d4d4d8;font-size:12px;font-weight:500;cursor:pointer;text-align:left}
-.gs-gen .gs-gen__addon:hover{background:rgba(255,255,255,.06)}
-.gs-gen__radio{flex:0 0 auto;width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);position:relative}
-.gs-gen__addon.on .gs-gen__radio{border-color:#ff5c9e}
-.gs-gen__addon.on .gs-gen__radio::after{content:'';position:absolute;inset:2px;border-radius:50%;background:#ff5c9e}
-.gs-gen__actions{display:flex;align-items:center;gap:8px;margin-top:10px}
-.gs-gen .gs-gen__submit{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 12px;border:0;border-radius:16px;background:linear-gradient(90deg,#ff5c9e,#ff478f,#ff5c9e);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 25px rgba(255,92,158,.45)}
-.gs-gen .gs-gen__submit:hover{filter:brightness(1.06)}
-.gs-gen .gs-gen__submit:disabled{opacity:.6;cursor:not-allowed;box-shadow:none}
-.gs-gen__cost{padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.2);font-size:12px;font-weight:400;opacity:.9}
-.gs-gen .gs-gen__info{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#fff;font-size:13px;font-style:italic;font-family:Georgia,serif;cursor:pointer}
-.gs-gen__note{margin-top:8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:rgba(255,255,255,.7);font-size:11px;line-height:1.6}
-.gs-gen__hint{margin-top:8px;color:rgba(255,255,255,.38);font-size:10px;line-height:1.5}
-@media (max-width:1023px){.gs-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:640px){
-.gs-page{padding:0 12px}
-.gs-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.gs-nav{margin:16px 0 12px;gap:12px}
-.gs-nav-item{font-size:16px;line-height:24px}
-.gs-card__title{font-size:14px;line-height:18px}
-.gs-card__details{height:86px;padding:8px}
-.gs-page .gs-chip,.gs-page .gs-icon{height:36px}
-.gs-page .gs-icon{width:36px}
-.gs-gen{width:100%;padding:10px}
-.gs-gen__title{font-size:15px;line-height:20px}
-.gs-gen__stage{gap:6px;margin-top:6px}
-.gs-gen .gs-gen__upload{height:28px;padding:0 10px;font-size:11px;bottom:8px}
-.gs-gen .gs-gen__addon{height:34px;font-size:11px}
-.gs-gen .gs-gen__submit{height:38px;font-size:12px}
-.gs-gen__hint{font-size:9px;margin-top:6px}
-.gs-gen__note{font-size:10px}
-}
-</style>
 		<!--<meta http-equiv="origin-trial" content="3NNj0GXVktLOmVKwWUDendk4Vq2qgMVDBDX+Sni48ATJl9JBj+zF+9W2HGB3pvt6qowOihTbQgTeBm9SKbdTwYAAABfeyJvcmlnaW4iOiJodHRwczovL3JlY2FwdGNoYS5uZXQ6NDQzIiwiZmVhdHVyZSI6IlRwY2QiLCJleHBpcnkiOjE3MzUzNDM5OTksImlzVGhpcmRQYXJ0eSI6dHJ1ZX0=">-->
 		<!---->
 		<!---->
@@ -155,7 +52,7 @@
 
 		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
 	
-    <link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1" data-turbo-track="reload">
+    <link rel="stylesheet" href="./assets/fy.css?v=20261018c" data-turbo-track="reload">
 		<link rel="stylesheet" href="./_shared/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
 		<script src="./_shared/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
 		<script src="./_shared/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
@@ -163,8 +60,8 @@
 		<script src="./_shared/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/event.js"></script>
-		<script src="./js/main.js?v=20261023regtoggle1"></script>
-		<script src="./js/shell-new.js?v=20261021discover1"></script>
+		<script src="./js/main.js?v=20261020d"></script>
+		<script src="./js/shell-new.js?v=20261023a"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 	
 
@@ -173,7 +70,7 @@
 
 
 	<script src="./js/ui-dialog.js?v=20260928d"></script>
-	<script src="./js/customVideo.js?v=20261026vid1"></script>
+	<script src="./js/customVideo.js?v=20261021a"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
@@ -648,31 +545,46 @@
 		</turbo-frame>
 		<div class="main-content-container" data-main-target="contentContainer"><turbo-frame id="main-content-frame">
 			<div class="mt-[63px] overflow-y-auto pb-[80px] lg:pl-[100px]" id="main-wrapper-new-character">
-				<a class="gs-banner" href="./Subscriptions.html"><span>#1 AI GIRLFRIEND VIDEO GENERATOR</span></a>
-				<div class="gs-page">
-					<div class="gs-nav">
-						<button type="button" class="gs-nav-item on" id="cvTabExplore">Explore</button>
-						<button type="button" class="gs-nav-item" id="cvTabWorks">My Works</button>
-						<span class="gs-nav-new">NEW</span>
-					</div>
-					<div class="gs-filter">
-						<div class="gs-chips">
-							<button type="button" class="gs-chip on" data-gs-filter="all">All</button>
-							<button type="button" class="gs-chip" data-gs-filter="trending">Trending</button>
-							<button type="button" class="gs-chip" data-gs-filter="new">New</button>
-							<button type="button" class="gs-chip" data-gs-filter="vip">VIP</button>
-							<button type="button" class="gs-chip" data-gs-filter="free">Free</button>
-							<a class="gs-chip gs-chip--promo" href="./Subscriptions.html">Up to 75% OFF</a>
+				<a class="w-full h-14 cursor-pointer z-10" data-redirect-url="/subscriptions" href="./Subscriptions.html">
+					<div class="flex flex-row justify-center w-full red-gradient h-14 px-4 mt-[43px] md:mt-0">
+						<div class="flex mx-auto max-w-7xl w-full">
+							<div id="left-side" class="flex-1 hidden lg:flex items-center">
+								<div class="h-6 justify-start items-center gap-3 inline-flex">
+									<img src="./characters_files/crown-3cbc255259ef6a660a01b67c595ac1b1b3683a00ceda0f3fc10e9a7e960c05cb.svg" class="w-6 h-6 relative">
+									<div class="text-white text-base font-extrabold uppercase leading-tight tracking-widest">First Subscription</div>
+								</div>
+							</div>
+							<div id="middle-side" class="flex-1 flex items-center justify-start lg:justify-center">
+								<div class="h-8 px-2.5 py-1.5 primary-gradient rounded-2xl justify-center items-center gap-1 inline-flex cursor-pointer">
+									<span class="text-white text-base font-medium leading-tight">Up to </span>
+									<span class="text-white text-base font-bold leading-tight">75%</span>
+									<span class="text-white text-base font-medium leading-tight"> Off</span>
+								</div>
+							</div>
+							<div id="right-side" class="flex-1 flex items-center justify-end" data-controller="subscription-timer">
+								<div class="h-11 px-3 py-2 bg-neutral-700 rounded-3xl justify-center items-start gap-1.5 inline-flex">
+									<!-- Minutes -->
+									<div class="flex-col justify-start items-start gap-0.5 inline-flex">
+										<div class="text-white text-base font-extrabold leading-[14px]" data-subscription-timer-target="minute">59</div>
+										<div class="text-neutral-400 text-xs font-medium leading-[14px]">Min</div>
+									</div>
+									<div class="text-white text-base font-extrabold leading-[14px]">:</div>
+									<!-- Seconds -->
+									<div class="flex-col justify-start items-start gap-0.5 inline-flex">
+										<div class="text-white text-base font-extrabold leading-[14px]" data-subscription-timer-target="second">38</div>
+										<div class="text-neutral-400 text-xs font-medium leading-[14px]">Sec</div>
+									</div>
+									<div class="text-white text-base font-extrabold leading-[14px]">:</div>
+									<!-- Milliseconds -->
+									<div class="w-5 flex-col justify-start items-start gap-0.5 inline-flex">
+										<div class="text-white text-base font-extrabold leading-[14px]" data-subscription-timer-target="millisecond">9</div>
+										<div class="text-neutral-400 text-xs font-medium leading-[14px]">Ms</div>
+									</div>
+								</div>
+							</div>
 						</div>
-						<button type="button" class="gs-icon" id="gsSearchBtn" aria-label="Search">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-						</button>
 					</div>
-					<div class="gs-search" id="gsSearchWrap" style="display:none">
-						<input id="gsSearchInput" type="search" placeholder="Drama name" autocomplete="off">
-					</div>
-					<div class="gs-grid" id="gsGrid"></div>
-				</div>
+				</a>
 				<style>
 :root{--sg-page:#0d0a0f;--sg-card:#120d16;--sg-line:#282828;--sg-pink:#f97187;--sg-cta:#f53b70;--sg-accent:#ee5876;--sg-grey:#a4a4a4}
 .cv-wrap{max-width:760px;margin:48px auto 32px;padding:0 16px;font-family:Poppins,system-ui,sans-serif}
@@ -762,62 +674,87 @@
 .cv-empty{padding:56px 15px;text-align:center;color:var(--sg-grey);font-size:14px}
 </style>
 
-				<div class="gs-modal" id="gsWorksModal" aria-hidden="true">
-					<div class="gs-modal__panel" role="dialog" aria-modal="true" aria-label="My Works">
-						<button type="button" class="gs-modal__close" data-gs-close="gsWorksModal" aria-label="Close">✕</button>
-						<div class="gs-modal__body">
-							<div class="gs-modal__title">My Works</div>
-							<div class="cv-empty" id="cvWorksEmpty">No videos yet — create your first one! ✨</div>
-							<div class="cv-works" id="cvWorksGrid"></div>
+<div class="cv-wrap">
+					<div class="cv-head">
+						<h1>AI Video Studio</h1>
+						<span class="vip-chip">Free &amp; Premium</span>
+					</div>
+					<div class="cv-tabs">
+						<button class="cv-tab on" id="cvTabCreate">＋ Create</button>
+						<button class="cv-tab" id="cvTabWorks">My Works</button>
+					</div>
+
+					<!-- Create -->
+					<div class="cv-panel" id="cvCreatePanel">
+						<!-- 非会员的升级提示条（不挡功能：Free 每天 2 次，+1/天；会员 5 次/天，每天回满） -->
+						<div class="cv-upsell" id="cvVipGate" style="display:none">
+							<span class="ic">⭐</span>
+							<div class="tx">
+								<b>Free plan: 2 generations</b>, +1 refilled per day (max 2).
+								<a href="./Subscriptions.html">Upgrade to Premium</a> for <b>5 / day, refilled to full every day</b>.
+							</div>
+						</div>
+
+						<div id="cvCreateForm">
+							<div class="cv-sec-t">1 · Upload her picture <small>jpg / png / webp · ≤10MB</small></div>
+							<div class="cv-drop" id="cvDrop">
+								<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#f97187" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+								<div class="t1">Drop her image here, or click to browse</div>
+								<div class="t2">AI-generated / anime / your authorized images only</div>
+							</div>
+							<div class="cv-uploaded" id="cvUploaded" style="display:none">
+								<img id="cvPreview" alt="preview">
+								<button class="rm" id="cvRemove" title="Remove">✕</button>
+							</div>
+							<input type="file" id="cvFile" accept="image/jpeg,image/png,image/webp" style="display:none">
+
+							<div style="height:22px"></div>
+							<div class="cv-sec-t">2 · Pick a mode</div>
+							<div class="cv-modes" id="cvModeSwitch">
+								<button type="button" class="cv-mode on" id="cvModeVideo">
+									<span class="ic">🎬</span>
+									<span class="tx"><span class="lb">Video</span><span class="sub">Bring her to life</span></span>
+								</button>
+								<button type="button" class="cv-mode" id="cvModeOutfit">
+									<span class="ic">👗</span>
+									<span class="tx"><span class="lb">Outfit</span><span class="sub">Wear shop outfits</span></span>
+								</button>
+							</div>
+
+							<div id="cvPromptWrap" style="display:none">
+								<div style="background:rgba(249,113,135,.07);border:1px solid rgba(249,113,135,.25);border-radius:14px;padding:16px 18px">
+									<div style="color:#e6e6e6;font-size:13px;font-weight:600;margin-bottom:6px">👗 Outfit — dress her up</div>
+									<div style="color:var(--sg-grey);font-size:12px;line-height:1.7">
+										Upload her picture, then pick an outfit below — our AI puts the exact outfit on her, head to toe, while keeping her face, hairstyle, pose and background unchanged.<br>
+										You own the unlocked ones. Locked outfits can be unlocked in the <b>Shop</b>.
+									</div>
+								</div>
+								<div style="height:18px"></div>
+							</div>
+
+							<div id="cvPresetWrap">
+								<div class="cv-presets" id="cvPresets"></div>
+							</div>
+
+							<label class="cv-policy" id="cvPolicyRow">
+								<input type="checkbox" id="cvPolicy">
+								<span class="cv-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+								<span>I confirm this image is <b>AI-generated, anime-style, or authorized by the person shown</b> — not a photo of a real third party. I take full responsibility for uploads that violate this rule.</span>
+							</label>
+
+							<div class="cv-submitbar">
+								<div class="cv-remain">Remaining: <b id="cvRemain">-</b><span id="cvRefillTip" style="display:none"></span></div>
+								<button class="cv-generate" id="cvSubmit">✨ Generate Video</button>
+							</div>
+							<div style="margin-top:14px;color:#6b6b6b;font-size:11px;line-height:1.6">Generation usually takes 3-6 minutes. Track progress in "My Works".</div>
+							<div id="cvPriceNote" style="display:none;margin-top:6px;color:#9a9a9a;font-size:11px;line-height:1.6"></div>
 						</div>
 					</div>
-				</div>
-				<div class="gs-modal" id="gsCardModal" aria-hidden="true">
-					<div class="gs-modal__panel gs-gen" role="dialog" aria-modal="true" aria-label="Create">
-						<div class="gs-gen__head">
-							<h2 class="gs-gen__title" id="gsGenTitle"></h2>
-							<div class="gs-gen__head-act">
-								<button type="button" class="gs-gen__icon" id="gsGenLike" aria-label="Like">
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21.2l7.7-7.8 1.1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>
-								</button>
-								<button type="button" class="gs-gen__icon" data-gs-close="gsCardModal" aria-label="Close">
-									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-								</button>
-							</div>
-						</div>
-						<div class="gs-gen__pills" id="gsGenPills"></div>
-						<div class="gs-gen__tabs">
-							<button type="button" class="gs-gen__tab on" id="gsGenTabVideo">Image to Video</button>
-							<button type="button" class="gs-gen__tab" id="gsGenTabImage">Outfit</button>
-						</div>
-						<div class="gs-gen__stage">
-							<div class="gs-gen__frame" id="gsGenInput">
-								<img id="gsGenPreview" alt="" style="display:none">
-								<button type="button" class="gs-gen__upload" id="gsGenUpload">
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7 9m5-5l5 5"></path><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"></path></svg>
-									<span id="gsGenUploadText">upload image</span>
-								</button>
-								<input type="file" id="gsGenFile" accept="image/jpeg,image/png,image/webp" style="display:none">
-							</div>
-							<div class="gs-gen__frame gs-gen__frame--out" id="gsGenOut">
-								<img id="gsGenOutImg" alt="">
-								<video id="gsGenVideo" playsinline controls style="display:none"></video>
-								<span class="gs-gen__sound" id="gsGenSound" style="display:none">
-									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path></svg>
-								</span>
-								<div class="gs-gen__state" id="gsGenState">Preview</div>
-							</div>
-						</div>
-						<div class="gs-gen__addons" id="gsGenAddons"></div>
-						<div class="gs-gen__actions">
-							<button type="button" class="gs-gen__submit" id="gsGenSubmit">
-								<span id="gsGenSubmitText">Generate</span>
-								<span class="gs-gen__cost" id="gsGenCost">Free</span>
-							</button>
-							<button type="button" class="gs-gen__info" id="gsGenInfo" aria-label="Quota info">i</button>
-						</div>
-						<div class="gs-gen__note" id="gsGenNote" style="display:none"></div>
-						<div class="gs-gen__hint">Only AI-generated, anime, or self-authorized photos. You are responsible for your uploads.</div>
+
+					<!-- My Works -->
+					<div class="cv-panel" id="cvWorksPanel" style="display:none;margin-top:0">
+						<div class="cv-empty" id="cvWorksEmpty">No videos yet — create your first one! ✨</div>
+						<div class="cv-works" id="cvWorksGrid"></div>
 					</div>
 				</div>
 			</div>

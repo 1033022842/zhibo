@@ -165,18 +165,23 @@ ssh root@<客户服务器> "grep -riE 'sugus' /www/wwwroot/douyin/ai-girl-malays
 
 ```
 client_overrides/
-  README.md              # 变体 → 客户 → 覆盖文件 的对照表（改这里必读）
-  image-sugus/           # 变体名按客户或版本命名
-    Image.html           # → 站点 /Image.html
-    js/xxx.js            # → 站点 /js/xxx.js
+  README.md                    # 变体 → 客户 → 覆盖文件 的对照表（改这里必读）
+  image-sugus/                 # 变体名按客户或版本命名
+    Image.html                 # → 站点 /Image.html
+    js/customVideo.js          # → 站点 /js/customVideo.js
   image-heygirl/
     Image.html
+    js/customVideo.js
 ```
 
 | 变体 | 客户 | 覆盖文件 | 说明 |
 |---|---|---|---|
-| `image-sugus` | sugus | `Image.html` | 新版图片页，仅 sugus |
-| `image-heygirl` | heygirl | `Image.html` | 新版图片页，仅 heygirl |
+| `image-sugus` | sugus | `Image.html`、`js/customVideo.js` | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗） |
+| `image-heygirl` | heygirl | `Image.html`、`js/customVideo.js` | 同上 |
+
+**覆盖必须成对**：新版 `Image.html` 引用 `./js/customVideo.js`，只覆盖 HTML 会让客户页
+加载上游旧脚本，DOM 与逻辑对不上（页面空白、控制台报错）。凡是被覆盖页面依赖的
+本地脚本，都要在覆盖目录里放一份同路径副本。
 
 脚本自动完成四件事：① 被覆盖路径从增量推送中剔除（不推上游版）→ ② 增量推完后补传覆盖文件
 （跳板/直连都支持）→ ③ 直连客户再跑 `apply_brand.sh`（品牌替换作用于覆盖页）→
@@ -187,6 +192,10 @@ client_overrides/
 - 覆盖目录以 `.` 开头的文件（`.gitkeep`）不会发布
 - 新增/改名/换客户时，同步更新 `client_overrides/README.md`、本文档、`.zcode/skills/client-sync/SKILL.md`
 - 上游 `Image.html` 头部已有提示注释，指向本目录；同事打开文件即可看到
+
+> **2026-10-26 落地教训**：新版图片页最早是直接改上游 `Image.html` + `js/customVideo.js`
+> 提交进 main 的（`605e1af`），等于把 kelymi / kiss 也要改的页面一起换掉了。
+> 正确做法是上游保持中性基线，新版只放覆盖目录 —— 已按此回退并搬迁。
 
 ## 五、故障排查
 
@@ -202,6 +211,7 @@ client_overrides/
 | 客户仓库推送失败 | gitee SSH key / 权限 | `ssh -T git@gitee.com` 检查；仓库地址见速查表 |
 | `curl http://<kiss IP>/ai/...` 永远 404 | kiss 的 80 端口是 Certbot 的 `default_server { return 404; }` | 用 `https://kisss.ai/ai/...` 验证；80 上带 `Host: kisss.ai` 只会 301 |
 | 改了上游 `Image.html`，sugus / heygirl 没变化 | 预期：这两家配了 `overrides`，只读 `client_overrides/image-*/` | 要改它们就改对应覆盖目录；要确认谁在用 `grep -n overrides .zcode/sync_clients.py` |
+| sugus / heygirl 的 Image 页空白或报错 | 只覆盖了 `Image.html`，`js/customVideo.js` 还是上游旧版，DOM 与脚本不匹配 | 覆盖目录里补齐 `js/customVideo.js`（两个文件成对覆盖），重跑同步 |
 | 覆盖页被还原成上游版 | 有人在客户仓库手敲了 `git checkout douyin/main -- ...` | 重跑一次同步（脚本会把覆盖文件写回）；提交后再核对 blob hash |
 | 通话在 App 内置浏览器里完全没声音 | 微信/Instagram/Facebook 内置浏览器、iOS Chrome（WKWebView）没有 Web Speech API（`speechSynthesis`） | 前端已自动改走服务端 TTS `/api/live/tts`（xAI `/v1/tts` 代理，需登录、600 字符上限、1 小时缓存）；php 侧需部署 `app/common/service/TtsService.php` 与 `app/api/controller/Live.php`。该接口只影响无 TTS 的浏览器，正常 Safari/Chrome 仍走本地合成，不产生额外费用 |
 | 通话里说话没反应（能听到 AI） | 同类 WebView 也缺 `SpeechRecognition`；有些 WebView 暴露了 API 但没有可用引擎 | 前端已自动改走 WebAudio 录音（PCM→16k WAV，静音 0.9s 自动结束，最长 12s）+ `/api/live/stt`（xAI `/v1/stt`，需登录）；php 需部署 `app/common/service/SttService.php`；麦克风被拒时会提示改文字输入 |

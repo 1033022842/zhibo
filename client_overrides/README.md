@@ -7,8 +7,11 @@
 
 | 变体目录 | 应用客户 | 覆盖文件 | 说明 |
 |---|---|---|---|
-| `image-sugus/` | sugus | `Image.html` | 新版图片页，仅 sugus |
-| `image-heygirl/` | heygirl | `Image.html` | 新版图片页，仅 heygirl |
+| `image-sugus/` | sugus | `Image.html`、`js/customVideo.js` | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗），仅 sugus |
+| `image-heygirl/` | heygirl | `Image.html`、`js/customVideo.js` | 同新版图片页，仅 heygirl |
+
+页面若带专属脚本（`Image.html` 引用 `./js/customVideo.js`），**必须一并覆盖**：
+只覆盖 HTML 会让客户页加载上游脚本，DOM 与逻辑对不上（新版页面无渲染、控制台报错）。
 
 谁在用哪份，永远以 `.zcode/sync_clients.py` 里各客户的 `"overrides"` 字段为准：
 
@@ -38,8 +41,9 @@ grep -n overrides .zcode/sync_clients.py
 
 ## 红线
 
-- 改 sugus / heygirl 的 `Image.html` **只能改对应变体目录**；
+- 改 sugus / heygirl 的 `Image.html` 或 `js/customVideo.js` **只能改对应变体目录**；
   改上游 `ai-girl-malaysia.com/Image.html` 只会影响 kelymi / kiss。
+- 只覆盖 HTML 不覆盖配套脚本（或反之）会造成「页面新、逻辑旧」，两者必须成对更新。
 - 不要手改客户服务器上的覆盖页，也不要在客户仓库里手敲
   `git checkout douyin/main -- ai-girl-malaysia.com/Image.html`（会把客户版冲掉）。
 - 新增变体或调整应用客户时，同步更新：本 README 表格、`docs/多客户同步SOP.md`、
