@@ -1634,10 +1634,25 @@
 
     function callStopListening() {
         if (callRec) { try { callRec.stop() } catch (e) {} }
+        // 录音兜底：挂断/静音/AI 开始说话时，丢弃这段录音
+        if (callMicStream || callMicNode) callStopRecording(true)
     }
 
     var callAudioEl = null
     var callTtsSeq = 0
+    // 服务端 STT 兜底（浏览器没有 SpeechRecognition 时用 WebAudio 录 WAV 上传）
+    var callRecCtx = null
+    var callMicStream = null
+    var callMicNode = null
+    var callMicSource = null
+    var callMicSink = null
+    var callMicSamples = null
+    var callMicStartedAt = 0
+    var callMicLastVoice = 0
+    var callMicSawVoice = false
+    var callMicAbort = false
+    var callSttBusy = false
+    var callSttFailures = 0
     // 20ms 静音 WAV：浏览器没有 Web Speech（微信/IG 内置浏览器、iOS Chrome）时改走服务端 TTS，
     // 用 <audio> 播放；iOS 要求首次 play() 发生在用户手势内，先用它把元素解锁
     var CALL_SILENT_WAV = 'data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YaAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA'
@@ -1679,7 +1694,11 @@
                 synth.speak(u)
             } catch (e) {}
         }
-        if (window.jsCallAudioUnlocked) return
+        if (window.jsCallAudioUnlocked) {
+            // 录音兜底也要用同一个 AudioContext：iOS 只允许在用户手势内创建/恢复
+            if (callRecCtx && callRecCtx.state === 'suspended') { try { callRecCtx.resume() } catch (e) {} }
+            return
+        }
         try {
             var a = callAudio()
             a._silent = true
@@ -1688,6 +1707,12 @@
             if (p && p.then) {
                 p.then(function () { try { a.pause(); a.currentTime = 0 } catch (e) {} }).catch(function () {})
             }
+            // 服务端 STT 兜底：录音/分析都用这个 AudioContext，必须在点击手势里创建
+            if (!callRecCtx) {
+                var AC = window.AudioContext || window.webkitAudioContext
+                if (AC) callRecCtx = new AC()
+            }
+            if (callRecCtx && callRecCtx.state === 'suspended') { try { callRecCtx.resume() } catch (e) {} }
             window.jsCallAudioUnlocked = true
         } catch (e) {}
     }
@@ -1795,13 +1820,11 @@
     }
 
     function callStartListening() {
-        if (!callActive || callMuted || callSpeaking) return
-        var SR = window.SpeechRecognition || window.webkitSpeechRecognition
+        if (!callActive || callMuted || callSpeaking || callSttBusy) return
+        var SR = window.jsCallSrDisabled ? null : (window.SpeechRecognition || window.webkitSpeechRecognition)
         if (!SR) {
-            if (!window.jsCallNoSrTipShown) {
-                window.jsCallNoSrTipShown = true
-                appendError('This browser has no voice input — you can keep typing in the message box.')
-            }
+            // 内置浏览器/iOS Chrome 没有 SpeechRecognition：改走录音 + 服务端 STT
+            callStartRecording()
             return
         }
         if (!callRec) {
@@ -1811,15 +1834,198 @@
             callRec.interimResults = false
             callRec.maxAlternatives = 1
             callRec.onresult = function (e) {
+                window.jsCallSrFailures = 0
                 var text = ''
                 for (var i = 0; i < e.results.length; i++) text += e.results[i][0].transcript
                 text = text.trim()
                 if (text) callSend(text)
             }
-            callRec.onerror = function () { if (callActive && !callMuted && !callSpeaking) setTimeout(callStartListening, 700) }
+            callRec.onerror = function (e) {
+                var err = String((e && e.error) || '')
+                if (/not-allowed|service-not-allowed/i.test(err)) {
+                    callMicHint('Microphone access is blocked — allow it in browser settings, or type your message.')
+                    return
+                }
+                // 有些 WebView 暴露了 SpeechRecognition 却没有可用引擎：连续失败两次就改走录音 + 服务端 STT
+                window.jsCallSrFailures = (window.jsCallSrFailures || 0) + 1
+                if (window.jsCallSrFailures >= 2) {
+                    window.jsCallSrDisabled = true
+                    if (callActive && !callMuted && !callSpeaking) callStartRecording()
+                    return
+                }
+                if (callActive && !callMuted && !callSpeaking) setTimeout(callStartListening, 700)
+            }
             callRec.onend = function () { if (callActive && !callMuted && !callSpeaking) setTimeout(callStartListening, 300) }
         }
         try { callRec.start() } catch (e) {}
+    }
+
+    function callMicHint(msg) {
+        if (!window.jsCallSttErrorShown) {
+            window.jsCallSttErrorShown = true
+            appendError(msg)
+            if (callActive) callScreenCaption(msg, false)
+        }
+    }
+
+    /* ---------- 录音 + 服务端 STT（无 SpeechRecognition 的浏览器） ----------
+       用 WebAudio 直接收 PCM（避开 MediaRecorder 的 webm 编码，xAI STT 对容器格式有限制）：
+       静音 900ms 或最长 12s 自动结束，降采样到 16k 转 WAV 上传 /api/live/stt。 */
+    function callStartRecording() {
+        if (callMicStream || callSttBusy || !callActive || callMuted || callSpeaking) return
+        if (!callRecCtx || !callRecCtx.createScriptProcessor) {
+            callMicHint('Voice input is not supported in this browser — please type your message.')
+            return
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            callMicHint('Voice input is not supported in this browser — please type your message.')
+            return
+        }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            if (!callActive || callMuted || callSpeaking) {
+                try { stream.getTracks().forEach(function (t) { t.stop() }) } catch (e) {}
+                return
+            }
+            var ctx = callRecCtx
+            callMicStream = stream
+            callMicSamples = []
+            callMicAbort = false
+            callMicSawVoice = false
+            callMicStartedAt = Date.now()
+            callMicLastVoice = Date.now()
+            callMicSource = ctx.createMediaStreamSource(stream)
+            callMicNode = ctx.createScriptProcessor(4096, 1, 1)
+            callMicSink = ctx.createGain()
+            callMicSink.gain.value = 0   // 必须连到 destination 才会跑，但增益 0 避免回声
+            callMicNode.onaudioprocess = function (e) {
+                if (!callMicStream || callMicAbort) return
+                var input = e.inputBuffer.getChannelData(0)
+                var peak = 0
+                for (var i = 0; i < input.length; i++) {
+                    var v = input[i] < 0 ? -input[i] : input[i]
+                    if (v > peak) peak = v
+                }
+                var now = Date.now()
+                if (peak > 0.02) { callMicSawVoice = true; callMicLastVoice = now }
+                var copy = new Float32Array(input.length)
+                copy.set(input)
+                callMicSamples.push(copy)
+                // 有语音后静音 900ms 视为说完；最长 12s；一直没检测到语音 2.5s 就放弃
+                if ((callMicSawVoice && now - callMicLastVoice > 900) || now - callMicStartedAt > 12000
+                    || (!callMicSawVoice && now - callMicStartedAt > 2500)) {
+                    callStopRecording(false)
+                }
+            }
+            callMicSource.connect(callMicNode)
+            callMicNode.connect(callMicSink)
+            callMicSink.connect(ctx.destination)
+        }).catch(function () {
+            callMicHint('Microphone permission is required for voice input — allow it and try again.')
+        })
+    }
+
+    function callStopRecording(abort) {
+        var hadStream = !!(callMicStream || callMicNode)
+        callMicAbort = !!abort
+        if (callMicNode) { try { callMicNode.disconnect() } catch (e) {} }
+        if (callMicSource) { try { callMicSource.disconnect() } catch (e) {} }
+        if (callMicSink) { try { callMicSink.disconnect() } catch (e) {} }
+        if (callMicStream) { try { callMicStream.getTracks().forEach(function (t) { t.stop() }) } catch (e) {} }
+        var chunks = callMicSamples || []
+        var rate = (callRecCtx && callRecCtx.sampleRate) || 48000
+        callMicNode = null
+        callMicSource = null
+        callMicSink = null
+        callMicStream = null
+        callMicSamples = null
+        if (!hadStream || callMicAbort || !callActive || callMuted || callSpeaking) return
+
+        var total = 0
+        for (var i = 0; i < chunks.length; i++) total += chunks[i].length
+        if (total < rate * 0.3) { setTimeout(callStartListening, 250); return }
+        var all = new Float32Array(total)
+        var off = 0
+        for (var j = 0; j < chunks.length; j++) { all.set(chunks[j], off); off += chunks[j].length }
+        var wav = callEncodeWav(callDownsample(all, rate, 16000), 16000)
+
+        callSttBusy = true
+        callTranscribe(wav).then(function (text) {
+            callSttBusy = false
+            callSttFailures = 0
+            if (!callActive) return
+            text = String(text || '').trim()
+            if (text) callSend(text)
+            else setTimeout(callStartListening, 300)
+        }).catch(function () {
+            callSttBusy = false
+            if (!callActive) return
+            callSttFailures++
+            if (callSttFailures >= 2) {
+                callMicHint('Voice input is unavailable right now — you can type in the message box.')
+                return
+            }
+            setTimeout(callStartListening, 1000)
+        })
+    }
+
+    function callTranscribe(blob) {
+        var lang = callLocale().split('-')[0]
+        return fetch('/api/live/stt?lang=' + encodeURIComponent(lang), {
+            method: 'POST',
+            headers: (function () {
+                var h = { 'Content-Type': 'audio/wav' }
+                if (token) h.Authorization = 'Bearer ' + token
+                return h
+            })(),
+            body: blob
+        }).then(function (r) {
+            return r.json()
+        }).then(function (d) {
+            if (!d || d.code !== '00000') throw new Error('stt ' + (d && d.code))
+            return (d.data && d.data.text) || ''
+        })
+    }
+
+    // 降采样（取窗口均值）+ 16bit 单声道 WAV 编码
+    function callDownsample(buf, inRate, outRate) {
+        if (inRate === outRate) return buf
+        var ratio = inRate / outRate
+        var outLen = Math.floor(buf.length / ratio)
+        var out = new Float32Array(outLen)
+        for (var i = 0; i < outLen; i++) {
+            var start = Math.floor(i * ratio)
+            var end = Math.min(buf.length, Math.floor((i + 1) * ratio))
+            var sum = 0
+            for (var j = start; j < end; j++) sum += buf[j]
+            out[i] = end > start ? sum / (end - start) : 0
+        }
+        return out
+    }
+
+    function callEncodeWav(samples, sampleRate) {
+        var buffer = new ArrayBuffer(44 + samples.length * 2)
+        var view = new DataView(buffer)
+        var writeStr = function (off, s) {
+            for (var i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i))
+        }
+        writeStr(0, 'RIFF')
+        view.setUint32(4, 36 + samples.length * 2, true)
+        writeStr(8, 'WAVE')
+        writeStr(12, 'fmt ')
+        view.setUint32(16, 16, true)
+        view.setUint16(20, 1, true)
+        view.setUint16(22, 1, true)
+        view.setUint32(24, sampleRate, true)
+        view.setUint32(28, sampleRate * 2, true)
+        view.setUint16(32, 2, true)
+        view.setUint16(34, 16, true)
+        writeStr(36, 'data')
+        view.setUint32(40, samples.length * 2, true)
+        for (var i = 0; i < samples.length; i++) {
+            var s = Math.max(-1, Math.min(1, samples[i]))
+            view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true)
+        }
+        return new Blob([view], { type: 'audio/wav' })
     }
 
     // 通话里说的话同样走 /api/live/chat（带 voice:1），消息带 VOICE 标记，回复用语音念出来

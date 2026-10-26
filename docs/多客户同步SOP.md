@@ -196,6 +196,7 @@ client_overrides/
 | 改了上游 `Image.html`，sugus / heygirl 没变化 | 预期：这两家配了 `overrides`，只读 `client_overrides/image-*/` | 要改它们就改对应覆盖目录；要确认谁在用 `grep -n overrides .zcode/sync_clients.py` |
 | 覆盖页被还原成上游版 | 有人在客户仓库手敲了 `git checkout douyin/main -- ...` | 重跑一次同步（脚本会把覆盖文件写回）；提交后再核对 blob hash |
 | 通话在 App 内置浏览器里完全没声音 | 微信/Instagram/Facebook 内置浏览器、iOS Chrome（WKWebView）没有 Web Speech API（`speechSynthesis`） | 前端已自动改走服务端 TTS `/api/live/tts`（xAI `/v1/tts` 代理，需登录、600 字符上限、1 小时缓存）；php 侧需部署 `app/common/service/TtsService.php` 与 `app/api/controller/Live.php`。该接口只影响无 TTS 的浏览器，正常 Safari/Chrome 仍走本地合成，不产生额外费用 |
+| 通话里说话没反应（能听到 AI） | 同类 WebView 也缺 `SpeechRecognition`；有些 WebView 暴露了 API 但没有可用引擎 | 前端已自动改走 WebAudio 录音（PCM→16k WAV，静音 0.9s 自动结束，最长 12s）+ `/api/live/stt`（xAI `/v1/stt`，需登录）；php 需部署 `app/common/service/SttService.php`；麦克风被拒时会提示改文字输入 |
 
 ## 六、新客户一次性初始化（kelymi 已于 2026-10-18 照此完成，可作范本）
 

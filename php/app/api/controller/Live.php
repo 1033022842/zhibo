@@ -9,6 +9,7 @@ use app\BaseController;
 use app\common\exception\BusinessException;
 use app\common\service\LlmService;
 use app\common\service\TtsService;
+use app\common\service\SttService;
 use app\common\web\ResultCode;
 use app\live\model\UserAuth;
 use app\live\service\AffectionService;
@@ -30,7 +31,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt']],
     ];
 
     private UserService $userService;
@@ -2044,6 +2045,26 @@ final class Live extends BaseController
             'Content-Length' => (string) strlen($audio),
             'Cache-Control'  => 'no-store',
         ]);
+    }
+
+    /**
+     * AI 前端：服务端 STT 兜底（需登录）
+     * POST 原始音频字节（audio/wav），?lang=en → { text }
+     *
+     * 浏览器没有 SpeechRecognition 时（App 内置浏览器等）由前端录音上传，服务端转文字
+     */
+    public function stt()
+    {
+        $audio = (string) file_get_contents('php://input');
+        $lang  = (string) $this->request->get('lang', 'en');
+
+        try {
+            $text = (new SttService())->transcribe($audio, 'voice.wav', $lang);
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        }
+
+        return $this->jsonSuccess(['text' => $text]);
     }
 
     /**
