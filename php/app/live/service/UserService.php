@@ -72,8 +72,9 @@ final class UserService
 
     public function register(string $email, string $code, string $password, string $nickname, string $ip = '', string $inviteCode = '', array $attr = []): array
     {
-        $verifyService = new EmailVerifyService();
-        $verifyService->verify($email, $code);
+        if (RegistrationSettingService::emailVerifyRequired()) {
+            (new EmailVerifyService())->verify($email, $code);
+        }
 
         $user = $this->createUser($email, $password, $nickname, $ip, 'email', $attr);
         $this->bindInviter((int) $user['id'], $inviteCode);
@@ -82,18 +83,21 @@ final class UserService
     }
 
     /**
-     * AI 前端注册（无需邮箱验证码）
+     * AI 前端注册（邮箱验证由后台开关控制）
      *
      * @param array $attr 来源归因：domain/channel/px/platform/campaign/adset/ad + utm_source/utm_medium
      */
-    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = '', array $attr = []): array
+    public function registerFromAi(string $username, string $email, string $password, string $ip = '', string $inviteCode = '', array $attr = [], string $code = ''): array
     {
-        // 检查用户名/邮箱是否已存在
-        $exists = UserAuth::where('auth_key', $email)
-            ->whereOr('auth_key', $username)
-            ->find();
-        if ($exists) {
-            throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
+        // 按认证类型分别检查，用户名重复不能误报为邮箱已注册。
+        if (UserAuth::where('auth_type', 'email')->where('auth_key', $email)->find()) {
+            throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED, '该邮箱已注册，请登录或找回密码');
+        }
+        if (UserAuth::where('auth_type', 'username')->where('auth_key', $username)->find()) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, '该用户名已被使用，请更换用户名');
+        }
+        if (RegistrationSettingService::emailVerifyRequired()) {
+            (new EmailVerifyService())->verify($email, $code);
         }
 
         $user = $this->createUser($email, $password, $username, $ip, 'username', $attr);
@@ -124,14 +128,15 @@ final class UserService
             'platform' => '', 'campaign' => '', 'adset' => '', 'ad' => '',
             'utm_source' => '', 'utm_medium' => '',
         ], $attr);
-        $exists = UserAuth::where('auth_type', 'email')
+        $exists = $email !== '' ? UserAuth::where('auth_type', 'email')
             ->where('auth_key', $email)
-            ->find();
+            ->find() : null;
         if ($exists) {
             throw new BusinessException(ResultCode::EMAIL_ALREADY_REGISTERED);
         }
 
-        Db::startTrans();
+        $db = Db::connect('live_mysql');
+        $db->startTrans();
         try {
             $user = new User();
             $user->user_no = StrHelper::orderNo('U');
@@ -142,7 +147,15 @@ final class UserService
             // 推广来源归因：来源域名 + 渠道 + 平台 + 像素 + 广告系列/组/广告（前台没带域名时用 Referer/Origin 兜底）
             $user->reg_domain   = self::normalizeRegDomain($attr['domain'] !== '' ? $attr['domain'] : self::requestHost());
             $user->reg_channel  = mb_substr(trim((string) $attr['channel']), 0, 64);
-            $user->reg_platform = mb_substr(self::normalizePlatform($attr), 0, 32);
+            // 平台：先按渠道/utm 识别；识别不出时再按推广像素反解（推广链接只带 ?px= 也能绑定注册来源）
+            $regPlatform = self::normalizePlatform($attr);
+            if ($regPlatform === '' || $regPlatform === 'other') {
+                $pxPlatform = self::resolvePlatformByPx((string) $attr['px']);
+                if ($pxPlatform !== '') {
+                    $regPlatform = $pxPlatform;
+                }
+            }
+            $user->reg_platform = mb_substr($regPlatform, 0, 32);
             $user->reg_px       = mb_substr(trim((string) $attr['px']), 0, 64);
             // 渠道名称快照：注册当下解析一次落库，之后改名/删除渠道配置都不再影响该会员的归属展示
             $user->reg_channel_name = mb_substr(
@@ -157,12 +170,14 @@ final class UserService
             $user->created_at = date('Y-m-d H:i:s');
             $user->save();
 
-            $auth = new UserAuth();
-            $auth->user_id       = (int)$user->id;
-            $auth->auth_type     = 'email';
-            $auth->auth_key      = $email;
-            $auth->password_hash = hash_password($password);
-            $auth->save();
+            if ($email !== '') {
+                $auth = new UserAuth();
+                $auth->user_id       = (int)$user->id;
+                $auth->auth_type     = 'email';
+                $auth->auth_key      = $email;
+                $auth->password_hash = hash_password($password);
+                $auth->save();
+            }
 
             // registerFromAi 同时创建用户名认证，支持用户名登录
             if ($authType === 'username') {
@@ -179,16 +194,64 @@ final class UserService
             $profile->last_login_ip = $ip;
             $profile->save();
 
-            Db::commit();
+            $db->commit();
 
             return $user->toArray();
         } catch (BusinessException $e) {
-            Db::rollback();
+            $db->rollback();
             throw $e;
         } catch (\Exception $e) {
-            Db::rollback();
+            $db->rollback();
             throw new BusinessException(ResultCode::SERVER_ERROR, '注册失败: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * 身份已由邮箱验证码或提供商验证；不根据社交邮箱自动合并已有账号。
+     */
+    public function loginWithIdentity(string $provider, string $subject, string $email, string $nickname,
+        string $ip = '', string $deviceId = '', string $inviteCode = '', array $attr = []): array
+    {
+        if (!in_array($provider, ['email', 'google', 'discord', 'twitter'], true)
+            || $subject === '' || strlen($subject) > 128 || strlen($email) > 128) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Invalid sign-in identity.');
+        }
+        $newUser = false;
+        $db = Db::connect('live_mysql');
+        $user = $db->transaction(function () use ($provider, $subject, $email, $nickname, $ip, $attr, &$newUser): User {
+            $auth = UserAuth::where('auth_type', $provider)->where('auth_key', $subject)->lock(true)->find();
+            if ($auth) {
+                $user = User::find($auth->user_id);
+            } else {
+                if ($provider !== 'email' && $email !== ''
+                    && UserAuth::where('auth_type', 'email')->where('auth_key', $email)->find()) {
+                    throw new BusinessException(ResultCode::AUTH_FAILED,
+                        'This email already has an account. Please sign in with your email code or password.');
+                }
+                $created = $this->createUser($email, bin2hex(random_bytes(32)),
+                    mb_substr($nickname ?: 'Member', 0, 64), $ip, 'social', $attr);
+                $user = User::find($created['id']);
+                if ($provider !== 'email') {
+                    $identity = new UserAuth();
+                    $identity->user_id = (int) $user->id;
+                    $identity->auth_type = $provider;
+                    $identity->auth_key = $subject;
+                    $identity->password_hash = '';
+                    $identity->save();
+                }
+                $newUser = true;
+            }
+            if (!$user || (int) $user->status !== 1) {
+                throw new BusinessException(ResultCode::USER_DISABLED);
+            }
+            return $user;
+        });
+        if ($newUser) {
+            $this->bindInviter((int) $user->id, $inviteCode);
+        }
+        $result = $this->issueTokens($user, $ip, $deviceId);
+        $result['is_new_user'] = $newUser;
+        return $result;
     }
 
     public function login(string $account, string $password, string $ip = '', string $deviceId = ''): array
@@ -372,7 +435,7 @@ final class UserService
         return [
             'access_token'  => $accessToken,
             'refresh_token' => $refreshToken,
-            'expires_in'    => 7200,
+            'expires_in'    => JwtService::ACCESS_TTL,
             'user'          => [
                 'id'       => (int)$user->id,
                 'user_no'  => $user->user_no,
@@ -398,7 +461,7 @@ final class UserService
             throw new BusinessException(ResultCode::USER_NOT_FOUND);
         }
 
-        JwtService::blacklist($refreshToken, 604800);
+        JwtService::blacklist($refreshToken, JwtService::REFRESH_TTL);
 
         $newAccessToken  = JwtService::generateAccessToken($userId, $user->user_no, $user->nickname);
         $newRefreshToken = JwtService::generateRefreshToken($userId);
@@ -406,15 +469,15 @@ final class UserService
         return [
             'access_token'  => $newAccessToken,
             'refresh_token' => $newRefreshToken,
-            'expires_in'    => 7200,
+            'expires_in'    => JwtService::ACCESS_TTL,
         ];
     }
 
     public function logout(int $userId, string $accessToken, string $refreshToken = ''): void
     {
-        JwtService::blacklist($accessToken, 7200);
+        JwtService::blacklist($accessToken, JwtService::ACCESS_TTL);
         if ($refreshToken) {
-            JwtService::blacklist($refreshToken, 604800);
+            JwtService::blacklist($refreshToken, JwtService::REFRESH_TTL);
         }
 
         // 退出登录即离线（后台会员列表的「在线」立刻变成「离线」）
@@ -473,6 +536,37 @@ final class UserService
             }
             $profile->save();
         }
+    }
+
+    /**
+     * 通过邮箱验证码找回密码，同时撤销旧登录令牌。
+     */
+    public function resetPasswordByEmail(string $email, string $code, string $password): void
+    {
+        if (strlen($password) < 6 || strlen($password) > 20 || !preg_match('/^\d{6}$/D', $code)) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, 'Invalid password or verification code.');
+        }
+        $db = Db::connect('live_mysql');
+        $db->transaction(function () use ($db, $email, $code, $password): void {
+            $auth = $db->table('lp_user_auth')->where('auth_type', 'email')
+                ->where('auth_key', $email)->lock(true)->find();
+            if (!$auth) {
+                throw new BusinessException(ResultCode::VERIFY_CODE_ERROR, 'Invalid or expired code.');
+            }
+            $user = $db->table('lp_user')->where('id', $auth['user_id'])->lock(true)->find();
+            if (!$user || (int) $user['status'] !== 1) {
+                throw new BusinessException(ResultCode::VERIFY_CODE_ERROR, 'Invalid or expired code.');
+            }
+            (new EmailVerifyService())->verifyResetCode((string) $auth['auth_key'], $code);
+            $db->table('lp_user_auth')->where('user_id', $auth['user_id'])
+                ->whereIn('auth_type', ['email', 'username'])
+                ->update(['password_hash' => hash_password($password)]);
+            // 版本号持久化，重启或清理缓存后旧的长期 token 也不会重新生效。
+            $db->table('lp_platform_config')->replace()->insert([
+                'key' => 'user_token_version_' . $auth['user_id'],
+                'value' => bin2hex(random_bytes(16)),
+            ]);
+        });
     }
 
     /**
@@ -627,6 +721,30 @@ final class UserService
         }
 
         return trim($channel);
+    }
+
+    /**
+     * 按推广像素反解平台（推广链接只带 ?px=<渠道ID> 时用于绑定注册来源）
+     */
+    private static function resolvePlatformByPx(string $px): string
+    {
+        $px = trim($px);
+        if ($px === '') {
+            return '';
+        }
+        try {
+            $db = Db::connect('live_mysql');
+            $platform = trim((string) $db->table('lp_promo_pixel')->where('id', $px)->value('platform'));
+            if ($platform === '') {
+                $platform = trim((string) $db->table('lp_promo_pixel')->where('pixel_id', $px)->value('platform'));
+            }
+        } catch (\Throwable $e) {
+            // 反解失败不能影响注册主流程
+            Log::warning('[promo] 像素平台反解失败 px=' . $px . ' err=' . $e->getMessage());
+            return '';
+        }
+        $platform = strtolower($platform);
+        return in_array($platform, ['facebook', 'tiktok', 'google'], true) ? $platform : '';
     }
 
     /**

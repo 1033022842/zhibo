@@ -29,6 +29,8 @@ final class PromoSetting extends Backend
         $svc     = new PromoService();
         $values  = $svc->all();
         $pixels  = $svc->pixels(false);
+        // 渠道配置列表按新增倒序：最新建的渠道排最前
+        usort($pixels, static fn(array $a, array $b): int => (int) $b['id'] <=> (int) $a['id']);
         $tab     = (string) $this->request->param('tab', 'config');
         $tab     = in_array($tab, ['stats', 'config'], true) ? $tab : 'config';
         $editId  = (int) $this->request->param('id', 0);

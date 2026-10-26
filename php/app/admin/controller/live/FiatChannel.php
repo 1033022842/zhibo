@@ -34,6 +34,9 @@ final class FiatChannel extends Backend
         'mkpay_vn' => 'MKPay（越南 VND，金额传整数 VND；返回收银台/二维码）',
         'mkpay_mx' => 'MKPay（墨西哥 MXN，金额传分；返回收银台/二维码）',
         'mkpay_in' => 'MKPay（印度 INR，金额传分；返回收银台/二维码）',
+        'cregis'   => 'Cregis（收银台，订单币种走通道币种；用户自选支付币种）',
+        'aipowerpay' => 'AIPowerPay（信用卡收银台，USD 计价，3DS 在网关页内完成）',
+        'wisonpay' => 'WisonPay（美国 USD；网关产品留空使用默认收银台）',
     ];
 
     /**
@@ -95,7 +98,7 @@ final class FiatChannel extends Backend
                     <div class="tip">选「人工审核」时不需要网关，用户下单后订单进「充值审核」等你核对收款；选 star-pay / mkpay / mkpay_vn / mkpay_mx / mkpay_in 才走网关收银台。</div>
                 </div>
                 <div class="field"><label>网关标识（starpay 填 product 产品码，mkpay / mkpay_vn / mkpay_mx / mkpay_in / 人工通道留空）</label>
-                    <input name="gateway_ref" value="{$v('gateway_ref')}" placeholder="留空则用 .env 里的默认 product" />
+                    <input name="gateway_ref" value="{$v('gateway_ref')}" placeholder="WisonPay 留空默认 Cash App；可选 cashapp / googlepayus / applepayus" />
                 </div>
                 <div class="field"><label>结算币种代码</label><input name="currency" value="{$v('currency')}" placeholder="如 MYR / VND / IDR" required /></div>
                 <div class="field"><label>币种符号（金额前缀，前台展示用）</label><input name="currency_symbol" value="{$v('currency_symbol')}" placeholder="如 RM，留空则显示币种代码" /></div>
@@ -188,12 +191,23 @@ final class FiatChannel extends Backend
         $id  = (int) $this->request->param('id', 0);
         $row = Db::connect('live_mysql')->table('lp_fiat_channel')->where('id', $id)->find();
         if (!$row) {
+            if ($this->request->isAjax()) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['code' => 1, 'msg' => '通道不存在'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
             $this->renderError('通道不存在');
             return;
         }
+        $status = ((int) $row['status'] === 1) ? 0 : 1;
         Db::connect('live_mysql')->table('lp_fiat_channel')
             ->where('id', $id)
-            ->update(['status' => ((int) $row['status'] === 1) ? 0 : 1]);
+            ->update(['status' => $status]);
+        if ($this->request->isAjax()) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['code' => 0, 'msg' => '状态已切换', 'status' => $status], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         $this->renderSuccess('状态已切换');
     }
 

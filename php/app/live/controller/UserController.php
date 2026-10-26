@@ -9,6 +9,7 @@ use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use app\live\service\UserService;
 use app\live\service\EmailVerifyService;
+use app\live\service\RegistrationSettingService;
 use app\live\validate\UserValidate;
 
 final class UserController extends BaseController
@@ -35,10 +36,11 @@ final class UserController extends BaseController
     public function register()
     {
         $params = $this->request->post();
-        $this->validate($params, UserValidate::class, 'register');
+        $scene = RegistrationSettingService::emailVerifyRequired() ? 'register' : 'registerUnverified';
+        $this->validate($params, UserValidate::class . '.' . $scene);
 
         $ip = $this->request->ip();
-        $this->userService->register($params['email'], $params['code'], $params['password'], $params['nickname'], $ip);
+        $this->userService->register($params['email'], (string) ($params['code'] ?? ''), $params['password'], $params['nickname'], $ip);
 
         return $this->jsonSuccess(null, '注册成功');
     }

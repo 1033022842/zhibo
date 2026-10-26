@@ -64,18 +64,39 @@ final class InviteService
     }
 
     /**
-     * 邀请页数据：我的邀请码 + 收益统计
+     * 邀请页数据：我的邀请码 + 收益统计 + 邀请记录
      */
     public function overview(int $userId): array
     {
         $code = $this->ensureCode($userId);
+        $db   = Db::connect('live_mysql');
 
-        $row = Db::connect('live_mysql')->table('lp_invite_record')
+        $row = $db->table('lp_invite_record')
             ->where('inviter_id', $userId)
             ->field('COUNT(*) AS invited_count,
                      SUM(CASE WHEN premium_at IS NOT NULL THEN 1 ELSE 0 END) AS premium_friends,
                      SUM(reward_tokens) AS total_earned')
             ->find() ?: [];
+
+        $records = $db->table('lp_invite_record')->alias('ir')
+            ->leftJoin('lp_user u', 'u.id = ir.invitee_id')
+            ->where('ir.inviter_id', $userId)
+            ->field('ir.registered_at, ir.premium_at, ir.reward_tokens, u.nickname, u.avatar')
+            ->order('ir.id', 'desc')
+            ->limit(20)
+            ->select()->toArray();
+
+        $items = [];
+        foreach ($records as $record) {
+            $nickname = trim((string) ($record['nickname'] ?? ''));
+            $items[] = [
+                'nickname'      => $nickname !== '' ? $nickname : 'Friend',
+                'avatar'        => (string) ($record['avatar'] ?? ''),
+                'registered_at' => (string) ($record['registered_at'] ?? ''),
+                'premium_at'    => (string) ($record['premium_at'] ?? ''),
+                'reward_tokens' => (float) ($record['reward_tokens'] ?? 0),
+            ];
+        }
 
         return [
             'code'            => $code,
@@ -83,6 +104,7 @@ final class InviteService
             'invited_count'   => (int) ($row['invited_count'] ?? 0),
             'premium_friends' => (int) ($row['premium_friends'] ?? 0),
             'total_earned'    => (float) ($row['total_earned'] ?? 0),
+            'records'         => $items,
         ];
     }
 

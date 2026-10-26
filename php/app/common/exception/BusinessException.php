@@ -11,8 +11,9 @@ class BusinessException extends RuntimeException
     public function __construct(
         public readonly ResultCode $resultCode,
         string $message = '',
-        int $httpCode = 200
+        int $httpCode = 200,
+        ?\Throwable $previous = null
     ) {
-        parent::__construct($message ?: $resultCode->getMsg(), $httpCode);
+        parent::__construct($message ?: $resultCode->getMsg(), $httpCode, $previous);
     }
 }

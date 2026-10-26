@@ -20,15 +20,15 @@
 
 		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
 
-		<link rel="stylesheet" href="./assets/fy.css?v=20261018c" data-turbo-track="reload">
+		<link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1" data-turbo-track="reload">
 		<link rel="stylesheet" href="./_shared/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
 		<script src="./_shared/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
 		<script src="./_shared/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
 
 		<script src="./_shared/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
-		<script src="./js/main.js?v=20261020d"></script>
-		<script src="./js/shell-new.js?v=20261018c"></script>
+		<script src="./js/main.js?v=20261023regtoggle1"></script>
+		<script src="./js/shell-new.js?v=20261021discover1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 		<script src="./js/event.js"></script>
 		<script src="./js/series-dialog.js?v=20261020c"></script>
@@ -378,6 +378,11 @@
 				/* Private Content 卡片是 9/16 竖版（190 宽 ≈ 338 高），套上面的 2×158px 轨道会纵向溢出、
 				   两排叠在一起；这里恢复横向单排，行高由卡片自己撑开 */
 				#privateGrid{grid-template-rows:auto}
+				/* Continue watching 的卡片同样是 190×271（7/10），塞进 2×158px 轨道会上下叠住；
+				   手机端把卡片收窄到 96×137 并恢复单排，行高交给卡片自己撑开 */
+				#continueGrid{grid-template-rows:auto}
+				#continueGrid .wh-card{width:96px!important}
+				#continueGrid .wh-card>div{border-radius:10px!important}
 				.c-card{width:96px;height:158px;border-radius:10px}
 				.c-skeleton{width:96px;height:158px;border-radius:10px}
 				.c-card-short{width:96px;height:137px;border-radius:10px}
@@ -647,7 +652,7 @@
 					</div>
 				</div>
 			</div>
-			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js?v=20261018c 渲染成新版导航形态） -->
+			<!-- 右侧：已登录（由 main.js 切换显示；内容由 js/shell-new.js?v=20261021discover1 渲染成新版导航形态） -->
 			<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main"></div>
 		</div>
 
@@ -976,6 +981,11 @@
 			var base = '/api/v1'
 			var CATS = ['girls', 'anime', 'guys']
 			var store = {}, activeCat = 'girls'
+			// 从 Chat 等页面跳回时带 ?cat=anime/guys，直接落到对应分类
+			try {
+				var catQ = (new URLSearchParams(location.search)).get('cat') || ''
+				if (CATS.indexOf(catQ.toLowerCase()) >= 0) activeCat = catQ.toLowerCase()
+			} catch (e) {}
 			var slides = [], cur = 0, timer = null, activeChip = 'All', keyword = ''
 			function curChars() { return (store[activeCat] && store[activeCat].chars) || [] }
 			function curBanners() { return (store[activeCat] && store[activeCat].banners) || [] }
@@ -1478,6 +1488,10 @@
 			/* ---------- 分类 Tab：切换后按当前分类重渲染 ---------- */
 			function renderAll() {
 				closeDd()
+				// 顶栏分类高亮跟随 activeCat（含 ?cat= 直接进入时）
+				document.querySelectorAll('[data-cat]').forEach(function(b) {
+					b.classList.toggle('active', b.getAttribute('data-cat') === activeCat)
+				})
 				var lbl = document.getElementById('catDdLabel')
 				if (lbl) lbl.textContent = activeCat.charAt(0).toUpperCase() + activeCat.slice(1)
 				activeChip = 'All'

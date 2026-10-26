@@ -191,13 +191,24 @@
         writeCache(d.data)
         boot(d.data)
       })
-      .catch(function () { /* 接口不可用则整站保持原样 */ })
+      .catch(function () { /* 接口不可用则整站保持原样 */ pixelsReady = true; pendingEvents.length = 0 })
   }
 
   function boot(data) {
     cfg = data || {}
     try { injectPixels(cfg.pixels || {}) } catch (e) { /* 统计脚本失败不影响页面 */ }
+    pixelsReady = true
+    flushPending()
     onReady(function () { try { initCs(cfg.cs || {}) } catch (e) { /* 客服失败不影响页面 */ } })
+  }
+
+  /** 补发「像素就绪前」积压的转化事件 */
+  function flushPending() {
+    var q = pendingEvents.slice()
+    pendingEvents.length = 0
+    for (var i = 0; i < q.length; i++) {
+      try { dispatchEvent(q[i][0], q[i][1], q[i][2]) } catch (e) { /* 单条失败忽略 */ }
+    }
   }
 
   function onReady(fn) {
@@ -218,6 +229,10 @@
 
   // 本次页面实际启用的像素：[{ platform, events, test }]
   var targets = []
+  // 像素注入是异步的（要先拉 /api/v1/site/config）。付款成功往往在返回页面后立刻触发，
+  // 早于像素就绪会导致 Purchase/Subscribe 被吞掉，所以先入队，注入完成后统一补发。
+  var pixelsReady = false
+  var pendingEvents = []
   var fbReady = false
   var ttReady = false
   var gtagReady = false
@@ -406,11 +421,23 @@
   }
 
   /**
-   * 上报转化事件：只发给「事件选择里勾了这个事件」的像素
-   * 带测试回调编码的像素会把测试标记一起发出去，方便在广告后台「测试事件」面板验证
+   * 上报转化事件：像素没就绪时先入队，就绪后自动补发
    */
   function track(name, params, eventId) {
-    if (!name || !eventEnabled(name)) return
+    if (!name) return
+    if (!pixelsReady) {
+      if (pendingEvents.length < 20) pendingEvents.push([name, params, eventId])
+      return
+    }
+    dispatchEvent(name, params, eventId)
+  }
+
+  /**
+   * 实际上报：只发给「事件选择里勾了这个事件」的像素
+   * 带测试回调编码的像素会把测试标记一起发出去，方便在广告后台「测试事件」面板验证
+   */
+  function dispatchEvent(name, params, eventId) {
+    if (!eventEnabled(name)) return
     var p = params || {}
     var payload = {}
     if (p.value != null && isFinite(Number(p.value))) {

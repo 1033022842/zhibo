@@ -18,7 +18,7 @@ final class RechargeChannel extends Backend
     protected object $model;
 
     // 绕过登录检查（iframe 模式下 cookie 不共享）
-    protected array $noNeedLogin = ['index', 'editChannel', 'vipPlanSave', 'vipPlanToggle', 'editVip', 'editPackage', 'packageSave', 'packageToggle', 'flowpayToggle'];
+    protected array $noNeedLogin = ['index', 'editChannel', 'channelToggle', 'vipPlanSave', 'vipPlanToggle', 'editVip', 'editPackage', 'packageSave', 'packageToggle', 'flowpayToggle'];
 
     // 飘页访问守卫：URL ?_key= 首次校验后走 Cookie（密钥 .env ADMIN_FLOAT_KEY）
     protected array $middleware = [
@@ -127,13 +127,52 @@ final class RechargeChannel extends Backend
         $id  = (int) $this->request->param('id', 0);
         $row = Db::connect('live_mysql')->table('lp_recharge_package')->where('id', $id)->find();
         if (!$row) {
+            if ($this->request->isAjax()) {
+                $this->jsonExit(1, '套餐不存在');
+            }
             $this->renderError('套餐不存在');
             return;
         }
+        $status = ((int) $row['status'] === 1) ? 0 : 1;
         Db::connect('live_mysql')->table('lp_recharge_package')
             ->where('id', $id)
-            ->update(['status' => ((int) $row['status'] === 1) ? 0 : 1]);
+            ->update(['status' => $status]);
+        if ($this->request->isAjax()) {
+            $this->jsonExit(0, '状态已切换', ['status' => $status]);
+        }
         $this->renderSuccess('状态已切换');
+    }
+
+    /**
+     * 充值渠道（链上 / 加密货币）启用/停用切换
+     */
+    public function channelToggle(): void
+    {
+        $id  = (int) $this->request->param('id', 0);
+        $row = $this->model->find($id);
+        if (!$row) {
+            if ($this->request->isAjax()) {
+                $this->jsonExit(1, '渠道不存在');
+            }
+            $this->renderError('渠道不存在');
+            return;
+        }
+        $status = ((int) $row['status'] === 1) ? 0 : 1;
+        $this->model->where('id', $id)->update(['status' => $status]);
+        if ($this->request->isAjax()) {
+            $this->jsonExit(0, '状态已切换', ['status' => $status]);
+        }
+        $this->renderSuccess('状态已切换');
+    }
+
+    /**
+     * AJAX 切换结果：只返回 JSON，前端原地更新按钮，不整页刷新
+     */
+    private function jsonExit(int $code, string $msg, array $extra = []): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(array_merge(['code' => $code, 'msg' => $msg], $extra), JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     /**
@@ -483,32 +522,86 @@ final class RechargeChannel extends Backend
         $id = (int) $this->request->param('id', 0);
         $row = Db::connect('live_mysql')->table('lp_vip_plan')->where('id', $id)->find();
         if (!$row) {
+            if ($this->request->isAjax()) {
+                $this->jsonExit(1, '套餐不存在');
+            }
             $this->renderError('套餐不存在');
             return;
         }
+        $status = ((int) $row['status'] === 1) ? 0 : 1;
         Db::connect('live_mysql')->table('lp_vip_plan')
             ->where('id', $id)
-            ->update(['status' => ((int)$row['status'] === 1) ? 0 : 1]);
+            ->update(['status' => $status]);
+        if ($this->request->isAjax()) {
+            $this->jsonExit(0, '状态已切换', ['status' => $status]);
+        }
         $this->renderSuccess('状态已切换');
+    }
+
+    /**
+     * 把页面内的后台链接补齐为当前入口前缀（Sugus 的 PHP 后台在 /index.php/admin），
+     * 并透传 _key，保证列表里的开关/编辑链接点得开。
+     */
+    private function rewriteAdminLinks(string $html): string
+    {
+        $uri  = (string) $this->request->server('REQUEST_URI');
+        $base = str_starts_with($uri, '/index.php/') ? '/index.php/admin' : '/admin';
+        $key  = (string) $this->request->param('_key', '');
+
+        return (string) preg_replace_callback(
+            "#(href|action|data-url)=(['\"])(/admin/[^'\"]*)\\2#i",
+            static function (array $m) use ($base, $key): string {
+                $url = $m[3];
+                if ($base !== '/admin') {
+                    $url = $base . substr($url, strlen('/admin'));
+                }
+                if ($key !== '' && !str_contains($url, '_key=')) {
+                    $url .= (str_contains($url, '?') ? '&' : '?') . '_key=' . rawurlencode($key);
+                }
+                return $m[1] . '=' . $m[2] . $url . $m[2];
+            },
+            $html
+        );
     }
 
     private function renderPage($list, array $vipPlans = [], array $packages = [], array $fiatList = []): string
     {
+        // 状态胶囊：点击后走 AJAX 原地切换，不整页跳转
+        $statusBtn = static function (string $url, bool $on, array $t): string {
+            $label = $on ? $t['on'] : $t['off'];
+            $tip   = $on ? $t['tipOn'] : $t['tipOff'];
+            return '<button type="button" class="status-toggle ' . ($on ? 'is-on' : 'is-off') . '"'
+                . ' data-status-toggle data-url="' . $url . '"'
+                . ' data-label-on="' . $t['on'] . '" data-label-off="' . $t['off'] . '"'
+                . ' data-tip-on="' . $t['tipOn'] . '" data-tip-off="' . $t['tipOff'] . '"'
+                . ' data-confirm-on="' . $t['confirmOn'] . '" data-confirm-off="' . $t['confirmOff'] . '"'
+                . ' aria-pressed="' . ($on ? 'true' : 'false') . '"'
+                . ' title="' . $tip . '">' . $label . '</button>';
+        };
+
         // ===== 法币通道（单国本币收款，lp_fiat_channel）=====
         $fiatRows = '';
         foreach ($fiatList as $r) {
             $fid = (int) $r['id'];
-            $fst = ((int) $r['status'] === 1)
-                ? '<span style="color:#00d4aa">启用</span>'
-                : '<span style="color:#ff2d55">已下架</span>';
+            $fst = $statusBtn('/admin/live.FiatChannel/toggle?id=' . $fid, (int) $r['status'] === 1, [
+                'on' => '启用', 'off' => '已下架',
+                'tipOn' => '点击关闭', 'tipOff' => '点击开启',
+                'confirmOn' => '确认开启该通道？', 'confirmOff' => '确认关闭该通道？',
+            ]);
             $fc  = htmlspecialchars((string) $r['currency'], ENT_QUOTES);
             $fs  = htmlspecialchars((string) $r['currency_symbol'], ENT_QUOTES);
             $gw  = (string) $r['gateway'];
-            $fgw = $gw === 'starpay' ? 'star-pay'
-            : ($gw === 'mkpay' ? 'MKPay(巴西)'
-                : ($gw === 'mkpay_vn' ? 'MKPay(越南)'
-                    : ($gw === 'mkpay_mx' ? 'MKPay(墨西哥)'
-                        : ($gw === 'mkpay_in' ? 'MKPay(印度)' : '人工审核'))));
+            $fgw = match ($gw) {
+                'starpay'    => 'star-pay',
+                'mkpay'      => 'MKPay(巴西)',
+                'mkpay_vn'   => 'MKPay(越南)',
+                'mkpay_mx'   => 'MKPay(墨西哥)',
+                'mkpay_in'   => 'MKPay(印度)',
+                'cregis'     => 'Cregis(收银台)',
+                'aipowerpay' => 'AIPowerPay(信用卡)',
+                'wisonpay'   => 'WisonPay(美国钱包)',
+                default      => '人工审核',
+            };
 
             // 拿 $15 举例把折算结果写出来，运营填错汇率能一眼看出来
             $sample = '—';
@@ -529,8 +622,7 @@ final class RechargeChannel extends Backend
                 . '<td>' . htmlspecialchars((string) $r['min_amount'], ENT_QUOTES) . '</td>'
                 . '<td>' . htmlspecialchars((string) $r['diamond_rate'], ENT_QUOTES) . '</td>'
                 . '<td>' . (int) $r['sort'] . "</td><td>{$fst}</td>"
-                . "<td><a class='btn-edit' href='/admin/live.FiatChannel/edit?id={$fid}'>编辑</a> "
-                . "<a class='btn-edit' href='/admin/live.FiatChannel/toggle?id={$fid}' onclick=\"return confirm('切换启用状态?')\">切换</a></td></tr>";
+                . "<td><a class='btn-edit' href='/admin/live.FiatChannel/edit?id={$fid}'>编辑</a></td></tr>";
         }
         if ($fiatRows === '') {
             $fiatRows = '<tr><td colspan="11" style="text-align:center;color:#999">还没有法币通道，点上方「+ 新增法币通道」添加</td></tr>';
@@ -538,12 +630,15 @@ final class RechargeChannel extends Backend
 
         $pkgRows = '';
         foreach ($packages as $p) {
-            $pid   = (int) $p['id'];
-            $pst   = ((int) $p['status'] === 1) ? '<span style="color:#00a870">上架</span>' : '<span style="color:#999">下架</span>';
+            $pid = (int) $p['id'];
+            $pst = $statusBtn('/admin/live.RechargeChannel/packageToggle?id=' . $pid, (int) $p['status'] === 1, [
+                'on' => '上架', 'off' => '下架',
+                'tipOn' => '点击下架', 'tipOff' => '点击上架',
+                'confirmOn' => '确认上架该套餐？', 'confirmOff' => '确认下架该套餐？',
+            ]);
             $bonus = ((int) $p['bonus_percent'] > 0) ? '+' . (int) $p['bonus_percent'] . '%' : '-';
             $pkgRows .= "<tr><td>{$pid}</td><td>" . (int) $p['tokens'] . "</td><td>" . htmlspecialchars((string) $p['price']) . "</td><td>{$bonus}</td><td>" . (int) $p['sort'] . "</td><td>{$pst}</td>"
-                . "<td><a class='btn-edit' href='/admin/live.RechargeChannel/editPackage?id={$pid}'>编辑</a> "
-                . "<a class='btn-edit' href='/admin/live.RechargeChannel/packageToggle?id={$pid}' onclick=\"return confirm('切换上下架?')\">切换</a></td></tr>";
+                . "<td><a class='btn-edit' href='/admin/live.RechargeChannel/editPackage?id={$pid}'>编辑</a></td></tr>";
         }
         if ($pkgRows === '') {
             $pkgRows = '<tr><td colspan="7" style="text-align:center;color:#999">暂无套餐</td></tr>';
@@ -553,11 +648,14 @@ final class RechargeChannel extends Backend
         foreach ($vipPlans as $v) {
             $v['usd_price'] = $v['usd_price'] ?? '0.00';
             $vid = (int)$v['id'];
-            $vst = ((int)$v['status'] === 1) ? '<span style="color:#00a870">启用</span>' : '<span style="color:#999">禁用</span>';
+            $vst = $statusBtn('/admin/live.RechargeChannel/vipPlanToggle?id=' . $vid, (int)$v['status'] === 1, [
+                'on' => '启用', 'off' => '禁用',
+                'tipOn' => '点击关闭', 'tipOff' => '点击开启',
+                'confirmOn' => '确认开启该套餐？', 'confirmOff' => '确认关闭该套餐？',
+            ]);
             $vlevel = ((string)($v['level'] ?? 'premium') === 'premium_plus') ? 'Premium Plus' : 'Premium';
             $vipRows .= "<tr><td>{$vid}</td><td>" . htmlspecialchars((string)$v['name']) . "</td><td>{$vlevel}</td><td>{$v['months']}</td><td>{$v['usd_price']}</td><td>{$v['diamond_price']}</td><td>{$v['daily_diamond']}</td><td>{$v['sort']}</td><td>{$vst}</td>"
-                . "<td><a class='btn-edit' href='/admin/live.RechargeChannel/editVip?id={$vid}'>编辑</a> "
-                . "<a class='btn-edit' href='/admin/live.RechargeChannel/vipPlanToggle?id={$vid}' onclick=\"return confirm('切换启用状态?')\">切换</a></td></tr>";
+                . "<td><a class='btn-edit' href='/admin/live.RechargeChannel/editVip?id={$vid}'>编辑</a></td></tr>";
         }
         if ($vipRows === '') {
             $vipRows = '<tr><td colspan="10" style="text-align:center;color:#999">暂无套餐</td></tr>';
@@ -565,9 +663,13 @@ final class RechargeChannel extends Backend
 
         $rows = '';
         foreach ($list->items() as $r) {
-            $st = ($r['status'] == 1) ? '<span style="color:#00d4aa">启用</span>' : '<span style="color:#ff2d55">禁用</span>';
-            $qr = $r['qr_code_url'] ? '有' : '无';
             $rid = (int)$r['id'];
+            $st = $statusBtn('/admin/live.RechargeChannel/channelToggle?id=' . $rid, (int) $r['status'] === 1, [
+                'on' => '启用', 'off' => '禁用',
+                'tipOn' => '点击关闭', 'tipOff' => '点击开启',
+                'confirmOn' => '确认开启该渠道？', 'confirmOff' => '确认关闭该渠道？',
+            ]);
+            $qr = $r['qr_code_url'] ? '有' : '无';
             $rname = htmlspecialchars((string)$r['name'], ENT_QUOTES);
             $rtype = htmlspecialchars(RechargeService::COINS[(string)$r['type']]['label'] ?? (string)$r['type'], ENT_QUOTES);
             // 实际生效的确认方式：没扫链实现的币种即使后台选了「自动」也按人工审核跑
@@ -596,7 +698,7 @@ final class RechargeChannel extends Backend
             . '<a class="btn-switch" style="background:' . $fpColor . '" href="/admin/live.RechargeChannel/flowpayToggle"'
             . " onclick=\"return confirm('确定" . $fpAct . "信用卡支付？')\">" . $fpAct . '</a></div>';
 
-        return <<<HTML
+        $html = <<<HTML
         <!DOCTYPE html><html lang="zh-CN">
         <head><meta charset="UTF-8"><title>充值渠道管理</title>
         <style>
@@ -608,6 +710,12 @@ final class RechargeChannel extends Backend
             table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #eee}th{background:#f8f9fc;font-weight:600;font-size:13px}
             .btn-add{display:inline-block;padding:8px 18px;background:#409eff;color:#fff;border-radius:6px;text-decoration:none;font-size:14px}
             .btn-edit{color:#409eff;text-decoration:none}
+            .status-toggle{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid transparent;border-radius:999px;font-size:12px;line-height:1.5;text-decoration:none;white-space:nowrap;transition:filter .15s;font-family:inherit;cursor:pointer;appearance:none}
+            .status-toggle:disabled{opacity:.55;cursor:wait}
+            .status-toggle:before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+            .status-toggle.is-on{color:#00a870;background:rgba(0,168,112,.08);border-color:rgba(0,168,112,.28)}
+            .status-toggle.is-off{color:#ff2d55;background:rgba(255,45,85,.08);border-color:rgba(255,45,85,.24)}
+            .status-toggle:hover{filter:brightness(.9)}
             .pager{margin-top:16px;text-align:center}
             .pager ul{display:inline-flex;gap:4px;list-style:none}
             .pager li a,.pager li span{padding:6px 12px;border:1px solid #ddd;border-radius:4px;color:#333;text-decoration:none;font-size:13px}
@@ -638,8 +746,48 @@ final class RechargeChannel extends Backend
             <h1 style="margin-top:32px">充值套餐（AI 女友端 Tokens 页）</h1>
             <div class="toolbar"><a class="btn-add" href="/admin/live.RechargeChannel/editPackage">+ 新增套餐</a></div>
             <table><thead><tr><th>ID</th><th>点数</th><th>售价(USD)</th><th>赠送</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>{$pkgRows}</tbody></table>
-        </div></body></html>
+        </div>
+        <script>
+        (function () {
+            function apply(btn, on) {
+                btn.classList.toggle('is-on', on);
+                btn.classList.toggle('is-off', !on);
+                btn.textContent = on ? btn.getAttribute('data-label-on') : btn.getAttribute('data-label-off');
+                btn.title = on ? btn.getAttribute('data-tip-on') : btn.getAttribute('data-tip-off');
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            }
+            document.addEventListener('click', function (e) {
+                var btn = e.target && e.target.closest ? e.target.closest('[data-status-toggle]') : null;
+                if (!btn || btn.disabled) return;
+                e.preventDefault();
+                var on = btn.classList.contains('is-on');
+                var msg = on ? btn.getAttribute('data-confirm-off') : btn.getAttribute('data-confirm-on');
+                if (msg && !window.confirm(msg)) return;
+                var failure = '切换失败，请刷新后重试';
+                btn.disabled = true;
+                fetch(btn.getAttribute('data-url'), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                }).then(function (res) {
+                    return res.json();
+                }).then(function (data) {
+                    if (!data || data.code !== 0) {
+                        failure = (data && data.msg) ? data.msg : failure;
+                        throw new Error(failure);
+                    }
+                    apply(btn, Number(data.status) === 1);
+                }).catch(function () {
+                    window.alert(failure);
+                }).then(function () {
+                    btn.disabled = false;
+                });
+            });
+        })();
+        </script>
+        </body></html>
         HTML;
+
+        return $this->rewriteAdminLinks($html);
     }
 
     /**

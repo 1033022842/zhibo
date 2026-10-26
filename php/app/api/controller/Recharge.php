@@ -437,6 +437,186 @@ final class Recharge extends BaseController
     }
 
     /**
+     * Cregis 异步通知（免登录，需验签）
+     *
+     * 回调 JSON：event_name=order / event_type / data{order_id, cregis_id, status, tx_id, ...}
+     * 成功必须返回 HTTP 200 + 纯文本 success；Cregis 只推一次，
+     * 漏单靠 RechargeService::reconcileGateway() 定时查单补。
+     */
+    public function notifyCregis()
+    {
+        $cg  = new \app\live\service\CregisPayService();
+        $raw = (string) $this->request->getContent();
+        $post = json_decode($raw, true);
+        if (!is_array($post)) {
+            $post = (array) $this->request->post();
+        }
+
+        try {
+            $params = $cg->verifyNotify($post);
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyCregis] 验签失败：' . $e->getMessage() . ' raw=' . mb_substr($raw, 0, 2000));
+            return response('invalid sign', 400, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $data     = is_array($params['data'] ?? null) ? $params['data'] : [];
+        $orderNo  = (string) ($data['order_id'] ?? '');
+        $cregisId = (string) ($data['cregis_id'] ?? '');
+        $status   = strtolower((string) ($data['status'] ?? ''));
+        $txId     = (string) ($data['tx_id'] ?? '');
+        $type     = (string) ($params['event_type'] ?? '');
+
+        \think\facade\Log::info(sprintf(
+            '[recharge:notifyCregis] order=%s cregis_id=%s type=%s status=%s(%s) tx=%s',
+            $orderNo,
+            $cregisId,
+            $type,
+            $status,
+            \app\live\service\CregisPayService::statusText($status),
+            $txId
+        ));
+
+        $ok = static fn() => response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        if ($orderNo === '') {
+            return $ok();
+        }
+
+        // 部分支付：不发货，备注提示运营等补款（补款后 Cregis 会推 paid_remain）
+        if ($status === 'paid_partial') {
+            \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+                ->where('order_no', $orderNo)->where('status', 0)
+                ->update(['admin_remark' => 'Cregis 部分支付，待用户补款', 'updated_at' => date('Y-m-d H:i:s')]);
+            return $ok();
+        }
+
+        if (!\app\live\service\CregisPayService::isPaid($status)) {
+            // expired / canceled / paid_remain 之外的中间态：不入账，直接 ack
+            return $ok();
+        }
+
+        $exists = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+            ->where('order_no', $orderNo)->value('id');
+        if (!$exists) {
+            \think\facade\Log::warning('[recharge:notifyCregis] 成功回调但订单不存在，已 ack order=' . $orderNo);
+            return $ok();
+        }
+
+        try {
+            // confirmByGateway 幂等：重复回调不会重复加代币/开会员
+            $this->service->confirmByGateway($orderNo, $cregisId, $txId, 'Cregis');
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyCregis] 入账失败：' . $e->getMessage() . ' order=' . $orderNo);
+            // 非 success 让 Cregis 标记失败，可到客户端「异常回调」手动重推
+            return response('error', 500, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        return $ok();
+    }
+
+    /**
+     * AIPowerPay 异步通知（免登录，需验签）
+     *
+     * 回调 JSON：type=order.payment.success / order.payment.fail / order.refund，
+     * 字段含 order_no / invoice_id / failure_code / id / sign。
+     * 处理成功返回 200 + 纯文本 success，失败返回 500 让网关重推。
+     */
+    public function notifyAiPowerPay()
+    {
+        $ap  = new \app\live\service\AiPowerPayService();
+        $raw = (string) $this->request->getContent();
+        $post = json_decode($raw, true);
+        if (!is_array($post)) {
+            $post = (array) $this->request->post();
+        }
+
+        try {
+            $params = $ap->verifyNotify($post);
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyAiPowerPay] 验签失败：' . $e->getMessage() . ' raw=' . mb_substr($raw, 0, 2000));
+            return response('invalid sign', 400, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $type    = strtolower((string) ($params['type'] ?? ''));
+        $orderNo = (string) ($params['order_no'] ?? '');
+        $code    = strtolower((string) ($params['failure_code'] ?? ''));
+        $gwId    = (string) ($params['id'] ?? '');
+
+        \think\facade\Log::info(sprintf(
+            '[recharge:notifyAiPowerPay] type=%s order=%s failure_code=%s id=%s amount=%s %s',
+            $type,
+            $orderNo,
+            $code,
+            $gwId,
+            (string) ($params['amount'] ?? ''),
+            (string) ($params['currency'] ?? '')
+        ));
+
+        $ok = static fn() => response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        if ($orderNo === '') {
+            return $ok();
+        }
+
+        // 退款通知：只记录，不自动扣减余额（人工核对）
+        if (str_contains($type, 'refund')) {
+            \think\facade\Log::warning('[recharge:notifyAiPowerPay] 收到退款回调 order=' . $orderNo . ' status=' . (string) ($params['refundStatus'] ?? ''));
+            return $ok();
+        }
+
+        // 支付成功：type=order.payment.success 或 failure_code=success
+        $paid = str_contains($type, 'payment.success') || $code === 'success';
+        if (!$paid) {
+            // 失败通知：只记日志，订单保持待支付，用户可重新支付（对账会按查单结果落未支付）
+            \think\facade\Log::warning('[recharge:notifyAiPowerPay] 支付失败通知 order=' . $orderNo . ' msg=' . (string) ($params['msg'] ?? ''));
+            return $ok();
+        }
+
+        $exists = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+            ->where('order_no', $orderNo)->value('id');
+        if (!$exists) {
+            \think\facade\Log::warning('[recharge:notifyAiPowerPay] 成功回调但订单不存在，已 ack order=' . $orderNo);
+            return $ok();
+        }
+
+        try {
+            // confirmByGateway 幂等：重复回调不会重复加代币/开会员
+            $this->service->confirmByGateway($orderNo, $gwId, '', 'AIPowerPay');
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyAiPowerPay] 入账失败：' . $e->getMessage() . ' order=' . $orderNo);
+            return response('error', 500, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        return $ok();
+    }
+
+    /** WisonPay 美国钱包支付回调，仅接受 RSA 验签通过的通知。 */
+    public function notifyWisonPay()
+    {
+        $params = json_decode((string) $this->request->getContent(), true);
+        if (!is_array($params)) {
+            return response('invalid request', 400, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+        try {
+            $payment = (new \app\live\service\WisonPayService())->verifyNotify($params);
+        } catch (\Throwable $e) {
+            \think\facade\Log::warning('[recharge:notifyWisonPay] invalid notification');
+            return response('invalid sign', 400, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+        if ((string) $payment['code'] !== '0') {
+            return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+        try {
+            $this->service->confirmByGateway(
+                (string) $payment['m_order_id'], (string) $payment['order_id'], '', 'WisonPay', $payment
+            );
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyWisonPay] order=' . (string) $payment['m_order_id']
+                . ' error=' . $e->getMessage());
+            return response('error', 500, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+        return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+    }
+
+    /**
      * 提交充值订单
      */
     public function submit()
@@ -452,7 +632,15 @@ final class Recharge extends BaseController
             $packageId = $this->request->post('package_id/d', 0);
             $tokens    = $this->request->post('tokens/d', 0);
             return $this->jsonSuccess(
-                $this->service->submitFiatCoinOrder($userId, $fiatChannelId, $amount, $packageId ?: null, $tokens),
+                $this->service->submitFiatCoinOrder($userId, $fiatChannelId, $amount, $packageId ?: null, $tokens, [
+                    'email' => (string) $this->request->post('payer_email', ''),
+                    'mobile' => (string) $this->request->post('payer_mobile', ''),
+                    'name' => (string) $this->request->post('payer_name', ''),
+                    // 泰国 / 印尼的支付方式（qr/bank/wallet）与银行卡信息
+                    'method' => (string) $this->request->post('payer_method', ''),
+                    'bank' => (string) $this->request->post('payer_bank', ''),
+                    'card' => (string) $this->request->post('payer_card', ''),
+                ]),
                 '订单已提交，请按本币金额支付'
             );
         }

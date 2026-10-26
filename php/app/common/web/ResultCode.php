@@ -17,6 +17,7 @@ enum ResultCode: string
     case AUTH_FAILED      = 'B0102';
     case BALANCE_NOT_ENOUGH = 'C0100';
     case WALLET_FROZEN    = 'C0101';
+    case PAYMENT_CONFIRM_REQUIRED = 'C0102';
     case ORDER_NOT_FOUND  = 'C0200';
     case ORDER_EXPIRED    = 'C0201';
     case PAY_CALLBACK_FAIL = 'C0300';
@@ -64,6 +65,7 @@ enum ResultCode: string
             self::AUTH_FAILED => '认证失败',
             self::BALANCE_NOT_ENOUGH => '代币余额不足',
             self::WALLET_FROZEN => '钱包已冻结',
+            self::PAYMENT_CONFIRM_REQUIRED => '需要确认代币消费',
             self::ORDER_NOT_FOUND => '订单不存在',
             self::ORDER_EXPIRED => '订单已过期',
             self::PAY_CALLBACK_FAIL => '支付回调验签失败',

@@ -1,9 +1,135 @@
 (()=>{
+    // 公共登录表单共用免密和社交入口，脚本路径跟随当前站点前缀。
+    window.LiveLoginGateway = true
+    if (!document.getElementById('live-login-gateway-script')) {
+        var gatewayScript = document.createElement('script')
+        gatewayScript.id = 'live-login-gateway-script'
+        var mainScriptUrl = document.currentScript && document.currentScript.src
+            ? document.currentScript.src : new URL('./js/main.js', location.href).href
+        gatewayScript.src = new URL('./login-gateway.js?v=20261023a', mainScriptUrl).href
+        document.head.appendChild(gatewayScript)
+    }
     var cacheTemplate = ''
     var base = '/api/live'
     var isSubmittingValue = false;
     // 注册邮箱验证码开关（后台 lp_platform_config.ai_register_email_verify）
     var emailVerifyRequired = false
+    var registerConfigPending = false
+
+    // 独立找回密码弹窗，兼容登录页和异步挂载的公共登录表单。
+    function ensurePasswordResetEntry() {
+        var $button = $('#signin-btn')
+        if (!$button.length || $('#forgot-password-link').length) return
+        $('<button type="button" id="forgot-password-link">Forgot password?</button>')
+            .css({ display: 'block', margin: '8px 0 16px auto', background: 'none', border: 0,
+                color: '#E75275', fontSize: '13px', cursor: 'pointer' }).insertBefore($button)
+    }
+
+    $(document).on('click', '#forgot-password-link', function () {
+        var dialog = document.getElementById('password-reset-dialog')
+        if (!dialog) {
+            var style = document.createElement('style')
+            style.textContent = '#password-reset-dialog{box-sizing:border-box;width:min(420px,92vw);max-height:90vh;' +
+                'margin:auto;padding:28px;border:1px solid #383838;border-radius:16px;background:#191919;color:#eee;' +
+                'font-family:inherit;overflow:auto}#password-reset-dialog::backdrop{background:rgba(0,0,0,.7)}' +
+                '#password-reset-dialog h2{font-size:24px;margin:0 0 8px}' +
+                '#password-reset-dialog p{font-size:13px;color:#aaa;margin:0 0 22px;line-height:1.6}' +
+                '#password-reset-dialog label{display:block;margin-bottom:16px;font-size:13px}' +
+                '#password-reset-dialog input{box-sizing:border-box;width:100%;margin-top:7px;padding:12px;' +
+                'border:1px solid #404040;border-radius:9px;background:#252525;color:#eee;font:inherit}' +
+                '#password-reset-dialog input:focus{outline:2px solid #E75275;outline-offset:1px}' +
+                '#password-reset-dialog button{font:inherit;cursor:pointer}' +
+                '#password-reset-dialog button:disabled{opacity:.5;cursor:not-allowed}' +
+                '#password-reset-dialog .reset-submit{width:100%;padding:13px;border:0;border-radius:9px;' +
+                'background:#E75275;color:white;font-weight:600}' +
+                '#password-reset-dialog .reset-close{float:right;background:none;border:0;color:#aaa;font-size:24px}' +
+                '#password-reset-dialog .reset-code-row{display:flex;align-items:end;gap:8px}' +
+                '#password-reset-dialog .reset-send{flex-shrink:0;padding:12px 10px;border:1px solid #E75275;' +
+                'border-radius:9px;background:none;color:#E75275}' +
+                '#password-reset-status{margin:12px 0;font-size:13px;color:#eee;line-height:1.5}'
+            document.head.appendChild(style)
+            dialog = document.createElement('dialog')
+            dialog.id = 'password-reset-dialog'
+            dialog.setAttribute('aria-labelledby', 'password-reset-title')
+            dialog.innerHTML = '<button type="button" class="reset-close" aria-label="Close">&times;</button>' +
+                '<h2 id="password-reset-title">Reset password</h2>' +
+                '<p>Enter your registered email to receive a verification code.</p>' +
+                '<form id="password-reset-form">' +
+                '<label>Email<input name="email" type="email" autocomplete="email" required maxlength="255"></label>' +
+                '<label>Email code<div class="reset-code-row"><input name="code" inputmode="numeric" ' +
+                'autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>' +
+                '<button type="button" class="reset-send">Send code</button></div></label>' +
+                '<label>New password<input name="password" type="password" autocomplete="new-password" ' +
+                'minlength="6" maxlength="20" required placeholder="6-20 characters"></label>' +
+                '<label>Confirm password<input name="confirmation" type="password" autocomplete="new-password" ' +
+                'minlength="6" maxlength="20" required></label>' +
+                '<div id="password-reset-status" role="status" aria-live="polite"></div>' +
+                '<button type="submit" class="reset-submit">Reset password</button></form>'
+            document.body.appendChild(dialog)
+            dialog.querySelector('.reset-close').onclick = function () { dialog.close() }
+            dialog.addEventListener('close', function () {
+                dialog.querySelector('[name=password]').value = ''
+                dialog.querySelector('[name=confirmation]').value = ''
+                dialog.querySelector('[name=code]').value = ''
+            })
+        }
+        dialog.querySelector('[name=email]').value = $('#user_email').val() || ''
+        dialog.showModal()
+    })
+
+    function resetStatus(message) { $('#password-reset-status').text(message) }
+    $(document).on('click', '#password-reset-dialog .reset-send', function () {
+        var $button = $(this)
+        if ($button.prop('disabled')) return
+        var input = document.querySelector('#password-reset-form [name=email]')
+        if (!input.reportValidity()) return
+        $button.prop('disabled', true).text('Sending...')
+        $.ajax({ url: base + '/sendPasswordResetCode', method: 'POST', dataType: 'json',
+            data: { email: $.trim(input.value) } }).done(function (res) {
+                if (!res || res.code !== '00000') {
+                    resetStatus((res && res.msg) || 'Unable to send code. Please try again.')
+                    $button.prop('disabled', false).text('Send code')
+                    return
+                }
+                resetStatus(res.msg || 'Request received. A reset code is sent only to an active account on this site. If no email arrives, check the address and spam folder or contact support.')
+                var left = 60
+                $button.text(left + 's')
+                var timer = setInterval(function () {
+                    left--
+                    $button.text(left > 0 ? left + 's' : 'Send code')
+                    if (left <= 0) { clearInterval(timer); $button.prop('disabled', false) }
+                }, 1000)
+            }).fail(function () {
+                resetStatus('Network error. Please try again.')
+                $button.prop('disabled', false).text('Send code')
+            })
+    })
+    $(document).on('submit', '#password-reset-form', function (event) {
+        event.preventDefault()
+        var form = this
+        var $button = $(form).find('.reset-submit')
+        if ($button.prop('disabled')) return
+        if (form.elements.password.value !== form.elements.confirmation.value) {
+            resetStatus('Passwords do not match.')
+            return
+        }
+        $button.prop('disabled', true).text('Resetting...')
+        $.ajax({ url: base + '/resetPassword', method: 'POST', dataType: 'json',
+            data: { email: $.trim(form.elements.email.value), code: form.elements.code.value,
+                password: form.elements.password.value } }).done(function (res) {
+                if (res && res.code === '00000') {
+                    localStorage.removeItem('live_access_token')
+                    localStorage.removeItem('live_refresh_token')
+                    form.reset()
+                    resetStatus('Password reset successfully. Close this window and sign in with your new password.')
+                } else { resetStatus((res && res.msg) || 'Unable to reset password. Please try again.') }
+            }).fail(function () { resetStatus('Network error. Please try again.') })
+            .always(function () { $button.prop('disabled', false).text('Reset password') })
+    })
+    $(function () {
+        ensurePasswordResetEntry()
+        new MutationObserver(ensurePasswordResetEntry).observe(document.body, { childList: true, subtree: true })
+    })
 
     // 订阅促销位：已是会员的用户不该再看到促销（顶栏 "Subscribe 75% OFF" 与首充横幅）
     var VIP_PROMO_SEL = '.nav-zk, a.w-full.h-14.cursor-pointer.z-10'
@@ -677,6 +803,7 @@
       }
 
       function initGoogleLogin() {
+        if (window.LiveLoginGateway) return
         if (!$('#signin-btn').length && !$('#signup-btn').length) return
         if (googleClientId) { mountGoogleLogin(); return }
         $.get(base + '/googleClientId').done(function (response) {
@@ -715,7 +842,11 @@
       }
 
       function ensureEmailCodeField() {
-        if (!emailVerifyRequired || $('#email_code_registration').length) return
+        if (!emailVerifyRequired) {
+          $('#email_code_registration').closest('.registration-email-code-row, .email-code-group, .w-full.flex-col').remove()
+          return
+        }
+        if ($('#email_code_registration').length) return
         var $email = $('#user_email_registration')
         if (!$email.length) return
         ensureEmailCodeStyle()
@@ -724,7 +855,7 @@
         var $group = $email.closest('.input-group')
         if ($group.length) {
           $group.after(
-            '<div class="input-group email-code-group">' +
+            '<div class="input-group email-code-group registration-email-code-row">' +
               '<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.8 7.2 8.2 5.6 8.2-5.6"/></svg></span>' +
               '<input id="email_code_registration" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Email code">' +
               '<button type="button" id="email_code_send" class="email-code-send">Send code</button>' +
@@ -740,7 +871,7 @@
         var iconHtml = iconSrc ? '<div class="w-5 h-5 absolute top-[13px] left-[10px]"><img alt="Email icon" src="' + iconSrc + '"></div>' : ''
         var plClass = iconSrc ? 'pl-10' : 'pl-4'
         $wrap.after(
-          '<div class="w-full flex-col justify-start items-start inline-flex mt-4">' +
+          '<div class="w-full flex-col justify-start items-start inline-flex mt-4 registration-email-code-row">' +
             '<div class="self-stretch flex-col justify-start items-start gap-1.5 flex relative">' +
               iconHtml +
               '<div class="input email required user_email w-full">' +
@@ -789,19 +920,24 @@
       })
 
       function initRegisterEmailVerify() {
-        fetch(base + '/registerConfig')
+        if (registerConfigPending) return
+        registerConfigPending = true
+        fetch(base + '/registerConfig?_=' + Date.now(), { cache: 'no-store' })
           .then(function (r) { return r.json() })
           .then(function (d) {
+            if (!d || d.code !== '00000' || !d.data) return
             emailVerifyRequired = !!(d && d.code === '00000' && d.data && d.data.email_verify)
-            if (!emailVerifyRequired) return
             ensureEmailCodeField()
-            // 弹窗可能由 Turbo 异步挂载，持续兜底补齐
-            setInterval(ensureEmailCodeField, 2000)
           })
           .catch(function () { /* 接口不可用时保持原注册流程 */ })
+          .finally(function () { registerConfigPending = false })
       }
 
       setTimeout(initRegisterEmailVerify, 150)
-      $(document).on('turbo:load turbo:render', function () { ensureEmailCodeField() })
+      setInterval(ensureEmailCodeField, 2000)
+      setInterval(function () { if (!document.hidden) initRegisterEmailVerify() }, 30000)
+      window.addEventListener('focus', initRegisterEmailVerify)
+      $(document).on('turbo:load turbo:render', initRegisterEmailVerify)
+      $(document).on('click', '[data-action*="openRegistrationModal"]', initRegisterEmailVerify)
 
 })()

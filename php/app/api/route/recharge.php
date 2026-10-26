@@ -20,6 +20,15 @@ Route::post('v1/recharge/notifyMkPayMx', '\app\api\controller\Recharge@notifyMkP
 // MKPay（印度）异步通知（免登录，回调方为支付网关）
 Route::post('v1/recharge/notifyMkPayIn', '\app\api\controller\Recharge@notifyMkPayIn');
 
+// Cregis 异步通知（免登录，回调方为支付网关）
+Route::post('v1/recharge/notifyCregis', '\app\api\controller\Recharge@notifyCregis');
+
+// AIPowerPay 异步通知（免登录，回调方为支付网关）
+Route::post('v1/recharge/notifyAiPowerPay', '\app\api\controller\Recharge@notifyAiPowerPay');
+
+// WisonPay 美国钱包支付回调（免登录，RSA 验签）。
+Route::post('v1/recharge/notifyWisonPay', '\app\api\controller\Recharge@notifyWisonPay');
+
 // AI 女友端充值套餐 + 支付方式（免登录展示）
 Route::get('v1/recharge/packages', '\app\api\controller\Recharge@packages');
 

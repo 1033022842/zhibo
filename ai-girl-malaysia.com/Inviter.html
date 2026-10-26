@@ -55,8 +55,8 @@
 		<!-- Facebook Open Graph data -->
 
 		<meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1">
-		<link rel="stylesheet" href="./assets/fy.css?v=20261018c" data-turbo-track="reload">
-	<link rel="stylesheet" href="./assets/fy.css?v=20261018c" data-turbo-track="reload">
+		<link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1" data-turbo-track="reload">
+	<link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1" data-turbo-track="reload">
 		<link rel="stylesheet" href="./settings_files/css2" media="all" onload="this.media='all'">
 		<link rel="stylesheet" href="./settings_files/application-8ee8a481074c4025471514720f49a183b2d681ef94947cc96604f49cfcc404bd.css" data-turbo-track="reload">
 		<script src="./_shared/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
@@ -66,8 +66,8 @@
 			<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/settings.js"></script>
 		<script src="./js/event.js"></script>
-		<script src="./js/main.js?v=20261020d"></script>
-		<script src="./js/shell-new.js?v=20261018c"></script>
+		<script src="./js/main.js?v=20261023regtoggle1"></script>
+		<script src="./js/shell-new.js?v=20261021discover1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 
 
@@ -78,6 +78,60 @@
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
     <meta property="og:description" content="Create your own AI girlfriend or chat instantly with realistic AI characters. Enjoy uncensored chats, voice calls, custom image generation, live streams and private short dramas — all in a safe, private and secure space with discreet billing.">
+<style>
+/* Inviter 页新增内容区（数据概览 / 步骤 / 奖励规则 / 邀请记录） */
+.inv-card{background:#131313;border:1px solid #363636;border-radius:10px}
+.inv-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.inv-stat{padding:16px 18px;min-width:0}
+.inv-stat-label{font-size:12px;line-height:1.4;color:rgba(255,255,255,.55);margin:0 0 8px}
+.inv-stat-value{font-size:24px;line-height:1.1;font-weight:700;color:#fff;margin:0;font-family:Poppins,sans-serif;word-break:break-all}
+.inv-section{padding:20px 22px;min-width:0}
+.inv-section-title{font-size:15px;line-height:1.4;font-weight:600;color:#fff;margin:0;font-family:Poppins,sans-serif}
+.inv-steps{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:16px}
+.inv-step{display:flex;align-items:flex-start;gap:12px}
+.inv-step-no{flex:0 0 26px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;line-height:1}
+.inv-step-title{font-size:14px;line-height:1.4;font-weight:600;color:#fff;margin:2px 0 3px;font-family:Poppins,sans-serif}
+.inv-step-text{font-size:13px;line-height:1.55;color:rgba(255,255,255,.62);margin:0}
+.inv-earn{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+.inv-earn li{display:flex;align-items:flex-start;gap:10px}
+.inv-earn-ic{width:16px;height:16px;flex:0 0 16px;margin-top:2px}
+.inv-earn p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.68);margin:0}
+.inv-strong{color:#fff;font-weight:600}
+.inv-rules-btn{width:100%;margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#1c1c1c;border:1px solid #363636;border-radius:9px;padding:11px 14px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;font-family:Poppins,sans-serif}
+.inv-rules-btn:hover{background:#242424}
+.inv-rules-caret{color:rgba(255,255,255,.6);transition:transform .2s ease}
+.inv-rules-btn.is-open .inv-rules-caret{transform:rotate(180deg)}
+.inv-rules{margin-top:12px;padding-top:12px;border-top:1px solid #2a2a2a}
+.inv-rules ul{list-style:disc;margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.inv-rules li{font-size:12.5px;line-height:1.6;color:rgba(255,255,255,.6)}
+.inv-cta{width:100%;height:48px;border:0;border-radius:10px;background:#fff;color:#111;font-size:14px;font-weight:600;font-family:Poppins,sans-serif;cursor:pointer;transition:opacity .2s ease}
+.inv-cta:hover{opacity:.9}
+.inv-records-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.inv-records-count{font-size:13px;color:rgba(255,255,255,.5)}
+.inv-records-box{border:1px dashed #3a3a3a;border-radius:10px;overflow:hidden}
+.inv-records-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 20px}
+.inv-empty-icon{width:50px;height:50px;border-radius:50%;border:1px solid #3d3d3d;background:#1a1a1a;display:flex;align-items:center;justify-content:center;color:#E75275;margin-bottom:14px}
+.inv-empty-icon svg{width:22px;height:22px}
+.inv-empty-title{font-size:14px;font-weight:600;color:#fff;margin:0 0 6px;font-family:Poppins,sans-serif}
+.inv-empty-text{font-size:12.5px;line-height:1.6;color:rgba(255,255,255,.55);margin:0;max-width:320px}
+.inv-empty-copy{margin-top:16px;height:38px;padding:0 22px;border-radius:9px;border:1px solid #fff;background:#fff;color:#111;font-size:13px;font-weight:600;font-family:Poppins,sans-serif;cursor:pointer}
+.inv-empty-copy:hover{opacity:.9}
+.inv-record{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #2a2a2a}
+.inv-record:last-child{border-bottom:0}
+.inv-record-avatar{width:34px;height:34px;flex:0 0 34px;border-radius:50%;overflow:hidden;background:#242424;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.inv-record-avatar img{width:100%;height:100%;object-fit:cover}
+.inv-record-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
+.inv-record-name{font-size:13px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inv-record-date{font-size:11.5px;color:rgba(255,255,255,.45)}
+.inv-record-badge{flex:0 0 auto;font-size:11px;line-height:1;padding:5px 8px;border-radius:999px;background:#242424;color:rgba(255,255,255,.6)}
+.inv-record-badge.is-premium{background:rgba(231,82,117,.16);color:#F0788F}
+.inv-record-reward{flex:0 0 auto;font-size:12px;font-weight:600;color:#fff}
+@media (max-width:1023px){
+  .inv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .inv-stat-value{font-size:20px}
+  .inv-section{padding:17px 16px}
+}
+</style>
 </head>
 	<body class="bg-main-v2 invites show" id="app" data-controller="main" data-onesignal-enabled="true" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="#&lt;User:0x00007fad286ec8c8&gt;" data-main-selected-character-id-from-generate-image="">
 
@@ -677,7 +731,7 @@
             </p>
             <p class="font-poppins font-bold text-[22px] lg:text-[32px] leading-8 lg:leading-[42px] text-center lg:text-left text-white tracking-[-0.22px]">
               you both get 
-              <span class="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">100</span>
+              <span class="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent" id="invite-reward-hero">100</span>
                tokens.
             </p>
           </div>
@@ -722,74 +776,106 @@
       </div>
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-2 md:gap-5 w-full">
-  <div class="bg-black-dark/90 border border-black-stroke rounded-[10px] overflow-hidden w-full p-5 lg:p-6">
-    <div class="flex flex-col gap-6">
-      <p class="font-poppins font-semibold text-sm text-white">
-        You get
-      </p>
-      <div class="flex gap-2 items-start">
-        <img class="size-5 shrink-0 mt-0.5" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" onerror="this.style.visibility='hidden'">
-        <p class="font-poppins font-medium text-sm leading-6 text-grey-light/65">
-          <span class="font-semibold text-white">100 tokens</span>
-          for every friend who signs up and upgrades to Premium.
-        </p>
+    <div class="inv-stats w-full">
+      <div class="inv-card inv-stat">
+        <p class="inv-stat-label">Invited friends</p>
+        <p class="inv-stat-value" id="invite-count">0</p>
       </div>
-    </div>
-  </div>
-
-  <div class="bg-black-dark/90 border border-black-stroke rounded-[10px] overflow-hidden w-full p-5 lg:p-6">
-    <div class="flex flex-col gap-6">
-      <p class="font-poppins font-semibold text-sm text-white">
-        Your friends get
-      </p>
-      <div class="flex gap-2 items-start">
-        <img class="size-5 shrink-0 mt-0.5" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" onerror="this.style.visibility='hidden'">
-        <p class="font-poppins font-medium text-sm leading-6 text-grey-light/65">
-          <span class="font-semibold text-white">100 tokens</span>
-          when they upgrade to Premium, on top of their monthly tokens.
-        </p>
+      <div class="inv-card inv-stat">
+        <p class="inv-stat-label">Tokens earned</p>
+        <p class="inv-stat-value" id="invite-total-earned">0</p>
       </div>
-    </div>
-  </div>
-</div>
-
-
-    <div class="flex flex-col gap-5 mt-2 w-full">
-  <p class="font-poppins font-semibold text-base text-white">
-    Earning summary
-  </p>
-
-  <div class="flex flex-col lg:flex-row gap-5 w-full">
-    <div class="bg-black-dark/90 border border-black-stroke rounded-[10px] flex items-center gap-5 p-6 w-full">
-      <div class="bg-black-medium rounded-xl flex items-center justify-center size-[60px] shrink-0">
-        <img class="size-7" src="./invite_files/icon_coin-530bfd4d597b590b4886add1dab108aa112e461f919b07daed26af0b7fbb9b9a.svg" onerror="this.style.visibility='hidden'">
+      <div class="inv-card inv-stat">
+        <p class="inv-stat-label">Premium friends</p>
+        <p class="inv-stat-value" id="invite-premium-friends">0</p>
       </div>
-      <div class="flex flex-col">
-        <p class="font-poppins font-bold text-2xl text-white" id="invite-total-earned">
-          0
-        </p>
-        <p class="font-poppins font-medium text-sm text-grey-light/65">
-          Total tokens earned
-        </p>
+      <div class="inv-card inv-stat">
+        <p class="inv-stat-label">Reward per friend</p>
+        <p class="inv-stat-value" id="invite-reward-per">+100</p>
       </div>
     </div>
 
-    <div class="bg-black-dark/90 border border-black-stroke rounded-[10px] flex items-center gap-5 p-6 w-full">
-      <div class="bg-black-medium rounded-xl flex items-center justify-center size-[60px] shrink-0">
-        <img class="size-8" src="./invite_files/icon_people-25337cffb78a19a25d66ccac7860d1644e469f20f8e1cecec40ea217f483d1e0.svg" onerror="this.style.visibility='hidden'">
-      </div>
-      <div class="flex flex-col">
-        <p class="font-poppins font-bold text-2xl text-white" id="invite-premium-friends">
-          0
-        </p>
-        <p class="font-poppins font-medium text-sm text-grey-light/65">
-          Friends on Sugus Premium
-        </p>
+    <div class="inv-card inv-section w-full">
+      <p class="inv-section-title">How it works</p>
+      <ol class="inv-steps">
+        <li class="inv-step">
+          <span class="inv-step-no bg-primary">1</span>
+          <div>
+            <p class="inv-step-title">Share your link</p>
+            <p class="inv-step-text">Send it to friends, or post it in groups and on social media.</p>
+          </div>
+        </li>
+        <li class="inv-step">
+          <span class="inv-step-no bg-primary">2</span>
+          <div>
+            <p class="inv-step-title">Your friend signs up and goes Premium</p>
+            <p class="inv-step-text">They register through your link and upgrade to Premium for the first time.</p>
+          </div>
+        </li>
+        <li class="inv-step">
+          <span class="inv-step-no bg-primary">3</span>
+          <div>
+            <p class="inv-step-title">You both earn tokens</p>
+            <p class="inv-step-text">You and your friend each get <span id="invite-reward-step">100</span> tokens, once per invited friend.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="inv-card inv-section w-full">
+      <p class="inv-section-title">How you earn</p>
+      <ul class="inv-earn">
+        <li>
+          <img class="inv-earn-ic" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" alt="" onerror="this.style.visibility='hidden'">
+          <p><span class="inv-strong" id="invite-reward-earn">100 tokens</span> for every friend who upgrades to Premium.</p>
+        </li>
+        <li>
+          <img class="inv-earn-ic" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" alt="" onerror="this.style.visibility='hidden'">
+          <p>Your friend also gets the same tokens, on top of their plan tokens.</p>
+        </li>
+        <li>
+          <img class="inv-earn-ic" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" alt="" onerror="this.style.visibility='hidden'">
+          <p>Rewards are credited automatically to your token balance.</p>
+        </li>
+        <li>
+          <img class="inv-earn-ic" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" alt="" onerror="this.style.visibility='hidden'">
+          <p>Invite as many friends as you like — there is no limit.</p>
+        </li>
+      </ul>
+      <button type="button" class="inv-rules-btn" id="invite-rules-toggle" aria-expanded="false" aria-controls="invite-rules-panel">
+        <span>Full rules</span>
+        <span class="inv-rules-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="inv-rules" id="invite-rules-panel" hidden>
+        <ul>
+          <li>An invite is linked when a new account registers through your invite link or invite code.</li>
+          <li>The reward is paid once per invited friend, after their first Premium upgrade.</li>
+          <li>The invited friend receives the same reward once, on top of their plan tokens.</li>
+          <li>Self-invites, duplicate accounts and fraudulent activity do not qualify for rewards.</li>
+          <li>Changing your invite link stops the previous link from working.</li>
+          <li>The reward amount is set by the site and may be updated.</li>
+        </ul>
       </div>
     </div>
-  </div>
-</div>
+
+    <button type="button" class="inv-cta" id="invite-copy-cta">Copy invite link</button>
+
+    <div class="inv-records w-full">
+      <div class="inv-records-head">
+        <p class="inv-section-title">Invite records</p>
+        <span class="inv-records-count" id="invite-records-count">0</span>
+      </div>
+      <div class="inv-records-box" id="invite-records-list">
+        <div class="inv-records-empty">
+          <span class="inv-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.35-7-9a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 4.65-7 9-7 9z"/></svg>
+          </span>
+          <p class="inv-empty-title">No invite records yet</p>
+          <p class="inv-empty-text">Share your link — when a friend joins and upgrades, they'll appear here.</p>
+          <button type="button" class="inv-empty-copy" id="invite-records-copy">Copy link</button>
+        </div>
+      </div>
+    </div>
 
   </div>
 </div>
@@ -1096,9 +1182,65 @@ document.addEventListener('click', function (e) {
     if (prefixEl) prefixEl.textContent = location.origin + '/?code='
   }
 
+  function fmtDate(value) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ''))
+    return m ? m[1] + '-' + m[2] + '-' + m[3] : ''
+  }
+
+  function escHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    })
+  }
+
+  /* 邀请记录：后台返回最近 20 条，没有记录时保留静态空状态 */
+  function renderRecords(records) {
+    var box = document.getElementById('invite-records-list')
+    if (!box) return
+    var list = Array.isArray(records) ? records : []
+    if (!list.length) return
+    box.innerHTML = list.map(function (r) {
+      var name = String(r.nickname || 'Friend')
+      var premium = !!r.premium_at
+      var joined = fmtDate(r.registered_at)
+      var reward = Number(r.reward_tokens || 0)
+      var avatar = r.avatar
+        ? '<img src="' + escHtml(r.avatar) + '" alt="">'
+        : escHtml(name.charAt(0).toUpperCase())
+      return '<div class="inv-record">' +
+        '<span class="inv-record-avatar">' + avatar + '</span>' +
+        '<span class="inv-record-main">' +
+          '<span class="inv-record-name">' + escHtml(name) + '</span>' +
+          '<span class="inv-record-date">' + (joined ? 'Joined ' + joined : 'Registered') + '</span>' +
+        '</span>' +
+        '<span class="inv-record-badge' + (premium ? ' is-premium' : '') + '">' +
+          (premium ? 'Premium' : 'Registered') + '</span>' +
+        (premium ? '<span class="inv-record-reward">+' + reward + '</span>' : '') +
+        '</div>'
+    }).join('')
+  }
+
+  function setRewardText(value) {
+    var text = String(value)
+    var hero = document.getElementById('invite-reward-hero')
+    if (hero) hero.textContent = text
+    var step = document.getElementById('invite-reward-step')
+    if (step) step.textContent = text
+    var earn = document.getElementById('invite-reward-earn')
+    if (earn) earn.textContent = text + ' tokens'
+    var per = document.getElementById('invite-reward-per')
+    if (per) per.textContent = '+' + text
+  }
+
   function setStats(data) {
     if (totalEl) totalEl.textContent = String(data.total_earned != null ? data.total_earned : 0)
     if (friendsEl) friendsEl.textContent = String(data.premium_friends != null ? data.premium_friends : 0)
+    var countEl = document.getElementById('invite-count')
+    if (countEl) countEl.textContent = String(data.invited_count != null ? data.invited_count : 0)
+    var countLabel = document.getElementById('invite-records-count')
+    if (countLabel) countLabel.textContent = String(data.invited_count != null ? data.invited_count : 0)
+    if (data.reward_tokens != null) setRewardText(data.reward_tokens)
+    renderRecords(data.records)
   }
 
   /* 我的邀请码与收益统计（未登录 / 接口异常时保持空码与 0，不影响页面） */
@@ -1226,6 +1368,21 @@ document.addEventListener('click', function (e) {
   if (copyButton) copyButton.addEventListener('click', copyLink)
   if (copyIcon) copyIcon.addEventListener('click', copyLink)
   if (shareButton) shareButton.addEventListener('click', shareLink)
+  var ctaButton = document.getElementById('invite-copy-cta')
+  var recordsCopy = document.getElementById('invite-records-copy')
+  if (ctaButton) ctaButton.addEventListener('click', copyLink)
+  if (recordsCopy) recordsCopy.addEventListener('click', copyLink)
+
+  var rulesToggle = document.getElementById('invite-rules-toggle')
+  var rulesPanel = document.getElementById('invite-rules-panel')
+  if (rulesToggle && rulesPanel) {
+    rulesToggle.addEventListener('click', function () {
+      var open = rulesToggle.getAttribute('aria-expanded') === 'true'
+      rulesToggle.setAttribute('aria-expanded', open ? 'false' : 'true')
+      rulesToggle.classList.toggle('is-open', !open)
+      rulesPanel.hidden = open
+    })
+  }
   if (customizeButton) customizeButton.addEventListener('click', openDialog)
   if (closeButton) closeButton.addEventListener('click', closeDialog)
   if (dlg) dlg.addEventListener('click', function (e) { if (e.target === dlg) closeDialog() })

@@ -62,16 +62,16 @@
 
 
 <link rel="stylesheet" href="./taocan_files/css2" media="all" onload="this.media='all'">
-<link rel="stylesheet" href="./assets/fy.css?v=20261018c" data-turbo-track="reload">
+<link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1" data-turbo-track="reload">
 <script src="./taocan_files/application-4fabe34a2be5cf77e725cab6b9d9b75c37fc2609031725eda4ad515c4ce19e22.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./taocan_files/alpine-69b009b4309a19f099cf57a5f03edb7fbc7a130fdc6a2e9b34bb32a1ca3ef10d.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./_shared/jquery-3.6.0.min.js"></script>
 <script src="./assets/layer/3.1.1/layer.js"></script>
-<script src="./js/main.js?v=20261020d"></script>
-<script src="./js/shell-new.js?v=20261018c"></script>
+<script src="./js/main.js?v=20261023regtoggle1"></script>
+<script src="./js/shell-new.js?v=20261021discover1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 <script src="./js/ui-dialog.js?v=20260927a"></script>
-<script src="./js/subscriptions.js?v=20261021a"></script>
+<script src="./js/subscriptions.js?v=20261024nocrypto1"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
 <!-- 未登录版式钩子：给 <html> 加 no-auth 类，未登录相关的差异全部由页面 CSS 控制
      （隐藏 Premium / Premium Plus 切换、卡片不带 tokens 档位下拉、卡片高度 250px）。
@@ -1058,7 +1058,32 @@
         </h2>
 
 
-        <p class="block text-sm text-grey-default mt-2">
+        <div class="mt-6 flex items-center justify-center gap-[34px] min-[780px]:mt-4 min-[780px]:gap-10">
+          <div class="relative flex h-[58px] w-[155px] items-center justify-center">
+            <img class="absolute inset-0 h-full w-full object-contain" alt="" src="./subscriptions2_files/laurel-62a46366d1d780e39a89988956dbc99948b29c9eeabb04e62e8f96c8ba728ca0.png">
+
+            <p class="relative w-[96px] text-center text-[14px] font-semibold leading-[19px] text-white/80">
+              <span class="block">Trusted by</span>
+              <span class="block">50M Users</span>
+            </p>
+          </div>
+
+          <div class="flex flex-col items-center gap-[10px]">
+            <div class="flex items-center gap-[5px]">
+              <img class="h-5 w-5" alt="" src="./subscriptions2_files/star-gold-cf7737388d59b8715e93f6b2c19080e89c9b24da8f1ddfa625ba2622f920ef1c.svg">
+              <img class="h-5 w-5" alt="" src="./subscriptions2_files/star-gold-cf7737388d59b8715e93f6b2c19080e89c9b24da8f1ddfa625ba2622f920ef1c.svg">
+              <img class="h-5 w-5" alt="" src="./subscriptions2_files/star-gold-cf7737388d59b8715e93f6b2c19080e89c9b24da8f1ddfa625ba2622f920ef1c.svg">
+              <img class="h-5 w-5" alt="" src="./subscriptions2_files/star-gold-cf7737388d59b8715e93f6b2c19080e89c9b24da8f1ddfa625ba2622f920ef1c.svg">
+              <img class="h-5 w-5" alt="" src="./subscriptions2_files/star-gold-cf7737388d59b8715e93f6b2c19080e89c9b24da8f1ddfa625ba2622f920ef1c.svg">
+            </div>
+
+            <p class="text-center text-[14px] font-semibold leading-[19px] text-white/80">
+              1000+ Ratings
+            </p>
+          </div>
+        </div>
+
+        <p class="hidden text-sm text-grey-default mt-2">
           Trusted by 50 million people worldwide
         </p>
 
@@ -1575,6 +1600,8 @@
   .pm-plan-price { color: #fff; font-size: 14px; font-weight: 500; line-height: 1.5; }
   .pm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
   .pm-grid .pm-row:first-child { grid-column: 1 / -1; }
+  /* 第二排起若该排只剩一个按钮，铺满整行（与第一排一致） */
+  .pm-grid .pm-row:last-child:nth-child(even) { grid-column: 1 / -1; }
   .pm-row { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 16px; border: 0; border-radius: 8px; background: #404040; color: #fff; font-size: 12px; font-weight: 500; line-height: 1.25; text-align: center; cursor: pointer; transition: filter .2s; }
   .pm-row:hover { filter: brightness(1.1); }
   .pm-row[disabled] { opacity: .6; cursor: default; }

@@ -31,6 +31,8 @@
     var cardChannels = []
     // FlowPay 是否可用（运营开关 + 商户参数 + 有收单通道）
     var flowpayEnabled = false
+    // 后台启用的链上收款渠道（lp_recharge_channel）：为空时支付弹窗不显示 cryptocurrency 入口
+    var channels = []
     // 后台法币通道（lp_fiat_channel）：每个国家一条，点进去按后台汇率折算成本币收款
     var fiatChannels = []
 
@@ -52,6 +54,7 @@
         loadPlans()
         loadStatus()
         loadCardChannels()
+        loadChannels()
         pollOrder(pendingOrderNo(), POLL_TRIES)
     }
 
@@ -104,6 +107,21 @@
         }).fail(pmRenderAll)
     }
 
+    /**
+     * 后台启用的链上收款渠道：全部关闭时，支付弹窗不再显示 cryptocurrency 入口
+     */
+    function loadChannels() {
+        if (!authed) { return }
+        $.ajax({
+            url: base + '/recharge/channels',
+            headers: h(),
+            timeout: API_TIMEOUT,
+        }).done(function (r) {
+            if (r && r.code === '00000' && Array.isArray(r.data)) { channels = r.data }
+            pmRenderAll()
+        }).fail(pmRenderAll)
+    }
+
     // 两个弹窗各有独立的选中状态（Premium / Premium Plus）
     var PM_MODALS = [
         { id: 'payment-method-modal', level: 'premium', grid: '#sub-pm-grid', sub: '#sub-pm-sub', cta: '#sub-pay-card' },
@@ -138,11 +156,11 @@
         })
     }
 
-    /** 当前可用方式：卡（FlowPay 开关 + 收单通道）/ 加密货币（始终）/ 法币（后台配了几条） */
+    /** 当前可用方式：卡（FlowPay 开关 + 收单通道）/ 加密货币（后台还有启用的链上渠道）/ 法币（后台配了几条） */
     function pmAvailable() {
         return {
             card: !!(flowpayEnabled && cardChannels.length),
-            crypto: true,
+            crypto: channels.length > 0,
             cash: fiatChannels.length > 0
         }
     }
@@ -151,7 +169,7 @@
         var st = PM_STATE[m.level]
         var avail = pmAvailable()
         if (!st.method || !avail[st.method]) {
-            st.method = avail.card ? 'card' : (avail.crypto ? 'crypto' : 'cash')
+            st.method = avail.card ? 'card' : (avail.crypto ? 'crypto' : (avail.cash ? 'cash' : ''))
         }
         st.gcode = avail.card ? (st.gcode || String(cardChannels[0].gcode || '')) : ''
         if (avail.cash) {
@@ -164,25 +182,36 @@
 
         // 版式：加密货币独占第一排，信用卡与各本币通道两列排；点任意一格直接进入支付
         var html = ''
-        html += '<button type="button" class="pm-row" data-pm-method="crypto">' +
-            '<span class="pm-row-text">Continue with</span>' +
-            '<span class="pm-row-icons">' + PM_COIN_ICONS + '</span></button>'
+        if (avail.crypto) {
+            html += '<button type="button" class="pm-row" data-pm-method="crypto">' +
+                '<span class="pm-row-text">Continue with</span>' +
+                '<span class="pm-row-icons">' + PM_COIN_ICONS + '</span></button>'
+        }
         if (avail.card) {
             html += '<button type="button" class="pm-row" data-pm-method="card">' +
                 '<span class="pm-row-text">Credit Card</span>' +
                 '<span class="pm-row-icons">' + PM_CARD_ICON + '</span></button>'
         }
         if (avail.cash) {
+            var walletShown = false
             fiatChannels.forEach(function (fc) {
-                var mark = fiatMark(fc)
+                var isWallet = fc.gateway === 'wisonpay'
+                if (isWallet && walletShown) return
+                if (isWallet) walletShown = true
+                var marks = fiatMarks(fc)
                 var unit = fc.symbol || fc.currency || ''
-                // 右侧已经是货币符号时，标题里不再重复「· ₹」
-                var unitText = (mark && mark.text) ? '' : (unit !== '' ? ' · ' + pmClean(unit) : '')
+                var title = isWallet ? 'WisonPay' : fc.name
+                // 右侧已有品牌标/货币符号时，标题里不再重复币种
+                var unitText = (isWallet || marks.length) ? '' : (unit !== '' ? ' · ' + pmClean(unit) : '')
                 html += '<button type="button" class="pm-row" data-pm-method="cash" data-pm-fiat="' + parseInt(fc.id, 10) + '">' +
-                    '<span class="pm-row-text">' + pmClean(fc.name) + unitText + '</span>' +
-                    (mark ? '<span class="pm-row-icons">' + fiatMarkHtml(mark) + '</span>' : '') +
+                    '<span class="pm-row-text">' + pmClean(title) + unitText + '</span>' +
+                    (marks.length ? '<span class="pm-row-icons">' + fiatMarksHtml(marks) + '</span>' : '') +
                     '</button>'
             })
+        }
+        // 后台把所有支付方式都关了：给一句提示，避免弹窗空白
+        if (!html) {
+            html = '<div style="padding:16px;color:#9CA3AF;font-size:13px;text-align:center;">No payment methods available</div>'
         }
         $(m.grid).html(html)
 
@@ -226,7 +255,7 @@
         return null
     }
 
-    // 法币通道右侧标记：巴西 PIX 用品牌图，印度/越南/墨西哥直接显示当地货币符号
+    // 法币通道右侧标记：本币用货币标识，美元收单通道用对应支付品牌标
     var FIAT_MARKS = [
         { currency: 'BRL', src: './assets/pix.svg', alt: 'PIX' },
         { currency: 'INR', text: '₹', alt: 'INR' },
@@ -234,18 +263,39 @@
         { currency: 'MXN', text: 'Mex$', alt: 'MXN' }
     ]
 
-    function fiatMark(fc) {
+    // 收单网关 → 品牌标（素材与卡支付同一组）
+    var FIAT_GATEWAY_MARKS = {
+        wisonpay: [
+            { src: './subscriptions2_files/apple-pay-mark-f05534ee3bc2fbc2adcb2d15069c3d60c8555627e668a812f1452f4f5ee42356.svg', alt: 'Apple Pay' },
+            { src: './subscriptions2_files/google-pay-mark.svg', alt: 'Google Pay' }
+        ],
+        aipowerpay: [
+            { src: './subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg', alt: 'Visa' },
+            { src: './subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg', alt: 'Mastercard' }
+        ],
+        cregis: [
+            { src: './assets/USDT.png', alt: 'USDT' },
+            { src: './taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg', alt: 'Bitcoin' }
+        ]
+    }
+
+    /** 通道右侧标记（可能多个）：先按本币匹配，其次按收单网关匹配 */
+    function fiatMarks(fc) {
         var cur = String((fc && fc.currency) || '').toUpperCase()
         for (var i = 0; i < FIAT_MARKS.length; i++) {
-            if (FIAT_MARKS[i].currency === cur) { return FIAT_MARKS[i] }
+            if (FIAT_MARKS[i].currency === cur) { return [FIAT_MARKS[i]] }
         }
-        return null
+        return FIAT_GATEWAY_MARKS[String((fc && fc.gateway) || '')] || []
     }
 
     /** 标记 HTML：品牌标用图片，货币符号用文字（内联样式，免改各页 CSS） */
     function fiatMarkHtml(mark) {
         if (mark.src) { return '<img src="' + mark.src + '" alt="' + mark.alt + '">' }
         return '<span aria-label="' + mark.alt + '" style="display:block;font-size:16px;font-weight:600;line-height:1;white-space:nowrap">' + mark.text + '</span>'
+    }
+
+    function fiatMarksHtml(marks) {
+        return marks.map(fiatMarkHtml).join('')
     }
 
     /** 会员状态：用于渲染卡片按钮文案（Select / Extend / Current Plan） */

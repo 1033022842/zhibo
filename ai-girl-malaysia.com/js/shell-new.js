@@ -1,10 +1,10 @@
 /**
  * 新版外壳渲染（侧边栏 + 顶栏右上角）
  * 样式目标：Subscriptions.html / tokens.html 使用的新版外壳。
- * 菜单内容：沿用站点原有的菜单项与顺序（Home / Explore / Chat / Gallery / Generate Image /
+ * 菜单内容：沿用站点原有的菜单项与顺序（Home / Explore / Chat / Generate Image /
  *          Create Character / My AI / Upload Media / Face Swap / Shop / Shorts / Posts /
  *          Private Content / Tokens / Crowdfunding，底部 Contact Us / Affiliate Program /
- *          Become Premium），只换外观，不改入口。
+ *          Become Premium），常用功能直达，其余收进 More，不删除入口。
  *
  * 做法：只替换旧页面里「侧边栏 nav 的内容」与「#user-setting 的内容」，
  *      外层容器及其 data-main-target / webkit-transform-sidebar / pc-nav 全部保留，
@@ -133,21 +133,19 @@
     bell: { src: './settings_files/bell-5e96b0cd2e66a4ce6eb9b4f17fecd9f952a1780b89d2be511c619832e96f5897.png' }
   }
 
-  // 侧边栏菜单：沿用站点原有菜单项与顺序
+  // 侧边栏菜单：沿用站点原有菜单项与顺序（Discover = 原 Posts 广场，固定在 Home 下方）
   var NAV = [
     { href: './Home.html', label: 'Home', icon: 'home' },
+    { href: './posts.html', label: 'Discover', icon: 'posts' },
     { href: './index.html', label: 'Crowdfunding', icon: 'crowd' },
-    { href: './Girls.html', label: 'Explore', icon: 'explore' },
     { href: './Chat.html', label: 'Chat', icon: 'chat' },
-    { href: './Gallery.html', label: 'Gallery', icon: 'gallery' },
     { href: './achievements.html', label: 'Achievements', icon: 'achv' },
-    { href: './Image.html', label: 'Generate Image', icon: 'generate', top: true },
+    { href: './Image.html', label: 'AI Video Studio', icon: 'generate', top: true },
     { href: './characters.html', label: 'Create Character', icon: 'wand' },
     { href: './charactersIndex.html', label: 'My AI', icon: 'lady' },
     { href: './upload_media.html', label: 'Upload Media', icon: 'upload' },
     { href: './shop.html', label: 'Shop', icon: 'candy' },
     { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
-    { href: './posts.html', label: 'Posts', icon: 'posts' },
     { href: './private_content.html', label: 'Private Content', icon: 'private' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'token' }
   ]
@@ -158,6 +156,13 @@
     { href: './Inviter.html', label: 'Affiliate Program', icon: 'affiliate' },
     { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' }
   ]
+
+  var MAIN_NAV = ['Home', 'Discover', 'Chat', 'Shorts', 'Private Content', 'AI Video Studio', 'Create Character', 'Tokens'].map(function (label) {
+    return NAV.filter(function (n) { return n.label === label })[0]
+  })
+  var MORE_NAV = NAV.filter(function (n) { return MAIN_NAV.indexOf(n) === -1 })
+    .concat(NAV_BOTTOM.filter(function (n) { return n.icon !== 'contact' }))
+    .concat([{ href: './Home.html#install-app', label: 'Get App', icon: 'appdl' }])
 
   /* 支持的语言：原站“Select your language”大弹窗（13 种）基础上扩展常用语种
      （新增 zh-CN / zh-TW / ko / ru / hi / th / vi / ms / id / ar / tr / km / lo，
@@ -219,13 +224,7 @@
 
   /* ---------- 收起态 100px ---------- */
   function collapsedSidebar() {
-    var items = NAV.map(function (n) {
-      return '<li class="relative w-full" data-fy-tip="' + esc(n.label) + '">' +
-        '<a class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer"' + linkAttr(n) + '>' +
-        iconHtml(n.icon, 'w-6 h-6') + '</a></li>'
-    }).join('')
-
-    var bottom = NAV_BOTTOM.map(function (n) {
+    var items = MAIN_NAV.map(function (n) {
       return '<li class="relative w-full" data-fy-tip="' + esc(n.label) + '">' +
         '<a class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer"' + linkAttr(n) + '>' +
         iconHtml(n.icon, 'w-6 h-6') + '</a></li>'
@@ -235,9 +234,7 @@
       '<div class="flex flex-col">' +
       '<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6">' + items + '</ul>' +
       '</div>' +
-      '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">' +
-      '<li class="relative w-full">' + langButton(false) + '</li>' + bottom +
-      '</ul></nav>'
+      sidebarFooter(false, false) + '</nav>'
   }
 
   /* ---------- 展开态 220px ---------- */
@@ -254,11 +251,257 @@
 
     return '<nav class="flex flex-col justify-between h-full overflow-hidden">' +
       '<div class="flex flex-col flex-1 min-h-0">' +
-      '<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 flex-1 min-h-0 overflow-y-auto">' + rows(NAV) + '</ul>' +
+      '<ul role="list" class="py-8 lg:py-6 flex flex-col gap-2 items-center justify-start px-6 flex-1 min-h-0 overflow-y-auto">' + rows(MAIN_NAV) + '</ul>' +
       '</div>' +
-      '<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end shrink-0">' +
-      '<li class="relative w-full">' + langButton(true) + '</li>' + rows(NAV_BOTTOM) +
-      '</ul></nav>'
+      sidebarFooter(true, false) + '</nav>'
+  }
+
+  function sidebarFooter(withLabel, mobile) {
+    var compact = !withLabel && !mobile
+    return '<div class="fy-sidebar-footer' + (compact ? ' is-compact' : '') + '">' +
+      '<div class="fy-sidebar-tools">' + langButton(!compact, true) +
+      '<button type="button" class="fy-foot-btn fy-more-button" data-fy-more-open ' +
+      'aria-label="More" aria-expanded="false" aria-haspopup="menu" aria-controls="fy-more-menu">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+      '<circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>' +
+      (compact ? '' : '<span>More</span>') + '</button></div>' +
+      '<a class="fy-support-button" href="' + esc(supportHref()) + '" data-fy-support-open aria-label="Contact Us">' +
+      iconHtml('contact', '') + (compact ? '' : '<span>Contact Us</span>') + '</a></div>'
+  }
+
+  var moreTrigger = null
+  var supportTrigger = null
+  var supportConfig = null
+  var supportConfigTime = 0
+  var supportConfigRequest = null
+
+  function supportHref() {
+    var items = supportConfig && supportConfig.enabled !== false && supportConfig.items
+    if (Array.isArray(items)) {
+      for (var i = 0; i < items.length; i++) {
+        if (!items[i] || items[i].type !== 'email') continue
+        var email = String(items[i].url || '').trim().replace(/^mailto:/i, '').trim()
+        if (/^[^\s@<>?#%]+@[^\s@<>?#%]+\.[^\s@<>?#%]+$/.test(email)) return 'mailto:' + email
+      }
+    }
+    return NAV_BOTTOM[0].href
+  }
+
+  function syncSupportDetails(loading) {
+    var href = supportHref()
+    var buttons = document.querySelectorAll('[data-fy-support-open]')
+    for (var i = 0; i < buttons.length; i++) buttons[i].setAttribute('href', href)
+    var panel = document.getElementById('fy-support-panel')
+    if (!panel) return
+    var email = panel.querySelector('.fy-support-email')
+    var send = panel.querySelector('.fy-support-actions a')
+    var copy = panel.querySelector('[data-fy-support-copy]')
+    var status = panel.querySelector('.fy-support-status')
+    copy.disabled = loading
+    if (loading) {
+      email.textContent = 'Loading support details...'
+      email.removeAttribute('href')
+      send.removeAttribute('href')
+      send.setAttribute('aria-disabled', 'true')
+      status.textContent = ''
+      return
+    }
+    email.textContent = href.replace(/^mailto:/i, '').split('?')[0]
+    email.setAttribute('href', href)
+    send.setAttribute('href', href)
+    send.removeAttribute('aria-disabled')
+    status.textContent = ''
+  }
+
+  function loadSupportConfig() {
+    if (supportConfigRequest) return supportConfigRequest
+    if (supportConfigTime && Date.now() - supportConfigTime < 60000) return null
+    // Read independently of tracking.js so this works on every sidebar page.
+    var controller = window.AbortController ? new AbortController() : null
+    supportConfigRequest = new Promise(function (resolve) {
+      var settled = false
+      var timer = setTimeout(function () {
+        if (controller) controller.abort()
+        finish()
+      }, 8000)
+      function finish(cs) {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        if (cs) supportConfig = cs
+        supportConfigTime = Date.now()
+        resolve()
+      }
+      try {
+        fetch('/api/v1/site/config?t=' + Math.floor(Date.now() / 60000), {
+          credentials: 'omit',
+          cache: 'no-store',
+          signal: controller ? controller.signal : undefined
+        }).then(function (response) {
+          if (!response.ok) throw new Error('Support configuration unavailable')
+          return response.json()
+        }).then(function (result) {
+          if (!result || result.code !== '00000' || !result.data || !result.data.cs ||
+              typeof result.data.cs !== 'object') throw new Error('Invalid support configuration')
+          finish(result.data.cs)
+        }).catch(function () { finish() })
+      } catch (e) { finish() }
+    }).then(function () {
+      supportConfigRequest = null
+      syncSupportDetails(false)
+    })
+    return supportConfigRequest
+  }
+
+  function closeMore(restoreFocus) {
+    var menu = document.getElementById('fy-more-menu')
+    var wasOpen = menu && !menu.hidden
+    if (menu) menu.hidden = true
+    if (moreTrigger) {
+      moreTrigger.setAttribute('aria-expanded', 'false')
+      if (restoreFocus && wasOpen) moreTrigger.focus()
+    }
+  }
+
+  function openMore(button) {
+    var menu = document.getElementById('fy-more-menu')
+    if (!menu) {
+      menu = document.createElement('div')
+      menu.id = 'fy-more-menu'
+      menu.className = 'fy-more-menu'
+      menu.setAttribute('role', 'menu')
+      menu.setAttribute('aria-label', 'More')
+      menu.innerHTML = '<div class="fy-more-title">More</div>' + MORE_NAV.map(function (n) {
+        return '<a role="menuitem" tabindex="-1"' + linkAttr(n) + '>' +
+          iconHtml(n.icon, '') + '<span>' + esc(n.label) + '</span></a>'
+      }).join('') + '<div class="fy-more-divider"></div>' + CATEGORIES.map(function (c) {
+        return '<a role="menuitem" tabindex="-1" href="' + c.href + '">' +
+          iconHtml(c.icon, '') + '<span>' + c.label + '</span></a>'
+      }).join('')
+      document.body.appendChild(menu)
+    }
+    var opening = menu.hidden || moreTrigger !== button
+    closeMore(false)
+    if (!opening) return
+    moreTrigger = button
+    hideTip()
+    menu.hidden = false
+    button.setAttribute('aria-expanded', 'true')
+    // Portal to body: the sidebar's overflow and transforms must not clip the menu.
+    var r = button.getBoundingClientRect()
+    var mobile = window.innerWidth < 1024
+    menu.style.maxHeight = mobile ? Math.min(520, Math.max(100, r.top - 24)) + 'px' : ''
+    var width = menu.offsetWidth
+    var height = menu.offsetHeight
+    var side = button.closest('[data-main-target]')
+    var right = side ? side.getBoundingClientRect().right : r.right
+    var left = Math.max(12, Math.min(right + 12, window.innerWidth - width - 12))
+    var top = Math.max(12, Math.min((mobile ? r.top - 8 : r.bottom) - height, window.innerHeight - height - 12))
+    menu.style.left = left + 'px'
+    menu.style.top = top + 'px'
+    var first = menu.querySelector('[role="menuitem"]')
+    if (first) first.focus({ preventScroll: true })
+  }
+
+  function closeSupport() {
+    var panel = document.getElementById('fy-support-panel')
+    if (panel) panel.hidden = true
+    if (supportTrigger) supportTrigger.focus()
+  }
+
+  function openSupport(button) {
+    closeMore(false)
+    supportTrigger = button
+    var panel = document.getElementById('fy-support-panel')
+    if (!panel) {
+      var href = supportHref()
+      var email = href.replace(/^mailto:/i, '').split('?')[0]
+      panel = document.createElement('div')
+      panel.id = 'fy-support-panel'
+      panel.className = 'fy-support-panel'
+      panel.innerHTML = '<div class="fy-support-mask" data-fy-support-close></div>' +
+        '<div class="fy-support-card" role="dialog" aria-modal="true" aria-labelledby="fy-support-title">' +
+        '<button type="button" class="fy-support-close" aria-label="Close" data-fy-support-close>&times;</button>' +
+        '<h2 id="fy-support-title">Contact Us</h2>' +
+        '<p>For account or payment questions, contact our support team by email.</p>' +
+        '<a class="fy-support-email" href="' + esc(href) + '">' + esc(email) + '</a>' +
+        '<div class="fy-support-actions"><button type="button" data-fy-support-copy>Copy email</button>' +
+        '<a href="' + esc(href) + '">Send email</a></div>' +
+        '<p class="fy-support-status" role="status"></p></div>'
+      document.body.appendChild(panel)
+    }
+    syncSupportDetails(!!loadSupportConfig())
+    panel.hidden = false
+    panel.querySelector('button[data-fy-support-close]').focus()
+  }
+
+  function bindSidebarTools() {
+    if (document.__fySidebarTools) return
+    document.__fySidebarTools = true
+    loadSupportConfig()
+    document.addEventListener('click', function (e) {
+      var target = e.target
+      if (!target || !target.closest) return
+      var more = target.closest('[data-fy-more-open]')
+      var support = target.closest('[data-fy-support-open]')
+      if (more || support) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (more) openMore(more)
+        else openSupport(support)
+        return
+      }
+      if (target.closest('[data-fy-support-close]')) {
+        e.preventDefault()
+        e.stopPropagation()
+        closeSupport()
+        return
+      }
+      if (target.closest('[data-fy-support-copy]')) {
+        var panel = document.getElementById('fy-support-panel')
+        if (!panel || target.closest('[data-fy-support-copy]').disabled) return
+        var email = panel.querySelector('.fy-support-email').textContent
+        var status = panel.querySelector('.fy-support-status')
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(email).then(function () {
+            status.textContent = 'Email copied.'
+          }).catch(function () { window.prompt('Copy this email address:', email) })
+        } else window.prompt('Copy this email address:', email)
+        return
+      }
+      if (target.closest('[data-fy-lang-open]')) closeMore(false)
+      var menu = document.getElementById('fy-more-menu')
+      if (menu && !menu.hidden && (!menu.contains(target) || target.closest('a'))) closeMore(false)
+    }, true)
+    document.addEventListener('keydown', function (e) {
+      var support = document.getElementById('fy-support-panel')
+      var menu = document.getElementById('fy-more-menu')
+      if (e.key === 'Escape') {
+        if (support && !support.hidden) { e.preventDefault(); closeSupport(); return }
+        closeMore(true)
+      }
+      if (support && !support.hidden && e.key === 'Tab') {
+        var focusable = support.querySelectorAll('a[href], button:not(:disabled)')
+        var first = focusable[0], last = focusable[focusable.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+      if (!menu || menu.hidden || !menu.contains(e.target)) return
+      var items = Array.prototype.slice.call(menu.querySelectorAll('[role="menuitem"]'))
+      var index = items.indexOf(document.activeElement)
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+        e.preventDefault()
+        var next = e.key === 'Home' ? 0 : (e.key === 'End' ? items.length - 1 :
+          (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length)
+        items[next].focus()
+      }
+      if (e.key === 'Tab') closeMore(false)
+    })
+    window.addEventListener('resize', function () { closeMore(false) })
+    document.addEventListener('scroll', function (e) {
+      var menu = document.getElementById('fy-more-menu')
+      if (menu && !menu.contains(e.target)) closeMore(false)
+    }, true)
   }
 
   /* ---------- 语言切换按钮：点开原站那颗 “Select your language” 大弹窗 ---------- */
@@ -525,7 +768,7 @@
         '</a></li>'
     }
     // 参考站：分隔线只出现在两行之间，最后一行后面没有
-    return NAV.map(row).concat(NAV_BOTTOM.map(row)).join('<li class="fy-hr-li"></li>')
+    return MAIN_NAV.map(row).join('<li class="fy-hr-li"></li>')
   }
 
   /* 头像下拉 / 移动端抽屉「我的资料」共用菜单（内容统一） */
@@ -641,6 +884,45 @@
     { key: 'guys', label: 'Guys', href: './Guys.html', icon: 'catMale' }
   ]
 
+  /* 分类导航的落点：
+     首页（Home.html）用页内 [data-cat] 按钮切换，本来就是对的；
+     其它页面（Chat / Game / purchasePoints …）的顶栏 Girls/Anime/Guys 是
+     <a href="./Girls.html">，点了会跳到分类列表页。
+     客户希望「在聊天页点这三个按钮依然是回到首页选角色」，所以这些页面统一
+     改写为 Home.html?cat=<key>，由 Home.html 读取该参数选中对应分类。
+
+     Girls/Anime/Guys.html 三个分类列表页除外：它们自身的分类互跳保持原样
+     （这三个页面只可能被旧链接/书签到达，别顺手改掉它们的行为）。 */
+  function isHomePage() {
+    var p = (location.pathname || '').toLowerCase()
+    return p === '/' || /\/home\.html$/.test(p)
+  }
+
+  function isCatListPage() {
+    var p = (location.pathname || '').toLowerCase()
+    return /\/(girls|anime|guys)\.html$/.test(p)
+  }
+
+  function catKeyFromHref(href) {
+    if (!href) return ''
+    if (/girls\.html/i.test(href)) return 'girls'
+    if (/anime\.html/i.test(href)) return 'anime'
+    if (/guys\.html/i.test(href)) return 'guys'
+    return ''
+  }
+
+  // 非首页 / 非分类列表页：把分类链接改写成回首页带分类（保持 <a href> 形态，新窗口/中键都正常）
+  function normalizeCatLinks() {
+    if (isHomePage() || isCatListPage()) return
+    var links = document.querySelectorAll(
+      'a.head-btn[href], #fyCatDdPanel a[href], a.fy-cat-item[href]'
+    )
+    for (var i = 0; i < links.length; i++) {
+      var k = catKeyFromHref(links[i].getAttribute('href'))
+      if (k) links[i].setAttribute('href', './Home.html?cat=' + k)
+    }
+  }
+
   // Home.html 那个站内分类切换（顶栏 .c-tab / 移动端 #catDdPanel，都由 [data-cat] 驱动）
   function pageCatBtn(key) {
     var list = document.querySelectorAll('[data-cat="' + key + '"]')
@@ -697,35 +979,7 @@
   }
 
   function drawerFooter() {
-    var cur = currentCategory()
-    var catMenu = CATEGORIES.map(function (c) {
-      return '<a class="fy-cat-item" href="' + c.href + '" data-fy-cat="' + c.key + '">' +
-        '<span class="fy-cat-icon">' + iconHtml(c.icon, '') + '</span>' +
-        '<span>' + c.label + '</span></a>'
-    }).join('')
-
-    return '<div class="fy-drawer-foot py-2.5 px-5 flex flex-col justify-center items-center gap-2.5 border-t border-[#2F2F32] bg-[#1E1E1E]">' +
-
-      // 大按钮：Category 切换
-      '<div class="fy-cat-wrap">' +
-      '<button type="button" class="fy-cat-btn" id="fy-cat-btn" aria-expanded="false" aria-haspopup="menu">' +
-      '<span class="fy-cat-icon">' + iconHtml(cur.icon, '') + '</span>' +
-      '<span class="fy-cat-text"><span class="fy-cat-k">Category:</span>' +
-      '<span class="fy-cat-v">' + cur.label + '</span></span>' +
-      '<span class="fy-cat-caret">' + iconHtml('catChevron', '') + '</span>' +
-      '</button>' +
-      '<div class="fy-cat-menu hidden" id="fy-cat-menu">' + catMenu + '</div>' +
-      '</div>' +
-
-      // 四个小按钮：两行两列（Contact Us / Affiliate / Get App / 语言）
-      '<div class="fy-foot-grid">' +
-      '<a class="fy-foot-btn" href="mailto:support@sugusmail.ai">Contact Us</a>' +
-      '<a class="fy-foot-btn" href="./Inviter.html">Affiliate</a>' +
-      '<a class="fy-foot-btn" href="./Home.html#install-app">Get App</a>' +
-      langButton(false, true) +
-      '</div>' +
-
-      '</div>'
+    return sidebarFooter(true, true)
   }
 
   /* 结构照参考站新版外壳的 mobile drawer（Subscriptions.html 里保存的原始 DOM）：
@@ -771,6 +1025,10 @@
     var tk = null
     try { tk = localStorage.getItem('live_access_token') } catch (e) { return }
     if (!tk) return
+    // 单飞：上一次请求未回来前不重复发（防抖之外的兜底，任何调用方都不会造成并发风暴）
+    if (window.__tokenBalanceInflight) return
+    window.__tokenBalanceInflight = true
+    var done = function () { window.__tokenBalanceInflight = false }
     fetch('/api/live/userInfo', { method: 'POST', headers: { token: tk } })
       .then(function (r) { return r.json() })
       .then(function (d) {
@@ -781,6 +1039,7 @@
         })
       })
       .catch(function () {})
+      .then(done, done)
   }
 
   // 站内 API（/api/live/）请求完成后自动刷新顶栏余额（聊天扣费/解锁/充值后实时更新），300ms 防抖合并
@@ -801,7 +1060,11 @@
       try {
         var u = String((arguments[0] && (arguments[0].url || arguments[0])) || '')
         // 站内实时接口的变更类调用（POST）后刷新余额；只读接口不刷
-        if (/\/api\/live\//.test(u)) {
+        // ⚠️ 必须排除 userInfo 本身：refreshTokenBalance() 就是 POST /api/live/userInfo，
+        //    若不排除会「userInfo 完成 → 触发刷新 → 再发 userInfo」无限循环，
+        //    每个标签页 300ms 一次，数个标签页即可吃满 PHP-FPM 40 个 worker，
+        //    导致 customVideo/submit 等请求排队到超时（2026-10-22 线上事故）
+        if (/\/api\/live\//.test(u) && !/\/api\/live\/userInfo(\?|$)/.test(u)) {
           var opts = arguments[1] || {}
           var method = String(opts.method || (arguments[0] && arguments[0].method) || 'GET').toUpperCase()
           if (method === 'POST') p.then(function () { scheduleRefresh() }).catch(function () {})
@@ -1594,7 +1857,9 @@
       var a = e.target.closest ? e.target.closest('a.head-btn') : null
       if (!a) return
       var href = a.getAttribute('href') || ''
-      var k = href.indexOf('Anime') >= 0 ? 'anime' : (href.indexOf('Guys') >= 0 ? 'guys' : 'girls')
+      // href 可能已被改写成 ./Home.html?cat=anime，用统一解析避免误判成 girls
+      var k = catKeyFromHref(href) ||
+        (href.indexOf('Anime') >= 0 ? 'anime' : (href.indexOf('Guys') >= 0 ? 'guys' : 'girls'))
       var list = document.querySelectorAll('a.head-btn')
       for (var i = 0; i < list.length; i++) {
         if (list[i] === a) {
@@ -1660,6 +1925,7 @@
     }
     ensureCatBar(topbar)
     injectCatDropdown()
+    normalizeCatLinks()
     return true
   }
 
@@ -1667,6 +1933,10 @@
     try {
       var __bound = render()
       if (__bound) bind()
+      bindSidebarTools()
+      // 独立于 render()：页面没有侧栏容器时 render() 会提前 return，
+      // 但顶栏分类链接仍然要改写（Chat / Game 等页就是这种情况）
+      normalizeCatLinks()
       syncPageLangButtons()
       syncAuth()
       bindPageCatSync()

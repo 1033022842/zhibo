@@ -30,6 +30,8 @@
     // 分类（对应首页顶栏 Girls/Anime/Guys 控件）：girls / anime / guys
     var cat = 'girls'
     var query = ''
+    // Discover 深链：?id=<私密内容 id>，首屏按全部分类拉取并自动打开该内容
+    var deepLinkId = String(getParam('id') || '')
 
     function getParam(name) {
         var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i')
@@ -285,17 +287,40 @@
     }
 
     function load() {
-        var url = API_LIST + '?tab=' + encodeURIComponent(tab) + '&category=' + encodeURIComponent(cat)
+        // 带 ?id= 从 Discover 进来时先按全部分类拉取，拿到目标后再恢复常规筛选
+        var url = API_LIST + '?tab=' + encodeURIComponent(tab) + '&category=' + encodeURIComponent(deepLinkId ? '' : cat)
         fetch(url, { method: 'GET', headers: headers() })
             .then(function (r) { return r.json() })
             .then(function (d) {
                 items = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
                 render()
+                if (deepLinkId) {
+                    var id = deepLinkId
+                    deepLinkId = ''
+                    openDeepLink(id)
+                }
             })
             .catch(function () {
                 items = []
                 render()
             })
+    }
+
+    /* Discover 卡片带 ?id=<id> 进来时：已解锁直接播放，未解锁滚到该卡片并展开 Confirm */
+    function openDeepLink(id) {
+        var item = findItem(id)
+        if (!item) return
+        if (Number(item.unlocked) === 1) {
+            watch(item)
+            return
+        }
+        var card = document.querySelector('[data-private-card="' + id + '"]')
+        if (!card) return
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        var unlockBtn = card.querySelector('[data-content-pack-unlock]')
+        var form = card.querySelector('[data-content-pack-confirm]')
+        if (unlockBtn) unlockBtn.classList.add('hidden')
+        if (form) form.classList.remove('hidden')
     }
 
     /* ---------- 标签栏：All / Most liked ---------- */
