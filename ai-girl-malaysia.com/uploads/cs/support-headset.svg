@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" role="img" aria-label="Customer support">
+  <g transform="translate(12 12)">
+    <path d="M17 58V47c0-17.1 13.9-31 31-31s31 13.9 31 31v11" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+    <rect x="9" y="50" width="20" height="30" rx="10" fill="#ffffff"/>
+    <rect x="67" y="50" width="20" height="30" rx="10" fill="#ffffff"/>
+    <path d="M77 78v2c0 6.6-5.4 12-12 12h-8" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="53" cy="92" r="5.5" fill="#ffffff"/>
+  </g>
+</svg>

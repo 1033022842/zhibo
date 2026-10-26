@@ -1,0 +1,92 @@
+﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kisss · brand mark</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#08080B;color:#fff;font-family:Poppins,-apple-system,"Segoe UI",sans-serif;padding:64px 40px 80px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .eyebrow{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:#FF7C9C;margin-bottom:14px}
+  h1{font-size:30px;font-weight:600;letter-spacing:-.02em}
+  .sub{color:#8A8A96;font-size:14px;margin-top:10px;line-height:1.7;max-width:620px}
+  section{margin-top:56px}
+  .label{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#6C6C78;margin-bottom:18px}
+  .hero{display:flex;align-items:center;justify-content:center;padding:72px 24px;border-radius:24px;
+    background:radial-gradient(120% 120% at 30% 0%,rgba(255,79,135,.14),transparent 60%),#0E0E13;
+    border:1px solid rgba(255,255,255,.06)}
+  .hero img{width:min(560px,80%)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{background:#0E0E13;border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:32px 24px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;min-height:240px}
+  .card span{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#6C6C78;margin-top:auto;padding-top:18px}
+  .sizes{display:flex;align-items:flex-end;gap:26px}
+  .sizes figure{display:flex;flex-direction:column;align-items:center;gap:10px;color:#6C6C78;font-size:11px}
+  .light{background:#F5F5F7;border-radius:24px;padding:64px 24px;display:flex;align-items:center;justify-content:center}
+  .light img{width:min(560px,80%)}
+  .tile{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .chips{display:flex;gap:14px;flex-wrap:wrap}
+  .chip{border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.08);width:150px}
+  .chip i{display:block;height:74px}
+  .chip p{padding:10px 12px;font-size:11px;color:#8A8A96;background:#0E0E13;letter-spacing:.06em}
+  footer{margin-top:64px;color:#4E4E58;font-size:12px;line-height:1.9}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">kisss.ai — brand mark</p>
+  <h1>The kiss, in one gesture.</h1>
+  <p class="sub">唇印主形 + 一点星光（AI）。粉色渐变沿用站点现有荧光粉，字标保持 Poppins ExtraBold，与线上 header 一致。所有图形与文字均已转曲，可直接商用。</p>
+
+  <section>
+    <p class="label">Primary lockup · dark</p>
+    <div class="hero"><img src="./kisss-logo-dark.svg?v=3" alt="kisss.ai logo"></div>
+  </section>
+
+  <section>
+    <p class="label">App icon</p>
+    <div class="grid">
+      <div class="card"><img src="./kisss-mark.svg?v=3" style="width:132px;border-radius:30px"><span>512 × 512</span></div>
+      <div class="card">
+        <div class="sizes">
+          <figure><img src="./kisss-mark.svg?v=3" style="width:64px;border-radius:15px">64</figure>
+          <figure><img src="./kisss-mark.svg?v=3" style="width:40px;border-radius:9px">40</figure>
+          <figure><img src="./kisss-mark.svg?v=3" style="width:24px;border-radius:6px">24</figure>
+          <figure><img src="./kisss-mark.svg?v=3" style="width:16px;border-radius:4px">16</figure>
+        </div>
+        <span>favicon scale</span>
+      </div>
+      <div class="card"><img src="./kisss-icon.svg?v=3" style="width:150px"><span>transparent</span></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="label">Lockup · light</p>
+    <div class="light"><img src="./kisss-logo-light.svg?v=3" alt="kisss.ai logo light"></div>
+  </section>
+
+  <section>
+    <p class="label">Wordmark</p>
+    <div class="card" style="min-height:160px"><img src="./kisss-wordmark.svg?v=3" style="width:300px"></div>
+  </section>
+
+  <section>
+    <p class="label">Palette</p>
+    <div class="chips">
+      <div class="chip"><i style="background:linear-gradient(135deg,#FF4F87,#FF9A8B)"></i><p>#FF4F87 → #FF9A8B</p></div>
+      <div class="chip"><i style="background:#0B0B0F"></i><p>#0B0B0F Ink</p></div>
+      <div class="chip"><i style="background:#FFFFFF"></i><p>#FFFFFF Paper</p></div>
+    </div>
+  </section>
+
+  <footer>
+    SVG · outlined paths · no font dependency<br>
+    文件：kisss-logo-dark.svg / kisss-logo-light.svg / kisss-mark.svg / kisss-icon.svg / kisss-wordmark.svg
+  </footer>
+</div>
+</body>
+</html>
+
+
