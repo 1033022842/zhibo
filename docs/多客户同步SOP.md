@@ -551,3 +551,52 @@ ssh 99.11 curl -sk -o /dev/null -w '%{http_code}\n' https://<域名>/ai/Home.htm
 
 注意：kiss 的 80 端口是 HLS 明文回源口 + Certbot 404 兜底，验证一律走 https 域名；
 heygirl/kelymi 的 nginx listen 绑定具体 IP，本机 curl 测试用 `--resolve <域名>:443:<本机IP>`。
+
+---
+
+## 十一、站点首页后台可配（2026-10-26 sugus 首发）
+
+客户问题：「后台能不能自由设置哪个页面是首页」。已实现：后台选页面，`/` 与 `/ai/` 302 到该页面。
+
+### 11.1 结构
+
+| 层 | 位置 | 说明 |
+|---|---|---|
+| 后台 | `/admin/live.SiteHome/index?_key=<ADMIN_FLOAT_KEY>` | 下拉选页面（自动扫描站点 `*.html`），保存即生效 |
+| 配置 | `lp_platform_config.site_home_page` | 空 = 默认 `Home.html` |
+| 状态 | `<站点目录>/.state/home.json` | 后台写入，`www-data` 可写，前台零依赖读取 |
+| 前台 | `<站点目录>/index.php` | 读状态 → 302 `/ai/<page>`；默认 `Home.html` |
+| 接口 | `GET /api/live/siteConfig` | 返回 `{home_page, default}` |
+
+行为：`/`、`/ai/` 走 index.php；直连 `/ai/X.html` 不受影响；302 而非 301，随时可改回默认。
+
+### 11.2 新客户接入（4 步）
+
+1. 站点目录放 `index.php`（仓库 `ai-girl-malaysia.com/index.php`，同步脚本会带过去）
+2. `mkdir <站点目录>/.state && chown www-data:www-data <站点目录>/.state`（后台写状态用）
+3. 检查 `.user.ini`：`open_basedir` 必须包含 `/www/wwwroot/douyin/`。sugus 旧值是
+   `/www/wwwroot/ai-girl-malaysia.com/:/tmp/`（缺 `/douyin`），会让 index.php 直接
+   `No input file specified`（500）
+4. nginx（公开 80/443 的 server，即 `/etc/nginx/sites-enabled/douyin`）三处改动：
+   - `location = / { rewrite ^ /ai/index.php last; }`（原为 `rewrite ^ /ai/Home.html redirect;`）
+   - `location ^~ /ai/ { index index.php index.html; ... }`（原为 `index Login.html index.html;`）
+   - 新增：
+
+     ```nginx
+     location = /ai/index.php {
+         include fastcgi_params;
+         fastcgi_param SCRIPT_FILENAME /www/wwwroot/douyin/<站点目录>/index.php;
+         fastcgi_param SCRIPT_NAME /ai/index.php;
+         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+     }
+     ```
+
+   然后 `nginx -t && systemctl reload nginx`。
+
+### 11.3 坑
+
+- **备份文件不能留在 `/etc/nginx/sites-enabled/`**：该目录是 `include ... /*`，`xxx.bak_*` 一样会被加载。
+  2026-10-26 就因为 `douyin.bak_*` 里重复的 `limit_req_zone` 让 `nginx -t` 失败、reload 没生效，
+  表面看「改了配置没反应」。备份一律放 `/root/nginx_bak/`。
+- 生效范围只在公开 vhost；`douyin-8082`（回源口）同步加 `location = /index.php` 只是方便本机排查。
+- Bunny 对 HTML 默认缓存 60s（`map $ai_cache`），改完首页最多 1 分钟全边缘生效。

@@ -176,6 +176,33 @@ final class Live extends BaseController
     }
 
     /**
+     * 站点首页配置（后台「站点设置 → 站点首页」）
+     * GET /api/live/siteConfig
+     *
+     * home_page 为空表示使用默认落地页 index.html。
+     */
+    public function siteConfig()
+    {
+        $page = '';
+        try {
+            $page = trim((string) Db::connect('live_mysql')->table('lp_platform_config')
+                ->where('key', 'site_home_page')->value('value'));
+        } catch (\Throwable) {
+            $page = '';
+        }
+        $dir = (string) env('site.html_dir', '');
+        $dir = rtrim($dir !== '' ? $dir : '/www/wwwroot/douyin/ai-girl-malaysia.com', '/');
+        $ok = $page !== ''
+            && preg_match('/^[A-Za-z0-9._-]+\.html$/', $page)
+            && is_file($dir . '/' . $page);
+
+        return $this->jsonSuccess([
+            'home_page' => $ok ? $page : '',
+            'default'   => 'Home.html',
+        ])->header(['Cache-Control' => 'no-store']);
+    }
+
+    /**
      * 发送注册邮箱验证码
      * POST /api/live/sendEmailCode
      */

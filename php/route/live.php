@@ -58,6 +58,8 @@ Route::post('live/registerFromAi',   '\app\api\controller\Live@registerFromAi');
 Route::get('live/registerConfig',    '\app\api\controller\Live@registerConfig');
 // 登录后弹窗配置（创作指南 / 18+ 进场弹窗，后台可控制开关/延迟/频率）
 Route::get('live/popupConfig',       '\app\api\controller\Live@popupConfig');
+// 站点首页（后台可把 / 指到任意页面；空=默认 index.html）
+Route::get('live/siteConfig',        '\app\api\controller\Live@siteConfig');
 Route::post('live/sendEmailCode',    '\app\api\controller\Live@sendEmailCode');
 Route::post('live/sendPasswordResetCode', '\app\api\controller\Live@sendPasswordResetCode');
 Route::post('live/resetPassword',    '\app\api\controller\Live@resetPassword');
