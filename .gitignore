@@ -105,7 +105,6 @@ services/channel-worker/bin/ffmpeg-tools/
 
 ai-girl-malaysia.com/.state/
 
-# sugus 图片页的本地 clip 素材（media/gs 约 210MB，内容资产不入 git）：
-# 以生产服务器 /www/wwwroot/douyin/ai-girl-malaysia.com/media/gs 为准，
-# 同步脚本按覆盖目录分发（同尺寸跳过），见 client_overrides/README.md
+# sugus 图片页的本地 clip 素材（media/gs 约 205MB）：不入库、也不放覆盖目录，
+# 由服务器执行 client_overrides/image-sugus/media-src/fetch_media.py 自行拉取
 client_overrides/image-sugus/media/

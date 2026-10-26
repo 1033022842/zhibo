@@ -177,7 +177,7 @@ client_overrides/
 
 | 变体 | 客户 | 覆盖文件 | 说明 |
 |---|---|---|---|
-| `image-sugus` | sugus | `Image.html`、`js/customVideo.js`、`media/gs/`（159 个 clip 素材 ≈205MB，不入 git） | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗） |
+| `image-sugus` | sugus | `Image.html`、`js/customVideo.js`（`media/gs/` 由服务器按 `media-src/` 清单自拉） | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗） |
 | `image-heygirl` | heygirl | `Image.html`、`js/customVideo.js` | 同上 |
 
 **覆盖必须成对**：新版 `Image.html` 引用 `./js/customVideo.js`，只覆盖 HTML 会让客户页
@@ -190,9 +190,8 @@ client_overrides/
 
 注意：
 - 覆盖文件**不在 blob 快照里**，每次同步都会重传（同尺寸跳过），请保持体积小
-- 唯一例外：`image-sugus/media/gs/`（159 个 clip 视频/封图 ≈205MB）是内容资产，
-  已 `.gitignore` 不入库；以 sugus 服务器 `…/ai-girl-malaysia.com/media/gs` 为准，
-  本地留副本供分发（同尺寸跳过，不会每次重传）
+- 唯一例外：`image-sugus/media-src/`（清单 + 抓取脚本）不发布到站点；205MB 的 `media/gs/`
+  由服务器执行 `python3 fetch_media.py` 从公开 CDN 拉，不要放进覆盖目录（每次同步会重传 205MB）
 - 覆盖目录以 `.` 开头的文件（`.gitkeep`）不会发布
 - 新增/改名/换客户时，同步更新 `client_overrides/README.md`、本文档、`.zcode/skills/client-sync/SKILL.md`
 - 上游 `Image.html` 头部已有提示注释，指向本目录；同事打开文件即可看到
