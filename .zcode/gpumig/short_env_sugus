@@ -1,0 +1,8 @@
+SHORT_API_BASE=https://sugus.ai/api/aiShort
+SHORT_KEY=live-ai-api-key-2026
+SHORT_WORKER_ID=sugus-short-h3
+SHORT_TAG=sugus
+SHORT_ROOT=/opt/cv/short/sugus
+COMFY_BASE=/opt/comfyui/ComfyUI
+SHORT_GAP_SEC=60
+SHORT_GEN_TIMEOUT=3600

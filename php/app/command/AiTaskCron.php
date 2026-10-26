@@ -55,5 +55,15 @@ final class AiTaskCron extends Command
                 $output->writeln("  task_id={$item['task_id']}, action={$item['action']}{$extra}");
             }
         }
+
+        // 50 条短视频通道（ai_short_*）：独立回收，不碰上面的 custom_* 逻辑
+        $shortReaped = (new \app\ai\service\ShortTaskService())->reapStuck(90);
+        if ($shortReaped) {
+            $output->writeln('回收卡死的短视频任务 ' . count($shortReaped) . ' 个:');
+            foreach ($shortReaped as $item) {
+                $extra = isset($item['refunded']) ? ', refunded=' . ($item['refunded'] ? 'yes' : 'no') : '';
+                $output->writeln("  task_id={$item['task_id']}, action={$item['action']}{$extra}");
+            }
+        }
     }
 }
