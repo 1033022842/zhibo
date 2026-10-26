@@ -2,7 +2,7 @@
    上传/生成视频弹窗已下线，这里只负责浏览、看详情、进聊天 */
 (function () {
     var token = localStorage.getItem('live_access_token')
-    var WORKS_API = '/api/customVideo/myList'
+    var WORKS_API = '/api/aiShort/myList'
 
     function $(id) { return document.getElementById(id) }
 
@@ -268,24 +268,23 @@
         initAutoplay()
     }
 
-    /* ---------- 卡片弹窗 = 参考站的生成器面板（真接 /api/customVideo 生成） ---------- */
-    var API = '/api/customVideo'
+    /* ---------- 卡片弹窗 = 预设生成面板（AiShort 通道） ----------
+       每条卡片就是一个预设（code = 卡片 id，如 gs-17），后端按 code 取
+       专属提示词 + 4 层 LoRA 链，不是随机风格池。 */
+    var API = '/api/aiShort'
+    var gsPresetMap = {}          // code -> /presets 返回的元信息
+    var gsPresetsLoaded = false
+
     var gen = {
-        mode: 'video',          // video | outfit
         file: null,
-        presets: [],
-        imagePresets: [],
-        sel: null,
-        videoPrice: 0,
-        imagePrice: 0,
+        preset: null,             // { code, title, kind, duration_sec, category }
+        duration: 0,              // 用户选的时长；0 = 用预设默认
+        remain: null,             // null = 未知（提交后才拿到）
         balance: 0,
-        remain: 0,
-        limit: 0,
-        refill: 0,
-        unlimited: false,
         submitting: false,
         pollTimer: null,
-        current: null
+        current: null,
+        taskId: 0
     }
 
     function authJson(url, opts) {
@@ -308,7 +307,7 @@
         el.textContent = msg
         el.style.display = 'block'
         clearTimeout(el.__t)
-        el.__t = setTimeout(function () { el.style.display = 'none' }, 2800)
+        el.__t = setTimeout(function () { el.style.display = 'none' }, 3200)
     }
 
     function showNote(msg) {
@@ -325,98 +324,108 @@
         s.style.display = txt ? '' : 'none'
     }
 
-    function genPrice() { return gen.mode === 'outfit' ? gen.imagePrice : gen.videoPrice }
-
-    function genPresets() { return gen.mode === 'outfit' ? gen.imagePresets : gen.presets }
-
-    function renderCost() {
-        var el = $('gsGenCost')
-        if (!el) return
-        var p = genPrice()
-        el.textContent = (!gen.unlimited && gen.remain <= 0 && p > 0) ? '🪙 ' + p : 'Free'
+    // 预设列表是公开接口；拿到后按 code 建索引，用于时长/分类等元信息
+    function loadPresets() {
+        if (gsPresetsLoaded) return Promise.resolve(gsPresetMap)
+        return fetch(API + '/presets', { cache: 'no-store' })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                var list = (d && d.code === '00000' && d.data && d.data.list) ? d.data.list : []
+                list.forEach(function (p) { if (p && p.code) gsPresetMap[p.code] = p })
+                gsPresetsLoaded = true
+                return gsPresetMap
+            })
+            .catch(function () { return gsPresetMap })
     }
 
+    function presetOf(card) {
+        var p = gsPresetMap[card.id] || {}
+        return {
+            code: card.id,
+            title: p.title || decodeEntities(card.title),
+            kind: p.kind || card.kind || 'video',
+            duration_sec: Number(p.duration_sec) || Number(card.duration) || 8,
+            category: p.category || (card.tags && card.tags[0]) || 'other'
+        }
+    }
+
+    // 标题与标签：预设元信息可能晚到，渲染单独抽出来便于二次刷新
+    function renderHead(c) {
+        if (!c || !gen.preset) return
+        $('gsGenTitle').textContent = gen.preset.title
+        var pills = [
+            '<span class="gs-gen__owner">@' + esc(c.creator || 'genspicy') + '</span>',
+            '<span class="gs-gen__dot">·</span>'
+        ]
+        var tags = [gen.preset.category]
+        tags.push(gen.preset.kind === 'image' ? 'image' : gen.preset.duration_sec + 's')
+        $('gsGenPills').innerHTML = pills.concat(tags.map(function (t) {
+            return '<span class="gs-gen__pill">' + esc(t) + '</span>'
+        })).join('')
+    }
+
+    // 卡片本身就是预设，不需要再选风格；这里只让用户微调时长
     function renderAddons() {
         var box = $('gsGenAddons')
         if (!box) return
-        var list = genPresets()
-        if (!list.length) {
-            // 未登录或选项还没回来：给一行占位，避免面板出现空洞
-            box.innerHTML = '<button type="button" class="gs-gen__addon" id="gsGenAddonHint">' +
-                '<span>' + (token ? 'Loading styles…' : 'Sign in to pick a style') + '</span>' +
-                '<span class="gs-gen__radio"></span></button>'
-            var hint = $('gsGenAddonHint')
-            if (hint && !token) {
-                hint.addEventListener('click', function () {
-                    location.href = './Login.html?redirect=' + encodeURIComponent('./Image.html')
-                })
-            }
+        var p = gen.preset
+        if (!p) { box.innerHTML = ''; return }
+        if (p.kind === 'image') {
+            box.innerHTML = '<div class="gs-gen__hint" style="margin:0">Still-image preset — no duration to pick.</div>'
             return
         }
-        box.innerHTML = list.map(function (p) {
-            var on = gen.sel && gen.sel.key === p.key
-            var lock = gen.mode === 'outfit' && !p.owned
-            return '<button type="button" class="gs-gen__addon' + (on ? ' on' : '') + '" data-key="' + esc(p.key) + '">' +
-                '<span>' + esc(p.label) + (lock ? ' · ' + esc(p.price || '') + ' in Shop' : '') + '</span>' +
-                '<span class="gs-gen__radio"></span></button>'
+        var def = p.duration_sec
+        var opts = [3, 5, 8, 10]
+        if (opts.indexOf(def) < 0) { opts.push(def); opts.sort(function (a, b) { return a - b }) }
+        var cur = gen.duration || def
+        box.innerHTML = opts.map(function (v) {
+            var on = v === cur ? ' on' : ''
+            var lab = v + 's' + (v === def ? ' · default' : '') + (v === 3 ? ' · fastest' : '')
+            return '<button type="button" class="gs-gen__addon' + on + '" data-dur="' + v + '">' +
+                '<span>' + esc(lab) + '</span><span class="gs-gen__radio"></span></button>'
         }).join('')
-        box.querySelectorAll('.gs-gen__addon').forEach(function (b) {
+        box.querySelectorAll('[data-dur]').forEach(function (b) {
             b.addEventListener('click', function () {
-                var item = null
-                for (var i = 0; i < list.length; i++) {
-                    if (list[i].key === b.getAttribute('data-key')) { item = list[i]; break }
-                }
-                if (!item) return
-                if (gen.mode === 'outfit' && !item.owned) {
-                    toast('Unlock this outfit in the Shop first')
-                    setTimeout(function () { location.href = './shop.html' }, 900)
-                    return
-                }
-                gen.sel = item
+                gen.duration = Number(b.getAttribute('data-dur'))
                 renderAddons()
+                renderCost()
             })
         })
     }
 
-    function applyQuota(q) {
-        if (!q) return
-        if (q.unlimited || (typeof q.remaining === 'number' && q.remaining < 0)) {
-            gen.unlimited = true
-            gen.remain = -1
-            renderCost()
-            return
+    function renderCost() {
+        var el = $('gsGenCost')
+        if (!el) return
+        if (gen.remain === null || gen.remain < 0) { el.textContent = 'Free'; return }
+        el.textContent = gen.remain > 0 ? 'Free' : 'Paid'
+    }
+
+    // 右侧画面回到「预设的参考片」
+    function showReference() {
+        var c = gen.current
+        var outImg = $('gsGenOutImg'), v = $('gsGenVideo')
+        if (!outImg || !v) return
+        outImg.style.display = 'none'
+        outImg.classList.remove('is-sharp')
+        var src = c && c.video ? (GS_BASE + c.video) : ''
+        if (src) {
+            v.style.display = 'block'
+            v.muted = true
+            v.loop = true
+            v.src = src
+            var p = v.play()
+            if (p && p.catch) p.catch(function () {})
+            var snd = $('gsGenSound')
+            if (snd) { snd.style.display = 'inline-flex'; snd.classList.add('is-off') }
+        } else {
+            v.pause()
+            v.style.display = 'none'
+            outImg.src = GS_BASE + ((c && (c.image || c.poster)) || '')
+            outImg.style.display = 'block'
+            var s2 = $('gsGenSound')
+            if (s2) s2.style.display = 'none'
         }
-        gen.unlimited = false
-        if (typeof q.daily_limit === 'number') gen.limit = q.daily_limit
-        if (q.refill_daily !== undefined) gen.refill = parseInt(q.refill_daily, 10) || 0
-        if (typeof q.remaining === 'number') gen.remain = q.remaining
-        renderCost()
-    }
-
-    function loadGenOptions() {
-        if (!token) { renderAddons(); renderCost(); return }
-        authJson(API + '/options').then(function (d) {
-            if (!d || d.code !== '00000' || !d.data) return
-            gen.presets = d.data.styles || d.data.presets || []
-            gen.imagePresets = d.data.image_presets || []
-            gen.videoPrice = Number(d.data.video_price) || 0
-            gen.imagePrice = Number(d.data.image_price) || 0
-            gen.balance = Number(d.data.balance) || 0
-            applyQuota(d.data.quota)
-            if (!gen.sel && genPresets().length) gen.sel = genPresets()[0]
-            renderAddons()
-            renderCost()
-        }).catch(function () {})
-    }
-
-    function switchGenMode(m) {
-        gen.mode = m
-        gen.sel = null
-        $('gsGenTabVideo').className = 'gs-gen__tab' + (m === 'video' ? ' on' : '')
-        $('gsGenTabImage').className = 'gs-gen__tab' + (m === 'outfit' ? ' on' : '')
-        $('gsGenSubmitText').textContent = m === 'outfit' ? 'Apply Outfit' : 'Generate'
-        renderAddons()
-        renderCost()
+        setState('Preview')
     }
 
     function openCardModal(id) {
@@ -425,68 +434,45 @@
             if (String(gsList[i].id) === String(id)) { c = gsList[i]; break }
         }
         if (!c || !$('gsCardModal')) return
+        if (gen.pollTimer) { clearInterval(gen.pollTimer); gen.pollTimer = null }
         gen.current = c
         gen.file = null
-        gen.sel = null
-        gen.mode = 'video'
+        gen.duration = 0
+        gen.taskId = 0
+        gen.submitting = false
+        gen.preset = presetOf(c)
 
-        // 弹窗打开时先把列表里的视频停掉，省解码
+        // 先把列表里的视频停掉，省解码
         document.querySelectorAll('#gsGrid video').forEach(function (x) { x.pause() })
 
-        $('gsGenTitle').textContent = decodeEntities(c.title)
-        var pills = [
-            '<span class="gs-gen__owner">@' + esc(c.creator || 'genspicy') + '</span>',
-            '<span class="gs-gen__dot">·</span>'
-        ]
-        var tags = []
-        if (Number(c.duration) > 0) tags.push(Number(c.duration) + 's')
-        ;(c.tags || []).slice(0, 3).forEach(function (t) { tags.push(t) })
-        pills = pills.concat(tags.map(function (t) {
-            return '<span class="gs-gen__pill">' + esc(t) + '</span>'
-        }))
-        $('gsGenPills').innerHTML = pills.join('')
+        renderHead(c)
 
-        // 左框：参考图片（可被自己的图替换）
+        // 左框：待上传的人像（默认显示预设的角色图）
         var pv = $('gsGenPreview')
         pv.src = GS_BASE + (c.corners && c.corners.length ? c.corners[0] : c.poster)
         pv.style.display = 'block'
         $('gsGenUploadText').textContent = 'upload image'
         $('gsGenFile').value = ''
 
-        // 右框：参考视频（静音循环自动播放）
-        var outImg = $('gsGenOutImg')
-        outImg.style.display = 'none'
-        outImg.classList.remove('is-sharp')
-        var v = $('gsGenVideo')
-        v.style.display = 'block'
-        v.muted = true
-        v.loop = true
-        v.src = c.video ? (GS_BASE + c.video) : ''
-        if (!c.video) {
-            v.pause()
-            outImg.src = GS_BASE + (c.image || c.poster)
-            outImg.style.display = 'block'
-            v.style.display = 'none'
-        }
-        var play = v.play()
-        if (play && play.catch) play.catch(function () {})
-        var snd = $('gsGenSound')
-        snd.style.display = 'inline-flex'
-        snd.classList.add('is-off')
+        showReference()
         $('gsGenNote').style.display = 'none'
-        setState('')
-
-        $('gsGenTabVideo').className = 'gs-gen__tab on'
-        $('gsGenTabImage').className = 'gs-gen__tab'
-        $('gsGenSubmitText').textContent = 'Generate'
+        $('gsGenNote').textContent = ''
         renderAddons()
         renderCost()
+        $('gsGenSubmitText').textContent = 'Generate'
         openModal('gsCardModal')
-        loadGenOptions()
+        loadPresets().then(function () {
+            // 预设元信息到齐后刷新标题、标签与时长选项（首次打开时可能还没加载完）
+            if (gen.current !== c) return
+            gen.preset = presetOf(c)
+            renderHead(c)
+            renderAddons()
+        })
     }
 
     function pickFile(f) {
-        if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { toast('Only jpg / png / webp'); return }
+        if (!f) return
+        if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { toast('JPG / PNG / WebP only'); return }
         if (f.size > 10 * 1024 * 1024) { toast('Image must be under 10MB'); return }
         gen.file = f
         var img = $('gsGenPreview')
@@ -495,96 +481,98 @@
         $('gsGenUploadText').textContent = 'change image'
     }
 
-    function submitGen(confirmed) {
+    function submitGen() {
         if (gen.submitting) return
         if (!token) {
             location.href = './Login.html?redirect=' + encodeURIComponent('./Image.html')
             return
         }
         if (!gen.file) { toast('Please upload her picture first'); return }
-        if (!gen.sel) { toast(gen.mode === 'outfit' ? 'Please pick an outfit' : 'Please pick a style'); return }
-        var p = genPrice()
-        if (confirmed !== true && !gen.unlimited && gen.remain <= 0 && p > 0) {
-            if (gen.balance < p) {
-                showNote('Free generations are used up. Each extra one costs ' + p +
-                    ' tokens, but your balance is ' + gen.balance + ' tokens.')
-                return
-            }
-            if (!window.confirm('Free generations used up. This one costs ' + p + ' tokens. Continue?')) return
-            doSubmit(true)
-            return
-        }
-        doSubmit(confirmed === true)
+        if (!gen.preset) return
+        doSubmit(false)
     }
 
     function doSubmit(confirmed) {
         gen.submitting = true
         var btn = $('gsGenSubmit'), txt = $('gsGenSubmitText')
-        var idle = gen.mode === 'outfit' ? 'Apply Outfit' : 'Generate'
         btn.disabled = true
         txt.textContent = 'Submitting…'
 
         var fd = new FormData()
         fd.append('image', gen.file)
-        fd.append('type', gen.mode === 'outfit' ? 'image' : 'video')
+        fd.append('preset_code', gen.preset.code)
         fd.append('agreed_policy', '1')
+        if (gen.duration && gen.duration !== gen.preset.duration_sec) {
+            fd.append('duration_sec', String(gen.duration))
+        }
         if (confirmed === true) fd.append('confirm_paid', '1')
-        if (gen.mode !== 'outfit') fd.append('style', gen.sel.key)
-        if (gen.mode === 'outfit' && gen.sel.item_id) fd.append('item_id', String(gen.sel.item_id))
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             gen.submitting = false
             btn.disabled = false
-            txt.textContent = idle
+            txt.textContent = 'Generate'
             if (!d || d.code !== '00000') {
                 if (d && d.code === 'C0102') {
-                    if (genPrice() > 0 && window.confirm('This one costs ' + genPrice() + ' tokens. Continue?')) doSubmit(true)
+                    // 免费额度用尽：服务端已给出价格文案，确认后带 confirm_paid 重提
+                    if (window.confirm(d.msg || 'This one costs tokens. Continue?')) doSubmit(true)
                     return
                 }
                 if (d && d.code === 'C0100') { showNote(d.msg || 'Not enough tokens.'); return }
+                if (d && d.code === 'A0100') {
+                    location.href = './Login.html?redirect=' + encodeURIComponent('./Image.html')
+                    return
+                }
                 toast((d && d.msg) || 'Submit failed')
                 return
             }
-            if (d.data) {
-                if (typeof d.data.balance === 'number') gen.balance = d.data.balance
-                if (typeof d.data.remaining === 'number') applyQuota({ remaining: d.data.remaining, daily_limit: gen.limit, refill_daily: gen.refill })
-                else if (typeof d.data.remain === 'number') applyQuota({ remaining: d.data.remain, daily_limit: gen.limit, refill_daily: gen.refill })
-            }
+            var data = d.data || {}
+            if (typeof data.remain === 'number') gen.remain = data.remain
+            if (typeof data.balance === 'number') gen.balance = data.balance
+            gen.taskId = Number(data.task_id) || 0
             if (window.refreshTokenBalance) window.refreshTokenBalance()
+            renderCost()
             setState('Queued…')
-            watchResult()
+            watchResult(gen.taskId)
         }).catch(function () {
             gen.submitting = false
             btn.disabled = false
-            txt.textContent = idle
+            txt.textContent = 'Generate'
             toast('Network error')
         })
     }
 
-    function watchResult() {
+    // 按 task_id 轮询；5 秒一次、最长约 20 分钟（8 秒片实际约 10 分钟）
+    function watchResult(taskId) {
         if (gen.pollTimer) clearInterval(gen.pollTimer)
+        if (!taskId) { setState('Submitted — check My Works'); return }
         var tries = 0
         gen.pollTimer = setInterval(function () {
             tries++
-            if (tries > 80) { clearInterval(gen.pollTimer); gen.pollTimer = null; return }
-            authJson(API + '/myList').then(function (d) {
-                var list = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
-                if (!list.length) return
-                var t = list[0]
-                var meta = STATUS_META[t.status] || {}
+            if (tries > 240) {
+                clearInterval(gen.pollTimer)
+                gen.pollTimer = null
+                setState('Still generating — check My Works later')
+                return
+            }
+            authJson(API + '/task?task_id=' + taskId).then(function (d) {
+                if (!d || d.code !== '00000' || !d.data) return
+                var t = d.data
                 if (t.status === 'completed' && t.video_url) {
                     clearInterval(gen.pollTimer)
                     gen.pollTimer = null
                     showResult(t)
-                } else if (t.status === 'failed') {
+                } else if (t.status === 'failed' || t.status === 'expired') {
                     clearInterval(gen.pollTimer)
                     gen.pollTimer = null
-                    setState('Failed — please try again')
+                    setState(t.status === 'expired'
+                        ? 'Expired — please retry'
+                        : ('Failed — ' + (t.error || 'please try again')))
                 } else {
+                    var meta = STATUS_META[t.status] || {}
                     setState(meta.label || 'Generating…')
                 }
             }).catch(function () {})
-        }, 6000)
+        }, 5000)
     }
 
     function showResult(t) {
@@ -594,41 +582,43 @@
             img.src = t.video_url
             img.classList.add('is-sharp')
             img.style.display = 'block'
+            v.pause()
             v.style.display = 'none'
             $('gsGenSound').style.display = 'none'
         } else {
+            img.style.display = 'none'
+            img.classList.remove('is-sharp')
             v.src = t.video_url
             v.style.display = 'block'
-            img.style.display = 'none'
-            $('gsGenSound').style.display = 'inline-flex'
+            v.muted = false
+            v.loop = true
+            var p = v.play()
+            if (p && p.catch) p.catch(function () {})
+            var snd = $('gsGenSound')
+            if (snd) { snd.style.display = 'inline-flex'; snd.classList.remove('is-off') }
         }
     }
 
     function showQuotaInfo() {
         var n = $('gsGenNote')
-        if (n.style.display !== 'none') { n.style.display = 'none'; return }
+        if (n.style.display !== 'none' && n.textContent) { n.style.display = 'none'; return }
         if (!token) { showNote('Sign in to generate.'); return }
         var parts = []
-        if (gen.unlimited) parts.push('Unlimited free generations')
-        else {
-            parts.push('Free left: ' + Math.max(0, gen.remain) + (gen.limit ? ' / ' + gen.limit : ''))
-            if (gen.refill > 0) parts.push('refills +' + gen.refill + '/day')
-        }
-        if (gen.videoPrice) parts.push('extra video ' + gen.videoPrice + ' tokens')
-        if (gen.imagePrice) parts.push('extra image ' + gen.imagePrice + ' tokens')
-        parts.push('balance ' + gen.balance + ' tokens')
+        if (gen.remain === null) parts.push('Free quota is checked on submit')
+        else if (gen.remain < 0) parts.push('Unlimited free generations')
+        else parts.push('Free left: ' + gen.remain)
+        if (gen.balance) parts.push('balance ' + gen.balance + ' tokens')
+        parts.push('8s clip takes ~10 min')
         showNote(parts.join(' · '))
     }
 
     function bindGen() {
         if (!$('gsGenSubmit')) return
-        $('gsGenTabVideo').addEventListener('click', function () { switchGenMode('video') })
-        $('gsGenTabImage').addEventListener('click', function () { switchGenMode('outfit') })
         $('gsGenUpload').addEventListener('click', function () { $('gsGenFile').click() })
         $('gsGenFile').addEventListener('change', function () {
             if (this.files && this.files[0]) pickFile(this.files[0])
         })
-        $('gsGenSubmit').addEventListener('click', function () { submitGen(false) })
+        $('gsGenSubmit').addEventListener('click', submitGen)
         $('gsGenInfo').addEventListener('click', showQuotaInfo)
         $('gsGenLike').addEventListener('click', function () { this.classList.toggle('on') })
         var snd = $('gsGenSound')
@@ -644,6 +634,9 @@
                 }
             })
         }
+        // 卡片即预设，隐藏旧的「Image to Video / Outfit」风格切换
+        var tabs = document.querySelector('.gs-gen__tabs')
+        if (tabs) tabs.style.display = 'none'
     }
 
     function bindGallery() {
@@ -723,15 +716,15 @@
         var body
         if (t.status === 'completed' && t.video_url) {
             body = t.kind === 'image'
-                ? '<a href="' + esc(t.video_url) + '" target="_blank"><img src="' + esc(t.video_url) + '" style="width:100%;display:block;background:#000" alt=""></a>'
-                : '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '"></video>'
+                ? '<a href="' + esc(t.video_url) + '" target="_blank"><img src="' + esc(t.cover_url || t.video_url) + '" style="width:100%;display:block;background:#000" alt=""></a>'
+                : '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '" poster="' + esc(t.cover_url || '') + '"></video>'
         } else if (t.status === 'failed') {
             body = '<div class="cv-wait-body">Generation failed — please retry later.</div>'
         } else {
-            body = '<div class="cv-wait-body">⏳ Still generating…<br>usually 3-6 minutes</div>'
+            body = '<div class="cv-wait-body">⏳ Still generating…<br>an 8s clip takes ~10 min</div>'
         }
         return '<div class="cv-work">' +
-            '<div class="hd"><span class="n">' + esc(t.label || 'Custom video') + '</span>' +
+            '<div class="hd"><span class="n">' + esc(t.title || t.preset_code || 'Preset clip') + '</span>' +
             '<span class="cv-badge ' + m.cls + '">' + m.label + '</span></div>' +
             body +
             '<div class="ft"><span>' + esc((t.created_at || '').replace('T', ' ').slice(0, 16)) + '</span>' +
