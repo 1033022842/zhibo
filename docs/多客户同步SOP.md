@@ -116,6 +116,11 @@ python .zcode/verify_client.py --client sugus --payment  # 后端有改动时加
 `_shared` 内页引用且文件在、标题/logo 品牌、上游品牌泄漏、嵌套垃圾目录、
 （`--payment`）MKPAY 配置段/网关连通/回调路由。sugus 会自动走跳板，避开 CN 区域封锁误判。
 
+> **注意**：`verify_client.py` 只覆盖静态站内容（assets / _shared / 品牌 / 嵌套目录）。
+> **它检查不到 PHP 行为、数据库配置值、前端资源版本号**。凡改动涉及后端或库，
+> 必须再走 **第九节「跨站功能改动核对」** 的三条证据。10-21 的 heygirl 漏推就是
+> `verify_client` 全绿但功能没同步的实例。
+
 脚本的关键词验证可能**假通过**（读的是旧文件/CDN 缓存，10-18 真实发生过）。
 需要手工复核时按下面几条：
 
@@ -330,6 +335,18 @@ python .zcode/sync_clients.py --client kiss                                    #
 | **新客户 `.env` 缺 `[LLM]` 段**（10-20） | kiss / heygirl / kelymi 前端发消息均报「Failed to send: AI 聊天尚未配置 API Key」——`php/config/llm.php` 本身读的是 `env('llm.api_key')`，客户服务器 `.env` 按约定不进仓库，初始化时没人补这一段 | 新客户初始化时把 `[LLM]` 一并写进服务器 `.env`（与 sugus 生产一致：`BASE_URL=https://api.x.ai/v1` / `MODEL=grok-4.5` / `TEMPERATURE/MAX_TOKENS/TIMEOUT`，key 用上游 xAI key）；验证用 `php -r` bootstrap 读 `config('llm.api_key')` + HTTP 实测 `/api/live/iceBreaker`（回包 `data.text` 非空即通） |
 | **kiss 服务器 sshd 只有 rsa/dsa host key**（10-20） | paramiko 2.7 连 kiss 报 `Incompatible ssh peer (no acceptable host key)`，OpenSSH 客户端却正常——paramiko 2.7 的 `_preferred_keys` 只认 `ssh-rsa`（SHA-1 签名），OpenSSH 8.8+ 默认不再接受 | 服务器 `ssh-keygen -A` 补 ecdsa/ed25519 + `systemctl restart ssh`；本地把 paramiko 升到 ≥3（3.x 支持 `rsa-sha2-*`）。判别：`ssh-keyscan <host>` 只出 `ssh-rsa` 一行就是缺 key |
 | **服务器上 `git checkout` 会顺手冲掉客户后端差异**（10-20 kiss） | 排查时用 `git checkout origin/main -- apps/ws-webman/start.php` 归位，把「kiss 上不带 `support\Env::load()` 的本地改动」一起冲掉了；而 webman vendor 没有 `vlucas/phpdotenv` 时 `.env` 整体不被读，WS 的 DB 退化成硬编码 `zhibo`（kiss 库是 `live_platform`）→ 写库静默失败 | 后端文件 checkout 前先 `git diff <file>` 确认不是客户差异；客户后端差异（如 kiss 的 `buildadmin.php` `admin_login_captcha=false`）记进本文档，checkout 后补回 |
+| **24.04 三台的 apt 源缺 `noble-security`**（10-22 PHP 补丁） | `/etc/apt/sources.list.d/ubuntu.sources` 只有 `noble noble-updates`；HK 镜像的 `noble-updates` 滞后，候选版本比官方修复版本低一档 → **`apt upgrade` 显示成功、版本号也变了，但漏洞仍在** | 单独加 `ubuntu-security.sources`（Suites: `noble-security`）；升级后必须做版本断言（`dpkg --compare-versions $ver ge $fixed`），不能只看「升级成功」 |
+| **launchpad PPA 返回 503**（10-22 kisss） | `ppa.launchpadcontent.net/ondrej/php` 的 .deb 下载 503，apt 卡在 `Ign:` 重试后 `EXIT=100` | 换作者官方源 `packages.sury.org`（实测 200/0.18s）；同一作者同一构建，版本号后缀不同但内容一致 |
+| **kisss IP 直连冒烟必 404**（10-22） | kisss 的 nginx 有 `default_server { return 404; }`（Certbot 写的 80 端口兜底），`curl 127.0.0.1/ai/Home.html` 返回 404，会被误判成「升级把站搞挂了」 | 冒烟一律用公网域名 `https://kisss.ai/...` |
+| **`sites-enabled` 可能是实体文件而非软链**（10-22 kiss 改上传限制） | kiss 的 `/etc/nginx/sites-enabled/kiss.conf` 是实体文件且比 `sites-available/kiss.conf` 新（多了 kisss.si 跳转、HLS `open_file_cache off`、http2）。改了 available 再 reload，`nginx -T` 里仍是旧值 → **等于白改** | 改 nginx 前先 `ls -l /etc/nginx/sites-enabled/`：`-rw-` 就是实体文件，要直接改它；验证只看 `nginx -T \| grep ...`，别信源文件 |
+| **全局 fetch 钩子自我触发 → 死循环**（10-22 userInfo） | `shell-new.js` 的 `window.fetch` 钩子对「任何 POST /api/live/*」触发余额刷新，而刷新本身就是 POST /api/live/userInfo → 无限循环，每标签页 3.3 次/秒。表现为「某个接口提交没响应」，但**服务端 FPM 池是空的、零 5xx**，真因是浏览器 6 个并发连接被死循环占满 | 钩子必须排除自己会发的那个路径；再加 inflight 单飞。排障先看 `systemctl show php8.3-fpm -p StatusText`（active/慢请求数）与 502/504 计数，能快速排除服务端 |
+| **兜底阈值必须按真实故障速率校准**（10-22） | userInfo 第一次限流设 5r/s，实测对 1 次/秒的死循环**零作用**（浏览器后台标签限流后正好 1r/s）——加了个不会触发的兜底等于没加 | 限流参数要用真实故障模式打一遍验证；最终用 30r/m + burst 15，300ms 间隔连发 40 次实测 18 次被 429 |
+| **`--use-sage-attention` 打黑图片**（10-22 黑图） | sage attention 只给视频做过 A/B；写成全局开关后，Qwen-Image-Edit 的 **fp8 UNET** 在 sm_120 上溢出成 NaN，`VAEDecode` 里 `np.clip().astype(uint8)` 静默把 NaN 变 0 → 5.6KB 纯黑 PNG，**任务状态仍是 completed、用户照样扣费**。日志只有一行 `RuntimeWarning: invalid value encountered in cast` | 性能开关要按**工作流分支**验证，不能按整机；产物层加内容断言（worker v6.1 的 `assert_not_black`）；`invalid value encountered` 出现即 NaN，必须当报警看。详见 `docs/黑图事故复盘-sageattention.md` |
+| **"跑成功" ≠ "产物可用"**（10-22 黑图） | ComfyUI 返回 success、文件是合法 PNG、HTTP 200 —— 三个都过，图仍可能全黑。冒烟用 800×800 测试图 + 短提示词都正常，生产是 1079×1920 竖图 + 长英文提示词才暴露 | 验收必须用**真实源图 + 真实提示词**各跑一次；关键产物做内容断言（尺寸/大小/亮度占比），不要只看状态码 |
+| **nginx 备份不能放 sites-enabled/**（10-22） | 备份成 `zhibo.conf.bak.userinfo` 放在 `sites-enabled/`，nginx 把 `*.bak` 也当配置加载 → `duplicate default server` → `nginx -t` 失败 | 备份统一放 `/root/nginx_bak/`；只信 `nginx -T` 的实际输出，不看源文件 |
+| **chnroutes.mmdb 无 v6 → 大陆手机绕过封锁**（10-25 sugus） | geoip2 的 mmdb 只有 IPv4 段；手机蜂窝网 IPv6 访客经 XFF 还原出 v6 地址后查无记录 → 判不出 CN → 能打开站点。PC（v4）curl 却是 403，极具迷惑性 | 改用 APNIC 生成、v4+v6 全覆盖的 geo 名单（第十节）；验证封锁必须含手机蜂窝网真机 |
+| **「CN 出口 curl 403」≠「封锁完好」**（10-25） | v4 链路正常时 IPv6 通道可能仍在漏；反之只测真机手机也会漏掉 v4 边缘名单过期（Bunny 新增边缘不在 realip 信任列表 → 源站把边缘 IP 当访客） | 封锁验证 = v4 curl（403）+ admin 豁免（200）+ 海外出口（200）+ 手机蜂窝网真机，缺一不可；realip 名单月度 cron 别停 |
+| **kiss 所有 `.php` 都被硬指到 index.php**（10-22） | kiss 的 php location 写死 `fastcgi_param SCRIPT_FILENAME .../index.php`（ThinkPHP 单入口），往 `public/` 放临时探针 PHP 不执行，被 TP 接走跳 `/install/` | 该站 PHP 行为验证走真实 API；别用探针文件判断配置是否生效 |
 | **`--init-snapshot` 用在「服务器落后上游」= 灾难**（10-20 kiss） | 新客户服务器 HEAD 常比上游旧（kiss 停在 `7a38a72`，上游已到 `8363173`）。`--init-snapshot` 记的是上游 HEAD，把没推过的变更全标成已同步，之后增量永远推不动 | 用 `--seed-snapshot-from <服务器实际HEAD>` 记基线，`--dry-run` 确认清单 = 服务器 HEAD..上游 HEAD 的变更后再真跑 |
 | **「客户仓库已提交推送」可能什么都没提交**（10-20 kiss 首同步） | 脚本无条件打印这行；客户仓库已与上游内容一致时 `git commit` 为空（`git add` 无改动），实际只有一次空 push | 别把它当提交凭证，去客户仓库 `git log --oneline -1` 核实；内容一致时没有新提交是正确结果 |
 | **kiss 的 80 端口被 Certbot 改成 `default_server { return 404; }`**（10-20） | `curl http://103.217.252.52/ai/Home.html` 永远 404，容易误判成「同步没生效/站点挂了」；IP + `Host: kisss.ai` 只会 301 到 https | 一律用 `https://kisss.ai/ai/...` 验证；`sync_clients.py` 里 kiss 的 `verify_url` 也必须是域名 |
@@ -342,6 +359,14 @@ python .zcode/sync_clients.py --client kiss                                    #
 | **预转缓存键不含 CQ/GOP → 改参数静默不生效**（10-21 kiss） | 原键是 `f"{rel}|{TS_SCALE}|{TS_FPS}"`，只认分辨率和帧率。改 `TS_CQ` 或 GOP 后旧缓存仍然命中，**看不到任何变化**，极易误判成「改了没用」 | 键改成 `{rel}|{TS_SCALE}|{TS_FPS}|{TS_CQ}|{TS_GOP}|{TS_PRESET}|{TS_MAXRATE}`。改任一参数都会自然生成新缓存；但**旧缓存不会自动清理**，要手动 `mv /data/runtime/ts_cache/* /data/runtime/ts_cache.bak.<日期>/` |
 | **各客户角色/播单数据会互相漂移**（10-21） | 测试反馈「sugus 和 kelymi 的直播间角色不一样，kelymi 多一个已删角色」。查库确认：`lp_room_binding.room_id=24` 在 sugus 是 `persona=Liora / tpl=71(PL_liora)`，在 kelymi 是 `persona=Ophelia / tpl=71(PL_ophelia)`；kelymi 的 `lp_persona` 里 Ophelia(149) `status=2`（已下架）但 room 24 仍 `status=1`，所以前台还在展示。**重启 worker 完全无用**——worker 只读库，播的是库里绑定的那套素材 | 这类差异属于**客户侧运营数据**，不是代码 bug：① 前台是否展示由 `lp_room.status` + `feedLive` 决定，下架角色要同时改 `lp_persona.status=2` **和** `lp_room.status=2`；② 新客户初始化时 DB 是从别的客户导出的，**播单模板/绑定会带着上一个客户的素材**，必须逐房间核对 `room_binding.persona` 与模板条目的 `lp_media_asset.persona` 是否一致（`模板素材=[persona:条数]` 对不上就是这个坑）；③ 不要靠重启进程解决数据问题 |
 | **各客户 worker.py 版本不一致**（10-21） | kiss 已是新版（含对象存储 `/storage` 签名拉取），heygirl/sugus 与仓库旧版一致（md5 `b195c0a5…`），**kelymi 更旧**（缺 media 配置、`/storage` 远程拉取等 123 行差异）。直接整文件覆盖会把 kelymi 的既有定制冲掉 | 打补丁脚本按**内容匹配**而非行号（`TS_CQ` 定义行、`key = f"{rel}…"`、`venc = (` 块），并在入口做幂等判断（`if 'TS_GOP' in s: skip`）；先在本地用该服务器的 worker.py 副本跑一遍验证语法，再上传执行 |
+| **`live-worker@N` 僵尸实例（房间被删但 unit 没 disable）**（10-21 sugus） | sugus 的 `live-worker@21` 从 2026-10-01 14:32 起每 10 秒崩一次，累计重启 **17335 次**、journal 攒了 **49 万行**。原因：那天后台把房间 21（room_no=R2005）**硬删除**，`lp_room` / `lp_room_binding` 都没了，worker 启动即报「房间 21 未配置流绑定」退出；`Restart=always` + want 软链还在 → 无限重启。台账上留下断口：`lp_room` 是 `1,4,17-20,22-26,27-29`（缺 21 = R2005） | 排查：`systemctl list-units 'live-worker@*' --state=failed,running` 对比 `lp_room` 实际 id；手动跑 `python3 worker.py --room=N` 看是否「未配置流绑定」。处理：`systemctl disable --now live-worker@N` + `rmdir /data/hls/room/N`。**同时必查反例**：sugus 当时 want 清单有 21 却**缺 24**（room 24 是手工 start 的，重启就丢），所以「enabled 列表」和「running 列表」要双向对齐 |
+| **`journalctl --vacuum-unit` 在 Ubuntu 22.04 不存在**（10-21） | `journalctl: unrecognized option '--vacuum-unit=...'`——该选项是 systemd 254+ 才有，22.04 是 249 | 清单个 unit 的日志只能 `journalctl --since/--until` 导出后不管，或整机按大小/时间 vacuum（`--vacuum-size`/`--vacuum-time`），无法只删某一个 unit。想防日志无限涨就配 `/etc/systemd/journald.conf` 的 `SystemMaxUse=`（sugus 的 449G 盘按默认 10% = 44.9G 上限，实际已攒 3.6G） |
+| **kiss 的 HTML 不走 CDN（只 JS/CSS/图片走）**（10-21） | 实体 URL 仍是 `https://kisss.ai/ai/Home.html`，HTML 由源站（阿姆斯特丹）直接返回；只有被 `apply_brand.sh` 改写的子资源走 `kisss-live.b-cdn.net`。实测 HTML 从大陆 TTFB 0.6~1.0s，子资源 37 个全部 200、合计 639KB（gzip） | 如果还要更快，两条路：① Bunny 建第二个 zone 并绑 `static.kisss.ai`，把 HTML 也改指过去（要改所有页面跳转，工作量大）；② 让主域 apex 整站走 Bunny（像 sugus，但支付回调 `/api/v1/recharge/notify*`、后台、WS 全要回归测试）。当前方案是「子资源加速 + 同源会话不动」的折中，已经覆盖首屏 500KB 里的大头 |
+| **Bunny 会给响应改写 `Cache-Control`**（10-21 实测） | 源站给 HTML 的是 `public, max-age=60, stale-while-revalidate=300`，但经 Bunny 拉取后响应头变成 **`cache-control: no-cache`** 且每次都 `cdn-cache: MISS`（不缓存）。而图片/JS（`max-age=604800` / `max-age=2592000, immutable`）能正常 `HIT` | 想验证某个文件到底有没有被 CDN 缓存，不能只看源站头，要**连续请求两次看 `cdn-cache` 是否 HIT**；HTML 类短缓存依赖 `stale-while-revalidate` 时 Bunny 倾向于不缓存，属正常现象（本就该回源） |
+| **Bunny 边缘 IP 段需要定期刷新**（10-21 kiss） | `set_real_ip_from` 的 584 条边缘 IP 是快照，Bunny 会增删节点。不刷新的话新节点回源时 `$remote_addr` 就还原不出来，限流/日志会把它当真实用户 | 加每月 cron：`0 4 1 * * /root/deploy/update_bunny_realip.sh`（脚本会拉 edgeserverlist → 重新生成 conf → `nginx -t` → reload）。**heygirl/sugus/kelymi 未配此 cron**，切 CDN 时记得一并加 |
+| **一台服务器可承载多个 zone，但 zone 归属账号可能不同**（10-21 heygirl） | `hey-girl`（pullzone 6769428）在**另一个（欠费）Bunny 账号**里，且其 Origin 只配了 `/hls/`（`172.81.99.49:80` 那个 server block 只出 HLS）→ 直接拿它加速静态资源会 404。账号欠费后 HLS 也会整条断掉 | 客户换账号/欠费时，**新建独立 zone**（如 `heygirl-live`，pullzone 6841791），Origin 指向本机 CDN 回源口（`http://<ip>:8081`），然后改两处：① `php/.env` 的 `HLS_CDN_DOMAIN`；② `brand/<客户>/cdn_assets.env` 的 `CDN_ASSET_BASE`。迁移后必须 grep 确认旧域名零残留（html / .env / vue dist） |
+| **CDN zone 的标准四件套**（10-21 kiss/kelymi/heygirl 实践定稿） | 每接入一个客户要建：① 本机 `:<port>` CDN 回源口（只放 /ai/ /hls/ /api/ /ws/，/admin/ 与 /storage/ 404）；② `$ai_cache` 分级缓存 map（**没有它 CDN 一个资源都缓存不住**，因为 `/ai/` 默认全 `no-cache`）；③ Bunny realip（584 条 `set_real_ip_from` + `real_ip_header`）；④ 每月 1 号刷新 cron。**端口占用**：8080 常被 SRS 占，用 8081；先 `ss -ltn` 确认空闲 |
+| **同一 zone 可同时服务 HLS + 静态，不必拆两个**（10-21） | `kiss`/`kelymi` 都是一个 zone 同时扛 HLS 和 `/ai/` 静态（`kisss-live` / `kelymi-live`），实测 `hls=200 ai=200`。只有 sugus 把 media 拆到独立 zone（`sugus-media`，走 `media.sugus.ai` CNAME） | 新客户优先「1 个 live zone（HLS+静态）+ 1 个 media zone（素材）」，别学 heygirl 早期只配 `/hls/` 的窄 Origin |
 | **`open_file_cache` 让直播 m3u8 冻住 60 秒**（10-21 kiss） | 10-20 加的「性能调优」`/etc/nginx/conf.d/zz-perf.conf` 里有 `open_file_cache max=20000 inactive=30s; open_file_cache_valid 60s;`。nginx 缓存的是**打开的文件描述符**，而 SRS 写 m3u8 是「写临时文件 + rename」换 inode → nginx 手里的 fd 仍指向旧 inode，**m3u8 最长 60 秒不更新**。播放器拿旧播放列表去请求已被 `hls_cleanup` 删掉的 ts 段 → 404 → 画面卡住反复重试。实测修复前 disk 落后 https 10 段（40 秒） | 两个 HLS location 加 `open_file_cache off;`（只关 HLS，静态资源照旧享受缓存）。**heygirl / sugus / kelymi 也有同一份 zz-perf.conf，同样受影响**，新客户初始化时要一起加 |
 | **直播没接 CDN（`HLS_CDN_DOMAIN` 指向自己）**（10-21 kiss） | `.env` 里 `HLS_CDN_DOMAIN = https://kisss.ai` = 源站直连（荷兰机房），大陆拉单段 ts 实测 21 KB/s，而 3.5 Mbps 需要 437 KB/s，差 20 倍 → 完全播不动。参考：sugus=`ever-candy.b-cdn.net`、heygirl=`hey-girl.b-cdn.net` | 建 Bunny Pull Zone（Origin 指向 CDN 专用回源口）→ `.env` 改 `HLS_CDN_DOMAIN` → 重启 php-fpm。核对 `curl -s https://<域名>/api/v1/feed/live \| grep hls_url` 应为 CDN 域 |
 | **CDN 回源后真实 IP 丢失 → 全站共用一个限流额度**（10-21 kiss） | `php/config/throttle.php` 按 IP 限流 `120/m`。挂 CDN 后 `$remote_addr` 全是边缘 IP，所有用户共用配额；后台 IP 白名单与日志同样失真 | nginx 加 `real_ip_header X-Forwarded-For; real_ip_recursive on;` + Bunny 边缘 IP 段 `set_real_ip_from`（`/etc/nginx/bunny_realip.conf`，584 条，每月 1 号刷新）。**必须先装 realip 再切 CDN** |
@@ -386,3 +411,130 @@ python .zcode/sync_clients.py --client heygirl --strict    # 有问题就中止�
 
 判据来源：10-18~10-20 三次踩坑（品牌被冲、分享文案写成 Candy AI、uta-api 往别家发数据）。
 注意：开发注释里的 `/* 照 candy.ai 原版 */` 不算问题，已排除。
+
+---
+
+## 九、跨站功能改动核对（2026-10-21 新增，强制）
+
+> **这是本文件关于「跨站改动核对」的唯一权威章节**（第四节不再重复，只在红线里引用）。
+> **任何跨站改动完成前必须过这一节。**
+
+### 9.1 三条独立证据，缺一不可
+
+「文件推过去了」不等于「功能生效了」。每站都要验三个维度，**任一维度只能证明一部分**：
+
+| 维度 | 证明什么 | 不能证明什么 |
+|---|---|---|
+| ① 代码标记（grep 特征串） | 文件内容确实更新了 | 浏览器是否加载到 |
+| ② 资源版本（`?v=` 与发布号一致） | 缓存不会给旧文件 | 后端逻辑是否对 |
+| ③ 运行时行为（接口 JSON / DB 值 / 真实扣费） | 端到端确实生效 | 其他站也这样 |
+
+### 9.2 检查清单（每次复制执行）
+
+```bash
+# 1) 四站逐站跑，不许抽样、不许"其他应该一样"
+for each site in [sugus, heygirl, kisss, kelymi]:
+    ① grep  本次改动的特征串（期望值写死，不能只看有输出）
+    ② grep  HTML 里的 ?v= 是否等于本次发布号
+    ③ 调接口看 JSON 字段 / 查库看配置值
+
+# 2) 有扣费/额度类改动时，必须做一次真实业务流
+#    例：额度清零 → 提交 → 核对 返回的 paid_tokens 与 余额差额 一致 → 还原测试数据
+```
+
+### 9.3 数据库值优先于代码默认值
+
+凡是通过 `lp_platform_config` / `lp_vip_plan` 可配的项（价格、额度、开关）：
+
+```
+生效值 = 库里的值（非空时） > 代码默认常量
+```
+
+**所以改完代码默认值必须同时改库**，否则线上仍是旧值。查库命令：
+
+```sql
+SELECT `key`, `value` FROM lp_platform_config WHERE `key` IN ('video_gen_price', ...);
+SELECT image_daily_limit, image_daily_refill, COUNT(*) FROM lp_vip_plan GROUP BY 1,2;
+```
+
+### 9.4 本次（10-21）漏同步实例存档
+
+| 站点 | Outfit 按钮 | Apply Outfit | js 版本 | price | VIP 额度 |
+|---|---|---|---|---|---|
+| sugus（正确） | 1 | 3 | 20261020c | 30→100 | 5/5 |
+| heygirl（漏） | **0** | 3 | **20261018a** | 30 | **3/1×12 + 10/1×12** |
+| kisss（漏） | 1 | 3 | 20261020c | 30 | **2/1×24** |
+| kelymi（漏） | **0** | **0** | 20261020d | 30 | 5/5 |
+
+根因：10-20 只核对了「代码文件已推送」，没核对 `Image.html` 与 `customVideo.js` 是否真到 heygirl；
+套餐额度也只改了 sugus + kelymi，忘了 heygirl / kisss。
+
+### 9.5 新客户站额外前置检查
+
+老客户站可能落后上游好几个版本。动手前先探基线：
+
+```bash
+ssh root@<host> 'cd /www/wwwroot/douyin && git rev-parse --short HEAD'
+git -C D:/ever/douyin/douyin diff --name-status <服务器HEAD>..HEAD -- php/
+```
+
+差异大时按 `docs/kelymi对齐sugus.md` 的九步流程整体追平，**不要只推单个文件**
+（会因缺依赖类而 500，kelymi 的 `Class "app\common\library\media\Media" not found` 就是这么来的）。
+
+---
+
+## 十、大陆访问封锁（2026-10-25 四站统一上线）
+
+> 客户要求四个站都禁止大陆访问。此封锁在 **nginx 层**，不属于 sync_clients 的静态站分发范围，
+> 改封锁配置 = 直接改各服务器 nginx（备份在 `/root/nginx_bak/cnblock_20261025/`）。
+
+### 10.1 判定链与漏洞复盘
+
+```
+访客 → Bunny 边缘(v4 回源) → set_real_ip_from 还原真实 IP(XFF) → geo 名单判 CN → if ($is_cn*) return 403
+```
+
+旧 sugus 方案（geoip2 + chnroutes.mmdb）的漏洞：**mmdb 只有 IPv4 段**。手机蜂窝网默认
+IPv6 优先，访客 v6 经 XFF 还原后 mmdb 查无记录 → 判不出 CN → 绕过封锁（大陆手机能打开
+www.sugus.ai 的事故，2026-10-25）。v2 方案改用 APNIC delegated 数据生成的纯 geo 名单
+（v4 8797 段 + v6 2046 段），四站统一。
+
+### 10.2 各机文件清单（全部同源，改动时四台同步）
+
+| 文件 | 作用 |
+|---|---|
+| `/etc/nginx/cn_geo.conf` | CN v4+v6 段（APNIC 生成，勿手改） |
+| `/etc/nginx/bunny_realip.conf` | Bunny 边缘 v4 信任列表（584 条，v6 不需要——源站无 AAAA，回源恒为 v4） |
+| `conf.d/00-cn-geo.conf`（客户站）/ `conf.d/00-cn-block.conf`（sugus，含 realip） | geo + map 判定层 |
+| `snippets/cn-block-site.conf` / `cn-block-full.conf` | 挂到 server 块：site=豁免 /admin*，full=不豁免 |
+| `/root/deploy/{cn_geo.py,bunny_realip.py,update_cn_block.sh}` | 月度刷新脚本（cron `0 4 1 * *`，APNIC latest + Bunny edges） |
+
+变量语义：`$is_cn`=CN 访客；`$is_cn_site`=CN 且非 /admin（**运营在国内，/admin 必须豁免**，
+后台自身有 IP 白名单 + 2FA 兜底）。
+
+### 10.3 封锁面（10-25 实施记录）
+
+| 服务器 | 加封锁（snippet） | 明确不封 |
+|---|---|---|
+| sugus 98.55 | 80 主站 + 8082（10 月既有 if 块，换 v2 判定层） | 8081 / sugus.it.com（后台） |
+| heygirl | zhibo.conf 80+443（site）、99.49 HLS 口 + 8081 回源口（full） | heygirl.sbs（后台域） |
+| kelymi | zhibo.conf 80+443（site）、8081 回源口（full） | admin.kelymi.autos（.73） |
+| kiss | kiss.conf HTTP 站块 + 443（site）、80 default(HLS 回源) + 8080 回源口（full） | kisss.si（后台域） |
+
+### 10.4 验证清单（改封锁后必跑）
+
+```bash
+# ① CN 出口（本机即大陆）→ 四站全 403
+curl -sk -o /dev/null -w '%{http_code}\n' https://<域名>/ai/Home.html
+
+# ② admin 豁免 → 应 200 不是 403
+curl -sk -o /dev/null -w '%{http_code}\n' https://<域名>/admin/
+
+# ③ 非 CN 出口（99.11）→ 应 200
+ssh 99.11 curl -sk -o /dev/null -w '%{http_code}\n' https://<域名>/ai/Home.html
+
+# ④ 手机蜂窝网（IPv6）复查——v6 是 10-25 之前的漏洞通道，必须真机验证
+```
+
+注意：kiss 的 80 端口是 HLS 明文回源口 + Certbot 404 兜底，验证一律走 https 域名；
+heygirl/kelymi 的 nginx listen 绑定具体 IP，本机 curl 测试用 `--resolve <域名>:443:<本机IP>`。

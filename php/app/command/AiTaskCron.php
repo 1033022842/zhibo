@@ -45,5 +45,15 @@ final class AiTaskCron extends Command
         } else {
             $output->writeln('无超时推流');
         }
+
+        // worker 接单后卡死（OOM/重启/跨境断线）→ 重试一次，再失败则退款
+        $reaped = $service->reapStuckCustomTasks(90);
+        if ($reaped) {
+            $output->writeln('回收卡死的定制生成任务 ' . count($reaped) . ' 个:');
+            foreach ($reaped as $item) {
+                $extra = isset($item['refunded']) ? ', refunded=' . ($item['refunded'] ? 'yes' : 'no') : '';
+                $output->writeln("  task_id={$item['task_id']}, action={$item['action']}{$extra}");
+            }
+        }
     }
 }
