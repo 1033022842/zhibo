@@ -51,6 +51,7 @@ Route::get('customVideo/myList',     '\app\api\controller\CustomVideo@myList')->
 Route::get('customVideo/pending',    '\app\api\controller\CustomVideo@pending');
 Route::post('customVideo/accept',    '\app\api\controller\CustomVideo@accept');
 Route::post('customVideo/uploadVideo', '\app\api\controller\CustomVideo@uploadVideo');
+Route::get('customVideo/stats',      '\app\api\controller\CustomVideo@stats');
 
 // 公开接口 - 显式注册
 Route::post('live/registerFromAi',   '\app\api\controller\Live@registerFromAi');

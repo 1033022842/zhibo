@@ -32,7 +32,6 @@
     ['crowdfunding', './index.html', 'Crowdfunding', 'crowdfunding', ''],
     ['explore', './Girls.html', 'Explore', 'explore', ''],
     ['chat', './Chat.html', 'Chat', 'chat', ''],
-    ['gallery', './Gallery.html', 'Gallery', 'gallery', ''],
     ['generate', './Image.html', 'Generate Image', 'generate', ' target="_top"'],
     ['create', './characters.html', 'Create Character', 'create', ''],
     ['myai', './charactersIndex.html', 'My AI', 'myai', ''],
