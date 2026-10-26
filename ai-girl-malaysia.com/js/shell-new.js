@@ -199,6 +199,8 @@
   }
   var LANG_CHAT = ['en', 'ja', 'ko', 'fr', 'de', 'es', 'it', 'ru', 'hi', 'th', 'vi', 'ms', 'id', 'ar', 'tr', 'km', 'lo', 'zh-CN', 'zh-TW']
   var LANG_UI = ['da', 'fi', 'nl', 'no', 'pl', 'pt-BR', 'sv']
+  /* 先在语言弹窗里隐藏的语种（要重新开放，把代码从这里删掉即可；LANG_META 保留不动） */
+  var LANG_HIDDEN = ['zh-CN']
 
   function langFlag(code) {
     return './assets/flags/' + (LANG_META[code] || LANG_META.en)[2] + '.svg'
@@ -534,7 +536,7 @@
   function langModalHtml() {
     var cur = currentLang()
     function rows(codes) {
-      return codes.map(function (code) {
+      return codes.filter(function (code) { return LANG_HIDDEN.indexOf(code) === -1 }).map(function (code) {
         var meta = LANG_META[code]
         var active = code === cur
         return '<form data-turbo="true" data-turbo-stream="true" class="button_to" method="get" action="/user_locale/edit">' +
