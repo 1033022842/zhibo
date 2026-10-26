@@ -128,6 +128,12 @@ def in_scope(path, include_files):
 # ── 客户差异化页面（overrides）─────────────────────────────────
 # 覆盖目录 = 站点根镜像：client_overrides/image-sugus/Image.html → 站点 /Image.html
 # 这些文件不在 SITE_DIR 里，天然不进 blob 快照；每次同步按需补传（同尺寸自动跳过）。
+
+# 覆盖目录里只放「要发布到站点根」的文件；以下不进站点：
+#   media-src/  —— 素材清单 + 服务器抓取脚本（体积大，由服务器自己拉，见该目录 README）
+#   README.md   —— 变体说明
+OVERRIDE_SKIP_DIRS = {"media-src"}
+OVERRIDE_SKIP_FILES = {"README.md"}
 def override_plan(cfg):
     """返回 (覆盖目录绝对路径, [(本地绝对路径, 站点相对路径)])；未配置返回 (None, [])"""
     od = cfg.get("overrides")
@@ -139,10 +145,13 @@ def override_plan(cfg):
         return None, []
     files = []
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        dirnames[:] = [d for d in dirnames
+                       if not d.startswith(".") and d not in OVERRIDE_SKIP_DIRS]
         for f in filenames:
             if f.startswith("."):      # .gitkeep 等占位文件不发布
                 continue
+            if dirpath == root and f in OVERRIDE_SKIP_FILES:
+                continue               # 覆盖目录的说明文档不是站点文件
             lp = os.path.join(dirpath, f)
             rel = os.path.relpath(lp, root).replace(os.sep, "/")
             files.append((lp, rel))
