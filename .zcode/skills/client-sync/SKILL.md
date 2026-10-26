@@ -24,6 +24,7 @@ git diff --stat HEAD -- ai-girl-malaysia.com php/
 | 改动落在 | 走哪条路 | 说明 |
 |---|---|---|
 | 只有 `ai-girl-malaysia.com/*.html`、`js/`、`assets/`、`_shared/` | **A. 纯静态**（最常见） | sync_clients.py 全自动 |
+| `client_overrides/<变体>/` 下的页面 | **A'. 客户差异化** | 只影响配了该 `overrides` 的客户（当前 sugus / heygirl 的 `Image.html`） |
 | 有 `php/`、`sql/`、`.env-example` | **B. 静态 + 后端** | 后端不在工具范围，见 `references/deploy-backend.md` |
 | `*_files/` 素材（图片/视频） | **C. 带素材** | 默认不同步，需 `--include-files`，先确认体积 |
 
@@ -59,6 +60,18 @@ python .zcode/sync_clients.py --client heygirl --strict   # 自检有问题就�
 `MotionGen`/`sugusmail` 旧品牌串、`og:url`/`canonical` 指向错误。自检输出里的
 「apply_brand 会自动替换」可以忽略，「需手工修复」必须处理。
 
+## A'. 客户差异化页面（client_overrides）
+
+`sugus` 和 `heygirl` 的 `Image.html` 与其余客户实现完全不同，客户版放在
+`client_overrides/image-sugus/`、`client_overrides/image-heygirl/`（站点根镜像）。
+改它们只能改覆盖目录；改上游 `ai-girl-malaysia.com/Image.html` 只影响 kelymi / kiss。
+脚本会自动剔除上游同名文件、补传覆盖文件、`apply_brand` 后再回写客户仓库。
+对照表与红线见 `client_overrides/README.md`，谁在用哪份：
+
+```bash
+grep -n overrides .zcode/sync_clients.py
+```
+
 ## B. 静态 + 后端（php / SQL / .env）
 
 先做完 A，再读 `references/deploy-backend.md` 按五步走。**后端改动 push 完静态不会生效**。
@@ -84,14 +97,17 @@ python .zcode/verify_client.py --client all
 - **sugus 有 CN 区域封锁**：从大陆 curl 拿到的是 403 区域页，看着像旧内容 →
   从服务器本机或境外出口验证（verify_client.py 已对 sugus 走跳板处理）
 - **新增顶层静态目录**：要同步改 `in_scope()`，否则永久漏推（`_shared/` 踩过一次）
-- **别手改客户服务器**：会被下次同步冲掉；客户差异要么提上游，要么进 brand kit
+- **别手改客户服务器**：会被下次同步冲掉；客户差异要么提上游，要么进 brand kit，
+  页面级差异化则放 `client_overrides/<变体>/`
+- **配了 overrides 的客户不读上游同名文件**：改了上游 `Image.html` 发现 sugus/heygirl 没变是预期，
+  改覆盖目录才有用；反向也别在客户仓库手敲 `git checkout` 覆盖页
 - **凭据**：只在 `.zcode/sync_clients.py` 的 `CLIENTS` 里，不要复制到文档、提交信息或对话输出
 
 ## 客户速查
 
 | 客户 | 服务器 | 品牌 | 域名 | 备注 |
 |---|---|---|---|---|
-| heygirl | 172.81.99.11 | heygirl | heygirl.live | 有 privacy/terms 专属页，同步后需补页脚合规链接 |
-| sugus | 172.81.98.55（经 99.11 跳板） | 无（即上游） | www.sugus.ai | CN 区域封锁 |
+| heygirl | 172.81.99.11 | heygirl | heygirl.live | 有 privacy/terms 专属页，同步后需补页脚合规链接；`Image.html` 走 `client_overrides/image-heygirl/` |
+| sugus | 172.81.98.55（经 99.11 跳板） | 无（即上游） | www.sugus.ai | CN 区域封锁；`Image.html` 走 `client_overrides/image-sugus/` |
 | kelymi | 172.81.99.42 | kelymi | kelymi.autos | |
 | kiss | 103.217.252.52 | kiss | kisss.ai | `exclude` 换脸页；80 端口 404 必须走 https |
