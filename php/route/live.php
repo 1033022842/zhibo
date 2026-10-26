@@ -58,6 +58,8 @@ Route::get('live/registerConfig',    '\app\api\controller\Live@registerConfig');
 // 登录后弹窗配置（创作指南 / 18+ 进场弹窗，后台可控制开关/延迟/频率）
 Route::get('live/popupConfig',       '\app\api\controller\Live@popupConfig');
 Route::post('live/sendEmailCode',    '\app\api\controller\Live@sendEmailCode');
+Route::post('live/sendPasswordResetCode', '\app\api\controller\Live@sendPasswordResetCode');
+Route::post('live/resetPassword',    '\app\api\controller\Live@resetPassword');
 Route::post('live/login',            '\app\api\controller\Live@login');
 Route::post('live/googleLogin',      '\app\api\controller\Live@googleLogin');
 Route::get('live/googleClientId',    '\app\api\controller\Live@googleClientId');

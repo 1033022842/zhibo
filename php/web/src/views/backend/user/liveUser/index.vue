@@ -2,6 +2,30 @@
     <div class="default-main ba-table-box">
         <el-alert class="ba-table-alert" v-if="baTable.table.remark" :title="baTable.table.remark" type="info" show-icon />
 
+        <div class="registration-settings">
+            <span class="registration-settings__label">注册邮箱验证</span>
+            <el-tooltip
+                :content="!registrationState.canEdit ? '需要会员管理编辑权限' : !registrationState.mailConfigured ? '请先完成邮件 SMTP 配置再开启' : '修改后自动保存，仅影响新用户注册'"
+                placement="top"
+            >
+                <el-switch
+                    v-model="registrationState.enabled"
+                    :loading="registrationState.loading || registrationState.saving"
+                    :disabled="!registrationState.loaded || !registrationState.canEdit || (!registrationState.mailConfigured && !registrationState.enabled)"
+                    :before-change="saveRegistrationSettings"
+                    aria-label="注册邮箱验证"
+                />
+            </el-tooltip>
+            <el-tag v-if="registrationState.loaded" :type="registrationState.enabled ? 'warning' : 'success'" size="small">
+                {{ registrationState.enabled ? '已开启' : '已关闭' }}
+            </el-tag>
+            <span class="registration-settings__hint">
+                {{ !registrationState.loaded ? (registrationState.loading ? '读取设置中...' : '读取设置失败') :
+                    registrationState.enabled ? '注册需先验证邮箱' : '无需验证码即可注册，仍检查邮箱格式与重复账号' }}
+            </span>
+            <el-button v-if="!registrationState.loaded && !registrationState.loading" link type="primary" @click="loadRegistrationSettings">重试</el-button>
+        </div>
+
         <TableHeader
             :buttons="['refresh', 'delete', 'comSearch', 'quickSearch', 'columnDisplay']"
             :quick-search-placeholder="'搜索 昵称/ID/编号/邮箱/推广链接/渠道'"
@@ -139,12 +163,53 @@ import TableHeader from '/@/components/table/header/index.vue'
 import { defaultOptButtons } from '/@/components/table'
 import { baTableApi } from '/@/api/common'
 import { useAdminInfo } from '/@/stores/adminInfo'
+import createAxios from '/@/utils/axios'
 
 defineOptions({
     name: 'user/liveUser',
 })
 
 const { t } = useI18n()
+
+const registrationState = reactive({
+    enabled: false,
+    loaded: false,
+    loading: false,
+    saving: false,
+    canEdit: false,
+    mailConfigured: false,
+})
+
+const loadRegistrationSettings = async () => {
+    if (registrationState.loading || registrationState.saving) return
+    registrationState.loading = true
+    try {
+        const res = await createAxios({ url: '/admin/user.LiveUser/registrationSettings', method: 'GET', params: { _: Date.now() } })
+        registrationState.enabled = res.data.email_verify === true
+        registrationState.canEdit = res.data.can_edit === true
+        registrationState.mailConfigured = res.data.mail_configured === true
+        registrationState.loaded = true
+    } catch {
+        registrationState.loaded = false
+    } finally {
+        registrationState.loading = false
+    }
+}
+
+const saveRegistrationSettings = async (): Promise<boolean> => {
+    if (!registrationState.loaded || !registrationState.canEdit || registrationState.saving) return false
+    registrationState.saving = true
+    try {
+        const nextValue = !registrationState.enabled
+        const res = await baTable.api.postData('saveRegistrationSettings', { email_verify: nextValue ? '1' : '0' })
+        return res.data.email_verify === nextValue
+    } catch {
+        // 保存失败时 before-change 返回 false，开关保留原状态。
+        return false
+    } finally {
+        registrationState.saving = false
+    }
+}
 
 const rechargeState = reactive({
     visible: false,
@@ -689,6 +754,7 @@ const stopAutoRefresh = () => {
 }
 
 onMounted(() => {
+    loadRegistrationSettings()
     autoRefreshTimer = window.setInterval(() => {
         if (document.hidden) return
         baTable.getData()
@@ -697,3 +763,26 @@ onMounted(() => {
 
 onUnmounted(stopAutoRefresh)
 </script>
+
+<style scoped>
+.registration-settings {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    background: var(--el-bg-color);
+}
+.registration-settings__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+}
+.registration-settings__hint {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+}
+</style>

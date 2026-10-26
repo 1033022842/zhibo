@@ -69,7 +69,15 @@ final class Vip extends BaseController
         if ($planId <= 0) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, '套餐ID无效');
         }
-        $order   = $this->recharge->submitVipOrder($this->getAuthUserId(), $planId, $product, $gateway, $gcode, $channelId, $fiatChannelId);
+        $order   = $this->recharge->submitVipOrder($this->getAuthUserId(), $planId, $product, $gateway, $gcode, $channelId, $fiatChannelId, [
+            'email' => (string) $this->request->post('payer_email', ''),
+            'mobile' => (string) $this->request->post('payer_mobile', ''),
+            'name' => (string) $this->request->post('payer_name', ''),
+            // 泰国 / 印尼的支付方式（qr/bank/wallet）与银行卡信息
+            'method' => (string) $this->request->post('payer_method', ''),
+            'bank' => (string) $this->request->post('payer_bank', ''),
+            'card' => (string) $this->request->post('payer_card', ''),
+        ]);
 
         // 法币单：金额/币种/汇率都在下单时锁定，这里直接回给前台展示
         if ($fiatChannelId > 0) {

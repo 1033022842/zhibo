@@ -33,9 +33,11 @@ final class UserValidate extends Validate
 
     protected $scene = [
         'register'       => ['email', 'code', 'password', 'nickname'],
+        'registerUnverified' => ['email', 'password', 'nickname'],
         'registerAi'     => ['username', 'email', 'password'],
         'login'          => ['username', 'password'],
         'sendCode'       => ['email'],
+        'resetPassword'  => ['email', 'code', 'password'],
         'emailLogin'     => ['email', 'password'],
         'usernameLogin'  => ['username', 'password'],
         'updateProfile'  => ['nickname'],

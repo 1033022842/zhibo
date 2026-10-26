@@ -11,3 +11,7 @@ Route::get('live/shortEpisodes', '\app\api\controller\Shorts@episodes');
 // 解锁某一集（扣代币，需登录）
 Route::post('live/shortUnlock', '\app\api\controller\Shorts@unlock')
     ->middleware(\app\live\middleware\Auth::class);
+
+// 点赞 / 取消点赞（需登录）
+Route::post('live/shortLike', '\app\api\controller\Shorts@like')
+    ->middleware(\app\live\middleware\Auth::class);

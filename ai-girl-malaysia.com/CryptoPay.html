@@ -15,6 +15,10 @@
 		/* hidden 属性必须生效：.cp-net / .cp-equiv 自带 display:flex，
 		   会盖掉浏览器默认的 [hidden]{display:none}，导致「Network —」和等价金额行永远显示 */
 		[hidden] { display: none !important; }
+                .cp-payer label { display:block; margin:14px 0; font-size:13px; color:#4B5563; }
+                .cp-payer input, .cp-payer select { width:100%; margin-top:6px; padding:12px; border:1px solid #D1D5DB; border-radius:10px; font:inherit; color:#111827; background:#FFF; }
+                .cp-payer input:focus, .cp-payer select:focus { outline:2px solid #6B7280; outline-offset:1px; }
+                .cp-payer p { font-size:12px; line-height:1.5; color:#6B7280; }
 		body {
 			background: #F6F7F8;
 			color: #111827;
@@ -239,6 +243,18 @@
 					<div class="cp-payamt"><b id="cp-fiat-preview">—</b></div>
 					<div class="cp-meta" id="cp-fiat-meta"></div>
 				</div>
+                                <form id="cp-payer" class="cp-payer" hidden>
+                                        <label>Country / Region<select id="cp-payer-country"></select></label>
+                                        <label>Full name<input id="cp-payer-name" autocomplete="name" maxlength="100" required></label>
+                                        <label>Email<input id="cp-payer-email" type="email" autocomplete="email" maxlength="100" required></label>
+                                        <label>Phone number<input id="cp-payer-mobile" type="tel" autocomplete="tel" maxlength="16" required></label>
+                                        <div id="cp-payer-extra" hidden>
+                                                <label>Payment method<select id="cp-payer-method"></select></label>
+                                                <label id="cp-payer-bank-wrap" hidden>Bank<select id="cp-payer-bank"></select></label>
+                                                <label id="cp-payer-card-wrap" hidden>Card number<input id="cp-payer-card" inputmode="numeric" autocomplete="cc-number" maxlength="20"></label>
+                                        </div>
+                                        <p>Use your real payment details. These are shared with the payment provider to process this order.</p>
+                                </form>
 			</div>
 			<button type="button" class="cp-primary" id="cp-continue">Continue</button>
 			<div class="cp-or" id="cp-or"><span>or choose other methods</span></div>
@@ -314,7 +330,7 @@
 	</div>
 
 	<script src="./plugins/qrcode-generator.js?v=20261002a"></script>
-	<script src="./js/crypto-pay.js?v=20261021a"></script>
+        <script src="./js/crypto-pay.js?v=20261025region1"></script>
 	<script src="./js/creator-guide.js?v=20261018b"></script>
 	<script src="./js/tracking.js?v=20261018a"></script>
 </body>

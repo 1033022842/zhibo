@@ -6,6 +6,7 @@ use Throwable;
 use think\facade\Db;
 use app\common\controller\Backend;
 use app\admin\model\live\LiveUser as LiveUserModel;
+use app\live\service\RegistrationSettingService;
 use app\live\service\UserService;
 
 class LiveUser extends Backend
@@ -19,7 +20,7 @@ class LiveUser extends Backend
     /**
      * 手动充值/扣减代币、开通会员无需单独配置权限节点（登录鉴权仍生效）
      */
-    protected array $noNeedPermission = ['adjustDiamond', 'vipPlans', 'grantVip', 'detail', 'invitees'];
+    protected array $noNeedPermission = ['adjustDiamond', 'vipPlans', 'grantVip', 'detail', 'saveProfile', 'invitees', 'registrationSettings', 'saveRegistrationSettings'];
 
     protected array $withJoinTable = [];
 
@@ -35,6 +36,126 @@ class LiveUser extends Backend
     {
         parent::initialize();
         $this->model = new LiveUserModel();
+    }
+
+    public function registrationSettings(): void
+    {
+        if (!$this->auth->isSuperAdmin() && !$this->auth->check('user/liveUser/index')) {
+            $this->error('没有会员管理查看权限');
+        }
+        $this->success('', [
+            'email_verify' => RegistrationSettingService::emailVerifyRequired(),
+            'mail_configured' => RegistrationSettingService::mailConfigured(),
+            'can_edit' => $this->auth->isSuperAdmin() || $this->auth->check('user/liveUser/edit'),
+        ]);
+    }
+
+    public function saveRegistrationSettings(): void
+    {
+        if (!$this->request->isPost()) {
+            $this->error('请使用 POST 请求');
+        }
+        if (!$this->auth->isSuperAdmin() && !$this->auth->check('user/liveUser/edit')) {
+            $this->error('没有修改注册设置的权限');
+        }
+        $value = $this->request->post('email_verify');
+        if (!in_array($value, ['0', '1', 0, 1], true)) {
+            $this->error('注册邮箱验证只能设置为开启或关闭');
+        }
+        $enabled = (string) $value === '1';
+        try {
+            RegistrationSettingService::saveEmailVerify($enabled);
+        } catch (\app\common\exception\BusinessException $e) {
+            $this->error($e->getMessage());
+        }
+        $this->success($enabled ? '已开启注册邮箱验证' : '已关闭注册邮箱验证', [
+            'email_verify' => $enabled,
+        ]);
+    }
+
+    /**
+     * 会员详情页：保存会员资料（昵称 / 邮箱 / 密码 / 状态）
+     *
+     * 修改密码或禁用账号会让该用户已登录的 Token 立即失效（用户长期登录态）。
+     */
+    public function saveProfile(): void
+    {
+        if (!$this->request->isPost()) {
+            $this->error('请使用 POST 请求');
+        }
+        if (!$this->auth->isSuperAdmin() && !$this->auth->check('user/liveUser/edit')) {
+            $this->error('没有编辑会员资料的权限');
+        }
+
+        $userId   = (int) $this->request->post('id', 0);
+        $nickname = trim((string) $this->request->post('nickname', ''));
+        $email    = trim((string) $this->request->post('email', ''));
+        $password = (string) $this->request->post('password', '');
+        $status   = (string) $this->request->post('status', '');
+
+        $user = $userId > 0 ? $this->model->where('is_deleted', 0)->find($userId) : null;
+        if (!$user) {
+            $this->error('用户不存在');
+        }
+        if ($nickname === '' || mb_strlen($nickname) > 50) {
+            $this->error('昵称不能为空，且最多 50 个字符');
+        }
+        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 255)) {
+            $this->error('邮箱格式错误');
+        }
+        if ($password !== '' && (strlen($password) < 6 || strlen($password) > 20)) {
+            $this->error('密码长度为 6-20 个字符');
+        }
+        if (!in_array($status, ['0', '1'], true)) {
+            $this->error('状态参数错误');
+        }
+
+        $db        = Db::connect('live_mysql');
+        $emailAuth = $db->table('lp_user_auth')->where('user_id', $userId)->where('auth_type', 'email')->find();
+        if ($emailAuth && $email === '') {
+            $this->error('该账号使用邮箱登录，邮箱不能为空');
+        }
+        if ($email !== '' && (!$emailAuth || (string) $emailAuth['auth_key'] !== $email)) {
+            $taken = $db->table('lp_user_auth')
+                ->where('auth_type', 'email')->where('auth_key', $email)
+                ->where('user_id', '<>', $userId)->find();
+            if ($taken) {
+                $this->error('该邮箱已被其他账号使用');
+            }
+        }
+
+        try {
+            $db->transaction(function () use ($db, $userId, $nickname, $email, $password, $status, $emailAuth): void {
+                $db->table('lp_user')->where('id', $userId)->update([
+                    'nickname' => $nickname,
+                    'email'    => $email,
+                    'status'   => (int) $status,
+                ]);
+
+                // 邮箱登录账号：同步改认证表，保证仍能用新邮箱登录
+                if ($emailAuth && $email !== '' && (string) $emailAuth['auth_key'] !== $email) {
+                    $db->table('lp_user_auth')->where('id', $emailAuth['id'])->update(['auth_key' => $email]);
+                }
+
+                if ($password !== '') {
+                    $db->table('lp_user_auth')->where('user_id', $userId)
+                        ->whereIn('auth_type', ['email', 'username', 'mobile'])
+                        ->update(['password_hash' => hash_password($password)]);
+                }
+
+                // 改密码 / 禁用账号：递增 token 版本，强制该用户所有已登录会话失效
+                if ($password !== '' || (int) $status === 0) {
+                    $db->table('lp_platform_config')->replace()->insert([
+                        'key'   => 'user_token_version_' . $userId,
+                        'value' => bin2hex(random_bytes(16)),
+                    ]);
+                }
+            });
+        } catch (Throwable $e) {
+            $this->error('保存失败：' . $e->getMessage());
+        }
+
+        $this->success('会员资料已保存');
     }
 
     public function index(): void
@@ -485,6 +606,41 @@ class LiveUser extends Backend
         };
         $authSuffix = $authTypeText !== '' ? ' <span style="color:#999">（' . $authTypeText . '）</span>' : '';
 
+        // 资料编辑：需要「会员管理 → 编辑」权限（超管默认可用）
+        $canEdit   = $this->auth->isSuperAdmin() || $this->auth->check('user/liveUser/edit');
+        $emailInput = htmlspecialchars($emailRaw);
+        $statusVal  = (int) $user->status === 1 ? 1 : 0;
+        $selStatus1 = $statusVal === 1 ? ' selected' : '';
+        $selStatus0 = $statusVal === 0 ? ' selected' : '';
+        $emailLockedHint = $authTypeRaw === 'email' ? '该账号使用邮箱登录，邮箱不能为空' : '留空表示不设置邮箱';
+        $editCard = '';
+        if ($canEdit) {
+            $editCard = <<<EDIT
+    <div class="card">
+        <h2>编辑资料</h2>
+        <form id="profileForm" onsubmit="return saveProfile(event)">
+            <div class="form-row"><label>昵称</label><input id="pfNickname" value="{$nickname}" maxlength="50" placeholder="必填，最多 50 个字符"></div>
+            <div class="form-row"><label>邮箱</label><input id="pfEmail" type="email" value="{$emailInput}" maxlength="255" placeholder="{$emailLockedHint}"></div>
+            <div class="form-row"><label>新密码</label><input id="pfPassword" type="password" autocomplete="new-password" placeholder="留空则不修改（6-20 位）"></div>
+            <div class="form-row"><label>确认密码</label><input id="pfPassword2" type="password" autocomplete="new-password" placeholder="再次输入新密码"></div>
+            <div class="form-row">
+                <label>状态</label>
+                <select id="pfStatus">
+                    <option value="1"{$selStatus1}>正常</option>
+                    <option value="0"{$selStatus0}>禁用（禁止登录）</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="pfSave">保存修改</button>
+                <span class="hint">修改密码或禁用账号后，该用户已登录的会话会立即失效。</span>
+            </div>
+        </form>
+    </div>
+EDIT;
+        } else {
+            $editCard = '<div class="card"><h2>编辑资料</h2><div class="hint">当前管理员没有编辑会员资料的权限（需要「会员管理 → 编辑」权限）。</div></div>';
+        }
+
         // 会员身份（Free / Premium / Premium Plus）与到期
         $vipExpireRaw = (string) ($user->vip_expire_at ?? '');
         $isVipActive  = $vipExpireRaw !== '' && strtotime($vipExpireRaw) > time();
@@ -638,6 +794,12 @@ class LiveUser extends Backend
         .btn-success{background:#00d4aa;color:#fff}
         .btn-danger{background:#ff2d55;color:#fff}
         .btn-back{background:#eee;color:#333}
+        .btn-primary{background:#409eff;color:#fff}
+        .form-row{display:flex;align-items:center;margin-bottom:12px}
+        .form-row label{width:100px;color:#888;flex-shrink:0}
+        .form-row input,.form-row select{flex:1;max-width:420px;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+        .form-actions{display:flex;align-items:center;gap:12px;margin-top:4px}
+        .hint{color:#999;font-size:12px;line-height:1.6}
         .btn:hover{opacity:.85}
         .badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600}
         .badge-gray{background:#eee;color:#666}
@@ -676,6 +838,8 @@ class LiveUser extends Backend
         <div class="row"><span class="label">最后登录</span><span class="value">{$lastLoginText}</span></div>
         <div class="row"><span class="label">登入IP</span><span class="value" style="word-break:break-all">{$lastIpText}</span></div>
     </div>
+
+    {$editCard}
 
     <div class="card">
         <h2>推广来源</h2>
@@ -751,6 +915,46 @@ function doReject() {
         if (d.code === 1) { toast('已拒绝', 'success'); setTimeout(function(){ location.reload(); }, 800); }
         else { toast(d.msg || '操作失败', 'error'); }
     });
+}
+function saveProfile(e) {
+    e.preventDefault();
+    var nickname = document.getElementById('pfNickname').value.trim();
+    var email = document.getElementById('pfEmail').value.trim();
+    var pwd = document.getElementById('pfPassword').value;
+    var pwd2 = document.getElementById('pfPassword2').value;
+    var status = document.getElementById('pfStatus').value;
+    if (!nickname) { toast('昵称不能为空', 'error'); return false; }
+    if (pwd !== pwd2) { toast('两次输入的密码不一致', 'error'); return false; }
+    if (pwd && (pwd.length < 6 || pwd.length > 20)) { toast('密码长度为 6-20 个字符', 'error'); return false; }
+    var btn = document.getElementById('pfSave');
+    btn.disabled = true;
+    var body = new URLSearchParams();
+    body.set('id', '{$userId}');
+    body.set('nickname', nickname);
+    body.set('email', email);
+    body.set('password', pwd);
+    body.set('status', status);
+    var batoken = new URLSearchParams(location.search).get('batoken') || '';
+    if (batoken) body.set('batoken', batoken);
+    fetch('/admin/user.LiveUser/saveProfile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+        body: body.toString()
+    }).then(function (r) { return r.json(); }).then(function (d) {
+        if (d.code === 1) {
+            toast(d.msg || '已保存', 'success');
+            document.getElementById('pfPassword').value = '';
+            document.getElementById('pfPassword2').value = '';
+            setTimeout(function () { location.reload(); }, 800);
+        } else {
+            btn.disabled = false;
+            toast(d.msg || '保存失败', 'error');
+        }
+    }).catch(function () {
+        btn.disabled = false;
+        toast('网络错误，请重试', 'error');
+    });
+    return false;
 }
 </script>
 </body>

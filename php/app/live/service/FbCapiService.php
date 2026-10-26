@@ -53,6 +53,8 @@ final class FbCapiService
 
         $pixel = self::resolvePixel((string) ($ctx['px'] ?? ''), (string) ($ctx['domain'] ?? ''));
         if (!$pixel) {
+            Log::info('[capi] 跳过：未匹配到像素 key=' . $key
+                . ' px=' . (string) ($ctx['px'] ?? '') . ' domain=' . (string) ($ctx['domain'] ?? ''));
             return false;
         }
 
@@ -65,6 +67,7 @@ final class FbCapiService
 
         $userData = self::userData($ctx);
         if ($userData === []) {
+            Log::info('[capi] 跳过：缺少用户标识 key=' . $key);
             return false;
         }
 
@@ -226,6 +229,16 @@ final class FbCapiService
                     return $row;
                 }
             }
+        }
+        // 老用户 / 无归因（reg_px 与 reg_domain 都为空）：站点只有一个启用像素时直接用它，
+        // 否则购物与订阅会完全丢回传（注册走浏览器端，所以只有注册能看到）。
+        $rows = self::pixels();
+        $ids  = array_values(array_unique(array_map(
+            static fn(array $r): string => (string) ($r['pixel_id'] ?? ''),
+            $rows
+        )));
+        if (count($ids) === 1 && $rows !== []) {
+            return $rows[0];
         }
         return null;
     }

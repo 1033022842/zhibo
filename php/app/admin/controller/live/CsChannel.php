@@ -40,6 +40,7 @@ final class CsChannel extends Backend
         $subtitle = $v('cs_subtitle', 'Pick a channel below — we usually reply within minutes.');
         $hint    = $v('cs_hint', 'Chat with us');
         $logo    = $v('cs_logo');
+        $previewBase = $this->previewBase();
 
         // 编辑中的渠道
         $edit = ['id' => 0, 'type' => 'telegram', 'name' => '', 'url' => '', 'icon' => '', 'sort' => 0, 'status' => 1];
@@ -71,7 +72,8 @@ final class CsChannel extends Backend
             $label  = PromoService::CHANNEL_TYPES[$type] ?? $type;
             $name   = htmlspecialchars((string) $row['name'], ENT_QUOTES);
             $url    = htmlspecialchars((string) $row['url'], ENT_QUOTES);
-            $icon   = htmlspecialchars((string) $row['icon'], ENT_QUOTES);
+            $iconRaw   = (string) $row['icon'];
+            $iconSrc   = $iconRaw !== '' ? $this->previewUrl($iconRaw) : '';
             $clicks = (int) $row['clicks'];
             $sort   = (int) $row['sort'];
             $status = (int) $row['status'];
@@ -81,7 +83,7 @@ final class CsChannel extends Backend
                 ? '<span class="chip on">启用</span>'
                 : '<span class="chip off">停用</span>';
             $toggleText = $status === 1 ? '停用' : '启用';
-            $iconHtml   = $icon !== '' ? '<img src="' . $icon . '" class="mini">' : '<span class="muted">内置</span>';
+            $iconHtml   = $iconSrc !== '' ? '<img src="' . htmlspecialchars($iconSrc, ENT_QUOTES) . '" class="mini">' : '<span class="muted">内置</span>';
             $shortUrl   = mb_strlen($url) > 46 ? mb_substr($url, 0, 46) . '…' : $url;
 
             $rows .= <<<ROW
@@ -107,8 +109,9 @@ ROW;
         }
 
         $logoPreview = $logo !== ''
-            ? '<img src="' . $logo . '" class="logo-preview">'
-            : '<span class="muted">未设置，前端用内置聊天气泡图标</span>';
+            ? '<img src="' . htmlspecialchars($this->previewUrl($logo), ENT_QUOTES) . '" alt="客服图标" onerror="this.style.display=\'none\';var f=document.getElementById(\'csLogoFallback\');if(f){f.style.display=\'flex\'}">'
+              . '<span class="logo-fallback" id="csLogoFallback" style="display:none">图标加载失败</span>'
+            : '<span class="logo-fallback">内置图标</span>';
 
         echo <<<HTML
 <!DOCTYPE html>
@@ -144,8 +147,13 @@ ROW;
     .chip.on{background:#e8f7ef;color:#00a870}
     .chip.off{background:#f2f3f5;color:#999}
     .muted{color:#bbb;font-size:12px}
-    img.mini{width:20px;height:20px;border-radius:4px;object-fit:cover}
-    img.logo-preview{width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid #eee;margin-left:8px;vertical-align:middle}
+    img.mini{width:22px;height:22px;border-radius:6px;object-fit:contain;background:#2b2b2f;padding:2px}
+    .logo-row{display:flex;align-items:center;gap:14px}
+    .logo-preview-box{width:56px;height:56px;flex:0 0 56px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(268deg,#fc768a,#e65073);box-shadow:0 6px 16px rgba(231,82,117,.28)}
+    .logo-preview-box img{width:100%;height:100%;object-fit:cover;display:block}
+    .logo-fallback{color:#fff;font-size:11px;line-height:1.35;text-align:center;padding:4px}
+    .logo-actions{margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .btn-sm{padding:5px 12px;font-size:12px}
     .bar{display:flex;justify-content:space-between;align-items:center}
     .note{background:#eef6ff;border:1px solid #cfe3ff;color:#2b6cb0;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.7;margin-bottom:18px}
 </style>
@@ -179,13 +187,22 @@ ROW;
                     <input type="text" name="cs_hint" value="{$hint}">
                 </div>
                 <div class="field">
-                    <label>客服图标 URL（48×48 左右的方形图最好）</label>
-                    <input type="text" name="cs_logo" value="{$logo}" placeholder="https://… 或上传后自动填">
-                    {$logoPreview}
+                    <label>客服图标（悬浮按钮 / 弹窗头像）</label>
+                    <div class="logo-row">
+                        <div class="logo-preview-box" id="csLogoBox">{$logoPreview}</div>
+                        <div style="flex:1;min-width:0">
+                            <input type="text" name="cs_logo" id="csLogoInput" value="{$logo}" placeholder="/ai/uploads/cs/xxx.svg 或 https://…">
+                            <div class="logo-actions">
+                                <button type="button" class="btn btn-ghost btn-sm" id="csLogoClear">清空，使用内置图标</button>
+                                <span class="tip" style="margin:0">留空 = 内置聊天气泡；上传文件后以文件为准</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="field">
-                    <label>或直接上传图标（png/jpg/svg/webp，≤2MB）</label>
-                    <input type="file" name="logo_file" accept="image/*">
+                    <label>上传图标（png / jpg / svg / webp，≤2MB）</label>
+                    <input type="file" name="logo_file" id="csLogoFile" accept="image/*">
+                    <div class="tip">选择文件后上方会立即预览，点「保存客服设置」后生效。</div>
                 </div>
             </div>
         </div>
@@ -245,6 +262,56 @@ ROW;
         </table>
     </div>
 </div>
+<script>
+(function () {
+    var box = document.getElementById('csLogoBox');
+    var input = document.getElementById('csLogoInput');
+    var file = document.getElementById('csLogoFile');
+    var clear = document.getElementById('csLogoClear');
+    var base = '{$previewBase}';
+    if (!box) return;
+
+    function show(src) {
+        // 相对路径在 8081 管理端会 404，预览时补成前台站点地址
+        if (src && src.charAt(0) === '/' && src.charAt(1) !== '/') src = base + src;
+        box.innerHTML = '';
+        if (!src) {
+            var span = document.createElement('span');
+            span.className = 'logo-fallback';
+            span.textContent = '内置图标';
+            box.appendChild(span);
+            return;
+        }
+        var img = document.createElement('img');
+        img.alt = '客服图标';
+        img.src = src;
+        img.onerror = function () {
+            box.innerHTML = '<span class="logo-fallback">图标加载失败</span>';
+        };
+        box.appendChild(img);
+    }
+
+    if (file) {
+        file.addEventListener('change', function () {
+            var picked = file.files && file.files[0];
+            if (!picked) return;
+            var reader = new FileReader();
+            reader.onload = function (e) { show(String(e.target.result)); };
+            reader.readAsDataURL(picked);
+        });
+    }
+    if (input) {
+        input.addEventListener('change', function () { show(input.value.trim()); });
+    }
+    if (clear) {
+        clear.addEventListener('click', function () {
+            if (input) input.value = '';
+            if (file) file.value = '';
+            show('');
+        });
+    }
+})();
+</script>
 </body>
 </html>
 HTML;
@@ -348,7 +415,7 @@ HTML;
     // ================= 内部 =================
 
     /**
-     * 保存上传的客服图标 → 静态站目录 uploads/cs/，返回站点相对路径（如 /uploads/cs/xxx.png）
+     * 保存上传的客服图标 → 静态站目录 uploads/cs/，返回前端可访问的根相对路径（如 /ai/uploads/cs/xxx.png）
      * 上传到静态站目录是为了让前端能直接用这个 URL，不必跨域。
      */
     private function saveUploadedLogo(): ?string
@@ -373,7 +440,47 @@ HTML;
         $name = 'cs_' . date('YmdHis') . '_' . bin2hex(random_bytes(3)) . '.' . $ext;
         $file->move($dir, $name);
 
-        return '/' . self::ICON_DIR . '/' . $name;
+        // 前端静态站挂在 /ai/ 下，必须带 /ai 前缀，否则会命中后台/首页而不是这张图
+        return '/ai/' . self::ICON_DIR . '/' . $name;
+    }
+
+    /**
+     * 后台预览地址：相对路径在 8081 管理端会 404，补成前台站点绝对地址
+     */
+    private function previewUrl(string $url): string
+    {
+        if ($url === '' || !str_starts_with($url, '/') || str_starts_with($url, '//')) {
+            return $url;
+        }
+        $base = $this->previewBase();
+        return $base !== '' ? $base . $url : $url;
+    }
+
+    /**
+     * 前台站点根地址：优先用当前后台域名（需在推广域名列表里），否则用列表第一个域名
+     */
+    private function previewBase(): string
+    {
+        static $base = null;
+        if ($base !== null) {
+            return $base;
+        }
+        $domains = [];
+        foreach (preg_split('/[\s,;]+/', (string) ((new PromoService())->all()['promo_site_domains'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $d) {
+            $d = strtolower(trim($d));
+            if ($d !== '' && filter_var($d, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+                $domains[] = $d;
+            }
+        }
+        $host = strtolower((string) $this->request->host());
+        $hostValid = $host !== '' && filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
+        if ($hostValid && in_array($host, $domains, true)) {
+            return $base = 'https://' . $host;
+        }
+        if ($domains !== []) {
+            return $base = 'https://' . $domains[0];
+        }
+        return $base = $hostValid ? 'https://' . $host : '';
     }
 
     /** 前端静态站根目录（与 php 应用同级） */

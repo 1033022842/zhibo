@@ -520,6 +520,7 @@
                 renderCategoryPills()
                 applyFilter()
                 loadUserHistory()
+                openDeepLink()
             })
             .catch(function () {
                 allItems = []
@@ -527,6 +528,20 @@
                 renderCategoryPills()
                 applyFilter()
             })
+    }
+
+    /* Discover 卡片带 ?short=<id> 进来时，直接打开对应短剧的剧集弹窗 */
+    function openDeepLink() {
+        var id = 0
+        try { id = parseInt(new URLSearchParams(location.search).get('short') || '0', 10) || 0 } catch (e) {}
+        if (!id || !window.CandySeries) return
+        var item = byId[String(id)]
+        if (!item) return
+        window.CandySeries.open({
+            shortId: id,
+            title: item.title || '',
+            description: item.description || '',
+        })
     }
 
     document.addEventListener('DOMContentLoaded', function () {

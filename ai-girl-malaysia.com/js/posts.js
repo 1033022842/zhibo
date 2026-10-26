@@ -1,18 +1,18 @@
 /**
- * AI 女友端 Posts 动态流（1:1 复刻 candy.ai/feed/posts 的 Posts 页）
- * 动态由后台「直播运营 → 动态管理」配置（GET /api/live/posts），
- * DOM 结构 / class 与原站 .feed-desktop-* 保持一致：
- *   - 竖向 scroll-snap 吸附，一次一屏一条
- *   - IntersectionObserver 给当前可见卡片加 is-visible（原站靠它把媒体下移 75px）并自动播放
+ * AI 女友端 Discover（原 Posts 动态流）
+ *
+ * 素材全部来自「直播运营 → 短剧管理」（GET /api/live/shorts），不再混入动态/私密内容。
+ * 交互沿用 candy.ai/feed/posts 的原站结构：
+ *   - 竖向 scroll-snap 吸附，一次一屏一部剧
+ *   - IntersectionObserver 给当前可见卡片加 is-visible 并自动播放（带声音；被浏览器拦截时静音起播，首次交互后恢复声音）
  *   - 点击媒体切换播放 / 暂停，暂停时显示共享的 .feed-play-overlay
- *   - 右侧点赞 HUD 跟随当前卡片，点赞真实落库（POST /api/live/postLike，需登录）
- *   - 头像 / 角色名 / Chat Now 一律指向站内，不再跳 candy.ai
+ *   - 右侧点赞 HUD 跟随当前卡片，点赞真实落库（POST /api/live/shortLike，需登录）
+ *   - 头像 / 剧名 / View Now 指向该剧的短剧详情（shorts.html?short=<id>）
  */
 (() => {
-    var API_LIST = '/api/live/posts'
-    var API_LIKE = '/api/live/postLike'
-    var LIKE_ICON = './posts_files/like-6bfb7f5a54d0259524bf6b37730926d02f493c54d1a3aa1db5fdd3a281f15d37.svg'
-    var CHAT_NOW = 'Chat Now'
+    var API_SHORTS = '/api/live/shorts'
+    var API_LIKE = '/api/live/shortLike'
+    var CHAT_NOW = 'View Now'
     var VISIBLE_RATIO = 0.5          // 与原站一致：可见比例 > 0.5 视为当前卡片
     var ITEM_HEIGHT_FALLBACK = 955   // 原站默认卡片高度，兜底用
     var RESIZE_DELAY = 150
@@ -35,6 +35,8 @@
     var currentIndex = 0
     var observer = null
     var resizeTimer = null
+    var unmuteArmed = false
+    var UNMUTE_EVENTS = ['pointerdown', 'touchstart', 'keydown', 'wheel']
 
     function noop() { }
 
@@ -67,11 +69,11 @@
     /* ---------------- 卡片（等价于原站 createDesktopSlideElement） ---------------- */
 
     function mediaHtml(post) {
+        var poster = post.poster_url ? ' poster="' + esc(post.poster_url) + '"' : ''
         if (post.video_url) {
-            var poster = post.poster_url ? ' poster="' + esc(post.poster_url) + '"' : ''
             return '<div class="absolute inset-0">' +
                 '<div class="absolute inset-0 flex items-center justify-center">' +
-                  '<div class="w-16 h-16 border-4 border-zinc-700 border-t-white rounded-full animate-spin-slow"></div>' +
+                  '<img class="absolute inset-0 w-full h-full object-cover" src="' + esc(post.poster_url) + '" alt="" aria-hidden="true">' +
                 '</div>' +
                 '<video src="' + esc(post.video_url) + '"' + poster + ' class="absolute inset-0 w-full h-full object-cover cursor-pointer feed-desktop-media" muted="" playsinline="" loop="" preload="metadata" webkit-playsinline="true" x-webkit-airplay="allow"></video>' +
               '</div>'
@@ -80,25 +82,20 @@
             '" alt="' + esc(post.character_name) + '" loading="lazy" />'
     }
 
-    /* 角色链接：一律留在本站。
-     * 后台「角色主页链接」填的是站内相对地址就按它走；填了站外地址（历史数据里的 candy.ai）
-     * 或留空，则统一回退到站内聊天页，避免把用户带到站外。 */
-    function profileUrl(post) {
-        var url = String(post.character_url || '').trim()
-        if (url === '' || /^https?:/i.test(url) || url.indexOf('//') === 0) return './Chat.html'
-        return url
-    }
-
     function overlayHtml(post, descriptionHtml) {
-        var url = esc(profileUrl(post))
+        var url = esc(post.character_url)
         var name = esc(post.character_name)
+        var avatarSrc = post.character_avatar
+        var avatar = avatarSrc
+            ? '<a href="' + url + '" class="w-8 h-8 rounded-full overflow-hidden shrink-0">' +
+                '<img src="' + esc(avatarSrc) + '" alt="' + name + '" class="w-full h-full object-cover">' +
+              '</a>'
+            : ''
         return '<div class="feed-desktop-overlay">' +
             '<div class="flex gap-[40px] items-end justify-end w-full">' +
               '<div class="flex-1 flex flex-col gap-3 min-w-0">' +
                 '<div class="flex gap-2 items-center w-full">' +
-                  '<a href="' + url + '" class="w-8 h-8 rounded-full overflow-hidden shrink-0">' +
-                    '<img src="' + esc(post.character_avatar) + '" alt="' + name + '" class="w-full h-full object-cover">' +
-                  '</a>' +
+                  avatar +
                   '<a href="' + url + '">' +
                     '<div class="text-white text-[18px] leading-6 font-semibold font-poppins whitespace-nowrap overflow-hidden text-ellipsis min-w-0">' + name + '</div>' +
                   '</a>' +
@@ -146,7 +143,7 @@
         bottomSpacer.style.height = (!isMobile && posts.length > 1 ? (posts.length - 1) * full : 0) + 'px'
     }
 
-    /* ---------------- 播放控制 ---------------- */
+    /* ---------------- 播放控制（自动播放 + 声音） ---------------- */
 
     function showPlayOverlay(item) {
         if (!playOverlay) return
@@ -161,6 +158,36 @@
         playOverlay.classList.remove('feed-play-overlay-visible')
     }
 
+    /* 先尝试带声音自动播放；被浏览器拦截时静音起播，并等用户第一次交互后恢复声音 */
+    function playCardVideo(video) {
+        if (!video) return
+        hidePlayOverlay()
+        video.muted = false
+        var p = video.play()
+        if (!p || !p.catch) return
+        p.catch(function () {
+            video.muted = true
+            var q = video.play()
+            if (q && q.catch) q.catch(noop)
+            armUnmute()
+        })
+    }
+
+    function armUnmute() {
+        if (unmuteArmed) return
+        unmuteArmed = true
+        function resume() {
+            UNMUTE_EVENTS.forEach(function (ev) { document.removeEventListener(ev, resume, true) })
+            unmuteArmed = false
+            var vids = content.querySelectorAll('video')
+            for (var i = 0; i < vids.length; i++) {
+                vids[i].muted = false
+                if (!vids[i].paused) vids[i].play().catch(noop)
+            }
+        }
+        UNMUTE_EVENTS.forEach(function (ev) { document.addEventListener(ev, resume, true) })
+    }
+
     function setupObserver() {
         observer = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
@@ -169,10 +196,7 @@
                 var video = item.querySelector('video')
                 if (entry.intersectionRatio > VISIBLE_RATIO) {
                     item.classList.add('is-visible')
-                    if (video && video.paused) {
-                        hidePlayOverlay()          // 换页时先收掉上一张的暂停按钮
-                        video.play().catch(noop)
-                    }
+                    if (video && video.paused) playCardVideo(video)
                     if (!isNaN(index) && index !== currentIndex) {
                         currentIndex = index
                         updateLikeHud()
@@ -190,12 +214,17 @@
 
     function onContentClick(e) {
         if (!e.target.closest) return
-        if (e.target.closest('a')) return                       // 头像 / 角色名 / Chat Now 正常跳链接
+        if (e.target.closest('a')) return                       // 头像 / 剧名 / View Now 正常跳链接
         var item = e.target.closest('.feed-desktop-item')
         if (!item) return
         var video = item.querySelector('video')
-        if (!video) return                                      // 图片卡片没有播放概念
+        if (!video) {                                           // 没有预告片的卡片：整卡进短剧详情
+            var link = item.querySelector('a[href]')
+            if (link) location.href = link.getAttribute('href')
+            return
+        }
         if (video.paused) {
+            video.muted = false
             video.play().catch(noop)
             hidePlayOverlay()
         } else {
@@ -204,26 +233,11 @@
         }
     }
 
-    /* 视频外链（candy.ai CDN）拉不到时优雅降级：有封面就用封面，没有就留黑底，不报错 */
+    /* 视频拉不到时优雅降级：保留封面图，不报错 */
     function onMediaError(e) {
         var media = e.target
         if (!media || media.tagName !== 'VIDEO') return
-        var item = media.closest ? media.closest('.feed-desktop-item') : null
-        if (!item) return
-        var wrap = media.parentNode
-        var spinner = wrap ? wrap.querySelector('.animate-spin-slow') : null
-        if (spinner && spinner.parentNode) spinner.parentNode.style.display = 'none'
-        var post = posts[parseInt(item.getAttribute('data-index'), 10)]
-        if (post && post.poster_url) {
-            var img = document.createElement('img')
-            img.className = 'absolute inset-0 w-full h-full object-cover cursor-pointer feed-desktop-media'
-            img.src = post.poster_url
-            img.alt = post.character_name || ''
-            media.style.display = 'none'
-            wrap.insertBefore(img, media)
-        } else {
-            media.style.display = 'none'
-        }
+        media.style.display = 'none'
     }
 
     /* ---------------- 点赞 HUD（真实落库） ---------------- */
@@ -239,6 +253,7 @@
         likeCount.textContent = post.likes || 0
         likeButton.setAttribute('data-post-id', post.post_id)
         likeButton.setAttribute('aria-pressed', post.liked ? 'true' : 'false')
+        if (likeIcon) likeIcon.style.opacity = post.liked ? '1' : '.85'
     }
 
     function onLikeClick(e) {
@@ -257,15 +272,17 @@
         post.liked = liked
         post.likes = likes
         updateLikeHud()
-        likeIcon.classList.remove('feed-like-splash')
-        void likeIcon.offsetWidth
-        likeIcon.classList.add('feed-like-splash')
+        if (likeIcon) {
+            likeIcon.classList.remove('feed-like-splash')
+            void likeIcon.offsetWidth
+            likeIcon.classList.add('feed-like-splash')
+        }
 
         likeButton.dataset.loading = '1'
         fetch(API_LIKE, {
             method: 'POST',
             headers: headers({ 'Content-Type': 'application/x-www-form-urlencoded' }),
-            body: 'post_id=' + encodeURIComponent(post.post_id),
+            body: 'short_id=' + encodeURIComponent(post.short_id),
         })
             .then(function (r) { return r.json() })
             .then(function (res) {
@@ -295,16 +312,16 @@
     function start() {
         if (loading) loading.classList.add('hidden')
         if (!posts.length) {
-            updateLikeHud()
+            if (likeHud) likeHud.style.display = 'none'
             return
         }
         render()
         measure()
         setupObserver()
-        updateLikeHud()
-        if (likeButton) likeButton.addEventListener('click', onLikeClick)
         content.addEventListener('click', onContentClick)
         content.addEventListener('error', onMediaError, true)
+        if (likeButton) likeButton.addEventListener('click', onLikeClick)
+        updateLikeHud()
         window.addEventListener('resize', function () {
             clearTimeout(resizeTimer)
             resizeTimer = setTimeout(measure, RESIZE_DELAY)
@@ -313,10 +330,34 @@
 
     if (loading) loading.classList.remove('hidden')
 
-    fetch(API_LIST, { method: 'GET', headers: headers() })
+    /* 短剧 → 卡片结构：视频用免费首集做预告，付费集不下发 */
+    function normalizeShort(s) {
+        var episodes = Number(s.episode_count) || 0
+        var priceFrom = Number(s.price_from) || 0
+        var desc = String(s.description || '').trim()
+        if (desc === '' && episodes > 0) {
+            desc = episodes + ' episodes' + (priceFrom > 0 ? ' · ' + priceFrom + ' tokens' : ' · Free')
+        }
+        return {
+            short_id: Number(s.id) || 0,
+            post_id: 'short-' + s.id,
+            character_name: String(s.title || 'Short drama'),
+            // 短剧没有角色头像字段，用剧封面当头像
+            character_avatar: String(s.poster || ''),
+            character_url: './shorts.html?short=' + encodeURIComponent(s.id),
+            video_url: String(s.preview_url || s.video_url || ''),
+            poster_url: String(s.poster || ''),
+            description: desc,
+            likes: Number(s.likes) || 0,
+            liked: Number(s.liked) === 1
+        }
+    }
+
+    fetch(API_SHORTS, { method: 'GET', headers: headers() })
         .then(function (r) { return r.json() })
         .then(function (d) {
-            posts = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+            var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
+            posts = list.map(normalizeShort)
             start()
         })
         .catch(function () {

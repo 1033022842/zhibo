@@ -8,9 +8,13 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
+use think\facade\Log;
 
 final class LlmService
 {
+    /** 对外统一兜底文案：技术细节只写日志，不返回给用户 */
+    private const USER_ERROR = 'AI service is temporarily unavailable. Please try again in a moment.';
+
     /**
      * 调用 OpenAI 兼容 Chat Completions 接口
      *
@@ -48,7 +52,10 @@ final class LlmService
                 ],
             ]);
         } catch (GuzzleException $e) {
-            throw new BusinessException(ResultCode::SERVER_ERROR, 'AI 服务请求失败：' . $e->getMessage());
+            // 超时 / 连接失败 / 网关异常：技术细节只进日志，页面只给统一提示
+            Log::error('[llm] request failed: ' . $e->getMessage()
+                . ' | base=' . $baseUrl . ' model=' . $model);
+            throw new BusinessException(ResultCode::SERVER_ERROR, self::USER_ERROR);
         }
 
         $statusCode = $response->getStatusCode();
@@ -56,15 +63,17 @@ final class LlmService
         $decoded    = json_decode($body, true);
 
         if ($statusCode !== 200 || !is_array($decoded)) {
-            $msg = is_array($decoded) && isset($decoded['error']['message'])
-                ? $decoded['error']['message']
-                : ('HTTP ' . $statusCode);
-            throw new BusinessException(ResultCode::SERVER_ERROR, 'AI 服务返回错误：' . $msg);
+            $detail = is_array($decoded) && isset($decoded['error']['message'])
+                ? (string) $decoded['error']['message']
+                : mb_substr($body, 0, 500);
+            Log::error('[llm] http ' . $statusCode . ' model=' . $model . ' body=' . $detail);
+            throw new BusinessException(ResultCode::SERVER_ERROR, self::USER_ERROR);
         }
 
         $content = $decoded['choices'][0]['message']['content'] ?? '';
         if (!is_string($content) || $content === '') {
-            throw new BusinessException(ResultCode::SERVER_ERROR, 'AI 服务返回内容为空');
+            Log::warning('[llm] empty content model=' . $model . ' body=' . mb_substr($body, 0, 500));
+            throw new BusinessException(ResultCode::SERVER_ERROR, self::USER_ERROR);
         }
 
         return $content;

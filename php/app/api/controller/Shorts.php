@@ -95,6 +95,8 @@ final class Shorts extends BaseController
 
         $stats = $this->episodeStats($rows);
         $isVip = $this->isVipUser($this->optionalAuthUserId());
+        $likeCounts = $this->likeCounts(array_column($rows, 'id'));
+        $likedSet = $this->likedSet(array_column($rows, 'id'));
 
         $list = [];
         foreach ($rows as $row) {
@@ -103,6 +105,9 @@ final class Shorts extends BaseController
                 // 该剧已解锁的集数，前台卡片用「Owned N」
                 $item['owned_episodes'] = $ownedCounts[(int) $row['id']] ?? 0;
             }
+            // 点赞：真实落库（lp_short_like），未登录时 liked 恒为 0
+            $item['likes'] = $likeCounts[(int) $row['id']] ?? 0;
+            $item['liked'] = isset($likedSet[(int) $row['id']]) ? 1 : 0;
             $list[] = $item;
         }
 
@@ -284,6 +289,105 @@ final class Shorts extends BaseController
     }
 
     /**
+     * 点赞 / 取消点赞（需登录，幂等切换）
+     */
+    public function like()
+    {
+        $userId = $this->getAuthUserId();
+        $shortId = (int) $this->request->post('short_id/d', 0);
+        if ($shortId <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'short_id 不能为空');
+        }
+
+        $db = $this->table();
+        $exists = $db->table('lp_short_item')->where('id', $shortId)->where('status', 1)->count();
+        if (!$exists) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '短剧不存在或已下架');
+        }
+
+        $row = $db->table('lp_short_like')
+            ->where('user_id', $userId)
+            ->where('short_id', $shortId)
+            ->find();
+
+        if ($row) {
+            $db->table('lp_short_like')->where('id', (int) $row['id'])->delete();
+            $liked = 0;
+        } else {
+            $db->table('lp_short_like')->insert([
+                'short_id'   => $shortId,
+                'user_id'    => $userId,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+            $liked = 1;
+        }
+
+        return $this->jsonSuccess([
+            'liked' => $liked,
+            'likes' => (int) $db->table('lp_short_like')->where('short_id', $shortId)->count(),
+        ]);
+    }
+
+    /**
+     * 短剧点赞数：short_id => 数量
+     *
+     * @param array $shortIds
+     * @return array<int,int>
+     */
+    private function likeCounts(array $shortIds): array
+    {
+        $ids = array_filter(array_map('intval', $shortIds));
+        if (!$ids) {
+            return [];
+        }
+
+        $rows = $this->table()->table('lp_short_like')
+            ->whereIn('short_id', $ids)
+            ->field('short_id, COUNT(*) AS c')
+            ->group('short_id')
+            ->select()
+            ->toArray();
+
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(int) $row['short_id']] = (int) $row['c'];
+        }
+        return $out;
+    }
+
+    /**
+     * 当前用户点过赞的短剧集合
+     *
+     * @param array $shortIds
+     * @return array<int,bool>
+     */
+    private function likedSet(array $shortIds): array
+    {
+        $userId = $this->optionalAuthUserId();
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $ids = array_filter(array_map('intval', $shortIds));
+        if (!$ids) {
+            return [];
+        }
+
+        $rows = $this->table()->table('lp_short_like')
+            ->where('user_id', $userId)
+            ->whereIn('short_id', $ids)
+            ->field('short_id')
+            ->select()
+            ->toArray();
+
+        $set = [];
+        foreach ($rows as $row) {
+            $set[(int) $row['short_id']] = true;
+        }
+        return $set;
+    }
+
+    /**
      * 当前（可选登录）用户已解锁的剧集 id 集合
      */
     private function unlockedSet(array $episodeIds): array
@@ -360,7 +464,8 @@ final class Shorts extends BaseController
         $rows = $this->table()->table('lp_short_episode')
             ->whereIn('short_id', $ids)
             ->where('status', 1)
-            ->field('short_id, episode_no, price')
+            ->field('short_id, episode_no, price, video_url')
+            ->order('episode_no', 'asc')
             ->select()
             ->toArray();
 
@@ -368,7 +473,7 @@ final class Shorts extends BaseController
         foreach ($rows as $row) {
             $sid = (int) $row['short_id'];
             if (!isset($stats[$sid])) {
-                $stats[$sid] = ['total' => 0, 'min_paid' => 0];
+                $stats[$sid] = ['total' => 0, 'min_paid' => 0, 'preview' => ''];
             }
             $stats[$sid]['total']++;
 
@@ -377,6 +482,12 @@ final class Shorts extends BaseController
             if ($price > 0 && $no > ($freeMap[$sid] ?? 0)) {
                 $min = $stats[$sid]['min_paid'];
                 $stats[$sid]['min_paid'] = ($min === 0 || $price < $min) ? $price : $min;
+            }
+
+            // 预告片：取最早一集免费集（price = 0）的视频，供 Discover 自动播放；
+            // 付费集不下发，不绕过按集解锁
+            if ($price === 0 && $stats[$sid]['preview'] === '' && trim((string) $row['video_url']) !== '') {
+                $stats[$sid]['preview'] = $this->absoluteUrl((string) $row['video_url']);
             }
         }
 
@@ -399,6 +510,8 @@ final class Shorts extends BaseController
             // 有剧集时以剧集为准，不再下发剧上的视频（避免绕过按集付费）；
             // 非会员连老卡片的单视频也不下发（会员门槛）
             'video_url'     => (!$hasEpisodes && $isVip) ? $this->absoluteUrl((string) ($row['video_url'] ?? '')) : '',
+            // 免费首集视频，仅作 Discover 卡片自动播放的预告，不参与解锁校验
+            'preview_url'   => (string) ($stat['preview'] ?? ''),
             'href'          => (string) $row['href'],
             'section'       => (string) $row['section'],
             'rank'          => (int) $row['rank'],

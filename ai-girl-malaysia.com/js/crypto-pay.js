@@ -127,6 +127,8 @@
     var fiatId = parseInt(q.get('fiat_id') || '0', 10)
     var isFiat = fiatId > 0
     var fiatChannel = null
+    // WisonPay：后台配了四个地区各一条通道，用户在这里自己选国家
+    var wisonRegions = []
 
     var channels = []
     var picked = null
@@ -244,6 +246,108 @@
     }
 
     // ---------- 法币通道（单国本币收款） ----------
+    /**
+     * WisonPay 四个地区：接口、金额单位、手机号格式都不同，前端只负责收集对的资料。
+     * 国家一改，就换成后台对应地区的那条通道（fiat_id），金额按该通道汇率重算。
+     */
+    var WISON_LABELS = { US: 'United States', IN: 'India', TH: 'Thailand', ID: 'Indonesia' }
+    var WISON_PHONE = {
+        US: { placeholder: '14241276442', hint: '10 digits, with country code 1' },
+        IN: { placeholder: '9876543210', hint: '10 digits, without +91' },
+        TH: { placeholder: '0812345678', hint: '10 digits' },
+        ID: { placeholder: '08123456789', hint: 'starts with 0 or 62' }
+    }
+    var WISON_METHODS = {
+        TH: [['qr', 'QR code'], ['bank', 'Bank card']],
+        ID: [['qr', 'QR code'], ['wallet', 'E-wallet'], ['bank', 'Bank transfer']]
+    }
+    var WISON_BANKS = {
+        TH: [['SCB', 'SCB'], ['KBANK', 'Kasikornbank'], ['KTB', 'Krung Thai Bank'], ['BBL', 'Bangkok Bank'],
+            ['BAY', 'Bank of Ayudhya'], ['TTB', 'TTB Bank'], ['GSB', 'Government Savings Bank'],
+            ['GHB', 'Government Housing Bank'], ['KKP', 'Kiatnakin Phatra'], ['TISCO', 'TISCO'],
+            ['UOB', 'UOB Thailand'], ['CIMBTB', 'CIMB Thai'], ['LHB', 'LH Bank'], ['BAAC', 'BAAC'],
+            ['EXIM', 'EXIM Bank'], ['IBT', 'Islamic Bank of Thailand'], ['SCTB', 'Standard Chartered'],
+            ['CITIB', 'Citibank Thailand'], ['BOC', 'Bank of China (Thai)'], ['ICBCB', 'ICBC Bank'],
+            ['SMTB', 'Sumitomo Mitsui'], ['TCRB', 'Thai Credit Retail Bank'], ['SMEDB', 'SME Development Bank'],
+            ['ANZ', 'ANZ']],
+        ID: [['BRI', 'BRI'], ['MANDIRI', 'Mandiri'], ['BNI', 'BNI'], ['BCA', 'BCA'], ['DANAMON', 'Danamon'],
+            ['PERMATA', 'Permata'], ['MUAMALAT', 'Muamalat'], ['SINARMAS', 'Sinarmas'],
+            ['OCBC', 'OCBC'], ['BNC', 'BNC'], ['MAYBANK', 'Maybank']]
+    }
+
+    /** 当前选中的 WisonPay 地区代码 */
+    function currentRegion() {
+        return String((fiatChannel && fiatChannel.gref) || '').toUpperCase()
+    }
+
+    /** 国家下拉：只列后台启用的 WisonPay 地区通道 */
+    function renderCountrySelect() {
+        var sel = $('cp-payer-country')
+        if (!sel) { return }
+        sel.innerHTML = wisonRegions.map(function (c) {
+            var code = String(c.gref || '').toUpperCase()
+            var label = WISON_LABELS[code] || code
+            return '<option value="' + esc(code) + '">' + esc(label) +
+                ' · ' + esc(String(c.symbol || '') + ' ' + String(c.currency || '')) + '</option>'
+        }).join('')
+        sel.value = currentRegion()
+        sel.onchange = function () { switchRegion(this.value) }
+        renderPayerFields(currentRegion())
+    }
+
+    /** 切换地区：换通道（fiat_id）+ 重算金额 + 换表单字段 */
+    function switchRegion(code) {
+        var hit = null
+        wisonRegions.forEach(function (c) {
+            if (String(c.gref || '').toUpperCase() === String(code || '').toUpperCase()) { hit = c }
+        })
+        if (!hit) { return }
+        fiatChannel = hit
+        fiatId = parseInt(hit.id, 10)
+        renderFiatPreview()
+        renderPayerFields(String(hit.gref || '').toUpperCase())
+    }
+
+    /** 按地区渲染手机号提示、支付方式、银行与卡号 */
+    function renderPayerFields(code) {
+        var phone = $('cp-payer-mobile')
+        var info = WISON_PHONE[code] || WISON_PHONE.US
+        if (phone) {
+            phone.placeholder = info.placeholder
+            phone.setAttribute('inputmode', 'numeric')
+        }
+        var extra = $('cp-payer-extra')
+        var methods = WISON_METHODS[code] || []
+        if (!extra) { return }
+        extra.hidden = methods.length === 0
+        if (!methods.length) { return }
+
+        var mSel = $('cp-payer-method')
+        mSel.innerHTML = methods.map(function (m) {
+            return '<option value="' + m[0] + '">' + esc(m[1]) + '</option>'
+        }).join('')
+        mSel.value = 'qr'
+        mSel.onchange = function () { syncPayerMethod(code) }
+
+        var bSel = $('cp-payer-bank')
+        var banks = WISON_BANKS[code] || []
+        bSel.innerHTML = banks.map(function (b) {
+            return '<option value="' + b[0] + '">' + esc(b[1]) + '</option>'
+        }).join('')
+        syncPayerMethod(code)
+    }
+
+    /** 泰国/印尼：选到银行卡才显示银行下拉（泰国还要卡号） */
+    function syncPayerMethod(code) {
+        var mSel = $('cp-payer-method')
+        var method = mSel ? mSel.value : 'qr'
+        var isBank = method === 'bank'
+        $('cp-payer-bank-wrap').hidden = !isBank
+        $('cp-payer-card-wrap').hidden = !(isBank && code === 'TH')
+        var card = $('cp-payer-card')
+        if (card) { card.required = isBank && code === 'TH' }
+    }
+
     /** 取通道配置（币种 / 后台汇率 / 精度），用于付款前预估 */
     function loadFiatChannel() {
         return api('/recharge/fiat-channels').then(function (r) {
@@ -256,7 +360,19 @@
                 $('cp-continue').disabled = true
                 return
             }
+            // WisonPay：把四个地区都收进来，交给用户自己选
+            if (fiatChannel.gateway === 'wisonpay') {
+                wisonRegions = list.filter(function (c) { return c.gateway === 'wisonpay' })
+            }
             $('cp-continue').disabled = false
+            if ($('cp-payer')) {
+                $('cp-payer').hidden = fiatChannel.gateway !== 'wisonpay'
+                $('cp-payer').addEventListener('submit', function (event) {
+                    event.preventDefault()
+                    if (!$('cp-continue').disabled) createOrder()
+                })
+            }
+            if (wisonRegions.length) { renderCountrySelect() }
             renderFiatPreview()
         })
     }
@@ -284,18 +400,34 @@
         var usd = fiatUsd()
         if (!fiatChannel || usd <= 0) { return }
         $('cp-fiat-preview').textContent = fiatMoney(fiatChannel, fiatAmount(usd, fiatChannel))
-        $('cp-fiat-meta').textContent = fiatChannel.name +
+        var name = fiatChannel.name
+        if (fiatChannel.gateway === 'wisonpay') {
+            name = 'WisonPay' + (/test merchant/i.test(fiatChannel.instructions || '') ? ' (Test)' : '')
+        }
+        $('cp-fiat-meta').textContent = name +
             ' · 1 USD = ' + fiatChannel.usd_rate + ' ' + fiatChannel.currency
     }
 
     /** 法币下单：服务端按后台汇率折算成本币，并把当次汇率锁进订单 */
     function createFiatOrder() {
         var req
+        var payer = {}
+        if (fiatChannel && fiatChannel.gateway === 'wisonpay') {
+            payer = {
+                payer_name: $('cp-payer-name').value.trim(),
+                payer_email: $('cp-payer-email').value.trim(),
+                payer_mobile: $('cp-payer-mobile').value.trim(),
+                // 泰国 / 印尼的支付方式（qr/bank/wallet）与银行卡信息
+                payer_method: $('cp-payer-method') ? $('cp-payer-method').value : '',
+                payer_bank: $('cp-payer-bank') && !$('cp-payer-bank-wrap').hidden ? $('cp-payer-bank').value : '',
+                payer_card: $('cp-payer-card') && !$('cp-payer-card-wrap').hidden ? $('cp-payer-card').value.trim() : ''
+            }
+        }
         if (kind === 'vip') {
             req = api('/vip/order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plan_id: planId, fiat_channel_id: fiatId })
+                body: JSON.stringify(Object.assign({ plan_id: planId, fiat_channel_id: fiatId }, payer))
             })
         } else {
             req = api('/recharge/submit', {
@@ -304,7 +436,10 @@
                 body: 'fiat_channel_id=' + encodeURIComponent(fiatId) +
                     '&amount=' + encodeURIComponent(price) +
                     (tokens ? '&tokens=' + encodeURIComponent(tokens) : '') +
-                    (packageId ? '&package_id=' + encodeURIComponent(packageId) : '')
+                    (packageId ? '&package_id=' + encodeURIComponent(packageId) : '') +
+                    Object.keys(payer).map(function (key) {
+                        return '&' + key + '=' + encodeURIComponent(payer[key])
+                    }).join('')
             })
         }
         return req.then(function (r) {
@@ -331,7 +466,10 @@
     // ---------- 下单 ----------
     function createOrder() {
         if (!isFiat && !picked) { return }
+        if (isFiat && fiatChannel && fiatChannel.gateway === 'wisonpay'
+            && (!$('cp-payer') || !$('cp-payer').reportValidity())) { return }
         var btn = $('cp-continue')
+        if (btn.disabled) { return }
         btn.disabled = true
         btn.textContent = 'Creating order…'
 

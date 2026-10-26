@@ -487,6 +487,9 @@ final class RechargeService
             $this->settleOrder($db, $order, $label);
 
             $db->commit();
+            $order['status'] = 1;
+            // 服务端回传：链上自动到账也要回传（原先只在网关回调里回传，链上单会漏掉购物/订阅事件）
+            $this->sendCapiForOrder($order);
         } catch (\Exception $e) {
             $db->rollback();
             throw $e;
@@ -609,7 +612,7 @@ final class RechargeService
      *
      * 与充值共用 lp_recharge_order（biz_type=vip 标记），回调时开通会员而非加代币
      */
-    public function submitVipOrder(int $userId, int $planId, string $product = '', string $gateway = 'starpay', string $gcode = '', int $channelId = 0, int $fiatChannelId = 0): array
+    public function submitVipOrder(int $userId, int $planId, string $product = '', string $gateway = 'starpay', string $gcode = '', int $channelId = 0, int $fiatChannelId = 0, array $payer = []): array
     {
         $plan = Db::connect('live_mysql')->table('lp_vip_plan')
             ->where('id', $planId)->where('status', 1)->find();
@@ -622,6 +625,7 @@ final class RechargeService
             return $this->submitFiatOrder($userId, $fiatChannelId, (float) $plan['usd_price'], [
                 'biz_type'    => 'vip',
                 'vip_plan_id' => (int) $plan['id'],
+                'payer'       => $payer,
             ]);
         }
 
@@ -714,6 +718,19 @@ final class RechargeService
         $channel = FiatChannelService::find($fiatChannelId);
         $fx      = FiatChannelService::convert($usd, $channel);
         $gateway = (string) $channel['gateway'];
+        if ($gateway === 'wisonpay') {
+            // gref 存地区代码（US/IN/TH/ID）：币种和金额精度必须与该地区一致
+            $region = strtoupper((string) $channel['gref']);
+            $regionCfg = WisonPayService::regionOf($region);
+            if ($fx['currency'] !== (string) $regionCfg['currency']
+                || (int) $channel['decimals'] !== (int) $regionCfg['decimals']) {
+                throw new BusinessException(ResultCode::PARAM_ERROR, 'Invalid wallet payment channel configuration.');
+            }
+            $opt['payer'] = WisonPayService::validatePayer((array) ($opt['payer'] ?? []), $region);
+            if (!(new WisonPayService())->enabled()) {
+                throw new BusinessException(ResultCode::SERVER_ERROR, 'This payment method is not available yet.');
+            }
+        }
 
         // 印度网关只认整数卢比：带派萨的金额（如 ₹949.95）会返回 submitted 但收银台地址为空，
         // 用户点支付没有任何反应。落单前就抹平到整卢比，保证页面展示金额与实际扣款一致。
@@ -733,12 +750,15 @@ final class RechargeService
                 $gateway === 'mkpay' ? (string) config('mkpay.order_prefix')
                     : ($gateway === 'mkpay_vn' ? (string) config('mkpay_vn.order_prefix')
                         : ($gateway === 'mkpay_mx' ? (string) config('mkpay_mx.order_prefix')
-                            : ($gateway === 'mkpay_in' ? (string) config('mkpay_in.order_prefix') : 'RC')))
+                            : ($gateway === 'mkpay_in' ? (string) config('mkpay_in.order_prefix')
+                                : ($gateway === 'cregis' ? (string) config('cregis.order_prefix')
+                                    : ($gateway === 'aipowerpay' ? (string) config('aipowerpay.order_prefix')
+                                        : ($gateway === 'wisonpay' ? (string) config('wisonpay.order_prefix') : 'RC'))))))
             ),
             'user_id'         => $userId,
             // 走网关的记网关 code，这样网关查单补单（reconcileGateway）能自动带上；
             // 纯人工通道记 'fiat'，订单直接进后台「充值审核」等运营核对
-            'pay_channel'     => in_array($gateway, ['starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in'], true) ? $gateway : 'fiat',
+            'pay_channel'     => in_array($gateway, ['starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in', 'cregis', 'aipowerpay', 'wisonpay'], true) ? $gateway : 'fiat',
             'channel_id'      => 0,
             'fiat_channel_id' => (int) $channel['id'],
             'package_id'      => $opt['package_id'] ?? null,
@@ -760,11 +780,11 @@ final class RechargeService
 
         $update = [];
         try {
-            $update = $this->callFiatGateway($order, $channel, $fx, (string) ($opt['return_url'] ?? ''));
+            $update = $this->callFiatGateway($order, $channel, $fx, (string) ($opt['return_url'] ?? ''), (array) ($opt['payer'] ?? []));
         } catch (\Throwable $e) {
             $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update([
                 'status'       => 3,
-                'admin_remark' => '网关下单失败：' . $e->getMessage(),
+                'admin_remark' => $this->gatewayFailRemark($e),
                 'updated_at'   => date('Y-m-d H:i:s'),
             ]);
             throw $e;
@@ -780,7 +800,7 @@ final class RechargeService
      * 法币通道充值代币：到账代币按通道的 diamond_rate（每 1 USD）折算，
      * 与链上渠道 submitOrder 同一口径（取 USD 整数部分 × 单价）
      */
-    public function submitFiatCoinOrder(int $userId, int $fiatChannelId, float $usd, ?int $packageId = null, int $tokens = 0): array
+    public function submitFiatCoinOrder(int $userId, int $fiatChannelId, float $usd, ?int $packageId = null, int $tokens = 0, array $payer = []): array
     {
         $this->assertMemberForTokens($userId);
         $channel = FiatChannelService::find($fiatChannelId);
@@ -811,7 +831,24 @@ final class RechargeService
             'biz_type'       => 'coin',
             'diamond_amount' => $diamonds,
             'package_id'     => $packageId,
+            'payer'          => $payer,
         ]);
+    }
+
+    /**
+     * 网关下单失败的后台备注
+     *
+     * 前端只看到 BusinessException 的友好文案；真实原因（网关 ret/msg、报文校验失败等）
+     * 挂在 previous 上，这里拼进备注，运营/客服不用查日志也能判断是号码问题还是通道问题。
+     */
+    private function gatewayFailRemark(\Throwable $e): string
+    {
+        $text = $e->getMessage();
+        $prev = $e->getPrevious();
+        if ($prev !== null) {
+            $text .= ' / ' . $prev->getMessage();
+        }
+        return mb_substr('网关下单失败：' . $text, 0, 240);
     }
 
     /**
@@ -830,7 +867,7 @@ final class RechargeService
      *           到账靠异步回调（notifyMkPayIn）加对账补单（reconcileGateway）双保险；
      * 其它 code 一律拒绝，避免「以为对接了其实没对接」把钱收错。
      */
-    private function callFiatGateway(array $order, array $channel, array $fx, string $returnUrl): array
+    private function callFiatGateway(array $order, array $channel, array $fx, string $returnUrl, array $payer = []): array
     {
         $gateway = (string) $channel['gateway'];
         if ($gateway === '' || $gateway === 'manual') {
@@ -906,6 +943,80 @@ final class RechargeService
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
         }
+        if ($gateway === 'cregis') {
+            // Cregis 收银台：订单币种即通道币种（建议 USD），用户自选支付币种由 Cregis 换算；
+            // 到账靠异步回调（notifyCregis）加对账补单（reconcileGateway）双保险
+            $cg  = new CregisPayService();
+            $pay = $cg->createCheckout(
+                (string) $order['order_no'],
+                (string) $fx['amount'],
+                (string) $fx['currency'],
+                (int) $order['user_id'],
+                (string) config('cregis.notify_url'),
+                $returnUrl !== '' ? $returnUrl : (string) (
+                    $order['biz_type'] === 'vip'
+                        ? config('cregis.return_url_vip')
+                        : config('cregis.return_url')
+                )
+            );
+
+            return [
+                'system_ref' => (string) ($pay['cregis_id'] ?? ''),
+                'pay_url'    => (string) ($pay['checkout_url'] ?? ''),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        if ($gateway === 'aipowerpay') {
+            // AIPowerPay 信用卡收银台：订单币种即通道币种，3DS 在网关页面内完成；
+            // 到账靠异步回调（notifyAiPowerPay）加对账补单（reconcileGateway）双保险
+            $user  = Db::connect('live_mysql')->table('lp_user')->where('id', (int) $order['user_id'])->find();
+            $email = (string) ($user['email'] ?? '');
+            $device = [];
+            if (PHP_SAPI !== 'cli') {
+                try {
+                    $device = [
+                        'client_ip'       => (string) request()->ip(),
+                        'client_agent'    => (string) request()->header('user-agent', ''),
+                        'client_language' => (string) request()->header('accept-language', ''),
+                    ];
+                } catch (\Throwable $e) {
+                    $device = [];
+                }
+            }
+
+            $ap = (new AiPowerPayService())->createOrder(
+                (string) $order['order_no'],
+                (string) $fx['amount'],
+                (string) $fx['currency'],
+                (int) $order['user_id'],
+                $email,
+                (string) config('aipowerpay.notify_url'),
+                $returnUrl !== '' ? $returnUrl : (string) (
+                    $order['biz_type'] === 'vip'
+                        ? config('aipowerpay.return_url_vip')
+                        : config('aipowerpay.return_url')
+                ),
+                $device
+            );
+
+            return [
+                'system_ref' => (string) ($ap['gateway_id'] ?? ''),
+                'pay_url'    => (string) ($ap['pay_url'] ?? ''),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        if ($gateway === 'wisonpay') {
+            $pay = (new WisonPayService())->createOrder(
+                (string) $order['order_no'], (string) $fx['amount'],
+                (int) $order['user_id'], strtoupper((string) $channel['gref']), $payer,
+                ['method' => (string) ($payer['method'] ?? '')]
+            );
+            return [
+                'system_ref' => $pay['gateway_id'],
+                'pay_url' => $pay['pay_url'],
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+        }
         if ($gateway !== 'starpay') {
             throw new BusinessException(
                 ResultCode::PARAM_ERROR,
@@ -968,7 +1079,7 @@ final class RechargeService
         } catch (\Throwable $e) {
             $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update([
                 'status'       => 3,
-                'admin_remark' => '网关下单失败：' . $e->getMessage(),
+                'admin_remark' => $this->gatewayFailRemark($e),
                 'updated_at'   => date('Y-m-d H:i:s'),
             ]);
             throw $e;
@@ -1034,7 +1145,7 @@ final class RechargeService
         } catch (\Throwable $e) {
             $db->table('lp_recharge_order')->where('order_no', $order['order_no'])->update([
                 'status'       => 3,
-                'admin_remark' => '网关下单失败：' . $e->getMessage(),
+                'admin_remark' => $this->gatewayFailRemark($e),
                 'updated_at'   => date('Y-m-d H:i:s'),
             ]);
             throw $e;
@@ -1060,7 +1171,7 @@ final class RechargeService
      *                     否则就是「用户付了钱不到账」
      * status=1（已入账）幂等返回；status=2（人工拒绝）不放行。
      */
-    public function confirmByGateway(string $orderNo, string $systemRef = '', string $productRef = '', string $gateway = 'star-pay'): array
+    public function confirmByGateway(string $orderNo, string $systemRef = '', string $productRef = '', string $gateway = 'star-pay', array $wisonPayment = []): array
     {
         $db = Db::connect('live_mysql');
 
@@ -1072,6 +1183,9 @@ final class RechargeService
                 throw new BusinessException(ResultCode::ORDER_NOT_FOUND);
             }
 
+            if ($wisonPayment !== []) {
+                WisonPayService::assertMatchesOrder($order, $wisonPayment);
+            }
             $status = (int) $order['status'];
             if ($status === 1) {
                 $db->commit();
@@ -1168,7 +1282,7 @@ final class RechargeService
         $now = time();
 
         $rows = $db->table('lp_recharge_order')
-            ->whereIn('pay_channel', ['flowpay', 'starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in'])
+            ->whereIn('pay_channel', ['flowpay', 'starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in', 'cregis', 'aipowerpay', 'wisonpay'])
             ->whereIn('status', [0, 3])
             // 刚下完单还没付款的不用查；超过 7 天的直接放弃，避免每分钟白查历史单
             ->where('created_at', '<', date('Y-m-d H:i:s', $now - max(1, $staleMinutes) * 60))
@@ -1330,6 +1444,76 @@ final class RechargeService
                         continue;
                     }
                     if (MkPayInService::isFailed($code)) {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
+                    }
+                    continue;
+                }
+
+                if ((string) $r['pay_channel'] === 'cregis') {
+                    // Cregis：按 cregis_id 查单，paid / paid_over 视为已付款，expired / canceled 落未支付
+                    $cg = new CregisPayService();
+                    if (!$cg->enabled()) {
+                        $stat['skipped']++;
+                        continue;
+                    }
+                    $ref = (string) ($r['system_ref'] ?? '');
+                    if ($ref === '') {
+                        $stat['skipped']++;
+                        continue;
+                    }
+                    $res = $cg->queryOrder($ref);
+                    if (CregisPayService::isPaid((string) $res['status'])) {
+                        $this->markPayChecked((int) $r['id'], 1);
+                        $this->confirmByGateway($orderNo, $ref, (string) $res['tx_id'], 'Cregis(查单补单)');
+                        $stat['recovered']++;
+                        Log::info('[recharge:reconcile] Cregis 补单成功 ' . $orderNo);
+                        continue;
+                    }
+                    if (CregisPayService::isClosed((string) $res['status'])) {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
+                    }
+                    continue;
+                }
+
+                if ((string) $r['pay_channel'] === 'aipowerpay') {
+                    // AIPowerPay：按商户订单号查单，PAY_SUCCESS 视为已付款
+                    $ap = new AiPowerPayService();
+                    if (!$ap->enabled()) {
+                        $stat['skipped']++;
+                        continue;
+                    }
+                    $res = $ap->queryOrder($orderNo);
+                    if (AiPowerPayService::isPaid((string) $res['status'])) {
+                        $this->markPayChecked((int) $r['id'], 1);
+                        $this->confirmByGateway($orderNo, (string) $res['id'], '', 'AIPowerPay(查单补单)');
+                        $stat['recovered']++;
+                        Log::info('[recharge:reconcile] AIPowerPay 补单成功 ' . $orderNo);
+                        continue;
+                    }
+                    if (AiPowerPayService::isFailed((string) $res['status'])) {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
+                    }
+                    continue;
+                }
+
+                if ((string) $r['pay_channel'] === 'wisonpay') {
+                    $wp = new WisonPayService();
+                    if (!$wp->enabled() || empty($r['system_ref'])) {
+                        $stat['skipped']++;
+                        continue;
+                    }
+                    $payment = $wp->queryOrder(
+                        (string) $r['system_ref'],
+                        $orderNo,
+                        WisonPayService::regionOfCurrency((string) ($r['pay_currency'] ?? ''))
+                    );
+                    if ((string) $payment['code'] === '0') {
+                        $this->confirmByGateway($orderNo, (string) $payment['order_id'], '', 'WisonPay(查单补单)', $payment);
+                        $stat['recovered']++;
+                    } elseif ((string) $payment['code'] === '1') {
                         $this->markPayChecked((int) $r['id'], 2);
                         $stat['unpaid']++;
                     }

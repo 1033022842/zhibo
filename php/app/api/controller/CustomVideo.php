@@ -37,8 +37,9 @@ final class CustomVideo extends BaseController
     private const FREE_DAILY_LIMIT  = VipService::FREE_IMAGE_DAILY_LIMIT;
     private const FREE_DAILY_REFILL = VipService::FREE_IMAGE_DAILY_REFILL;
 
-    /** 免费次数用尽后每次生成扣的代币数（后台「功能定价」可改） */
-    private const VIDEO_PRICE_DEFAULT = 30;
+    /** 免费次数用尽后每次生成扣的代币数（后台「功能定价」可改，图片/视频分开定价） */
+    private const IMAGE_PRICE_DEFAULT = 10;
+    private const VIDEO_PRICE_DEFAULT = 50;
 
     /** 无限配额白名单（测试账号不限量） */
     private const UNLIMITED_USER_IDS = [16];
@@ -106,6 +107,7 @@ final class CustomVideo extends BaseController
             'image_presets' => $this->outfitPresets($userId),
             // 免费次数用尽后的续生成单价（代币）与当前代币余额
             'video_price' => $this->videoPrice(),
+            'image_price' => $this->imagePrice(),
             'balance'     => (new WalletService())->balance($userId),
             'quota'   => [
                 'daily_limit'  => $unlimited ? '∞' : $limit,
@@ -194,6 +196,8 @@ final class CustomVideo extends BaseController
         $typeRaw = (string) $this->request->post('type', 'video');
         $kind = in_array($typeRaw, ['image', 'outfit'], true) ? 'image' : 'video';
         $agreed = (int) $this->request->post('agreed_policy', 0);
+        // 前端已向用户展示「本次将消耗 X 代币」并确认后才传 1；未确认时后端不静默扣费
+        $confirmedPaid = (int) $this->request->post('confirm_paid', 0) === 1;
 
         if ($agreed !== 1) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please confirm the upload policy first.');
@@ -277,8 +281,8 @@ final class CustomVideo extends BaseController
         if (!$unlimited) {
             $credits->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
             if (!$credits->consume($userId)) {
-                // 免费额度用尽：优先用代币续生成（后台可配单价，0=关闭）
-                $price = $this->videoPrice();
+                // 免费额度用尽：优先用代币续生成（图片/视频分开定价，0=关闭）
+                $price = $kind === 'image' ? $this->imagePrice() : $this->videoPrice();
                 if ($price <= 0) {
                     $tip = $refillPerDay >= $dailyLimit
                         ? 'Your free quota resets to ' . $dailyLimit . '/day. Top up tokens or upgrade for more.'
@@ -286,10 +290,14 @@ final class CustomVideo extends BaseController
                     return $this->jsonFail(ResultCode::PARAM_ERROR, $tip);
                 }
                 if ($wallet->balance($userId) < $price) {
-                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Your free generations are used up. Each extra generation costs ' . $this->fmtPrice($price) . ' tokens — please top up to continue.');
+                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Your free generations are used up. Each extra ' . $kind . ' costs ' . $this->fmtPrice($price) . ' tokens — please top up to continue.');
+                }
+                if (!$confirmedPaid) {
+                    // 让前端弹出「本次将消耗 X 代币，是否确认生成」确认框，确认后带 confirm_paid=1 重提
+                    return $this->jsonFail(ResultCode::PAYMENT_CONFIRM_REQUIRED, 'This ' . $kind . ' costs ' . $this->fmtPrice($price) . ' tokens.');
                 }
                 try {
-                    $wallet->debit($userId, $price, 'video_gen', 0, 'AI video generation');
+                    $wallet->debit($userId, $price, 'video_gen', 0, 'AI ' . $kind . ' generation');
                 } catch (BusinessException $e) {
                     return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens. Please top up to continue generating.');
                 }
@@ -304,7 +312,7 @@ final class CustomVideo extends BaseController
             }
             if ($paidTokens > 0) {
                 try {
-                    $wallet->credit($userId, $paidTokens, 'video_gen_refund', 0, 'AI video generation refund');
+                    $wallet->credit($userId, $paidTokens, 'video_gen_refund', 0, 'AI generation refund');
                 } catch (\Throwable $e) {
                     Log::error('[customVideo] token refund failed: ' . $e->getMessage());
                 }
@@ -377,11 +385,19 @@ final class CustomVideo extends BaseController
     }
 
     /**
-     * 免费次数用尽后每次生成的代币单价（后台「功能定价」可改；0 = 关闭代币续生成）
+     * 免费次数用尽后每次生成视频的代币单价（后台「提现打款配置 → 聊天/生成消费价格」可改；0 = 关闭）
      */
     private function videoPrice(): float
     {
         return max(0.0, (float) WalletService::config('video_gen_price', (string) self::VIDEO_PRICE_DEFAULT));
+    }
+
+    /**
+     * 免费次数用尽后每次生成图片（换装/图片编辑）的代币单价（同上；0 = 关闭）
+     */
+    private function imagePrice(): float
+    {
+        return max(0.0, (float) WalletService::config('image_gen_price', (string) self::IMAGE_PRICE_DEFAULT));
     }
 
     /** 价格展示：30.00 → 30 */
