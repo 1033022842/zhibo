@@ -26,6 +26,7 @@
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -78,19 +79,30 @@ def load_presets():
 
 
 def load_ref_image(code):
-    """参考图：用预设封面（/ai/media/gs/xx.jpg），落到 ComfyUI/input。"""
+    """参考图：用预设封面（/ai/media/gs/xx.jpg），落到 ComfyUI/input 并裁成 9:16。
+
+    必须裁切：生产 worker 的 stage_input() 会调 fit_portrait()，QA 若绕开
+    就会测出未裁图的效果（横图出横屏），导致验收结论与线上不符。
+    2026-10-27 踩过：qa v2 前 7 条里 3 条横屏，就是因为这里没裁。
+    """
     num = int(code.split("-")[1])
-    src = W.COMFY_BASE / "input" / ("gs_ref_%02d.jpg" % num)
-    if src.exists() and src.stat().st_size > 1024:
-        return src.name
-    url = "https://sugus.ai/ai/media/gs/%02d.jpg" % num
-    import requests
-    r = requests.get(url, timeout=120)
-    r.raise_for_status()
-    src.write_bytes(r.content)
-    if src.stat().st_size < 1024:
-        raise RuntimeError("参考图过小: %s" % url)
-    return src.name
+    inp = W.COMFY_BASE / "input"
+    raw = inp / ("gs_ref_%02d_src.jpg" % num)     # 原图（缓存，不裁）
+    out = inp / ("gs_ref_%02d_916.jpg" % num)     # 裁切后（喂给 ComfyUI）
+
+    if not (raw.exists() and raw.stat().st_size > 1024):
+        url = "https://sugus.ai/ai/media/gs/%02d.jpg" % num
+        import requests
+        r = requests.get(url, timeout=120)
+        r.raise_for_status()
+        raw.write_bytes(r.content)
+        if raw.stat().st_size < 1024:
+            raise RuntimeError("参考图过小: %s" % url)
+
+    # 每次都从原图重裁，避免旧缓存（未裁版本）被复用
+    shutil.copyfile(raw, out)
+    W.fit_portrait(out)
+    return out.name
 
 
 def _as_chain(v):
