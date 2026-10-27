@@ -307,6 +307,37 @@ def assert_video_not_black(video: Path, duration: float) -> None:
         raise RuntimeError("视频全黑（三帧 max luminance=%s），判定生成失败" % peaks)
 
 
+def fit_portrait(path, ratio=9 / 16):
+    """把参考图居中裁成 9:16。
+
+    为什么必须裁：ComfyUI-PerfectVideoResolution 的源码（perfect_video_resolution.py:488）
+    会用**输入图的真实宽高比**覆盖工作流里配置的 aspect_ratio：
+
+        resolved_aspect = _best_aspect_ratio(image_w, image_h, aspect_order, fallback)
+        target_w, target_h = _adaptive_size(image_w, image_h, target_pixels, divisible_by)
+
+    所以只改 aspect_ratio 参数没用 —— 横图进去必然出横屏。
+    2026-10-27 QA 实测：50 条里 19 条（封面本身是横图）输出了 1280x736 横屏，
+    与竖屏产品的预期不符。实测「喂图前裁成 9:16」可稳定得到 736x1280 竖屏。
+    """
+    from PIL import Image
+    im = Image.open(path).convert("RGB")
+    w, h = im.size
+    target = w / h
+    if abs(target - ratio) < 0.01:
+        return
+    if target > ratio:            # 偏宽 → 裁左右
+        new_w = max(1, int(round(h * ratio)))
+        left = (w - new_w) // 2
+        im = im.crop((left, 0, left + new_w, h))
+    else:                          # 偏高 → 裁上下
+        new_h = max(1, int(round(w / ratio)))
+        top = (h - new_h) // 2
+        im = im.crop((0, top, w, top + new_h))
+    im.save(path, quality=95)
+    log("  参考图已裁成 9:16: %s -> %dx%d" % (Path(path).name, im.size[0], im.size[1]))
+
+
 def stage_input(task_id, image_url):
     """下载参考图到 ComfyUI/input，文件名带站点标签防串台。"""
     inp = COMFY_BASE / "input"
@@ -319,6 +350,11 @@ def stage_input(task_id, image_url):
         shutil.copyfileobj(r.raw, f)
     if dst.stat().st_size < 1024:
         raise RuntimeError("参考图下载异常（%d 字节）" % dst.stat().st_size)
+    # 统一裁成 9:16，否则横图会导致横屏输出（见 fit_portrait 注释）
+    try:
+        fit_portrait(dst)
+    except Exception as e:
+        log("  裁切失败（继续用原图）: %s" % e)
     return name
 
 
