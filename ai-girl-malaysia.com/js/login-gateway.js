@@ -7,6 +7,22 @@
   var mountTimer = null
   var cooldownUntil = 0
   var API = '/api/live'
+  // 品牌图标与短标签：官方标志，深色按钮下保持原色可辨识。
+  var LABELS = { google: 'Google', discord: 'Discord', twitter: 'X' }
+  var ICONS = {
+    google: '<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">' +
+      '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
+      '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
+      '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
+      '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
+      '</svg>',
+    discord: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+      '<path fill="#5865F2" d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>' +
+      '</svg>',
+    twitter: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+      '<path fill="#FFFFFF" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z"/>' +
+      '</svg>'
+  }
 
   function post(path, data) {
     return fetch(API + path, {
@@ -86,7 +102,11 @@
       '.live-login-methods button{box-sizing:border-box;font:inherit;cursor:pointer;border-radius:10px;min-height:44px}' +
       '.live-email-entry{width:100%;background:transparent;border:1px solid #E75275;color:#f4a2b4;font-size:14px;padding:11px}' +
       '.live-social-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}' +
-      '.live-social-row button{background:#292929;border:1px solid #444;color:#eee;font-size:13px;padding:10px 4px}' +
+      '.live-social-row button{display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;' +
+      'background:#292929;border:1px solid #444;color:#eee;font-size:13px;padding:10px 6px}' +
+      '.live-social-row button svg{width:18px;height:18px;flex:0 0 18px;display:block;pointer-events:none}' +
+      '.live-social-row button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.live-social-row button small{flex:0 0 100%;text-align:center}' +
       '.live-login-methods button:hover:not(:disabled){background:#383036}' +
       '.live-login-methods button:disabled{opacity:.45;cursor:not-allowed}' +
       '.live-login-methods small{display:block;font-size:10px;font-weight:400;margin-top:4px;color:#bcbcbc}' +
@@ -209,9 +229,11 @@
       row.className = 'live-social-row'
       options.providers.forEach(function (provider) {
         var social = document.createElement('button')
+        var label = LABELS[provider.id] || provider.label
         social.type = 'button'
         social.disabled = !provider.enabled
-        social.textContent = provider.label
+        social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
+        social.querySelector('span').textContent = label
         social.title = provider.enabled ? 'Authorize your ' + provider.label + ' account' : 'Coming soon'
         if (!provider.enabled) {
           var note = document.createElement('small')

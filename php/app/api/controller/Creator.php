@@ -8,6 +8,7 @@ use app\BaseController;
 use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use app\live\service\CreatorService;
+use think\facade\Db;
 
 final class Creator extends BaseController
 {
@@ -228,9 +229,26 @@ final class Creator extends BaseController
         }
 
         // 资料：前端已开放上传，至少一份（短剧以剧集为准，资料可选）
-        $materials = $this->parseMaterials($params['materials'] ?? []);
+        $parsedMaterials = $this->parseMaterials($params['materials'] ?? [], $publishType);
+        if ($parsedMaterials['error'] !== '') {
+            return $fail($parsedMaterials['error']);
+        }
+        $materials = $parsedMaterials['items'];
         if (count($materials) === 0 && $publishType !== 'drama') {
             return $fail('请至少上传一份角色资料');
+        }
+        // 直播角色：资源按用途分类，至少一个主视频（可多个）
+        if ($publishType === 'live') {
+            $hasMainVideo = false;
+            foreach ($materials as $mat) {
+                if (($mat['type'] ?? '') === 'main_video') {
+                    $hasMainVideo = true;
+                    break;
+                }
+            }
+            if (!$hasMainVideo) {
+                return $fail('直播角色需要上传主视频');
+            }
         }
 
         // 短剧：多集结构（与后台 lp_short_episode 一致），非短剧则忽略
@@ -298,35 +316,117 @@ final class Creator extends BaseController
     }
 
     /**
-     * 资料参数归一化：[{name,url}]
+     * 可选礼物列表（公开发布表单用：直播角色的「礼物视频」需绑定具体礼物）
      */
-    private function parseMaterials(mixed $raw): array
+    public function gifts()
     {
+        $rows = Db::connect('live_mysql')
+            ->table('lp_gift')
+            ->where('status', 1)
+            ->order('price_diamond', 'asc')
+            ->order('id', 'asc')
+            ->field(['id', 'name', 'price_diamond'])
+            ->limit(200)
+            ->select()
+            ->toArray();
+
+        return $this->jsonSuccess([
+            'list' => array_map(static fn(array $row): array => [
+                'id'    => (int) $row['id'],
+                'name'  => (string) $row['name'],
+                'price' => (float) $row['price_diamond'],
+            ], $rows),
+        ]);
+    }
+
+    /**
+     * 资料参数归一化：[{name,url,type,gift_id,gift_name}]
+     * type 仅对直播角色生效：main_video=主视频（可多个）/ gift_video=礼物视频（绑定礼物，同一礼物可多个，送礼时播放）/ other=其它资料
+     * 返回 ['items' => array, 'error' => string]
+     */
+    private function parseMaterials(mixed $raw, string $publishType): array
+    {
+        $fail = static fn(string $msg): array => ['items' => [], 'error' => $msg];
+
         if (is_string($raw) && $raw !== '') {
             $decoded = json_decode($raw, true);
             $raw = is_array($decoded) ? $decoded : [];
         }
         if (!is_array($raw)) {
-            return [];
+            return ['items' => [], 'error' => ''];
         }
 
-        $result = [];
+        $isLive      = $publishType === 'live';
+        $allowedType = ['main_video', 'gift_video', 'other'];
+        $items       = [];
+        $giftIds     = [];
+
         foreach ($raw as $item) {
             if (is_string($item)) {
                 $url  = trim($item);
                 $name = '';
+                $type = 'other';
+                $giftId = 0;
+                $giftName = '';
             } elseif (is_array($item)) {
                 $url  = trim((string) ($item['url'] ?? ''));
                 $name = trim((string) ($item['name'] ?? ''));
+                $type = $isLive ? trim((string) ($item['type'] ?? '')) : 'other';
+                if (!in_array($type, $allowedType, true)) {
+                    $type = 'other';
+                }
+                $giftId   = $type === 'gift_video' ? (int) ($item['gift_id'] ?? 0) : 0;
+                $giftName = $type === 'gift_video' ? trim((string) ($item['gift_name'] ?? '')) : '';
             } else {
                 continue;
             }
             if ($url === '') {
                 continue;
             }
-            $result[] = ['name' => $name, 'url' => $url];
+
+            if ($type === 'main_video') {
+                $items[] = ['type' => 'main_video', 'name' => $name, 'url' => $url];
+                continue;
+            }
+
+            if ($type === 'gift_video') {
+                if ($giftId <= 0) {
+                    return $fail('礼物视频需要选择对应的礼物');
+                }
+                $giftIds[$giftId] = true;
+                $items[] = [
+                    'type'      => 'gift_video',
+                    'gift_id'   => $giftId,
+                    'gift_name' => $giftName,
+                    'name'      => $name,
+                    'url'       => $url,
+                ];
+                continue;
+            }
+
+            $items[] = ['type' => 'other', 'name' => $name, 'url' => $url];
         }
-        return $result;
+
+        // 礼物名称以库里的配置为准，避免前端传错/礼物改名后文案不一致
+        if ($giftIds) {
+            $names = Db::connect('live_mysql')
+                ->table('lp_gift')
+                ->whereIn('id', array_keys($giftIds))
+                ->column('name', 'id');
+            foreach ($items as &$row) {
+                if (($row['type'] ?? '') !== 'gift_video') {
+                    continue;
+                }
+                $gid = (int) $row['gift_id'];
+                if (!isset($names[$gid])) {
+                    return $fail('所选礼物不存在，请刷新页面后重试');
+                }
+                $row['gift_name'] = (string) $names[$gid];
+            }
+            unset($row);
+        }
+
+        return ['items' => $items, 'error' => ''];
     }
 
     /**

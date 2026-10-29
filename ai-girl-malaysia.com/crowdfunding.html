@@ -95,6 +95,12 @@
         .cf-mat .pg{flex-shrink:0;font-size:11px;color:#A1A1A1;min-width:42px;text-align:right}
         .cf-mat .pg.err{color:#ef4444;min-width:0}
 
+        /* ===== Live assets: main video + gift videos ===== */
+        .cf-livegifts{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+        .cf-giftv{background:#1d1d1d;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px}
+        .cf-giftv-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+        .cf-giftv-head .cf-input{flex:1;min-width:0;padding:10px 12px}
+
         /* ===== Upload loading states ===== */
         .cf-spin-s{flex-shrink:0;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#E75275;border-radius:50%;animation:cfr .8s linear infinite}
         .cf-upload-load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.55);color:#fff;font-size:13px}
@@ -272,8 +278,16 @@
     // Submit endpoint for "create on my own" (pending backend confirmation; change here if it changes)
     var INDEPENDENT_API = base + '/creator/independent'
     var currentTab = 'independent'
-    // Uploaded assets: { name, url }
+    // Uploaded assets: { name, url, type, gift_id, gift_name }
     var materials = []
+    // Live assets: main videos + gift videos grouped by gift（礼物被送出时播放对应视频）
+    var liveMains = []   // [{ id, name, url, status, progress, error }]
+    var liveGifts = []   // [{ id, gift_id, videos: [{ id, name, url, status, progress, error }] }]
+    var liveGiftSeq = 0
+    var liveVideoSeq = 0
+    var liveGiftPick = 0 // 当前正在为哪个礼物卡片选视频
+    var giftOptions = []
+    var giftLoadState = 0 // 0=未加载 1=加载中 2=已完成
     // Short drama episodes (mirrors admin lp_short_episode)
     var episodes = []
     var episodeSeq = 0
@@ -354,6 +368,8 @@
     function renderIndependentForm() {
         materials = []
         episodes = []
+        liveMains = []
+        liveGifts = []
         document.getElementById('content').innerHTML =
             '<div class="cf-form">' +
             editBannerHtml() +
@@ -397,11 +413,29 @@
             '</select></div>' +
 
             '<div class="cf-section">Assets</div>' +
-            '<div class="cf-field"><label class="cf-label">Character assets <span class="req">*</span></label>' +
+
+            // 直播角色：资源按用途分类（主视频 / 礼物视频），均可上传多个
+            '<div id="liveAssetsField" style="display:none">' +
+            '<div class="cf-field"><label class="cf-label">Main videos <span class="req">*</span></label>' +
+            '<button type="button" class="cf-addbtn" onclick="document.getElementById(\'mainVideoInput\').click()">+ Upload main video(s) — multiple allowed</button>' +
+            '<input type="file" id="mainVideoInput" accept="video/*" multiple style="display:none" onchange="onMainVideoPicked(this)" />' +
+            '<div class="cf-materials" id="mainVideoRow"></div>' +
+            '<div class="cf-hint">At least one main video is required; these play while the character is live</div></div>' +
+
+            '<div class="cf-field"><label class="cf-label">Gift videos</label>' +
+            '<div class="cf-livegifts" id="giftVideoList"></div>' +
+            '<button type="button" class="cf-addbtn" style="margin-top:10px" onclick="addGiftVideo()">+ Add gift</button>' +
+            '<input type="file" id="giftVideoInput" accept="video/*" multiple style="display:none" onchange="onGiftVideoPicked(this)" />' +
+            '<div class="cf-hint">Choose a gift, then add one or more videos to it — each plays when that gift is sent</div></div>' +
+            '</div>' +
+
+            '<div id="otherAssetsField">' +
+            '<div class="cf-field"><label class="cf-label" id="otherAssetsLabel">Character assets <span class="req">*</span></label>' +
             '<button type="button" class="cf-addbtn" onclick="document.getElementById(\'materialInput\').click()">+ Upload assets (portrait / voice / short video, multiple)</button>' +
             '<input type="file" id="materialInput" multiple accept="image/*,video/*,audio/*" style="display:none" onchange="uploadMaterials(this)" />' +
             '<div class="cf-materials" id="materialList"></div>' +
             '<div class="cf-hint">Submitted for platform review</div></div>' +
+            '</div>' +
 
             '<div class="cf-section">Publish Settings</div>' +
             '<div class="cf-field"><label class="cf-label">Publish type <span class="req">*</span></label>' +
@@ -546,18 +580,39 @@
         syncPublishUI()
         renderEpisodes()
 
-        // Already-uploaded assets show up as done entries
+        // Already-uploaded assets show up as done entries, keeping their category
         materials = []
+        liveMains = []
+        liveGifts = []
         var mats = d.materials || []
         for (var i = 0; i < mats.length; i++) {
-            materials.push({
-                id: ++materialSeq,
-                name: mats[i].name || ('asset-' + (i + 1)),
-                url: mats[i].url || '',
-                status: 'done', progress: 100, error: '', file: null
-            })
+            var m = mats[i] || {}
+            var mUrl = m.url || ''
+            var mName = m.name || ('asset-' + (i + 1))
+            if (m.type === 'main_video') {
+                liveMains.push({ id: ++liveVideoSeq, name: mName, url: mUrl, status: 'done', progress: 100, error: '' })
+            } else if (m.type === 'gift_video') {
+                var gid = (m.gift_id != null && m.gift_id !== '') ? String(m.gift_id) : ''
+                var row = null
+                for (var gi = 0; gi < liveGifts.length; gi++) {
+                    if (liveGifts[gi].gift_id === gid) { row = liveGifts[gi]; break }
+                }
+                if (!row) {
+                    row = { id: ++liveGiftSeq, gift_id: gid, videos: [] }
+                    liveGifts.push(row)
+                }
+                row.videos.push({ id: ++liveVideoSeq, name: mName, url: mUrl, status: 'done', progress: 100, error: '' })
+            } else {
+                materials.push({
+                    id: ++materialSeq,
+                    name: mName,
+                    url: mUrl,
+                    status: 'done', progress: 100, error: '', file: null
+                })
+            }
         }
         renderMaterials()
+        renderLiveAssets()
     }
 
     // XHR upload with real progress + timeout, so the UI can show loading / failure clearly
@@ -692,6 +747,207 @@
     }
 
     // ===================================================================
+    // Live assets (publish type = live)
+    // Main videos: multiple allowed
+    // Gift videos: grouped by gift, each gift can hold multiple videos
+    // ===================================================================
+    function loadGiftOptions() {
+        if (giftLoadState) return
+        giftLoadState = 1
+        fetch(base + '/creator/gifts', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r){ return r.json() })
+            .then(function(d){
+                giftOptions = (d && d.data && d.data.list) || []
+                giftLoadState = 2
+                renderLiveAssets()
+            })
+            .catch(function(){ giftLoadState = 2; renderLiveAssets() })
+    }
+
+    function giftSelectHtml(selected) {
+        var sel = String(selected || '')
+        var html = '<option value="">Select a gift...</option>'
+        for (var i = 0; i < giftOptions.length; i++) {
+            var g = giftOptions[i]
+            html += '<option value="' + escHtml(g.id) + '"' + (String(g.id) === sel ? ' selected' : '') + '>' +
+                escHtml(g.name) + ' &middot; ' + escHtml(fmtNum(g.price)) + '</option>'
+        }
+        return html
+    }
+
+    function findLiveGift(id) {
+        for (var i = 0; i < liveGifts.length; i++) if (liveGifts[i].id === id) return liveGifts[i]
+        return null
+    }
+
+    function giftNameById(id) {
+        for (var i = 0; i < giftOptions.length; i++) {
+            if (String(giftOptions[i].id) === String(id)) return giftOptions[i].name || ''
+        }
+        return ''
+    }
+
+    function newLiveVideo(file) {
+        return {
+            id: ++liveVideoSeq,
+            name: file ? file.name : '',
+            url: '',
+            status: file ? 'uploading' : 'done',
+            progress: 0,
+            error: ''
+        }
+    }
+
+    function startLiveVideoUpload(v, file) {
+        renderLiveAssets()
+        uploadFileXhr(file, function(p){
+            v.progress = p
+            renderLiveAssets()
+        }, function(url){
+            v.url = url
+            v.status = 'done'
+            v.progress = 100
+            renderLiveAssets()
+            showToast('Uploaded: ' + v.name, 'success')
+        }, function(msg){
+            v.status = 'error'
+            v.error = msg
+            renderLiveAssets()
+            showToast('Upload failed: ' + v.name + ' (' + msg + ')', 'error')
+        })
+    }
+
+    function videoRowHtml(v, removeCall) {
+        var st
+        if (v.status === 'uploading') {
+            st = '<span class="cf-spin-s"></span><span class="pg">' + (v.progress || 0) + '%</span>'
+        } else if (v.status === 'done') {
+            st = '<span class="st ok">&#10003;</span><span class="pg">Done</span>'
+        } else {
+            st = '<span class="st err">&#9888;</span><span class="pg err">' + escHtml(v.error || 'Failed') + '</span>'
+        }
+        return '<div class="cf-mat' + (v.status === 'error' ? ' err' : '') + '">' + st +
+            '<span class="nm">' + escHtml(v.name || 'video') + '</span>' +
+            '<button type="button" class="rm" onclick="' + removeCall + '">Remove</button></div>'
+    }
+
+    function renderLiveAssets() {
+        var mainBox = document.getElementById('mainVideoRow')
+        if (mainBox) {
+            var mHtml = ''
+            for (var i = 0; i < liveMains.length; i++) {
+                mHtml += videoRowHtml(liveMains[i], 'removeMainVideo(' + liveMains[i].id + ')')
+            }
+            mainBox.innerHTML = mHtml
+        }
+
+        var list = document.getElementById('giftVideoList')
+        if (!list) return
+        if (!liveGifts.length) {
+            list.innerHTML = '<div class="cf-hint" style="margin-top:0">No gift added yet — optional, but recommended for gift-triggered playback.</div>'
+            return
+        }
+        var html = ''
+        for (var gi = 0; gi < liveGifts.length; gi++) {
+            var g = liveGifts[gi]
+            var vHtml = ''
+            for (var vi = 0; vi < g.videos.length; vi++) {
+                vHtml += videoRowHtml(g.videos[vi], 'removeGiftVideo(' + g.id + ', ' + g.videos[vi].id + ')')
+            }
+            if (!vHtml) {
+                vHtml = '<div class="cf-hint" style="margin-top:0">No video yet — add at least one video for this gift.</div>'
+            }
+            html += '<div class="cf-giftv">' +
+                '<div class="cf-giftv-head">' +
+                '<select class="cf-input" onchange="giftSetGift(' + g.id + ', this.value)">' + giftSelectHtml(g.gift_id) + '</select>' +
+                '<button type="button" class="cf-ep-rm" onclick="removeGift(' + g.id + ')">Remove</button>' +
+                '</div>' +
+                '<div class="cf-materials" style="margin-top:0">' + vHtml + '</div>' +
+                '<button type="button" class="cf-addbtn" style="margin-top:10px" onclick="pickGiftVideo(' + g.id + ')">+ Add video(s) for this gift</button>' +
+                '</div>'
+        }
+        list.innerHTML = html
+    }
+
+    window.addGiftVideo = function() {
+        if (!giftOptions.length) {
+            showToast(giftLoadState === 1 ? 'Gift list is loading, please try again' : 'No gifts are configured yet', 'warn')
+            return
+        }
+        liveGifts.push({ id: ++liveGiftSeq, gift_id: '', videos: [] })
+        renderLiveAssets()
+    }
+
+    window.removeGift = function(id) {
+        for (var i = 0; i < liveGifts.length; i++) {
+            if (liveGifts[i].id === id) { liveGifts.splice(i, 1); break }
+        }
+        renderLiveAssets()
+    }
+
+    window.removeGiftVideo = function(giftRowId, videoId) {
+        var g = findLiveGift(giftRowId)
+        if (!g) return
+        for (var i = 0; i < g.videos.length; i++) {
+            if (g.videos[i].id === videoId) { g.videos.splice(i, 1); break }
+        }
+        renderLiveAssets()
+    }
+
+    window.removeMainVideo = function(id) {
+        for (var i = 0; i < liveMains.length; i++) {
+            if (liveMains[i].id === id) { liveMains.splice(i, 1); break }
+        }
+        renderLiveAssets()
+    }
+
+    window.giftSetGift = function(id, val) {
+        var g = findLiveGift(id)
+        if (g) g.gift_id = val
+    }
+
+    window.pickGiftVideo = function(id) {
+        liveGiftPick = id
+        var inp = document.getElementById('giftVideoInput')
+        if (!inp) return
+        inp.value = ''
+        inp.click()
+    }
+
+    window.onMainVideoPicked = function(input) {
+        var files = input.files
+        if (!files || !files.length) { input.value = ''; return }
+        // 先快照文件列表再清空 input：Chromium 里清空 value 会让这个实时 FileList 变空
+        var picked = []
+        for (var k = 0; k < files.length; k++) picked.push(files[k])
+        input.value = ''
+        for (var i = 0; i < picked.length; i++) {
+            var v = newLiveVideo(picked[i])
+            liveMains.push(v)
+            startLiveVideoUpload(v, picked[i])
+        }
+    }
+
+    window.onGiftVideoPicked = function(input) {
+        var files = input.files
+        var rowId = liveGiftPick
+        liveGiftPick = 0
+        if (!files || !files.length) { input.value = ''; return }
+        // 同上：先快照再清空
+        var picked = []
+        for (var k = 0; k < files.length; k++) picked.push(files[k])
+        input.value = ''
+        if (!rowId) return
+        var g = findLiveGift(rowId)
+        if (!g) return
+        for (var i = 0; i < picked.length; i++) {
+            var v = newLiveVideo(picked[i])
+            g.videos.push(v)
+            startLiveVideoUpload(v, picked[i])
+        }
+    }
+
+    // ===================================================================
     // Short drama episodes
     // ===================================================================
     function newEpisode() {
@@ -805,12 +1061,26 @@
         list.innerHTML = html
     }
 
-    // 剧集区仅在「Short drama」发布类型时显示
+    // 剧集区仅在「Short drama」显示；直播资源分类（主视频 / 礼物视频）仅在「Live streamer」显示
     function syncPublishUI() {
         var chip = document.querySelector('#publishRow .cf-chip.on')
-        var isDrama = !!chip && chip.getAttribute('data-v') === 'drama'
+        var type = chip ? chip.getAttribute('data-v') : ''
+        var isDrama = type === 'drama'
+        var isLive = type === 'live'
         var f = document.getElementById('episodesField')
         if (f) f.style.display = isDrama ? '' : 'none'
+        var liveBox = document.getElementById('liveAssetsField')
+        if (liveBox) liveBox.style.display = isLive ? '' : 'none'
+        var lbl = document.getElementById('otherAssetsLabel')
+        if (lbl) {
+            lbl.innerHTML = isLive
+                ? 'Other assets <span style="color:rgba(255,255,255,.35);font-weight:400">(optional)</span>'
+                : 'Character assets <span class="req">*</span>'
+        }
+        if (isLive) {
+            loadGiftOptions()
+            renderLiveAssets()
+        }
     }
     window.syncPublishUI = syncPublishUI
 
@@ -843,12 +1113,41 @@
         for (var mi = 0; mi < materials.length; mi++) {
             if (materials[mi].status === 'uploading') uploading = true
             else if (materials[mi].status === 'error') failedCount++
-            else if (materials[mi].status === 'done' && materials[mi].url) readyMaterials.push({ name: materials[mi].name, url: materials[mi].url })
+            else if (materials[mi].status === 'done' && materials[mi].url) readyMaterials.push({ type: 'other', name: materials[mi].name, url: materials[mi].url })
         }
         if (uploading) { showToast('Upload in progress, please wait', 'warn'); return }
         if (failedCount) { showToast('Some uploads failed — retry or remove them', 'warn'); return }
         if (!publishChip) { showToast('Please select a publish type', 'warn'); return }
         var publishType = publishChip.getAttribute('data-v')
+
+        // 直播角色：资源按用途分类 —— 主视频至少一个（可多个）；每个礼物可挂多个视频（送礼时播放）
+        if (publishType === 'live') {
+            if (!liveMains.length) { showToast('Please upload at least one main video', 'warn'); return }
+            for (var mi2 = 0; mi2 < liveMains.length; mi2++) {
+                var mv = liveMains[mi2]
+                if (mv.status === 'uploading') { showToast('Main video is still uploading, please wait', 'warn'); return }
+                if (mv.status !== 'done' || !mv.url) { showToast('Main video upload failed — please upload it again', 'warn'); return }
+                readyMaterials.push({ type: 'main_video', name: mv.name || 'Main video', url: mv.url })
+            }
+
+            for (var gi = 0; gi < liveGifts.length; gi++) {
+                var lg = liveGifts[gi]
+                if (!lg.gift_id) { showToast('Please choose a gift for gift #' + (gi + 1), 'warn'); return }
+                if (!lg.videos.length) { showToast('Please add at least one video for gift #' + (gi + 1), 'warn'); return }
+                for (var vi = 0; vi < lg.videos.length; vi++) {
+                    var gv = lg.videos[vi]
+                    if (gv.status === 'uploading') { showToast('Gift video is still uploading, please wait', 'warn'); return }
+                    if (gv.status !== 'done' || !gv.url) { showToast('Gift video upload failed — please upload it again', 'warn'); return }
+                    readyMaterials.push({
+                        type: 'gift_video',
+                        gift_id: parseInt(lg.gift_id, 10) || 0,
+                        gift_name: giftNameById(lg.gift_id),
+                        name: gv.name || 'Gift video',
+                        url: gv.url
+                    })
+                }
+            }
+        }
 
         // 短剧以剧集为准（资料可选）；其它类型仍需至少一份资料
         var epPayload = []

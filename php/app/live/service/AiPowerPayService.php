@@ -7,6 +7,7 @@ use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use RuntimeException;
 use think\facade\Log;
 
 /**
@@ -137,8 +138,14 @@ final class AiPowerPayService
             }
         }
         if ($payUrl === '') {
-            Log::error('[aipowerpay] 建单成功但未找到收银台地址 order=' . $orderNo . ' resp=' . mb_substr(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '', 0, 800));
-            throw new BusinessException(ResultCode::SERVER_ERROR, 'Payment is temporarily unavailable, please try again later.');
+            $snippet = mb_substr(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '', 0, 800);
+            Log::error('[aipowerpay] 建单成功但未找到收银台地址 order=' . $orderNo . ' resp=' . $snippet);
+            throw new BusinessException(
+                ResultCode::SERVER_ERROR,
+                'Payment is temporarily unavailable, please try again later.',
+                200,
+                new RuntimeException('建单响应无收银台地址：' . $snippet)
+            );
         }
 
         return [
@@ -265,18 +272,35 @@ final class AiPowerPayService
             $decoded = json_decode($rawBody, true);
         } catch (GuzzleException $e) {
             Log::error('[aipowerpay] request failed path=' . $path . ' err=' . $e->getMessage() . ' base=' . $base);
-            throw new BusinessException(ResultCode::SERVER_ERROR, 'Payment is temporarily unavailable, please try again later.');
+            throw new BusinessException(
+                ResultCode::SERVER_ERROR,
+                'Payment is temporarily unavailable, please try again later.',
+                200,
+                new RuntimeException('请求失败：' . $e->getMessage())
+            );
         }
 
         if ($status < 200 || $status >= 300 || !is_array($decoded)) {
-            Log::error('[aipowerpay] http ' . $status . ' path=' . $path . ' body=' . mb_substr($rawBody, 0, 800));
-            throw new BusinessException(ResultCode::SERVER_ERROR, 'Payment is temporarily unavailable, please try again later.');
+            $snippet = mb_substr($rawBody, 0, 300);
+            Log::error('[aipowerpay] http ' . $status . ' path=' . $path . ' body=' . $snippet);
+            throw new BusinessException(
+                ResultCode::SERVER_ERROR,
+                'Payment is temporarily unavailable, please try again later.',
+                200,
+                new RuntimeException('HTTP=' . $status . ' body=' . $snippet)
+            );
         }
 
         $code = $decoded['code'] ?? null;
         if ((int) $code !== 0) {
-            Log::error('[aipowerpay] code=' . (string) $code . ' msg=' . (string) ($decoded['msg'] ?? '') . ' path=' . $path);
-            throw new BusinessException(ResultCode::SERVER_ERROR, 'Payment is temporarily unavailable, please try again later.');
+            $msg = (string) ($decoded['msg'] ?? '');
+            Log::error('[aipowerpay] code=' . (string) $code . ' msg=' . $msg . ' path=' . $path);
+            throw new BusinessException(
+                ResultCode::SERVER_ERROR,
+                'Payment is temporarily unavailable, please try again later.',
+                200,
+                new RuntimeException('网关返回 code=' . (string) $code . ' msg=' . $msg)
+            );
         }
 
         $data = $decoded['data'] ?? [];
