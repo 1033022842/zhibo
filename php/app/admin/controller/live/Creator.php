@@ -767,12 +767,33 @@ final class Creator extends Backend
             $incomeCell = '<td class="td-income">' . $workInc
                 . '<div class="inc-owner">作者累计 ' . self::fmtNum($uTotal) . '</div></td>';
 
+            // 直播作品：列表直接给出资源分类概况，审核时一眼看出主视频/礼物视频是否齐全
+            $assetSub = '';
+            if ((string)($row['publish_type'] ?? '') === 'live') {
+                $mats      = json_decode((string)($row['materials'] ?? ''), true);
+                $mats      = is_array($mats) ? $mats : [];
+                $mainCnt   = 0;
+                $giftCnt   = 0;
+                $giftNames = [];
+                foreach ($mats as $mat) {
+                    $mt = (string)($mat['type'] ?? '');
+                    if ($mt === 'main_video') {
+                        $mainCnt++;
+                    } elseif ($mt === 'gift_video') {
+                        $giftCnt++;
+                        $giftNames[(string)($mat['gift_name'] ?? $mat['gift_id'] ?? '')] = true;
+                    }
+                }
+                $assetSub = '<div class="proj-sub">主视频 ' . $mainCnt . ' · 礼物视频 ' . $giftCnt
+                    . ($giftNames ? '（' . count($giftNames) . ' 个礼物）' : '') . '</div>';
+            }
+
             $rows .= <<<ROW
             <tr>
                 <td>
                     <div class="proj-cell">
                         {$cover}
-                        <div class="proj-info"><div class="proj-title">{$pname}</div></div>
+                        <div class="proj-info"><div class="proj-title">{$pname}</div>{$assetSub}</div>
                     </div>
                 </td>
                 <td>
@@ -850,6 +871,7 @@ final class Creator extends Backend
                 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
                 .thumb-empty{background:linear-gradient(135deg,#eef0ff,#f4ecfe)}
                 .proj-title{font-weight:600;color:#1a1f36;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+                .proj-sub{margin-top:3px;font-size:11px;color:#9aa0b0;white-space:nowrap}
                 .owner-name{font-weight:500;color:#3a4051}
                 .owner-no{font-size:12px;color:#9aa0b0;margin-top:2px}
                 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600}
@@ -890,7 +912,7 @@ final class Creator extends Backend
                 .page-bar .active span{background:#6366f1;color:#fff;border-color:#6366f1}
                 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,22,40,.5);backdrop-filter:blur(3px);z-index:999;align-items:center;justify-content:center;padding:20px}
                 .modal-overlay.active{display:flex}
-                .modal{background:#fff;border-radius:16px;width:720px;max-width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(20,22,40,.25)}
+                .modal{background:#fff;border-radius:16px;width:880px;max-width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(20,22,40,.25)}
                 .modal-head{position:sticky;top:0;background:#fff;padding:20px 24px;border-bottom:1px solid #eef0f6;display:flex;align-items:center;justify-content:space-between;z-index:2}
                 .modal-head h3{font-size:17px;font-weight:700;color:#1a1f36}
                 .modal-close{width:32px;height:32px;border:none;border-radius:8px;background:#f2f3f8;color:#5a6172;cursor:pointer}
@@ -911,6 +933,13 @@ final class Creator extends Backend
                 .mat-item{display:flex;flex-direction:column;gap:6px;width:150px;border:1px solid #eef0f6;border-radius:10px;padding:8px;text-decoration:none;color:#3a4051;font-size:12px}
                 .mat-item img{width:100%;height:82px;object-fit:cover;border-radius:6px;background:#f2f3f8}
                 .mat-item .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+                .mat-file{height:82px;display:flex;align-items:center;justify-content:center;background:#f2f3f8;border-radius:6px;color:#9aa0b0}
+                .mat-videos .mat-item{width:236px}
+                .mat-item video{width:100%;height:132px;object-fit:contain;border-radius:6px;background:#0b0c10;display:block}
+                .gift-group{border:1px solid #eef0f6;background:#fafbfe;border-radius:12px;padding:12px;margin-bottom:10px}
+                .gift-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+                .gift-name{font-size:13px;font-weight:700;color:#1a1f36}
+                .gift-sub{font-size:11px;color:#8a90a3}
                 .ep-list{display:flex;flex-direction:column;gap:8px}
                 .ep-item{display:flex;gap:12px;align-items:center;border:1px solid #eef0f6;border-radius:10px;padding:8px 10px;background:#fff}
                 .ep-item img{width:96px;height:54px;object-fit:cover;border-radius:6px;background:#f2f3f8;flex-shrink:0}
@@ -981,6 +1010,20 @@ final class Creator extends Backend
             function lbl(map,v){return v ? (map[v]||v) : '';}
             function kv(k,v){return '<div class="kv-item"><span class="k">'+k+'：</span>'+v+'</div>';}
             function fmt(n){n=Number(n)||0;var s=(Math.round(n*100)/100).toString();var a=s.split('.');a[0]=a[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return a.join('.');}
+            function isVideoUrl(u){return /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(String(u||''));}
+            function isImageUrl(u){return /\.(png|jpe?g|gif|webp|avif|bmp|svg)(\?|#|$)/i.test(String(u||''));}
+            function mediaCard(m){
+                m = m || {};
+                var url = esc(m.url || '');
+                var nm  = esc(m.name || m.url || '');
+                if (isVideoUrl(m.url)) {
+                    return '<div class="mat-item"><video src="'+url+'" controls preload="metadata" playsinline></video><span class="nm" title="'+nm+'">'+nm+'</span></div>';
+                }
+                if (isImageUrl(m.url)) {
+                    return '<a class="mat-item" href="'+url+'" target="_blank"><img src="'+url+'" onerror="this.style.visibility=\'hidden\'"><span class="nm" title="'+nm+'">'+nm+'</span></a>';
+                }
+                return '<a class="mat-item" href="'+url+'" target="_blank" download><div class="mat-file">附件</div><span class="nm" title="'+nm+'">'+nm+'</span></a>';
+            }
 
             function showDetail(id){
                 document.getElementById('detailModal').classList.add('active');
@@ -1008,15 +1051,59 @@ final class Creator extends Backend
                     if (p.reference_url) info += kv('参考链接', '<a href="'+esc(p.reference_url)+'" target="_blank" style="color:#6366f1">'+esc(p.reference_url)+'</a>');
                     if (p.reject_reason) info += kv('驳回原因', '<span style="color:#e11d48">'+esc(p.reject_reason)+'</span>');
 
+                    // 资料：直播作品按用途分组（主视频 / 礼物视频 / 其它），视频直接内嵌播放
                     var matHtml = '';
-                    if (mats.length) {
-                        for (var i=0;i<mats.length;i++){
-                            var m = mats[i] || {};
-                            var isImg = /\.(png|jpe?g|gif|webp)$/i.test(m.url||'');
-                            matHtml += '<a class="mat-item" href="'+esc(m.url)+'" target="_blank" download>' +
-                                (isImg ? '<img src="'+esc(m.url)+'" onerror="this.style.visibility=\'hidden\'">' : '<div style="height:82px;display:flex;align-items:center;justify-content:center;background:#f2f3f8;border-radius:6px">附件</div>') +
-                                '<span class="nm">'+esc(m.name || m.url || '')+'</span></a>';
+                    var isLiveWork  = (p.publish_type === 'live');
+                    var mainVideos  = [];
+                    var giftGroups  = [];
+                    var giftIndex   = {};
+                    var otherMats   = [];
+                    for (var i = 0; i < mats.length; i++) {
+                        var m = mats[i] || {};
+                        var t = m.type || '';
+                        if (isLiveWork && t === 'main_video') {
+                            mainVideos.push(m);
+                        } else if (isLiveWork && t === 'gift_video') {
+                            var gk = String(m.gift_id || 0) + '|' + String(m.gift_name || '');
+                            if (!giftIndex[gk]) {
+                                giftIndex[gk] = { name: m.gift_name || ('礼物#' + (m.gift_id || '?')), list: [] };
+                                giftGroups.push(giftIndex[gk]);
+                            }
+                            giftIndex[gk].list.push(m);
+                        } else {
+                            otherMats.push(m);
                         }
+                    }
+
+                    if (isLiveWork && (mainVideos.length || giftGroups.length)) {
+                        if (mainVideos.length) {
+                            matHtml += '<div class="sec-title">主视频（' + mainVideos.length + '）</div>' +
+                                '<div class="mat-list mat-videos">' + mainVideos.map(mediaCard).join('') + '</div>';
+                        }
+                        if (giftGroups.length) {
+                            var giftTotal = 0;
+                            for (var g = 0; g < giftGroups.length; g++) giftTotal += giftGroups[g].list.length;
+                            matHtml += '<div class="sec-title">礼物视频（' + giftTotal + ' 个 · ' + giftGroups.length + ' 个礼物）</div>';
+                            for (var g2 = 0; g2 < giftGroups.length; g2++) {
+                                var gg = giftGroups[g2];
+                                matHtml += '<div class="gift-group"><div class="gift-head">' +
+                                    '<span class="gift-name">' + esc(gg.name) + '</span>' +
+                                    '<span class="gift-sub">送礼时播放 · ' + gg.list.length + ' 个视频</span></div>' +
+                                    '<div class="mat-list mat-videos">' + gg.list.map(mediaCard).join('') + '</div></div>';
+                            }
+                        }
+                        if (otherMats.length) {
+                            matHtml += '<div class="sec-title">其它资料（' + otherMats.length + '）</div>' +
+                                '<div class="mat-list">' + otherMats.map(mediaCard).join('') + '</div>';
+                        }
+                    } else if (mats.length) {
+                        var vids = [], rest = [];
+                        for (var j = 0; j < mats.length; j++) {
+                            if (isVideoUrl((mats[j] || {}).url)) vids.push(mats[j]);
+                            else rest.push(mats[j]);
+                        }
+                        if (vids.length) matHtml += '<div class="mat-list mat-videos">' + vids.map(mediaCard).join('') + '</div>';
+                        if (rest.length) matHtml += '<div class="mat-list" style="margin-top:' + (vids.length ? '10px' : '0') + '">' + rest.map(mediaCard).join('') + '</div>';
                     } else {
                         matHtml = '<div class="empty-tip">无资料</div>';
                     }
@@ -1123,7 +1210,7 @@ final class Creator extends Backend
                             (info ? '<div class="kv-list">'+info+'</div>' : '') +
                             (p.highlights ? '<div class="sec-title">项目亮点</div><div class="detail-desc">'+esc(p.highlights)+'</div>' : '') +
                             '<div class="sec-title">角色描述</div><div class="detail-desc">'+(p.description?esc(p.description):'暂无描述')+'</div>' +
-                            '<div class="sec-title">角色资料（'+mats.length+'）</div><div class="mat-list">'+matHtml+'</div>' +
+                            '<div class="sec-title">角色资料（'+mats.length+'）</div>' + matHtml +
                             epHtml +
                             '<div class="modal-footer">'+footer+'</div>' +
                         '</div>';

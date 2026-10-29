@@ -150,6 +150,31 @@
     return imgs[0] || null
   }
 
+  /** 本地缓存的登录邮箱：存档页里写死的是客服邮箱，先换成真实值，即使接口失败也不会显示错 */
+  function cachedEmail() {
+    var keys = ['live_user_info', 'live_user']
+    for (var i = 0; i < keys.length; i++) {
+      var u = readJson(keys[i])
+      if (u && typeof u === 'object' && u.email) return String(u.email)
+    }
+    return ''
+  }
+
+  function seedEmail() {
+    var email = cachedEmail()
+    var input = document.getElementById('user_email')
+    if (email) {
+      setValue('Email', email)
+      if (input) input.value = email
+      return
+    }
+    // 未登录：不显示存档页里的客服邮箱，留占位符
+    if (!token()) {
+      setValue('Email', '—')
+      if (input) input.value = ''
+    }
+  }
+
   function fillProfile(d) {
     d = d || {}
     if (d.nickname) setValue('Nickname', d.nickname)
@@ -193,7 +218,7 @@
       .then(function (r) { return r.json() })
       .then(function (res) {
         if (!res || res.code !== '00000' || !res.data) return
-        fillProfile({ nickname: res.data.username, email: res.data.email, avatar: res.data.avatar })
+        fillProfile({ nickname: res.data.username, email: res.data.email || cachedEmail(), avatar: res.data.avatar })
       })
       .catch(function () { /* 同上 */ })
   }
@@ -1023,6 +1048,7 @@
     bindPersonaSave()
     bindPersonaOpen()
     bindCancelSubscription()
+    seedEmail()
     loadUser()
     loadChatSettings()
     loadVipLevel()

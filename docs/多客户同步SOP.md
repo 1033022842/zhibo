@@ -219,6 +219,8 @@ client_overrides/
 | 通话在 App 内置浏览器里完全没声音 | 微信/Instagram/Facebook 内置浏览器、iOS Chrome（WKWebView）没有 Web Speech API（`speechSynthesis`） | 前端已自动改走服务端 TTS `/api/live/tts`（xAI `/v1/tts` 代理，需登录、600 字符上限、1 小时缓存）；php 侧需部署 `app/common/service/TtsService.php` 与 `app/api/controller/Live.php`。该接口只影响无 TTS 的浏览器，正常 Safari/Chrome 仍走本地合成，不产生额外费用 |
 | 通话里说话没反应（能听到 AI） | 同类 WebView 也缺 `SpeechRecognition`；有些 WebView 暴露了 API 但没有可用引擎 | 前端已自动改走 WebAudio 录音（PCM→16k WAV，静音 0.9s 自动结束，最长 12s）+ `/api/live/stt`（xAI `/v1/stt`，需登录）；php 需部署 `app/common/service/SttService.php`；麦克风被拒时会提示改文字输入 |
 
+| 所有上传接口 500（nginx error.log 里有 `File upload error - unable to create a temporary file`） | `/tmp` 权限被改成 `755 root:root`，php-fpm 的 `www-data` 无法在其中创建上传临时文件。上传默认落 `/tmp`，而 session 在 `/var/lib/php/sessions`，所以站点其他功能看起来正常，只有上传全挂 | `chmod 1777 /tmp`；自测 `su -s /bin/sh www-data -c 'touch /tmp/x'` 应成功。四台服务器都查一遍（2026-10-29 sugus 只此一台异常） |
+
 ## 六、新客户一次性初始化（kelymi 已于 2026-10-18 照此完成，可作范本）
 
 ### A. 客户仓库（gitee 私有仓库）

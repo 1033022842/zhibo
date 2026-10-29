@@ -230,7 +230,7 @@ class Config extends Backend
             $mail->SMTPSecure = $data['smtp_verification'] == 'SSL' ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port       = $data['smtp_port'];
 
-            $mail->setFrom($data['smtp_sender_mail'], $data['smtp_user']);
+            $mail->setFrom($data['smtp_sender_mail'], trim((string)($data['smtp_sender_name'] ?? '')) ?: $data['smtp_user']);
 
             $mail->isSMTP();
             $mail->addAddress($data['testMail']);

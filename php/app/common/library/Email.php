@@ -46,6 +46,8 @@ class Email extends PHPMailer
         $this->CharSet = $this->options['charset'];
 
         $sysMailConfig    = get_sys_config('', 'mail');
+        $senderName       = trim((string)($sysMailConfig['smtp_sender_name'] ?? ''));
+        unset($sysMailConfig['smtp_sender_name']); // 发件人名称是可选配置，不参与必填校验
         $this->configured = true;
         foreach ($sysMailConfig as $item) {
             if (!$item) {
@@ -60,7 +62,7 @@ class Email extends PHPMailer
             $this->SMTPSecure = $sysMailConfig['smtp_verification'] == 'SSL' ? self::ENCRYPTION_SMTPS : self::ENCRYPTION_STARTTLS;
             $this->Port       = $sysMailConfig['smtp_port'];
 
-            $this->setFrom($sysMailConfig['smtp_sender_mail'], $sysMailConfig['smtp_user']);
+            $this->setFrom($sysMailConfig['smtp_sender_mail'], $senderName ?: $sysMailConfig['smtp_user']);
         }
     }
 

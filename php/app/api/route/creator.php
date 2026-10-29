@@ -14,3 +14,6 @@ Route::group('v1/creator', function () {
 
 // 收入排行榜（公开）
 Route::get('v1/creator/leaderboard', '\app\api\controller\Creator@leaderboard');
+
+// 礼物列表（公开）：直播角色发布时的「礼物视频」需绑定具体礼物
+Route::get('v1/creator/gifts', '\app\api\controller\Creator@gifts');
