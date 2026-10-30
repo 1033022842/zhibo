@@ -342,7 +342,8 @@ final class Creator extends BaseController
     /**
      * 资料参数归一化：[{name,url,type,gift_id,gift_name}]
      * type 仅对直播角色生效：main_video=主视频（可多个）
-     *   gift_image=礼物人设图（每个礼物 1 张）/ gift_video=礼物中间视频（可多个）/ gift_end_video=礼物收尾视频（每个礼物 1 个）
+     *   gift_image=礼物人设图（每个礼物 1 张）/ gift_start_video=礼物起始视频（每个礼物 1 个）
+     *   gift_video=礼物中间视频（可多个，内容不限）/ gift_end_video=礼物收尾视频（每个礼物 1 个）
      *   other=其它资料
      * 返回 ['items' => array, 'error' => string]
      */
@@ -359,8 +360,8 @@ final class Creator extends BaseController
         }
 
         $isLive       = $publishType === 'live';
-        $allowedType  = ['main_video', 'gift_video', 'gift_image', 'gift_end_video', 'other'];
-        $giftTypes    = ['gift_video', 'gift_image', 'gift_end_video'];
+        $allowedType  = ['main_video', 'gift_video', 'gift_image', 'gift_start_video', 'gift_end_video', 'other'];
+        $giftTypes    = ['gift_video', 'gift_image', 'gift_start_video', 'gift_end_video'];
         $items        = [];
         $giftIds      = [];
 
