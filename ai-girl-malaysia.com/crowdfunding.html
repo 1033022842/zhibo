@@ -100,6 +100,30 @@
         .cf-giftv{background:#1d1d1d;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px}
         .cf-giftv-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
         .cf-giftv-head .cf-input{flex:1;min-width:0;padding:10px 12px}
+        /* Gift slots: persona image + ending video (9:16) */
+        .cf-gift-slots{display:flex;gap:12px;flex-wrap:wrap}
+        .cf-slot-wrap{flex:0 0 132px;max-width:132px}
+        .cf-slot-label{font-size:11px;color:rgba(255,255,255,.6);margin-bottom:6px}
+        .cf-slot{position:relative;aspect-ratio:9/16;border:2px dashed rgba(255,255,255,.18);border-radius:12px;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#171717;transition:border-color .2s}
+        .cf-slot:hover{border-color:#E75275}
+        .cf-slot img,.cf-slot video{width:100%;height:100%;object-fit:cover;display:block}
+        .cf-slot-ph{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:rgba(255,255,255,.45);text-align:center;padding:6px;line-height:1.5}
+        .cf-slot-ph em{font-style:normal;font-size:10px;color:rgba(255,255,255,.3)}
+        .cf-slot-err{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:#ef4444;text-align:center;padding:6px;line-height:1.5}
+        .cf-slot-err em{font-style:normal;color:rgba(255,255,255,.35)}
+        .cf-slot-rm{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(0,0,0,.65);color:#fff;font-size:11px;line-height:1;cursor:pointer}
+        .cf-gift-sub-label{font-size:11px;color:rgba(255,255,255,.6);margin:12px 0 6px}
+        .cf-gift-note{color:rgba(255,255,255,.3)}
+        /* Gift example demo */
+        .cf-gift-ex{background:rgba(231,82,117,.06);border:1px solid rgba(231,82,117,.25);border-radius:14px;padding:12px;margin-bottom:14px}
+        .cf-gift-ex-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+        .cf-gift-ex-ttl{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#F97187}
+        .cf-gift-ex-sub{font-size:11px;color:rgba(255,255,255,.45)}
+        .cf-gift-ex-row{display:flex;gap:10px;flex-wrap:wrap}
+        .cf-gift-ex-item{flex:1 1 120px;max-width:190px;min-width:110px}
+        .cf-gift-ex-media{position:relative;aspect-ratio:9/16;border-radius:10px;overflow:hidden;background:#111}
+        .cf-gift-ex-media img,.cf-gift-ex-media video{width:100%;height:100%;object-fit:cover;display:block}
+        .cf-gift-ex-cap{font-size:11px;color:rgba(255,255,255,.55);margin-top:6px;text-align:center}
 
         /* ===== Upload loading states ===== */
         .cf-spin-s{flex-shrink:0;width:16px;height:16px;border:2px solid rgba(255,255,255,.18);border-top-color:#E75275;border-radius:50%;animation:cfr .8s linear infinite}
@@ -280,12 +304,14 @@
     var currentTab = 'independent'
     // Uploaded assets: { name, url, type, gift_id, gift_name }
     var materials = []
-    // Live assets: main videos + gift videos grouped by gift（礼物被送出时播放对应视频）
+    // Live assets: main videos + gift assets grouped by gift（人设图 / 中间视频（可多个）/ 收尾视频）
     var liveMains = []   // [{ id, name, url, status, progress, error }]
-    var liveGifts = []   // [{ id, gift_id, videos: [{ id, name, url, status, progress, error }] }]
+    var liveGifts = []   // [{ id, gift_id, persona, middles: [], end }]
     var liveGiftSeq = 0
     var liveVideoSeq = 0
-    var liveGiftPick = 0 // 当前正在为哪个礼物卡片选视频
+    var liveGiftPick = 0 // 当前正在为哪个礼物选中间视频
+    var liveImagePick = 0 // 当前正在为哪个礼物选人设图
+    var liveEndPick = 0   // 当前正在为哪个礼物选收尾视频
     var giftOptions = []
     var giftLoadState = 0 // 0=未加载 1=加载中 2=已完成
     // Short drama episodes (mirrors admin lp_short_episode)
@@ -423,10 +449,20 @@
             '<div class="cf-hint">At least one main video is required; these play while the character is live</div></div>' +
 
             '<div class="cf-field"><label class="cf-label">Gift videos</label>' +
+            '<div class="cf-gift-ex">' +
+            '<div class="cf-gift-ex-head"><span class="cf-gift-ex-ttl">Example</span>' +
+            '<span class="cf-gift-ex-sub">Each gift needs a persona image, one or more middle videos and an ending video</span></div>' +
+            '<div class="cf-gift-ex-row">' +
+            '<div class="cf-gift-ex-item"><div class="cf-gift-ex-media"><img src="./media/gift-example/persona.jpg" alt="Persona image example" loading="lazy" /></div><div class="cf-gift-ex-cap">Persona image</div></div>' +
+            '<div class="cf-gift-ex-item"><div class="cf-gift-ex-media"><video src="./media/gift-example/middle.mp4" poster="./media/gift-example/persona.jpg" controls playsinline preload="metadata"></video></div><div class="cf-gift-ex-cap">Middle video &middot; multiple</div></div>' +
+            '<div class="cf-gift-ex-item"><div class="cf-gift-ex-media"><video src="./media/gift-example/ending.mp4" poster="./media/gift-example/persona.jpg" controls playsinline preload="metadata"></video></div><div class="cf-gift-ex-cap">Ending video</div></div>' +
+            '</div></div>' +
             '<div class="cf-livegifts" id="giftVideoList"></div>' +
             '<button type="button" class="cf-addbtn" style="margin-top:10px" onclick="addGiftVideo()">+ Add gift</button>' +
             '<input type="file" id="giftVideoInput" accept="video/*" multiple style="display:none" onchange="onGiftVideoPicked(this)" />' +
-            '<div class="cf-hint">Choose a gift, then add one or more videos to it — each plays when that gift is sent</div></div>' +
+            '<input type="file" id="giftImageInput" accept="image/*" style="display:none" onchange="onGiftImagePicked(this)" />' +
+            '<input type="file" id="giftEndInput" accept="video/*" style="display:none" onchange="onGiftEndPicked(this)" />' +
+            '<div class="cf-hint">Choose a gift, then add its persona image, middle video(s) and ending video — they play when that gift is sent</div></div>' +
             '</div>' +
 
             '<div id="otherAssetsField">' +
@@ -591,17 +627,20 @@
             var mName = m.name || ('asset-' + (i + 1))
             if (m.type === 'main_video') {
                 liveMains.push({ id: ++liveVideoSeq, name: mName, url: mUrl, status: 'done', progress: 100, error: '' })
-            } else if (m.type === 'gift_video') {
+            } else if (m.type === 'gift_image' || m.type === 'gift_video' || m.type === 'gift_end_video') {
                 var gid = (m.gift_id != null && m.gift_id !== '') ? String(m.gift_id) : ''
                 var row = null
                 for (var gi = 0; gi < liveGifts.length; gi++) {
                     if (liveGifts[gi].gift_id === gid) { row = liveGifts[gi]; break }
                 }
                 if (!row) {
-                    row = { id: ++liveGiftSeq, gift_id: gid, videos: [] }
+                    row = { id: ++liveGiftSeq, gift_id: gid, persona: null, middles: [], end: null }
                     liveGifts.push(row)
                 }
-                row.videos.push({ id: ++liveVideoSeq, name: mName, url: mUrl, status: 'done', progress: 100, error: '' })
+                var asset = { id: ++liveVideoSeq, name: mName, url: mUrl, status: 'done', progress: 100, error: '' }
+                if (m.type === 'gift_image') row.persona = asset
+                else if (m.type === 'gift_end_video') row.end = asset
+                else row.middles.push(asset)
             } else {
                 materials.push({
                     id: ++materialSeq,
@@ -787,7 +826,7 @@
         return ''
     }
 
-    function newLiveVideo(file) {
+    function newLiveAsset(file) {
         return {
             id: ++liveVideoSeq,
             name: file ? file.name : '',
@@ -798,22 +837,22 @@
         }
     }
 
-    function startLiveVideoUpload(v, file) {
+    function startLiveAssetUpload(asset, file) {
         renderLiveAssets()
         uploadFileXhr(file, function(p){
-            v.progress = p
+            asset.progress = p
             renderLiveAssets()
         }, function(url){
-            v.url = url
-            v.status = 'done'
-            v.progress = 100
+            asset.url = url
+            asset.status = 'done'
+            asset.progress = 100
             renderLiveAssets()
-            showToast('Uploaded: ' + v.name, 'success')
+            showToast('Uploaded: ' + asset.name, 'success')
         }, function(msg){
-            v.status = 'error'
-            v.error = msg
+            asset.status = 'error'
+            asset.error = msg
             renderLiveAssets()
-            showToast('Upload failed: ' + v.name + ' (' + msg + ')', 'error')
+            showToast('Upload failed: ' + asset.name + ' (' + msg + ')', 'error')
         })
     }
 
@@ -829,6 +868,32 @@
         return '<div class="cf-mat' + (v.status === 'error' ? ' err' : '') + '">' + st +
             '<span class="nm">' + escHtml(v.name || 'video') + '</span>' +
             '<button type="button" class="rm" onclick="' + removeCall + '">Remove</button></div>'
+    }
+
+    // 单人设图 / 收尾视频占位格（9:16），点击上传；asset 为空即未上传
+    function giftSlotHtml(g, slot) {
+        var asset = slot === 'persona' ? g.persona : g.end
+        var label = slot === 'persona' ? 'Persona image' : 'Ending video'
+        var icon  = slot === 'persona' ? '&#128247;' : '&#127909;'
+        var inner
+        if (!asset) {
+            inner = '<div class="cf-slot-ph">' + icon + ' ' + label + '<em>Click to upload</em></div>'
+        } else if (asset.status === 'uploading') {
+            inner = '<div class="cf-upload-load"><div class="cf-spin-s"></div><div class="cf-pct">Uploading ' + (asset.progress || 0) + '%</div></div>'
+        } else if (asset.status === 'error') {
+            inner = '<div class="cf-slot-err">&#9888; ' + escHtml(asset.error || 'Failed') + '<em>Click to retry</em></div>'
+        } else if (slot === 'persona') {
+            inner = '<img src="' + escHtml(asset.url) + '" alt="' + escHtml(label) + '" />'
+        } else {
+            inner = '<video src="' + escHtml(asset.url) + '" muted playsinline preload="metadata"></video>'
+        }
+        var rm = asset
+            ? '<button type="button" class="cf-slot-rm" title="Remove" onclick="event.stopPropagation();clearGiftAsset(' + g.id + ', \'' + slot + '\')">&#10005;</button>'
+            : ''
+        return '<div class="cf-slot-wrap">' +
+            '<div class="cf-slot-label">' + label + ' <span class="req">*</span></div>' +
+            '<div class="cf-slot" onclick="pickGiftSlot(' + g.id + ', \'' + slot + '\')">' + inner + rm + '</div>' +
+            '</div>'
     }
 
     function renderLiveAssets() {
@@ -851,19 +916,21 @@
         for (var gi = 0; gi < liveGifts.length; gi++) {
             var g = liveGifts[gi]
             var vHtml = ''
-            for (var vi = 0; vi < g.videos.length; vi++) {
-                vHtml += videoRowHtml(g.videos[vi], 'removeGiftVideo(' + g.id + ', ' + g.videos[vi].id + ')')
+            for (var vi = 0; vi < g.middles.length; vi++) {
+                vHtml += videoRowHtml(g.middles[vi], 'removeGiftVideo(' + g.id + ', ' + g.middles[vi].id + ')')
             }
             if (!vHtml) {
-                vHtml = '<div class="cf-hint" style="margin-top:0">No video yet — add at least one video for this gift.</div>'
+                vHtml = '<div class="cf-hint" style="margin-top:0">No middle video yet — add at least one.</div>'
             }
             html += '<div class="cf-giftv">' +
                 '<div class="cf-giftv-head">' +
                 '<select class="cf-input" onchange="giftSetGift(' + g.id + ', this.value)">' + giftSelectHtml(g.gift_id) + '</select>' +
                 '<button type="button" class="cf-ep-rm" onclick="removeGift(' + g.id + ')">Remove</button>' +
                 '</div>' +
+                '<div class="cf-gift-slots">' + giftSlotHtml(g, 'persona') + giftSlotHtml(g, 'end') + '</div>' +
+                '<div class="cf-gift-sub-label">Middle videos <span class="req">*</span> <span class="cf-gift-note">multiple allowed</span></div>' +
                 '<div class="cf-materials" style="margin-top:0">' + vHtml + '</div>' +
-                '<button type="button" class="cf-addbtn" style="margin-top:10px" onclick="pickGiftVideo(' + g.id + ')">+ Add video(s) for this gift</button>' +
+                '<button type="button" class="cf-addbtn" style="margin-top:10px" onclick="pickGiftVideo(' + g.id + ')">+ Add middle video(s)</button>' +
                 '</div>'
         }
         list.innerHTML = html
@@ -874,7 +941,7 @@
             showToast(giftLoadState === 1 ? 'Gift list is loading, please try again' : 'No gifts are configured yet', 'warn')
             return
         }
-        liveGifts.push({ id: ++liveGiftSeq, gift_id: '', videos: [] })
+        liveGifts.push({ id: ++liveGiftSeq, gift_id: '', persona: null, middles: [], end: null })
         renderLiveAssets()
     }
 
@@ -888,9 +955,17 @@
     window.removeGiftVideo = function(giftRowId, videoId) {
         var g = findLiveGift(giftRowId)
         if (!g) return
-        for (var i = 0; i < g.videos.length; i++) {
-            if (g.videos[i].id === videoId) { g.videos.splice(i, 1); break }
+        for (var i = 0; i < g.middles.length; i++) {
+            if (g.middles[i].id === videoId) { g.middles.splice(i, 1); break }
         }
+        renderLiveAssets()
+    }
+
+    window.clearGiftAsset = function(giftRowId, slot) {
+        var g = findLiveGift(giftRowId)
+        if (!g) return
+        if (slot === 'persona') g.persona = null
+        else g.end = null
         renderLiveAssets()
     }
 
@@ -914,6 +989,40 @@
         inp.click()
     }
 
+    // 人设图 / 收尾视频：每个礼物各一份
+    window.pickGiftSlot = function(id, slot) {
+        var inp = document.getElementById(slot === 'persona' ? 'giftImageInput' : 'giftEndInput')
+        if (!inp) return
+        if (slot === 'persona') liveImagePick = id
+        else liveEndPick = id
+        inp.value = ''
+        inp.click()
+    }
+
+    window.onGiftImagePicked = function(input) {
+        var f = input.files && input.files[0]
+        var rowId = liveImagePick
+        liveImagePick = 0
+        input.value = ''
+        if (!f || !rowId) return
+        var g = findLiveGift(rowId)
+        if (!g) return
+        g.persona = newLiveAsset(f)
+        startLiveAssetUpload(g.persona, f)
+    }
+
+    window.onGiftEndPicked = function(input) {
+        var f = input.files && input.files[0]
+        var rowId = liveEndPick
+        liveEndPick = 0
+        input.value = ''
+        if (!f || !rowId) return
+        var g = findLiveGift(rowId)
+        if (!g) return
+        g.end = newLiveAsset(f)
+        startLiveAssetUpload(g.end, f)
+    }
+
     window.onMainVideoPicked = function(input) {
         var files = input.files
         if (!files || !files.length) { input.value = ''; return }
@@ -922,9 +1031,9 @@
         for (var k = 0; k < files.length; k++) picked.push(files[k])
         input.value = ''
         for (var i = 0; i < picked.length; i++) {
-            var v = newLiveVideo(picked[i])
+            var v = newLiveAsset(picked[i])
             liveMains.push(v)
-            startLiveVideoUpload(v, picked[i])
+            startLiveAssetUpload(v, picked[i])
         }
     }
 
@@ -941,9 +1050,9 @@
         var g = findLiveGift(rowId)
         if (!g) return
         for (var i = 0; i < picked.length; i++) {
-            var v = newLiveVideo(picked[i])
-            g.videos.push(v)
-            startLiveVideoUpload(v, picked[i])
+            var v = newLiveAsset(picked[i])
+            g.middles.push(v)
+            startLiveAssetUpload(v, picked[i])
         }
     }
 
@@ -1120,7 +1229,8 @@
         if (!publishChip) { showToast('Please select a publish type', 'warn'); return }
         var publishType = publishChip.getAttribute('data-v')
 
-        // 直播角色：资源按用途分类 —— 主视频至少一个（可多个）；每个礼物可挂多个视频（送礼时播放）
+        // 直播角色：资源按用途分类 —— 主视频至少一个（可多个）；
+        // 每个礼物必须齐全：人设图 + 中间视频（可多个）+ 收尾视频（送礼时播放）
         if (publishType === 'live') {
             if (!liveMains.length) { showToast('Please upload at least one main video', 'warn'); return }
             for (var mi2 = 0; mi2 < liveMains.length; mi2++) {
@@ -1133,19 +1243,44 @@
             for (var gi = 0; gi < liveGifts.length; gi++) {
                 var lg = liveGifts[gi]
                 if (!lg.gift_id) { showToast('Please choose a gift for gift #' + (gi + 1), 'warn'); return }
-                if (!lg.videos.length) { showToast('Please add at least one video for gift #' + (gi + 1), 'warn'); return }
-                for (var vi = 0; vi < lg.videos.length; vi++) {
-                    var gv = lg.videos[vi]
-                    if (gv.status === 'uploading') { showToast('Gift video is still uploading, please wait', 'warn'); return }
-                    if (gv.status !== 'done' || !gv.url) { showToast('Gift video upload failed — please upload it again', 'warn'); return }
+                if (!lg.persona) { showToast('Please upload a persona image for gift #' + (gi + 1), 'warn'); return }
+                if (lg.persona.status === 'uploading') { showToast('Persona image is still uploading, please wait', 'warn'); return }
+                if (lg.persona.status !== 'done' || !lg.persona.url) { showToast('Persona image upload failed for gift #' + (gi + 1) + ' — please upload it again', 'warn'); return }
+                if (!lg.middles.length) { showToast('Please add at least one middle video for gift #' + (gi + 1), 'warn'); return }
+                for (var vi = 0; vi < lg.middles.length; vi++) {
+                    var gv = lg.middles[vi]
+                    if (gv.status === 'uploading') { showToast('Middle video is still uploading, please wait', 'warn'); return }
+                    if (gv.status !== 'done' || !gv.url) { showToast('Middle video upload failed for gift #' + (gi + 1) + ' — please upload it again', 'warn'); return }
+                }
+                if (!lg.end) { showToast('Please upload an ending video for gift #' + (gi + 1), 'warn'); return }
+                if (lg.end.status === 'uploading') { showToast('Ending video is still uploading, please wait', 'warn'); return }
+                if (lg.end.status !== 'done' || !lg.end.url) { showToast('Ending video upload failed for gift #' + (gi + 1) + ' — please upload it again', 'warn'); return }
+
+                var gidNum    = parseInt(lg.gift_id, 10) || 0
+                var gNameById = giftNameById(lg.gift_id)
+                readyMaterials.push({
+                    type: 'gift_image',
+                    gift_id: gidNum,
+                    gift_name: gNameById,
+                    name: lg.persona.name || 'Persona image',
+                    url: lg.persona.url
+                })
+                for (var vi2 = 0; vi2 < lg.middles.length; vi2++) {
                     readyMaterials.push({
                         type: 'gift_video',
-                        gift_id: parseInt(lg.gift_id, 10) || 0,
-                        gift_name: giftNameById(lg.gift_id),
-                        name: gv.name || 'Gift video',
-                        url: gv.url
+                        gift_id: gidNum,
+                        gift_name: gNameById,
+                        name: lg.middles[vi2].name || 'Middle video',
+                        url: lg.middles[vi2].url
                     })
                 }
+                readyMaterials.push({
+                    type: 'gift_end_video',
+                    gift_id: gidNum,
+                    gift_name: gNameById,
+                    name: lg.end.name || 'Ending video',
+                    url: lg.end.url
+                })
             }
         }
 
