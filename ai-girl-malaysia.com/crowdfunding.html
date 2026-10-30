@@ -1229,27 +1229,10 @@
     // Crowdfunding
     // ===================================================================
     function loadCrowdfundingStatus() {
-        fetch(base + '/merchant/status', { headers: { 'Authorization': 'Bearer ' + token } })
-            .then(function(r){ return r.json() }).then(function(d){
-                if (d.code && d.code !== '00000') {
-                    document.getElementById('content').innerHTML = '<div class="cf-status"><div class="desc">Session expired</div><a class="cf-btn-s" href="./Login.html">Log in</a></div>'
-                    return
-                }
-                var status = d.data ? d.data.cert_status : -1
-                if (status === 1) { renderCrowdfundingForm() } else { renderNeedCert() }
-            }).catch(function(){
-                document.getElementById('content').innerHTML = '<div class="cf-status cf-warn"><div class="ico">&#9888;</div><div class="ttl">Network error</div><div class="desc">Failed to load, please try again later</div><button class="cf-btn-o" onclick="loadCrowdfundingStatus()">Retry</button></div>'
-            })
+        // Merchant verification is no longer required: render the form directly (login is checked on submit)
+        renderCrowdfundingForm()
     }
     window.loadCrowdfundingStatus = loadCrowdfundingStatus
-
-    function renderNeedCert() {
-        document.getElementById('content').innerHTML =
-            '<div class="cf-status cf-warn"><div class="ico">&#9888;</div><div class="ttl">Merchant verification required</div>' +
-            '<div class="desc">You need merchant verification to start a crowdfunding project</div>' +
-            '<div class="btn-line"><a class="cf-btn-s" href="./certification.html">Get verified</a>' +
-            '<button class="cf-btn-o" onclick="switchTab(\'independent\')">Create on my own</button></div></div>'
-    }
 
     function renderCrowdfundingForm() {
         document.getElementById('content').innerHTML =

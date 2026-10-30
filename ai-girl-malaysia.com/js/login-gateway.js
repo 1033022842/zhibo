@@ -106,7 +106,6 @@
       'background:#292929;border:1px solid #444;color:#eee;font-size:13px;padding:10px 6px}' +
       '.live-social-row button svg{width:18px;height:18px;flex:0 0 18px;display:block;pointer-events:none}' +
       '.live-social-row button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.live-social-row button small{flex:0 0 100%;text-align:center}' +
       '.live-login-methods button:hover:not(:disabled){background:#383036}' +
       '.live-login-methods button:disabled{opacity:.45;cursor:not-allowed}' +
       '.live-login-methods small{display:block;font-size:10px;font-weight:400;margin-top:4px;color:#bcbcbc}' +
@@ -225,33 +224,32 @@
         dialog.showModal()
       }
       box.appendChild(email)
-      var row = document.createElement('div')
-      row.className = 'live-social-row'
-      options.providers.forEach(function (provider) {
-        var social = document.createElement('button')
-        var label = LABELS[provider.id] || provider.label
-        social.type = 'button'
-        social.disabled = !provider.enabled
-        social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
-        social.querySelector('span').textContent = label
-        social.title = provider.enabled ? 'Authorize your ' + provider.label + ' account' : 'Coming soon'
-        if (!provider.enabled) {
-          var note = document.createElement('small')
-          note.textContent = 'Coming soon'
-          social.appendChild(note)
-        }
-        social.onclick = function () {
-          social.disabled = true
-          post('/socialStart/' + provider.id, context()).then(function (data) {
-            location.assign(data.authorize_url)
-          }).catch(function (error) {
-            social.disabled = false
-            message(error.message)
-          })
-        }
-        row.appendChild(social)
-      })
-      box.appendChild(row)
+      // 只渲染已配置的提供商：未接入社交登录的站点不出现按钮，也不留占位。
+      var providers = (options.providers || []).filter(function (provider) { return provider.enabled })
+      if (providers.length) {
+        var row = document.createElement('div')
+        row.className = 'live-social-row'
+        row.style.gridTemplateColumns = 'repeat(' + providers.length + ',minmax(0,1fr))'
+        providers.forEach(function (provider) {
+          var social = document.createElement('button')
+          var label = LABELS[provider.id] || provider.label
+          social.type = 'button'
+          social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
+          social.querySelector('span').textContent = label
+          social.title = 'Authorize your ' + provider.label + ' account'
+          social.onclick = function () {
+            social.disabled = true
+            post('/socialStart/' + provider.id, context()).then(function (data) {
+              location.assign(data.authorize_url)
+            }).catch(function (error) {
+              social.disabled = false
+              message(error.message)
+            })
+          }
+          row.appendChild(social)
+        })
+        box.appendChild(row)
+      }
       button.insertAdjacentElement('afterend', box)
     })
   }

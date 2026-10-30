@@ -502,12 +502,11 @@ final class Live extends BaseController
     }
 
     /**
-     * AI 前端：创建角色（需商家认证通过）
+     * AI 前端：创建角色（免商家认证）
      */
     public function customRoleOne()
     {
         $userId = $this->getAuthUserId();
-        $this->checkMerchantCertified($userId);
         $data = $this->request->post();
         $persona = $this->personaService->createFromAi($userId, $data);
         return $this->jsonSuccess($persona);
@@ -2533,23 +2532,5 @@ final class Live extends BaseController
         }
 
         return [$name, $desc];
-    }
-
-    /**
-     * 校验用户是否已通过商家认证
-     */
-    private function checkMerchantCertified(int $userId): void
-    {
-        $cert = \think\facade\Db::connect('live_mysql')
-            ->table('lp_merchant_certification')
-            ->where('user_id', $userId)
-            ->find();
-
-        if (!$cert || (int)$cert['status'] !== 1) {
-            throw new \app\common\exception\BusinessException(
-                \app\common\web\ResultCode::CERTIFICATION_NOT_FOUND,
-                '请先通过商家认证后再创建AI角色'
-            );
-        }
     }
 }

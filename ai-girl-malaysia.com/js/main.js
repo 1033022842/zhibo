@@ -6,7 +6,7 @@
         gatewayScript.id = 'live-login-gateway-script'
         var mainScriptUrl = document.currentScript && document.currentScript.src
             ? document.currentScript.src : new URL('./js/main.js', location.href).href
-        gatewayScript.src = new URL('./login-gateway.js?v=20261029social1', mainScriptUrl).href
+        gatewayScript.src = new URL('./login-gateway.js?v=20261030a', mainScriptUrl).href
         document.head.appendChild(gatewayScript)
     }
     var cacheTemplate = ''
