@@ -1667,6 +1667,21 @@
         return ('speechSynthesis' in window) && !!window.speechSynthesis
     }
 
+    // iOS 的 speechSynthesis 经常「有 API 但不出声」：静音键、音色未下载、
+    // 异步调用被系统拦截都会导致整通电话只有字幕。iPhone/iPad 一律优先走服务端 TTS
+    // （返回 mp3 用 <audio> 播放，已在通话点击手势里解锁），失败再退回原生语音。
+    function callIsIOS() {
+        var ua = navigator.userAgent || ''
+        if (/iPad|iPhone|iPod/.test(ua)) return true
+        // iPadOS 13+ 默认桌面 UA：Macintosh + 多点触控
+        return /Macintosh/.test(ua) && Number(navigator.maxTouchPoints || 0) > 1
+    }
+
+    function callPreferServerTts() {
+        if (window.jsCallForceServerTts) return true
+        return !callNativeTts() || callIsIOS()
+    }
+
     function callAudio() {
         if (callAudioEl) return callAudioEl
         callAudioEl = new Audio()
@@ -1711,7 +1726,13 @@
             a.src = CALL_SILENT_WAV
             var p = a.play()
             if (p && p.then) {
-                p.then(function () { try { a.pause(); a.currentTime = 0 } catch (e) {} }).catch(function () {})
+                p.then(function () {
+                    try { a.pause(); a.currentTime = 0 } catch (e) {}
+                    // 只有真正播成功才算解锁；失败保持未解锁，下次点击/触摸再试
+                    window.jsCallAudioUnlocked = true
+                }).catch(function () {})
+            } else {
+                window.jsCallAudioUnlocked = true
             }
             // 服务端 STT 兜底：录音/分析都用这个 AudioContext，必须在点击手势里创建
             if (!callRecCtx) {
@@ -1730,7 +1751,6 @@
                     }
                 }).catch(function () {})
             }
-            window.jsCallAudioUnlocked = true
         } catch (e) {}
     }
 
@@ -1747,18 +1767,56 @@
         return 'en-US'
     }
 
+    // 一句话只尝试两条通道：先按平台偏好（iOS / 无 Web Speech → 服务端；其它 → 原生），
+    // 失败再换另一条，最多各一次，避免来回循环。
     function callSpeak(text) {
         if (!text) return
         callStopListening()
         callSpeaking = true
-        callTtsSeq++   // 让在途的服务端 TTS 结果作废
+        callTtsSeq++   // 让在途的 TTS 结果作废
         if (callAudioEl && !callAudioEl.paused) { try { callAudioEl.pause() } catch (e) {} }
-        if (callNativeTts()) callSpeakNative(text)
-        else callSpeakServer(text, callTtsSeq)
+        var seq = callTtsSeq
+        var tried = { server: false, native: false }
+
+        function fail() {
+            if (seq !== callTtsSeq || !callActive) return
+            callSpeaking = false
+            if (!window.jsCallTtsErrorShown) {
+                window.jsCallTtsErrorShown = true
+                appendError('Voice is unavailable right now. Check the silent switch and media volume, then try again.')
+            }
+            if (callActive && !callMuted) callStartListening()
+        }
+
+        function tryServer() {
+            if (seq !== callTtsSeq || !callActive) return
+            if (tried.server) { fail(); return }
+            tried.server = true
+            callSpeakServer(text, seq, function () {
+                if (seq !== callTtsSeq || !callActive) return
+                callDiag('tts-server-fail')
+                tryNative()
+            })
+        }
+
+        function tryNative() {
+            if (seq !== callTtsSeq || !callActive) return
+            if (!callNativeTts() || tried.native) { fail(); return }
+            tried.native = true
+            callSpeakNative(text, seq, function () {
+                if (seq !== callTtsSeq || !callActive) return
+                callDiag('tts-native-fail')
+                tryServer()
+            })
+        }
+
+        if (callNativeTts() && !callPreferServerTts()) tryNative()
+        else tryServer()
     }
 
     // 服务端 TTS：/api/live/tts 返回 audio/mpeg（xAI /v1/tts 代理）
-    function callSpeakServer(text, seq) {
+    function callSpeakServer(text, seq, onFail) {
+        if (callNativeTts()) { try { window.speechSynthesis.cancel() } catch (e) {} }
         fetch('/api/live/tts', {
             method: 'POST',
             headers: authHeaders(true),
@@ -1780,6 +1838,8 @@
             })
             .catch(function () {
                 if (seq !== callTtsSeq || !callActive) return
+                // 有可换的通道就交给上层切换（原生 / 服务端各一次）
+                if (onFail) { onFail(); return }
                 callSpeaking = false
                 if (!window.jsCallTtsErrorShown) {
                     window.jsCallTtsErrorShown = true
@@ -1789,8 +1849,27 @@
             })
     }
 
-    function callSpeakNative(text) {
+    function callSpeakNative(text, seq, onFail) {
         var synth = window.speechSynthesis
+        seq = seq || callTtsSeq
+        var started = false
+        var settled = false
+        var watchdog = null
+
+        function clearWatchdog() {
+            if (watchdog) { clearTimeout(watchdog); watchdog = null }
+        }
+
+        function giveUp() {
+            if (settled) return
+            settled = true
+            clearWatchdog()
+            if (seq !== callTtsSeq || !callActive) return
+            try { synth.cancel() } catch (e) {}
+            if (onFail) { onFail(); return }
+            callSpeaking = false
+            if (callActive) callStartListening()
+        }
 
         var speak = function () {
             var u = new SpeechSynthesisUtterance(text)
@@ -1801,25 +1880,34 @@
             // 同一角色固定，不同角色再用音高/语速拉开区别
             u.rate = 0.94 + (seed % 7) * 0.018
             u.pitch = 0.88 + ((seed >> 3) % 9) * 0.05
-            u.onend = function () { callSpeaking = false; if (callActive) callStartListening() }
-            u.onerror = function (ev) {
-                // canceled/interrupted 是我们自己切句造成的，只有真正的播放失败才提示
-                var err = String((ev && ev.error) || '')
-                if (/not-allowed|synthesis-failed|audio-busy|audio-hardware/i.test(err) && !window.jsCallTtsErrorShown) {
-                    window.jsCallTtsErrorShown = true
-                    appendError('Voice could not start. Check the silent switch and media volume, then tap Call again.')
-                }
+            u.onstart = function () { started = true; clearWatchdog() }
+            u.onend = function () {
+                if (settled) return
+                settled = true
+                clearWatchdog()
                 callSpeaking = false
                 if (callActive) callStartListening()
+            }
+            u.onerror = function (ev) {
+                // canceled/interrupted 是我们自己切句造成的，只有真正的播放失败才走兜底
+                var err = String((ev && ev.error) || '')
+                if (/canceled|interrupted/i.test(err)) { clearWatchdog(); return }
+                giveUp()
             }
             if (synth.paused) { try { synth.resume() } catch (e) {} }
             // iOS 上 cancel() 与 speak() 同一 tick 连用会把新句子吞掉，隔一帧再播
             if (synth.speaking || synth.pending) {
                 synth.cancel()
-                setTimeout(function () { try { synth.speak(u) } catch (e) {} }, 80)
+                setTimeout(function () { try { synth.speak(u) } catch (e) { giveUp() } }, 80)
             } else {
-                try { synth.speak(u) } catch (e) {}
+                try { synth.speak(u) } catch (e) { giveUp(); return }
             }
+            // 1.5s 内没有任何 onstart：speechSynthesis 静默失败（iOS / 部分 WebView），交给兜底通道
+            clearWatchdog()
+            watchdog = setTimeout(function () {
+                if (seq !== callTtsSeq || !callActive) return
+                if (!started) giveUp()
+            }, 1500)
         }
 
         // 音色列表在部分浏览器里是异步加载的：首次通话时立刻 speak 会退回浏览器默认音色，

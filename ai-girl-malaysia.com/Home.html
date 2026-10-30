@@ -27,11 +27,11 @@
 
 		<script src="./_shared/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
-		<script src="./js/main.js?v=20261029social1"></script>
+		<script src="./js/main.js?v=20261030a"></script>
 		<script src="./js/shell-new.js?v=20261026zh1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 		<script src="./js/event.js"></script>
-		<script src="./js/series-dialog.js?v=20261020c"></script>
+		<script src="./js/series-dialog.js?v=20261030ref1"></script>
 
 		<title>Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams</title>
 		<meta name="description" content="Your dream companion awaits! Create your own AI girlfriend or connect instantly with realistic AI characters. Chat, voice calls, image generation, live streams and more — all private, secure and discreet.">
@@ -196,13 +196,11 @@
 			.c-shelf-title em{font-style:normal;color:var(--h-primary)}
 			.c-row-grid-short{grid-template-rows:auto}
 
-			/* ---------- Watch Shorts 短剧卡：NEW 角标 / Free 标 / 集数 ---------- */
+			/* ---------- Watch Shorts 短剧卡：NEW 角标 / 起售价 / 集数 ---------- */
 			.c-s-top{position:absolute;right:8px;top:8px;z-index:20;display:flex;gap:4px;pointer-events:none}
 			.c-s-new{padding:2.5px 7px;border-radius:6px;background:var(--h-cta);font-size:10px;font-weight:700;
 				letter-spacing:.03em;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.45)}
 			.c-s-meta{display:flex;align-items:center;gap:6px;margin-top:2px}
-			.c-s-free{padding:1px 6px;border-radius:5px;background:rgba(74,222,128,.16);border:1px solid rgba(74,222,128,.55);
-				font-size:9.5px;font-weight:700;letter-spacing:.03em;color:#4ade80}
 			.c-s-eps{font-size:11px;color:var(--h-grey2)}
 			.c-s-lock{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--h-grey2)}
 			.c-s-lock svg{width:11px;height:11px;fill:currentColor}
@@ -1441,11 +1439,13 @@
 				var n = parseInt(s.episode_count, 10) || 0
 				var eps = n ? n + (n > 1 ? ' Episodes' : ' Episode') : ''
 				var meta = ''
-				if (parseInt(s.free_episodes, 10) > 0) {
-					meta = '<div class="c-s-meta"><span class="c-s-free">FREE</span><span class="c-s-eps">' + esc(eps) + '</span></div>'
-				} else if (eps) {
+				if (eps) {
 					var pf = parseInt(s.price_from, 10) || 0
-					meta = '<div class="c-s-meta"><span class="c-s-lock"><svg viewBox="0 0 24 24"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8 0V7a3 3 0 0 1 6 0v2H9z"/></svg>' + pf + '</span><span class="c-s-eps">' + esc(eps) + '</span></div>'
+					var lock = (s.vip_required || pf > 0)
+						? '<span class="c-s-lock"><svg viewBox="0 0 24 24"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8 0V7a3 3 0 0 1 6 0v2H9z"/></svg>' + (pf > 0 ? pf : '') + '</span>'
+						: ''
+					meta = '<div class="c-s-meta">' + lock +
+						'<span class="c-s-eps">' + esc(eps) + '</span></div>'
 				}
 				return '<li><a class="c-card c-card-short" draggable="false" data-short-id="' + esc(s.id) + '" href="javascript:void(0)" aria-label="' + esc(s.title) + '">' +
 					poster +

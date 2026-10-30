@@ -40,6 +40,7 @@
     }
     var SVG_LOCK = '<svg class="cs-lock" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2a2 2 0 0 0-1 1.7V19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8.3A2 2 0 0 0 17 9zm-8-2a3 3 0 0 1 6 0v2H9V7zm3 10a1.6 1.6 0 0 1-1-2.8V13a1 1 0 0 1 2 0v1.2A1.6 1.6 0 0 1 12 17z"/></svg>'
     var TOKEN_ICON = '<img class="cs-token" src="./taocan_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg" alt="">'
+    var SVG_CHEVRON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>'
 
     var RATES = [1, 1.25, 1.5, 2]
 
@@ -51,6 +52,7 @@
         title: '',
         description: '',
         poster: '',
+        spicy: false,
         freeEpisodes: 0,
         episodes: [],
         currentId: 0,   // 正在展示的剧集（手机端=当前那一屏）
@@ -148,8 +150,8 @@
                 'background:radial-gradient(at center top, rgba(236,74,125,.67) 0%, rgba(0,0,0,0) 35%);}',
             '#' + DIALOG_ID + ' .cs-head{position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-height:36px;}',
             '#' + DIALOG_ID + ' .cs-close{position:absolute;left:0;top:0;display:flex;align-items:center;justify-content:center;width:36px;height:36px;' +
-                'border:1px solid rgba(255,255,255,.16);border-radius:9999px;background:rgba(0,0,0,.4);color:#fff;font-size:16px;line-height:1;cursor:pointer;}',
-            '#' + DIALOG_ID + ' .cs-heading{margin:0;font-size:16px;font-weight:600;line-height:36px;color:#fff;}',
+                'border:1px solid rgba(255,255,255,.16);border-radius:9999px;background:rgba(0,0,0,.8);color:#fff;font-size:16px;line-height:1;cursor:pointer;}',
+            '#' + DIALOG_ID + ' .cs-heading{margin:0;font-size:20px;font-weight:600;line-height:36px;color:#fff;}',
             '#' + DIALOG_ID + ' .cs-body{display:flex;flex-direction:column;align-items:stretch;gap:18px;width:100%;min-width:0;}',
 
             // 视频区（桌面左栏 / 手机整屏共用）
@@ -192,6 +194,9 @@
                 'background:radial-gradient(at left top, rgba(40,40,40,.5), rgba(26,26,26,0) 70%);}',
             '#' + DIALOG_ID + ' .cs-side-inner{padding:20px 0 24px;}',
             '#' + DIALOG_ID + ' .cs-meta{padding:0 20px 12px;}',
+            '#' + DIALOG_ID + ' .cs-tag{display:inline-flex;align-items:center;gap:4px;margin:0 0 8px;padding:4px 10px;border-radius:9999px;' +
+                'background:rgba(0,0,0,.55);border:1px solid rgba(231,82,117,.45);color:#fff;font-size:11px;font-weight:700;' +
+                'letter-spacing:.06em;line-height:1;}',
             '#' + DIALOG_ID + ' .cs-title{margin:0;font-size:28px;font-weight:600;line-height:1.15;color:#fff;}',
             '#' + DIALOG_ID + ' .cs-desc{margin:12px 0 0;font-size:14px;font-weight:500;line-height:20px;color:#828282;}',
             '#' + DIALOG_ID + ' .cs-count{margin:10px 0 0;font-size:12px;font-weight:500;color:#828282;}',
@@ -202,6 +207,7 @@
                 'line-height:21px;text-align:left;cursor:pointer;}',
             '#' + DIALOG_ID + ' .cs-ep:hover{border-color:rgba(255,255,255,.35);}',
             '#' + DIALOG_ID + ' .cs-ep[data-current="1"]{border-color:' + ACCENT + ';}',
+            '#' + DIALOG_ID + ' .cs-ep[data-current="1"] .cs-ep-label{color:' + ACCENT + ';}',
             '#' + DIALOG_ID + ' .cs-ep-right{display:flex;align-items:center;gap:8px;flex:0 0 auto;}',
             '#' + DIALOG_ID + ' .cs-lock{width:16px;height:16px;fill:#fff;display:block;}',
             '#' + DIALOG_ID + ' .cs-price{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;}',
@@ -238,7 +244,7 @@
             '#' + DIALOG_ID + ' .cs-scroll{display:block;}',
             '#' + DIALOG_ID + ' .cs-feed{display:none;}',
             '#' + DIALOG_ID + ' .cs-wrap{align-items:center;padding:0;}',
-            '#' + DIALOG_ID + ' .cs-panel{width:920px;height:730px;max-height:calc(100dvh - 128px);border-radius:16px;}',
+            '#' + DIALOG_ID + ' .cs-panel{width:920px;max-width:calc(100vw - 32px);height:730px;max-height:calc(100dvh - 128px);border-radius:16px;}',
             '#' + DIALOG_ID + ' .cs-inner{gap:16px;padding:20px 28px 24px;}',
             '#' + DIALOG_ID + ' .cs-body{flex-direction:row;align-items:flex-start;gap:29px;flex:0 0 auto;min-height:0;}',
             // 左栏用固定宽度（而不是靠 aspect-ratio 从高度反推）：锁定态的遮罩是绝对定位、
@@ -271,7 +277,7 @@
                 '<div class="cs-scroll">' +
                   '<div class="cs-inner">' +
                     '<div class="cs-head">' +
-                      '<button type="button" class="cs-close" data-series-close aria-label="Close">&times;</button>' +
+                      '<button type="button" class="cs-close" data-series-close aria-label="Close">' + SVG_CHEVRON + '</button>' +
                       '<h2 class="cs-heading">Shorts</h2>' +
                     '</div>' +
                     '<div class="cs-body">' +
@@ -279,6 +285,7 @@
                       '<div class="cs-side">' +
                         '<div class="cs-side-inner">' +
                           '<div class="cs-meta">' +
+                            '<span class="cs-tag" data-series-spicy style="display:none;">&#128293; SPICY</span>' +
                             '<h1 class="cs-title" data-series-title></h1>' +
                             '<p class="cs-desc" data-series-desc style="display:none;"></p>' +
                             '<p class="cs-count" data-series-count></p>' +
@@ -721,6 +728,9 @@
         var titleEl = dlg.querySelector('[data-series-title]')
         if (titleEl) titleEl.textContent = state.title
 
+        var spicyEl = dlg.querySelector('[data-series-spicy]')
+        if (spicyEl) spicyEl.style.display = state.spicy ? 'inline-flex' : 'none'
+
         var desc = dlg.querySelector('[data-series-desc]')
         if (desc) {
             desc.textContent = state.description || ''
@@ -745,7 +755,8 @@
 
             var right
             if (state.vipRequired) {
-                right = SVG_LOCK + '<span class="cs-price">VIP</span>'
+                // 非会员（含未登录）：每集只显示一把锁，不暴露免费集与价格
+                right = SVG_LOCK
             } else if (ep.unlocked && ep.free) {
                 right = '<span class="cs-free">Free</span>'
             } else if (ep.unlocked) {
@@ -756,7 +767,7 @@
 
             html +=
                 '<button type="button" class="cs-ep" data-series-ep="' + ep.id + '" data-current="' + (isCurrent ? '1' : '0') + '">' +
-                  '<span>' + esc(episodeLabel(ep)) + '</span>' +
+                  '<span class="cs-ep-label">' + esc(episodeLabel(ep)) + '</span>' +
                   '<span class="cs-ep-right">' + right + '</span>' +
                 '</button>'
         }
@@ -870,6 +881,7 @@
                 state.episodes = Array.isArray(res.data.episodes) ? res.data.episodes : []
                 state.vipRequired = Number(s.vip_required || 0) === 1
                 state.poster = s.poster || ''
+                state.spicy = Number(s.spicy || 0) === 1
                 state.confirmId = 0
 
                 // 没配剧集的剧：用剧自身的视频兜底成第 1 集（免费），

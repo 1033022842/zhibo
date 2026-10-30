@@ -118,7 +118,7 @@ const baTable = new baTableClass(
             spicy: 0,
             featured: '',
             new_episodes: 0,
-            free_episodes: 0,
+            free_episodes: 2,
             weigh: 0,
             status: 1,
         },

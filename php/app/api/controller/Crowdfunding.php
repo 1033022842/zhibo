@@ -27,12 +27,11 @@ final class Crowdfunding extends BaseController
     }
 
     /**
-     * 发起众筹（需商家认证）
+     * 发起众筹（需登录）
      */
     public function initiate()
     {
         $userId = $this->getAuthUserId();
-        $this->checkMerchantCertified($userId);
 
         $params = $this->request->post();
 
@@ -199,12 +198,11 @@ final class Crowdfunding extends BaseController
     }
 
     /**
-     * 关联角色（需登录+商家认证）
+     * 关联角色（需登录）
      */
     public function linkPersona()
     {
         $userId = $this->getAuthUserId();
-        $this->checkMerchantCertified($userId);
 
         $projectId = $this->request->post('project_id/d', 0);
         $personaId = $this->request->post('persona_id/d', 0);
@@ -324,23 +322,5 @@ final class Crowdfunding extends BaseController
         }
         $parts = array_filter(array_map('trim', explode(',', $value)), static fn($s) => $s !== '');
         return implode(',', array_unique($parts));
-    }
-
-    /**
-     * 商家认证校验
-     */
-    private function checkMerchantCertified(int $userId): void
-    {
-        $cert = \think\facade\Db::connect('live_mysql')
-            ->table('lp_merchant_certification')
-            ->where('user_id', $userId)
-            ->find();
-
-        if (!$cert || (int)$cert['status'] !== 1) {
-            throw new \app\common\exception\BusinessException(
-                \app\common\web\ResultCode::CERTIFICATION_NOT_FOUND,
-                '请先通过商家认证后再发起众筹'
-            );
-        }
     }
 }

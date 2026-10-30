@@ -157,6 +157,8 @@ final class Shorts extends BaseController
                 'title'          => (string) $short['title'],
                 'description'    => (string) ($short['description'] ?? ''),
                 'poster'         => $this->absoluteUrl((string) $short['poster']),
+                // 弹窗标题上方的 SPICY 标签
+                'spicy'          => (int) ($short['spicy'] ?? 0) ? 1 : 0,
                 // 非会员不展示「前 N 集免费」，避免误解
                 'free_episodes'  => $isVip ? $freeEpisodes : 0,
                 'episode_count'  => count($episodes),
@@ -523,8 +525,8 @@ final class Shorts extends BaseController
             'has_episodes'  => $hasEpisodes,
             'episode_count' => $episodeCount,
             'vip_required'  => $isVip ? 0 : 1,
-            // 0 表示全免费；>0 表示最低付费集的代币价
-            'price_from'    => $stat ? (int) $stat['min_paid'] : 0,
+            // 0 表示全免费；>0 表示最低付费集的代币价（仅会员可见，非会员只显示锁）
+            'price_from'    => ($stat && $isVip) ? (int) $stat['min_paid'] : 0,
             // 前台筛选栏用：分类标签数组（逗号分隔存库）+ 角色类型（creator/character/other）
             'category'      => $this->splitTags((string) ($row['category'] ?? '')),
             'type'          => (string) ($row['character_type'] ?? ''),
@@ -555,7 +557,7 @@ final class Shorts extends BaseController
         $no = (int) $row['episode_no'];
         $price = max(0, (int) $row['price']);
 
-        // 非会员：目录照常返回，但没有任何可播放内容，也不能显示免费集
+        // 非会员：目录照常返回，但没有任何可播放内容，也不能显示免费集 / 价格
         if (!$isVip) {
             return [
                 'id'           => $id,
@@ -564,7 +566,7 @@ final class Shorts extends BaseController
                 'title'        => (string) $row['title'],
                 'poster'       => $this->absoluteUrl((string) $row['poster']),
                 'duration'     => (string) $row['duration'],
-                'price'        => $price,
+                'price'        => 0,
                 'free'         => 0,
                 'unlocked'     => 0,
                 'vip_required' => 1,

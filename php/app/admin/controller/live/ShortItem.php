@@ -124,7 +124,8 @@ final class ShortItem extends Backend
     {
         $data['title']        = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
         $data['description']  = trim((string) ($data['description'] ?? $existing['description'] ?? ''));
-        $data['free_episodes'] = max(0, (int) ($data['free_episodes'] ?? $existing['free_episodes'] ?? 0));
+        // 默认第 1、2 集免费，第 3 集起按「短剧剧集」里配置的单价收费
+        $data['free_episodes'] = max(0, (int) ($data['free_episodes'] ?? $existing['free_episodes'] ?? 2));
         $data['poster']       = $this->normalizeFileUrl((string) ($data['poster'] ?? $existing['poster'] ?? ''));
         $data['href']         = trim((string) ($data['href'] ?? $existing['href'] ?? ''));
         $data['section']      = (string) ($data['section'] ?? $existing['section'] ?? 'explore');
