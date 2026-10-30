@@ -767,25 +767,29 @@ final class Creator extends Backend
             $incomeCell = '<td class="td-income">' . $workInc
                 . '<div class="inc-owner">作者累计 ' . self::fmtNum($uTotal) . '</div></td>';
 
-            // 直播作品：列表直接给出资源分类概况，审核时一眼看出主视频/礼物视频是否齐全
+            // 直播作品：列表直接给出资源分类概况，审核时一眼看出主视频/礼物素材是否齐全
             $assetSub = '';
             if ((string)($row['publish_type'] ?? '') === 'live') {
                 $mats      = json_decode((string)($row['materials'] ?? ''), true);
                 $mats      = is_array($mats) ? $mats : [];
                 $mainCnt   = 0;
+                $imgCnt    = 0;
                 $giftCnt   = 0;
+                $endCnt    = 0;
                 $giftNames = [];
                 foreach ($mats as $mat) {
                     $mt = (string)($mat['type'] ?? '');
                     if ($mt === 'main_video') {
                         $mainCnt++;
-                    } elseif ($mt === 'gift_video') {
-                        $giftCnt++;
+                    } elseif ($mt === 'gift_image' || $mt === 'gift_video' || $mt === 'gift_end_video') {
+                        if ($mt === 'gift_image') $imgCnt++;
+                        elseif ($mt === 'gift_video') $giftCnt++;
+                        else $endCnt++;
                         $giftNames[(string)($mat['gift_name'] ?? $mat['gift_id'] ?? '')] = true;
                     }
                 }
-                $assetSub = '<div class="proj-sub">主视频 ' . $mainCnt . ' · 礼物视频 ' . $giftCnt
-                    . ($giftNames ? '（' . count($giftNames) . ' 个礼物）' : '') . '</div>';
+                $assetSub = '<div class="proj-sub">主视频 ' . $mainCnt . ' · 礼物 ' . count($giftNames) . ' 个'
+                    . ($giftNames ? '（人设图 ' . $imgCnt . ' · 中间视频 ' . $giftCnt . ' · 收尾视频 ' . $endCnt . '）' : '') . '</div>';
             }
 
             $rows .= <<<ROW
@@ -940,6 +944,7 @@ final class Creator extends Backend
                 .gift-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
                 .gift-name{font-size:13px;font-weight:700;color:#1a1f36}
                 .gift-sub{font-size:11px;color:#8a90a3}
+                .gift-sub-sec{font-size:12px;color:#8a90a3;margin:10px 0 6px}
                 .ep-list{display:flex;flex-direction:column;gap:8px}
                 .ep-item{display:flex;gap:12px;align-items:center;border:1px solid #eef0f6;border-radius:10px;padding:8px 10px;background:#fff}
                 .ep-item img{width:96px;height:54px;object-fit:cover;border-radius:6px;background:#f2f3f8;flex-shrink:0}
@@ -1051,7 +1056,7 @@ final class Creator extends Backend
                     if (p.reference_url) info += kv('参考链接', '<a href="'+esc(p.reference_url)+'" target="_blank" style="color:#6366f1">'+esc(p.reference_url)+'</a>');
                     if (p.reject_reason) info += kv('驳回原因', '<span style="color:#e11d48">'+esc(p.reject_reason)+'</span>');
 
-                    // 资料：直播作品按用途分组（主视频 / 礼物视频 / 其它），视频直接内嵌播放
+                    // 资料：直播作品按用途分组（主视频 / 礼物素材 / 其它），视频直接内嵌播放
                     var matHtml = '';
                     var isLiveWork  = (p.publish_type === 'live');
                     var mainVideos  = [];
@@ -1063,13 +1068,15 @@ final class Creator extends Backend
                         var t = m.type || '';
                         if (isLiveWork && t === 'main_video') {
                             mainVideos.push(m);
-                        } else if (isLiveWork && t === 'gift_video') {
+                        } else if (isLiveWork && (t === 'gift_image' || t === 'gift_video' || t === 'gift_end_video')) {
                             var gk = String(m.gift_id || 0) + '|' + String(m.gift_name || '');
                             if (!giftIndex[gk]) {
-                                giftIndex[gk] = { name: m.gift_name || ('礼物#' + (m.gift_id || '?')), list: [] };
+                                giftIndex[gk] = { name: m.gift_name || ('礼物#' + (m.gift_id || '?')), image: null, middles: [], end: null, others: [] };
                                 giftGroups.push(giftIndex[gk]);
                             }
-                            giftIndex[gk].list.push(m);
+                            if (t === 'gift_image') giftIndex[gk].image = m;
+                            else if (t === 'gift_end_video') giftIndex[gk].end = m;
+                            else giftIndex[gk].middles.push(m);
                         } else {
                             otherMats.push(m);
                         }
@@ -1081,15 +1088,38 @@ final class Creator extends Backend
                                 '<div class="mat-list mat-videos">' + mainVideos.map(mediaCard).join('') + '</div>';
                         }
                         if (giftGroups.length) {
-                            var giftTotal = 0;
-                            for (var g = 0; g < giftGroups.length; g++) giftTotal += giftGroups[g].list.length;
-                            matHtml += '<div class="sec-title">礼物视频（' + giftTotal + ' 个 · ' + giftGroups.length + ' 个礼物）</div>';
+                            var imgTotal = 0, midTotal = 0, endTotal = 0;
+                            for (var gt = 0; gt < giftGroups.length; gt++) {
+                                if (giftGroups[gt].image) imgTotal++;
+                                midTotal += giftGroups[gt].middles.length;
+                                if (giftGroups[gt].end) endTotal++;
+                            }
+                            matHtml += '<div class="sec-title">礼物素材（' + giftGroups.length + ' 个礼物 · 人设图 ' + imgTotal +
+                                ' · 中间视频 ' + midTotal + ' · 收尾视频 ' + endTotal + '）</div>';
                             for (var g2 = 0; g2 < giftGroups.length; g2++) {
                                 var gg = giftGroups[g2];
                                 matHtml += '<div class="gift-group"><div class="gift-head">' +
                                     '<span class="gift-name">' + esc(gg.name) + '</span>' +
-                                    '<span class="gift-sub">送礼时播放 · ' + gg.list.length + ' 个视频</span></div>' +
-                                    '<div class="mat-list mat-videos">' + gg.list.map(mediaCard).join('') + '</div></div>';
+                                    '<span class="gift-sub">人设图 ' + (gg.image ? 1 : 0) +
+                                    ' · 中间视频 ' + gg.middles.length +
+                                    ' · 收尾视频 ' + (gg.end ? 1 : 0) + '</span></div>';
+                                if (gg.image) {
+                                    matHtml += '<div class="gift-sub-sec">人设图</div>' +
+                                        '<div class="mat-list">' + mediaCard(gg.image) + '</div>';
+                                }
+                                if (gg.middles.length) {
+                                    matHtml += '<div class="gift-sub-sec">中间视频（' + gg.middles.length + '）</div>' +
+                                        '<div class="mat-list mat-videos">' + gg.middles.map(mediaCard).join('') + '</div>';
+                                }
+                                if (gg.end) {
+                                    matHtml += '<div class="gift-sub-sec">收尾视频</div>' +
+                                        '<div class="mat-list mat-videos">' + mediaCard(gg.end) + '</div>';
+                                }
+                                if (gg.others.length) {
+                                    matHtml += '<div class="gift-sub-sec">其它</div>' +
+                                        '<div class="mat-list">' + gg.others.map(mediaCard).join('') + '</div>';
+                                }
+                                matHtml += '</div>';
                             }
                         }
                         if (otherMats.length) {

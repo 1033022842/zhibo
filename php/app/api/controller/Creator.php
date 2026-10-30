@@ -341,7 +341,9 @@ final class Creator extends BaseController
 
     /**
      * 资料参数归一化：[{name,url,type,gift_id,gift_name}]
-     * type 仅对直播角色生效：main_video=主视频（可多个）/ gift_video=礼物视频（绑定礼物，同一礼物可多个，送礼时播放）/ other=其它资料
+     * type 仅对直播角色生效：main_video=主视频（可多个）
+     *   gift_image=礼物人设图（每个礼物 1 张）/ gift_video=礼物中间视频（可多个）/ gift_end_video=礼物收尾视频（每个礼物 1 个）
+     *   other=其它资料
      * 返回 ['items' => array, 'error' => string]
      */
     private function parseMaterials(mixed $raw, string $publishType): array
@@ -356,10 +358,11 @@ final class Creator extends BaseController
             return ['items' => [], 'error' => ''];
         }
 
-        $isLive      = $publishType === 'live';
-        $allowedType = ['main_video', 'gift_video', 'other'];
-        $items       = [];
-        $giftIds     = [];
+        $isLive       = $publishType === 'live';
+        $allowedType  = ['main_video', 'gift_video', 'gift_image', 'gift_end_video', 'other'];
+        $giftTypes    = ['gift_video', 'gift_image', 'gift_end_video'];
+        $items        = [];
+        $giftIds      = [];
 
         foreach ($raw as $item) {
             if (is_string($item)) {
@@ -375,8 +378,9 @@ final class Creator extends BaseController
                 if (!in_array($type, $allowedType, true)) {
                     $type = 'other';
                 }
-                $giftId   = $type === 'gift_video' ? (int) ($item['gift_id'] ?? 0) : 0;
-                $giftName = $type === 'gift_video' ? trim((string) ($item['gift_name'] ?? '')) : '';
+                $isGiftAsset = in_array($type, $giftTypes, true);
+                $giftId   = $isGiftAsset ? (int) ($item['gift_id'] ?? 0) : 0;
+                $giftName = $isGiftAsset ? trim((string) ($item['gift_name'] ?? '')) : '';
             } else {
                 continue;
             }
@@ -389,13 +393,13 @@ final class Creator extends BaseController
                 continue;
             }
 
-            if ($type === 'gift_video') {
+            if (in_array($type, $giftTypes, true)) {
                 if ($giftId <= 0) {
-                    return $fail('礼物视频需要选择对应的礼物');
+                    return $fail('礼物素材需要选择对应的礼物');
                 }
                 $giftIds[$giftId] = true;
                 $items[] = [
-                    'type'      => 'gift_video',
+                    'type'      => $type,
                     'gift_id'   => $giftId,
                     'gift_name' => $giftName,
                     'name'      => $name,
@@ -414,7 +418,7 @@ final class Creator extends BaseController
                 ->whereIn('id', array_keys($giftIds))
                 ->column('name', 'id');
             foreach ($items as &$row) {
-                if (($row['type'] ?? '') !== 'gift_video') {
+                if (!in_array(($row['type'] ?? ''), $giftTypes, true)) {
                     continue;
                 }
                 $gid = (int) $row['gift_id'];
