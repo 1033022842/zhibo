@@ -74,7 +74,8 @@ final class AiShort extends BaseController
     {
         $rows = $this->db()->table('lp_short_preset')
             ->where('status', 1)
-            ->field('code, title, category, kind, duration_sec, cover_url, preview_url')
+            ->field('code, title, category, kind, duration_sec, cover_url, preview_url, '
+                . 'persona_thumb, reference_image, task_type')
             ->order('weigh', 'desc')
             ->order('id', 'asc')
             ->select()
@@ -83,21 +84,28 @@ final class AiShort extends BaseController
         return $this->jsonSuccess([
             'total' => count($rows),
             'list'  => array_map(function (array $r) {
+                $ref = trim((string) ($r['reference_image'] ?? ''));
                 return [
                     'code'         => (string) $r['code'],
                     'title'        => (string) $r['title'],
                     'category'     => (string) $r['category'],
                     'kind'         => (string) $r['kind'],
+                    'task_type'    => (string) ($r['task_type'] ?? ''),
                     'duration_sec' => (int) $r['duration_sec'],
                     'cover_url'    => $this->absUrl((string) $r['cover_url']),
                     'preview_url'  => $this->absUrl((string) $r['preview_url']),
+                    // 卡片左上角人设缩略图
+                    'persona_thumb' => $this->absUrl((string) ($r['persona_thumb'] ?? '')),
+                    // 模板自带固定参考图时，前端可不要求用户上传
+                    'reference_image' => $this->absUrl($ref),
+                    'fixed_reference' => $ref !== '',
                 ];
             }, $rows),
         ]);
     }
 
     /**
-     * 单条详情（需登录）：含 prompt + lora_chain，供调用方自行编排
+     * 单条详情（需登录）：含 prompt + lora_chain + 采样参数，供调用方自行编排
      */
     public function detail()
     {
@@ -118,8 +126,20 @@ final class AiShort extends BaseController
             'prompt'       => (string) $r['prompt'],
             'lora_chain'   => json_decode((string) $r['lora_chain'], true) ?: [],
             'duration_sec' => (int) $r['duration_sec'],
-            'cover_url'    => $this->absUrl((string) $r['cover_url']),
-            'preview_url'  => $this->absUrl((string) $r['preview_url']),
+            // 生成参数（beta57 = sampler_alpha 0.5 / sampler_beta 0.7）
+            'task_type'     => (string) ($r['task_type'] ?? 'I2VA'),
+            'pipeline'      => (string) ($r['pipeline'] ?? 'legacy'),
+            'sampler'       => (string) ($r['sampler'] ?? 'euler'),
+            'scheduler'     => (string) ($r['scheduler'] ?? 'beta57'),
+            'sampler_alpha' => (float) ($r['sampler_alpha'] ?? 0.5),
+            'sampler_beta'  => (float) ($r['sampler_beta'] ?? 0.7),
+            'steps'         => (int) ($r['steps'] ?? 8),
+            'unet_name'     => (string) ($r['unet_name'] ?? ''),
+            'resolution'    => (string) ($r['resolution'] ?? ''),
+            'cover_url'     => $this->absUrl((string) $r['cover_url']),
+            'persona_thumb' => $this->absUrl((string) ($r['persona_thumb'] ?? '')),
+            'reference_image' => $this->absUrl(trim((string) ($r['reference_image'] ?? ''))),
+            'preview_url'   => $this->absUrl((string) $r['preview_url']),
         ]);
     }
 
@@ -428,6 +448,16 @@ final class AiShort extends BaseController
                 'prompt'           => (string) ($p['prompt'] ?? ''),
                 'lora_chain'       => json_decode((string) ($p['lora_chain'] ?? '[]'), true) ?: [],
                 'duration_sec'     => (int) ($c['duration_sec'] ?? ($p['duration_sec'] ?? 8)),
+                // 生成参数：worker 按这些值拼工作流（beta57 = alpha 0.5 / beta 0.7）
+                'task_type'        => (string) ($p['task_type'] ?? 'I2VA'),
+                'pipeline'         => (string) ($p['pipeline'] ?? 'legacy'),
+                'sampler'          => (string) ($p['sampler'] ?? 'euler'),
+                'scheduler'        => (string) ($p['scheduler'] ?? 'beta57'),
+                'sampler_alpha'    => (float) ($p['sampler_alpha'] ?? 0.5),
+                'sampler_beta'     => (float) ($p['sampler_beta'] ?? 0.7),
+                'steps'            => (int) ($p['steps'] ?? 8),
+                'unet_name'        => (string) ($p['unet_name'] ?? ''),
+                'resolution'       => (string) ($p['resolution'] ?? ''),
                 'image_url'        => $this->absUrl((string) ($c['image_url'] ?? '')),
                 'created_at'       => $t['created_at'],
             ];

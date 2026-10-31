@@ -33,7 +33,8 @@
             #user-login{display:none;}
 		
 			/* 新版样式包未生成的旧工具类：按 Tailwind 原始定义补回，避免页头/弹窗等历史区域样式回退 */
-			.top-\[64px\]{top:64px}
+			/* 这里的规则不带 @layer，会压过包内 @layer utilities 的 md:top-auto；top-[64px] 只用于手机端，必须限定断点 */
+			@media (max-width: 767px){ .top-\[64px\]{top:64px} }
 			.flex-grow-0{flex-grow:0}
 			.text-\[\#E75275\]{color:#E75275}
 			.border-\[\#E75275\]{border-color:#E75275}
@@ -81,7 +82,7 @@
 <style>
 /* Inviter 页新增内容区（数据概览 / 步骤 / 奖励规则 / 邀请记录） */
 .inv-card{background:#131313;border:1px solid #363636;border-radius:10px}
-.inv-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.inv-stats{display:grid;grid-template-columns:repeat(var(--inv-cols,4),minmax(0,1fr));gap:12px}
 .inv-stat{padding:16px 18px;min-width:0}
 .inv-stat-label{font-size:12px;line-height:1.4;color:rgba(255,255,255,.55);margin:0 0 8px}
 .inv-stat-value{font-size:24px;line-height:1.1;font-weight:700;color:#fff;margin:0;font-family:Poppins,sans-serif;word-break:break-all}
@@ -126,6 +127,27 @@
 .inv-record-badge{flex:0 0 auto;font-size:11px;line-height:1;padding:5px 8px;border-radius:999px;background:#242424;color:rgba(255,255,255,.6)}
 .inv-record-badge.is-premium{background:rgba(231,82,117,.16);color:#F0788F}
 .inv-record-reward{flex:0 0 auto;font-size:12px;font-weight:600;color:#fff}
+/* 社区动态：模拟实时奖励流水，向上滚动 */
+.inv-activity-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.inv-live{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.inv-live-dot{position:relative;width:7px;height:7px;border-radius:50%;background:#4ADE80;flex:0 0 7px}
+.inv-live-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:#4ADE80;animation:invPing 1.8s ease-out infinite}
+@keyframes invPing{0%{transform:scale(1);opacity:.7}70%,100%{transform:scale(2.8);opacity:0}}
+.inv-feed-mask{position:relative;height:216px;overflow:hidden;margin-top:14px;-webkit-mask-image:linear-gradient(to bottom,#000 76%,transparent);mask-image:linear-gradient(to bottom,#000 76%,transparent)}
+.inv-feed{display:flex;flex-direction:column;gap:8px}
+.inv-feed-item{display:flex;align-items:center;gap:11px;height:58px;flex:0 0 58px;padding:0 12px;border:1px solid #2c2c2c;border-radius:12px;background:#181818;transition:border-color .4s ease,background-color .4s ease}
+.inv-feed-item.is-latest{border-color:rgba(231,82,117,.55);background:#22141a}
+.inv-feed-item.is-new{animation:invFeedIn .45s cubic-bezier(.22,.61,.36,1)}
+@keyframes invFeedIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+.inv-feed-flag{width:34px;height:34px;flex:0 0 34px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.02em;color:rgba(255,255,255,.72);line-height:1}
+.inv-feed-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
+.inv-feed-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-feed-meta{font-size:11.5px;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-feed-reward{flex:0 0 auto;font-size:12.5px;font-weight:700;color:#4ADE80}
+@media (prefers-reduced-motion:reduce){
+  .inv-feed-item.is-new{animation:none}
+  .inv-live-dot::after{animation:none;opacity:0}
+}
 @media (max-width:1023px){
   .inv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .inv-stat-value{font-size:20px}
@@ -801,6 +823,16 @@
     </div>
 
     <div class="inv-card inv-section w-full">
+      <div class="inv-activity-head">
+        <p class="inv-section-title">Community rewards</p>
+        <span class="inv-live"><span class="inv-live-dot" aria-hidden="true"></span>Live</span>
+      </div>
+      <div class="inv-feed-mask" aria-hidden="true">
+        <div class="inv-feed" id="invite-activity-feed"></div>
+      </div>
+    </div>
+
+    <div class="inv-card inv-section w-full">
       <p class="inv-section-title">How it works</p>
       <ol class="inv-steps">
         <li class="inv-step">
@@ -1303,6 +1335,9 @@ document.addEventListener('click', function (e) {
     for (var i = 0; i < blocks.length; i++) {
       blocks[i].style.display = pct > 0 ? '' : 'none'
     }
+    /* 佣金开启后统计卡是 6 个，用 3 列排成两行；未开启时 4 个铺满一行 */
+    var stats = document.querySelector('.inv-stats')
+    if (stats) stats.style.setProperty('--inv-cols', pct > 0 ? '3' : '4')
   }
 
   function fmtTokens(value) {
@@ -1485,6 +1520,170 @@ document.addEventListener('click', function (e) {
   if (dlg) dlg.addEventListener('click', function (e) { if (e.target === dlg) closeDialog() })
 
   loadInvite()
+})()
+</script>
+<script>
+/* Inviter：社区奖励动态（模拟流水，仅作展示，不参与任何结算） */
+(function () {
+  var feed = document.getElementById('invite-activity-feed')
+  if (!feed) return
+
+  var COUNTRIES = [
+    ['DE', 'Germany'], ['GB', 'the UK'], ['US', 'the US'], ['FR', 'France'],
+    ['JP', 'Japan'], ['BR', 'Brazil'], ['CA', 'Canada'], ['AU', 'Australia'],
+    ['MX', 'Mexico'], ['IT', 'Italy'], ['ES', 'Spain'], ['PH', 'the Philippines'],
+    ['ID', 'Indonesia'], ['TH', 'Thailand'], ['VN', 'Vietnam'], ['MY', 'Malaysia'],
+    ['SG', 'Singapore'], ['KR', 'Korea'], ['NL', 'the Netherlands'], ['PL', 'Poland'],
+    ['SE', 'Sweden'], ['AE', 'the UAE'], ['ZA', 'South Africa'], ['IN', 'India'],
+    ['TR', 'Turkey'], ['AR', 'Argentina'], ['CH', 'Switzerland'], ['IE', 'Ireland']
+  ]
+
+  var EVENTS = [
+    { label: 'Upgraded to Premium', kind: 'premium' },
+    { label: 'Recharged tokens', kind: 'recharge' },
+    { label: 'Renewed Premium', kind: 'premium' },
+    { label: 'Joined with your link', kind: 'join' }
+  ]
+
+  var MAX_ROWS = 10
+  var timer = null
+  var lastTick = 0
+  var running = false
+
+  function pick(list) {
+    return list[Math.floor(Math.random() * list.length)]
+  }
+
+  function rewardPerFriend() {
+    var el = document.getElementById('invite-reward-per')
+    var n = parseInt(String((el && el.textContent) || '').replace(/[^\d]/g, ''), 10)
+    return n > 0 ? n : 100
+  }
+
+  function fmtAge(sec) {
+    if (sec < 60) return 'just now'
+    var m = Math.floor(sec / 60)
+    if (m < 60) return m + ' min ago'
+    var h = Math.floor(m / 60)
+    if (h < 24) return h + ' h ago'
+    return Math.floor(h / 24) + ' d ago'
+  }
+
+  function rewardText(kind) {
+    var base = rewardPerFriend()
+    if (kind === 'premium') return '+' + base
+    if (kind === 'recharge') return '+' + Math.max(5, Math.round(base / 2))
+    return ''
+  }
+
+  function makeItem(age) {
+    return { country: pick(COUNTRIES), event: pick(EVENTS), age: age }
+  }
+
+  function buildRow(item, isNew) {
+    var row = document.createElement('div')
+    row.className = 'inv-feed-item' + (isNew ? ' is-new' : '')
+    row.dataset.age = String(item.age)
+
+    var flag = document.createElement('span')
+    flag.className = 'inv-feed-flag'
+    flag.textContent = item.country[0]
+    var main = document.createElement('span')
+    main.className = 'inv-feed-main'
+
+    var name = document.createElement('span')
+    name.className = 'inv-feed-name'
+    name.textContent = item.event.kind === 'join'
+      ? 'New friend from ' + item.country[1]
+      : 'Friend in ' + item.country[1]
+
+    var meta = document.createElement('span')
+    meta.className = 'inv-feed-meta'
+    meta.textContent = item.event.label + ' · ' + fmtAge(item.age)
+
+    main.appendChild(name)
+    main.appendChild(meta)
+
+    var reward = document.createElement('span')
+    reward.className = 'inv-feed-reward'
+    reward.textContent = rewardText(item.event.kind)
+
+    row.appendChild(flag)
+    row.appendChild(main)
+    row.appendChild(reward)
+    return row
+  }
+
+  function ageRows(delta) {
+    for (var i = 0; i < feed.children.length; i++) {
+      var row = feed.children[i]
+      var age = Number(row.dataset.age || 0) + delta
+      row.dataset.age = String(age)
+      var meta = row.querySelector('.inv-feed-meta')
+      if (meta) meta.textContent = meta.textContent.split(' · ')[0] + ' · ' + fmtAge(age)
+    }
+  }
+
+  function pushRow() {
+    var now = Date.now()
+    var delta = lastTick ? Math.max(1, Math.round((now - lastTick) / 1000)) : 0
+    lastTick = now
+    if (delta) ageRows(delta)
+
+    var row = buildRow(makeItem(0), true)
+    var prevTop = feed.firstElementChild
+    if (prevTop) prevTop.classList.remove('is-latest')
+
+    feed.insertBefore(row, feed.firstElementChild)
+    while (feed.children.length > MAX_ROWS) feed.removeChild(feed.lastElementChild)
+  }
+
+  function schedule() {
+    clearTimeout(timer)
+    if (!running) return
+    timer = setTimeout(function () {
+      pushRow()
+      schedule()
+    }, 7000 + Math.random() * 4000)
+  }
+
+  function start() {
+    if (running) return
+    running = true
+    lastTick = Date.now()
+    schedule()
+  }
+
+  function stop() {
+    running = false
+    clearTimeout(timer)
+    timer = null
+  }
+
+  /* 首屏先铺满，让卡片一出现就是有内容的；时间从几分钟前开始往回排 */
+  var seeded = [0, 80, 170, 260, 355, 470, 610, 780, 960, 1140]
+  for (var i = 0; i < seeded.length; i++) {
+    var row = buildRow(makeItem(seeded[i]), false)
+    if (i === 0) row.classList.add('is-latest')
+    feed.appendChild(row)
+  }
+
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stop()
+    else start()
+  })
+
+  if (window.IntersectionObserver) {
+    var io = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) start()
+      else stop()
+    }, { threshold: 0.2 })
+    io.observe(feed.parentElement)
+  } else {
+    start()
+  }
 })()
 </script>
 	<script src="./js/promo-popup.js?v=20261018b"></script>
