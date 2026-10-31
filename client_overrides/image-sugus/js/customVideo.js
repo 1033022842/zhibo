@@ -59,7 +59,13 @@
         })
     }
 
-    /* ---------- 首屏瀑布流：站内模板素材（视频自动播放 + 封面兜底） ---------- */
+    /* ---------- 首屏瀑布流：站内模板素材 ----------
+       性能策略（对齐参考站 genspicy.ai）：
+         · 首屏只渲染一页（36 条），每张卡只加载封面 jpg（几十 KB）
+         · 视频用 data-src 挂着，IntersectionObserver 看到才真正开始下载播放
+         · 卡片左上角是人设缩略图（40×50 斜贴 + 序号角标），比封面还小，
+           用来一眼区分「同一提示词、不同人设」的样片
+         · 翻页用数字分页，不堆 DOM，291 条也只是一页 36 条 */
     var gsList = []
     var gsFilter = 'all'
     var gsKw = ''
@@ -68,9 +74,17 @@
     var gsObserver = null
     var gsWaitLayout = null
     var GS_BASE = './media/gs/'
+    // 每页 = 列数 × 行数。固定 36 时，5 列会分成 7/7/7/7/8，
+    // 最后一排只剩单张卡片孤零零挂着；按列数取整就不可能出现。
+    // 参考站也是这个思路（5 列 × 6 行 = 30 条一页）。
+    var GS_PAGE_ROWS = 6
+    function pageSize() { return gsCols() * GS_PAGE_ROWS }
+    var gsPage = 1
 
     // 列数按「网格实际可用宽度」决定（页面有左侧栏，不能直接用 window.innerWidth）。
-    // 阈值对齐参考站观感：约 1150→5 / 880→4 / 640→3 / 更窄→2，单卡宽约 240px。
+    // 侧栏收起后图标栏仍占 100px（lg:pl-[100px]），1280 视口下网格约 1117px。
+    // 参考站同宽度是 5 列、单卡约 237px，所以 5 列阈值放到 1050，
+    // 否则我们只会排 4 列、单卡 270px，看起来比参考站更"胖"更空。
     function gsWidth() {
         var box = $('gsGrid')
         var w = box ? box.clientWidth : 0
@@ -79,9 +93,10 @@
     }
     function gsCols() {
         var w = gsWidth()
-        if (w >= 1150) return 5
-        if (w >= 880) return 4
-        if (w >= 640) return 3
+        if (w >= 1560) return 6
+        if (w >= 1050) return 5
+        if (w >= 860) return 4
+        if (w >= 620) return 3
         return 2
     }
 
@@ -106,9 +121,9 @@
             .then(function (r) { return r.json() })
             .then(function (d) {
                 var list = (d && Array.isArray(d.clips)) ? d.clips : []
-                gsList = list.filter(function (c) {
+                gsList = shuffleInterleave(list.filter(function (c) {
                     return c && c.id && (c.video || c.image)
-                })
+                }))
             })
             .catch(function () { gsList = [] })
             .then(function () {
@@ -127,6 +142,45 @@
             })
     }
 
+
+    /* ---------- 排列：同姿势的样片不要扎堆 ----------
+       原始 clips.json 是按卡片分组排的，一页 36 条会整屏都是同一个姿势。
+       做法：先按卡片分组，再轮转交叉（每组取一条轮流铺开），最后整体洗一遍。
+       这样每一页都混着多种姿势，同组样片也不会出现在同一处。 */
+    function shuffleInterleave(list) {
+        var byCard = {}, order = []
+        list.forEach(function (c) {
+            var k = String(c.id)
+            if (!byCard[k]) { byCard[k] = []; order.push(k) }
+            byCard[k].push(c)
+        })
+        // 卡片顺序随机，组内也随机
+        order = shuffled(order)
+        order.forEach(function (k) { byCard[k] = shuffled(byCard[k]) })
+
+        var out = [], more = true
+        while (more) {
+            more = false
+            for (var i = 0; i < order.length; i++) {
+                var g = byCard[order[i]]
+                if (g.length) {
+                    out.push(g.shift())
+                    if (g.length) more = true
+                }
+            }
+        }
+        return out
+    }
+
+    function shuffled(arr) {
+        var a = arr.slice()
+        for (var i = a.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1))
+            var t = a[i]; a[i] = a[j]; a[j] = t
+        }
+        return a
+    }
+
     function gsView() {
         var list = gsList.slice()
         if (gsKw) {
@@ -143,6 +197,88 @@
             list = list.slice(Math.ceil(list.length / 4))
         }
         return list
+    }
+
+    /* 分页切分：保证每一页的条数都是「列数」的整数倍。
+       只按固定条数切的话，尾页余数常常是 1 或 2，瀑布流最后一行就会
+       孤零零挂一两张卡。这里把总数均摊到各页，每页按列数取整，
+       多出来的零头（<列数）直接不展示 —— 那些都是同卡片的多余样片。 */
+    function pagePlan() {
+        var all = gsView()
+        var n = all.length
+        var cols = gsCols()
+        var rowsPerPage = GS_PAGE_ROWS
+        if (!n) return { total: 1, sizes: [], shown: 0 }
+        var nPages = Math.max(1, Math.ceil(n / (cols * rowsPerPage)))
+        var groupsPerPage = Math.floor(n / (cols * nPages))   // 每页占几个「列数」组
+        if (groupsPerPage < 1) { nPages = 1; groupsPerPage = Math.floor(n / cols) }
+        if (groupsPerPage < 1) { groupsPerPage = 1 }
+        var sizes = []
+        var used = 0
+        for (var i = 0; i < nPages; i++) { sizes.push(groupsPerPage * cols); used += groupsPerPage * cols }
+        // 剩余按整组补给前面的页
+        var rest = n - used
+        var extra = Math.floor(rest / cols)
+        for (var j = 0; j < extra; j++) { sizes[j % nPages] += cols }
+        var shown = sizes.reduce(function (a, b) { return a + b }, 0)
+        return { total: nPages, sizes: sizes, shown: shown }
+    }
+
+    function gsPageCount() {
+        return pagePlan().total
+    }
+
+    /** 当前页的卡片（条数恒为列数的整数倍，末排不会出现孤卡） */
+    function gsPageItems() {
+        var plan = pagePlan()
+        var all = gsView()
+        var start = 0
+        for (var i = 0; i < gsPage - 1 && i < plan.sizes.length; i++) start += plan.sizes[i]
+        var size = plan.sizes[gsPage - 1] || 0
+        return all.slice(start, start + size)
+    }
+
+    // 分页条：首尾 + 当前页前后各 1 页，其余用省略号，样式对齐参考站
+    function renderPager() {
+        var nav = $('gsPager')
+        if (!nav) return
+        var total = gsPageCount()
+        if (total <= 1) { nav.innerHTML = ''; nav.style.display = 'none'; return }
+        nav.style.display = 'flex'
+
+        var pages = []
+        for (var p = 1; p <= total; p++) {
+            if (p === 1 || p === total || Math.abs(p - gsPage) <= 1) pages.push(p)
+            else if (pages[pages.length - 1] !== '…') pages.push('…')
+        }
+        var arrow = function (dir, disabled) {
+            var d = dir === 'prev' ? 'M18 9l-6 6-6-6' : 'M6 9l6 6 6-6'
+            return '<button type="button" class="gs-pager__arrow"' + (disabled ? ' disabled' : '') +
+                ' data-page="' + (disabled ? '' : (dir === 'prev' ? gsPage - 1 : gsPage + 1)) + '"' +
+                ' aria-label="' + (dir === 'prev' ? 'Previous page' : 'Next page') + '">' +
+                '<svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="' + d +
+                '" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+                '</button>'
+        }
+        var html = arrow('prev', gsPage <= 1)
+        pages.forEach(function (p) {
+            if (p === '…') html += '<span class="gs-pager__gap">…</span>'
+            else html += '<button type="button" class="gs-pager__page' +
+                (p === gsPage ? ' is-active' : '') + '" data-page="' + p + '">' + p + '</button>'
+        })
+        html += arrow('next', gsPage >= total)
+        nav.innerHTML = html
+    }
+
+    function gotoPage(p) {
+        var total = gsPageCount()
+        p = Math.max(1, Math.min(total, p | 0 || 1))
+        if (p === gsPage) return
+        gsPage = p
+        // 翻页先回顶部，否则新一页在视口外，用户以为没反应
+        var wrap = document.querySelector('.gs-page')
+        if (wrap) wrap.scrollIntoView({ block: 'start' })
+        renderGallery()
     }
 
     // 只让视口内的卡片播放，滚出即暂停（几十个视频同时解码会卡）
@@ -169,19 +305,56 @@
             entries.forEach(function (en) {
                 var v = en.target
                 if (en.isIntersecting) {
-                    if (!v.getAttribute('src')) {
-                        var s = v.getAttribute('data-src')
-                        if (s) v.src = s
-                    }
-                    v.preload = 'auto'
-                    var p = v.play()
-                    if (p && p.catch) p.catch(function () {})
+                    loadAndPlay(v)
                 } else {
                     v.pause()
                 }
             })
         }, { root: null, rootMargin: '200px 0px', threshold: 0.1 })
         vids.forEach(function (v) { gsObserver.observe(v) })
+        // 兜底：内嵌 webview / 分屏下 IntersectionObserver 可能完全不回调
+        // （实测 IAB 里手动 new IO 也不触发），用 scroll/rAF 主动判可视区。
+        bindScrollFallback()
+    }
+
+    function loadAndPlay(v) {
+        if (!v.getAttribute('src')) {
+            var s = v.getAttribute('data-src')
+            if (s) v.src = s
+        }
+        v.preload = 'auto'
+        var p = v.play()
+        if (p && p.catch) p.catch(function () {})
+    }
+
+    // 只在「IO 不可用或被吞」时兜底，正常浏览器走 IO 就不必每帧算布局
+    var gsFallbackBound = false
+    function bindScrollFallback() {
+        if (gsFallbackBound) return
+        gsFallbackBound = true
+        var ticking = false
+        var run = function () {
+            ticking = false
+            var vh = window.innerHeight || document.documentElement.clientHeight
+            var vids = document.querySelectorAll('#gsGrid video')
+            for (var i = 0; i < vids.length; i++) {
+                var v = vids[i]
+                var r = v.getBoundingClientRect()
+                if (r.bottom > -120 && r.top < vh + 200) {
+                    if (!v.getAttribute('src')) loadAndPlay(v)
+                } else if (!v.paused) {
+                    v.pause()
+                }
+            }
+        }
+        var onScroll = function () {
+            if (!ticking) { ticking = true; requestAnimationFrame(run) }
+        }
+        window.addEventListener('scroll', onScroll, { passive: true })
+        window.addEventListener('resize', onScroll, { passive: true })
+        // 首屏先跑一次；IO 正常的话这里只是把已经可见的补齐，无副作用
+        setTimeout(run, 300)
+        setTimeout(run, 1200)
     }
 
     // 按卡片原始宽高比分配列，尽量让各列高度接近（源站也是这个思路）
@@ -210,14 +383,19 @@
         var tagHtml = tags.length
             ? '<div class="gs-card__tags"><span class="gs-card__tag">' + esc(tags[0]) + '</span></div>'
             : ''
-        var corners = (c.corners || []).map(function (f) {
-            return '<span class="gs-card__mark" style="background-image:url(&quot;' +
-                esc(GS_BASE + f) + '&quot;)"></span>'
-        }).join('')
 
+        // 左上角人设缩略图：同一条提示词有很多人设版本，靠它区分
+        var mark = ''
+        if (c.persona) {
+            mark = '<div class="gs-card__creator"><span class="gs-card__mark" ' +
+                'style="background-image:url(&quot;' + esc(GS_BASE + c.persona) + '&quot;)"></span></div>'
+        }
+
+        // 首屏只加载封面；视频挂在 data-src，进入视口才下载
         var media
         if (c.video) {
-            media = '<img class="gs-card__media" src="' + poster + '" alt="' + title + '" loading="lazy" decoding="async">' +
+            media = '<img class="gs-card__media" src="' + poster + '" alt="' + title +
+                '" loading="lazy" decoding="async">' +
                 '<video class="gs-card__video" data-src="' + esc(GS_BASE + c.video) + '" poster="' + poster +
                 '" muted loop playsinline webkit-playsinline preload="none"></video>'
         } else {
@@ -225,10 +403,11 @@
                 '" alt="' + title + '" loading="lazy" decoding="async">'
         }
 
-        return '<a class="gs-card" href="javascript:void(0)" data-gs-card="' + esc(c.id) + '"' +
+        return '<a class="gs-card" href="javascript:void(0)" data-gs-card="' + esc(c.slug || c.id) + '"' +
+            ' data-gs-id="' + esc(c.id) + '"' +
             ' style="--ar:' + ar.toFixed(4) + '">' +
             '<div class="gs-card__frame">' + media + '</div>' +
-            (corners ? '<div class="gs-card__creator">' + corners + '</div>' : '') +
+            mark +
             '<span class="gs-card__details">' +
             '<span class="gs-card__title">' + title + '</span>' +
             '<span class="gs-card__creator-name">@' + esc(c.creator || 'genspicy') + '</span>' +
@@ -242,29 +421,42 @@
         var list = gsView()
         // 后台/未布局时 clientWidth 为 0，此时算列数会退回 2 列（卡片显得很大）。
         // 先渲染骨架，等真正拿到宽度再重排。
+        //
+        // 这里不能像早期版本那样只轮询 10 秒就放弃：Explore 面板首帧可能是
+        // display:none，宽度要等切到该 tab 才出现，超过 10 秒很常见，放弃后
+        // 画廊会永久停在骨架屏。改为「宽度一出现就重排」——ResizeObserver 负责
+        // 尺寸变化，轮询只做兜底且不设上限。
         if (!gsWidth() && list.length) {
             gsSkeleton()
             if (!gsWaitLayout) {
-                var tries = 0
                 gsWaitLayout = setInterval(function () {
-                    tries++
-                    if (gsWidth() || tries > 40) {
-                        clearInterval(gsWaitLayout); gsWaitLayout = null
-                        if (gsWidth()) renderGallery()
+                    if (gsWidth()) {
+                        clearInterval(gsWaitLayout)
+                        gsWaitLayout = null
+                        renderGallery()
                     }
                 }, 250)
             }
             return
         }
+        if (gsWaitLayout) {
+            clearInterval(gsWaitLayout)
+            gsWaitLayout = null
+        }
         if (!list.length) {
             box.innerHTML = '<div class="gs-empty">Nothing here yet.</div>'
+            renderPager()
             return
         }
-        var buckets = distribute(list)
+        // 只渲染当前页，避免 291 张卡片同时进 DOM
+        var totalPages = gsPageCount()
+        if (gsPage > totalPages) gsPage = totalPages
+        var buckets = distribute(gsPageItems())
         box.innerHTML = buckets.map(function (bucket) {
             var inner = bucket.map(function (it) { return cardHtml(it.clip, it.ar) }).join('')
             return '<div class="gs-col">' + inner + '</div>'
         }).join('')
+        renderPager()
         initAutoplay()
     }
 
@@ -370,27 +562,24 @@
         if (!box) return
         var p = gen.preset
         if (!p) { box.innerHTML = ''; return }
-        if (p.kind === 'image') {
-            box.innerHTML = '<div class="gs-gen__hint" style="margin:0">Still-image preset — no duration to pick.</div>'
-            return
-        }
-        var def = p.duration_sec
-        var opts = [3, 5, 8, 10]
-        if (opts.indexOf(def) < 0) { opts.push(def); opts.sort(function (a, b) { return a - b }) }
-        var cur = gen.duration || def
-        box.innerHTML = opts.map(function (v) {
-            var on = v === cur ? ' on' : ''
-            var lab = v + 's' + (v === def ? ' · default' : '') + (v === 3 ? ' · fastest' : '')
-            return '<button type="button" class="gs-gen__addon' + on + '" data-dur="' + v + '">' +
-                '<span>' + esc(lab) + '</span><span class="gs-gen__radio"></span></button>'
-        }).join('')
-        box.querySelectorAll('[data-dur]').forEach(function (b) {
-            b.addEventListener('click', function () {
-                gen.duration = Number(b.getAttribute('data-dur'))
-                renderAddons()
-                renderCost()
-            })
-        })
+        // 时长不再让用户选：所有卡片固定用预设时长（10s），
+        // 这里改成上传指引，说明什么样的图能出好结果。
+        box.innerHTML = '<div class="gs-gen__tips">' +
+            '<span class="gs-gen__tips-hd">Generate Tips</span>' +
+            'Please upload a clear, original waist-up photo of one person facing the camera, ' +
+            'with the full face visible.<br>' +
+            'Please keep the image clean: no face coverings, other people, body parts.' +
+            '</div>'
+    }
+
+    /** 未上传图片时按钮置灰并拦住提交 */
+    function syncSubmitState() {
+        var btn = $('gsGenSubmit'), txt = $('gsGenSubmitText')
+        if (!btn) return
+        var ready = !!gen.file && !gen.submitting
+        btn.disabled = !ready
+        btn.classList.toggle('is-locked', !gen.file)
+        if (!gen.submitting) txt.textContent = gen.file ? 'Generate' : 'Upload image first'
     }
 
     function renderCost() {
@@ -428,10 +617,24 @@
         setState('Preview')
     }
 
-    function openCardModal(id) {
+    /** 人设大图：persona_020.webp -> prev_persona_020.webp */
+    function previewOf(c) {
+        if (c && c.persona) return 'prev_' + c.persona
+        return (c && (c.poster || c.image)) || ''
+    }
+
+    function openCardModal(key) {
+        // key 是 slug（每条样片唯一）。同一张卡片有十几条样片，它们的 id 相同，
+        // 早期版本按 id 查找会永远命中第一条，导致点 #2 / #3 播的都是 #1。
         var c = null
         for (var i = 0; i < gsList.length; i++) {
-            if (String(gsList[i].id) === String(id)) { c = gsList[i]; break }
+            var it = gsList[i]
+            if (String(it.slug || '') === String(key)) { c = it; break }
+        }
+        if (!c) {
+            for (var j = 0; j < gsList.length; j++) {
+                if (String(gsList[j].id) === String(key)) { c = gsList[j]; break }
+            }
         }
         if (!c || !$('gsCardModal')) return
         if (gen.pollTimer) { clearInterval(gen.pollTimer); gen.pollTimer = null }
@@ -447,9 +650,12 @@
 
         renderHead(c)
 
-        // 左框：待上传的人像（默认显示预设的角色图）
+        // 左框：待上传的人像。默认展示该样片所属人设的缩略图做预览；
+        // 用户必须自己上传一张才会解锁提交按钮。
+        // 弹窗左框约 260×360，用左上角那张 120×156 的角标缩略图放大必然糊。
+        // 这里换成同人设的 480×640 大图（prev_persona_XXX.webp）。
         var pv = $('gsGenPreview')
-        pv.src = GS_BASE + (c.corners && c.corners.length ? c.corners[0] : c.poster)
+        pv.src = GS_BASE + previewOf(c)
         pv.style.display = 'block'
         $('gsGenUploadText').textContent = 'upload image'
         $('gsGenFile').value = ''
@@ -459,7 +665,7 @@
         $('gsGenNote').textContent = ''
         renderAddons()
         renderCost()
-        $('gsGenSubmitText').textContent = 'Generate'
+        syncSubmitState()
         openModal('gsCardModal')
         loadPresets().then(function () {
             // 预设元信息到齐后刷新标题、标签与时长选项（首次打开时可能还没加载完）
@@ -479,6 +685,7 @@
         img.src = URL.createObjectURL(f)
         img.style.display = 'block'
         $('gsGenUploadText').textContent = 'change image'
+        syncSubmitState()
     }
 
     function submitGen() {
@@ -509,8 +716,7 @@
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             gen.submitting = false
-            btn.disabled = false
-            txt.textContent = 'Generate'
+            syncSubmitState()
             if (!d || d.code !== '00000') {
                 if (d && d.code === 'C0102') {
                     // 免费额度用尽：服务端已给出价格文案，确认后带 confirm_paid 重提
@@ -535,8 +741,7 @@
             watchResult(gen.taskId)
         }).catch(function () {
             gen.submitting = false
-            btn.disabled = false
-            txt.textContent = 'Generate'
+            syncSubmitState()
             toast('Network error')
         })
     }
@@ -658,9 +863,11 @@
                 if (rt) clearTimeout(rt)
                 rt = setTimeout(function () {
                     var now = gsCols()
-                    if (now !== lastCols) {
+                    // 列数没变也要重排：首帧宽度为 0 时骨架屏用的就是 2 列，
+                    // 之后宽度恢复但列数仍算 2 列（窄容器）时，只比列数会永远不渲染。
+                    if (gsLoaded && (!gsRenderedCols || now !== lastCols || gsWaitLayout)) {
                         lastCols = now
-                        if (gsLoaded) renderGallery()
+                        renderGallery()
                     }
                 }, 160)
             }
@@ -675,9 +882,21 @@
                 var chip = e.target.closest ? e.target.closest('[data-gs-filter]') : null
                 if (!chip) return
                 gsFilter = chip.getAttribute('data-gs-filter')
+                gsPage = 1          // 换筛选条件回到第 1 页，否则可能停在越界页
                 bar.querySelectorAll('[data-gs-filter]').forEach(function (c) { c.classList.remove('on') })
                 chip.classList.add('on')
                 renderGallery()
+            })
+        }
+        // 分页条（数字 + 左右箭头）
+        var pager = $('gsPager')
+        if (pager && !pager.getAttribute('data-gs-bound')) {
+            pager.setAttribute('data-gs-bound', '1')
+            pager.addEventListener('click', function (e) {
+                var b = e.target.closest ? e.target.closest('[data-page]') : null
+                if (!b || b.disabled) return
+                var p = b.getAttribute('data-page')
+                if (p) gotoPage(parseInt(p, 10))
             })
         }
         var sBtn = $('gsSearchBtn'), sWrap = $('gsSearchWrap'), sInput = $('gsSearchInput')
@@ -688,6 +907,7 @@
                 if (shown) {
                     sInput.value = ''
                     gsKw = ''
+                    gsPage = 1
                     renderGallery()
                 } else {
                     sInput.focus()
@@ -695,6 +915,7 @@
             })
             sInput.addEventListener('input', function () {
                 gsKw = sInput.value.trim()
+                gsPage = 1
                 renderGallery()
             })
         }

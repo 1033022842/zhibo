@@ -160,10 +160,80 @@ def find_node(wf, *types):
     return None
 
 
+def _apply_sampling(wf, preset, unet_node):
+    """按 preset 设置采样参数：sampler / scheduler / steps / unet。
+
+    为什么单独抽出来
+    ----------------
+    每类卡片参数不同（DeepThroat 用 euler + beta57 + 8 步，旧卡片用
+    res_multistep + simple）。这些值以前写死在 worker 里，现在由
+    lp_short_preset 逐行声明。
+
+    beta57 不是 ComfyUI 内置枚举值 —— 它就是 BetaSamplingScheduler
+    传 alpha=0.5 / beta=0.7。所以 scheduler 为 beta57 时要把
+    BasicScheduler 换成 BetaSamplingScheduler 节点，不能只改字段。
+    """
+    sampler = (preset.get("sampler") or "").strip() or "euler"
+    scheduler = (preset.get("scheduler") or "").strip() or "beta57"
+    steps = int(preset.get("steps") or 8)
+    unet_name = (preset.get("unet_name") or "").strip()
+
+    # 基座模型
+    if unet_name:
+        unet_loader = find_node(wf, "UNETLoader")
+        if unet_loader:
+            wf[unet_loader]["inputs"]["unet_name"] = unet_name
+
+    # 采样器
+    ks = find_node(wf, "KSamplerSelect")
+    if ks:
+        wf[ks]["inputs"]["sampler_name"] = sampler
+
+    # 调度器
+    sched_node = find_node(wf, "BasicScheduler", "BetaSamplingScheduler")
+    if sched_node:
+        model_ref = wf[sched_node]["inputs"].get("model")
+        if scheduler == "beta57":
+            alpha = float(preset.get("sampler_alpha") or 0.5)
+            beta = float(preset.get("sampler_beta") or 0.7)
+            wf[sched_node] = {
+                "class_type": "BetaSamplingScheduler",
+                "inputs": {"model": model_ref, "steps": steps,
+                           "alpha": alpha, "beta": beta},
+            }
+        else:
+            # 若模板是 BetaSamplingScheduler 但要切回普通调度器，重建 BasicScheduler
+            if wf[sched_node]["class_type"] == "BetaSamplingScheduler":
+                wf[sched_node] = {
+                    "class_type": "BasicScheduler",
+                    "inputs": {"model": model_ref, "scheduler": scheduler,
+                               "steps": steps, "denoise": 1.0},
+                }
+            else:
+                wf[sched_node]["inputs"]["scheduler"] = scheduler
+                wf[sched_node]["inputs"]["steps"] = steps
+    return sampler, scheduler, steps
+
+
 def build_workflow(preset, img_name):
-    """按 preset 拼工作流：精确 prompt + 动态 LoRA 链 + 指定时长。"""
+    """按 preset 拼工作流：精确 prompt + 动态 LoRA 链 + 指定时长 + 采样参数。"""
     kind = preset.get("kind") or "video"
     is_image = kind == "image"
+    task_type = (preset.get("task_type") or "").strip()
+    pipeline = (preset.get("pipeline") or "").strip().lower()
+
+    # 两条视频链路：
+    #   legacy  MiniMaxH3ImageToVideo + first_frame，gs-01..50 一直在用，不动它
+    #   t8      MiniMaxH3AudioConditioningT8，支持 I2VA/Ref2VA/Hybrid（ref_images）
+    # 由 preset.pipeline='t8' 显式指定；没写时只有 Ref2VA/Hybrid 这类
+    # legacy 结构上做不到的模式才自动走 t8，避免改变老卡片的输出。
+    T8_ONLY = ("Ref2VA", "Hybrid", "L2VA")
+    if not is_image and task_type and task_type not in ("I2VA", "FL2VA", "T2VA") \
+            and task_type not in T8_ONLY:
+        raise RuntimeError("task_type=%s 不受支持（可用 I2VA/FL2VA/T2VA/Ref2VA/Hybrid/L2VA）"
+                           % task_type)
+    use_t8 = (not is_image) and (pipeline == "t8" or task_type in T8_ONLY)
+
     wf_path = WF_IMAGE if is_image else WF_VIDEO
     wf = json.loads(wf_path.read_text(encoding="utf-8"))
 
@@ -200,14 +270,55 @@ def build_workflow(preset, img_name):
         raise RuntimeError("视频工作流缺节点：LoadImage/ImageToVideo/RandomNoise/SaveVideo/AttnPatch")
 
     wf[load]["inputs"]["image"] = img_name
-    wf[i2v]["inputs"]["prompt"] = preset.get("prompt") or ""
     wf[seed]["inputs"]["noise_seed"] = random.randint(1, 2 ** 48)
     wf[save]["inputs"]["filename_prefix"] = "%s/%s/task_%s" % (
         PREFIX_VIDEO, WORKER_TAG, preset["task_id"])
 
+    if use_t8:
+        # 换成 T8 节点。下游接线跟 ImageToVideo 完全同构：
+        #   105:16 BasicGuider.conditioning ← [cond, 0] positive
+        #   105:14 SamplerCustomAdvanced.latent_image ← [cond, 1] av_latent
+        # 图像统一从 205（PerfectVideoResolution）的第 2 路输出取，与卡
+        # 生成脚本（run_cardgen/run_dt）一致，保证同参数可复现。
+        cond = {
+            "clip": ["105:13", 0],
+            "video_vae": ["105:11", 0],
+            "audio_vae": ["105:24", 0],
+            "prompt": preset.get("prompt") or "",
+            "width": ["205", 0],
+            "height": ["205", 1],
+            "length": ["105:107", 1],
+            "task_type": task_type or "I2VA",
+            "audio_mode": "native",
+            "audio_denoise_strength": 1.0,
+            "add_source_as_reference": False,
+            "prompt_primary_audio_ordinal": 1,
+            "strict_prompt_tags": True,
+            "ref_image_size": "max",
+            "reference_video_policy": "official_2_to_15s",
+        }
+        if (task_type or "I2VA") == "Ref2VA":
+            cond["ref_images.ref_image_0"] = ["205", 2]
+        else:
+            # I2VA / Hybrid：first_frame 硬锚定首帧
+            cond["first_frame"] = ["205", 2]
+            if (task_type or "") == "Hybrid":
+                cond["ref_images.ref_image_0"] = ["205", 2]
+        wf[i2v] = {"class_type": "MiniMaxH3AudioConditioningT8", "inputs": cond}
+        log("  T8 链路 task_type=%s" % (task_type or "I2VA"))
+    else:
+        wf[i2v]["inputs"]["prompt"] = preset.get("prompt") or ""
+
     dur_node = find_node(wf, "PrimitiveFloat")
     if dur_node:
         wf[dur_node]["inputs"]["value"] = duration
+
+    # 分辨率档位（PerfectVideoResolution 的 resolution 字段）。抽卡时用的是
+    # Preview — 640×640（9:16 下约 480×864），卡片必须回填同一档，否则
+    # 同提示词同 LoRA 也复现不出样片的构图和细节量。
+    res = (preset.get("resolution") or "").strip()
+    if res and "205" in wf:
+        wf["205"]["inputs"]["resolution"] = res
 
     # 删掉模板里原有的 LoRA 节点，改为按 preset 动态串
     for old in (I_LORA_BASE, I_LORA_ACTION):
@@ -232,8 +343,12 @@ def build_workflow(preset, img_name):
         prev = node
     wf[attn]["inputs"]["model"] = [prev, 0]
 
+    # 采样参数（sampler/scheduler/steps/unet 从 preset 读）
+    sampler, scheduler, steps = _apply_sampling(wf, preset, unet)
+
     log("  LoRA 链 %d 层: %s" % (len(lora_chain),
                                 ", ".join("%s@%.2f" % (n, s) for n, s in lora_chain)))
+    log("  采样 %s / %s / %d 步" % (sampler, scheduler, steps))
     return wf, save
 
 
@@ -251,32 +366,44 @@ def find_output(entry, save_id):
     """从 history 里取产物路径。
 
     VHS_VideoCombine 的输出在 outputs[<id>]['gifs']，SaveImage/SaveVideo 在 'images'
-    或 'videos'；filename 可能带子目录（custom_video/<tag>/xxx.mp4），要按后缀名找。
+    或 'videos'。
+
+    subfolder 必须参与路径拼接。ComfyUI 返回的 filename 只是文件名，真实位置是
+    output/<subfolder>/<filename>；只拿 filename 去全局 rglob 会在多个批次目录存在
+    同名产物时（01_s1_00001-audio.mp4 这种）拿到别的批次文件 —— filename_prefix
+    里带的批次子目录正是用来区分的，丢掉它等于放弃区分。
     """
     outs = entry.get("outputs", {}) or {}
     node = outs.get(save_id)
-    candidates = []
+    items = []
     for v in ([node] if node else []) + list(outs.values()):
         for key in ("gifs", "videos", "images"):
             for item in (v.get(key) or []):
-                fn = item.get("filename") if isinstance(item, dict) else None
-                if fn:
-                    candidates.append(fn)
-        if candidates:
+                if isinstance(item, dict) and item.get("filename"):
+                    items.append(item)
+        if items:
             break
-    if not candidates:
+    if not items:
         raise RuntimeError("ComfyUI 未返回产物（outputs=%s）" % list(outs.keys()))
 
     out_root = COMFY_BASE / "output"
-    for fn in candidates:
+    for it in items:
+        fn = it["filename"]
+        sub = (it.get("subfolder") or "").strip("/")
+        if sub:
+            full = out_root / sub / fn
+            if full.exists():
+                return full
         full = out_root / fn
         if full.exists():
             return full
-        # 带子目录但路径拼不上时按文件名递归找
-        hits = list(out_root.rglob(Path(fn).name))
-        if hits:
-            return hits[0]
-    raise RuntimeError("产物文件不存在: %s" % candidates[0])
+        # 兜底：在指定 subfolder 内按文件名找，绝不跨目录
+        if sub:
+            hits = sorted((out_root / sub).rglob(Path(fn).name))
+            if hits:
+                return hits[0]
+    raise RuntimeError("产物文件不存在: subfolder=%s filename=%s"
+                       % (items[0].get("subfolder"), items[0]["filename"]))
 
 
 def assert_not_black(path: Path, what: str, min_luma: int = 8) -> None:
@@ -338,13 +465,33 @@ def fit_portrait(path, ratio=9 / 16):
     log("  参考图已裁成 9:16: %s -> %dx%d" % (Path(path).name, im.size[0], im.size[1]))
 
 
+def _abs_media_url(url):
+    """把相对 media 地址补成完整 URL。
+
+    /pending 返回的 image_url 走 absUrl()，结果只有 `/ai/media/gs/x.jpg`
+    这种站内路径（没有 scheme）。requests.get 直接拿它当 URL 会抛
+    MissingSchema，所以这里按 API_BASE 的 origin 补齐。
+    """
+    u = (url or "").strip()
+    if not u:
+        return u
+    if u.startswith("//"):
+        return "https:" + u
+    if u.startswith("/"):
+        from urllib.parse import urlsplit
+        p = urlsplit(API_BASE)
+        return "%s://%s%s" % (p.scheme or "https", p.netloc, u)
+    return u
+
+
 def stage_input(task_id, image_url):
     """下载参考图到 ComfyUI/input，文件名带站点标签防串台。"""
     inp = COMFY_BASE / "input"
     inp.mkdir(parents=True, exist_ok=True)
     name = "short_%s_%s.jpg" % (WORKER_TAG, task_id)
     dst = inp / name
-    r = requests.get(image_url, timeout=180, stream=True)
+    src = _abs_media_url(image_url)
+    r = requests.get(src, timeout=180, stream=True)
     r.raise_for_status()
     with open(dst, "wb") as f:
         shutil.copyfileobj(r.raw, f)
@@ -389,15 +536,29 @@ def process(task):
         log("[task %d] 接单失败，放弃: %s" % (tid, acc.get("msg") if isinstance(acc, dict) else acc))
         return
 
+    # preset 必须整份透传：/pending 已经 join 了 lp_short_preset 的全部生成参数
+    # （task_type / pipeline / sampler / scheduler / steps / unet / resolution）。
+    # 只挑 4 个字段的话，T8 卡片会被当成 legacy 单图跑，Ref2VA 直接报错。
     preset = {
         "task_id": tid,
         "kind": kind,
         "prompt": prompt,
         "lora_chain": task.get("lora_chain") or [],
         "duration_sec": int(task.get("duration_sec") or 8),
+        "task_type": (task.get("task_type") or "").strip(),
+        "pipeline": (task.get("pipeline") or "").strip(),
+        "sampler": (task.get("sampler") or "").strip(),
+        "scheduler": (task.get("scheduler") or "").strip(),
+        "sampler_alpha": task.get("sampler_alpha"),
+        "sampler_beta": task.get("sampler_beta"),
+        "steps": task.get("steps"),
+        "unet_name": (task.get("unet_name") or "").strip(),
+        "resolution": (task.get("resolution") or "").strip(),
     }
-    log("[task %d] 已接单: preset=%s kind=%s dur=%ds 提示词=%s…"
-        % (tid, code, kind, preset["duration_sec"], prompt[:70]))
+    log("[task %d] 已接单: preset=%s kind=%s dur=%ds task_type=%s pipeline=%s"
+        " 提示词=%s…" % (tid, code, kind, preset["duration_sec"],
+                        preset["task_type"] or "-", preset["pipeline"] or "-",
+                        prompt[:70]))
 
     stop_ev = threading.Event()
     hb = None
