@@ -8,6 +8,7 @@ use app\common\controller\Backend;
 use app\admin\model\live\LiveUser as LiveUserModel;
 use app\live\service\RegistrationSettingService;
 use app\live\service\UserService;
+use app\live\service\InviteService;
 
 class LiveUser extends Backend
 {
@@ -92,6 +93,7 @@ class LiveUser extends Backend
         $email    = trim((string) $this->request->post('email', ''));
         $password = (string) $this->request->post('password', '');
         $status   = (string) $this->request->post('status', '');
+        $rateIn   = trim((string) $this->request->post('invite_recharge_rate', ''));
 
         $user = $userId > 0 ? $this->model->where('is_deleted', 0)->find($userId) : null;
         if (!$user) {
@@ -110,6 +112,19 @@ class LiveUser extends Backend
             $this->error('状态参数错误');
         }
 
+        // 专属返佣比例：留空 = 跟随全局；填 0 表示该博主不返佣
+        $inviteRate = null;
+        if ($rateIn !== '') {
+            if (!is_numeric($rateIn)) {
+                $this->error('返佣比例必须是数字');
+            }
+            $rateVal = (float) $rateIn;
+            if ($rateVal < 0 || $rateVal > 100) {
+                $this->error('返佣比例需在 0~100 之间');
+            }
+            $inviteRate = round($rateVal / 100, 4);
+        }
+
         $db        = Db::connect('live_mysql');
         $emailAuth = $db->table('lp_user_auth')->where('user_id', $userId)->where('auth_type', 'email')->find();
         if ($emailAuth && $email === '') {
@@ -125,11 +140,12 @@ class LiveUser extends Backend
         }
 
         try {
-            $db->transaction(function () use ($db, $userId, $nickname, $email, $password, $status, $emailAuth): void {
+            $db->transaction(function () use ($db, $userId, $nickname, $email, $password, $status, $emailAuth, $inviteRate): void {
                 $db->table('lp_user')->where('id', $userId)->update([
-                    'nickname' => $nickname,
-                    'email'    => $email,
-                    'status'   => (int) $status,
+                    'nickname'               => $nickname,
+                    'email'                  => $email,
+                    'status'                 => (int) $status,
+                    'invite_recharge_rate'   => $inviteRate,
                 ]);
 
                 // 邮箱登录账号：同步改认证表，保证仍能用新邮箱登录
@@ -175,6 +191,7 @@ class LiveUser extends Backend
                 IFNULL((SELECT COUNT(*) FROM lp_invite_record ir2 WHERE ir2.inviter_id = live_user.id), 0) as invite_count,
                 IFNULL((SELECT COUNT(*) FROM lp_invite_record ir3 WHERE ir3.inviter_id = live_user.id AND ir3.premium_at IS NOT NULL), 0) as invite_premium_count,
                 IFNULL((SELECT SUM(ir4.reward_tokens) FROM lp_invite_record ir4 WHERE ir4.inviter_id = live_user.id), 0) as invite_reward_tokens,
+                IFNULL((SELECT SUM(ic.tokens) FROM lp_invite_commission ic WHERE ic.inviter_id = live_user.id), 0) as invite_commission_tokens,
                 IFNULL(wallet.diamond_balance, 0) as diamond_balance,
                 IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
@@ -335,9 +352,11 @@ class LiveUser extends Backend
             $row['invite_count']         = $inviteCount;
             $row['invite_premium_count'] = (int) ($row['invite_premium_count'] ?? 0);
             $row['invite_reward_tokens'] = (float) ($row['invite_reward_tokens'] ?? 0);
+            $row['invite_commission_tokens'] = (float) ($row['invite_commission_tokens'] ?? 0);
             $row['invite_code']          = trim((string) ($row['invite_code'] ?? ''));
             $it = ['下级总数：' . $inviteCount . ' 人', '其中已升级会员：' . $row['invite_premium_count'] . ' 人'];
             if ($row['invite_reward_tokens'] > 0) { $it[] = '累计邀请奖励：' . $row['invite_reward_tokens'] . ' 代币'; }
+            if ($row['invite_commission_tokens'] > 0) { $it[] = '累计充值佣金：' . $row['invite_commission_tokens'] . ' 代币'; }
             if ($row['invite_code'] !== '') { $it[] = '我的邀请码：' . $row['invite_code']; }
             $row['invite_detail'] = implode("\n", $it);
         }
@@ -613,6 +632,15 @@ class LiveUser extends Backend
         $selStatus1 = $statusVal === 1 ? ' selected' : '';
         $selStatus0 = $statusVal === 0 ? ' selected' : '';
         $emailLockedHint = $authTypeRaw === 'email' ? '该账号使用邮箱登录，邮箱不能为空' : '留空表示不设置邮箱';
+
+        // 专属充值返佣比例（NULL = 跟随全局），后台按百分比展示
+        $rateCustomRaw = $user->invite_recharge_rate ?? null;
+        $rateCustomPct = ($rateCustomRaw === null || $rateCustomRaw === '')
+            ? ''
+            : rtrim(rtrim(number_format((float) $rateCustomRaw * 100, 2, '.', ''), '0'), '.');
+        $globalRatePct = rtrim(rtrim(number_format(InviteService::globalRechargeRate() * 100, 2, '.', ''), '0'), '.');
+        $globalRatePct = $globalRatePct !== '' ? $globalRatePct : '0';
+        $rateHint = '留空 = 跟随全局 ' . $globalRatePct . '% ；填 0 = 该用户不返佣';
         $editCard = '';
         if ($canEdit) {
             $editCard = <<<EDIT
@@ -623,8 +651,8 @@ class LiveUser extends Backend
             <div class="form-row"><label>邮箱</label><input id="pfEmail" type="email" value="{$emailInput}" maxlength="255" placeholder="{$emailLockedHint}"></div>
             <div class="form-row"><label>新密码</label><input id="pfPassword" type="password" autocomplete="new-password" placeholder="留空则不修改（6-20 位）"></div>
             <div class="form-row"><label>确认密码</label><input id="pfPassword2" type="password" autocomplete="new-password" placeholder="再次输入新密码"></div>
-            <div class="form-row">
-                <label>状态</label>
+            <div class="form-row"><label>专属返佣比例(%)</label><input id="pfInviteRate" value="{$rateCustomPct}" placeholder="{$rateHint}"></div>
+            <div class="form-row"><label>状态</label>
                 <select id="pfStatus">
                     <option value="1"{$selStatus1}>正常</option>
                     <option value="0"{$selStatus0}>禁用（禁止登录）</option>
@@ -923,9 +951,13 @@ function saveProfile(e) {
     var pwd = document.getElementById('pfPassword').value;
     var pwd2 = document.getElementById('pfPassword2').value;
     var status = document.getElementById('pfStatus').value;
+    var inviteRate = document.getElementById('pfInviteRate').value.trim();
     if (!nickname) { toast('昵称不能为空', 'error'); return false; }
     if (pwd !== pwd2) { toast('两次输入的密码不一致', 'error'); return false; }
     if (pwd && (pwd.length < 6 || pwd.length > 20)) { toast('密码长度为 6-20 个字符', 'error'); return false; }
+    if (inviteRate !== '' && (isNaN(Number(inviteRate)) || Number(inviteRate) < 0 || Number(inviteRate) > 100)) {
+        toast('返佣比例需在 0~100 之间（留空跟随全局）', 'error'); return false;
+    }
     var btn = document.getElementById('pfSave');
     btn.disabled = true;
     var body = new URLSearchParams();
@@ -934,6 +966,7 @@ function saveProfile(e) {
     body.set('email', email);
     body.set('password', pwd);
     body.set('status', status);
+    body.set('invite_recharge_rate', inviteRate);
     var batoken = new URLSearchParams(location.search).get('batoken') || '';
     if (batoken) body.set('batoken', batoken);
     fetch('/admin/user.LiveUser/saveProfile', {

@@ -18,7 +18,7 @@ use think\facade\Db;
 
 final class PromoSetting extends Backend
 {
-    protected array $noNeedLogin = ['index', 'evSave', 'domainSave', 'pxSave', 'pxToggle', 'pxDel', 'preview', 'pxTest'];
+    protected array $noNeedLogin = ['index', 'evSave', 'domainSave', 'inviteSave', 'pxSave', 'pxToggle', 'pxDel', 'preview', 'pxTest'];
 
     protected array $middleware = [
         \app\admin\middleware\FloatAuth::class,
@@ -47,6 +47,11 @@ final class PromoSetting extends Backend
         $evReg = $on('promo_ev_register');
         $evPay = $on('promo_ev_recharge');
         $evSub = $on('promo_ev_subscribe');
+
+        // 邀请充值返佣：库里存 0~1 小数，后台按百分比展示（0 = 关闭）
+        $inviteRateRaw = \app\live\service\WalletService::config('invite_recharge_rate', '0');
+        $inviteRatePct = rtrim(rtrim(number_format((float) $inviteRateRaw * 100, 2, '.', ''), '0'), '.');
+        $inviteRatePct = $inviteRatePct !== '' ? $inviteRatePct : '0';
 
         $edit = [
             'id' => 0,
@@ -476,6 +481,23 @@ final class PromoSetting extends Backend
                             <div style="margin-top:12px"><button class="btn btn-primary" type="submit">保存域名列表</button></div>
                         </form>
                     </div>
+
+                    <div class="card-box">
+                        <h3>邀请充值返佣</h3>
+                        <form class="small-form" method="post" action="/admin/live.PromoSetting/inviteSave">
+                            {$hiddenKey}
+                            {$currentTabInp}
+                            <div class="line">
+                                <label>全局返佣比例（%）</label>
+                                <input type="text" name="invite_recharge_rate" value="{$inviteRatePct}" placeholder="例如 10 表示好友每充值 $100 返 $10 等值代币">
+                            </div>
+                            <div class="tip">
+                                用户用「邀请链接（?code=）」拉来的好友，每次充值成功都会按实付金额 × 比例给邀请人返代币（一级返佣）。<br>
+                                填 0 或留空 = 关闭；单个博主可在「会员管理 → 用户详情」里设置专属比例，优先于这里的全局比例。
+                            </div>
+                            <div style="margin-top:12px"><button class="btn btn-primary" type="submit">保存返佣比例</button></div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -786,6 +808,26 @@ HTML;
             }
             $saved = (new PromoService())->saveDomains($list);
             $this->backToIndex('前端域名列表已保存（共 ' . count($saved) . ' 个）');
+        } catch (\Throwable $e) {
+            $this->renderToast(false, $e->getMessage(), $this->buildIndexUrl(['tab' => 'config']));
+        }
+    }
+
+    /** 邀请充值返佣：全局比例（后台按百分比输入，库里存 0~1 小数） */
+    public function inviteSave(): void
+    {
+        try {
+            $raw  = trim((string) $this->request->post('invite_recharge_rate', ''));
+            $rate = $raw === '' ? 0.0 : (float) $raw;
+            if ($rate < 0 || $rate > 100) {
+                throw new \InvalidArgumentException('返佣比例需在 0~100 之间');
+            }
+            (new PromoService())->saveSetting(
+                'invite_recharge_rate',
+                (string) round($rate / 100, 4),
+                '邀请充值返佣比例（0.1=10%，0=关闭）'
+            );
+            $this->backToIndex('返佣比例已保存：' . rtrim(rtrim(number_format($rate, 2, '.', ''), '0'), '.') . '%');
         } catch (\Throwable $e) {
             $this->renderToast(false, $e->getMessage(), $this->buildIndexUrl(['tab' => 'config']));
         }

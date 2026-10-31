@@ -47,14 +47,6 @@
 
     <nav v-if="loggedIn" class="menu" v-anim>
       <div class="menu-group">
-        <button v-if="loggedIn" class="menu-row" @click="goCertification">
-          <span class="menu-icon menu-icon--amber">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          </span>
-          <span class="menu-label">商家认证</span>
-          <span class="menu-badge" :class="certBadgeClass">{{ certStatusLabel }}</span>
-          <svg class="menu-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
         <button class="menu-row" @click="goCrowdfunding">
           <span class="menu-icon menu-icon--purple">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -129,21 +121,6 @@ const avatarUrl = computed(() => store.authAvatar || '')
 const bio = computed(() => store.authBio)
 const gender = computed(() => store.authGender)
 
-const certStatus = computed(() => store.authCertStatus)
-const certStatusLabel = computed(() => {
-  const map: Record<number, string> = { [-1]: '未认证', 0: '审核中', 1: '已认证', 2: '已拒绝' }
-  return map[certStatus.value] ?? '未认证'
-})
-const certBadgeClass = computed(() => {
-  const map: Record<number, string> = {
-    [-1]: '',
-    0: 'badge--pending',
-    1: 'badge--passed',
-    2: 'badge--rejected'
-  }
-  return map[certStatus.value] ?? ''
-})
-
 const diamondBalance = ref(0)
 
 async function fetchBalance() {
@@ -182,7 +159,6 @@ onActivated(() => {
 function goEdit() { router.push('/me/edit') }
 function goSetting() { router.push('/me/setting') }
 function goAbout() { router.push('/me/setting?tab=about') }
-function goCertification() { router.push('/me/certification') }
 function goCrowdfunding() { router.push('/crowdfunding/list') }
 function goRecharge() { router.push('/me/recharge') }
 function goLogin() { router.push('/login?redirect=/me') }

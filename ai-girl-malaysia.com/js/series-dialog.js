@@ -22,6 +22,7 @@
  */
 (function () {
     var DIALOG_ID = 'candy-series-dialog'
+    var PREMIUM_ID = 'candy-premium-dialog'
     var STYLE_ID = 'candy-series-style'
     var API_EPISODES = '/api/live/shortEpisodes'
     var API_UNLOCK = '/api/live/shortUnlock'
@@ -41,6 +42,9 @@
     var SVG_LOCK = '<svg class="cs-lock" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2a2 2 0 0 0-1 1.7V19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8.3A2 2 0 0 0 17 9zm-8-2a3 3 0 0 1 6 0v2H9V7zm3 10a1.6 1.6 0 0 1-1-2.8V13a1 1 0 0 1 2 0v1.2A1.6 1.6 0 0 1 12 17z"/></svg>'
     var TOKEN_ICON = '<img class="cs-token" src="./taocan_files/token-4f2c951e0a476a1cf59eadbc2108289323778ccb84fb232782ae923a8d1b8961.svg" alt="">'
     var SVG_CHEVRON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>'
+    var SVG_X = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+    var SVG_CHECK = '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 0C8.02219 0 6.08879 0.58649 4.4443 1.6853C2.79981 2.78412 1.51809 4.3459 0.761209 6.17317C0.00433284 8.00043 -0.193701 10.0111 0.192152 11.9509C0.578004 13.8907 1.53041 15.6725 2.92894 17.0711C4.32746 18.4696 6.10929 19.422 8.0491 19.8079C9.98891 20.1937 11.9996 19.9957 13.8268 19.2388C15.6541 18.4819 17.2159 17.2002 18.3147 15.5557C19.4135 13.9112 20 11.9778 20 10C20 8.68678 19.7413 7.38642 19.2388 6.17317C18.7363 4.95991 17.9997 3.85752 17.0711 2.92893C16.1425 2.00035 15.0401 1.26375 13.8268 0.761205C12.6136 0.258658 11.3132 0 10 0ZM14.3 7.61L9.73 13.61C9.63685 13.731 9.51721 13.8291 9.38027 13.8967C9.24333 13.9643 9.09272 13.9996 8.94 14C8.78811 14.0008 8.63803 13.967 8.50115 13.9012C8.36426 13.8353 8.24418 13.7392 8.15 13.62L5.71 10.51C5.62924 10.4063 5.5697 10.2876 5.53479 10.1609C5.49988 10.0341 5.49027 9.90172 5.50652 9.77126C5.52277 9.64079 5.56456 9.5148 5.6295 9.40049C5.69444 9.28617 5.78126 9.18576 5.885 9.105C6.09453 8.94189 6.36026 8.8687 6.62375 8.90152C6.75421 8.91777 6.8802 8.95955 6.99452 9.02449C7.10884 9.08943 7.20924 9.17626 7.29 9.28L8.92 11.36L12.7 6.36C12.7801 6.25494 12.8801 6.16669 12.9943 6.10029C13.1086 6.03388 13.2347 5.99062 13.3657 5.97298C13.4966 5.95534 13.6297 5.96365 13.7574 5.99746C13.8851 6.03126 14.0049 6.08989 14.11 6.17C14.2151 6.25011 14.3033 6.35012 14.3697 6.46433C14.4361 6.57855 14.4794 6.70472 14.497 6.83565C14.5147 6.96658 14.5063 7.0997 14.4725 7.22742C14.4387 7.35514 14.3801 7.47494 14.3 7.58V7.61Z" fill="#E2FF87"/></svg>'
+    var SVG_GEM = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.2 16.2 7H21l-9 15L3 7h4.8L12 2.2Zm0 2.6L9.4 7h5.2L12 4.8Z"/></svg>'
 
     var RATES = [1, 1.25, 1.5, 2]
 
@@ -217,6 +221,44 @@
             '#' + DIALOG_ID + ' .cs-free{font-size:13px;font-weight:600;color:#7EE2A8;white-space:nowrap;}',
             '#' + DIALOG_ID + ' .cs-skeleton{padding:0 20px;font-size:13px;color:#9aa0a6;}',
 
+            // ---------- 非会员订阅引导弹窗（对齐 candy 的 Upgrade to Unlock） ----------
+            '#' + PREMIUM_ID + '{border:0;margin:0;padding:0;width:100%;height:100%;max-width:100%;max-height:100%;background:transparent;color:#fff;}',
+            '#' + PREMIUM_ID + '::backdrop{background:rgba(0,0,0,.5);}',
+            '#' + PREMIUM_ID + ' .pm-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;}',
+            '#' + PREMIUM_ID + ' .pm-card{position:relative;width:740px;height:520px;border-radius:24px;border:2px solid #282828;' +
+                'background:radial-gradient(120% 100% at 0% 100%, rgba(120,32,54,.55) 0%, rgba(31,16,20,0) 55%), #1F1014;' +
+                'box-shadow:0 24px 64px rgba(0,0,0,.6);overflow:hidden;}',
+            '#' + PREMIUM_ID + ' .pm-bg{position:absolute;inset:0;border-radius:24px;background-repeat:no-repeat;background-size:cover;pointer-events:none;}',
+            '#' + PREMIUM_ID + ' .pm-bg-light{background-image:url("./assets/paywall-modal/light-0b96402e14404aacd6dc078915024f5270c06ee5ebbfc0377cbfe5afb20ab9a5.webp");}',
+            '#' + PREMIUM_ID + ' .pm-bg-pattern{background-image:url("./assets/paywall-modal/pattern-0197924b5b1dfbff47fff30a528f3f28c6e39141b9e4e1e7ab0c86bcff8eb3be.webp");}',
+            '#' + PREMIUM_ID + ' .pm-close{position:absolute;right:8px;top:8px;z-index:50;width:24px;height:24px;display:flex;align-items:center;' +
+                'justify-content:center;border:0;background:transparent;color:#fff;cursor:pointer;opacity:.9;}',
+            '#' + PREMIUM_ID + ' .pm-close:hover{opacity:1;}',
+            '#' + PREMIUM_ID + ' .pm-body{position:relative;z-index:20;display:flex;align-items:center;justify-content:center;gap:16px;' +
+                'width:100%;height:100%;padding:32px;}',
+            '#' + PREMIUM_ID + ' .pm-poster{width:307px;height:462px;object-fit:cover;border-radius:16px;border:2px solid #6B3340;' +
+                'flex:0 0 auto;background:#000;}',
+            '#' + PREMIUM_ID + ' .pm-right{display:flex;flex-direction:column;justify-content:space-between;width:357px;height:462px;' +
+                'padding:32px;border-radius:8px;background:rgba(28,27,25,.6);flex:0 0 auto;min-width:0;}',
+            '#' + PREMIUM_ID + ' .pm-h1{margin:0;font-size:20px;font-weight:200;line-height:1.3;color:#fff;}',
+            '#' + PREMIUM_ID + ' .pm-h2{margin:0;font-size:23px;font-weight:600;line-height:1.3;color:' + ACCENT + ';}',
+            '#' + PREMIUM_ID + ' .pm-ep{margin:8px 0 0;font-size:12px;font-weight:200;color:#fff;}',
+            '#' + PREMIUM_ID + ' .pm-lead{margin:0 0 16px;font-size:12px;font-weight:200;color:#9ca3af;}',
+            '#' + PREMIUM_ID + ' .pm-benefits{display:flex;flex-direction:column;gap:16px;margin-bottom:8px;}',
+            '#' + PREMIUM_ID + ' .pm-benefit{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:400;line-height:1.35;color:#fff;}',
+            '#' + PREMIUM_ID + ' .pm-check{display:flex;flex:0 0 auto;width:20px;height:20px;}',
+            '#' + PREMIUM_ID + ' .pm-check svg{width:20px;height:20px;display:block;}',
+            '#' + PREMIUM_ID + ' .pm-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;' +
+                'border:2px solid #FF7B91;border-radius:8px;background:linear-gradient(90deg,#FF7B91 0%,#E65073 100%);color:#fff;' +
+                'font-family:inherit;font-size:18px;font-weight:700;cursor:pointer;}',
+            '#' + PREMIUM_ID + ' .pm-cta svg{width:20px;height:20px;color:rgba(255,255,255,.6);flex:0 0 auto;}',
+            '@media (max-width:767px){',
+            '#' + PREMIUM_ID + ' .pm-card{width:min(320px,92vw);height:auto;min-height:546px;}',
+            '#' + PREMIUM_ID + ' .pm-body{flex-direction:column;align-items:stretch;padding:20px;gap:0;}',
+            '#' + PREMIUM_ID + ' .pm-poster{width:152px;height:229px;align-self:center;margin-top:12px;}',
+            '#' + PREMIUM_ID + ' .pm-right{width:100%;height:auto;margin-top:16px;padding:16px 4px 0;background:transparent;gap:16px;}',
+            '}',
+
             // ---------- 手机端：一集一屏的竖向滑动播放器 ----------
             '#' + DIALOG_ID + ' .cs-feed{position:relative;flex:1 1 auto;height:100%;overflow-y:auto;overflow-x:hidden;' +
                 'scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;background:#000;scrollbar-width:none;}',
@@ -387,7 +429,7 @@
           '</button>'
     }
 
-    /* 非会员：整部剧锁定，CTA 直接去订阅页 */
+    /* 非会员：整部剧锁定，CTA 弹订阅引导 */
     function vipCta() {
         return '<button type="button" class="cs-cta" data-cs-cta data-vip="1">Subscribe to watch</button>'
     }
@@ -402,9 +444,10 @@
           '</div>'
     }
 
-    function goVip() {
-        close()
-        location.href = './Subscriptions.html'
+    function goVip(ep) {
+        var cur = ep || current()
+        // 非会员：先弹「Upgrade to Unlock」，点按钮再去订阅页
+        showPremium((cur && cur.poster) || state.poster, cur ? episodeLabel(cur) : 'Episode 1')
     }
 
     function bindVideo(scope) {
@@ -798,8 +841,12 @@
         var ep = episodeById(id)
         if (!ep) return
 
-        // 非会员：只切到该集展示会员锁，不要求登录（点 CTA 再去订阅页）
-        if (state.vipRequired) { selectEpisode(ep); return }
+        // 非会员：点任意一集都先弹订阅引导（弹窗里显示该集名字），点按钮再去订阅页
+        if (state.vipRequired) {
+            selectEpisode(ep)
+            showPremium(ep.poster || state.poster, episodeLabel(ep))
+            return
+        }
 
         if (ep.unlocked) { selectEpisode(ep); return }
 
@@ -883,6 +930,7 @@
                 state.poster = s.poster || ''
                 state.spicy = Number(s.spicy || 0) === 1
                 state.confirmId = 0
+                showSeries()
 
                 // 没配剧集的剧：用剧自身的视频兜底成第 1 集（免费），
                 // 这样任何卡片点开都是同一个弹窗，不会一半新样式一半旧样式
@@ -911,6 +959,7 @@
                 startHistory()
             })
             .catch(function () {
+                showSeries()
                 if (list) list.innerHTML = '<p class="cs-skeleton">Network error, please try again.</p>'
                 if (isMobile()) feedMessage('Network error, please try again.')
                 else stageEmpty('Network error, please try again.')
@@ -972,6 +1021,80 @@
         }
     }
 
+    /* ---------- 非会员：先弹订阅引导（Upgrade to Unlock），点按钮去订阅页 ---------- */
+    function buildPremium() {
+        injectStyle()
+        var el = document.getElementById(PREMIUM_ID)
+        if (el) return el
+        el = document.createElement('dialog')
+        el.id = PREMIUM_ID
+        el.setAttribute('aria-label', 'Upgrade to Premium')
+        el.innerHTML =
+            '<div class="pm-wrap">' +
+              '<div class="pm-card">' +
+                '<button type="button" class="pm-close" data-premium-close aria-label="Close">' + SVG_X + '</button>' +
+                '<div class="pm-bg pm-bg-light"></div>' +
+                '<div class="pm-bg pm-bg-pattern"></div>' +
+                '<div class="pm-body">' +
+                  '<img class="pm-poster" data-premium-poster alt="">' +
+                  '<div class="pm-right">' +
+                    '<div>' +
+                      '<h3 class="pm-h1">Upgrade to Unlock</h3>' +
+                      '<h3 class="pm-h2">Next Episodes</h3>' +
+                      '<p class="pm-ep" data-premium-ep>Episode 1</p>' +
+                    '</div>' +
+                    '<div>' +
+                      '<p class="pm-lead">With subscription you get access to:</p>' +
+                      '<div class="pm-benefits">' +
+                        '<div class="pm-benefit"><span class="pm-check">' + SVG_CHECK + '</span><span>Unlock all premium episodes</span></div>' +
+                        '<div class="pm-benefit"><span class="pm-check">' + SVG_CHECK + '</span><span>AI generates the most spicy moments</span></div>' +
+                        '<div class="pm-benefit"><span class="pm-check">' + SVG_CHECK + '</span><span>Watch in HD anytime, anywhere</span></div>' +
+                      '</div>' +
+                    '</div>' +
+                    '<button type="button" class="pm-cta" data-premium-cta>' + SVG_GEM + '<span>Upgrade to Premium</span></button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>'
+
+        el.addEventListener('click', function (e) {
+            if (e.target.closest('[data-premium-close]') || e.target === el) { closePremium(); return }
+            if (e.target.closest('[data-premium-cta]')) { location.href = './Subscriptions.html' }
+        })
+
+        document.body.appendChild(el)
+        return el
+    }
+
+    function showPremium(poster, label) {
+        var el = buildPremium()
+        var img = el.querySelector('[data-premium-poster]')
+        if (img) {
+            if (poster) { img.src = poster; img.style.display = '' }
+            else { img.style.display = 'none' }
+        }
+        var ep = el.querySelector('[data-premium-ep]')
+        if (ep) ep.textContent = label || 'Episode 1'
+        if (!el.open) {
+            try { if (el.showModal) el.showModal() } catch (e) { /* 忽略 */ }
+            if (!el.open) el.setAttribute('open', '')
+        }
+    }
+
+    function closePremium() {
+        var el = document.getElementById(PREMIUM_ID)
+        if (el && el.open) el.close()
+    }
+
+    /* 打开剧集弹窗本体（数据加载完再显示，避免非会员先闪一下） */
+    function showSeries() {
+        if (!dlg) return
+        if (!dlg.open) {
+            try { if (dlg.showModal) dlg.showModal() } catch (e) { /* 忽略 */ }
+            if (!dlg.open) dlg.setAttribute('open', '')
+        }
+    }
+
     function open(opts) {
         var opt = opts || {}
         var d = build()
@@ -995,10 +1118,7 @@
         else stageEmpty('Loading...')
         renderHeader()
 
-        if (!d.open) {
-            try { if (d.showModal) d.showModal() } catch (e) { /* 忽略 */ }
-            if (!d.open) d.setAttribute('open', '')
-        }
+        // 先拉数据：会员才打开剧集弹窗；非会员直接弹订阅引导
         load(state.shortId)
     }
 

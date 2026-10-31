@@ -81,7 +81,7 @@
 <style>
 /* Inviter 页新增内容区（数据概览 / 步骤 / 奖励规则 / 邀请记录） */
 .inv-card{background:#131313;border:1px solid #363636;border-radius:10px}
-.inv-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.inv-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .inv-stat{padding:16px 18px;min-width:0}
 .inv-stat-label{font-size:12px;line-height:1.4;color:rgba(255,255,255,.55);margin:0 0 8px}
 .inv-stat-value{font-size:24px;line-height:1.1;font-weight:700;color:#fff;margin:0;font-family:Poppins,sans-serif;word-break:break-all}
@@ -790,6 +790,14 @@
         <p class="inv-stat-label">Reward per friend</p>
         <p class="inv-stat-value" id="invite-reward-per">+100</p>
       </div>
+      <div class="inv-card inv-stat inv-recharge-only" style="display:none">
+        <p class="inv-stat-label">Recharge commission</p>
+        <p class="inv-stat-value" id="invite-commission-tokens">0</p>
+      </div>
+      <div class="inv-card inv-stat inv-recharge-only" style="display:none">
+        <p class="inv-stat-label">Commission rate</p>
+        <p class="inv-stat-value" id="invite-commission-rate">0%</p>
+      </div>
     </div>
 
     <div class="inv-card inv-section w-full">
@@ -847,12 +855,35 @@
         <ul>
           <li>An invite is linked when a new account registers through your invite link or invite code.</li>
           <li>The reward is paid once per invited friend, after their first Premium upgrade.</li>
+          <li>You also earn a recharge commission on every recharge your invited friends make, at the rate shown on this page.</li>
           <li>The invited friend receives the same reward once, on top of their plan tokens.</li>
           <li>Self-invites, duplicate accounts and fraudulent activity do not qualify for rewards.</li>
           <li>Changing your invite link stops the previous link from working.</li>
           <li>The reward amount is set by the site and may be updated.</li>
         </ul>
       </div>
+    </div>
+
+    <div class="inv-card inv-section w-full inv-recharge-only" style="display:none">
+      <p class="inv-section-title">Recharge commission</p>
+      <ul class="inv-earn">
+        <li>
+          <img class="inv-earn-ic" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" alt="" onerror="this.style.visibility='hidden'">
+          <p>Every recharge made by a friend you invited pays you <span class="inv-strong" id="invite-commission-rate-text">0%</span> of the amount they paid, as tokens.</p>
+        </li>
+        <li>
+          <img class="inv-earn-ic" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" alt="" onerror="this.style.visibility='hidden'">
+          <p>Commission is based on the actual amount paid in USD and converted to tokens at the site rate.</p>
+        </li>
+        <li>
+          <img class="inv-earn-ic" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" alt="" onerror="this.style.visibility='hidden'">
+          <p>Only your direct invitees count (one level). Self-invites and fraudulent accounts do not qualify.</p>
+        </li>
+        <li>
+          <img class="inv-earn-ic" src="./invite_files/check_green-b176ccd38ab4b00139b950a443ca7f44e8d7a5e8650abded84f474f17b09dc53.svg" alt="" onerror="this.style.visibility='hidden'">
+          <p>Commission is credited automatically to your token balance and can be withdrawn like other tokens.</p>
+        </li>
+      </ul>
     </div>
 
     <button type="button" class="inv-cta" id="invite-copy-cta">Copy invite link</button>
@@ -870,6 +901,22 @@
           <p class="inv-empty-title">No invite records yet</p>
           <p class="inv-empty-text">Share your link — when a friend joins and upgrades, they'll appear here.</p>
           <button type="button" class="inv-empty-copy" id="invite-records-copy">Copy link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-records w-full inv-recharge-only" style="display:none">
+      <div class="inv-records-head">
+        <p class="inv-section-title">Recharge commission</p>
+        <span class="inv-records-count" id="invite-commission-count">0</span>
+      </div>
+      <div class="inv-records-box" id="invite-commission-list">
+        <div class="inv-records-empty">
+          <span class="inv-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M17 8.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3.5 5 3.5 5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5"/></svg>
+          </span>
+          <p class="inv-empty-title">No commission yet</p>
+          <p class="inv-empty-text">When a friend you invited recharges, your commission will appear here.</p>
         </div>
       </div>
     </div>
@@ -1217,6 +1264,52 @@ document.addEventListener('click', function (e) {
     }).join('')
   }
 
+  /* 充值佣金记录：后台返回最近 20 条，没有记录时保留静态空状态 */
+  function renderCommissions(records) {
+    var box = document.getElementById('invite-commission-list')
+    if (!box) return
+    var list = Array.isArray(records) ? records : []
+    if (!list.length) return
+    box.innerHTML = list.map(function (r) {
+      var name = String(r.nickname || 'Friend')
+      var pay = Number(r.pay_usd || 0)
+      var rate = Number(r.rate || 0)
+      var tokens = Number(r.tokens || 0)
+      var day = fmtDate(r.created_at)
+      var avatar = r.avatar
+        ? '<img src="' + escHtml(r.avatar) + '" alt="">'
+        : escHtml(name.charAt(0).toUpperCase())
+      return '<div class="inv-record">' +
+        '<span class="inv-record-avatar">' + avatar + '</span>' +
+        '<span class="inv-record-main">' +
+          '<span class="inv-record-name">' + escHtml(name) + '</span>' +
+          '<span class="inv-record-date">Paid $' + pay.toFixed(2) + ' · ' + rate + '%' + (day ? ' · ' + day : '') + '</span>' +
+        '</span>' +
+        '<span class="inv-record-badge is-premium">Recharge</span>' +
+        '<span class="inv-record-reward">+' + tokens + '</span>' +
+        '</div>'
+    }).join('')
+  }
+
+  function setCommissionRate(rate) {
+    var pct = Number(rate || 0)
+    var text = pct + '%'
+    var stat = document.getElementById('invite-commission-rate')
+    if (stat) stat.textContent = text
+    var rule = document.getElementById('invite-commission-rate-text')
+    if (rule) rule.textContent = text
+    /* 比例为 0（未开启）时整块隐藏，避免页面出现「返 0%」的无效说明 */
+    var blocks = document.querySelectorAll('.inv-recharge-only')
+    for (var i = 0; i < blocks.length; i++) {
+      blocks[i].style.display = pct > 0 ? '' : 'none'
+    }
+  }
+
+  function fmtTokens(value) {
+    var n = Number(value || 0)
+    return n % 1 === 0 ? String(n) : n.toFixed(2)
+  }
+
   function setRewardText(value) {
     var text = String(value)
     var hero = document.getElementById('invite-reward-hero')
@@ -1238,6 +1331,13 @@ document.addEventListener('click', function (e) {
     if (countLabel) countLabel.textContent = String(data.invited_count != null ? data.invited_count : 0)
     if (data.reward_tokens != null) setRewardText(data.reward_tokens)
     renderRecords(data.records)
+
+    var commEl = document.getElementById('invite-commission-tokens')
+    if (commEl) commEl.textContent = fmtTokens(data.commission_tokens)
+    var commCount = document.getElementById('invite-commission-count')
+    if (commCount) commCount.textContent = String(data.commission_orders != null ? data.commission_orders : 0)
+    setCommissionRate(data.recharge_rate)
+    renderCommissions(data.commissions)
   }
 
   /* 我的邀请码与收益统计（未登录 / 接口异常时保持空码与 0，不影响页面） */
