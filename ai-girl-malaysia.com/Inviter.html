@@ -127,26 +127,28 @@
 .inv-record-badge{flex:0 0 auto;font-size:11px;line-height:1;padding:5px 8px;border-radius:999px;background:#242424;color:rgba(255,255,255,.6)}
 .inv-record-badge.is-premium{background:rgba(231,82,117,.16);color:#F0788F}
 .inv-record-reward{flex:0 0 auto;font-size:12px;font-weight:600;color:#fff}
-/* 社区动态：模拟实时奖励流水，向上滚动 */
-.inv-activity-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.inv-live{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
-.inv-live-dot{position:relative;width:7px;height:7px;border-radius:50%;background:#4ADE80;flex:0 0 7px}
-.inv-live-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:#4ADE80;animation:invPing 1.8s ease-out infinite}
-@keyframes invPing{0%{transform:scale(1);opacity:.7}70%,100%{transform:scale(2.8);opacity:0}}
-.inv-feed-mask{position:relative;height:216px;overflow:hidden;margin-top:14px;-webkit-mask-image:linear-gradient(to bottom,#000 76%,transparent);mask-image:linear-gradient(to bottom,#000 76%,transparent)}
-.inv-feed{display:flex;flex-direction:column;gap:8px}
-.inv-feed-item{display:flex;align-items:center;gap:11px;height:58px;flex:0 0 58px;padding:0 12px;border:1px solid #2c2c2c;border-radius:12px;background:#181818;transition:border-color .4s ease,background-color .4s ease}
-.inv-feed-item.is-latest{border-color:rgba(231,82,117,.55);background:#22141a}
-.inv-feed-item.is-new{animation:invFeedIn .45s cubic-bezier(.22,.61,.36,1)}
-@keyframes invFeedIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
-.inv-feed-flag{width:34px;height:34px;flex:0 0 34px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.02em;color:rgba(255,255,255,.72);line-height:1}
-.inv-feed-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
-.inv-feed-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.inv-feed-meta{font-size:11.5px;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.inv-feed-reward{flex:0 0 auto;font-size:12.5px;font-weight:700;color:#4ADE80}
+/* 社区奖励动态：样式逐项对齐 candy.ai /affiliate-program 的 Partner activity */
+.inv-act-label{display:flex;align-items:center;justify-content:center;gap:8px;margin:26px 0 0;font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:#d4d4d4;font-family:Poppins,sans-serif}
+@media (min-width:768px){.inv-act-label{font-size:14px}}
+.inv-act-ping{position:relative;display:inline-flex;width:10px;height:10px;flex:0 0 10px}
+.inv-act-ping::before{content:"";position:absolute;inset:0;border-radius:999px;background:#4ade80;opacity:.75;animation:invActPing 1s cubic-bezier(0,0,.2,1) infinite}
+.inv-act-ping::after{content:"";width:10px;height:10px;border-radius:999px;background:#4ade80}
+@keyframes invActPing{75%,100%{transform:scale(2);opacity:0}}
+.inv-act-wrap{max-width:560px;margin:20px auto 0}
+.inv-act-mask{height:228px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,#000 72%,transparent);mask-image:linear-gradient(to bottom,#000 72%,transparent)}
+.inv-act-list{display:flex;flex-direction:column;gap:12px}
+.inv-act-item{display:flex;height:68px;align-items:center;gap:12px;padding:0 16px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:#1a1a1a;text-align:left;transition:border-color .4s ease,background-color .4s ease}
+.inv-act-item.is-latest{border-color:rgba(231,82,117,.6);background:#22141a}
+.inv-act-item.is-new{animation:invActIn .5s cubic-bezier(.22,.61,.36,1)}
+@keyframes invActIn{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+.inv-act-flag{display:flex;width:40px;height:40px;flex:0 0 40px;align-items:center;justify-content:center;border-radius:999px;background:rgba(255,255,255,.05);font-size:22px;line-height:1}
+.inv-act-main{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+.inv-act-name{font-size:15px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-act-meta{font-size:14px;color:#a3a3a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-act-reward{flex:0 0 auto;font-size:18px;font-weight:700;line-height:1.2;color:#4ade80}
 @media (prefers-reduced-motion:reduce){
-  .inv-feed-item.is-new{animation:none}
-  .inv-live-dot::after{animation:none;opacity:0}
+  .inv-act-item.is-new{animation:none}
+  .inv-act-ping::before{animation:none;opacity:0}
 }
 @media (max-width:1023px){
   .inv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -822,13 +824,12 @@
       </div>
     </div>
 
-    <div class="inv-card inv-section w-full">
-      <div class="inv-activity-head">
-        <p class="inv-section-title">Community rewards</p>
-        <span class="inv-live"><span class="inv-live-dot" aria-hidden="true"></span>Live</span>
-      </div>
-      <div class="inv-feed-mask" aria-hidden="true">
-        <div class="inv-feed" id="invite-activity-feed"></div>
+    <div class="w-full">
+      <p class="inv-act-label"><span class="inv-act-ping" aria-hidden="true"></span>Friend activity</p>
+      <div class="inv-act-wrap">
+        <div class="inv-act-mask" aria-hidden="true">
+          <div class="inv-act-list" id="invite-activity-feed"></div>
+        </div>
       </div>
     </div>
 
@@ -1529,19 +1530,19 @@ document.addEventListener('click', function (e) {
   if (!feed) return
 
   var COUNTRIES = [
-    ['DE', 'Germany'], ['GB', 'the UK'], ['US', 'the US'], ['FR', 'France'],
-    ['JP', 'Japan'], ['BR', 'Brazil'], ['CA', 'Canada'], ['AU', 'Australia'],
-    ['MX', 'Mexico'], ['IT', 'Italy'], ['ES', 'Spain'], ['PH', 'the Philippines'],
-    ['ID', 'Indonesia'], ['TH', 'Thailand'], ['VN', 'Vietnam'], ['MY', 'Malaysia'],
-    ['SG', 'Singapore'], ['KR', 'Korea'], ['NL', 'the Netherlands'], ['PL', 'Poland'],
-    ['SE', 'Sweden'], ['AE', 'the UAE'], ['ZA', 'South Africa'], ['IN', 'India'],
-    ['TR', 'Turkey'], ['AR', 'Argentina'], ['CH', 'Switzerland'], ['IE', 'Ireland']
+    ['🇩🇪', 'Germany'], ['🇬🇧', 'the UK'], ['🇺🇸', 'the US'], ['🇫🇷', 'France'],
+    ['🇯🇵', 'Japan'], ['🇧🇷', 'Brazil'], ['🇨🇦', 'Canada'], ['🇦🇺', 'Australia'],
+    ['🇲🇽', 'Mexico'], ['🇮🇹', 'Italy'], ['🇪🇸', 'Spain'], ['🇵🇭', 'the Philippines'],
+    ['🇮🇩', 'Indonesia'], ['🇹🇭', 'Thailand'], ['🇻🇳', 'Vietnam'], ['🇲🇾', 'Malaysia'],
+    ['🇸🇬', 'Singapore'], ['🇰🇷', 'Korea'], ['🇳🇱', 'the Netherlands'], ['🇵🇱', 'Poland'],
+    ['🇸🇪', 'Sweden'], ['🇦🇪', 'the UAE'], ['🇿🇦', 'South Africa'], ['🇮🇳', 'India'],
+    ['🇹🇷', 'Turkey'], ['🇦🇷', 'Argentina'], ['🇨🇭', 'Switzerland'], ['🇮🇪', 'Ireland']
   ]
 
   var EVENTS = [
-    { label: 'Upgraded to Premium', kind: 'premium' },
-    { label: 'Recharged tokens', kind: 'recharge' },
-    { label: 'Renewed Premium', kind: 'premium' },
+    { label: 'Premium upgrade', kind: 'premium' },
+    { label: 'Token top-up', kind: 'recharge' },
+    { label: 'Premium renewed', kind: 'premium' },
     { label: 'Joined with your link', kind: 'join' }
   ]
 
@@ -1582,30 +1583,31 @@ document.addEventListener('click', function (e) {
 
   function buildRow(item, isNew) {
     var row = document.createElement('div')
-    row.className = 'inv-feed-item' + (isNew ? ' is-new' : '')
+    row.className = 'inv-act-item' + (isNew ? ' is-new' : '')
     row.dataset.age = String(item.age)
 
     var flag = document.createElement('span')
-    flag.className = 'inv-feed-flag'
+    flag.className = 'inv-act-flag'
     flag.textContent = item.country[0]
+
     var main = document.createElement('span')
-    main.className = 'inv-feed-main'
+    main.className = 'inv-act-main'
 
     var name = document.createElement('span')
-    name.className = 'inv-feed-name'
+    name.className = 'inv-act-name'
     name.textContent = item.event.kind === 'join'
       ? 'New friend from ' + item.country[1]
       : 'Friend in ' + item.country[1]
 
     var meta = document.createElement('span')
-    meta.className = 'inv-feed-meta'
+    meta.className = 'inv-act-meta'
     meta.textContent = item.event.label + ' · ' + fmtAge(item.age)
 
     main.appendChild(name)
     main.appendChild(meta)
 
     var reward = document.createElement('span')
-    reward.className = 'inv-feed-reward'
+    reward.className = 'inv-act-reward'
     reward.textContent = rewardText(item.event.kind)
 
     row.appendChild(flag)
@@ -1619,7 +1621,7 @@ document.addEventListener('click', function (e) {
       var row = feed.children[i]
       var age = Number(row.dataset.age || 0) + delta
       row.dataset.age = String(age)
-      var meta = row.querySelector('.inv-feed-meta')
+      var meta = row.querySelector('.inv-act-meta')
       if (meta) meta.textContent = meta.textContent.split(' · ')[0] + ' · ' + fmtAge(age)
     }
   }
