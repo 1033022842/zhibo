@@ -15,6 +15,7 @@ use think\facade\Log;
  *   1. 每个用户有唯一「邀请码」（自定义短码），邀请链接 = https://<站点>/?code=<邀请码>
  *   2. 好友通过邀请链接注册 → 落 lp_invite_record 绑定邀请关系
  *   3. 好友首次成为高级会员（VIP 生效）→ 邀请人与被邀请人各得 invite_reward_tokens 个代币（默认 100），每次邀请只发一次
+ *   4. 好友每次充值成功 → 直接邀请人（一级）按实付 USD × 返佣比例拿代币佣金；比例支持全局 + 单人专属
  */
 final class InviteService
 {
@@ -22,6 +23,8 @@ final class InviteService
     public const BIZ_INVITER = 'invite_reward';
     /** 被邀请人奖励流水类型 */
     public const BIZ_INVITEE = 'invite_bonus';
+    /** 充值佣金流水类型 */
+    public const BIZ_RECHARGE_COMMISSION = 'invite_recharge_commission';
 
     private const CODE_LEN = 6;
     /** 去掉易混的 l / o / 0 / 1 */
@@ -33,6 +36,30 @@ final class InviteService
     public static function rewardTokens(): float
     {
         return max(0.0, (float) WalletService::config('invite_reward_tokens', '100'));
+    }
+
+    /**
+     * 全局充值返佣比例（0~1，运营在后台「广告渠道配置」里改，0 = 关闭）
+     */
+    public static function globalRechargeRate(): float
+    {
+        return max(0.0, min(1.0, (float) WalletService::config('invite_recharge_rate', '0')));
+    }
+
+    /**
+     * 某邀请人的充值返佣比例：优先个人专属比例，未设置（NULL）时用全局
+     */
+    public function rechargeRate(int $inviterId): float
+    {
+        if ($inviterId > 0) {
+            $custom = Db::connect('live_mysql')->table('lp_user')
+                ->where('id', $inviterId)->value('invite_recharge_rate');
+            if ($custom !== null && $custom !== '') {
+                return max(0.0, min(1.0, (float) $custom));
+            }
+        }
+
+        return self::globalRechargeRate();
     }
 
     /**
@@ -98,13 +125,45 @@ final class InviteService
             ];
         }
 
+        // 充值佣金：累计发放 + 明细（只统计我作为邀请人的记录）
+        $commissionStat = $db->table('lp_invite_commission')
+            ->where('inviter_id', $userId)
+            ->field('COUNT(*) AS orders, COUNT(DISTINCT invitee_id) AS friends, SUM(tokens) AS tokens')
+            ->find() ?: [];
+
+        $commissionRows = $db->table('lp_invite_commission')->alias('ic')
+            ->leftJoin('lp_user u', 'u.id = ic.invitee_id')
+            ->where('ic.inviter_id', $userId)
+            ->field('ic.created_at, ic.pay_usd, ic.rate, ic.tokens, u.nickname, u.avatar')
+            ->order('ic.id', 'desc')
+            ->limit(20)
+            ->select()->toArray();
+
+        $commissions = [];
+        foreach ($commissionRows as $item) {
+            $nickname = trim((string) ($item['nickname'] ?? ''));
+            $commissions[] = [
+                'nickname'   => $nickname !== '' ? $nickname : 'Friend',
+                'avatar'     => (string) ($item['avatar'] ?? ''),
+                'pay_usd'    => (float) ($item['pay_usd'] ?? 0),
+                'rate'       => round((float) ($item['rate'] ?? 0) * 100, 2),
+                'tokens'     => (float) ($item['tokens'] ?? 0),
+                'created_at' => (string) ($item['created_at'] ?? ''),
+            ];
+        }
+
         return [
-            'code'            => $code,
-            'reward_tokens'   => self::rewardTokens(),
-            'invited_count'   => (int) ($row['invited_count'] ?? 0),
-            'premium_friends' => (int) ($row['premium_friends'] ?? 0),
-            'total_earned'    => (float) ($row['total_earned'] ?? 0),
-            'records'         => $items,
+            'code'               => $code,
+            'reward_tokens'      => self::rewardTokens(),
+            'invited_count'      => (int) ($row['invited_count'] ?? 0),
+            'premium_friends'    => (int) ($row['premium_friends'] ?? 0),
+            'total_earned'       => (float) ($row['total_earned'] ?? 0),
+            'recharge_rate'      => round($this->rechargeRate($userId) * 100, 2),
+            'commission_tokens'  => (float) ($commissionStat['tokens'] ?? 0),
+            'commission_orders'  => (int) ($commissionStat['orders'] ?? 0),
+            'commission_friends' => (int) ($commissionStat['friends'] ?? 0),
+            'commissions'        => $commissions,
+            'records'            => $items,
         ];
     }
 
@@ -203,6 +262,77 @@ final class InviteService
             } catch (\Throwable $e) {
                 Log::error('[invite] 发奖失败 record=' . $record['id'] . ' uid=' . $uid . ' err=' . $e->getMessage());
             }
+        }
+    }
+
+    /**
+     * 好友充值到账：给直接邀请人（一级）发充值佣金
+     *
+     * 佣金 = 实付 USD × 返佣比例 ÷ 代币美元单价（diamond_to_usdt_rate），以代币入账。
+     * 由 RechargeService::settleOrder() 在订单结算时调用；同一订单只发一次（uk_order 兜底），
+     * 单价/比例取当时值，后续调整比例不影响已发佣金。
+     */
+    public function onRechargePaid(int $inviteeId, int $orderId, string $orderNo, float $payUsd): void
+    {
+        if ($inviteeId <= 0 || $orderId <= 0 || $payUsd <= 0) {
+            return;
+        }
+
+        $db     = Db::connect('live_mysql');
+        $record = $db->table('lp_invite_record')->where('invitee_id', $inviteeId)->find();
+        if (!$record) {
+            return;
+        }
+
+        $inviterId = (int) $record['inviter_id'];
+        if ($inviterId <= 0 || $inviterId === $inviteeId) {
+            return;
+        }
+
+        $rate = $this->rechargeRate($inviterId);
+        if ($rate <= 0) {
+            return;
+        }
+
+        // 代币美元单价：1 代币 = 多少 USDT（与提现口径一致）
+        $tokenUsd = (float) WalletService::config('diamond_to_usdt_rate', '0.01');
+        if ($tokenUsd <= 0) {
+            return;
+        }
+
+        $tokens = round($payUsd * $rate / $tokenUsd, 2);
+        if ($tokens <= 0) {
+            return;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        try {
+            $db->table('lp_invite_commission')->insert([
+                'inviter_id' => $inviterId,
+                'invitee_id' => $inviteeId,
+                'order_id'   => $orderId,
+                'order_no'   => $orderNo,
+                'pay_usd'    => round($payUsd, 2),
+                'rate'       => $rate,
+                'tokens'     => $tokens,
+                'created_at' => $now,
+            ]);
+        } catch (\Throwable $e) {
+            // 唯一键冲突 = 该订单已发过佣金，直接跳过
+            Log::info('[invite] 充值佣金已存在，跳过 order=' . $orderNo . ' err=' . $e->getMessage());
+            return;
+        }
+
+        try {
+            (new WalletService())->credit(
+                $inviterId,
+                $tokens,
+                self::BIZ_RECHARGE_COMMISSION,
+                $orderId,
+                '好友充值返佣 ' . $orderNo
+            );
+        } catch (\Throwable $e) {
+            Log::error('[invite] 充值佣金入账失败 order=' . $orderNo . ' inviter=' . $inviterId . ' err=' . $e->getMessage());
         }
     }
 

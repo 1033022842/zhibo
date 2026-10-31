@@ -390,6 +390,7 @@ python .zcode/sync_clients.py --client kiss                                    #
 | **CDN 回源后真实 IP 丢失 → 全站共用一个限流额度**（10-21 kiss） | `php/config/throttle.php` 按 IP 限流 `120/m`。挂 CDN 后 `$remote_addr` 全是边缘 IP，所有用户共用配额；后台 IP 白名单与日志同样失真 | nginx 加 `real_ip_header X-Forwarded-For; real_ip_recursive on;` + Bunny 边缘 IP 段 `set_real_ip_from`（`/etc/nginx/bunny_realip.conf`，584 条，每月 1 号刷新）。**必须先装 realip 再切 CDN** |
 | **MPA 静态资源走 CDN 的零风险做法**（10-21 kiss） | 想让首页也加速，但直接把 `kisss.ai` 的 A 记录指到 CDN 会连带支付回调 `/api/v1/recharge/notify*`、后台 `/admin/`、WebSocket 一起过 CDN，风险高 | 只改 HTML 里的**子资源引用**（`./js/ ./_shared/ ./assets/ ./<页面>_files/` → CDN 域名），页面跳转 `.html`、favicon、`/api/`、`/ws/` 保持同源。登录态是 localStorage + `Authorization` 头，不依赖同源 cookie，不受影响。实现：`apply_brand.sh` 第 3.5 节 + `brand/<客户>/cdn_assets.env`（留空=关闭） |
 | **Bunny zone 挂 `/api/` 能通，但 WebSocket 必须 HTTP/1.1**（10-21） | 用 `curl` 测 WebSocket 升级通常拿到 `000`，因为 curl 默认 HTTP/2，而 WS 升级要求 HTTP/1.1 | 加 `--http1.1` 或用 Python 原生 socket 握手；正确结果 `101 Switching Protocols`。Bunny Pull Zone 支持 WS 透传，无需额外开关 |
+| **客户站点页面被覆盖后品牌回退成 Sugus**（10-30 heygirl） | `heygirl.chat/ai/Home.html` 的 `<title>` 和侧栏字标又变回 `Sugus.ai`（10-15 / 10-17 之后第三次）。原因是上游中性基线被写回客户站点（单文件上传、回填、`git checkout`、手工 cp 都可能），但没有重跑品牌脚本；而 `Home.html` 本身不引 `js/brand.js`，前台无法自愈 | ① **任何**向客户服务器写 HTML/JS 的动作（`sync_clients.py`、宝塔/IDE 上传、手工 cp、`git checkout`）之后必须立即 `bash /opt/brand-kit/tools/apply_brand.sh <客户>`；② 验收不能只看主域，要覆盖全部别名域名：`for h in heygirl.live heygirl.chat heygirl.cam heygirl.fun heygirl.one heygirl.shop; do printf '%-15s ' $h; curl -s https://$h/ai/Home.html \| grep -o '<title>[^<]*'; done`，并同时核对 `img src=*wordmark*` 与 `class="logo">`；③ heygirl 的 kit 现已内置 `brand/heygirl/assets/brand.js`，`apply_brand.sh` 会**整文件覆盖** `js/brand.js`（不要 sed 它）并把引用刷成 `?v=$STAMP`，绕开 CDN 的 immutable 缓存，给引了 brand.js 的页面兜底；④ 前端还有 `Cache-Control: max-age=60`，修完让用户 `Ctrl+F5` 或等 1 分钟 |
 
 ## 八、四台服务器与仓库速查
 
@@ -405,6 +406,7 @@ python .zcode/sync_clients.py --client kiss                                    #
 - sugus 链路走 99.11 跳板（跳板上有 `n99_pull` key 直连 98.55），无需额外凭据
 - 线上验证地址：`https://heygirl.live/ai/Home.html` ｜ `http://172.81.98.55/ai/Home.html` ｜ `https://kelymi.autos/ai/Home.html` ｜ **`https://kisss.ai/ai/Home.html`**（kiss 的 IP:80 是 404，别用）
 - kiss 的 JS/CSS/图片已改走 `https://kisss-live.b-cdn.net/ai/...`（HTML 与 /api/ /ws/ 仍同源）；关掉整个 CDN 只需删服务器上 `/opt/brand-kit/brand/kiss/cdn_assets.env` 再跑一次 apply_brand
+- heygirl 的 kit（`/opt/brand-kit`）除资产外还含 `brand/heygirl/assets/brand.js`：apply_brand 会**整文件覆盖** `js/brand.js` 并把引用版本刷成 `?v=$STAMP`。注意 `Home.html` 不引 brand.js，首页标题/字标只能靠静态替换 → **页面被覆盖后必须重跑 apply_brand**
 - kelymi 备份：同步前全量在 `/root/kelymi_pre_sync_20261018/`（7.1M）；apply_brand 每日回滚备份在 `/tmp/brand_bak_<客户>_<日期>/`
 - kiss 服务器上站点目录本身就是 gitee `zhibo.git` 的克隆（HEAD 停在部署点），可用于逐文件核对与回滚
 

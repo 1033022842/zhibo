@@ -281,10 +281,79 @@ final class RechargeService
                 (string) $order['order_no'],
                 (float) $order['pay_amount']
             );
-            return;
+        } else {
+            $this->creditDiamond($db, (int) $order['user_id'], (float) $order['diamond_amount'], (int) $order['id'], $remark);
         }
 
-        $this->creditDiamond($db, (int) $order['user_id'], (float) $order['diamond_amount'], (int) $order['id'], $remark);
+        // 邀请充值佣金：好友充值成功 → 直接邀请人（一级）拿佣金，失败只记日志不影响入账
+        $this->creditInviteCommission($order);
+    }
+
+    /**
+     * 邀请充值佣金（一级）：按订单实付 USD × 返佣比例折算代币发给邀请人
+     *
+     * 挂在 settleOrder 上，人工审核 / 链上自动确认 / 网关回调三条入账路径都能覆盖；
+     * 同一订单由 lp_invite_commission.uk_order 兜底只发一次。
+     */
+    private function creditInviteCommission(array $order): void
+    {
+        try {
+            $inviteeId = (int) ($order['user_id'] ?? 0);
+            $orderId   = (int) ($order['id'] ?? 0);
+            if ($inviteeId <= 0 || $orderId <= 0) {
+                return;
+            }
+            (new InviteService())->onRechargePaid(
+                $inviteeId,
+                $orderId,
+                (string) ($order['order_no'] ?? ''),
+                $this->usdBaseOfOrder($order)
+            );
+        } catch (\Throwable $e) {
+            Log::warning('[invite] 充值佣金发放失败 order=' . (string) ($order['order_no'] ?? '') . ' err=' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 订单实付金额的 USD 口径（佣金基数）
+     *
+     * pay_amount 是「渠道币种」金额：法币单为本币、链上单为币种数量，只有网关单正好是 USD。
+     * 因此按以下顺序取 USD：usd_amount（法币单已锁定）→ 会员套餐标价 → 代币数 ÷ 渠道代币单价 → pay_amount。
+     */
+    private function usdBaseOfOrder(array $order): float
+    {
+        $usd = (float) ($order['usd_amount'] ?? 0);
+        if ($usd > 0) {
+            return $usd;
+        }
+
+        $db = Db::connect('live_mysql');
+        if ((string) ($order['biz_type'] ?? 'coin') === 'vip' && (int) ($order['vip_plan_id'] ?? 0) > 0) {
+            $price = (float) $db->table('lp_vip_plan')
+                ->where('id', (int) $order['vip_plan_id'])->value('usd_price');
+            if ($price > 0) {
+                return $price;
+            }
+        }
+
+        $diamond   = (float) ($order['diamond_amount'] ?? 0);
+        $channelId = (int) ($order['channel_id'] ?? 0);
+        if ($channelId > 0) {
+            $channel = $db->table('lp_recharge_channel')
+                ->where('id', $channelId)->field('type,diamond_rate')->find();
+            // 稳定币渠道 pay_amount 就是 USD（只多了可忽略的匹配尾数）
+            $pegged = (bool) (self::COINS[(string) ($channel['type'] ?? '')]['pegged'] ?? false);
+            if ($pegged) {
+                return max(0.0, (float) ($order['pay_amount'] ?? 0));
+            }
+            // 非稳定币：pay_amount 是币种数量，用「到账代币数 ÷ 渠道代币单价」还原 USD
+            $rate = (float) ($channel['diamond_rate'] ?? 0);
+            if ($diamond > 0 && $rate > 0) {
+                return $diamond / $rate;
+            }
+        }
+
+        return max(0.0, (float) ($order['pay_amount'] ?? 0));
     }
 
     /**
