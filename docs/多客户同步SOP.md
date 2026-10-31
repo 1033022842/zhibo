@@ -180,6 +180,58 @@ client_overrides/
 | `image-sugus` | sugus | `Image.html`、`js/customVideo.js`（`media/gs/` 由服务器按 `media-src/` 清单自拉） | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗） |
 | `image-heygirl` | heygirl | `Image.html`、`js/customVideo.js` | 同上 |
 
+> **两家共用一个客户，功能必须一致**：sugus 与 heygirl 属同一客户，`Image.html` /
+> `js/customVideo.js` 两份覆盖文件除脚本版本号外应保持**内容一致**。改一处必须同步另一处，
+> 否则同一客户在两个站看到的功能不一样。kelymi / kiss 是另外的客户，**不要**同步过去。
+
+### AI 工作室卡片功能（aiShort 通道）—— 部署范围：仅 sugus + heygirl
+
+这套功能**只给 sugus 和 heygirl**，kelymi / kiss 不部署。它比纯前端页面重，
+涉及四层，缺一层就跑不起来（页面能开、点生成没反应）：
+
+| 层 | sugus（已上线） | heygirl | 说明 |
+|---|---|---|---|
+| ① 前端页面 | `client_overrides/image-sugus/` | `client_overrides/image-heygirl/` | `Image.html` + `js/customVideo.js` |
+| ② 静态素材 | `media/gs/`（565MB，420 mp4 / 423 jpg / 573 webp） | 需同步 | 视频 + 封面 + 人像缩略图（`persona_*.webp` 卡片角标、`prev_persona_*.webp` 弹窗大图）+ `clips.json` |
+| ③ 数据库 | `lp_short_preset` 36 行 + `lp_ai_task` | **无表，需建** | 提示词正文、LoRA 链、采样参数；卡片 code 如 `a13-01` |
+| ④ 后端 API | `app/api/controller/AiShort.php` | **缺文件，需部署** | `/api/aiShort/{presets,detail,submit,myList,pending,accept,upload,complete,fail,progress}` |
+| ⑤ GPU worker | `custom-short-worker@sugus.service` | **缺实例，需部署** | 同一台 GPU 加一个 `@heygirl` 实例，读 `/opt/cv/short/heygirl/env` |
+
+**素材不进 git、也不走 sync_clients 增量推送**（565MB 会拖死每次同步）。正确做法二选一：
+- 服务器之间直传：`rsync -a --ignore-existing sugus:/…/media/gs/ heygirl:/…/media/gs/`（同机房，最快）
+- 或从 sugus 公开 CDN 拉：`curl` 逐个下载（慢，仅在跨机房无直连时用）
+
+**新客户接入清单（照此顺序，缺一不可）**：
+
+1. **前端**：把 `client_overrides/image-sugus/` 的 `Image.html` + `js/customVideo.js` 复制到该客户的变体目录，
+   只保留该客户自己的脚本版本号（`shell-new.js?v=`、`creator-guide.js?v=` 等不要跟着改）
+2. **素材**：把 `media/gs/` 整个目录（含 `clips.json`）同步到客户站点根
+3. **数据库**：依次跑 `upgrade_ai_short.sql`（建 `lp_short_preset` + 种子）、
+   `upgrade_short_full_params.sql`（加 task_type/sampler/scheduler/steps/unet_name）、
+   `upgrade_short_cards21.sql`（加 pipeline/resolution）、
+   `_cards21_insert.sql`、`_cards_d11_insert.sql`（灌 36 张卡片）
+4. **后端**：部署 `app/api/controller/AiShort.php`；确认 `lp_ai_task` 已有 `idx_type_status_id` 索引
+5. **GPU worker**：
+   ```bash
+   ssh gpu
+   cp -a /opt/cv/short/sugus /opt/cv/short/<站点>       # 复制工作目录（含 short_base.json、env）
+   vi /opt/cv/short/<站点>/env                          # 改 SHORT_TAG / SHORT_API_BASE / SHORT_KEY
+   systemctl enable --now custom-short-worker@<站点>    # 模板 custom-short-worker@.service
+   ```
+   worker 的 `SHORT_TAG` 必须与站点客户名一致（用于产物文件名防串台）
+6. **验证**（四项全过才算完成）：
+   - `curl https://<站点>/api/aiShort/presets` 返回 36 张卡片
+   - `curl -I https://<站点>/ai/media/gs/` 下任一 mp4/jpg/webp 返回 200
+   - 浏览器打开 `/ai/Image.html`：卡片网格有分页条、左上角有人像角标、首屏只加载封面
+   - 点一张卡片：弹窗播放对应人设的样片、左侧预览是清晰大图、按钮显示「Upload image first」置灰
+
+**已知坑**：
+- `/pending` 下发的 `image_url` 是站内相对路径，worker 侧需按 API origin 补齐（已在 `_abs_media_url()` 处理）
+- `/tmp` 若是 `755 root:root`，PHP-FPM 和 MySQL 都写不了临时文件 → 上传 500、`UPDATE` 报 errno 13。
+  修法：`chmod 1777 /tmp`，或给两者单独配 tmpdir（见故障排查表）
+- `clips.json` 里同一卡片的样片**共用 `id`**，前端必须按 `slug` 定位，否则点第 2/3 条永远播第 1 条
+- 分页条数要取「列数 × 行数」的整数倍，否则末排会出现单张孤卡
+
 **覆盖必须成对**：新版 `Image.html` 引用 `./js/customVideo.js`，只覆盖 HTML 会让客户页
 加载上游旧脚本，DOM 与逻辑对不上（页面空白、控制台报错）。凡是被覆盖页面依赖的
 本地脚本，都要在覆盖目录里放一份同路径副本。
@@ -214,6 +266,11 @@ client_overrides/
 | 客户仓库推送失败 | gitee SSH key / 权限 | `ssh -T git@gitee.com` 检查；仓库地址见速查表 |
 | `curl http://<kiss IP>/ai/...` 永远 404 | kiss 的 80 端口是 Certbot 的 `default_server { return 404; }` | 用 `https://kisss.ai/ai/...` 验证；80 上带 `Host: kisss.ai` 只会 301 |
 | 改了上游 `Image.html`，sugus / heygirl 没变化 | 预期：这两家配了 `overrides`，只读 `client_overrides/image-*/` | 要改它们就改对应覆盖目录；要确认谁在用 `grep -n overrides .zcode/sync_clients.py` |
+| 卡片页能开但点「Generate」没反应 | heygirl 这类新接入客户缺 ③④⑤ 任一层：`lp_short_preset` 表不存在 / `AiShort.php` 没部署 / GPU 没有对应 `custom-short-worker@<站点>` 实例 | 按第四节「AI 工作室卡片功能」接入清单 3→4→5 逐层补齐；先 `curl /api/aiShort/presets` 确认后端通 |
+| 点第 2/3 条卡片，弹窗永远播第 1 条 | `clips.json` 同卡片样片共用 `id`，前端按 `id` 查找只能命中第一条 | 前端改为按 `slug` 定位（`data-gs-card=slug`、`data-gs-id=code`） |
+| 分页最后一排只有单张卡片 | 每页固定条数 ÷ 列数 有余数 | 分页条数取「列数 × 行数」整数倍（参考站 5 列 × 6 行 = 30） |
+| 弹窗左侧人像预览很糊 | 用了卡片左上角的 120×156 角标缩略图放大 | 单独生成 480×640 的 `prev_persona_*.webp`，弹窗用大图 |
+| 同一客户两个站功能不一致 | 只改了 sugus 的覆盖目录，没同步 heygirl | 两份覆盖文件除脚本版本号外应一致：`diff client_overrides/image-{sugus,heygirl}/js/customVideo.js` 应为空 |
 | sugus / heygirl 的 Image 页空白或报错 | 只覆盖了 `Image.html`，`js/customVideo.js` 还是上游旧版，DOM 与脚本不匹配 | 覆盖目录里补齐 `js/customVideo.js`（两个文件成对覆盖），重跑同步 |
 | 覆盖页被还原成上游版 | 有人在客户仓库手敲了 `git checkout douyin/main -- ...` | 重跑一次同步（脚本会把覆盖文件写回）；提交后再核对 blob hash |
 | 通话在 App 内置浏览器里完全没声音 | 微信/Instagram/Facebook 内置浏览器、iOS Chrome（WKWebView）没有 Web Speech API（`speechSynthesis`） | 前端已自动改走服务端 TTS `/api/live/tts`（xAI `/v1/tts` 代理，需登录、600 字符上限、1 小时缓存）；php 侧需部署 `app/common/service/TtsService.php` 与 `app/api/controller/Live.php`。该接口只影响无 TTS 的浏览器，正常 Safari/Chrome 仍走本地合成，不产生额外费用 |
