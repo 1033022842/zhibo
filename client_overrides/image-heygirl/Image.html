@@ -36,7 +36,7 @@
 <style id="gs-style">
 /* genspicy 首屏排版（只取样式，素材全部站内角色） */
 .gs-banner{display:flex;align-items:center;justify-content:center;height:32px;margin-top:1px;padding:0 16px;border-radius:0 0 12px 12px;background:linear-gradient(90deg,#f53d99,#f56eb1);color:rgba(255,255,255,.9);font-size:14px;line-height:32px;font-weight:900;letter-spacing:.5px;text-decoration:none}
-.gs-page{max-width:1280px;margin:0 auto;padding:0 16px}
+.gs-page{max-width:1600px;margin:0 auto;padding:0 24px}
 .gs-nav{display:flex;align-items:center;gap:16px;margin:20px 0 16px;overflow-x:auto;scrollbar-width:none}
 .gs-nav::-webkit-scrollbar{display:none}
 .gs-nav-item{background:none;border:0;padding:0;color:#fff;font-size:18px;line-height:28px;font-weight:600;opacity:.5;cursor:pointer;white-space:nowrap;font-family:Inter,system-ui,sans-serif}
@@ -66,11 +66,12 @@
 .gs-card:hover .gs-card__media{transform:scale(1.04)}
 .gs-card__creator{position:absolute;z-index:3;top:6px;left:8px;display:flex;flex-direction:column;gap:5px}
 .gs-card__mark{width:40px;height:52px;border:1.5px solid #fff;border-radius:8px;background:#d9d9d9 center/cover no-repeat;transform:rotate(-6deg);box-shadow:0 2px 8px rgba(0,0,0,.35)}
-.gs-card__details{position:absolute;z-index:3;left:0;right:0;bottom:0;min-height:100px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;background:linear-gradient(177deg,rgba(26,26,26,0) 2.49%,rgba(26,26,26,.15) 21.79%,rgba(26,26,26,.5) 49.91%,#1a1a1a 97.51%)}
-.gs-card__title{width:100%;margin:0;color:#fff;font-size:16px;line-height:19px;font-weight:700;text-transform:capitalize;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;-webkit-user-select:none;user-select:none}
+.gs-card__details{position:absolute;z-index:3;left:0;right:0;bottom:0;min-height:82px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;background:linear-gradient(177deg,rgba(26,26,26,0) 2.49%,rgba(26,26,26,.15) 21.79%,rgba(26,26,26,.5) 49.91%,#1a1a1a 97.51%)}
+.gs-card__title{width:100%;margin:0;color:#fff;font-size:15px;line-height:19px;font-weight:700;text-transform:capitalize;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;-webkit-user-select:none;user-select:none}
 .gs-card__creator-name{width:100%;margin:0;color:#fff;opacity:.7;font-size:12px;line-height:15px;text-transform:capitalize}
-.gs-card__tags{display:flex;max-width:100%;margin-top:6px;flex-wrap:wrap;justify-content:center;gap:4px}
-.gs-card__tag{padding:6px 14px;border-radius:20px;background:linear-gradient(282deg,#ff75ba 8.01%,#ea1a80 69.29%);color:#fff;font-size:12px;line-height:16px;font-weight:900;font-style:italic;text-transform:uppercase;text-shadow:0 0 6px #f74fa1}
+.gs-card__tags{display:flex;max-width:100%;margin-top:7px;flex-wrap:wrap;justify-content:center;gap:4px}
+/* 标签照参考站做细描边胶囊：大号粉色斜体块会把卡片下部压得很重，视觉上就是「挤」 */
+.gs-card__tag{display:inline-flex;align-items:center;height:24px;padding:0 12px;border:1px solid rgba(255,255,255,.5);border-radius:20px;background:rgba(0,0,0,.3);color:#fff;font-size:12px;line-height:16px;font-weight:600;text-transform:capitalize}
 @media(max-width:719px){.gs-card__title{font-size:14px;line-height:18px}.gs-card__details{min-height:82px;padding:8px}}
 .gs-skel{border-radius:12px;aspect-ratio:0.5625;background:linear-gradient(100deg,#161616 20%,#1f1f1f 40%,#161616 60%);background-size:200% 100%;animation:gs-shimmer 1.2s linear infinite}
 @keyframes gs-shimmer{to{background-position:-200% 0}}
@@ -114,6 +115,10 @@
 .gs-gen__sound.is-off{opacity:.55}
 .gs-gen__state{position:absolute;left:0;right:0;bottom:10px;padding:0 8px;text-align:center;color:rgba(255,255,255,.85);font-size:12px;font-weight:600;z-index:2;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 .gs-gen__addons{display:grid;gap:6px;margin-top:8px}
+/* 上传指引（替代原来的 3s/5s/8s/10s 时长选择） */
+.gs-gen__tips{margin:0;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);color:rgba(255,255,255,.62);font-size:11px;line-height:1.55}
+.gs-gen__tips-hd{display:block;margin-bottom:4px;color:#fff;font-size:12px;font-weight:700}
+.gs-gen .gs-gen__submit.is-locked{background:rgba(255,255,255,.09);color:rgba(255,255,255,.45);box-shadow:none}
 .gs-gen .gs-gen__addon{display:flex;align-items:center;justify-content:space-between;gap:8px;height:36px;padding:0 10px;border-radius:12px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.03);color:#d4d4d8;font-size:12px;font-weight:500;cursor:pointer;text-align:left}
 .gs-gen .gs-gen__addon:hover{background:rgba(255,255,255,.06)}
 .gs-gen__radio{flex:0 0 auto;width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);position:relative}
@@ -180,13 +185,13 @@
 
 
 	<script src="./js/ui-dialog.js?v=20260928d"></script>
-	<script src="./js/customVideo.js?v=20261027as2"></script>
+	<script src="./js/customVideo.js?v=20261031cards"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
     <meta property="og:description" content="Create your own AI girlfriend or chat instantly with realistic AI characters. Enjoy uncensored chats, voice calls, custom image generation, live streams and private short dramas — all in a safe, private and secure space with discreet billing.">
 </head>
-	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
+	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
 
 		
 
@@ -679,9 +684,21 @@
 						<input id="gsSearchInput" type="search" placeholder="Drama name" autocomplete="off">
 					</div>
 					<div class="gs-grid" id="gsGrid"></div>
+					<nav class="gs-pager" id="gsPager" aria-label="Explore pages"></nav>
 				</div>
 				<style>
 :root{--sg-page:#0d0a0f;--sg-card:#120d16;--sg-line:#282828;--sg-pink:#f97187;--sg-cta:#f53b70;--sg-accent:#ee5876;--sg-grey:#a4a4a4}
+/* 分页条：样式对齐 genspicy.ai（40px 方块、当前页粉色、箭头无底色） */
+.gs-pager{display:none;width:max-content;max-width:100%;margin:24px auto 8px;gap:8px;align-items:center}
+.gs-pager__page,.gs-pager__arrow{position:relative;display:grid;width:40px;height:40px;padding:0;border:0;border-radius:8px;place-items:center;background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);cursor:pointer;font-size:14px;font-weight:500;font-family:inherit}
+.gs-pager__page:hover{background:rgba(255,255,255,.16);color:#fff}
+.gs-pager__page.is-active{background:#f556a5;color:#fff;font-weight:600}
+.gs-pager__arrow{background:transparent;color:rgba(255,255,255,.75)}
+.gs-pager__arrow:hover:not(:disabled){background:rgba(255,255,255,.1)}
+.gs-pager__arrow:disabled{opacity:.3;cursor:not-allowed}
+.gs-pager__gap{color:rgba(255,255,255,.45);font-size:14px;padding:0 2px}
+@media(max-width:560px){.gs-pager{gap:6px}.gs-pager__page,.gs-pager__arrow{width:34px;height:34px;border-radius:7px;font-size:13px}}
+
 .cv-wrap{max-width:760px;margin:48px auto 32px;padding:0 16px;font-family:Poppins,system-ui,sans-serif}
 .cv-head{display:flex;align-items:center;gap:12px;margin-bottom:22px}
 .cv-head h1{color:#fff;font-size:26px;font-weight:700}

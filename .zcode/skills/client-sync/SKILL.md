@@ -74,6 +74,30 @@ python .zcode/sync_clients.py --client heygirl --strict   # 自检有问题就�
 grep -n overrides .zcode/sync_clients.py
 ```
 
+**sugus 与 heygirl 同属一个客户**，两份 `Image.html` / `js/customVideo.js` 除脚本版本号外
+内容应完全一致。改其中一个必须同步另一个，验证：
+
+```bash
+diff client_overrides/image-{sugus,heygirl}/js/customVideo.js   # 应为空
+```
+
+### AI 工作室卡片（aiShort 通道）—— 只部署 sugus + heygirl
+
+除前端覆盖页，还需要四层，缺一层就「页面能开、点生成没反应」：
+
+1. **素材** `media/gs/`（约 565MB：mp4 + jpg 封面 + `persona_*.webp` 角标 + `prev_persona_*.webp` 弹窗大图 + `clips.json`）
+   —— 不进 git、不走 sync_clients 增量。服务器间 `rsync -a --ignore-existing` 直传最快。
+2. **数据库** `lp_short_preset`（36 行）+ `lp_ai_task`；按序跑
+   `upgrade_ai_short.sql` → `upgrade_short_full_params.sql` → `upgrade_short_cards21.sql`
+   → `_cards21_insert.sql` → `_cards_d11_insert.sql`
+3. **后端** `app/api/controller/AiShort.php`
+4. **GPU worker** `cp -a /opt/cv/short/sugus /opt/cv/short/<站点>`，改 `env` 里的
+   `SHORT_TAG` / `SHORT_API_BASE` / `SHORT_KEY`，`systemctl enable --now custom-short-worker@<站点>`
+
+验证四项：`/api/aiShort/presets` 返回 36 张、`media/gs/` 下文件 200、
+页面有分页条与人像角标、点卡片弹窗播对应样片且按钮初始置灰。
+完整清单与已知坑见 `docs/多客户同步SOP.md` 第四节。
+
 ## B. 静态 + 后端（php / SQL / .env）
 
 先做完 A，再读 `references/deploy-backend.md` 按五步走。**后端改动 push 完静态不会生效**。

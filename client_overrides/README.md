@@ -7,8 +7,12 @@
 
 | 变体目录 | 应用客户 | 覆盖文件 | 说明 |
 |---|---|---|---|
-| `image-sugus/` | sugus | `Image.html`、`js/customVideo.js`（`media/gs/` 由服务器按 `media-src/` 清单自拉，不入库也不随同步上传） | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗），仅 sugus |
-| `image-heygirl/` | heygirl | `Image.html`、`js/customVideo.js` | 同新版图片页，仅 heygirl |
+| `image-sugus/` | sugus | `Image.html`、`js/customVideo.js`（`media/gs/` 由服务器按 `media-src/` 清单自拉，不入库也不随同步上传） | 新版图片页（瀑布流卡片视频自动播放 + 生成器式弹窗）+ AI 工作室卡片 |
+| `image-heygirl/` | heygirl | `Image.html`、`js/customVideo.js` | 同上（与 sugus 同客户，功能须保持一致） |
+
+> **sugus 与 heygirl 是同一个客户**，两份覆盖文件除脚本版本号（`shell-new.js?v=`、
+> `creator-guide.js?v=`）外应保持内容一致。改一处必须同步另一处。
+> kelymi / kiss 是别的客户，新版图片页和 AI 工作室卡片**都不部署**给它们。
 
 页面若带专属脚本（`Image.html` 引用 `./js/customVideo.js`），**必须一并覆盖**：
 只覆盖 HTML 会让客户页加载上游脚本，DOM 与逻辑对不上（新版页面无渲染、控制台报错）。
@@ -30,6 +34,9 @@ grep -n overrides .zcode/sync_clients.py
   由 `OVERRIDE_SKIP_DIRS` 排除；205MB 的 `media/gs/` 由服务器执行
   `python3 fetch_media.py` 自己从公开 CDN 拉，**不要**放进覆盖目录（否则每次同步都会重传 205MB）
 - 没有配 `overrides` 的客户（kelymi、kiss）继续用上游基线，改这里不会影响它们
+- **AI 工作室卡片（aiShort 通道）只给 sugus + heygirl**：除这两个覆盖页，还需要
+  `media/gs/` 素材、`lp_short_preset` 表、`AiShort.php` 控制器、GPU 上对应的
+  `custom-short-worker@<站点>` 实例。接入清单见 `docs/多客户同步SOP.md` 第四节。
 
 ## 分发时脚本自动做什么
 
