@@ -8,7 +8,7 @@
  *   · Clicking "Don't show again" disables it permanently (localStorage: creator_guide_seen_v2=1)
  *   · Closing (X / Maybe later) does not disable it
  *   · "Start creating" goes to the Creator Center ./crowdfunding.html
- *   · The Creator Center page itself uses an inline tutorial instead of this popup
+ *   · 创作中心（crowdfunding.html）不自动弹，但可通过 CreatorGuide.open() 手动打开完整指引
  */
 (function () {
   if (window.__creatorGuideLoaded) return;
@@ -17,8 +17,9 @@
   // Skip inside admin iframes
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
-  // Creator Center has its own inline tutorial instead of this popup
-  if (/crowdfunding\.html$/i.test(location.pathname || '')) return;
+  // Creator Center (crowdfunding.html) has its own inline tutorial: skip auto-open there,
+  // but keep CreatorGuide.open() available so its "How it works?" / "Full guide" buttons work
+  var SKIP_AUTO = /crowdfunding\.html$/i.test(location.pathname || '');
 
   var KEY = 'creator_guide_seen_v2';
   var CENTER_URL = './crowdfunding.html';
@@ -98,7 +99,7 @@
   var CSS = ''
     + '.cg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Poppins,Raleway,"PingFang SC","Microsoft YaHei",sans-serif}'
     + '.cg-overlay.cg-show{display:flex}'
-    + '.cg-box{position:relative;background:#1b1b1b;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:30px 26px 26px;width:420px;max-width:100%;box-sizing:border-box;box-shadow:0 24px 60px rgba(0,0,0,.6)}'
+    + '.cg-box{position:relative;background:#1b1b1b;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:30px 26px 26px;width:440px;max-width:100%;max-height:calc(100vh - 32px);overflow-y:auto;box-sizing:border-box;box-shadow:0 24px 60px rgba(0,0,0,.6)}'
     + '.cg-close{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.6);font-size:16px;line-height:1;cursor:pointer}'
     + '.cg-close:hover{color:#fff;border-color:rgba(255,255,255,.4)}'
     + '.cg-title{font-size:19px;font-weight:800;color:#fff;margin-bottom:6px}'
@@ -108,9 +109,10 @@
     + '.cg-txt{font-size:13px;color:rgba(255,255,255,.78);line-height:1.6}'
     + '.cg-txt b{color:#fff}'
     + '.cg-cta{width:100%;padding:14px;margin-top:6px;border:none;border-radius:12px;background:linear-gradient(268deg,#fc768a,#e65073);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit}'
-    + '.cg-later{display:block;width:100%;margin-top:10px;border:none;background:none;color:rgba(255,255,255,.4);font-size:13px;cursor:pointer;font-family:inherit}'
-    + '.cg-never{display:block;width:100%;margin-top:6px;border:none;background:none;color:rgba(255,255,255,.28);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline}'
-    + '.cg-never:hover{color:rgba(255,255,255,.5)}';
+    + '.cg-later{display:block;width:100%;margin-top:10px;border:none;background:none;color:rgba(255,255,255,.62);font-size:13px;cursor:pointer;font-family:inherit}'
+    + '.cg-later:hover{color:rgba(255,255,255,.85)}'
+    + '.cg-never{display:block;width:100%;margin-top:6px;border:none;background:none;color:rgba(255,255,255,.5);font-size:12.5px;cursor:pointer;font-family:inherit;text-decoration:underline}'
+    + '.cg-never:hover{color:rgba(255,255,255,.8)}';
 
   var HTML = ''
     + '<div class="cg-overlay" id="cgOverlay">'
@@ -118,11 +120,13 @@
     + '    <button class="cg-close" type="button" data-cg="close">&#10005;</button>'
     + '    <div class="cg-title">Creator Earning Guide</div>'
     + '    <div class="cg-sub">Create your own AI characters on Sugus, publish them, and earn from their revenue.</div>'
-    + '    <div class="cg-step"><div class="cg-idx">1</div><div class="cg-txt"><b>Create a character</b><br>Fill in the character details and upload assets</div></div>'
-    + '    <div class="cg-step"><div class="cg-idx">2</div><div class="cg-txt"><b>Choose how to create</b><br>Do it on your own, or start a crowdfunding project with the community</div></div>'
-    + '    <div class="cg-step"><div class="cg-idx">3</div><div class="cg-txt"><b>Publish and go live</b><br>Live streamer / Chat companion / Short drama (single choice)</div></div>'
-    + '    <div class="cg-step"><div class="cg-idx">4</div><div class="cg-txt"><b>Earn revenue</b><br>Same as live streaming, split by the backend-configured ratio (currently 5 : 5)</div></div>'
-    + '    <button class="cg-cta" type="button" data-cg="start">Start creating</button>'
+    + '    <div class="cg-step"><div class="cg-idx">1</div><div class="cg-txt"><b>Create a character</b><br>Fill in the character details and upload the cover &amp; persona assets</div></div>'
+    + '    <div class="cg-step"><div class="cg-idx">2</div><div class="cg-txt"><b>Choose how to create</b><br>Create it on your own, or launch a crowdfunding project with the community</div></div>'
+    + '    <div class="cg-step"><div class="cg-idx">3</div><div class="cg-txt"><b>Set the publish type</b><br>Live streamer / Chat companion / Short drama (single choice), plus gifts or episodes</div></div>'
+    + '    <div class="cg-step"><div class="cg-idx">4</div><div class="cg-txt"><b>Submit for review</b><br>Our team checks the assets before going live — track the status in My Creations</div></div>'
+    + '    <div class="cg-step"><div class="cg-idx">5</div><div class="cg-txt"><b>Go live and earn</b><br>Revenue from chats, gifts and episodes is split by the platform ratio</div></div>'
+    + '    <div class="cg-step"><div class="cg-idx">6</div><div class="cg-txt"><b>Withdraw anytime</b><br>Payouts are after tax; your income is listed in the Creator Center</div></div>'
+    + '    <button class="cg-cta" type="button" data-cg="start">' + (SKIP_AUTO ? 'Got it' : 'Start creating') + '</button>'
     + '    <button class="cg-later" type="button" data-cg="close">Maybe later</button>'
     + '    <button class="cg-never" type="button" data-cg="never">Don\'t show again</button>'
     + '  </div>'
@@ -148,13 +152,29 @@
       var act = t && t.getAttribute ? t.getAttribute('data-cg') : null;
       if (act === 'close') { hide(); }
       else if (act === 'never') { setSeen(); hide(); }
-      else if (act === 'start') { hide(); location.href = CENTER_URL; }
+      else if (act === 'start') {
+        hide();
+        if (SKIP_AUTO) {
+          // 创作中心里不跳走，直接带用户去看「选择创作方式」
+          var tabs = document.getElementById('tabs');
+          if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          location.href = CENTER_URL;
+        }
+      }
     });
     return overlay;
   }
 
-  function show() { ensure().classList.add('cg-show'); }
-  function hide() { if (overlay) overlay.classList.remove('cg-show'); }
+  var scrollLocked = false;
+  function lockScroll(on) {
+    var root = document.documentElement;
+    if (!root) return;
+    if (on && !scrollLocked) { root.style.overflow = 'hidden'; scrollLocked = true; }
+    else if (!on && scrollLocked) { root.style.overflow = ''; scrollLocked = false; }
+  }
+  function show() { ensure().classList.add('cg-show'); lockScroll(true); }
+  function hide() { if (overlay) overlay.classList.remove('cg-show'); lockScroll(false); }
 
   function autoShow(force) {
     if (!force && isSeen()) return;
@@ -162,11 +182,14 @@
   }
 
   function init() {
-    ensure();
     if (FORCE) {
+      ensure();
       setTimeout(function(){ autoShow(true) }, 200);
       return;
     }
+    // 创作中心：页面自带内联指引，弹窗只在点「How it works?」时按需打开
+    if (SKIP_AUTO) return;
+    ensure();
     if (isSeen()) return;
     if (getToken() === '') return;
 
