@@ -31,7 +31,10 @@ import urllib.parse
 import paramiko
 
 JUMP_HOST, JUMP_PORT, JUMP_USER, JUMP_PASS = "172.81.99.11", 22, "root", "***REMOVED-SSH-PW***"
-HOST, PORT, USER, PASSWORD = "38.247.166.124", 22, "administrator", "***REMOVED-SSH-PW***"
+# 2026-11-01：旧机 38.247.166.124 失联（ColoCrossing 网关回 host-unreachable），换到 204.12.218.181。
+# 新机登录名未验证过（root 拒绝就试 administrator）；失联史见 docs/单GPU四站部署.md 顶部事件记录。
+HOST, PORT, USER, PASSWORD = "204.12.218.181", 22, "root", "2Z7Dt^@3JG2xlvhS"
+# 旧机（已失联留档）：("38.247.166.124", 22, "administrator", "***REMOVED-SSH-PW***")
 
 # CDN 中继（sugus 网站服务器）
 SITE_HOST, SITE_USER = "172.81.98.55", "root"
