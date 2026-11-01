@@ -1,5 +1,11 @@
 # 单台 GPU 承载四站 AI 生成（38.247.166.124）
 
+> ⚠️ **2026-11-01 事件：本机失联，四站 AI 生成中断。** 上游网关（216.126.0.27）对
+> ICMP 直接回「无法访问目标主机」，TCP 全端口（22/80/443/8000/8188/3389…）从本机、
+> 东京 99.11、sugus 98.55 三个方向全部不通——与 10 月两台 5090「欠费失联」同签名，
+> 是机房侧停机/空路由，不是线路封端口。需到供应商账号里续费/解封。
+> 恢复后四站 worker 会自动恢复轮询；若要对外开 ComfyUI 网页，见第二节末尾的「需求变更」。
+
 > 更新：2026-10-21
 > 起因：原来的两台 GPU 节点（`38.247.190.236` / `204.12.218.174`，各 5090 32G）**欠费失联**，
 > 而 AI 电脑只有一台机器、又只有局域网 —— 于是把四站（sugus / heygirl / kisss / kelymi）
@@ -45,6 +51,28 @@ ssh -L 8188:127.0.0.1:8000 administrator@38.247.166.124   # 需先能直连
 # 直连被封时：ssh -J root@172.81.99.11 -L 8188:127.0.0.1:8000 administrator@38.247.166.124
 # 然后浏览器打开 http://127.0.0.1:8188
 ```
+
+**2026-11-01 需求变更：对外开 ComfyUI 网页**（自己 + 同事浏览器直用）。机器恢复后执行：
+
+```bash
+# ① ComfyUI 改监听 0.0.0.0（service 里原本没写 --listen，默认只绑 127.0.0.1）
+python .zcode/gpu.py --sudo "mkdir -p /etc/systemd/system/comfyui.service.d && \
+  printf '[Service]\nExecStart=\n' > /etc/systemd/system/comfyui.service.d/override.conf && \
+  grep ExecStart comfyui.service >> /etc/systemd/system/comfyui.service.d/override.conf 2>/dev/null; \
+  sed -i 's#127.0.0.1:8000#0.0.0.0:8000#; s#--port 8000#--listen 0.0.0.0 --port 8000#' /etc/systemd/system/comfyui.service.d/override.conf; \
+  cat /etc/systemd/system/comfyui.service.d/override.conf"
+python .zcode/gpu.py --sudo "systemctl daemon-reload && systemctl restart comfyui && sleep 5 && ss -tlnp | grep 8000"
+
+# ② 放行防火墙（ufw 没启用就跳过；云安全组要在供应商面板放行 8000/TCP）
+python .zcode/gpu.py --sudo "ufw status | head -5; ufw allow 8000/tcp 2>/dev/null; ufw status | grep 8000"
+```
+
+之后浏览器直接访问 `http://38.247.166.124:8000`。
+
+⚠️ 两个已知代价，知情后再用：
+1. **ComfyUI 无鉴权**——扫到端口的人都能提交任务、看到生成内容（含 NSFW 成品）。端口别外传；
+   更稳妥的替代是给同事单独开 SSH 隧道账号，端口不开公网。
+2. **同事的网页任务和四站生产共用同一个队列/同一张卡**——大任务会拖慢正式订单。
 
 ## 三、目录结构
 
