@@ -303,3 +303,49 @@ python .zcode/gpumig/deploy_php.py --apply
 # 7) 体检
 gpu-health
 ```
+
+## 附录 C · 工作流 → 模型引用对照（2026-11-01 从工作流 JSON 反查）
+
+> 用途：机器被重置/换机后，按本附录决定**先装哪些**。来源：`.zcode/aipc/*.json`（四站 worker
+> 实际加载的 API 格式工作流，仓库即真本）+ 附录 A 字节数。AI 电脑上的源路径见
+> `.zcode/gpumig/models_g0/g1/g2.bat`。
+
+**① 视频工作流三件套（h3_fingering / MysticXXX / CumFacial，四站视频单）必装：**
+
+| 目录 | 文件 | 字节 | 被谁引用 |
+|---|---|---|---|
+| diffusion_models | minimax_h3_fl2va_pruned_int8_convrot.safetensors | 20,970,379,616 | 三个视频工作流的 UNETLoader |
+| text_encoders | qwen3vl_32b_heretic_minimax_h3_nvfp4.safetensors | 15,683,129,587 | 三个视频工作流的 CLIPLoader |
+| vae | minimax_h3_video_vae_fp16.safetensors | 5,207,808,496 | 视频分支 VAELoader |
+| vae | minimax_h3_audio_vae_fp32.safetensors | 605,254,808 | 音频分支 VAELoader |
+| loras | minimax-h3_fl2v_8Step_motion_enhancer.safetensors | 1,956,171,592 | 三个视频工作流都要 |
+| onnx | rife425_ensemble_False_scale_1_sim.onnx | 22,777,748 | AutoLoadRifeTensorrtModel（RIFE 补帧） |
+| loras | MMH3_Perfect_fingering_v1_000002000.safetensors | 155,110,392 | 仅 h3_fingering_api.json |
+| loras | MysticXXX_MMH3-V4.safetensors | 155,095,800 | 仅 MysticXXX_api.json |
+| loras | MM-H3 - Pussy Lora.safetensors | 155,132,912 | 仅 CumFacial_api.json |
+
+**② 图片工作流（qwenedit_api.json，四站图片单 / 换装）必装：**
+
+| 目录 | 文件 | 字节 |
+|---|---|---|
+| unet | qwen_image_edit_fp8_e4m3fn.safetensors | 20,430,635,136 |
+| clip | qwen_2.5_vl_7b_fp8_scaled.safetensors | 9,384,670,680 |
+| vae | qwen_image_vae.safetensors | 253,806,246 |
+| loras | Qwen-Image-Edit-Remove-Clothes_V.1.safetensors | 472,047,184 |
+
+①+② 合计约 **74 GB**——装完即可恢复生产。
+
+**③ 暂不装（附录 A 有记录、当前生产工作流不引用）：**
+`minimax_h3_fl2va_int8_convrot`（34G 全量）、`minimax_h3_ref2va_int8_convrot`（34G）、
+turbo 4step 两个加速 lora、`soulmate_h3_v1`、`H3_slop_bounce`、`cum_facial_000005400`（无引用）。
+磁盘有余再补；`H3 Ass jiggle` 仍未下载（Civitai 要 token，见附录 A）。
+
+**④ 自定义节点（8 个，`build_nodes_min.sh` 清单）——⚠️ 源码不在仓库，两个来源：**
+旧机 `/opt/comfyui/ComfyUI/custom_nodes`（若旧机能救回）或 **AI 电脑同路径目录**（重装时从这里拷，
+再跑 `build_nodes_min.sh` 装依赖）。`MiniMaxH3-TimelineDirector` / `sol-attn` 这类私有节点
+网上没有，AI 电脑是唯一来源。
+
+**⑤ worker 栈文件全部有仓库真本（不怕丢）：**
+`worker_gpu.py` + 4 个工作流 JSON + `wf_prompts.json` 在 `.zcode/aipc/`；systemd 单元模板
+`.zcode/gpumig/custom-video-worker@.service`、`comfyui.service`；env 四行差异见文档第四节。
+一键部署：`python .zcode/gpumig/deploy_worker_stack.py`（经 gpu.py）。
