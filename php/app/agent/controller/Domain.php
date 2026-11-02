@@ -43,8 +43,8 @@ final class Domain extends Base
 </div>
 <div class="card">
   <h2>我的域名</h2>
-  <table><thead><tr><th>域名</th><th>类型</th><th>状态</th><th>分配时间</th></tr></thead>
-  <tbody>{$rows}</tbody></table>
+  <div class="table-wrap"><table><thead><tr><th>域名</th><th>类型</th><th>状态</th><th>分配时间</th></tr></thead>
+  <tbody>{$rows}</tbody></table></div>
   <div class="tip">如需新增或更换域名，请联系总部管理员。域名需要先完成 DNS 解析与 HTTPS 证书配置，添加后立即生效。</div>
 </div>
 HTML;

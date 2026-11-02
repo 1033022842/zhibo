@@ -27,6 +27,16 @@ final class AgentService
         'account'     => '账号设置',
     ];
 
+    /** 权限说明（后台勾选卡片用） */
+    public const PERM_DESCS = [
+        'overview'    => '查看自己名下的注册、充值、订阅与转化',
+        'link'        => '查看并复制自己名下的推广链接',
+        'link_create' => '允许自助创建、停用和删除推广链接',
+        'member'      => '查看自己名下的会员明细（邮箱打码）',
+        'domain'      => '查看总部分配的专属推广域名',
+        'account'     => '修改自己的登录密码（始终可用）',
+    ];
+
     /** 新建代理时默认勾选（账号设置不可关闭） */
     public const DEFAULT_PERMS = ['overview', 'link', 'link_create', 'member', 'account'];
 

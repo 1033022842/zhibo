@@ -67,10 +67,10 @@ final class Member extends Base
     <input type="text" name="kw" value="{$kw}" placeholder="搜索昵称或邮箱" maxlength="64">
     <button class="btn-line" type="submit">搜索</button>
   </form>
-  <table><thead><tr>
+  <div class="table-wrap"><table><thead><tr>
     <th>昵称</th><th>邮箱</th><th>来源链接</th>
     <th class="num">累计充值(USD)</th><th class="num">累计订阅(USD)</th><th>注册时间</th>
-  </tr></thead><tbody>{$rows}</tbody></table>
+  </tr></thead><tbody>{$rows}</tbody></table></div>
   {$pager}
 </div>
 HTML;

@@ -31,7 +31,8 @@ final class Agent extends Backend
             $this->renderPage(
                 '<div class="card"><h2>代理系统尚未初始化</h2>'
                 . '<div class="tip">请先在数据库执行 <code>php/sql/upgrade_agent.sql</code>，再刷新本页。</div></div>',
-                ''
+                '代理管理',
+                '代理功能尚未初始化'
             );
             return;
         }
@@ -81,29 +82,55 @@ final class Agent extends Backend
             $agentNames[(int) $a['id']] = (string) $a['name'];
         }
 
+        $tagList = static function (array $items, string $class = ''): string {
+            if ($items === []) {
+                return '<span class="muted">未分配</span>';
+            }
+            $html = '';
+            foreach (array_slice($items, 0, 3) as $item) {
+                $html .= '<span class="tag ' . $class . '" title="' . htmlspecialchars((string) $item, ENT_QUOTES) . '">'
+                    . htmlspecialchars((string) $item, ENT_QUOTES) . '</span>';
+            }
+            if (count($items) > 3) {
+                $html .= '<span class="tag more">+' . (count($items) - 3) . '</span>';
+            }
+            return $html;
+        };
+
         $rows = '';
         foreach ($agents as $a) {
             $id      = (int) $a['id'];
             $status  = (int) $a['status'] === 1;
             $perms   = AgentService::parsePerms($a['perms'] ?? null);
-            $permTxt = [];
-            foreach ($perms as $p) {
-                $permTxt[] = AgentService::PERMS[$p] ?? $p;
-            }
             $domains = array_map(static fn(array $d): string => (string) $d['domain'], $domainsByAgent[$id] ?? []);
             $pixels  = array_map(static fn(array $p): string => (string) ($p['name'] !== '' ? $p['name'] : ('渠道#' . $p['id'])), $pixelsByAgent[$id] ?? []);
 
+            $permChips = '';
+            foreach (array_slice($perms, 0, 3) as $p) {
+                $permChips .= '<span class="mini-chip">' . $this->e(AgentService::PERMS[$p] ?? $p) . '</span>';
+            }
+            if (count($perms) > 3) {
+                $permChips .= '<span class="mini-chip">+' . (count($perms) - 3) . '</span>';
+            }
+            if ($permChips === '') {
+                $permChips = '<span class="muted">—</span>';
+            }
+
+            $lastLogin = trim((string) ($a['last_login_at'] ?? '')) !== ''
+                ? $this->e((string) $a['last_login_at'])
+                : '<span class="muted">从未登录</span>';
+
             $rows .= '<tr>'
-                . '<td>' . $id . '</td>'
-                . '<td><b>' . $this->e((string) $a['agent_no']) . '</b><div class="muted">' . $this->e((string) $a['name']) . '</div></td>'
+                . '<td><div class="agent-name">' . $this->e((string) $a['name']) . '</div>'
+                . '<div class="agent-no">' . $this->e((string) $a['agent_no']) . '</div></td>'
                 . '<td>' . $this->e((string) $a['username']) . '</td>'
-                . '<td class="wrap">' . ($domains === [] ? '<span class="muted">未分配</span>' : $this->e(implode('、', $domains))) . '</td>'
-                . '<td class="wrap">' . ($pixels === [] ? '<span class="muted">未分配</span>' : $this->e(implode('、', $pixels))) . '</td>'
-                . '<td class="wrap muted">' . ($permTxt === [] ? '—' : $this->e(implode('、', $permTxt))) . '</td>'
-                . '<td class="num">' . (int) $a['regs'] . '</td>'
-                . '<td class="num">' . (int) $a['buyers'] . ' / ' . number_format((float) $a['amount'], 2) . '</td>'
+                . '<td><div>' . $tagList($domains) . '</div><div style="margin-top:4px">' . $tagList($pixels, 'alt') . '</div></td>'
+                . '<td><div class="mini-chips">' . $permChips . '</div></td>'
+                . '<td class="num"><div>注册 ' . (int) $a['regs'] . '</div>'
+                . '<div class="muted" style="font-size:11.5px;margin-top:2px">'
+                . (int) $a['buyers'] . ' 人 / $' . number_format((float) $a['amount'], 2) . '</div></td>'
                 . '<td>' . ($status ? '<span class="chip on">启用</span>' : '<span class="chip off">停用</span>') . '</td>'
-                . '<td>' . $this->e((string) ($a['last_login_at'] ?? '—')) . '</td>'
+                . '<td>' . $lastLogin . '</td>'
                 . '<td class="ops">'
                 . '<a href="/admin/live.Agent/index?id=' . $id . $this->keyQuery() . '">编辑</a>'
                 . '<a href="/admin/live.Agent/toggle?id=' . $id . $this->keyQuery() . '">' . ($status ? '停用' : '启用') . '</a>'
@@ -111,8 +138,9 @@ final class Agent extends Backend
                 . '</tr>';
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="11" class="empty">还没有代理，先在下面创建</td></tr>';
+            $rows = '<tr><td colspan="8" class="empty">还没有代理，先在上方创建</td></tr>';
         }
+        $agentCount = count($agents);
 
         // 表单预填
         $eId       = (int) $edit['id'];
@@ -129,9 +157,11 @@ final class Agent extends Backend
 
         $permBoxes = '';
         foreach (AgentService::PERMS as $key => $label) {
-            $checked = in_array($key, $ePerms, true) ? ' checked' : '';
+            $checked  = in_array($key, $ePerms, true) ? ' checked' : '';
             $disabled = in_array($key, AgentService::ALWAYS_PERMS, true) ? ' disabled' : '';
-            $permBoxes .= '<label class="chk"><input type="checkbox" name="perms[]" value="' . $key . '"' . $checked . $disabled . '> ' . $this->e($label) . '</label>';
+            $desc     = AgentService::PERM_DESCS[$key] ?? '';
+            $permBoxes .= '<label class="perm"><input type="checkbox" name="perms[]" value="' . $key . '"' . $checked . $disabled . '>'
+                . '<span><b>' . $this->e($label) . '</b><small>' . $this->e($desc) . '</small></span></label>';
         }
 
         $pixelBoxes = '';
@@ -140,61 +170,88 @@ final class Agent extends Backend
             $owner = (int) $p['agent_id'];
             $pf    = PromoService::PIXEL_PLATFORMS[(string) $p['platform']] ?? (string) $p['platform'];
             $pn    = trim((string) $p['name']);
-            $label = $pf . ($pn !== '' ? ' · ' . $pn : '') . '（#' . $pid . '）';
+            $label = $pf . ($pn !== '' ? ' · ' . $pn : '');
             if ($owner > 0 && $owner !== $eId) {
-                $label .= ' — 已属于 ' . ($agentNames[$owner] ?? ('代理#' . $owner));
-                $pixelBoxes .= '<label class="chk is-disabled"><input type="checkbox" disabled> ' . $this->e($label) . '</label>';
+                $ownerName = $agentNames[$owner] ?? ('代理#' . $owner);
+                $pixelBoxes .= '<label class="perm is-disabled"><input type="checkbox" disabled>'
+                    . '<span><b>' . $this->e($label) . '</b><small>已属于 ' . $this->e($ownerName) . '</small></span></label>';
             } else {
                 $checked = in_array($pid, $ePixels, true) ? ' checked' : '';
-                $pixelBoxes .= '<label class="chk"><input type="checkbox" name="pixels[]" value="' . $pid . '"' . $checked . '> ' . $this->e($label) . '</label>';
+                $pixelBoxes .= '<label class="perm"><input type="checkbox" name="pixels[]" value="' . $pid . '"' . $checked . '>'
+                    . '<span><b>' . $this->e($label) . '</b><small>渠道 #' . $pid . '</small></span></label>';
             }
         }
         if ($pixelBoxes === '') {
-            $pixelBoxes = '<div class="muted">还没有渠道，请先到「推广与像素」创建。</div>';
+            $pixelBoxes = '<div class="muted" style="font-size:12.5px">还没有渠道，请先到「推广与像素」创建。</div>';
         }
 
         $ok = (string) $this->request->param('ok', '');
         $alert = $ok !== '' ? '<div class="alert ok">' . $this->e($ok) . '</div>' : '';
-        $formTitle = $eId > 0 ? '编辑代理 #' . $eId : '新建代理';
+        $formTitle = $eId > 0 ? '编辑代理 · ' . $eName : '新建代理';
         $cancel = $eId > 0 ? '<a class="btn-line" href="/admin/live.Agent/index' . $this->keyQuery() . '">取消编辑</a>' : '';
         $pwdHint = $eId > 0 ? '留空表示不修改密码' : '新建代理必填，至少 6 位';
         $eDomainsEsc = $this->e($eDomains);
         $saveUrl     = '/admin/live.Agent/save' . $this->keyQuery();
+        $newUrl      = '/admin/live.Agent/index' . $this->keyQuery();
+        $formHint    = $eId > 0 ? '修改后立即生效；改密码或停用会强制该代理重新登录。' : '代理账号独立于后台管理员，只能登录 /agent。';
+        $headActions = '<a class="btn-line" href="' . $newUrl . '">新建代理</a>';
 
         $content = <<<HTML
-<div class="head"><div><h1>代理管理</h1>
-  <div class="sub">代理是独立账号，只能登录 <b>/agent</b>，只能看到分配给自己的域名、渠道、链接与会员数据。</div></div></div>
 {$alert}
 <div class="card">
-  <h2>{$formTitle}</h2>
-  <form class="frm" method="post" action="{$saveUrl}">
+  <div class="card-head">
+    <div><h2>{$formTitle}</h2><div class="hint">{$formHint}</div></div>
+    {$cancel}
+  </div>
+  <form method="post" action="{$saveUrl}">
     <input type="hidden" name="id" value="{$eId}">
-    <div class="fld"><label>代理名称（必填）</label><input type="text" name="name" value="{$eName}" maxlength="64" required></div>
-    <div class="fld"><label>登录账号（必填，唯一）</label><input type="text" name="username" value="{$eUser}" maxlength="64" required></div>
-    <div class="fld"><label>登录密码</label><input type="password" name="password" maxlength="32" autocomplete="new-password" placeholder="{$pwdHint}"></div>
-    <div class="fld"><label>联系方式</label><input type="text" name="contact" value="{$eContact}" maxlength="128"></div>
-    <div class="fld"><label>结算比例 %（预留，仅记录）</label><input type="number" step="0.01" min="0" max="100" name="rate" value="{$eRate}"></div>
-    <div class="fld"><label>备注</label><input type="text" name="remark" value="{$eRemark}" maxlength="255"></div>
-    <div class="fld full"><label>代理端权限</label><div class="chks">{$permBoxes}</div></div>
-    <div class="fld full"><label>专属推广域名（一行一个，需先完成 DNS 解析与证书配置）</label>
-      <textarea name="domains" rows="3" placeholder="agent1.example.com">{$eDomainsEsc}</textarea></div>
-    <div class="fld full"><label>分配渠道（代理只能看到名称，看不到像素 ID / Token）</label><div class="chks">{$pixelBoxes}</div></div>
-    <div class="actions">
+    <div class="frm">
+      <div class="fld"><label>代理名称（必填）</label><input type="text" name="name" value="{$eName}" maxlength="64" required></div>
+      <div class="fld"><label>登录账号（必填，唯一）</label><input type="text" name="username" value="{$eUser}" maxlength="64" required></div>
+      <div class="fld"><label>登录密码</label><input type="password" name="password" maxlength="32" autocomplete="new-password" placeholder="{$pwdHint}"></div>
+      <div class="fld"><label>联系方式</label><input type="text" name="contact" value="{$eContact}" maxlength="128"></div>
+      <div class="fld"><label>结算比例 %（预留，仅记录）</label><input type="number" step="0.01" min="0" max="100" name="rate" value="{$eRate}"></div>
+      <div class="fld"><label>备注</label><input type="text" name="remark" value="{$eRemark}" maxlength="255"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-head"><h3>代理端权限</h3><span class="hint">勾选后代理登录 /agent 只能看到对应模块，未勾选的菜单和接口都会被拒绝</span></div>
+    <div class="perm-grid">{$permBoxes}</div>
+    <div class="divider"></div>
+    <div class="two-col">
+      <div class="field-block">
+        <h3>专属推广域名</h3>
+        <textarea name="domains" rows="5" placeholder="agent1.example.com" style="width:100%;padding:10px 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:#1f2430;font-family:inherit;outline:none;resize:vertical">{$eDomainsEsc}</textarea>
+        <div class="hint">一行一个。域名需先完成 DNS 解析和 HTTPS 证书配置；域名直访会自动归属该代理。</div>
+      </div>
+      <div class="field-block">
+        <h3>分配渠道</h3>
+        <div class="perm-grid compact">{$pixelBoxes}</div>
+        <div class="hint">代理只能看到渠道名称，看不到像素 ID 和 CAPI Token。</div>
+      </div>
+    </div>
+    <div class="form-actions">
       <button class="btn" type="submit">保存</button>{$cancel}
-      <label class="muted" style="margin-left:auto"><input type="checkbox" name="status" value="1"{$eStatus}> 启用</label>
+      <label class="switch"><input type="checkbox" name="status" value="1"{$eStatus}> 启用</label>
     </div>
   </form>
 </div>
 <div class="card">
-  <h2>代理列表</h2>
-  <table><thead><tr>
-    <th>ID</th><th>代理</th><th>账号</th><th>域名</th><th>渠道</th><th>权限</th>
-    <th class="num">注册</th><th class="num">充值人数/金额</th><th>状态</th><th>最后登录</th><th>操作</th>
-  </tr></thead><tbody>{$rows}</tbody></table>
+  <div class="card-head">
+    <div><h2>代理列表</h2><div class="hint">共 {$agentCount} 个代理 · 注册与充值按代理归因累计</div></div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr>
+        <th>代理</th><th>账号</th><th>域名 / 渠道</th><th>权限</th>
+        <th class="num">注册 / 充值</th><th>状态</th><th>最后登录</th><th>操作</th>
+      </tr></thead>
+      <tbody>{$rows}</tbody>
+    </table>
+  </div>
 </div>
 HTML;
 
-        $this->renderPage($content, '代理管理');
+        $this->renderPage($content, '代理管理', '创建代理账号、勾选代理端权限、分配专属域名与渠道。代理登录入口 <b>/agent</b>。', $headActions);
     }
 
     public function save(): void
@@ -338,6 +395,8 @@ HTML;
                 . $this->e($e->getMessage()) . '</div><div class="actions">'
                 . '<a class="btn-line" href="/admin/live.Agent/index' . $this->keyQuery() . '">返回</a></div></div>',
                 '保存失败',
+                '请修正后重试',
+                '',
                 422
             );
         }
@@ -371,59 +430,10 @@ HTML;
         }
     }
 
-    private function renderPage(string $content, string $sub, int $status = 200): void
+    private function renderPage(string $content, string $title = '代理管理', string $subtitle = '', string $actions = '', int $status = 200): void
     {
         http_response_code($status);
-        $html = <<<HTML
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>代理管理</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f4f5fb;color:#1f2430;font-size:14px}
-.container{max-width:1280px;margin:0 auto;padding:28px 24px 60px}
-.head{margin-bottom:18px}
-h1{font-size:23px;font-weight:700;color:#1a1f36}
-.sub{margin-top:6px;font-size:13px;color:#8a90a3;line-height:1.7}
-.card{background:#fff;border:1px solid #eef0f6;border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(30,34,60,.04)}
-.card h2{font-size:15px;font-weight:700;margin-bottom:14px;color:#1a1f36}
-.frm{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.fld{display:flex;flex-direction:column;gap:6px}
-.fld label{font-size:12px;color:#8a90a3}
-.fld input,.fld textarea{padding:9px 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:#1f2430;background:#fff;outline:none;width:100%;font-family:inherit}
-.fld input{height:38px}
-.fld input:focus,.fld textarea:focus{border-color:#6366f1}
-.fld.full{grid-column:1/-1}
-.chks{display:flex;flex-wrap:wrap;gap:8px 18px;padding:8px 0}
-.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:#3a4051;cursor:pointer}
-.chk.is-disabled{color:#b4b9c6;cursor:not-allowed}
-.actions{grid-column:1/-1;display:flex;gap:10px;align-items:center}
-.btn{height:38px;padding:0 20px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
-.btn-line{height:38px;line-height:36px;padding:0 16px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:#5b6072;text-decoration:none;background:#fff;display:inline-block}
-table{width:100%;border-collapse:collapse}
-th{background:#fafbfe;font-weight:600;font-size:12px;color:#8a90a3;text-align:left;padding:12px 12px;border-bottom:1px solid #eef0f6;white-space:nowrap}
-td{padding:11px 12px;border-bottom:1px solid #f2f3f8;font-size:13px;color:#3a4051;vertical-align:top}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-tr:last-child td{border-bottom:none}
-.empty{text-align:center;color:#9aa0b0;padding:26px 0}
-.muted{color:#9aa0b0}
-td.wrap{max-width:220px;word-break:break-all}
-.chip{font-size:12px;padding:2px 9px;border-radius:999px;white-space:nowrap}
-.chip.on{background:#e8f7ef;color:#00a870}
-.chip.off{background:#f2f3f5;color:#999}
-td.ops a{color:#6366f1;text-decoration:none;margin-right:12px;white-space:nowrap}
-.tip{font-size:13px;color:#6b7080;line-height:1.8}
-.alert{padding:11px 14px;border-radius:10px;font-size:13px;margin-bottom:16px}
-.alert.ok{background:#e8f7ef;color:#00875a;border:1px solid #c7ebd8}
-code{background:#f7f8fc;border:1px solid #eef0f6;border-radius:6px;padding:2px 6px;font-family:Consolas,Menlo,monospace;font-size:12.5px}
-</style>
-</head>
-<body><div class="container">{$content}</div></body>
-</html>
-HTML;
+        $html = \app\live\service\AgentAdminView::page($title, $subtitle, $content, $actions);
         response($html)->send();
         exit;
     }

@@ -6,7 +6,7 @@ namespace app\agent\service;
 use app\live\service\AgentService;
 
 /**
- * 代理门户页面骨架（服务端渲染，避免额外前端构建）
+ * 代理门户页面骨架（浅色后台风格，与总后台保持一致）
  */
 final class AgentView
 {
@@ -23,6 +23,14 @@ final class AgentView
         $initial = self::h(mb_substr((string) ($agent['name'] ?? 'A'), 0, 1));
         $title   = self::h($title);
 
+        $icons = [
+            'overview' => '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>',
+            'link'     => '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.07 0l1.42-1.42a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.51 12.42a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>',
+            'member'   => '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+            'domain'   => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg>',
+            'account'  => '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+        ];
+
         $items = [
             'overview' => ['/agent/index/index', '数据概览', AgentService::hasPerm($agent, 'overview')],
             'link'     => ['/agent/link/index', '推广链接', AgentService::hasPerm($agent, 'link')],
@@ -36,10 +44,8 @@ final class AgentView
                 continue;
             }
             $cls = $key === $active ? 'nav-item is-active' : 'nav-item';
-            $nav .= '<a class="' . $cls . '" href="' . $url . '">' . self::h($label) . '</a>';
+            $nav .= '<a class="' . $cls . '" href="' . $url . '">' . ($icons[$key] ?? '') . '<span>' . self::h($label) . '</span></a>';
         }
-
-        $year = date('Y');
 
         return <<<HTML
 <!DOCTYPE html>
@@ -50,92 +56,137 @@ final class AgentView
 <title>{$title} · 代理中心</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f5f6fa;color:#1f2430;font-size:14px}
+:root{--primary:#6366f1;--primary2:#8b5cf6;--line:#eceef5;--bg:#f5f6fa;--text:#1f2430;--muted:#8a90a3}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
 a{color:inherit}
-.layout{display:flex;min-height:100vh}
-.side{width:212px;flex:0 0 212px;background:#111827;color:#cbd5e1;display:flex;flex-direction:column;padding:22px 14px}
-.brand{display:flex;align-items:center;gap:10px;padding:0 8px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
-.brand .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px}
-.brand .t{font-size:15px;font-weight:700;color:#fff}
-.brand .s{font-size:11px;color:#8b93a7;margin-top:2px}
-.nav{margin-top:18px;display:flex;flex-direction:column;gap:4px}
-.nav-item{padding:10px 12px;border-radius:9px;color:#cbd5e1;text-decoration:none;font-size:13.5px;transition:.15s}
-.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
-.nav-item.is-active{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:600}
-.side-bottom{margin-top:auto;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)}
+.shell{display:flex;min-height:100vh}
+.side{width:224px;flex:0 0 224px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 18px;border-bottom:1px solid #f1f2f7}
+.brand .logo{width:36px;height:36px;flex:0 0 36px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--primary2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;box-shadow:0 5px 14px rgba(99,102,241,.24)}
+.brand .t{font-size:15px;font-weight:700;color:#161b2c;line-height:1.2}
+.brand .s{font-size:11px;color:#9aa0b0;margin-top:3px;font-family:Consolas,Menlo,monospace}
+.nav-label{font-size:10.5px;color:#a0a5b3;letter-spacing:.08em;margin:18px 10px 8px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:#5b6072;text-decoration:none;font-size:13.5px;transition:background .15s,color .15s}
+.nav-item svg{width:17px;height:17px;flex:0 0 17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.nav-item:hover{background:#f5f6fa;color:#1f2430}
+.nav-item.is-active{background:#eef0ff;color:#4f46e5;font-weight:600}
+.side-foot{margin-top:auto;padding-top:16px;border-top:1px solid #f1f2f7}
 .who{display:flex;align-items:center;gap:9px;padding:0 6px 12px}
-.avatar{width:30px;height:30px;border-radius:50%;background:#374151;color:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-.who .n{font-size:13px;color:#fff;font-weight:600;line-height:1.2}
-.who .i{font-size:11px;color:#8b93a7;margin-top:2px}
-.logout-btn{width:100%;height:34px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#cbd5e1;border-radius:8px;cursor:pointer;font-size:12.5px}
-.logout-btn:hover{background:rgba(255,255,255,.07);color:#fff}
-.main{flex:1;min-width:0;padding:26px 30px 60px}
-.head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:20px}
-.head h1{font-size:22px;font-weight:700;color:#161b2c}
-.head .sub{font-size:12.5px;color:#8a90a3;margin-top:5px;line-height:1.7}
-.card{background:#fff;border:1px solid #eceef5;border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(30,34,60,.04)}
-.card h2{font-size:15px;font-weight:700;margin-bottom:14px;color:#1a1f36}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
-.stat{background:#fff;border:1px solid #eceef5;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(30,34,60,.04)}
-.stat .k{font-size:12px;color:#8a90a3}
-.stat .v{font-size:22px;font-weight:700;color:#1a1f36;margin-top:6px;font-variant-numeric:tabular-nums}
-.stat .d{font-size:11.5px;color:#9aa0b0;margin-top:4px}
+.avatar{width:32px;height:32px;flex:0 0 32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.who .n{font-size:13px;color:#1f2430;font-weight:600;line-height:1.2;max-width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .i{font-size:11px;color:#9aa0b0;margin-top:2px}
+.logout-btn{width:100%;height:34px;border:1px solid #e2e5ee;background:#fff;color:#6b7080;border-radius:9px;cursor:pointer;font-size:12.5px;transition:.15s}
+.logout-btn:hover{border-color:#ffd6df;background:#fff7f9;color:#d61f4a}
+.main{flex:1;min-width:0}
+.topbar{height:58px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 30px;border-bottom:1px solid var(--line);background:rgba(245,246,250,.86);backdrop-filter:blur(8px);position:sticky;top:0;z-index:5}
+.crumb{font-size:12.5px;color:#9aa0b0}
+.crumb b{color:#3a4051;font-weight:600}
+.crumb .sep{margin:0 7px;color:#c6cad4}
+.badge{font-size:11.5px;line-height:24px;padding:0 10px;border-radius:999px;background:#eef0ff;color:#4f46e5;font-family:Consolas,Menlo,monospace}
+.content{padding:24px 30px 56px;max-width:1320px;margin:0 auto}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px}
+.head h1{font-size:24px;font-weight:700;letter-spacing:-.02em;color:#161b2c}
+.head .sub{margin-top:7px;font-size:13px;color:var(--muted);line-height:1.7}
+.card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(30,34,60,.035);overflow:hidden}
+.card h2{font-size:15.5px;font-weight:700;margin-bottom:14px;color:#1a1f36}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.stat{display:flex;gap:13px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:15px;padding:17px 18px;box-shadow:0 1px 2px rgba(30,34,60,.035)}
+.stat .ico{width:38px;height:38px;flex:0 0 38px;border-radius:11px;display:flex;align-items:center;justify-content:center}
+.stat .ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ico.indigo{background:#eef0ff;color:#6366f1}
+.ico.emerald{background:#e8f7ef;color:#00a870}
+.ico.amber{background:#fff6e6;color:#d68a00}
+.ico.violet{background:#f3edff;color:#8b5cf6}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+.stat .d{font-size:11.5px;color:#9aa0b0;margin-top:3px}
+.seg{display:inline-flex;background:#eef0f5;border-radius:9px;padding:3px;gap:2px}
+.seg-item{height:30px;line-height:30px;padding:0 13px;border-radius:7px;font-size:12.5px;color:#6b7080;text-decoration:none;transition:.15s}
+.seg-item:hover{color:#1f2430}
+.seg-item.is-active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(30,34,60,.12)}
 table{width:100%;border-collapse:collapse}
-th{background:#fafbfe;font-weight:600;font-size:12px;color:#8a90a3;text-align:left;padding:11px 12px;border-bottom:1px solid #eef0f6;white-space:nowrap}
+th{background:#fafbfe;font-weight:600;font-size:12px;color:var(--muted);text-align:left;padding:11px 12px;border-bottom:1px solid #eef0f6;white-space:nowrap}
 td{padding:11px 12px;border-bottom:1px solid #f2f3f8;font-size:13px;color:#3a4051;vertical-align:middle}
+tbody tr:hover{background:#fbfbff}
 tr:last-child td{border-bottom:none}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-.empty{text-align:center;color:#9aa0b0;padding:26px 0}
+.empty{text-align:center;color:#9aa0b0;padding:28px 0}
 .muted{color:#9aa0b0}
 .chip{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;white-space:nowrap}
 .chip.on{background:#e8f7ef;color:#00a870}
 .chip.off{background:#f2f3f5;color:#999}
-.frm{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.frm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .fld{display:flex;flex-direction:column;gap:6px}
-.fld label{font-size:12px;color:#8a90a3}
-.fld input,.fld select{height:38px;padding:0 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:#1f2430;background:#fff;outline:none;width:100%}
-.fld input:focus,.fld select:focus{border-color:#6366f1}
+.fld label{font-size:12px;color:var(--muted)}
+.fld input,.fld select{height:38px;padding:0 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:var(--text);background:#fff;outline:none;width:100%;transition:border-color .15s,box-shadow .15s}
+.fld input:focus,.fld select:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;margin-top:2px}
-.btn{height:38px;padding:0 20px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+.btn{height:38px;padding:0 20px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.22)}
+.btn:hover{filter:brightness(1.04)}
 .btn-line{height:34px;line-height:32px;padding:0 13px;border:1px solid #dfe2ec;border-radius:9px;background:#fff;color:#4b5165;font-size:12.5px;cursor:pointer;text-decoration:none;display:inline-block}
-.btn-line:hover{border-color:#6366f1;color:#6366f1}
+.btn-line:hover{border-color:#c7cbf7;color:#4f46e5}
 .btn-danger{color:#ff2d55;border-color:#ffd6df}
 .btn-danger:hover{border-color:#ff2d55;color:#ff2d55}
 .lk{display:flex;align-items:center;gap:8px}
 .lk code{flex:1;min-width:0;background:#f7f8fc;border:1px solid #eef0f6;border-radius:8px;padding:6px 9px;font-family:Consolas,Menlo,monospace;font-size:11.5px;color:#4a5069;word-break:break-all}
-.btn-copy{flex:0 0 auto;padding:5px 10px;border:1px solid #6366f1;border-radius:8px;background:#fff;color:#6366f1;font-size:12px;cursor:pointer}
+.btn-copy{flex:0 0 auto;padding:5px 10px;border:1px solid #c7cbf7;border-radius:8px;background:#fff;color:#4f46e5;font-size:12px;cursor:pointer}
+.btn-copy:hover{background:#eef0ff}
 .btn-copy.copied{border-color:#00a870;color:#00a870;background:#e8f7ef}
-.ops a{color:#6366f1;text-decoration:none;margin-right:10px;white-space:nowrap;font-size:12.5px}
+.ops a{color:var(--primary);text-decoration:none;margin-right:10px;white-space:nowrap;font-size:12.5px}
 .ops a.danger{color:#ff2d55}
-.pager{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:12.5px;color:#8a90a3}
-.pager a{color:#6366f1;text-decoration:none}
+.ops a:hover{text-decoration:underline}
+.pager{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:12.5px;color:var(--muted)}
+.pager a{color:var(--primary);text-decoration:none}
 .tip{font-size:12px;color:#9aa0b0;line-height:1.8;margin-top:12px}
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .toolbar input{height:34px;padding:0 12px;border:1px solid #e2e5ee;border-radius:9px;outline:none;min-width:200px}
-.toolbar input:focus{border-color:#6366f1}
+.toolbar input:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .alert{padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;line-height:1.6}
 .alert.err{background:#fff1f4;color:#d61f4a;border:1px solid #ffd6df}
 .alert.ok{background:#e8f7ef;color:#00875a;border:1px solid #c7ebd8}
-@media(max-width:900px){
-  .layout{flex-direction:column}
-  .side{width:100%;flex:none;padding:16px}
-  .nav{flex-direction:row;flex-wrap:wrap}
-  .side-bottom{margin-top:14px}
-  .main{padding:18px 14px 50px}
-  .stats{grid-template-columns:repeat(2,1fr)}
+.bar{height:6px;border-radius:999px;background:#f0f2f7;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--primary),var(--primary2))}
+@media(max-width:1024px){
+  .side{width:78px;flex:0 0 78px;padding:16px 8px}
+  .brand{padding:0 6px 14px;justify-content:center}
+  .brand .t,.brand .s,.nav-label,.nav-item span,.who .n,.who .i{display:none}
+  .nav-item{justify-content:center;padding:11px 0}
+  .who{justify-content:center;padding:0 0 10px}
+  .topbar{padding:0 18px}
+  .content{padding:20px 18px 48px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .frm{grid-template-columns:1fr}
+}
+@media(max-width:720px){
+  .shell{display:block}
+  .side{width:100%;height:auto;position:static;flex-direction:row;align-items:center;padding:9px 12px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto}
+  .brand{display:none}
+  .nav{flex-direction:row;gap:4px;margin:0}
+  .nav-item{justify-content:flex-start;padding:8px 12px;white-space:nowrap}
+  .nav-item span{display:inline}
+  .side-foot{margin:0 0 0 auto;border:0;padding:0}
+  .side-foot .who{display:none}
+  .logout-btn{width:auto;padding:0 12px}
+  .topbar{height:50px;padding:0 14px}
+  .content{padding:16px 14px 44px}
+  .head{flex-direction:column;align-items:flex-start}
+  .stats{grid-template-columns:1fr}
+  .card{padding:15px}
 }
 </style>
 </head>
 <body>
-<div class="layout">
+<div class="shell">
   <aside class="side">
     <div class="brand">
       <div class="logo">{$initial}</div>
       <div><div class="t">代理中心</div><div class="s">{$no}</div></div>
     </div>
+    <div class="nav-label">工作台</div>
     <nav class="nav">{$nav}</nav>
-    <div class="side-bottom">
+    <div class="side-foot">
       <div class="who">
         <div class="avatar">{$initial}</div>
         <div><div class="n">{$name}</div><div class="i">代理账号</div></div>
@@ -146,7 +197,13 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
       </form>
     </div>
   </aside>
-  <main class="main">{$content}</main>
+  <main class="main">
+    <div class="topbar">
+      <div class="crumb">代理中心<span class="sep">/</span><b>{$title}</b></div>
+      <div class="badge">{$no}</div>
+    </div>
+    <div class="content">{$content}</div>
+  </main>
 </div>
 <script>
 (function () {
@@ -200,37 +257,56 @@ HTML;
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>代理登录</title>
+<title>代理登录 · 代理中心</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#eef0ff 0%,#f7f8fc 45%,#fdf2ff 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:#1f2430}
-.box{width:100%;max-width:400px;background:#fff;border:1px solid #eceef5;border-radius:18px;padding:34px 32px;box-shadow:0 18px 50px rgba(60,70,120,.12)}
-.logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:700;margin-bottom:16px}
-h1{font-size:21px;font-weight:700}
-.sub{font-size:12.5px;color:#8a90a3;margin:7px 0 20px;line-height:1.7}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;color:#1f2430;background:#f5f6fa;background-image:radial-gradient(900px 420px at 12% -8%,rgba(99,102,241,.16),transparent 62%),radial-gradient(760px 420px at 92% 108%,rgba(139,92,246,.13),transparent 60%)}
+.box{width:100%;max-width:410px;background:#fff;border:1px solid #eceef5;border-radius:20px;padding:34px 32px 28px;box-shadow:0 24px 60px rgba(50,60,110,.12)}
+.brand{display:flex;align-items:center;gap:11px;margin-bottom:24px}
+.logo{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;font-weight:700;box-shadow:0 8px 20px rgba(99,102,241,.26)}
+.brand .t{font-size:15px;font-weight:700;color:#161b2c;line-height:1.2}
+.brand .s{font-size:11.5px;color:#9aa0b0;margin-top:3px}
+h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.sub{font-size:12.5px;color:#8a90a3;margin:8px 0 22px;line-height:1.75}
 .alert{padding:10px 13px;border-radius:10px;font-size:13px;margin-bottom:14px;line-height:1.6}
 .alert.err{background:#fff1f4;color:#d61f4a;border:1px solid #ffd6df}
 .alert.ok{background:#e8f7ef;color:#00875a;border:1px solid #c7ebd8}
 .fld{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
 .fld label{font-size:12.5px;color:#6b7080}
-.fld input{height:42px;padding:0 13px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;outline:none;background:#fbfbfe}
-.fld input:focus{border-color:#6366f1;background:#fff}
-.btn{width:100%;height:42px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:14.5px;font-weight:600;cursor:pointer;margin-top:6px}
-.btn:hover{filter:brightness(1.03)}
+.input-wrap{position:relative}
+.input-wrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:17px;height:17px;fill:none;stroke:#a0a5b3;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.input-wrap input{width:100%;height:44px;padding:0 13px 0 40px;border:1px solid #e2e5ee;border-radius:11px;font-size:14px;outline:none;background:#fbfbfe;transition:border-color .15s,box-shadow .15s,background .15s}
+.input-wrap input:focus{border-color:#a5b4fc;background:#fff;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.btn{width:100%;height:44px;border:none;border-radius:11px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:14.5px;font-weight:600;cursor:pointer;margin-top:6px;box-shadow:0 8px 20px rgba(99,102,241,.24);transition:.15s}
+.btn:hover{filter:brightness(1.04);transform:translateY(-1px)}
 .foot{margin-top:18px;text-align:center;font-size:11.5px;color:#a0a5b3}
+@media(max-width:480px){.box{padding:28px 22px 24px;border-radius:16px}}
 </style>
 </head>
 <body>
 <div class="box">
-  <div class="logo">A</div>
-  <h1>代理中心</h1>
-  <div class="sub">请使用总部分配的代理账号登录。账号仅能查看自己名下的数据。</div>
+  <div class="brand">
+    <div class="logo">A</div>
+    <div><div class="t">代理中心</div><div class="s">Agent Portal</div></div>
+  </div>
+  <h1>登录代理后台</h1>
+  <div class="sub">使用总部发放的代理账号登录。账号仅能查看自己名下的数据。</div>
   {$errBox}
   {$okBox}
   <form method="post" action="/agent/auth/login">
     <input type="hidden" name="redirect" value="{$redir}">
-    <div class="fld"><label>代理账号</label><input type="text" name="username" value="{$user}" maxlength="64" autocomplete="username" required></div>
-    <div class="fld"><label>登录密码</label><input type="password" name="password" maxlength="64" autocomplete="current-password" required></div>
+    <div class="fld"><label>代理账号</label>
+      <div class="input-wrap">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <input type="text" name="username" value="{$user}" maxlength="64" autocomplete="username" placeholder="请输入代理账号" required>
+      </div>
+    </div>
+    <div class="fld"><label>登录密码</label>
+      <div class="input-wrap">
+        <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <input type="password" name="password" maxlength="64" autocomplete="current-password" placeholder="请输入登录密码" required>
+      </div>
+    </div>
     <button type="submit" class="btn">登录</button>
   </form>
   <div class="foot">© {$year} 代理中心</div>
