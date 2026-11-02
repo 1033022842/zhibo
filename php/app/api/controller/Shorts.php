@@ -77,6 +77,11 @@ final class Shorts extends BaseController
             $rows = $rows->where('section', '<>', 'private');
         }
 
+        // R18 门控：未充值且非会员的用户不下发限制级短剧
+        if (!$this->canViewR18($this->optionalAuthUserId())) {
+            $rows = $rows->where('is_r18', 0);
+        }
+
         if ($owned) {
             $rows = $rows->whereIn('id', array_keys($ownedCounts));
         }
@@ -127,6 +132,11 @@ final class Shorts extends BaseController
         $db = $this->table();
         $short = $db->table('lp_short_item')->where('id', $shortId)->where('status', 1)->find();
         if (!$short) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '短剧不存在或已下架');
+        }
+
+        // R18 门控：列表已过滤，这里防直连；口径与「不存在」一致，避免暴露存在性
+        if ((int) ($short['is_r18'] ?? 0) === 1 && !$this->canViewR18($this->optionalAuthUserId())) {
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '短剧不存在或已下架');
         }
 
@@ -608,6 +618,18 @@ final class Shorts extends BaseController
         }
         $ent = (new VipService())->entitlements($userId);
         return !empty($ent['is_vip']);
+    }
+
+    /**
+     * R18 门控：充值过代币 或 有效会员 任一满足即可见限制级素材
+     * 未登录/两者都不满足 → 前台列表不下发、详情按不存在处理
+     */
+    private function canViewR18(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        return (new WalletService())->hasRecharged($userId) || $this->isVipUser($userId);
     }
 
     /**

@@ -29,6 +29,24 @@ final class WalletService
     }
 
     /**
+     * 是否充值过代币（任一充值入账记录即算；后台手动充值同口径）
+     * 查流水而非订单表：代付/调账/后台赠送等所有入账路径都落 ledger
+     */
+    public function hasRecharged(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        $row = Db::connect('live_mysql')->table('lp_wallet_ledger')
+            ->where('user_id', $userId)
+            ->where('biz_type', 'recharge')
+            ->where('direction', 1)
+            ->order('id', 'asc')
+            ->find();
+        return !empty($row);
+    }
+
+    /**
      * 扣减代币（支出）
      * @param string $bizType recharge/gift/crowdfunding_pledge/vip_buy/withdraw/adjust
      * @param string $remark 流水备注

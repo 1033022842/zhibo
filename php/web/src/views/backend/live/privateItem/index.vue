@@ -113,6 +113,16 @@ const baTable = new baTableClass(
                 replaceValue: { '0': '下架', '1': '上架' },
             },
             {
+                label: 'R18',
+                prop: 'is_r18',
+                align: 'center',
+                width: 80,
+                render: 'tag',
+                custom: { '0': 'info', '1': 'danger' },
+                replaceValue: { '0': '否', '1': '是' },
+                operator: '=',
+            },
+            {
                 label: '创建时间',
                 prop: 'created_at',
                 align: 'center',
@@ -135,6 +145,7 @@ const baTable = new baTableClass(
     {
         defaultItems: {
             status: 1,
+            is_r18: 0,
             weigh: 0,
             price: 0,
             like_rate: 0,

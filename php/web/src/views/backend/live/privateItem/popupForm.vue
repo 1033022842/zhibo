@@ -80,6 +80,12 @@
                         type="radio"
                         :input-attr="{ border: true, content: { '1': '上架', '0': '下架' } }"
                     />
+                    <FormItem
+                        label="R18"
+                        v-model="baTable.form.items!.is_r18"
+                        type="radio"
+                        :input-attr="{ border: true, content: { '1': '是 · 仅充值/VIP可见', '0': '否' } }"
+                    />
                 </el-form>
             </div>
         </el-scrollbar>

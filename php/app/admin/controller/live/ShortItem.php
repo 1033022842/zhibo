@@ -132,6 +132,7 @@ final class ShortItem extends Backend
         $data['rank']         = max(0, (int) ($data['rank'] ?? $existing['rank'] ?? 0));
         $data['progress']     = round(min(100, max(0, (float) ($data['progress'] ?? $existing['progress'] ?? 0))), 2);
         $data['spicy']        = (int) ($data['spicy'] ?? $existing['spicy'] ?? 0) ? 1 : 0;
+        $data['is_r18']       = (int) ($data['is_r18'] ?? $existing['is_r18'] ?? 0) ? 1 : 0;
         $data['featured']     = (string) ($data['featured'] ?? $existing['featured'] ?? '');
         $data['new_episodes'] = (int) ($data['new_episodes'] ?? $existing['new_episodes'] ?? 0) ? 1 : 0;
         $data['weigh']        = (int) ($data['weigh'] ?? $existing['weigh'] ?? 0);

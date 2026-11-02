@@ -5,6 +5,8 @@ namespace app\api\controller;
 
 use app\BaseController;
 use app\common\web\ResultCode;
+use app\live\service\VipService;
+use app\live\service\WalletService;
 use think\facade\Db;
 
 /**
@@ -24,6 +26,19 @@ final class WatchHistory extends BaseController
     private function db()
     {
         return Db::connect('live_mysql');
+    }
+
+    /**
+     * R18 门控：充值过代币 或 有效会员 任一满足即可见限制级素材
+     * 不满足时观看历史同样过滤，避免标题/封面泄漏
+     */
+    private function canViewR18(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        $ent = (new VipService())->entitlements($userId);
+        return (new WalletService())->hasRecharged($userId) || !empty($ent['is_vip']);
     }
 
     /**
@@ -148,16 +163,24 @@ final class WatchHistory extends BaseController
             }
         }
         $meta = [];
+        // R18 门控：未充值/非会员用户的历史同样过滤限制级内容（不进 meta 即被下方 isset 跳过）
+        $showR18 = $this->canViewR18($userId);
         if ($shortIds) {
-            $fields = $db->table('lp_short_item')->whereIn('id', $shortIds)->where('status', 1)
-                ->field('id, title, poster')->select()->toArray();
+            $query = $db->table('lp_short_item')->whereIn('id', $shortIds)->where('status', 1);
+            if (!$showR18) {
+                $query = $query->where('is_r18', 0);
+            }
+            $fields = $query->field('id, title, poster')->select()->toArray();
             foreach ($fields as $item) {
                 $meta['short:' . (int) $item['id']] = $item;
             }
         }
         if ($privateIds) {
-            $fields = $db->table('lp_private_item')->whereIn('id', $privateIds)->where('status', 1)
-                ->field('id, title, poster')->select()->toArray();
+            $query = $db->table('lp_private_item')->whereIn('id', $privateIds)->where('status', 1);
+            if (!$showR18) {
+                $query = $query->where('is_r18', 0);
+            }
+            $fields = $query->field('id, title, poster')->select()->toArray();
             foreach ($fields as $item) {
                 $meta['private:' . (int) $item['id']] = $item;
             }
