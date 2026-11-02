@@ -60,7 +60,12 @@ abstract class Base extends BaseController
     {
         http_response_code($status);
         $html = AgentView::page($this->agent(), $active, $title, $content, $this->csrf());
-        response($html)->send();
+        // 代理后台可能挂在 CDN 域名下，禁止缓存和搜索引擎收录
+        response($html)->header([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma'        => 'no-cache',
+            'X-Robots-Tag'  => 'noindex, nofollow',
+        ])->send();
         exit;
     }
 

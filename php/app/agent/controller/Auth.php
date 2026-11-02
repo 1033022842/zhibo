@@ -159,7 +159,11 @@ final class Auth extends BaseController
     private function showLogin(string $error = '', string $username = '', string $notice = '', string $redirect = ''): void
     {
         $html = AgentView::login($error, $username, $notice, $this->safeRedirect($redirect));
-        response($html)->send();
+        response($html)->header([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma'        => 'no-cache',
+            'X-Robots-Tag'  => 'noindex, nofollow',
+        ])->send();
         exit;
     }
 
