@@ -167,6 +167,12 @@ final class UserService
             $user->reg_adset    = mb_substr(trim((string) $attr['adset']), 0, 128);
             $user->reg_ad       = mb_substr(trim((string) $attr['ad']), 0, 128);
             $user->reg_link_name = mb_substr(trim((string) $attr['link_name']), 0, 128);
+            // 代理归因：专属域名优先，其次推广链接名称（未建代理表时自动跳过，绝不影响注册）
+            if (AgentService::ready()) {
+                $agent = AgentService::resolve((string) $user->reg_domain, (string) $user->reg_link_name);
+                $user->reg_agent_id   = (int) $agent['id'];
+                $user->reg_agent_name = mb_substr((string) $agent['name'], 0, 64);
+            }
             $user->created_at = date('Y-m-d H:i:s');
             $user->save();
 

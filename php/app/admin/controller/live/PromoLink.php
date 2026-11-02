@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
+use app\live\service\AgentService;
 use app\live\service\PromoService;
 use think\facade\Db;
 
@@ -32,9 +33,18 @@ final class PromoLink extends Backend
         $domains = $svc->siteDomains();
         $pixels  = $svc->pixels(true); // 只列启用中的像素，避免生成到已停用像素
 
+        $agentReady = AgentService::ready();
+        $agentNames = [];
+        if ($agentReady) {
+            foreach ($db->table('lp_agent')->field('id,name,agent_no')->order('id', 'desc')->select()->toArray() as $a) {
+                $agentNames[(int) $a['id']] = (string) $a['name'] . '（' . (string) $a['agent_no'] . '）';
+            }
+        }
+        $filterAgent = $agentReady ? (int) $this->request->param('agent_id', 0) : 0;
+
         // ---------- 编辑中的链接 ----------
         $editId = (int) $this->request->param('id', 0);
-        $edit   = ['id' => 0, 'name' => '', 'domain' => '', 'pixel_id' => 0, 'channel' => '', 'remark' => '', 'sort' => 0, 'status' => 1];
+        $edit   = ['id' => 0, 'name' => '', 'domain' => '', 'pixel_id' => 0, 'channel' => '', 'remark' => '', 'sort' => 0, 'status' => 1, 'agent_id' => 0];
         if ($editId > 0) {
             $row = $db->table('lp_promo_link')->where('id', $editId)->find();
             if ($row) {
@@ -43,7 +53,11 @@ final class PromoLink extends Backend
         }
 
         // ---------- 列表 ----------
-        $links = $db->table('lp_promo_link')->order('sort', 'asc')->order('id', 'desc')->select()->toArray();
+        $listQuery = $db->table('lp_promo_link')->order('sort', 'asc')->order('id', 'desc');
+        if ($filterAgent > 0) {
+            $listQuery->where('agent_id', $filterAgent);
+        }
+        $links = $listQuery->select()->toArray();
 
         // 按「链接名称」聚合：注册数 / 充值人数·金额 / 订阅人数·金额
         $regMap = [];
@@ -104,6 +118,10 @@ final class PromoLink extends Backend
                     . '<button type="button" class="btn-copy" data-link="' . $urlEsc . '">复制</button></div>';
 
             $nameEsc   = htmlspecialchars($name, ENT_QUOTES);
+            $linkAgent = $agentReady ? (int) ($l['agent_id'] ?? 0) : 0;
+            $agentCell = $linkAgent > 0
+                ? htmlspecialchars($agentNames[$linkAgent] ?? ('代理#' . $linkAgent), ENT_QUOTES)
+                : '<span class="muted">平台</span>';
             $domainEsc = $domain !== '' ? htmlspecialchars($domain, ENT_QUOTES) : '<span class="muted">—</span>';
             $chEsc     = $ch !== '' ? htmlspecialchars($ch, ENT_QUOTES) : '<span class="muted">—</span>';
             $pxEsc     = isset($pixelLabel[$px]) ? htmlspecialchars($pixelLabel[$px], ENT_QUOTES) : '<span class="muted">不绑定</span>';
@@ -114,6 +132,7 @@ final class PromoLink extends Backend
             $rows .= '<tr>'
                 . '<td>' . $lid . '</td>'
                 . '<td><b>' . $nameEsc . '</b>' . ($remarkEsc !== '' ? '<div class="rmk">' . $remarkEsc . '</div>' : '') . '</td>'
+                . '<td>' . $agentCell . '</td>'
                 . '<td class="url">' . $linkCell . '</td>'
                 . '<td>' . $domainEsc . '</td>'
                 . '<td>' . $pxEsc . '</td>'
@@ -130,7 +149,7 @@ final class PromoLink extends Backend
                 . '</tr>';
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="11" class="empty">还没有推广链接，先在下面「新建推广链接」加一条</td></tr>';
+            $rows = '<tr><td colspan="12" class="empty">还没有推广链接，先在下面「新建推广链接」加一条</td></tr>';
         }
 
         // ---------- 表单数据 ----------
@@ -142,6 +161,35 @@ final class PromoLink extends Backend
         $eRemark   = htmlspecialchars((string) $edit['remark'], ENT_QUOTES);
         $eSort     = (int) $edit['sort'];
         $eStatus   = (int) $edit['status'] === 1 ? ' checked' : '';
+        $eAgent    = $agentReady ? (int) ($edit['agent_id'] ?? 0) : 0;
+
+        $agentOptions = '';
+        $agentFilterOptions = '<option value="0">全部链接</option>';
+        if ($agentReady) {
+            $agentOptions = '<option value="0">平台自营</option>';
+            foreach ($agentNames as $aid => $alabel) {
+                $sel = $aid === $eAgent ? ' selected' : '';
+                $agentOptions .= '<option value="' . $aid . '"' . $sel . '>' . htmlspecialchars($alabel, ENT_QUOTES) . '</option>';
+                $selF = $aid === $filterAgent ? ' selected' : '';
+                $agentFilterOptions .= '<option value="' . $aid . '"' . $selF . '>' . htmlspecialchars($alabel, ENT_QUOTES) . '</option>';
+            }
+        }
+        $agentField = $agentReady
+            ? '<div class="fld"><label>归属代理</label><select name="agent_id">' . $agentOptions . '</select></div>'
+            : '';
+        $agentFilter = '';
+        if ($agentReady) {
+            $key = (string) $this->request->param('_key', '');
+            $keyHidden = $key !== ''
+                ? '<input type="hidden" name="_key" value="' . htmlspecialchars($key, ENT_QUOTES) . '">'
+                : '';
+            $agentFilter = '<form method="get" action="/admin/live.PromoLink/index" style="margin-bottom:14px;display:flex;gap:8px;align-items:center">'
+                . '<span class="muted" style="font-size:12px">按代理筛选</span>'
+                . '<select name="agent_id" style="height:34px;border:1px solid #e2e5ee;border-radius:9px;padding:0 10px;background:#fff">' . $agentFilterOptions . '</select>'
+                . '<button type="submit" class="btn-copy" style="height:34px">筛选</button>'
+                . $keyHidden
+                . '</form>';
+        }
 
         $domDataList = '';
         foreach ($domains as $d) {
@@ -236,6 +284,7 @@ td.ops a.danger{color:#ff2d55}
                 <label>链接名称（必填，唯一）</label>
                 <input type="text" name="name" value="{$eName}" placeholder="如 FB-素材A" maxlength="128" required>
             </div>
+            {$agentField}
             <div class="fld">
                 <label>推广域名</label>
                 <input type="text" name="domain" value="{$eDomain}" list="domList" placeholder="如 sugus.live" maxlength="120">
@@ -269,9 +318,10 @@ td.ops a.danger{color:#ff2d55}
 
     <div class="card">
         <h2>链接列表<span class="muted" style="font-weight:400"> · 注册/充值按「链接名称」归因（首触）</span></h2>
+        {$agentFilter}
         <table>
             <thead><tr>
-                <th>ID</th><th>链接名称</th><th>推广链接</th><th>域名</th><th>像素</th><th>渠道</th>
+                <th>ID</th><th>链接名称</th><th>归属代理</th><th>推广链接</th><th>域名</th><th>像素</th><th>渠道</th>
                 <th class="num">注册数</th><th class="num">充值人数/金额</th><th class="num">订阅人数/金额</th>
                 <th>状态</th><th>操作</th>
             </tr></thead>
@@ -336,11 +386,16 @@ HTML;
                 throw new \InvalidArgumentException('链接名称必填');
             }
 
-            $db = Db::connect('live_mysql');
+            $db        = Db::connect('live_mysql');
+            $agentReady = AgentService::ready();
+            $agentId    = $agentReady ? max(0, (int) $this->request->post('agent_id', 0)) : 0;
             // 名称唯一
             $dup = $db->table('lp_promo_link')->where('name', $name)->where('id', '<>', $id)->find();
             if ($dup) {
                 throw new \InvalidArgumentException('链接名称「' . $name . '」已存在，请换一个');
+            }
+            if ($agentId > 0 && !$db->table('lp_agent')->where('id', $agentId)->find()) {
+                throw new \InvalidArgumentException('归属代理不存在');
             }
 
             $now  = date('Y-m-d H:i:s');
@@ -349,6 +404,9 @@ HTML;
                 'channel' => $ch, 'remark' => $remark, 'sort' => $sort,
                 'status' => $status, 'updated_at' => $now,
             ];
+            if ($agentReady) {
+                $data['agent_id'] = $agentId;
+            }
             if ($id > 0) {
                 $db->table('lp_promo_link')->where('id', $id)->update($data);
             } else {
