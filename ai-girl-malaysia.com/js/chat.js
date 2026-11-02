@@ -2527,23 +2527,19 @@
             activeConvId = ''
             try { history.replaceState(null, '', './Chat.html') } catch (e) {}
         }
-        // 直接进入聊天页（没指定角色）：随机挑一个首页角色开场，而不是固定落在上次聊过的角色
+        // 直接进入聊天页（没指定角色）：随机挑一个「首页推荐角色」开场（内容运营-首页推荐角色 lp_home_character，
+        // girls/anime/guys 全部）。不再从 pageList（lp_ai_content 平台内容角色）随机——两套 id 空间大量同号，会串角色
         if (activeConvId === '') {
-            var pool = []
-            for (var pi = 0; pi < local.length; pi++) {
-                if (/^\d+$/.test(String(local[pi] && local[pi].id))) pool.push(local[pi])
-            }
-            if (pool.length > 0) {
-                activeConvId = String(pool[Math.floor(Math.random() * pool.length)].id)
+            var homeKeys = Object.keys(homeRoleMap())
+            if (homeKeys.length > 0) {
+                activeConvId = homeKeys[Math.floor(Math.random() * homeKeys.length)]
             } else {
-                // 本机没有角色缓存（新设备）：等预热拉取完成（轮询 pageList），拿到后随机开场
-                waitForRoleList(function (list) {
-                    if (list.length > 0 && activeConvId === '') {
-                        var pick = list[Math.floor(Math.random() * list.length)]
-                        activeConvId = String(pick.id)
-                        var convObj = { id: activeConvId, title: pick.title || '', image: pick.cover_url || '', description: pick.description || '' }
-                        convItems[activeConvId] = convObj
-                        getDetail(convObj)
+                // homeRoleMap 由 bootChat 的 loadHomeRoles 异步预热：等它就绪再随机开场（最多 8 秒）
+                waitForHomeRoles(function (map) {
+                    var keys = Object.keys(map)
+                    if (keys.length > 0 && activeConvId === '') {
+                        activeConvId = keys[Math.floor(Math.random() * keys.length)]
+                        getDetail(chatItemById(activeConvId))
                     }
                     continueChannelDetail(readPageList())
                 })
@@ -2563,6 +2559,15 @@
         if ((tries || 0) >= 40) { cb([]); return }
         if ((tries || 0) % 10 === 9) preloadRoleList()   // 2 秒还没到就再发一次预热
         setTimeout(function () { waitForRoleList(cb, (tries || 0) + 1) }, 200)
+    }
+
+    // 等待首页推荐角色目录就绪（homeRoleMap，bootChat 的 loadHomeRoles 已异步预热）；最多 8 秒
+    function waitForHomeRoles(cb, tries) {
+        var map = homeRoleMap()
+        if (Object.keys(map).length > 0) { cb(map); return }
+        if ((tries || 0) >= 40) { cb(map); return }
+        if ((tries || 0) % 10 === 9) loadHomeRoles()   // 2 秒还没到就再发一次预热
+        setTimeout(function () { waitForHomeRoles(cb, (tries || 0) + 1) }, 200)
     }
 
     // 角色目录读取：内存优先（localStorage 被禁/异常时仍可用）
