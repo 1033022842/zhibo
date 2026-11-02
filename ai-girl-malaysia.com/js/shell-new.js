@@ -907,6 +907,10 @@
 
   function catKeyFromHref(href) {
     if (!href) return ''
+    // 已被改写成 ./Home.html?cat=<key> 的链接优先按参数解析（否则会被下面的
+    // girls/anime/guys.html 正则漏掉，重复 normalize 时解析不出分类）
+    var m = String(href).match(/[?&]cat=(girls|anime|guys)/i)
+    if (m) return m[1].toLowerCase()
     if (/girls\.html/i.test(href)) return 'girls'
     if (/anime\.html/i.test(href)) return 'anime'
     if (/guys\.html/i.test(href)) return 'guys'
@@ -1827,7 +1831,7 @@
     var ic = CAT_ICONS[cur]
     function item(k) {
       var c = CAT_ICONS[k]
-      return '<a href="' + c.href + '"><img src="./tokens_files/' + c.w + '" alt=""><span>' + c.label + '</span></a>'
+      return '<a href="' + c.href + '" data-fy-cat="' + k + '"><img src="./tokens_files/' + c.w + '" alt=""><span>' + c.label + '</span></a>'
     }
     var wrap = document.createElement('div')
     wrap.className = 'fy-catdd'
@@ -1841,6 +1845,22 @@
     group.parentNode.insertBefore(wrap, group)
     var btn = document.getElementById('fyCatDdBtn')
     var panel = document.getElementById('fyCatDdPanel')
+    // 下拉项点击：页面自带 [data-cat] 分类 Tab（Home.html）时直接驱动它做页内切换，
+    // 不再跳 Girls/Anime/Guys 列表页；页面没有该 Tab（其它页）时保持原有链接跳转。
+    panel.addEventListener('click', function (e) {
+      var a = e.target.closest ? e.target.closest('a[data-fy-cat]') : null
+      if (!a) return
+      var key = a.getAttribute('data-fy-cat') || ''
+      var target = pageCatBtn(key)
+      if (!target) return  // 无站内 Tab → 走原链接
+      e.preventDefault()
+      e.stopPropagation()
+      target.click()
+      panel.classList.add('hidden')
+      btn.setAttribute('aria-expanded', 'false')
+      var ic2 = document.querySelector('#fyCatDd .fy-catdd-ic')
+      if (ic2 && CAT_ICONS[key]) ic2.src = './tokens_files/' + CAT_ICONS[key].g
+    }, true)
     btn.addEventListener('click', function (e) {
       e.stopPropagation()
       var open = panel.classList.contains('hidden')
