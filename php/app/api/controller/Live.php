@@ -1471,20 +1471,25 @@ final class Live extends BaseController
                 $lastMessage = $kind === 'voice' ? '[语音]' : ($kind === 'video' ? '[视频]' : '');
             }
 
-            // 首页角色的展示信息：home-N 对应内容表 id=N；自建角色 my-N 由前端用本地人设缓存补
+            // 展示信息：home-N 会话读 lp_home_character（首页推荐角色，与聊天入口同源）；
+            // 纯数字 content_id 会话读 lp_ai_content（平台内容角色）。两套 id 空间大量同号，不能互串。
+            // 自建角色 my-N 由前端用本地人设缓存补
             $title = '';
             $cover = '';
-            $lookupId = $cid;
-            if ($lookupId <= 0 && preg_match('/^home-(\d+)$/', $roleKey, $m) === 1) {
-                $lookupId = (int) $m[1];
-            }
-            if ($lookupId > 0) {
+            if ($cid > 0) {
                 $content = $db->table('lp_ai_content')
-                    ->where('id', $lookupId)
+                    ->where('id', $cid)
                     ->field(['title', 'cover_url'])
                     ->find();
                 $title = (string) ($content['title'] ?? '');
                 $cover = $this->fullUrl((string) ($content['cover_url'] ?? ''));
+            } elseif (preg_match('/^home-(\d+)$/', $roleKey, $m) === 1) {
+                $home = $db->table('lp_home_character')
+                    ->where('id', (int) $m[1])
+                    ->field(['name', 'cover_url'])
+                    ->find();
+                $title = (string) ($home['name'] ?? '');
+                $cover = $this->fullUrl((string) ($home['cover_url'] ?? ''));
             }
 
             $list[] = [
