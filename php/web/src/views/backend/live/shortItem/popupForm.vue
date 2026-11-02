@@ -95,6 +95,12 @@
                         :input-attr="{ border: true, content: { '1': '是', '0': '否' } }"
                     />
                     <FormItem
+                        label="R18"
+                        v-model="baTable.form.items!.is_r18"
+                        type="radio"
+                        :input-attr="{ border: true, content: { '1': '是 · 仅充值/VIP可见', '0': '否' } }"
+                    />
+                    <FormItem
                         label="高亮变体"
                         v-model="baTable.form.items!.featured"
                         type="select"

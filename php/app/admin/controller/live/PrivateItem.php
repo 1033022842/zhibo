@@ -115,6 +115,7 @@ final class PrivateItem extends Backend
         $data['category'] = in_array($category, self::CATEGORIES, true) ? $category : 'girls';
         $data['weigh']       = (int) ($data['weigh'] ?? $existing['weigh'] ?? 0);
         $data['status']      = (int) ($data['status'] ?? $existing['status'] ?? 1);
+        $data['is_r18']      = (int) ($data['is_r18'] ?? $existing['is_r18'] ?? 0) ? 1 : 0;
 
         if ($data['title'] === '') {
             $this->error('请填写描述文案');
