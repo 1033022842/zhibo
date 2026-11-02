@@ -151,10 +151,10 @@ final class Link extends Base
 </div>
 <div class="card">
   <h2>链接列表</h2>
-  <table><thead><tr>
+  <div class="table-wrap"><table><thead><tr>
     <th>链接名称</th><th>推广链接</th><th>渠道</th><th>ch</th>
     <th class="num">注册数</th><th class="num">充值人数/金额</th><th class="num">订阅人数/金额</th><th>状态</th><th>操作</th>
-  </tr></thead><tbody>{$rows}</tbody></table>
+  </tr></thead><tbody>{$rows}</tbody></table></div>
 </div>
 {$form}
 HTML;

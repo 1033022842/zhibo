@@ -48,14 +48,14 @@ final class Account extends Base
 {$notice}
 <div class="card">
   <h2>账号信息</h2>
-  <table><tbody>
+  <div class="table-wrap"><table><tbody>
     <tr><th style="width:160px">代理编号</th><td>{$no}</td></tr>
     <tr><th>代理名称</th><td>{$name}</td></tr>
     <tr><th>登录账号</th><td>{$user}</td></tr>
     <tr><th>联系方式</th><td>{$contact}</td></tr>
     <tr><th>当前权限</th><td>{$permText}</td></tr>
     <tr><th>最后登录</th><td>{$last}</td></tr>
-  </tbody></table>
+  </tbody></table></div>
 </div>
 <div class="card">
   <h2>修改密码</h2>
