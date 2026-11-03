@@ -1,0 +1,86 @@
+{
+ "37": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "Illustrious-XL-v1.0.safetensors"
+  }
+ },
+ "76": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "37",
+    1
+   ],
+   "text": "1girl, solo, beautiful anime girl, masterpiece, best quality, highly detailed, detailed face"
+  }
+ },
+ "77": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "37",
+    1
+   ],
+   "text": "lowres, worst quality, low quality, bad anatomy, bad hands, extra digits, fewer digits, watermark, signature, username, text, jpeg artifacts"
+  }
+ },
+ "88": {
+  "class_type": "EmptyLatentImage",
+  "inputs": {
+   "width": 832,
+   "height": 1216,
+   "batch_size": 1
+  }
+ },
+ "3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "37",
+    0
+   ],
+   "seed": 74160154224887,
+   "steps": 25,
+   "cfg": 5.5,
+   "sampler_name": "euler_ancestral",
+   "scheduler": "normal",
+   "positive": [
+    "76",
+    0
+   ],
+   "negative": [
+    "77",
+    0
+   ],
+   "latent_image": [
+    "88",
+    0
+   ],
+   "denoise": 1
+  }
+ },
+ "8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "3",
+    0
+   ],
+   "vae": [
+    "37",
+    2
+   ]
+  }
+ },
+ "60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "images": [
+    "8",
+    0
+   ],
+   "filename_prefix": "character/smoke_test"
+  }
+ }
+}

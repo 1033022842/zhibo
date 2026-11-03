@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""VIP 定制内容 worker v6.1 — 单 GPU 多站共用版
+"""VIP 定制内容 worker v6.2 — 单 GPU 多站共用版
+
+v6.2（2026-11-03）：新增 kind=character（角色形象图，纯文生图，无需参考图）。
+style=realistic → qwen_image_t2i_api.json（Qwen-Image 文生图）；
+style=anime    → illustrious_t2i_api.json（Illustrious-XL）。
+注入点约定与 qwenedit 一致：正向词=76 / 负向词=77 / seed=3 / SaveImage=60。
 
 v6.1（2026-10-22）：产物层加「全黑」兜底检测。见 assert_not_black 注释。
 
@@ -61,7 +66,15 @@ WF_VIDEO_MAP = {
     "cumfacial": ROOT / "CumFacial_api.json",
 }
 
+# 角色形象图（t2i，无参考图）：style → workflow；未知值回退 realistic
+WF_CHARACTER_DEFAULT = "realistic"
+WF_CHARACTER_MAP = {
+    "realistic": ROOT / "qwen_image_t2i_api.json",
+    "anime": ROOT / "illustrious_t2i_api.json",
+}
+# 两个 t2i workflow 的注入点节点号约定相同（见 aipc/qwen_image_t2i_api.json 头注释）
 I_LOAD, I_POS, I_SEED, I_SAVE = "78", "76", "3", "60"
+I_CHAR_POS, I_CHAR_NEG, I_CHAR_SEED, I_CHAR_SAVE = "76", "77", "3", "60"
 
 # 四站共用一条 ComfyUI 队列，排队时间要算进超时：默认 60 分钟
 GEN_TIMEOUT = int(os.environ.get("WORKER_GEN_TIMEOUT", "3600"))
@@ -108,6 +121,15 @@ def pick_video_wf(style):
     if key:
         log("未知 style=%r，回退默认 %s" % (style, WF_VIDEO_DEFAULT))
     return WF_VIDEO_DEFAULT, WF_VIDEO_MAP[WF_VIDEO_DEFAULT]
+
+
+def pick_character_wf(style):
+    key = (style or "").strip().lower()
+    if key in WF_CHARACTER_MAP:
+        return key, WF_CHARACTER_MAP[key]
+    if key:
+        log("未知角色 style=%r，回退默认 %s" % (style, WF_CHARACTER_DEFAULT))
+    return WF_CHARACTER_DEFAULT, WF_CHARACTER_MAP[WF_CHARACTER_DEFAULT]
 
 
 def pick_prompt(style):
@@ -364,6 +386,30 @@ def generate_image(task, source_img: Path, task_id: int):
     return img, None, "image"
 
 
+def generate_character(task, task_id: int, wf_path: Path):
+    """角色形象图：纯文生图（t2i），无参考图，prompt 由后端按属性模板渲染好下发。"""
+    wf = json.loads(wf_path.read_text(encoding="utf-8"))
+    for nid, what in ((I_CHAR_POS, "正向词"), (I_CHAR_NEG, "负向词"),
+                      (I_CHAR_SEED, "seed"), (I_CHAR_SAVE, "SaveImage")):
+        if nid not in wf:
+            raise RuntimeError("角色工作流缺少节点 %s(%s): %s" % (nid, what, wf_path.name))
+    if task.get("prompt"):
+        # t2i workflow 的 CLIPTextEncode 入参名是 text（区别于 qwenedit 的 TextEncodeQwenImageEdit.prompt）
+        wf[I_CHAR_POS]["inputs"]["text"] = task["prompt"]
+    if task.get("negative_prompt"):
+        wf[I_CHAR_NEG]["inputs"]["text"] = task["negative_prompt"]
+    wf[I_CHAR_SEED]["inputs"]["seed"] = random.randint(1, 2 ** 48)
+    wf[I_CHAR_SAVE]["inputs"]["filename_prefix"] = "character/%s/task_%d" % (WORKER_TAG, task_id)
+
+    pid = submit_workflow(wf)
+    log("[task %d] 角色形象图任务已提交: %s" % (task_id, pid))
+    entry = wait_prompt(pid)
+    img = _find_output(entry, I_CHAR_SAVE)
+    log("[task %d] 角色形象图已生成: %s" % (task_id, img.name))
+    assert_not_black(img, "角色形象图")
+    return img
+
+
 def heartbeat_loop(tid, stop_ev):
     """生成期间每 60s 上报一次 progress，前端能看到任务还活着。"""
     pct = 40
@@ -386,32 +432,48 @@ def process(task):
         log("[task %d] 接单失败，放弃: %s" % (tid, acc.get("msg") if isinstance(acc, dict) else acc))
         return
 
-    style, wf_video = pick_video_wf(task.get("style")) if kind != "image" else ("image_edit", None)
-    log("[task %d] 已接单: kind=%s style=%s wf=%s"
-        % (tid, kind, style, wf_video.name if wf_video else "qwenedit_api.json"))
+    style, wf_video = pick_video_wf(task.get("style")) if kind not in ("image", "character") else ("image_edit", None)
+    if kind == "character":
+        style, wf_char = pick_character_wf(task.get("style"))
+        wf_name = wf_char.name
+    else:
+        wf_name = wf_video.name if wf_video else "qwenedit_api.json"
+    log("[task %d] 已接单: kind=%s style=%s wf=%s" % (tid, kind, style, wf_name))
     stop_ev = threading.Event()
     hb = None
     try:
         if not probe_comfy():
             raise RuntimeError("ComfyUI 未运行（8000/8188 均无响应）")
 
-        tmp = ROOT / "tmp"
-        tmp.mkdir(parents=True, exist_ok=True)
-        # 参考图 URL 常常没有扩展名：补一个 .jpg 让 ComfyUI 的 LoadImage 能识别
-        raw = tmp / ("%s_%d_src" % (WORKER_TAG, tid))
-        api("/aiTask/progress", "post", timeout=30, retries=2,
-            data={"task_id": tid, "percent": 15, "message": "downloading"})
-        download(task["image_url"], raw)
-        src = raw.with_suffix(".jpg") if raw.suffix == "" else raw
-        if src is not raw:
-            raw.replace(src)
+        if kind == "character":
+            # 纯文生图：无需下载参考图
+            api("/aiTask/progress", "post", timeout=30, retries=2,
+                data={"task_id": tid, "percent": 30, "message": "generating"})
+        else:
+            tmp = ROOT / "tmp"
+            tmp.mkdir(parents=True, exist_ok=True)
+            # 参考图 URL 常常没有扩展名：补一个 .jpg 让 ComfyUI 的 LoadImage 能识别
+            raw = tmp / ("%s_%d_src" % (WORKER_TAG, tid))
+            api("/aiTask/progress", "post", timeout=30, retries=2,
+                data={"task_id": tid, "percent": 15, "message": "downloading"})
+            download(task["image_url"], raw)
+            src = raw.with_suffix(".jpg") if raw.suffix == "" else raw
+            if src is not raw:
+                raw.replace(src)
 
         api("/aiTask/progress", "post", timeout=30, retries=2,
             data={"task_id": tid, "percent": 35, "message": "generating"})
         hb = threading.Thread(target=heartbeat_loop, args=(tid, stop_ev), daemon=True)
         hb.start()
 
-        if kind == "image":
+        if kind == "character":
+            out = generate_character(task, tid, wf_char)
+            upname, upmime = "cr_%s_%d.png" % (WORKER_TAG, tid), "image/png"
+            with open(out, "rb") as f:
+                up = api("/customVideo/uploadVideo", "post", timeout=UPLOAD_TIMEOUT, retries=4,
+                         data={"task_id": tid}, files={"video": (upname, f, upmime)})
+            dur = 0
+        elif kind == "image":
             out, cover, _ = generate_image(task, src, tid)
             upname, upmime = "ci_%s_%d.png" % (WORKER_TAG, tid), "image/png"
             with open(out, "rb") as f:
@@ -458,7 +520,7 @@ def main():
     ROOT.mkdir(parents=True, exist_ok=True)
     if not acquire_singleton():
         return
-    log("worker v6.1 启动 tag=%s api=%s root=%s poll=%ds comfy=%s"
+    log("worker v6.2 启动 tag=%s api=%s root=%s poll=%ds comfy=%s"
         % (WORKER_TAG, API_BASE, ROOT, POLL_SEC, COMFY if probe_comfy() else "unreachable"))
     while True:
         try:

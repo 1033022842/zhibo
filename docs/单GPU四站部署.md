@@ -269,6 +269,24 @@ systemctl restart comfyui
 
 合计约 **145 GB**（含 3 个 INT8 大模型；旧版记的 70.7 GiB 是只有 1 个 diffusion model 时的数字）。
 
+### 角色形象图（characters_v2 向导）新增模型 — **已入库并验收（2026-11-03）**
+
+worker v6.2 的 `kind=character` 通道（`customRoleCreate` 自动入队）引用以下模型：
+
+| 目录 | 文件名 | 字节 | 说明 |
+|---|---|---|---|
+| unet | qwen_image_fp8_e4m3fn.safetensors | 20430635136 | Qwen-Image 文生图（真实线），HF `Comfy-Org/Qwen-Image_ComfyUI`；text encoder/VAE 复用已有文件 |
+| models（checkpoints 映射） | Illustrious-XL-v1.0.safetensors | 6938040736 | Illustrious-XL v1.0（动漫线），HF `OnomaAIResearch/Illustrious-XL-v1.0` 官方 org，SHA 与 HF LFS oid 一致字节数 |
+
+对应工作流已部署到 `/opt/cv/tpl/` + 四站目录：`qwen_image_t2i_api.json`、`illustrious_t2i_api.json`。
+注意：t2i workflow 的 CLIPTextEncode 入参名是 **`text`**（不是 qwenedit 的 `prompt`）。
+
+**验收记录（2026-11-03，38.247.166.124）**：
+- ComfyUI 直跑两个 workflow：真实线（金发马尾/蓝眼/运动型/bikini）与动漫线（七彩刘海/黄眼/bikini）属性全部命中，人脸/线稿质量良好
+- worker v6.2 全链路 E2E（mock 后端 127.0.0.1:9999）：pending→accept→ComfyUI 生成（~2m40s）→全黑校验→uploadVideo（978KB PNG）→/aiTask/complete（task_id/video_url/duration_sec=0）字段全对
+- 生产四站 worker 已重启为 v6.2（`worker v6.2 启动 tag=...` 日志确认），旧版备份在 `/opt/cv/tpl/worker_gpu_v61.bak`
+- 待办：**PHP 后端改动（task_type=character_image 通道）尚未部署到四站**，部署后真实任务即走此链路
+
 ### 已知但未入库：Civitai 要求登录的资源
 
 | 资源 | Civitai | 状态 |
