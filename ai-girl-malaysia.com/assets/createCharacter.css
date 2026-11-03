@@ -643,3 +643,34 @@ span.cc-row-img.fallback {
 .cc-attr-txt { position: relative; z-index: 2; padding: 10px 14px; }
 .cc-attr-k { color: #b9b9b9; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .cc-attr-v { color: #fff; font-size: 16px; font-weight: 700; margin-top: 3px; }
+
+/* ── Final 表单 picker 行距（candy 同款松紧）────────────────── */
+.cc-picker { margin-bottom: 12px; }
+.cc-picker:last-of-type { margin-bottom: 20px; }
+.cc-picker:hover { border-color: #4a4a4a; background: #232323; }
+
+/* ── 结果页动作区：重生成（次样式）+ 保存（主 CTA 缩小版）──────── */
+.cc-action-row {
+  display: grid;
+  grid-template-columns: 44% 1fr;
+  gap: 12px;
+  margin-top: 22px;
+}
+@media (max-width: 900px) {
+  .cc-action-row { grid-template-columns: 1fr; }
+}
+.cc-btn-ghost {
+  height: 54px;
+  border-radius: 27px;
+  border: 1px solid #4a4a4a;
+  background: #202020;
+  color: #e5e5e5;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cc-btn-ghost:hover:not(:disabled) { border-color: #E75275; color: #fff; }
+.cc-btn-ghost:disabled { opacity: .45; cursor: not-allowed; }
+.cc-cta-sm { height: 54px; margin-top: 0; font-size: 15px; border-radius: 27px; animation: none; }
+.cc-balance { color: #8a8a8a; font-size: 12px; text-align: center; margin-top: 10px; }
+.cc-balance b { color: #ffd45e; }

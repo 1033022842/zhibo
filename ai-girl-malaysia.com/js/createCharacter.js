@@ -205,6 +205,9 @@
     var modalDraft = []        // 弹窗内未保存的选择
     var resultProfile = null   // 提交后快照（结果页展示）
     var progressTimer = null   // 进度环模拟
+    var resultPrices = { regen: 1, save: 10 }  // 后台定价（create 响应带回）
+    var resultBalance = 0      // 代币余额快照
+    var savedCharacter = false // 已保存（解锁聊天）
 
     function $(id) { return document.getElementById(id) }
 
@@ -700,6 +703,8 @@
                 imageTaskId = d.data.image_task_id || 0
                 submitted = true
                 resultProfile = JSON.parse(JSON.stringify(profile))  // 结果页展示用（clearState 会清 profile）
+                if (d.data.prices) resultPrices = d.data.prices
+                resultBalance = parseFloat(d.data.balance) || 0
                 clearState()
                 showGenerating()
                 startPolling()
@@ -774,10 +779,12 @@
         })
 
         var cta = ''
-        if (mode === 'done') {
-            cta = '<button class="cc-cta-big" id="ccGoChat" type="button"><span>Chat with her now ⚡</span></button>'
-        } else if (mode === 'failed') {
-            cta = '<button class="cc-cta-big" id="ccGoMyAi" type="button"><span>Go to My AI</span></button>'
+        if (mode === 'done' || mode === 'failed') {
+            cta = '<div class="cc-action-row">'
+                + '<button class="cc-btn-ghost" id="ccRegen" type="button">↻ Regenerate · 💰' + esc(resultPrices.regen) + '</button>'
+                + '<button class="cc-cta-big cc-cta-sm" id="ccSave" type="button"><span>Save to My AI · 💰' + esc(resultPrices.save) + '</span></button>'
+                + '</div>'
+                + '<div class="cc-balance">Balance: <b id="ccBal">' + esc(resultBalance) + '</b> tokens</div>'
         } else {
             cta = '<button class="cc-cta-big" disabled><span>Generating…</span></button>'
         }
@@ -822,22 +829,102 @@
     function showDone(imageUrl) {
         stopProgressSim()
         $('ccMain').innerHTML = resultHtml(imageUrl, 'done')
-        $('ccGoChat').addEventListener('click', function () {
-            location.href = './Chat.html?id=my-' + personaId
-        })
+        bindResultActions(imageUrl)
         updateFab()
     }
 
     function showFailed() {
         stopProgressSim()
         $('ccMain').innerHTML = resultHtml(null, 'failed')
-        $('ccGoMyAi').addEventListener('click', function () {
-            location.href = './charactersIndex.html'
-        })
+        bindResultActions(null)
         updateFab()
     }
 
+    /* 结果页动作：重生成（💰regen）/ 保存（💰save → 解锁聊天） */
+    function bindResultActions(imageUrl) {
+        var regen = $('ccRegen')
+        if (regen) regen.addEventListener('click', function () { regenPortrait() })
+        var save = $('ccSave')
+        if (save) save.addEventListener('click', function () { saveCharacter() })
+    }
+
+    function tokenHeaders() {
+        return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('live_access_token') || '') }
+    }
+
+    function handleAuthFail(d) {
+        if (d.code === '10003' || d.code === '10004') {
+            localStorage.removeItem('live_access_token')
+            localStorage.setItem('wizard_redirect_back', '1')
+            location.href = './Login.html?redirect=' + encodeURIComponent('./createCharacter.html')
+            return true
+        }
+        return false
+    }
+
+    function setBalance(v) {
+        resultBalance = parseFloat(v) || 0
+        var el = $('ccBal')
+        if (el) el.textContent = resultBalance
+    }
+
+    function regenPortrait() {
+        var regen = $('ccRegen')
+        if (regen) regen.disabled = true
+        fetch(API + '/customRoleRegenerate', {
+            method: 'POST',
+            headers: tokenHeaders(),
+            body: JSON.stringify({ persona_id: personaId }),
+        }).then(function (r) { return r.json() }).then(function (d) {
+            if (handleAuthFail(d)) return
+            if (d.code === '00000') {
+                imageTaskId = d.data.image_task_id || 0
+                setBalance(d.data.balance)
+                showGenerating()
+                startPolling()
+            } else {
+                if (regen) regen.disabled = false
+                toast(d.msg || 'Regenerate failed', 'error')
+            }
+        }).catch(function () {
+            if (regen) regen.disabled = false
+            toast('Network error', 'error')
+        })
+    }
+
+    function saveCharacter() {
+        var save = $('ccSave')
+        if (save) { save.disabled = true; save.querySelector('span').textContent = 'Saving…' }
+        fetch(API + '/customRoleSave', {
+            method: 'POST',
+            headers: tokenHeaders(),
+            body: JSON.stringify({ persona_id: personaId }),
+        }).then(function (r) { return r.json() }).then(function (d) {
+            if (handleAuthFail(d)) return
+            if (d.code === '00000') {
+                setBalance(d.data.balance)
+                savedCharacter = true
+                // 解锁聊天：保存区换成 Chat now
+                var row = document.querySelector('.cc-action-row')
+                var bal = document.querySelector('.cc-balance')
+                if (row) row.innerHTML = '<button class="cc-cta-big" id="ccGoChat" type="button"><span>Chat with her now ⚡</span></button>'
+                if (bal) bal.remove()
+                $('ccGoChat').addEventListener('click', function () {
+                    location.href = './Chat.html?id=my-' + personaId
+                })
+                toast('Saved! She is in My AI now', 'success')
+            } else {
+                if (save) { save.disabled = false; save.querySelector('span').textContent = 'Save to My AI · 💰' + resultPrices.save }
+                if (!handleAuthFail(d)) toast(d.msg || 'Save failed', 'error')
+            }
+        }).catch(function () {
+            if (save) { save.disabled = false; save.querySelector('span').textContent = 'Save to My AI · 💰' + resultPrices.save }
+            toast('Network error', 'error')
+        })
+    }
+
     function startPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
         var token = localStorage.getItem('live_access_token') || ''
         var tries = 0
         pollTimer = setInterval(function () {

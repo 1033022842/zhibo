@@ -34,7 +34,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'customRoleImageStatus', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt', 'voiceDiag']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'customRoleImageStatus', 'customRoleSave', 'customRoleRegenerate', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt', 'voiceDiag']],
     ];
 
     private UserService $userService;
@@ -535,7 +535,118 @@ final class Live extends BaseController
             'status' => (int) $persona['status'],
             // 形象图生成任务（可能为 null：入队失败/未部署 worker，角色仍创建成功）
             'image_task_id' => $imageTask ? (int) $imageTask->id : null,
+            // 完成态动作定价与余额（后台「功能定价」可改；0 = 该动作免费）
+            'prices'  => self::characterPrices(),
+            'balance' => (new WalletService())->balance($userId),
         ]);
+    }
+
+    /** 角色形象图相关动作定价（后台「提现打款配置」可改；0=免费） */
+    private static function characterPrices(): array
+    {
+        return [
+            'regen' => max(0.0, (float) WalletService::config('character_regen_price', '1')),
+            'save'  => max(0.0, (float) WalletService::config('character_save_price', '10')),
+        ];
+    }
+
+    /**
+     * AI 前端：保存 AI 草稿角色（扣费转正 → 进 My AI / 可聊天）
+     * POST live/customRoleSave {persona_id}
+     */
+    public function customRoleSave()
+    {
+        $userId = $this->getAuthUserId();
+        $personaId = (int) $this->request->post('persona_id', 0);
+        $check = $this->findOwnPersona($userId, $personaId);
+        if (!$check['ok']) {
+            return $check['resp'];
+        }
+        $wallet = new WalletService();
+
+        // 幂等：已转正直接返回
+        if ((int) $check['persona']['status'] === 2) {
+            return $this->jsonSuccess(['saved' => 1, 'already_saved' => 1, 'balance' => $wallet->balance($userId)]);
+        }
+
+        $price = self::characterPrices()['save'];
+        if ($price > 0) {
+            if ($wallet->balance($userId) < $price) {
+                return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens to save her — please top up.');
+            }
+            try {
+                $wallet->debit($userId, $price, 'character_save', $personaId, 'Save AI character');
+            } catch (BusinessException $e) {
+                return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens to save her — please top up.');
+            }
+        }
+
+        Db::connect('live_mysql')->table('lp_persona')
+            ->where('id', $personaId)
+            ->update(['status' => 2, 'updated_at' => date('Y-m-d H:i:s')]);
+
+        return $this->jsonSuccess(['saved' => 1, 'balance' => $wallet->balance($userId)]);
+    }
+
+    /**
+     * AI 前端：重新生成 AI 草稿/已保存角色的形象图（扣费）
+     * POST live/customRoleRegenerate {persona_id}
+     */
+    public function customRoleRegenerate()
+    {
+        $userId = $this->getAuthUserId();
+        $personaId = (int) $this->request->post('persona_id', 0);
+        $check = $this->findOwnPersona($userId, $personaId);
+        if (!$check['ok']) {
+            return $check['resp'];
+        }
+        $persona = $check['persona'];
+
+        // 同一角色已有进行中的形象图任务：拒绝重复排队
+        $running = AiTask::where('task_type', 'character_image')
+            ->where('persona_id', $personaId)
+            ->whereIn('status', [TaskStatus::PENDING->value, TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])
+            ->count();
+        if ($running > 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Already generating — please wait.');
+        }
+
+        $wallet = new WalletService();
+        $price = self::characterPrices()['regen'];
+        if ($price > 0) {
+            if ($wallet->balance($userId) < $price) {
+                return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens to regenerate — please top up.');
+            }
+            try {
+                $wallet->debit($userId, $price, 'character_regen', $personaId, 'Regenerate AI portrait');
+            } catch (BusinessException $e) {
+                return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens to regenerate — please top up.');
+            }
+        }
+
+        // 从 source_fields 还原属性 → 重建 prompt 入队
+        $fields = json_decode((string) $persona['source_fields'], true) ?: [];
+        $task = (new CharacterImageService())->enqueue($userId, ['id' => $personaId], $fields);
+
+        return $this->jsonSuccess([
+            'image_task_id' => $task ? (int) $task->id : null,
+            'balance'       => $wallet->balance($userId),
+        ]);
+    }
+
+    /** 归属校验：返回 ['ok'=>bool, 'persona'=>array, 'resp'=>响应] */
+    private function findOwnPersona(int $userId, int $personaId): array
+    {
+        if ($personaId <= 0) {
+            return ['ok' => false, 'persona' => null, 'resp' => $this->jsonFail(ResultCode::PARAM_ERROR, 'persona_id 必填')];
+        }
+        $persona = Db::connect('live_mysql')->table('lp_persona')
+            ->where('id', $personaId)->where('user_id', $userId)
+            ->find();
+        if (!$persona) {
+            return ['ok' => false, 'persona' => null, 'resp' => $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Character not found')];
+        }
+        return ['ok' => true, 'persona' => $persona, 'resp' => null];
     }
 
     /**
