@@ -203,6 +203,8 @@
     var imageTaskId = 0
     var currentModal = ''      // 'personality'|'relation'|'profession'|'kinks'|'voice'
     var modalDraft = []        // 弹窗内未保存的选择
+    var resultProfile = null   // 提交后快照（结果页展示）
+    var progressTimer = null   // 进度环模拟
 
     function $(id) { return document.getElementById(id) }
 
@@ -697,6 +699,7 @@
                 personaId = d.data.id
                 imageTaskId = d.data.image_task_id || 0
                 submitted = true
+                resultProfile = JSON.parse(JSON.stringify(profile))  // 结果页展示用（clearState 会清 profile）
                 clearState()
                 showGenerating()
                 startPolling()
@@ -716,23 +719,109 @@
         })
     }
 
+    /* ── 结果页（candy 同款：左大图 + 右属性卡网格）────────────────── */
+    function rp() { return resultProfile || profile }
+
+    function attrCards() {
+        var r = rp()
+        var cat = r.category === 'Anime' ? 'Anime' : 'Realistic'
+        function bg(field, value) {
+            if (!value) return null
+            var m = IMG[field] && IMG[field][cat] && IMG[field][cat][value]
+            return m || null
+        }
+        return [
+            { k: 'Ethnicity', v: r.race, img: bg('race', r.race) },
+            { k: 'Age', v: r.age ? r.age + 'yo' : '', img: null },
+            { k: 'Eye Color', v: r.eye, img: bg('eye', r.eye) },
+            { k: 'Body Type', v: r.body, img: bg('body', r.body) },
+            { k: 'Breast Size', v: r.breast, img: bg('breast', r.breast) },
+            { k: 'Hair Style', v: r.hairstyle, img: bg('hairstyle', r.hairstyle) },
+            { k: 'Hair Color', v: r.hair, img: bg('hairColor', r.hair) },
+            { k: 'Outfit', v: 'Bikini', img: null },
+        ]
+    }
+
+    function resultHtml(imageUrl, mode) {
+        // mode: 'generating' | 'done' | 'failed'
+        var r = rp()
+        var left = ''
+        if (mode === 'done' && imageUrl) {
+            left = '<img class="cc-result-photo" src="' + esc(imageUrl) + '" alt="">'
+        } else if (mode === 'failed') {
+            left = '<div class="cc-result-placeholder"><div class="cc-result-placeholder-icon">⏳</div>'
+                + '<div class="cc-result-placeholder-t">Portrait is delayed</div>'
+                + '<div class="cc-result-placeholder-s">She is already in My AI — her portrait will appear there.</div></div>'
+        } else {
+            left = '<div class="cc-progress-wrap">'
+                + '<svg class="cc-ring" viewBox="0 0 120 120">'
+                + '<circle class="cc-ring-bg" cx="60" cy="60" r="54"/>'
+                + '<circle class="cc-ring-fg" id="ccRingFg" cx="60" cy="60" r="54"/>'
+                + '</svg>'
+                + '<div class="cc-ring-num" id="ccRingNum">0%</div>'
+                + '</div>'
+                + '<div class="cc-result-gen-text">Bringing your AI to life…</div>'
+                + '<div class="cc-result-gen-sub">Usually takes 1–3 minutes</div>'
+        }
+
+        var cards = ''
+        attrCards().forEach(function (c) {
+            cards += '<div class="cc-attr-card">'
+            if (c.img) cards += '<img class="cc-attr-bg" src="' + c.img + '" alt="" loading="lazy">'
+            cards += '<div class="cc-attr-shade"></div>'
+            cards += '<div class="cc-attr-txt"><div class="cc-attr-k">' + esc(c.k) + '</div><div class="cc-attr-v">' + esc(c.v || '—') + '</div></div>'
+            cards += '</div>'
+        })
+
+        var cta = ''
+        if (mode === 'done') {
+            cta = '<button class="cc-cta-big" id="ccGoChat" type="button"><span>Chat with her now ⚡</span></button>'
+        } else if (mode === 'failed') {
+            cta = '<button class="cc-cta-big" id="ccGoMyAi" type="button"><span>Go to My AI</span></button>'
+        } else {
+            cta = '<button class="cc-cta-big" disabled><span>Generating…</span></button>'
+        }
+
+        return '<div class="cc-result">'
+            + '<div class="cc-result-left">' + left + '</div>'
+            + '<div class="cc-result-right">'
+            + '<h2 class="cc-result-name">' + esc(r.name || 'Your AI') + (r.age ? ', ' + esc(r.age) : '') + '</h2>'
+            + '<div class="cc-result-tagline">♡ ' + esc(r.relation || 'Girlfriend') + '</div>'
+            + '<div class="cc-tabs"><span class="cc-tab on">Appearance</span><span class="cc-tab">Character</span></div>'
+            + '<div class="cc-attr-grid">' + cards + '</div>'
+            + cta
+            + '</div>'
+            + '</div>'
+    }
+
+    /* 进度环模拟：500ms 一跳，渐近 95%，completed 时由 showDone 切换 */
+    function startProgressSim() {
+        stopProgressSim()
+        var pct = 0
+        var C = 2 * Math.PI * 54
+        var fg = null, num = null
+        progressTimer = setInterval(function () {
+            pct = Math.min(95, pct + (0.8 + Math.random() * 1.6))
+            fg = document.getElementById('ccRingFg')
+            num = document.getElementById('ccRingNum')
+            if (!fg || !num) { stopProgressSim(); return }
+            fg.style.strokeDashoffset = C * (1 - pct / 100)
+            num.textContent = Math.round(pct) + '%'
+        }, 500)
+    }
+    function stopProgressSim() {
+        if (progressTimer) { clearInterval(progressTimer); progressTimer = null }
+    }
+
     function showGenerating() {
-        $('ccMain').innerHTML = '<div class="cc-step"><div class="cc-done">'
-            + '<div class="cc-spinner" style="margin:0 auto 16px"></div>'
-            + '<h2>Bringing your AI to life…</h2>'
-            + '<p>She is being generated right now — usually 1–3 minutes.<br>You can leave this page; she will be waiting in My AI.</p>'
-            + '</div></div>'
+        $('ccMain').innerHTML = resultHtml(null, 'generating')
+        startProgressSim()
         updateFab()
     }
 
     function showDone(imageUrl) {
-        if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-        $('ccMain').innerHTML = '<div class="cc-step"><div class="cc-done">'
-            + (imageUrl ? '<img src="' + esc(imageUrl) + '" alt="">' : '')
-            + '<h2>Your AI is ready ✨</h2>'
-            + '<p>' + esc(profile.name || 'She') + ' is waiting for you.</p>'
-            + '<div class="cc-actions" style="justify-content:center"><button class="cc-btn-next" style="max-width:none;padding:0 40px" id="ccGoChat" type="button">Chat with her now ⚡</button></div>'
-            + '</div></div>'
+        stopProgressSim()
+        $('ccMain').innerHTML = resultHtml(imageUrl, 'done')
         $('ccGoChat').addEventListener('click', function () {
             location.href = './Chat.html?id=my-' + personaId
         })
@@ -740,12 +829,8 @@
     }
 
     function showFailed() {
-        if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-        $('ccMain').innerHTML = '<div class="cc-step"><div class="cc-done">'
-            + '<h2>Almost there</h2>'
-            + '<p>Her portrait is taking longer than usual.<br>She is already in My AI — chat with her while her portrait finishes.</p>'
-            + '<div class="cc-actions" style="justify-content:center"><button class="cc-btn-next" style="max-width:none;padding:0 40px" id="ccGoMyAi" type="button">Go to My AI</button></div>'
-            + '</div></div>'
+        stopProgressSim()
+        $('ccMain').innerHTML = resultHtml(null, 'failed')
         $('ccGoMyAi').addEventListener('click', function () {
             location.href = './charactersIndex.html'
         })
