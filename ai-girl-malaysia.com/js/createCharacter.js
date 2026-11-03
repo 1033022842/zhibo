@@ -335,12 +335,14 @@
         groups.forEach(function (s, gi) {
             var fieldKey = STEP_IMG_FIELD[s.key]
             if (gi > 0) html += '<div class="cc-section-title">' + esc(s.title) + '</div>'
-            html += '<div class="cc-options' + (s.swatch ? ' cc-options-swatch' : '') + '">'
             var opts = s.options.slice()
             if (profile.category === 'Anime' && s.animeExtra) opts = opts.concat(s.animeExtra)
             if (profile.category === 'Anime' && s.animeHide) {
                 opts = opts.filter(function (o) { return s.animeHide.indexOf(o) < 0 })
             }
+            // candy 金字塔排版：每段一行铺满（≤6 单行；>6 对半两行）
+            var cols = opts.length <= 6 ? opts.length : Math.ceil(opts.length / 2)
+            html += '<div class="cc-options" style="--cols:' + cols + '">'
             opts.forEach(function (opt) {
                 html += '<div class="cc-opt' + (profile[s.field] === opt ? ' on' : '') + '" data-opt="' + esc(opt) + '" data-field="' + s.field + '" role="button">'
                 html += '<div class="cc-opt-check">✓</div>'
@@ -422,7 +424,11 @@
 
         // Age 18-55
         html += '<div class="cc-field"><div class="cc-field-label"><span>Age</span></div>'
-        html += '<div class="cc-age-row"><input type="range" id="ccAge" min="18" max="55" step="1" value="' + (profile.age || 22) + '"><span class="cc-age-val" id="ccAgeVal">' + (profile.age || 22) + '</span></div></div>'
+        html += '<div class="cc-age-strip" id="ccAgeStrip">'
+        for (var a = 18; a <= 55; a++) {
+            html += '<button class="cc-age-chip' + (profile.age === a ? ' on' : '') + '" data-age="' + a + '" type="button">' + a + '</button>'
+        }
+        html += '</div></div>'
 
         // 弹窗触发行
         html += pickerRow('personality', 'Choose Personality', profile.personality)
@@ -455,12 +461,18 @@
             $('ccNameCount').textContent = profile.name.length + '/20'
             saveState()
         })
-        var ageInput = $('ccAge')
-        ageInput.addEventListener('input', function () {
-            profile.age = parseInt(ageInput.value, 10)
-            $('ccAgeVal').textContent = String(profile.age)
-            saveState()
+        $('ccAgeStrip').querySelectorAll('.cc-age-chip').forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                profile.age = parseInt(chip.getAttribute('data-age'), 10)
+                saveState()
+                renderFinal()
+                // 选中后把该 chip 滚到条带中间
+                var on = document.querySelector('.cc-age-chip.on')
+                if (on) on.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+            })
         })
+        var ageOn = document.querySelector('.cc-age-chip.on')
+        if (ageOn) ageOn.scrollIntoView({ block: 'nearest', inline: 'center' })
 
         $('ccMain').querySelectorAll('.cc-picker').forEach(function (row) {
             row.addEventListener('click', function () {
