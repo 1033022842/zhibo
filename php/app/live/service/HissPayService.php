@@ -82,9 +82,19 @@ final class HissPayService
             throw new BusinessException(ResultCode::PARAM_ERROR, 'Invalid user.');
         }
 
+        // 该产品只接受固定金额档位（见 .env [HISSPAY] AMOUNTS），不在档位内直接拒绝
+        $amt     = number_format((float) $amount, 2, '.', '');
+        $allowed = (array) ($this->cfg['amounts'] ?? []);
+        if ($allowed !== [] && !in_array($amt, $allowed, true)) {
+            throw new BusinessException(
+                ResultCode::PARAM_ERROR,
+                'This payment method is not available for the selected amount. Please choose another payment method.'
+            );
+        }
+
         $body = [
             'merchantOrderNo' => $orderNo,
-            'amount'          => number_format((float) $amount, 2, '.', ''),
+            'amount'          => $amt,
             'currency'        => strtoupper($currency),
             'product'         => $product,
             'name'            => (string) $payer['name'],
@@ -93,6 +103,10 @@ final class HissPayService
             'userId'          => (string) $userId,
             'clientIp'        => $clientIp,
         ];
+        $payType = trim((string) ($this->cfg['pay_type'] ?? ''));
+        if ($payType !== '') {
+            $body['payType'] = $payType;
+        }
         if ((string) ($this->cfg['notify_url'] ?? '') !== '') {
             $body['notifyUrl'] = (string) $this->cfg['notify_url'];
         }

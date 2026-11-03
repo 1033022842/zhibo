@@ -25,6 +25,8 @@
 
   var brand = brandOf(location.hostname)
   window.KELYMI_BRAND = brand
+  // Kelymi 走人民币定价：前台金额符号统一用 ¥（其他站点不设置，默认 $）
+  window.SITE_CURRENCY = '¥'
   if (brand === DEFAULT_BRAND) return
 
   var RE = /Kelymi\.ai/g

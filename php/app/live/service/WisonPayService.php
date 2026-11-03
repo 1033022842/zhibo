@@ -91,6 +91,9 @@ final class WisonPayService
         if (!preg_match('/^[0-9]{8,15}$/D', $mobile)) {
             throw new BusinessException(ResultCode::PARAM_ERROR, 'Please enter a valid phone number for the selected region.');
         }
+        if ($region === 'US' && !preg_match('/^(?:1[0-9]{10}|[0-9]{10})$/D', $mobile)) {
+            throw new BusinessException(ResultCode::PARAM_ERROR, 'Please enter a valid US phone number (10 digits, or 11 digits starting with 1). If your number belongs to another country, choose that country/region.');
+        }
         if ($region === 'IN' && strlen($mobile) !== 10) {
             throw new BusinessException(ResultCode::PARAM_ERROR, 'India phone number must be 10 digits without +91.');
         }
@@ -140,6 +143,19 @@ final class WisonPayService
                 // US：保留 1 开头的 11 位
                 return $m;
         }
+    }
+
+    /** 网关的「资料不合法」返回码 → 用户能看懂的提示；其它错误仍按系统异常处理 */
+    private static function payerErrorMessage(string $gatewayMsg): string
+    {
+        $msg = strtoupper($gatewayMsg);
+        if (str_contains($msg, 'INVALID_MOBILE_NUMBER')) {
+            return 'Please enter a valid phone number for the selected country/region.';
+        }
+        if (str_contains($msg, 'INVALID_EMAIL')) {
+            return 'Please enter a valid email address.';
+        }
+        return '';
     }
 
     /** 不使用浮点差值核对支付金额；仅允许正数和最多两位小数。 */
@@ -377,15 +393,24 @@ final class WisonPayService
             $body = json_decode((string) $response->getBody(), true);
             if ($response->getStatusCode() !== 200 || !is_array($body)
                 || (string) ($body['ret'] ?? '') !== '0' || !is_array($body['data'] ?? null)) {
-                throw new \RuntimeException('Gateway rejected request, HTTP=' . $response->getStatusCode()
+                $raw = 'Gateway rejected request, HTTP=' . $response->getStatusCode()
                     . ' ret=' . (string) ($body['ret'] ?? 'unknown')
-                    . ' msg=' . mb_substr((string) ($body['msg'] ?? ''), 0, 80));
+                    . ' msg=' . mb_substr((string) ($body['msg'] ?? ''), 0, 80);
+                // 用户资料填写错误不该报「支付暂不可用」，否则用户只会反复重试
+                $userMsg = self::payerErrorMessage(is_array($body) ? (string) ($body['msg'] ?? '') : '');
+                if ($userMsg !== '') {
+                    Log::error('[wisonpay] ' . $path . ' ' . $raw);
+                    throw new BusinessException(ResultCode::PARAM_ERROR, $userMsg);
+                }
+                throw new \RuntimeException($raw);
             }
             $this->verifySignature($body['data']);
             if ((string) ($body['data']['appid'] ?? '') !== $appid) {
                 throw new \RuntimeException('Merchant response mismatch');
             }
             return $body['data'];
+        } catch (BusinessException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('[wisonpay] ' . $path . ' ' . $e->getMessage());
             // 友好文案给用户，原始原因通过 previous 交给订单备注

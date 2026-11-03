@@ -62,7 +62,7 @@
 
   function money(v) {
     var n = parseFloat(v)
-    return isFinite(n) ? '$' + n.toFixed(2) : ''
+    return isFinite(n) ? (window.SITE_CURRENCY || '$') + n.toFixed(2) : ''
   }
 
   // 两个待支付订单里取最新的一个

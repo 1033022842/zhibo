@@ -319,6 +319,62 @@ client_overrides/
   无独立 192 资产就不写 192 条目
 - **服务器资产就地取材**：客户的 png 若已在站点目录里，服务器上 `cp` 进 kit 即可，不必回传本地
 
+### B'''. kelymi 铭森支付（2026-10-31）
+
+- 网关：铭森支付 `http://sjhsll.com`；下单 `POST /Pay_Index.html`，查单 `POST /Pay_Trade_query.html`；通道编码 1=微信 2=支付宝
+- 上游代码：`php/config/sjhsll.php`、`php/app/live/service/SjhsllPayService.php`、
+  `RechargeService`（下单 / 查单补单）、`Recharge`（`notifySjhsll` / `returnSjhsll`）、
+  `api/route/recharge.php`（两条免登录路由）、`live/FiatChannel.php`（后台选项）、`sql/upgrade_sjhsll.sql`
+- **kelymi 服务器是手工最小补丁**：它的后端比上游旧（缺 Cregis / AIPowerPay / WisonPay / 邀请佣金），
+  不能整文件上传上游版本；本次只往原文件里加了 sjhsll 分支。
+  下次整文件 `git checkout` / 全量对齐前，必须保留这些分支，或先把 kelymi 后端追平上游（SOP 9.5）
+- `php/.env` 新增 `[SJHSLL]`（商户号 / KEY / 回调 / 回跳）；`lp_fiat_channel` 补了 `auto_rate` 列
+  （kelymi 原表缺，后台保存和 `fiat:rate` 都要用）
+- 已建两条 CNY 通道（id 5 微信 / 6 支付宝）但 **`status=0` 先下架**：站内套餐仍是 USD 价，
+  CNY 通道汇率按「人民币精确收款」设为 1；先把套餐价改成 ¥9.9 / ¥29.9 等人民币数值，再启用，
+  否则 `$15` 会被当成 `¥15` 收
+- 实测：微信通道（1）下单返回收银台地址且可打开；**支付宝通道（2）能建单但网关不返回收银台地址**，
+  需商户在铭森后台确认通道 2 是否开通，开通前不要启用支付宝通道
+- 自测脚本：`php _test_sjhsll.php sign|pay [通道] [金额]|query <单号>|notify <单号>`
+- 部署前备份：`/root/sjhsll_bak_20261031_174159`
+- 2026-11-01 按《Kelymi会员与Token定价方案》落人民币价：VIP ¥9.9/100 Token、SVIP ¥29.9/1,000 Token、
+  Token 6 档（¥3~¥128）；SQL `php/sql/kelymi_pricing_cny_202611.sql`，旧 Premium/Premium Plus 档位已下架
+- `VipService::activate` 增加 `vip_grant`：套餐 `daily_diamond=0` 时按 `tokens_month × months` 一次性发 Token
+  （仅外部支付订单发放；站内 Token 直购不发，避免「付 299 Token 开 SVIP 再返 1000」套利；旧套餐有每日领取，不受影响）
+- `apply_brand.sh` 新增 `subscriptions.js?v=$STAMP` 刷新：改订阅页 JS 后必须跑一次，否则 CDN 继续发旧文件
+- `apply_brand.sh` 新增 1.5 节：把 HTML 里的 `Premium Plus` / `Premium` 文案改为 `SVIP` / `VIP`
+  （只改页面文案，`data-*` / class / `js/*.js` 逻辑不动）；`privacy/terms` 跳过
+- 2026-11-01 前台人民币显示：`brand.js` 设置 `window.SITE_CURRENCY='¥'`，
+  `subscriptions / purchasePoints / crypto-pay / pending-order` 的 `money()` 统一读该变量（未设置时仍为 `$`）；
+  `apply_brand.sh` 会在 `</head>` 注入页面级货币、把 HTML 里写死的 `$` 价格改 `¥`、
+  Compare Plans 的 `330` 改为 `1,000`、未登录也显示 VIP/SVIP 切换器
+- `apply_brand.sh` 的 JS 版本号改为分钟级 `$JS_STAMP`，同时刷新
+  `subscriptions / purchasePoints / crypto-pay / pending-order / brand.js`，避免 CDN 旧缓存
+- 2026-11-02 修复 Tokens 充值页破版：`purchasePoints.js` 的 `renderPlans()` 不能再用
+  `$('#tk-plan-grid').html(html)` 整块重写——浏览器解析时充值页的 `<style>`/支付弹窗会落进
+  `#tk-plan-grid`，`.html()` 会把它们一起删掉，导致卡片全宽堆叠、金币图按原图尺寸溢出。
+  现在改为 `$grid.find('.tk-plan, .tk-empty').remove()` + `$grid.prepend(html)`，只替换卡片；
+  `purchasePoints.html` 同时补了 `#token-container{margin-left:200px}`（侧栏展开 199px）和
+  `.tk-benefits-wrap{grid-column:1/-1}`（权益区横跨整行）
+- 功能消耗已改：聊天 0、通话 3/分钟、图片 3/张、视频 30/条；Live Action、高清图、短剧/商城是逐项数据或未接配置，未批量改
+- 微信通道已启用；支付宝仍 `status=0`（网关通道 2 建单成功但不返回收银台地址）
+- 定价部署备份：`/root/kelymi_pricing_bak_20261101_184218`
+
+### B''''. kiss HissPay 代收（2026-11-03）
+
+- 网关：`https://transaction.hisspay.com`；代收下单 `POST /transaction/payin/v1/apply`，查单 `POST /transaction/payin/v1/query`
+- 签名：请求体 + 请求头 `appId/timestamp(毫秒)/nonce/sign` 按 key 升序拼 `k=v&k=v`，末尾直接追加 `appSecret`，SHA-256 小写十六进制；不是 HMAC/RSA，空值保留、`null` 不参与
+- 代码：`php/config/hisspay.php`、`php/app/live/service/HissPayService.php`、`RechargeService`（法币下单 / `callFiatGateway` / `reconcileGateway` / `confirmByGateway`）、`Recharge`（`notifyHissPay`）、`api/route/recharge.php`、`live/FiatChannel.php`、`live/RechargeChannel.php`、`live/RechargeOrder.php`；前台 `js/crypto-pay.js`（姓名/邮箱/手机号表单）、`js/purchasePoints.js` 与 `js/subscriptions.js`（Visa/Mastercard 标）
+- 回调：`https://域名/api/v1/recharge/notifyHissPay`，验签后必须返回**纯文本 `SUCCESS`**（无换行）；失败通知 `status=2` 只写 `pay_state=2`，不冲正已入账订单
+- `.env` 新增 `[HISSPAY]`：`APP_ID=PzRlHNO`、`APP_SECRET`、`NOTIFY_URL`、`RETURN_URL`、`RETURN_URL_VIP`、`CURRENCY=USD`、`PRODUCT=USD-YKMZXQKYCA`、`PAY_TYPE=CARD`、`AMOUNTS=<45 个固定金额>`、`ORDER_PREFIX=HSP`
+- **已跑通（2026-11-03）**：产品 `USD-YKMZXQKYCA` + `payType=CARD`；`49.99` 下单成功返回 `payUrl`（`checkout.moneygo.ai`），`10.00` 被拒。通道行 `lp_fiat_channel` id=14（`gateway=hisspay`，USD/2 位）`status=1`，`gateway_ref=USD-YKMZXQKYCA`
+- **金额限制**：该产品只支持《商品ID及价格-新.xlsx》里的 45 个固定金额（1.99~499）。`.env` 的 `AMOUNTS` 逗号分隔配置；`HissPayService::createOrder` 会在下单前拦截非档位金额并返回明确提示，不会把无效金额发给网关（网关会返回 `10005/10009`）
+- **前台联动**：`FiatChannelService::normalize` 把 `amounts` 下发给前台；`js/purchasePoints.js` 与 `js/subscriptions.js` 只在当前套餐价命中档位时才展示 HissPay，避免用户点到必失败的支付方式。改这两个 JS 后 HTML 里的版本号要同步 bump（kiss 已改到 `?v=20261103hiss3`）
+- **价格策略（2026-11-03 客户确认）**：不改现有套餐/VIP 价格，只放开命中的档位。当前 Token 套餐 `49.99/99.99/199.99` 可用，`10.00/34.99/299.99` 不显示 HissPay；VIP 里 `19.99/24.99/49.99/59.99/69.99/79.99/139.99` 可用，`47.88/119.88/191.88/335.99` 等不显示 HissPay（继续走其它网关）
+- 以前试过的产品码：`USD-EKCBBONA`、`USD-APPLEPAY-PAYIN`、`USD-CASHAPP-PAYIN` 返回 `10004 The product is not activated yet`；`USD-CARD-PAYIN` / `USD-HOSTED-PAYIN` / `USD-LOCAL-PAYOUT` 返回 `10011 The product invalid`；`USD-XGZBJQNJMI` 返回 `10005 No available channels`（该码无可用通道，已弃用）
+- 部署备份：`/root/kiss_hisspay_bak_20261103_083652`；`.env` 另有 `.env.bak.hisspay_20261103_product` / `.env.bak.hisspay_20261103_ykm` / `.env.bak.hisspay_20261103_amounts`；`php-fpm` 已 reload，`notifyHissPay` 路由已通（无效签名返回 400 `FAIL`）
+- 联调结论：网关签名、余额查询、建单、通知验签均已通过；只差真实付款后的回调入账验证
+
 ### B''. kiss 全栈初始化实录（2026-10-19 装机 → 2026-10-20 域名/仓库收尾，裸机 Ubuntu 22.04）
 
 **装机（10-19）**

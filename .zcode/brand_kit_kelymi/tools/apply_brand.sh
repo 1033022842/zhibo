@@ -22,6 +22,8 @@ mapfile -t FILES < <(ls *.html js/*.js 2>/dev/null | grep -vE '^(privacy|terms)\
 
 echo "== [$CLIENT] 应用品牌到 $SITE =="
 STAMP=$(date +%Y%m%d)
+# 订阅页 JS 用分钟级版本号：同一天多次改 JS 时也能绕开 CDN 缓存
+JS_STAMP=$(date +%Y%m%d%H%M)
 BAK="/tmp/brand_bak_${CLIENT}_$STAMP"
 mkdir -p "$BAK"
 cp -a --parents "${FILES[@]}" "$BAK/" 2>/dev/null || true
@@ -47,11 +49,41 @@ sed -i -E \
   -e 's/sugusai/kelymiai/g' \
   -e "s/'sugus\\./'kelymi./g" \
   -e 's/sugus\\\.\[a-z.\]\+/kelymi\\.[a-z.]+/g' \
+  -e "s#(js/(subscriptions|purchasePoints|crypto-pay|pending-order|brand)\.js)(\?v=[^\"]*)?#\1?v=$JS_STAMP#g" \
   -e 's/(^|[^.\/])sugus\.ai/\1kelymi.autos/g' \
   -e 's/\bSugus\b/Kelymi/g' \
   -e 's/__BRAND_CDN__/cdn.sugus.ai/g' \
   -e 's/__BRAND_SVG__/sugus.ai-65df24cd0fbc2899bc9e90b5e1af77e05e951ea0d6c3aec1b76f811040e368f6/g' \
   "${FILES[@]}"
+
+# ── 1.5) 定价方案：两档对外名称改为 VIP / SVIP（只改页面文案，不动 data-* / class / JS 逻辑）──
+# 只在 HTML 上做，js/*.js 里的 'Premium' 是逻辑判断/兜底文案，不在这里改。
+for f in "$SITE"/*.html; do
+  case "$f" in
+    */privacy.html|*/terms.html) continue ;;
+  esac
+  sed -i -e 's/Premium Plus/SVIP/g' -e 's/Premium/VIP/g' "$f"
+  # 人民币：HTML 里写死的 $ 价格兜底文案改 ¥（只匹配价格形态，避免误伤 jQuery $ 选择器）
+  sed -i -E 's/\$([0-9]+\.[0-9]{2})/¥\1/g; s/\$([0-9]{2,3})\b/¥\1/g' "$f"
+  # 单档位加购文案里的 +$6/mo / +$10/mo 也改 ¥
+  sed -i -E 's/\+\$([0-9]+)/+¥\1/g' "$f"
+  # Compare Plans 静态表里的 Premium Plus 月 Token 档位同步为 SVIP 1000（兼容 CRLF）
+  sed -i -E '/^[[:space:]]*330\r?$/s/330/1,000/' "$f"
+  # 页面级货币符号：在 </head> 前注入，保证 pending-order.js 等首屏脚本一开始就拿到 ¥
+  if ! grep -q 'window.SITE_CURRENCY' "$f"; then
+    sed -i '0,/<\/head>/s/<\/head>/<script>window.SITE_CURRENCY="¥";<\/script><\/head>/' "$f"
+  fi
+done
+
+# 未登录也展示 VIP / SVIP 切换器，定价页两档都能看到
+if [ -f "$SITE/Subscriptions.html" ]; then
+  sed -i 's/html\.no-auth #sub-tier-tabs{display:none;}/html.no-auth #sub-tier-tabs{display:flex;}/' "$SITE/Subscriptions.html"
+fi
+
+# Tokens 充值页：侧栏展开宽度 199px，单独给 Kelymi 加内容左偏移（不改上游共享页面）
+if [ -f "$SITE/purchasePoints.html" ] && ! grep -q 'kelymi-token-sidebar-offset' "$SITE/purchasePoints.html"; then
+  sed -i 's|</head>|<style id="kelymi-token-sidebar-offset">@media (min-width:1024px){#token-container{margin-left:200px;}}</style></head>|' "$SITE/purchasePoints.html"
+fi
 
 # ── 2) 资产与清单 ──
 cp -f "$BRAND"/assets/*.png "$SITE"/

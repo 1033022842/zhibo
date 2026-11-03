@@ -156,26 +156,57 @@
         })
     }
 
+    /** 固定金额档位的网关（HissPay）：金额不在档位内就不展示，避免用户点到必失败的方式 */
+    function fiatAllowed(fc, price) {
+        if (!fc || !fc.amounts || !fc.amounts.length) return true
+        var p = parseFloat(price)
+        if (!isFinite(p) || p <= 0) return true
+        var needle = p.toFixed(2)
+        for (var i = 0; i < fc.amounts.length; i++) {
+            if (String(fc.amounts[i]) === needle) return true
+        }
+        return false
+    }
+
+    function cashChannelsFor(price) {
+        return fiatChannels.filter(function (fc) { return fiatAllowed(fc, price) })
+    }
+
+    /** 当前弹窗展示的套餐价（含货币符号，取数字部分） */
+    function modalPrice(level) {
+        var txt = $(MODAL_PRICE[level]).first().text() || ''
+        var n = parseFloat(String(txt).replace(/[^0-9.]/g, ''))
+        return isFinite(n) ? n : 0
+    }
+
+    /** 当前弹窗实际选中的套餐价（与下单时 readSelection/findPlan 一致，取不到再退回弹窗价） */
+    function selectedPlanPrice(level) {
+        var sel = readSelection(level)
+        var plan = findPlan(level, sel.months, sel.tokens)
+        return plan ? (parseFloat(plan.usd_price) || 0) : modalPrice(level)
+    }
+
     /** 当前可用方式：卡（FlowPay 开关 + 收单通道）/ 加密货币（后台还有启用的链上渠道）/ 法币（后台配了几条） */
-    function pmAvailable() {
+    function pmAvailable(m) {
         return {
             card: !!(flowpayEnabled && cardChannels.length),
             crypto: channels.length > 0,
-            cash: fiatChannels.length > 0
+            cash: cashChannelsFor(selectedPlanPrice(m.level)).length > 0
         }
     }
 
     function pmRender(m) {
         var st = PM_STATE[m.level]
-        var avail = pmAvailable()
+        var avail = pmAvailable(m)
+        var cashList = cashChannelsFor(selectedPlanPrice(m.level))
         if (!st.method || !avail[st.method]) {
             st.method = avail.card ? 'card' : (avail.crypto ? 'crypto' : (avail.cash ? 'cash' : ''))
         }
         st.gcode = avail.card ? (st.gcode || String(cardChannels[0].gcode || '')) : ''
         if (avail.cash) {
             var hit = false
-            fiatChannels.forEach(function (fc) { if (String(fc.id) === String(st.fiatId)) hit = true })
-            if (!hit) st.fiatId = String(fiatChannels[0].id)
+            cashList.forEach(function (fc) { if (String(fc.id) === String(st.fiatId)) hit = true })
+            if (!hit) st.fiatId = String(cashList[0].id)
         } else {
             st.fiatId = ''
         }
@@ -194,7 +225,7 @@
         }
         if (avail.cash) {
             var walletShown = false
-            fiatChannels.forEach(function (fc) {
+            cashList.forEach(function (fc) {
                 var isWallet = fc.gateway === 'wisonpay'
                 if (isWallet && walletShown) return
                 if (isWallet) walletShown = true
@@ -394,6 +425,8 @@
                 fillPanelExtras($panel, level, list)
             })
         })
+        // 套餐价回填后再渲染支付方式：HissPay 只在当前套餐金额命中固定档位时出现
+        pmRenderAll()
     }
 
     /** 单张卡片：写回档位属性、价格、折扣角标、tokens 下拉 */
@@ -558,10 +591,14 @@
 
     // ===== 点选记录 =====
     function bindEvents() {
-        $(document).on('click', '[data-plan-type]', function () { remember($(this).closest('[data-plan-type]')) })
+        $(document).on('click', '[data-plan-type]', function () {
+            remember($(this).closest('[data-plan-type]'))
+            pmRenderAll()
+        })
         $(document).on('click', '.token-tier-option, .token-tier-trigger', function () {
             var $w = $(this).closest('[data-plan-type]')
             if ($w.length) { remember($w) }
+            pmRenderAll()
         })
         // 支付方式格子：点哪个就按哪种方式发起支付
         $(document).on('click', '[data-pm-method]', function () {

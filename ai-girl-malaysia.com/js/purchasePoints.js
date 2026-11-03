@@ -366,12 +366,28 @@
         return pmClean(t.replace(/^amopay[-_\s]*/i, '')) || 'Card'
     }
 
+    /** 固定金额档位的网关（HissPay）：金额不在档位内就不展示，避免用户点到必失败的方式 */
+    function fiatAllowed(fc, price) {
+        if (!fc || !fc.amounts || !fc.amounts.length) return true
+        var p = parseFloat(price)
+        if (!isFinite(p) || p <= 0) return true
+        var needle = p.toFixed(2)
+        for (var i = 0; i < fc.amounts.length; i++) {
+            if (String(fc.amounts[i]) === needle) return true
+        }
+        return false
+    }
+
+    function cashChannelsFor(price) {
+        return fiatChannels.filter(function (fc) { return fiatAllowed(fc, price) })
+    }
+
     /** 当前可用方式：卡（FlowPay 开关 + 收单通道）/ 加密货币（后台还有启用的链上渠道）/ 法币（后台配了几条） */
     function pmAvailable() {
         return {
             card: !!(flowpayEnabled && flowpayChannels.length),
             crypto: channels.length > 0,
-            cash: fiatChannels.length > 0
+            cash: cashChannelsFor(selected && selected.price).length > 0
         }
     }
 
@@ -379,14 +395,15 @@
         var box = $('#pm-grid')
         if (!box.length) return
         var avail = pmAvailable()
+        var cashList = cashChannelsFor(selected && selected.price)
         if (!PM.method || !avail[PM.method]) {
             PM.method = avail.card ? 'card' : (avail.crypto ? 'crypto' : (avail.cash ? 'cash' : ''))
         }
         PM.gcode = avail.card ? (PM.gcode || String(flowpayChannels[0].gcode || '')) : ''
         if (avail.cash) {
             var hit = false
-            fiatChannels.forEach(function (fc) { if (String(fc.id) === String(PM.fiatId)) hit = true })
-            if (!hit) PM.fiatId = String(fiatChannels[0].id)
+            cashList.forEach(function (fc) { if (String(fc.id) === String(PM.fiatId)) hit = true })
+            if (!hit) PM.fiatId = String(cashList[0].id)
         } else {
             PM.fiatId = ''
         }
@@ -405,7 +422,7 @@
         }
         if (avail.cash) {
             var walletShown = false
-            fiatChannels.forEach(function (fc) {
+            cashList.forEach(function (fc) {
                 var isWallet = fc.gateway === 'wisonpay'
                 if (isWallet && walletShown) return
                 if (isWallet) walletShown = true

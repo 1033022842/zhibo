@@ -303,6 +303,9 @@ final class VipService
             throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '套餐不存在');
         }
 
+        // 外部订单（网关/人工审核）才发赠送 Token；站内 Token 直购（buy() 传空订单号）
+        // 不发，否则「付 299 Token 开 SVIP 再返 1000 Token」会被套利。
+        $externalOrder = $orderNo !== '';
         $orderNo = $orderNo !== '' ? $orderNo : StrHelper::orderNo('VIP');
         // 幂等：同一订单号已生效则直接返回原结果
         $exists = $db->table('lp_vip_order')->where('order_no', $orderNo)->find();
@@ -356,6 +359,26 @@ final class VipService
             (new InviteService())->onVipActivated($userId);
         } catch (\Throwable $e) {
             Log::error('[invite] 会员邀请奖励处理失败 uid=' . $userId . ' err=' . $e->getMessage());
+        }
+
+        // 会员赠送代币：外部支付订单 + 套餐明确「无每日领取」(daily_diamond=0) 时，
+        // 按订阅周期一次性发放 tokens_month × months；站内 Token 直购不发。
+        $grant = 0;
+        if ($externalOrder && (float) ($plan['daily_diamond'] ?? 0) <= 0) {
+            $grant = (int) ($plan['tokens_month'] ?? 0) * max(1, (int) ($plan['months'] ?? 1));
+        }
+        if ($grant > 0) {
+            try {
+                (new WalletService())->credit(
+                    $userId,
+                    $grant,
+                    'vip_grant',
+                    (int) $planId,
+                    '会员赠送代币：' . (string) $plan['name']
+                );
+            } catch (\Throwable $e) {
+                Log::error('[vip] 赠送代币发放失败 uid=' . $userId . ' plan=' . $planId . ' err=' . $e->getMessage());
+            }
         }
 
         return [
