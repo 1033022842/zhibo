@@ -15,7 +15,7 @@
   'use strict'
 
   /* ---------- 关闭旧包遗留的 Turbo Drive（修「点导航后底栏变 4 格」的 bug） ----------
-   * 镜像页带的 candy 旧 application.js 里 Turbo Drive 会拦截 <a> 点击做局部换页；
+   * 镜像页带的旧 application.js 里 Turbo Drive 会拦截 <a> 点击做局部换页；
    * 换页后 head 里的 shell-new.js 不会重跑，页面就露出自带的老底栏（shorts 页只有 4 格，
    * 且没有 Home/Chat），局部换页还经常卡死不动。静态镜像站不需要 Turbo，统一整页跳转。 */
   ;(function turboOff() {
@@ -38,7 +38,7 @@
     })
   })()
 
-  /* ---------- 手机底栏滚动自动隐藏（参数照 candy bottom-bar-autohide） ----------
+  /* ---------- 手机底栏滚动自动隐藏（参数照参考版 bottom-bar-autohide） ----------
    * 往下滑(>4px 且页面滚过 60px)隐藏；往上滑或回到顶部(40px 内)显示；停止滚动 420ms 自动显示。 */
   ;(function bnavAutohide() {
     if (window.__fyBnavAutohide) return
@@ -72,7 +72,7 @@
     chat: { src: T + 'chat-1f356f466c9023c851a3a185fd1e607229737246758457a3f49b82e17bc5d82b.svg' },
     gallery: { src: T + 'gallery-b83c72cb24c980d5e254daba38d4e3690f281b07c3e5665a052e0f76fff031b8.svg' },
     achv: { src: T + 'trophy-55ba15bcf830427b6fc776e11ff4465cce75c1c2a1a27ba0bd2eea0e5c03ff55.svg' },
-    candy: { src: T + 'candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg' },
+    shop: { src: T + 'candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg' },
     shorts: { src: T + 'shorts-dd7eca01fe7f8a694cd100be90b5b6c20d241a5bf4c8b8c0f8633864125cffae.svg' },
     wand: { src: T + 'magic-wand-bc43a2a37c108cc6308370c0e6fada5385fd848143063f66116694fd9aa075b7.svg' },
     lady: { src: T + 'love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg' },
@@ -144,7 +144,7 @@
     { href: './characters.html', label: 'Create Character', icon: 'wand' },
     { href: './charactersIndex.html', label: 'My AI', icon: 'lady' },
     { href: './upload_media.html', label: 'Upload Media', icon: 'upload' },
-    { href: './shop.html', label: 'Shop', icon: 'candy' },
+    { href: './shop.html', label: 'Shop', icon: 'shop' },
     { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
     { href: './private_content.html', label: 'Private Content', icon: 'private' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'token' }
@@ -1768,7 +1768,7 @@
   }
 
   /* ---------- 渲染入口 ---------- */
-  /* ---------- 手机端分类下拉（照 candy.ai 手机端 header：图标 + 下箭头 → 点开 Girls/Anime/Guys） ---------- */
+  /* ---------- 手机端分类下拉（照参考版手机端 header：图标 + 下箭头 → 点开 Girls/Anime/Guys） ---------- */
   var CAT_ICONS = {
     girls: { g: 'female-grey-f8778c0424271c5cb4b1b50b2e50d7e8d5a2c79851c6f905e5d3ef4069956bef.svg', w: 'female-white-b6edc81820cdf305c0e1644c0c5d2124b2aa2ecef701a01eff46baad9a05dd26.svg', label: 'Girls', href: './Girls.html' },
     anime: { g: 'anime-grey-1f1c9de8c17364c1634470e5d2ab1d4d05109fa8e80c1e1b83ac0478eb2d5dac.svg', w: 'anime-white-02986b4e7107a1be01a284a4818231a6edf19aa880d8a9680fb1a7874416f532.svg', label: 'Anime', href: './Anime.html' },
@@ -1784,7 +1784,7 @@
   }
 
   /* 顶栏分类栏（Girls/Anime/Guys）：页面自带的用页面自己的，没自带的统一在这里补一份。
-     内联 SVG 与 candy.ai 原版逐字一致，选中态由 fy.css 的 .head-btn.active 上粉。 */
+     内联 SVG 与参考版逐字一致，选中态由 fy.css 的 .head-btn.active 上粉。 */
   var CAT_BTN_SVG = {
     girls: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">' +
       '<path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg>',

@@ -1,7 +1,7 @@
 /**
- * AI 女友端 Candy Shop 商店
+ * AI 女友端 Shop 商店
  * 商品数据来自后台「直播运营 → 商品管理」（GET /api/live/shopItems），
- * DOM 结构 / class 与原站 candy.ai/shop/items 保持一致。
+ * DOM 结构 / class 与参考站 /shop/items 保持一致。
  *
  * 购买：Buy now → Confirm → POST /api/live/shopBuy（扣代币，需登录），
  *       买到的商品进入 Inventory（GET /api/live/inventory）。
@@ -68,16 +68,16 @@
     }
 
     function alertBox(msg) {
-        if (!document.getElementById('candy-alert-skin')) {
+        if (!document.getElementById('site-alert-skin')) {
             var s = document.createElement('style')
-            s.id = 'candy-alert-skin'
-            s.textContent = '#candy-alert-dialog::backdrop{background:rgba(0,0,0,.55)}'
+            s.id = 'site-alert-skin'
+            s.textContent = '#site-alert-dialog::backdrop{background:rgba(0,0,0,.55)}'
             document.head.appendChild(s)
         }
-        var d = document.getElementById('candy-alert-dialog')
+        var d = document.getElementById('site-alert-dialog')
         if (!d) {
             d = document.createElement('dialog')
-            d.id = 'candy-alert-dialog'
+            d.id = 'site-alert-dialog'
             d.setAttribute('aria-label', 'Notice')
             d.style.cssText = 'margin:auto;padding:0;border:0;border-radius:14px;background:#1b1b1b;color:#fff;' +
                 'box-shadow:0 16px 48px rgba(0,0,0,.55);width:340px;max-width:86vw;'

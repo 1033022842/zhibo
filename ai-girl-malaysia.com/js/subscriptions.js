@@ -1,5 +1,5 @@
 /**
- * Subscriptions 页（版式复刻 candy /payments · 套餐数据来自后台）
+ * Subscriptions 页（版式复刻参考站 /payments · 套餐数据来自后台）
  *
  * 页面结构由参考页原样保留，本脚本只做四件事：
  *   1) 用 /api/v1/vip/plans 的数据回填卡片价格、tokens 档位下拉与权益文案
@@ -84,7 +84,7 @@
         }, true)
     }
 
-    /** 打开注册弹窗（站内通用 markup，显示方式与 candy 的 main#openRegistrationModal 一致） */
+    /** 打开注册弹窗（站内通用 markup，显示方式与 参考站的 main#openRegistrationModal 一致） */
     function openRegisterModal() {
         $('[data-main-target="registrationModal"]').css('display', 'flex')
         $('[data-main-target="signInModal"]').css('display', 'none')
@@ -442,7 +442,7 @@
             $wrap.find('p').filter(function () { return /% OFF/.test($(this).text()) }).text(off + '% OFF')
         }
 
-        // 弹窗取值用（candy 的控制器点击卡片时读这三个属性）
+        // 弹窗取值用（参考站的控制器点击卡片时读这三个属性）
         $card.attr('data-sub-card-button-plan-title-value', tierTitle(months, base.tokens_month))
         $card.attr('data-sub-card-button-plan-price-value', money(basePer))
         $card.attr('data-sub-card-button-plan-price-period-value', 'month')
@@ -655,7 +655,7 @@
         })
     }
 
-    /** 以弹窗标题为准（candy 的控制器会随档位实时改写），点选记录兜底 */
+    /** 以弹窗标题为准（参考站的控制器会随档位实时改写），点选记录兜底 */
     function readSelection(level) {
         var txt = $.trim($(MODAL_TITLE[level]).first().text())
         var mm = txt.match(/(\d+)\s*Month/i)
