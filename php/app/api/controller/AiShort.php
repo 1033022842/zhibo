@@ -42,7 +42,7 @@ final class AiShort extends BaseController
     private const MAX_DURATION = 15;
 
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['detail', 'submit', 'myList', 'task']],
+        \app\live\middleware\Auth::class => ['only' => ['detail', 'submit', 'myList', 'task', 'favs', 'favToggle']],
         \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'upload', 'complete', 'fail', 'stats', 'progress', 'export']],
     ];
 
@@ -299,6 +299,57 @@ final class AiShort extends BaseController
     /**
      * 我的作品（需登录）
      */
+    /** 收藏列表（登录）：返回该用户收藏的预设 code（新→旧） */
+    public function favs()
+    {
+        $userId = $this->getAuthUserId();
+        $rows = $this->db()->table('lp_short_preset_fav')
+            ->where('user_id', $userId)
+            ->order('id', 'desc')
+            ->select()->toArray();
+
+        return $this->jsonSuccess([
+            'codes' => array_map(function (array $r) {
+                return (string) $r['preset_code'];
+            }, $rows),
+        ]);
+    }
+
+    /** 收藏/取消收藏（登录）：code 必填，on=1 收藏 0 取消；重复收藏幂等 */
+    public function favToggle()
+    {
+        $userId = $this->getAuthUserId();
+
+        $code = trim((string) $this->request->post('code', ''));
+        if ($code === '') {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'code 必填');
+        }
+        $on = ((string) $this->request->post('on', '1')) === '1';
+
+        if ($on) {
+            // 只允许收藏在架预设，防止垃圾 code 入库；预设下架不影响已有收藏
+            $preset = $this->db()->table('lp_short_preset')
+                ->where('code', $code)->where('status', 1)->find();
+            if (!$preset) {
+                return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Preset not found.');
+            }
+            $exists = $this->db()->table('lp_short_preset_fav')
+                ->where('user_id', $userId)->where('preset_code', $code)->find();
+            if (!$exists) {
+                $this->db()->table('lp_short_preset_fav')->insert([
+                    'user_id'     => $userId,
+                    'preset_code' => $code,
+                    'created_at'  => date('Y-m-d H:i:s'),
+                ]);
+            }
+        } else {
+            $this->db()->table('lp_short_preset_fav')
+                ->where('user_id', $userId)->where('preset_code', $code)->delete();
+        }
+
+        return $this->jsonSuccess(['code' => $code, 'on' => $on ? 1 : 0]);
+    }
+
     public function myList()
     {
         $userId = $this->getAuthUserId();
