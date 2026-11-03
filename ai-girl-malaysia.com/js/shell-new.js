@@ -157,9 +157,25 @@
     { href: './Subscriptions.html', label: 'Become Premium', icon: 'premium' }
   ]
 
-  var MAIN_NAV = ['Home', 'Discover', 'Chat', 'Shorts', 'Private Content', 'AI Video Studio', 'Create Character', 'Tokens'].map(function (label) {
+  /* sugus / heygirl 客户要求：AI Video Studio 入口登录后才可见。
+     域名命中门控才过滤（kelymi / kiss 不受影响）。
+     注意 heygirl 部署时 apply_brand 会把 sugus\.ai 改写成 heygirl\.live，
+     两侧各自命中自己域名，行为一致。 */
+  var STUDIO_HREF = './Image.html'
+  var STUDIO_GATE_HOST = /((^|\.)sugus\.ai|(^|\.)heygirl\.live)$/i
+  function studioEntryVisible() {
+    if (!STUDIO_GATE_HOST.test(location.hostname)) return true
+    try { return !!localStorage.getItem('live_access_token') } catch (e) { return true }
+  }
+  var MAIN_NAV_RAW = ['Home', 'Discover', 'Chat', 'Shorts', 'Private Content', 'AI Video Studio', 'Create Character', 'Tokens'].map(function (label) {
     return NAV.filter(function (n) { return n.label === label })[0]
   })
+  function mainNav() {
+    return MAIN_NAV_RAW.filter(function (n) {
+      return !(n && n.label === 'AI Video Studio') || studioEntryVisible()
+    })
+  }
+  var MAIN_NAV = mainNav()
   var MORE_NAV = NAV.filter(function (n) { return MAIN_NAV.indexOf(n) === -1 })
     .concat(NAV_BOTTOM.filter(function (n) { return n.icon !== 'contact' }))
     .concat([{ href: './Home.html#install-app', label: 'Get App', icon: 'appdl' }])
@@ -1150,13 +1166,13 @@
     { href: './Image.html', label: 'Generate', icon: 'bGenerate', key: 'generate' },
     { href: './characters.html', label: 'Create', icon: 'bWand', key: 'create' },
     { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium', key: 'premium', premium: true }
-  ]
+  ].filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
 
   var CREATE_MENU = [
     { href: './characters.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
     { href: './Image.html', icon: 'bDirector', title: 'Generate spicy videos', sub: 'Build your own spicy movie', badge: 'NEW' },
     { href: './Chat.html', icon: 'bGroup', title: 'Group chat', sub: 'Start a chat with up to 3 characters' }
-  ]
+  ].filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
 
   /* 当前页面对应的底栏高亮项（参考站：当前页那一格用激活版图标） */
   function activeBottomKey(signedIn) {
@@ -1740,6 +1756,7 @@
     var login = document.getElementById('user-login')
     if (login) login.style.display = token ? 'none' : 'flex'
   }
+  syncStudioEntry()
   function each(sel, display) {
     var list = document.querySelectorAll(sel)
     for (var i = 0; i < list.length; i++) list[i].style.display = display
@@ -1906,6 +1923,33 @@
     })
   }
 
+
+
+  function syncStudioEntryWatch() {
+    syncStudioEntry()
+    // 原地登录成功（弹窗登录不发页面跳转）
+    document.addEventListener('live:login', syncStudioEntry)
+    // 其它标签页登出/登录
+    window.addEventListener('storage', function (e) {
+      if (e && e.key === 'live_access_token') syncStudioEntry()
+    })
+  }
+
+  /* sugus/heygirl：登录态变化时，AI Video Studio 入口跟随显隐（原地登录不刷新页面也能出） */
+  function syncStudioEntry() {
+    var want = studioEntryVisible()
+    var next = mainNav()
+    var changed = next.length !== MAIN_NAV.length
+    if (!changed) {
+      for (var i = 0; i < next.length; i++) {
+        if (next[i] !== MAIN_NAV[i]) { changed = true; break }
+      }
+    }
+    if (!changed) return
+    MAIN_NAV = next
+    try { render() } catch (e) {}
+  }
+
   function render() {
     var closed = document.querySelector('[data-main-target="mainSidebarClosedContainer"]')
     var opened = document.querySelector('[data-main-target="mainSidebarOpenedContainer"]')
@@ -1961,6 +2005,7 @@
       normalizeCatLinks()
       syncPageLangButtons()
       syncAuth()
+      syncStudioEntryWatch()
       bindPageCatSync()
       renderBottomBar()
       bindBottomBar()
