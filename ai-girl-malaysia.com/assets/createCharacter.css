@@ -539,3 +539,107 @@ span.cc-row-img.fallback {
   .cc-options { grid-template-columns: repeat(2, 1fr); }
   .cc-modal-box { margin: 0; width: 100vw; max-height: 100vh; height: 100%; border-radius: 0; }
 }
+
+/* ── 结果页（candy 同款：左大图 + 右属性卡网格）────────────────── */
+.cc-result {
+  display: grid;
+  grid-template-columns: minmax(300px, 460px) minmax(0, 1fr);
+  gap: 34px;
+  align-items: start;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) {
+  .cc-result { grid-template-columns: 1fr; }
+}
+.cc-result-left {
+  background: #171717;
+  border: 1px solid #2c2c2c;
+  border-radius: 18px;
+  overflow: hidden;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.cc-result-photo { width: 100%; display: block; }
+
+/* 圆形百分比进度环 */
+.cc-progress-wrap { position: relative; width: 150px; height: 150px; }
+.cc-ring { width: 150px; height: 150px; transform: rotate(-90deg); }
+.cc-ring-bg, .cc-ring-fg { fill: none; stroke-width: 8; }
+.cc-ring-bg { stroke: #2c2c2c; }
+.cc-ring-fg {
+  stroke: #E75275;
+  stroke-linecap: round;
+  stroke-dasharray: 339.3;
+  stroke-dashoffset: 339.3;
+  transition: stroke-dashoffset .45s ease;
+  filter: drop-shadow(0 0 6px rgba(231, 82, 117, .6));
+}
+.cc-ring-num {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 26px; font-weight: 800;
+}
+.cc-result-gen-text { color: #fff; font-weight: 600; font-size: 15px; margin-top: 20px; }
+.cc-result-gen-sub { color: #8a8a8a; font-size: 12px; margin-top: 6px; }
+
+/* 失败占位 */
+.cc-result-placeholder { text-align: center; padding: 30px; }
+.cc-result-placeholder-icon { font-size: 44px; }
+.cc-result-placeholder-t { color: #fff; font-weight: 700; font-size: 16px; margin: 10px 0 6px; }
+.cc-result-placeholder-s { color: #8a8a8a; font-size: 13px; }
+
+/* 右列 */
+.cc-result-right { min-width: 0; }
+.cc-result-name { color: #fff; font-size: 30px; font-weight: 800; margin: 0 0 8px; }
+.cc-result-tagline { color: #E75275; font-size: 14px; font-weight: 600; margin-bottom: 18px; }
+.cc-tabs {
+  display: inline-flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  background: #1a1a1a;
+  border-radius: 24px;
+  padding: 4px;
+}
+.cc-tab {
+  padding: 9px 26px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #8a8a8a;
+}
+.cc-tab.on { background: #2a1420; color: #E75275; border: 1px solid rgba(231, 82, 117, .5); }
+
+/* 属性卡网格（2 列，带主题背景图） */
+.cc-attr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.cc-attr-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 76px;
+  background: #1c1c1c;
+  border: 1px solid #2c2c2c;
+  display: flex;
+  align-items: flex-end;
+}
+.cc-attr-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: .38;
+}
+.cc-attr-shade {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(19,19,19,.15), rgba(19,19,19,.82));
+}
+.cc-attr-txt { position: relative; z-index: 2; padding: 10px 14px; }
+.cc-attr-k { color: #b9b9b9; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.cc-attr-v { color: #fff; font-size: 16px; font-weight: 700; margin-top: 3px; }
