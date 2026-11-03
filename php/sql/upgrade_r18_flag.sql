@@ -1,8 +1,8 @@
 -- ============================================
--- R18 标记升级：短剧 + 私密内容（数字人社图）
--- 1) lp_short_item / lp_private_item 各增加
+-- R18 标记升级：短剧 + 剧集 + 私密内容（数字人社图）
+-- 1) lp_short_item / lp_short_episode / lp_private_item 各增加
 --      is_r18  R18 标记：1=限制级，前台仅「充值过代币 或 VIP 有效」的用户可见
--- 2) 后台「短剧管理 / 私密内容管理」编辑弹窗勾选，运营自行维护
+-- 2) 后台「短剧管理 / 短剧剧集 / 私密内容管理」列表行内开关 + 编辑弹窗勾选，运营自行维护
 -- 前台门控见 api/controller/Shorts.php、PrivateContent.php、WatchHistory.php、Shop.php
 -- 本脚本幂等，可重复执行
 -- ============================================
@@ -32,9 +32,21 @@ EXECUTE _stmt;
 DEALLOCATE PREPARE _stmt;
 
 -- --------------------------------------------
--- 3. 校验
+-- 3. lp_short_episode 加 is_r18（剧集级限制）
+-- --------------------------------------------
+SET @has_ep_r18 = (SELECT COUNT(*) FROM `information_schema`.`COLUMNS`
+  WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = 'lp_short_episode' AND `COLUMN_NAME` = 'is_r18');
+SET @ddl = IF(@has_ep_r18 = 0,
+  'ALTER TABLE `lp_short_episode` ADD COLUMN `is_r18` TINYINT NOT NULL DEFAULT 0 COMMENT ''R18标记:仅充值/VIP用户可见'' AFTER `price`',
+  'SELECT ''lp_short_episode.is_r18 已存在，跳过'' AS msg');
+PREPARE _stmt FROM @ddl;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;
+
+-- --------------------------------------------
+-- 4. 校验
 -- --------------------------------------------
 SELECT '--- r18 字段 ---' AS `--`;
 SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, COLUMN_COMMENT FROM `information_schema`.`COLUMNS`
   WHERE `TABLE_SCHEMA` = DATABASE() AND `COLUMN_NAME` = 'is_r18'
-    AND `TABLE_NAME` IN ('lp_short_item', 'lp_private_item');
+    AND `TABLE_NAME` IN ('lp_short_item', 'lp_short_episode', 'lp_private_item');

@@ -24,6 +24,62 @@
         return s
     }
 
+    /* ---------- 收藏：登录走账号（/api/aiShort/favs + favToggle），
+       未登录/接口异常退回 localStorage（按浏览器记忆）。收藏页 = 网格的子集 ---------- */
+    var FAV_KEY = 'gs_favs'
+    var favServer = new Map()      // code -> true（账号收藏，登录且加载成功后生效）
+    var favServerLoaded = false    // false 时 favHas 先按本地值渲染，避免闪烁
+
+    function favLocal() {
+        try {
+            var a = JSON.parse(localStorage.getItem(FAV_KEY) || '[]')
+            return Array.isArray(a) ? a.map(String) : []
+        } catch (e) { return [] }
+    }
+    function favList() { return favLocal() }
+    function favHas(id) {
+        id = String(id)
+        if (token && favServerLoaded) return favServer.has(id)
+        return favLocal().indexOf(id) >= 0
+    }
+    function favToggle(id) {
+        id = String(id)
+        if (token && favServerLoaded) {
+            var on = !favServer.has(id)
+            if (on) favServer.set(id, true); else favServer.delete(id)
+            var fd = new FormData()
+            fd.append('code', id)
+            fd.append('on', on ? '1' : '0')
+            authJson(API + '/favToggle', { method: 'POST', body: fd })
+                .then(function (d) {
+                    if (!d || d.code !== '00000') throw new Error(d && d.msg || 'fav failed')
+                })
+                .catch(function () {
+                    // 失败回滚 + 提示，避免界面与账号状态不一致
+                    if (on) favServer.delete(id); else favServer.set(id, true)
+                    toast('Failed to save favorite — try again')
+                })
+            return on
+        }
+        var a = favLocal(), i = a.indexOf(id)
+        if (i >= 0) a.splice(i, 1); else a.unshift(id)
+        try { localStorage.setItem(FAV_KEY, JSON.stringify(a)) } catch (e) {}
+        return i < 0    // true = 刚收藏
+    }
+    // 登录用户拉取账号收藏；失败则继续用本地值（favServerLoaded 保持 false）
+    function loadFavs() {
+        if (!token || favServerLoaded) return
+        authJson(API + '/favs')
+            .then(function (d) {
+                if (!d || d.code !== '00000' || !Array.isArray(d.data.codes)) return
+                favServer = new Map(d.data.codes.map(function (c) { return [String(c), true] }))
+                favServerLoaded = true
+                renderGallery()
+            })
+            .catch(function () {})
+    }
+    var HEART_SVG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21.2l7.7-7.8 1.1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>'
+
     /* ---------- 弹窗：通用壳（遮罩 .45 + blur8，#121212，16 圆角） ---------- */
     function openModal(id) {
         var m = $(id)
@@ -69,6 +125,7 @@
     var gsList = []
     var gsFilter = 'all'
     var gsKw = ''
+    var gsMode = 'explore'    // explore | works | favs
     var gsLoaded = false
     var gsLoading = false
     var gsObserver = null
@@ -183,6 +240,11 @@
 
     function gsView() {
         var list = gsList.slice()
+        // 收藏页：只保留收藏卡片（预设 id）的样片
+        if (gsMode === 'favs') {
+            var favs = favList()
+            list = list.filter(function (c) { return favs.indexOf(String(c.id)) >= 0 })
+        }
         if (gsKw) {
             var k = gsKw.toLowerCase()
             list = list.filter(function (c) { return decodeEntities(c.title).toLowerCase().indexOf(k) >= 0 })
@@ -403,10 +465,14 @@
                 '" alt="' + title + '" loading="lazy" decoding="async">'
         }
 
+        // 右上角收藏爱心：点它不进详情（委托里拦掉）
+        var like = '<span class="gs-card__like' + (favHas(c.id) ? ' on' : '') + '" data-gs-fav="' +
+            esc(c.id) + '" role="button" aria-label="Favorite">' + HEART_SVG + '</span>'
+
         return '<a class="gs-card" href="javascript:void(0)" data-gs-card="' + esc(c.slug || c.id) + '"' +
             ' data-gs-id="' + esc(c.id) + '"' +
             ' style="--ar:' + ar.toFixed(4) + '">' +
-            '<div class="gs-card__frame">' + media + '</div>' +
+            '<div class="gs-card__frame">' + media + like + '</div>' +
             mark +
             '<span class="gs-card__details">' +
             '<span class="gs-card__title">' + title + '</span>' +
@@ -444,7 +510,10 @@
             gsWaitLayout = null
         }
         if (!list.length) {
-            box.innerHTML = '<div class="gs-empty">Nothing here yet.</div>'
+            var emptyTxt = gsMode === 'favs'
+                ? 'No favorites yet — tap the ♥ on any card.'
+                : 'Nothing here yet.'
+            box.innerHTML = '<div class="gs-empty">' + emptyTxt + '</div>'
             renderPager()
             return
         }
@@ -507,6 +576,13 @@
         if (!n) return
         n.textContent = msg
         n.style.display = ''
+    }
+
+    // 弹窗爱心与收藏状态对齐（打开弹窗、点击收藏后都要同步）
+    function syncGenLike() {
+        var b = $('gsGenLike')
+        if (!b || !gen.current) return
+        b.classList.toggle('on', favHas(gen.current.id))
     }
 
     function setState(txt) {
@@ -666,6 +742,7 @@
         renderAddons()
         renderCost()
         syncSubmitState()
+        syncGenLike()
         openModal('gsCardModal')
         loadPresets().then(function () {
             // 预设元信息到齐后刷新标题、标签与时长选项（首次打开时可能还没加载完）
@@ -825,7 +902,18 @@
         })
         $('gsGenSubmit').addEventListener('click', submitGen)
         $('gsGenInfo').addEventListener('click', showQuotaInfo)
-        $('gsGenLike').addEventListener('click', function () { this.classList.toggle('on') })
+        // 弹窗里的爱心 = 收藏当前卡片，与网格卡片上的爱心同一份状态
+        $('gsGenLike').addEventListener('click', function () {
+            if (!gen.current) return
+            favToggle(gen.current.id)
+            syncGenLike()
+            // 网格里同卡片的爱心同步；收藏页里取消收藏则当场移除
+            var on = favHas(gen.current.id)
+            document.querySelectorAll('[data-gs-fav="' + gen.current.id + '"]').forEach(function (s) {
+                s.classList.toggle('on', on)
+            })
+            if (gsMode === 'favs') renderGallery()
+        })
         var snd = $('gsGenSound')
         if (snd) {
             snd.addEventListener('click', function () {
@@ -849,6 +937,21 @@
         if (grid && !grid.getAttribute('data-gs-bound')) {
             grid.setAttribute('data-gs-bound', '1')
             grid.addEventListener('click', function (e) {
+                // 收藏爱心：先于卡片详情处理，点爱心不弹窗
+                var fav = e.target.closest ? e.target.closest('[data-gs-fav]') : null
+                if (fav) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    var fid = fav.getAttribute('data-gs-fav')
+                    favToggle(fid)
+                    var on = favHas(fid)
+                    fav.classList.toggle('on', on)
+                    // 详情弹窗若正开着这张卡，弹窗里的爱心同步
+                    if (gen.current && String(gen.current.id) === String(fid)) syncGenLike()
+                    // 收藏页里取消收藏，卡片要当场消失
+                    if (gsMode === 'favs') renderGallery()
+                    return
+                }
                 var a = e.target.closest ? e.target.closest('[data-gs-card]') : null
                 if (!a) return
                 e.preventDefault()
@@ -1007,9 +1110,37 @@
             .catch(function () { renderWorks([]) })
     }
 
-    function openWorks() {
-        openModal('gsWorksModal')
-        loadWorks()
+    /* ---------- 页签切换：Explore / My Works / Favorites 三态 ----------
+       My Works 不再开弹窗：网格区整页切换成历史生成记录；
+       Favorites 复用同一网格，数据源换成收藏卡片的样片子集。 */
+    function setMode(m) {
+        gsMode = m
+        ;[['explore', 'cvTabExplore'], ['works', 'cvTabWorks'], ['favs', 'cvTabFavs']].forEach(function (t) {
+            var b = $(t[1])
+            if (b) b.classList.toggle('on', t[0] === m)
+        })
+        var exploring = m !== 'works'
+        // Explore / Favorites 共用网格 + 筛选 + 搜索 + 分页
+        ;['gsGrid', 'gsPager'].forEach(function (id) {
+            var el = $(id)
+            if (el) el.style.display = exploring ? '' : 'none'
+        })
+        var fbar = document.querySelector('.gs-filter')
+        if (fbar) fbar.style.display = exploring ? '' : 'none'
+        var sbtn = $('gsSearchBtn')
+        if (sbtn) sbtn.style.display = exploring ? '' : 'none'
+        var swrap = $('gsSearchWrap')
+        if (swrap && m === 'works') swrap.style.display = 'none'
+        var wp = $('cvWorksPage')
+        if (wp) wp.style.display = m === 'works' ? '' : 'none'
+        if (m === 'works') {
+            // 网格不可见时把样片视频都停掉，省解码
+            document.querySelectorAll('#gsGrid video').forEach(function (x) { x.pause() })
+            loadWorks()
+        } else {
+            gsPage = 1
+            renderGallery()
+        }
     }
 
     function init() {
@@ -1018,7 +1149,12 @@
         bindGallery()
         bindGen()
         var works = $('cvTabWorks')
-        if (works) works.addEventListener('click', openWorks)
+        if (works) works.addEventListener('click', function () { setMode('works') })
+        var exp = $('cvTabExplore')
+        if (exp) exp.addEventListener('click', function () { setMode('explore') })
+        var favs = $('cvTabFavs')
+        if (favs) favs.addEventListener('click', function () { setMode('favs') })
+        loadFavs()
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init)

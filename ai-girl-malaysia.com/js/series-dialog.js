@@ -1,5 +1,5 @@
 /**
- * AI 女友端：短剧剧集弹窗（复刻 candy.ai/candy-shorts 的剧集弹窗）
+ * AI 女友端：短剧剧集弹窗（复刻参考站的剧集弹窗）
  *
  * 布局对齐原站（实测值）：
  *   面板 920x730、圆角 16px、底色 #131313、边框 1px #282828，顶部粉色径向光晕；
@@ -18,12 +18,12 @@
  * （原站只在 data 属性里存 token 成本，界面不显示价格）；点该集后视频区显示
  * 渐变 CTA，点 CTA 变 Confirm，再点才真正扣代币解锁；免费集显示绿色 Free。
  *
- * 用法：CandySeries.open({ shortId: 15, title: 'Student Bodies' })
+ * 用法：SiteSeries.open({ shortId: 15, title: 'Student Bodies' })
  */
 (function () {
-    var DIALOG_ID = 'candy-series-dialog'
-    var PREMIUM_ID = 'candy-premium-dialog'
-    var STYLE_ID = 'candy-series-style'
+    var DIALOG_ID = 'site-series-dialog'
+    var PREMIUM_ID = 'site-premium-dialog'
+    var STYLE_ID = 'site-series-style'
     var API_EPISODES = '/api/live/shortEpisodes'
     var API_UNLOCK = '/api/live/shortUnlock'
     var ACCENT = '#E75275'
@@ -107,16 +107,16 @@
     }
 
     function alertBox(msg) {
-        if (!document.getElementById('candy-alert-skin')) {
+        if (!document.getElementById('site-alert-skin')) {
             var s = document.createElement('style')
-            s.id = 'candy-alert-skin'
-            s.textContent = '#candy-alert-dialog::backdrop{background:rgba(0,0,0,.55)}'
+            s.id = 'site-alert-skin'
+            s.textContent = '#site-alert-dialog::backdrop{background:rgba(0,0,0,.55)}'
             document.head.appendChild(s)
         }
-        var d = document.getElementById('candy-alert-dialog')
+        var d = document.getElementById('site-alert-dialog')
         if (!d) {
             d = document.createElement('dialog')
-            d.id = 'candy-alert-dialog'
+            d.id = 'site-alert-dialog'
             d.setAttribute('aria-label', 'Notice')
             d.style.cssText = 'margin:auto;padding:0;border:0;border-radius:14px;background:#1b1b1b;color:#fff;' +
                 'box-shadow:0 16px 48px rgba(0,0,0,.55);width:340px;max-width:86vw;'
@@ -221,7 +221,7 @@
             '#' + DIALOG_ID + ' .cs-free{font-size:13px;font-weight:600;color:#7EE2A8;white-space:nowrap;}',
             '#' + DIALOG_ID + ' .cs-skeleton{padding:0 20px;font-size:13px;color:#9aa0a6;}',
 
-            // ---------- 非会员订阅引导弹窗（对齐 candy 的 Upgrade to Unlock） ----------
+            // ---------- 非会员订阅引导弹窗（对齐参考版的 Upgrade to Unlock） ----------
             '#' + PREMIUM_ID + '{border:0;margin:0;padding:0;width:100%;height:100%;max-width:100%;max-height:100%;background:transparent;color:#fff;}',
             '#' + PREMIUM_ID + '::backdrop{background:rgba(0,0,0,.5);}',
             '#' + PREMIUM_ID + ' .pm-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;}',
@@ -1144,5 +1144,5 @@
         if (isMobile() !== lastMobile) render()
     })
 
-    window.CandySeries = { open: open, close: close }
+    window.SiteSeries = { open: open, close: close }
 })()

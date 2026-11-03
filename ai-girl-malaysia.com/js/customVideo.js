@@ -3,7 +3,7 @@
  * sugus / heygirl 使用新版图片页与脚本，见 client_overrides/image-sugus/js/ 与
  * image-heygirl/js/（与 Image.html 成对覆盖）。改这两家请改覆盖目录，不要改这里。
  */
-/* Image.html — AI Video Studio（上传图片 → H3 生成视频）candy 暗色风 */
+/* Image.html — AI Video Studio（上传图片 → H3 生成视频）参考站暗色风 */
 (function () {
     var API = '/api/customVideo'
     var token = localStorage.getItem('live_access_token')

@@ -59,11 +59,17 @@
             list.forEach(function(t) {
               var sf = t.source_fields || {}
               var name = t.name
-              // Build display info from source_fields
-              var ageLabel = sf.age !== undefined ? ageArr[sf.age] + ' years' : ''
-              var hairLabel = sf.hair !== undefined ? hairArr[sf.hair] : ''
-              var eyeLabel = sf.eye !== undefined ? 'eye: ' + eyeArr[sf.eye] : ''
-              var hobbyLabel = sf.hobby !== undefined ? 'hobby: ' + hobbyArr[sf.hobby] : ''
+              // 新版向导（createCharacter）直接存英文文案值与精确年龄；旧向导存数字编码，两套都兼容
+              var isNumeric = function(v) { return typeof v === 'number' || /^\d+$/.test(String(v)) }
+              var pick = function(v, arr) { return isNumeric(v) ? arr[v] : (v || '') }
+              var ageLabel = sf.age !== undefined
+                ? (isNumeric(sf.age) && Number(sf.age) > 17 && Number(sf.age) < 80
+                    ? sf.age + ' years'
+                    : (ageArr[sf.age] ? ageArr[sf.age] + ' years' : ''))
+                : ''
+              var hairLabel = pick(sf.hair, hairArr)
+              var eyeLabel = sf.eye !== undefined ? 'eye: ' + (pick(sf.eye, eyeArr) || '') : ''
+              var hobbyLabel = sf.hobby !== undefined ? 'hobby: ' + pick(sf.hobby, hobbyArr) : ''
               var describe = [eyeLabel, hobbyLabel, hairLabel].filter(Boolean).join('. ')
               
               // room status: 0=closed, 1=live, 2=maintenance

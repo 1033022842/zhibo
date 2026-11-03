@@ -38,6 +38,14 @@ const baTable = new baTableClass(
             { label: '封面', prop: 'poster', align: 'center', width: 80, render: 'image', operator: false },
             { label: '价格(代币)', prop: 'price', align: 'center', width: 110, operator: 'RANGE' },
             {
+                label: 'R18',
+                prop: 'is_r18',
+                align: 'center',
+                width: 80,
+                render: 'switch',
+                operator: '=',
+            },
+            {
                 label: '免代币',
                 prop: 'free_by_series',
                 align: 'center',
@@ -75,7 +83,7 @@ const baTable = new baTableClass(
                 operator: false,
             },
         ],
-        dblClickNotEditColumn: [undefined],
+        dblClickNotEditColumn: [undefined, 'is_r18'],
     },
     {
         defaultItems: {
@@ -84,6 +92,7 @@ const baTable = new baTableClass(
             poster: '',
             duration: '',
             price: 0,
+            is_r18: 0,
             weigh: 0,
             status: 1,
         },

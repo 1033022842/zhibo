@@ -68,7 +68,7 @@
 <script src="./_shared/jquery-3.6.0.min.js"></script>
 <script src="./assets/layer/3.1.1/layer.js"></script>
 <script src="./js/main.js?v=20261030a"></script>
-<script src="./js/shell-new.js?v=20261102nav1"></script>
+<script src="./js/shell-new.js?v=20261103studio1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 <script src="./js/ui-dialog.js?v=20260927a"></script>
 <script src="./js/subscriptions.js?v=20261103hiss3"></script>
@@ -342,10 +342,10 @@
             <a data-turbo-frame="_top" class="h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer " href="./shorts.html">
               <img class="w-6 h-6" src="./taocan_files/shorts-dd7eca01fe7f8a694cd100be90b5b6c20d241a5bf4c8b8c0f8633864125cffae.svg">
 </a>          </li>
-          <!-- Candy Shop Icon -->
-          <li class="relative w-full" data-controller="navbar-tooltip" data-navbar-tooltip-tooltip-id-value="tooltip-candy-shop">
-            <div id="tooltip-candy-shop" role="tooltip" class="z-[9999] hidden invisible px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-2xs opacity-0 tooltip tooltip-sidebar dark:bg-gray-700 fixed whitespace-nowrap pointer-events-none">
-              Candy Shop
+          <!-- Shop Icon -->
+          <li class="relative w-full" data-controller="navbar-tooltip" data-navbar-tooltip-tooltip-id-value="tooltip-site-shop">
+            <div id="tooltip-site-shop" role="tooltip" class="z-[9999] hidden invisible px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-grey-tooltip rounded-lg shadow-2xs opacity-0 tooltip tooltip-sidebar dark:bg-gray-700 fixed whitespace-nowrap pointer-events-none">
+              Shop
             </div>
             <a data-turbo-frame="_top" class=" h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer" href="./shop.html">
               <img class="w-6 h-6" src="./taocan_files/candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg">
@@ -468,11 +468,11 @@
               <img class="w-4 h-4" alt="Shorts" src="./taocan_files/shorts-dd7eca01fe7f8a694cd100be90b5b6c20d241a5bf4c8b8c0f8633864125cffae.svg">
               <span class="text-start text-grey-medium text-xxs font-medium leading-4">Shorts</span>
 </a>          </li>
-          <!-- Candy Shop Icon -->
+          <!-- Shop Icon -->
           <li class="relative w-full">
             <a data-turbo-frame="_top" class=" min-h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white/10 flex justify-start px-3 items-center gap-2 mx-auto cursor-pointer" href="./shop.html">
-              <img class="w-4 h-4" alt="Candy Shop" src="./taocan_files/candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg">
-              <span class="text-start text-grey-medium text-xxs font-medium leading-4 truncate">Candy Shop</span>
+              <img class="w-4 h-4" alt="Shop" src="./taocan_files/candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg">
+              <span class="text-start text-grey-medium text-xxs font-medium leading-4 truncate">Shop</span>
               <span class="ml-auto shrink-0 bg-red-badge text-white text-4xs leading-2.75 font-bold uppercase rounded-[100px] px-[5px] py-[2px]">NEW</span>
 </a>          </li>
         <li class="relative w-full">
@@ -773,12 +773,12 @@
                 <span class="text-start text-grey-medium text-xs font-semibold">Shorts</span>
 </a>            </li>
             <li class="w-full h-px bg-white/10 shrink-0" aria-hidden="true"></li>
-            <!-- Candy Shop Icon -->
+            <!-- Shop Icon -->
             <li class="relative w-full">
               <a data-turbo-frame="_top" class="w-full justify-start items-center gap-2.5 flex mx-auto" href="./shop.html">
-                <img alt="Candy Shop" class="w-5 h-5" src="./taocan_files/candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg">
+                <img alt="Shop" class="w-5 h-5" src="./taocan_files/candy-shop-d549838a0f3746c8cdf58c1cf0684d40990ec9b275fa8ac042c47379182965d1.svg">
                 <div class="text-start text-grey-medium text-xs font-semibold">
-                  Candy Shop
+                  Shop
                 </div>
                 <span class="ml-auto shrink-0 bg-red-badge text-white text-[9.5px] leading-3 font-bold tracking-[.03em] rounded-[100px] px-2 py-[3px]">NEW</span>
 </a>            </li>
@@ -951,7 +951,7 @@
 			</a>
 			<!-- Separator -->
 			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
-			<!-- 分类栏（照 candy.ai 原版 #head-btn-group：PC 内联在 logo 后，手机端收成 logo 旁下拉） -->
+			<!-- 分类栏（参考版 #head-btn-group：PC 内联在 logo 后，手机端收成 logo 旁下拉） -->
 			<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
 								<a href="./Girls.html" data-turbo-frame="main-content-frame" data-turbo-action="advance" class="head-btn active w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.1562 5.15625C13.1562 2.30856 10.8477 0 8 0C5.15231 0 2.84375 2.30856 2.84375 5.15625C2.84375 7.68334 4.66306 9.78184 7.0625 10.2233V11.75H4.71875V13.625H7.0625V16H8H8.9375V13.625H11.2812V11.75H8.9375V10.2233C11.3369 9.78184 13.1562 7.68334 13.1562 5.15625ZM8 8.4375C6.19091 8.4375 4.71875 6.96534 4.71875 5.15625C4.71875 3.34716 6.19091 1.875 8 1.875C9.80909 1.875 11.2812 3.34716 11.2812 5.15625C11.2812 6.96534 9.80909 8.4375 8 8.4375Z" fill="#FFF" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Girls</div></div></a><a href="./Anime.html" data-turbo-frame="main-content-frame" data-turbo-action="advance" class="head-btn w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M11.188 10.0603C11.188 10.0603 10.6133 12.6045 8.08961 11.8994C4.70614 10.9542 8.00663 3.51085 13.5463 5.98647C20.4381 9.06585 14.1912 18.6576 5.86198 16.0584C-1.5586 13.7427 0.928903 2.12495 9.99479 1.5" stroke-width="1.9" stroke-linecap="square" stroke="#FFFFFF" class="group-hover:stroke-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Anime</div></div></a><a href="./Guys.html" data-turbo-frame="main-content-frame" data-turbo-action="advance" class="head-btn w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group no-underline"><div class="flex items-center"><div class="w-4 h-4 relative mr-1 transition-colors duration-300 delay-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.51176 14.6667C3.65643 14.6667 1.3335 12.3438 1.3335 9.48844C1.3335 6.63324 3.65643 4.3103 6.51176 4.3103C9.36696 4.3103 11.6899 6.63324 11.6899 9.48844C11.6899 12.3438 9.36696 14.6667 6.51176 14.6667ZM6.51176 6.24697C4.7243 6.24697 3.27003 7.7011 3.27003 9.48857C3.27003 11.276 4.72416 12.7303 6.51176 12.7303C8.2991 12.7303 9.7535 11.2762 9.7535 9.48857C9.75336 7.7011 8.2991 6.24697 6.51176 6.24697Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path><path d="M14.668 6.51164H12.7315V3.26991H9.48975V1.33337H14.668V6.51164Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path><path d="M13.0142 1.61597L14.3833 2.9851L10.174 7.19439L8.80487 5.82526L13.0142 1.61597Z" fill="#F97187" class="group-hover:fill-[#F97187] transition-colors duration-300"></path></svg></div><div class="text-white text-[13px] font-semibold leading-normal">Guys</div></div></a>
 			</div>
@@ -2966,7 +2966,7 @@
 
 <style>
 /* 评价行桌面端的左右遮罩 + 翻页圆箭头（参考页由 scroll-fade 控制器生成）。
-   部分页面的 Tailwind 构建没编译 candy 那套类，这里按参考页取值兜底，保证控件一定可见可用。 */
+   部分页面的 Tailwind 构建没编译参考页那套类，这里按参考页取值兜底，保证控件一定可见可用。 */
 [data-subscription-social-proof] [data-scroll-fade-target="leftFade"],
 [data-subscription-social-proof] [data-scroll-fade-target="rightFade"]{position:absolute;top:0;bottom:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .2s;}
 [data-subscription-social-proof] [data-scroll-fade-target="leftFade"]{left:0;width:72px;background-image:linear-gradient(to right,#0B0B0B 0%,rgba(11,11,11,.9) 55%,rgba(11,11,11,0) 100%);}
@@ -2998,9 +2998,9 @@ html.no-auth .sub-card-default{height:250px;}
 [data-main-target="registrationModal"].bg-opacity-50,
 [data-main-target="signInModal"].bg-opacity-50{background-color:rgba(19,19,19,.5);}
 
-/* ===== 银行卡「Pay with」渐变胶囊按钮（照 candy 未登录版那一个按钮）=====
+/* ===== 银行卡「Pay with」渐变胶囊按钮（照参考站未登录版那一个按钮）=====
    同样的原因，这版 Tailwind 产物少生成了 4 个类，这里按 Tailwind 的规则补上，
-   让按钮 markup 与 candy 保持一致（渐变 #4346E6 → #E75275 + 流光扫过）。 */
+   让按钮 markup 与参考页保持一致（渐变 #4346E6 → #E75275 + 流光扫过）。 */
 .gap-1\.5{gap:calc(var(--spacing) * 1.5);}
 .left-\[-123px\]{left:-123px;}
 .w-\[123px\]{width:123px;}

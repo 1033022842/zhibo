@@ -73,6 +73,7 @@
                                 continue_watching: 'Continue watching',
                                 top_series: 'Top series',
                                 explore: 'Explore',
+                                private: 'Private（会员私密栏）',
                             },
                         }"
                     />

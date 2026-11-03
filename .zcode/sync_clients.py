@@ -49,6 +49,9 @@ CLIENTS = {
         },
         # 客户差异化页面：Image.html 与 sugus / kelymi / kiss 完全不同实现
         "overrides": "client_overrides/image-heygirl",
+        # 品牌包会用客户版分享卡覆盖 share_card.png（预期行为）：
+        # blob 校验时这张与品牌版比对，不与上游比对
+        "blob_branded_abs": {"assets/brand/share_card.png": "/opt/brand-kit/brand/heygirl/assets/share_card_heygirl.png"},
     },
     # sugus（上游自己的生产）：走 99.11 跳板（99.11 有 n99_pull key 可连 172）
     "sugus": {

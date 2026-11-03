@@ -117,9 +117,7 @@ const baTable = new baTableClass(
                 prop: 'is_r18',
                 align: 'center',
                 width: 80,
-                render: 'tag',
-                custom: { '0': 'info', '1': 'danger' },
-                replaceValue: { '0': '否', '1': '是' },
+                render: 'switch',
                 operator: '=',
             },
             {
@@ -140,7 +138,7 @@ const baTable = new baTableClass(
                 operator: false,
             },
         ],
-        dblClickNotEditColumn: [undefined],
+        dblClickNotEditColumn: [undefined, 'is_r18'],
     },
     {
         defaultItems: {

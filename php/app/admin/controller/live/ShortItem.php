@@ -18,8 +18,8 @@ final class ShortItem extends Backend
     protected bool $modelValidate = false;
     protected string|array $defaultSortField = 'weigh,desc';
 
-    /** 允许的分区 */
-    private const SECTIONS = ['continue_watching', 'top_series', 'explore'];
+    /** 允许的分区（private=会员私密栏，前台 Private Shorts 栏仅 VIP 拉取） */
+    private const SECTIONS = ['continue_watching', 'top_series', 'explore', 'private'];
     /** 允许的高亮变体 */
     private const FEATURED = ['', 'ring', 'gradient'];
 

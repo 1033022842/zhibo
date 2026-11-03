@@ -6,7 +6,7 @@
  *       所以这里的布局全部用内联样式，保证在任何页面都能正常显示。
  *
  * 用法：
- *   CandyWatch.open({
+ *   SiteWatch.open({
  *     title: '标题',
  *     subtitle: '副标题（角色名 / 时长等，可空）',
  *     videoUrl: '视频地址（可空）',
@@ -16,7 +16,7 @@
  *   })
  */
 (function () {
-    var DIALOG_ID = 'candy-watch-dialog'
+    var DIALOG_ID = 'site-watch-dialog'
     var dlg = null
 
     function esc(s) {
@@ -147,5 +147,5 @@
         if (dlg.open) dlg.close()
     }
 
-    window.CandyWatch = { open: open, close: close }
+    window.SiteWatch = { open: open, close: close }
 })()

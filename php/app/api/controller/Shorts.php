@@ -32,7 +32,7 @@ final class Shorts extends BaseController
     private const FIELDS = 'id, title, description, poster, video_url, href, section, rank, progress, spicy, '
         . 'featured, new_episodes, free_episodes, category, character_type';
 
-    private const EPISODE_FIELDS = 'id, short_id, episode_no, title, poster, video_url, duration, price';
+    private const EPISODE_FIELDS = 'id, short_id, episode_no, title, poster, video_url, duration, price, is_r18';
 
     private function table()
     {
@@ -145,10 +145,14 @@ final class Shorts extends BaseController
         // 会员门槛：非会员只返回剧集目录，不下发任何视频地址
         $isVip = $this->isVipUser($this->optionalAuthUserId());
 
+        // R18 门控：未充值且非会员的用户不下发限制级剧集（系列级过滤在上方）
         $rows = $db->table('lp_short_episode')
             ->where('short_id', $shortId)
-            ->where('status', 1)
-            ->field(self::EPISODE_FIELDS)
+            ->where('status', 1);
+        if (!$this->canViewR18($this->optionalAuthUserId())) {
+            $rows = $rows->where('is_r18', 0);
+        }
+        $rows = $rows->field(self::EPISODE_FIELDS)
             ->order('episode_no', 'asc')
             ->order('weigh', 'desc')
             ->select()
@@ -201,6 +205,11 @@ final class Shorts extends BaseController
         $db = $this->table();
         $episode = $db->table('lp_short_episode')->where('id', $episodeId)->where('status', 1)->find();
         if (!$episode) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '剧集不存在或已下架');
+        }
+
+        // R18 门控：不可见的剧集也不可解锁（当前 unlock 已要求会员，这里双保险）
+        if ((int) ($episode['is_r18'] ?? 0) === 1 && !$this->canViewR18($userId)) {
             return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, '剧集不存在或已下架');
         }
 

@@ -93,11 +93,13 @@ def remote_sh(cmd, via):
 def shlex_quote(s):
     return "'" + s.replace("'", "'\"'\"'") + "'"
 
-def remote_probe(cli, site, rels, via_jump):
+def remote_probe(cli, site, rels, via_jump, extra_abs=None):
     """在目标机上算一组文件的 git blob hash"""
     with cli.open_sftp().open("/tmp/_verify_probe.py", "w") as f:
         f.write(PROBE)
     args = " ".join(f"{posixpath.join(site, r)}" for r in rels)
+    if extra_abs:
+        args += " " + " ".join(extra_abs)
     if via_jump:
         # cli 是跳板，探针要先送到目标机再执行
         j = cli
@@ -153,18 +155,35 @@ def verify(name, cfg, payment=False):
             if not p.endswith((".html", ".json")) and p not in excluded]
     shared = [r for r in rels if r.startswith("_shared/")]
     assets = [r for r in rels if r.startswith("assets/")]
-    got = remote_probe(cli, site, shared + assets, via)
+    branded_abs = list((cfg.get("blob_branded_abs") or {}).values())
+    got = remote_probe(cli, site, shared + assets, via, extra_abs=branded_abs)
+    branded = cfg.get("blob_branded_abs") or {}
     bad = []
+    branded_ok = []
     for r in shared + assets:
         want = tracked_blob(f"{SITE_DIR}/{r}")
         have = got.get(posixpath.join(site, r))
         if not have or have == "MISSING":
             bad.append(f"{r}(缺失)")
-        elif want and have != want:
+            continue
+        ref_abs = branded.get(r)
+        if ref_abs:
+            # 品牌包会故意覆盖这张（如 share_card.png 换客户版分享卡）：
+            # 与品牌包内资产一致即视为通过，与上游一致反而说明品牌包没生效
+            ref_have = got.get(ref_abs)
+            if ref_have and have == ref_have:
+                branded_ok.append(r)
+                continue
+            bad.append(f"{r}(非品牌版)")
+            continue
+        if want and have != want:
             bad.append(f"{r}(内容不符)")
     total = len(shared) + len(assets)
+    note = "与上游逐字节一致"
+    if branded_ok:
+        note += f"（品牌包预期覆盖 {len(branded_ok)} 个: " + ", ".join(branded_ok[:3]) + "）"
     res.add(not bad, f"blob 一致性（{total} 个文件全量）",
-            f"{len(bad)} 个不一致: " + ", ".join(bad[:4]) if bad else "与上游逐字节一致")
+            f"{len(bad)} 个不一致: " + ", ".join(bad[:4]) if bad else note)
 
     # ② _shared 真实可达（内页引用 + 文件在）
     home, body = http_body(cfg, "/ai/characters.html", http_cli)

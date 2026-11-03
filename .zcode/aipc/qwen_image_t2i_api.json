@@ -1,0 +1,122 @@
+{
+ "37": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "qwen_image_fp8_e4m3fn.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "66": {
+  "class_type": "ModelSamplingAuraFlow",
+  "inputs": {
+   "model": [
+    "37",
+    0
+   ],
+   "shift": 3
+  }
+ },
+ "75": {
+  "class_type": "CFGNorm",
+  "inputs": {
+   "model": [
+    "66",
+    0
+   ],
+   "strength": 1,
+   "pre_cfg": false
+  }
+ },
+ "38": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+   "type": "qwen_image",
+   "device": "default"
+  }
+ },
+ "39": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "qwen_image_vae.safetensors"
+  }
+ },
+ "76": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "38",
+    0
+   ],
+   "text": " Photorealistic portrait photo of a beautiful young woman, soft studio lighting, detailed skin texture, professional photography, 85mm lens, high quality"
+  }
+ },
+ "77": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "38",
+    0
+   ],
+   "text": "blurry, low quality, deformed, distorted, bad anatomy, extra fingers, watermark, text, cartoon"
+  }
+ },
+ "88": {
+  "class_type": "EmptySD3LatentImage",
+  "inputs": {
+   "width": 832,
+   "height": 1216,
+   "batch_size": 1
+  }
+ },
+ "3": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "75",
+    0
+   ],
+   "seed": 74160154224887,
+   "steps": 20,
+   "cfg": 2.5,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "positive": [
+    "76",
+    0
+   ],
+   "negative": [
+    "77",
+    0
+   ],
+   "latent_image": [
+    "88",
+    0
+   ],
+   "denoise": 1
+  }
+ },
+ "8": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "3",
+    0
+   ],
+   "vae": [
+    "39",
+    0
+   ]
+  }
+ },
+ "60": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "images": [
+    "8",
+    0
+   ],
+   "filename_prefix": "character/smoke_test"
+  }
+ }
+}

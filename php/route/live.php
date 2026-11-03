@@ -31,6 +31,9 @@ Route::post('live/cancelSubscription', '\app\api\controller\Live@cancelSubscript
 Route::get('live/achievements',      '\app\api\controller\Live@achievements');
 Route::post('live/customRoleOne',    '\app\api\controller\Live@customRoleOne')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleCreate', '\app\api\controller\Live@customRoleCreate')->middleware(\app\live\middleware\Auth::class);
+Route::get('live/customRoleImageStatus', '\app\api\controller\Live@customRoleImageStatus')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/customRoleSave',       '\app\api\controller\Live@customRoleSave')->middleware(\app\live\middleware\Auth::class);
+Route::post('live/customRoleRegenerate', '\app\api\controller\Live@customRoleRegenerate')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/upload',           '\app\api\controller\Live@upload')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/uploadMediaAsset',  '\app\api\controller\Live@uploadMediaAsset')->middleware(\app\live\middleware\Auth::class);
