@@ -50,7 +50,7 @@
     }
 
     function money(n) {
-        return '$' + Number(n || 0).toFixed(2)
+        return (window.SITE_CURRENCY || '$') + Number(n || 0).toFixed(2)
     }
 
     function toast(msg) {
@@ -118,8 +118,12 @@
     function renderPlans() {
         var $grid = $('#tk-plan-grid')
         if (!$grid.length) return
+        // 只替换套餐卡，不能用 .html() 整块重写：
+        // 充值页的样式块/支付弹窗在部分浏览器解析下会落在 #tk-plan-grid 内，
+        // 整块重写会把它们一起删掉，导致样式全丢、弹窗消失。
+        $grid.find('.tk-plan, .tk-empty').remove()
         if (!packages.length) {
-            $grid.html('<div style="grid-column:1/-1;text-align:center;color:#a4a4a4;font-size:14px;">No packages available</div>')
+            $grid.prepend('<div class="tk-empty" style="grid-column:1/-1;text-align:center;color:#a4a4a4;font-size:14px;">No packages available</div>')
             return
         }
         var html = ''
@@ -136,7 +140,7 @@
             html += '<div class="tk-bottom"><div class="tk-price"><span>' + money(p.price) + '</span></div></div>'
             html += '</div>'
         })
-        $grid.html(html)
+        $grid.prepend(html)
     }
 
     // ---------- 自选数量卡（连续点数，价格按相邻档位线性插值）----------
@@ -468,6 +472,14 @@
             { src: GOOGLE_PAY_ICON, alt: 'Google Pay' }
         ],
         aipowerpay: [
+            { src: VISA_ICON, alt: 'Visa' },
+            { src: MASTERCARD_ICON, alt: 'Mastercard' }
+        ],
+        hisspay: [
+            { src: VISA_ICON, alt: 'Visa' },
+            { src: MASTERCARD_ICON, alt: 'Mastercard' }
+        ],
+        skytrade: [
             { src: VISA_ICON, alt: 'Visa' },
             { src: MASTERCARD_ICON, alt: 'Mastercard' }
         ],

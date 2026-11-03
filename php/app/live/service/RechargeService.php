@@ -787,6 +787,16 @@ final class RechargeService
         $channel = FiatChannelService::find($fiatChannelId);
         $fx      = FiatChannelService::convert($usd, $channel);
         $gateway = (string) $channel['gateway'];
+        if ($gateway === 'skytrade') {
+            // Skytrade 商品链接本身按 USD 标价：通道必须配成 USD 且汇率 1，
+            // 否则页面展示金额与第三方实收金额会对不上
+            if (strtoupper((string) $fx['currency']) !== 'USD' || abs((float) $fx['rate'] - 1) > 0.000001) {
+                throw new BusinessException(
+                    ResultCode::PARAM_ERROR,
+                    'Skytrade 通道需配置为 USD 且汇率 1（当前 ' . (string) $fx['currency'] . ' / ' . (string) $fx['rate'] . '）'
+                );
+            }
+        }
         if ($gateway === 'wisonpay') {
             // gref 存地区代码（US/IN/TH/ID）：币种和金额精度必须与该地区一致
             $region = strtoupper((string) $channel['gref']);
@@ -800,6 +810,17 @@ final class RechargeService
                 throw new BusinessException(ResultCode::SERVER_ERROR, 'This payment method is not available yet.');
             }
         }
+        if ($gateway === 'hisspay') {
+            // HissPay 托管收银台：订单币种、精度必须与网关开通的产品一致（当前 USD / 2 位）
+            if (strtoupper((string) $fx['currency']) !== (string) config('hisspay.currency')
+                || (int) $channel['decimals'] !== 2) {
+                throw new BusinessException(ResultCode::PARAM_ERROR, 'Invalid payment channel configuration.');
+            }
+            $opt['payer'] = HissPayService::validatePayer((array) ($opt['payer'] ?? []));
+            if (!(new HissPayService())->enabled()) {
+                throw new BusinessException(ResultCode::SERVER_ERROR, 'This payment method is not available yet.');
+            }
+        }
 
         // 印度网关只认整数卢比：带派萨的金额（如 ₹949.95）会返回 submitted 但收银台地址为空，
         // 用户点支付没有任何反应。落单前就抹平到整卢比，保证页面展示金额与实际扣款一致。
@@ -807,27 +828,28 @@ final class RechargeService
             $fx['amount'] = (string) (int) round((float) $fx['amount']);
         }
 
+        // 网关要求商户订单号全程唯一，各家用自己的前缀
+        $prefixes = [
+            'mkpay'      => (string) config('mkpay.order_prefix'),
+            'mkpay_vn'   => (string) config('mkpay_vn.order_prefix'),
+            'mkpay_mx'   => (string) config('mkpay_mx.order_prefix'),
+            'mkpay_in'   => (string) config('mkpay_in.order_prefix'),
+            'cregis'     => (string) config('cregis.order_prefix'),
+            'aipowerpay' => (string) config('aipowerpay.order_prefix'),
+            'wisonpay'   => (string) config('wisonpay.order_prefix'),
+            'sjhsll'     => (string) config('sjhsll.order_prefix'),
+            'skytrade'   => (string) config('skytrade.order_prefix'),
+            'hisspay'    => (string) config('hisspay.order_prefix'),
+        ];
+
         $db  = Db::connect('live_mysql');
         $now = date('Y-m-d H:i:s');
         $order = [
-            // 网关要求商户订单号「收+付全程唯一」，三家 MKPay 各用自己的前缀：
-            //   巴西版：本站 MKS / hey girl MKH（config('mkpay.order_prefix')）
-            //   越南版：sugus MKSV / hey girl MKHV（config('mkpay_vn.order_prefix')）
-            //   墨西哥版：sugus MKSM / hey girl MKHM（config('mkpay_mx.order_prefix')）
-            //   印度版：sugus MKSI / hey girl MKHI（config('mkpay_in.order_prefix')）
-            'order_no'        => StrHelper::orderNo(
-                $gateway === 'mkpay' ? (string) config('mkpay.order_prefix')
-                    : ($gateway === 'mkpay_vn' ? (string) config('mkpay_vn.order_prefix')
-                        : ($gateway === 'mkpay_mx' ? (string) config('mkpay_mx.order_prefix')
-                            : ($gateway === 'mkpay_in' ? (string) config('mkpay_in.order_prefix')
-                                : ($gateway === 'cregis' ? (string) config('cregis.order_prefix')
-                                    : ($gateway === 'aipowerpay' ? (string) config('aipowerpay.order_prefix')
-                                        : ($gateway === 'wisonpay' ? (string) config('wisonpay.order_prefix') : 'RC'))))))
-            ),
+            'order_no'        => StrHelper::orderNo($prefixes[$gateway] ?? 'RC'),
             'user_id'         => $userId,
             // 走网关的记网关 code，这样网关查单补单（reconcileGateway）能自动带上；
             // 纯人工通道记 'fiat'，订单直接进后台「充值审核」等运营核对
-            'pay_channel'     => in_array($gateway, ['starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in', 'cregis', 'aipowerpay', 'wisonpay'], true) ? $gateway : 'fiat',
+            'pay_channel'     => in_array($gateway, ['starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in', 'cregis', 'aipowerpay', 'wisonpay', 'sjhsll', 'skytrade', 'hisspay'], true) ? $gateway : 'fiat',
             'channel_id'      => 0,
             'fiat_channel_id' => (int) $channel['id'],
             'package_id'      => $opt['package_id'] ?? null,
@@ -925,6 +947,8 @@ final class RechargeService
      *
      * manual：不动网关（还没接，或本就想走人工），订单留在后台等运营核对；
      * starpay：金额传折算后的本币，币种走 extra.fiat_currency（网关按这个校验）；
+     * skytrade：USD 固定商品链接，金额必须命中 config('skytrade.links')，
+     *           到账靠第三方回调（notifySkytrade），无查单补单；
      * mkpay：巴西 BRL，金额单位为「分」（本币 ×100 取整）；网关无同步 return_url，
      *        用户支付后在网关收银台内自选 Pix/GGPay/ApplePay 等方式，到账靠异步回调（notifyMkPay）
      *        加对账补单（reconcileGateway）双保险；
@@ -952,6 +976,20 @@ final class RechargeService
             return [
                 'system_ref' => (string) ($gw['orderId'] ?? ''),
                 'pay_url'    => (string) ($gw['payUrl'] ?? ''),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        if ($gateway === 'skytrade') {
+            // 固定商品链接：金额 → 第三方付款页，order_no 随链接带过去供回调入账
+            $payUrl = (new SkytradeService())->payUrl(
+                (string) ($order['biz_type'] ?? 'coin'),
+                (string) $fx['usd'],
+                (string) $order['order_no']
+            );
+
+            return [
+                'system_ref' => '',
+                'pay_url'    => $payUrl,
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
         }
@@ -1009,6 +1047,29 @@ final class RechargeService
             return [
                 'system_ref' => (string) ($in['pay_order_id'] ?? ''),
                 'pay_url'    => (string) ($in['pay_url'] ?? ''),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        if ($gateway === 'sjhsll') {
+            // 铭森支付（微信/支付宝）：gref 存通道编码 1=微信 2=支付宝；
+            // 网关成功时直接返回收银台地址，到账靠异步回调（notifySjhsll）加对账补单双保险
+            $pay = (new SjhsllPayService())->createOrder(
+                (string) $order['order_no'],
+                (string) $fx['amount'],
+                (string) $channel['gref'] !== '' ? (string) $channel['gref'] : '2',
+                (string) config('sjhsll.notify_url'),
+                // 网关用 POST 回跳，必须走动态入口，不能直接填静态 .html（nginx 会 405）
+                (string) config('sjhsll.return_endpoint') !== ''
+                    ? (string) config('sjhsll.return_endpoint')
+                    : (string) ($order['biz_type'] === 'vip'
+                        ? config('sjhsll.return_url_vip')
+                        : config('sjhsll.return_url')),
+                $order['biz_type'] === 'vip' ? 'Membership' : 'Tokens'
+            );
+
+            return [
+                'system_ref' => '',
+                'pay_url'    => (string) ($pay['pay_url'] ?? ''),
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
         }
@@ -1083,6 +1144,36 @@ final class RechargeService
             return [
                 'system_ref' => $pay['gateway_id'],
                 'pay_url' => $pay['pay_url'],
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+        if ($gateway === 'hisspay') {
+            // HissPay 托管收银台：必须带真实付款人 IP（不能是服务器 IP）
+            $clientIp = '';
+            try {
+                $clientIp = (string) request()->ip();
+            } catch (\Throwable $e) {
+            }
+            if (!filter_var($clientIp, FILTER_VALIDATE_IP)) {
+                throw new BusinessException(ResultCode::PARAM_ERROR, 'Unable to identify your network address. Please try again.');
+            }
+            $pay = (new HissPayService())->createOrder(
+                (string) $order['order_no'],
+                (string) $fx['amount'],
+                (string) $fx['currency'],
+                (int) $order['user_id'],
+                $payer,
+                $returnUrl !== '' ? $returnUrl : (string) (
+                    $order['biz_type'] === 'vip'
+                        ? config('hisspay.return_url_vip')
+                        : config('hisspay.return_url')
+                ),
+                (string) ($channel['gref'] ?? ''),
+                $clientIp
+            );
+            return [
+                'system_ref' => $pay['gateway_id'],
+                'pay_url'    => $pay['pay_url'],
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
         }
@@ -1240,7 +1331,7 @@ final class RechargeService
      *                     否则就是「用户付了钱不到账」
      * status=1（已入账）幂等返回；status=2（人工拒绝）不放行。
      */
-    public function confirmByGateway(string $orderNo, string $systemRef = '', string $productRef = '', string $gateway = 'star-pay', array $wisonPayment = []): array
+    public function confirmByGateway(string $orderNo, string $systemRef = '', string $productRef = '', string $gateway = 'star-pay', array $wisonPayment = [], array $hissPayment = []): array
     {
         $db = Db::connect('live_mysql');
 
@@ -1254,6 +1345,9 @@ final class RechargeService
 
             if ($wisonPayment !== []) {
                 WisonPayService::assertMatchesOrder($order, $wisonPayment);
+            }
+            if ($hissPayment !== []) {
+                HissPayService::assertMatchesOrder($order, $hissPayment);
             }
             $status = (int) $order['status'];
             if ($status === 1) {
@@ -1351,7 +1445,7 @@ final class RechargeService
         $now = time();
 
         $rows = $db->table('lp_recharge_order')
-            ->whereIn('pay_channel', ['flowpay', 'starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in', 'cregis', 'aipowerpay', 'wisonpay'])
+            ->whereIn('pay_channel', ['flowpay', 'starpay', 'mkpay', 'mkpay_vn', 'mkpay_mx', 'mkpay_in', 'cregis', 'aipowerpay', 'wisonpay', 'sjhsll', 'hisspay'])
             ->whereIn('status', [0, 3])
             // 刚下完单还没付款的不用查；超过 7 天的直接放弃，避免每分钟白查历史单
             ->where('created_at', '<', date('Y-m-d H:i:s', $now - max(1, $staleMinutes) * 60))
@@ -1519,6 +1613,28 @@ final class RechargeService
                     continue;
                 }
 
+                if ((string) $r['pay_channel'] === 'sjhsll') {
+                    // 铭森支付：按商户订单号查单，trade_state=SUCCESS 已支付 / NOTPAY 未支付
+                    $sj = new SjhsllPayService();
+                    if (!$sj->enabled()) {
+                        $stat['skipped']++;
+                        continue;
+                    }
+                    $res = $sj->queryOrder($orderNo);
+                    if (SjhsllPayService::isPaid($res)) {
+                        $this->markPayChecked((int) $r['id'], 1);
+                        $this->confirmByGateway($orderNo, (string) ($res['transaction_id'] ?? ''), '', '铭森支付(查单补单)');
+                        $stat['recovered']++;
+                        Log::info('[recharge:reconcile] 铭森支付 补单成功 ' . $orderNo);
+                        continue;
+                    }
+                    if (SjhsllPayService::isUnpaid($res)) {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
+                    }
+                    continue;
+                }
+
                 if ((string) $r['pay_channel'] === 'cregis') {
                     // Cregis：按 cregis_id 查单，paid / paid_over 视为已付款，expired / canceled 落未支付
                     $cg = new CregisPayService();
@@ -1589,6 +1705,28 @@ final class RechargeService
                     continue;
                 }
 
+                if ((string) $r['pay_channel'] === 'hisspay') {
+                    // HissPay：按商户订单号查单，payStatus=1 已收款，2 / FAILED 明确失败
+                    $hp = new HissPayService();
+                    if (!$hp->enabled()) {
+                        $stat['skipped']++;
+                        continue;
+                    }
+                    $payment = $hp->queryOrder($orderNo);
+                    if (HissPayService::isPaid($payment)) {
+                        $payment['status']  = '1';
+                        $payment['_appId']  = (string) config('hisspay.app_id');
+                        $this->markPayChecked((int) $r['id'], 1);
+                        $this->confirmByGateway($orderNo, (string) ($payment['orderNo'] ?? ''), '', 'HissPay(查单补单)', [], $payment);
+                        $stat['recovered']++;
+                        Log::info('[recharge:reconcile] HissPay 补单成功 ' . $orderNo);
+                    } elseif (HissPayService::isFailed($payment)) {
+                        $this->markPayChecked((int) $r['id'], 2);
+                        $stat['unpaid']++;
+                    }
+                    continue;
+                }
+
                 $flowPay = $flowPay ?: new FlowPayService();
                 if (!$flowPay->enabled()) {
                     $stat['skipped']++;
@@ -1639,6 +1777,25 @@ final class RechargeService
         $db->table('lp_recharge_order')->where('id', $orderId)->update([
             'pay_state'      => $payState,
             'pay_checked_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /**
+     * 网关明确失败通知：只写支付状态和备注，不入账也不关闭订单
+     * （成功回调迟到时仍按 confirmByGateway 正常补单）
+     */
+    public function markGatewayFailed(string $orderNo, string $remark): void
+    {
+        $db    = Db::connect('live_mysql');
+        $order = $db->table('lp_recharge_order')->where('order_no', $orderNo)->find();
+        if (!$order || (int) $order['status'] !== 0) {
+            return;
+        }
+        $db->table('lp_recharge_order')->where('id', $order['id'])->update([
+            'pay_state'      => 2,
+            'pay_checked_at' => date('Y-m-d H:i:s'),
+            'admin_remark'   => mb_substr($remark, 0, 240),
+            'updated_at'     => date('Y-m-d H:i:s'),
         ]);
     }
 

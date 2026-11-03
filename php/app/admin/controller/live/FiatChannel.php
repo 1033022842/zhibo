@@ -37,6 +37,9 @@ final class FiatChannel extends Backend
         'cregis'   => 'Cregis（收银台，订单币种走通道币种；用户自选支付币种）',
         'aipowerpay' => 'AIPowerPay（信用卡收银台，USD 计价，3DS 在网关页内完成）',
         'wisonpay' => 'WisonPay（美国 USD；网关产品留空使用默认收银台）',
+        'hisspay'  => 'HissPay（USD 托管收银台；网关标识填代收产品编码，留空用 .env 的 PRODUCT）',
+        'sjhsll'   => '铭森支付（微信/支付宝 CNY；网关标识填 1=微信 2=支付宝）',
+        'skytrade' => 'Skytrade 固定商品链接（USD、汇率 1；金额映射见 config/skytrade.php）',
     ];
 
     /**
@@ -95,12 +98,12 @@ final class FiatChannel extends Backend
                 <div class="field"><label>前台展示名</label><input name="name" value="{$v('name')}" placeholder="如 Malaysia · FPX" required /></div>
                 <div class="field"><label>对接方式</label>
                     <select name="gateway">{$gwOptions}</select>
-                    <div class="tip">选「人工审核」时不需要网关，用户下单后订单进「充值审核」等你核对收款；选 star-pay / mkpay / mkpay_vn / mkpay_mx / mkpay_in 才走网关收银台。</div>
+                    <div class="tip">选「人工审核」时不需要网关，用户下单后订单进「充值审核」等你核对收款；选 star-pay / mkpay / skytrade 等才走网关收银台。</div>
                 </div>
-                <div class="field"><label>网关标识（starpay 填 product 产品码，mkpay / mkpay_vn / mkpay_mx / mkpay_in / 人工通道留空）</label>
-                    <input name="gateway_ref" value="{$v('gateway_ref')}" placeholder="WisonPay 留空默认 Cash App；可选 cashapp / googlepayus / applepayus" />
+                <div class="field"><label>网关标识（starpay 填 product 产品码，sjhsll 填 1=微信 / 2=支付宝，hisspay 填代收产品编码，其它网关留空）</label>
+                    <input name="gateway_ref" value="{$v('gateway_ref')}" placeholder="铭森支付填 1 或 2；WisonPay 可选 cashapp / googlepayus / applepayus；HissPay 如 USD-EKCBBONA" />
                 </div>
-                <div class="field"><label>结算币种代码</label><input name="currency" value="{$v('currency')}" placeholder="如 MYR / VND / IDR" required /></div>
+                <div class="field"><label>结算币种代码</label><input name="currency" value="{$v('currency')}" placeholder="如 CNY / MYR / VND / IDR" required /></div>
                 <div class="field"><label>币种符号（金额前缀，前台展示用）</label><input name="currency_symbol" value="{$v('currency_symbol')}" placeholder="如 RM，留空则显示币种代码" /></div>
                 <div class="field"><label>汇率：1 USD = ? 本币</label>
                     <input type="number" step="0.000001" name="usd_rate" value="{$v('usd_rate')}" placeholder="如 4.7020" required />
@@ -111,7 +114,7 @@ final class FiatChannel extends Backend
                         <option value="1"{$selAutoRate}>开启（定时任务 fiat:rate 拉取 USD 中间价覆盖此值，含异常区间保护）</option>
                         <option value="0"{$selKeepRate}>关闭（手动维护汇率）</option>
                     </select>
-                    <div class="tip">已支持的币种以任务代码里的数据源为准（当前：BRL / VND / MXN / INR）；其余币种选了也不会生效。</div>
+                    <div class="tip">已支持的币种以任务代码里的数据源为准（当前：BRL / VND / MXN / INR / CNY）；其余币种选了也不会生效。</div>
                 </div>
                 <div class="field"><label>本币金额小数位</label><input type="number" name="decimals" value="{$v('decimals')}" min="0" max="8" />
                     <div class="tip">多数币种填 2；VND、IDR 这类没有小数的填 0。</div>

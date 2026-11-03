@@ -437,6 +437,158 @@ final class Recharge extends BaseController
     }
 
     /**
+     * Skytrade 固定商品链接支付回调（免登录，需验签）
+     *
+     * 第三方 JSON 字段：
+     *   event           order.paid / order.cancelled ...
+     *   paymentStatus   PAID / EXPIRED / CANCELLED
+     *   reference       第三方交易号（如 26B742EA）
+     *   amountTotal     实付金额，单位「分」（1099 = $10.99）
+     *   mit             商户标识（sugus）
+     *   order_no        本站订单号（下单时已拼在付款链接里）
+     *   items[0].slug   商品 slug
+     * 验签二选一：
+     *   - JSON 字段 sign = md5(order_no + NOTIFY_SECRET)
+     *   - 请求头 X-SkyTrade-Signature: sha256=<HMAC-SHA256(raw body, NOTIFY_SECRET)>
+     * 只有 order.paid + PAID 才入账；取消/过期只标记未支付并 ack。
+     */
+    public function notifySkytrade()
+    {
+        $raw    = (string) $this->request->getContent();
+        $params = json_decode($raw, true);
+        if (!is_array($params)) {
+            $params = array_merge((array) $this->request->get(), (array) $this->request->post());
+        }
+
+        $ok   = static fn() => response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        $fail = static fn(string $msg, int $status = 400) => response($msg, $status, ['Content-Type' => 'text/plain;charset=utf-8']);
+
+        try {
+            $data = (new \app\live\service\SkytradeService())->verifyNotify(
+                $params,
+                $raw,
+                (array) $this->request->header()
+            );
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifySkytrade] 验签失败：' . $e->getMessage()
+                . ' params=' . json_encode($params, JSON_UNESCAPED_UNICODE));
+            return $fail('invalid sign');
+        }
+
+        $orderNo = (string) $data['order_no'];
+        $tradeNo = (string) $data['trade_no'];
+        $amount  = (string) $data['amount'];
+        $event   = (string) $data['event'];
+        $payState = (string) $data['payment_status'];
+        $product = (string) $data['product'];
+        $order   = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+            ->where('order_no', $orderNo)->find();
+
+        \think\facade\Log::info(sprintf(
+            '[recharge:notifySkytrade] order_no=%s event=%s paymentStatus=%s amount=%s reference=%s',
+            $orderNo,
+            $event,
+            $payState,
+            $amount,
+            $tradeNo
+        ));
+
+        if (!$order) {
+            \think\facade\Log::warning('[recharge:notifySkytrade] 订单不存在 order=' . $orderNo);
+            return $fail('order not found', 404);
+        }
+        // 只认 Skytrade 通道的订单，避免拿其它渠道的订单号伪造回调
+        if ((string) ($order['pay_channel'] ?? '') !== 'skytrade') {
+            \think\facade\Log::error('[recharge:notifySkytrade] 订单渠道不匹配 order=' . $orderNo
+                . ' pay_channel=' . (string) ($order['pay_channel'] ?? ''));
+            return $fail('order channel mismatch');
+        }
+
+        $isPaid = $event === 'order.paid' && in_array($payState, ['PAID', 'CONFIRMED'], true);
+        if (!$isPaid) {
+            // 取消/过期：只把待支付订单标记为未支付，不入账，ack 停止重推
+            if (in_array($payState, ['EXPIRED', 'CANCELLED', 'FAILED'], true) || str_contains($event, 'cancel')) {
+                if ((int) $order['status'] === 0) {
+                    $now = date('Y-m-d H:i:s');
+                    \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+                        ->where('id', (int) $order['id'])
+                        ->update(['pay_state' => 2, 'pay_checked_at' => $now, 'updated_at' => $now]);
+                }
+            }
+            return $ok();
+        }
+
+        // 商品 slug 必须与下单时的付款链接一致，防止串单
+        if ($product !== '' && !str_contains((string) $order['pay_url'], '/' . $product . '?')) {
+            \think\facade\Log::error('[recharge:notifySkytrade] 商品不匹配 order=' . $orderNo
+                . ' product=' . $product . ' pay_url=' . (string) $order['pay_url']);
+            return $fail('product mismatch');
+        }
+        // 回调金额必须与订单金额一致（amountTotal 已换算成 USD）
+        if ($amount !== '' && abs((float) $amount - (float) $order['pay_amount']) > 0.01) {
+            \think\facade\Log::error(sprintf(
+                '[recharge:notifySkytrade] 回调金额不匹配 order=%s notify=%s order_amount=%s，未入账',
+                $orderNo,
+                $amount,
+                (string) $order['pay_amount']
+            ));
+            return $fail('amount mismatch');
+        }
+
+        try {
+            // confirmByGateway 幂等：重复回调不会重复加代币/开会员
+            $this->service->confirmByGateway($orderNo, $tradeNo, '', 'Skytrade');
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifySkytrade] 入账失败：' . $e->getMessage() . ' order=' . $orderNo);
+            return $fail('error', 500);
+        }
+
+        return $ok();
+    }
+
+    /**
+     * Skytrade 浏览器回跳入口（GET/POST）
+     *
+     * 第三方把 success / cancel 回跳地址都配到这里，并原样带回 order_no：
+     *   成功：/api/v1/recharge/returnSkytrade?order_no=SKT...
+     *   取消：/api/v1/recharge/returnSkytrade?payment=cancelled&order_no=SKT...
+     *
+     * 本站按订单 biz_type 决定回订阅页还是代币页，并把 order_no 带过去，
+     * 前台页面会轮询订单状态并展示成功/失败结果。
+     */
+    public function returnSkytrade()
+    {
+        $orderNo = trim((string) $this->request->param('order_no', ''));
+        $payment = strtolower(trim((string) $this->request->param('payment', 'success')));
+        if ($payment === '') {
+            $payment = 'success';
+        }
+
+        $page = (string) config('skytrade.return_url');
+        if ($orderNo !== '') {
+            $order = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+                ->where('order_no', $orderNo)->field('biz_type')->find();
+            if ($order && (string) ($order['biz_type'] ?? '') === 'vip') {
+                $page = (string) config('skytrade.return_url_vip');
+            }
+        }
+        if ($page === '') {
+            $page = '/ai/purchasePoints.html';
+        }
+
+        $query = [];
+        if ($orderNo !== '') {
+            $query[] = 'order_no=' . urlencode($orderNo);
+        }
+        if ($payment !== 'success') {
+            $query[] = 'payment=' . urlencode($payment);
+        }
+        $sep = str_contains($page, '?') ? '&' : '?';
+
+        return redirect($page . ($query ? $sep . implode('&', $query) : ''));
+    }
+
+    /**
      * Cregis 异步通知（免登录，需验签）
      *
      * 回调 JSON：event_name=order / event_type / data{order_id, cregis_id, status, tx_id, ...}
@@ -614,6 +766,165 @@ final class Recharge extends BaseController
             return response('error', 500, ['Content-Type' => 'text/plain;charset=utf-8']);
         }
         return response('success', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+    }
+
+    /**
+     * HissPay 代收异步通知（免登录，SHA-256 验签）
+     *
+     * 通知体所有非 null 字段 + 请求头 appId/timestamp/nonce 参与签名；
+     * 处理完成必须原样返回纯文本 SUCCESS（不能包 JSON、不能带换行）。
+     */
+    public function notifyHissPay()
+    {
+        $ok  = static fn() => response('SUCCESS', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        $raw = (string) $this->request->getContent();
+        $body = json_decode($raw, true);
+        if (!is_array($body)) {
+            return response('invalid request', 400, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $hp = new \app\live\service\HissPayService();
+        try {
+            $payment = $hp->verifyNotify($body, [
+                'appid'     => (string) $this->request->header('appId', ''),
+                'timestamp' => (string) $this->request->header('timestamp', ''),
+                'nonce'     => (string) $this->request->header('nonce', ''),
+                'sign'      => (string) $this->request->header('sign', ''),
+            ]);
+        } catch (\Throwable $e) {
+            \think\facade\Log::warning('[recharge:notifyHissPay] invalid notification: ' . $e->getMessage()
+                . ' raw=' . mb_substr($raw, 0, 1000));
+            return response('FAIL', 400, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $orderNo = (string) $payment['merchantOrderNo'];
+        $status  = (string) $payment['status'];
+        \think\facade\Log::info(sprintf(
+            '[recharge:notifyHissPay] order=%s platform=%s status=%s amount=%s real=%s',
+            $orderNo,
+            (string) $payment['orderNo'],
+            $status,
+            (string) $payment['amount'],
+            (string) ($payment['realAmount'] ?? '')
+        ));
+
+        if ($status === '2') {
+            $reason = trim((string) ($payment['failureReason'] ?? ''));
+            $this->service->markGatewayFailed(
+                $orderNo,
+                'HissPay 支付失败' . ($reason !== '' ? '：' . mb_substr($reason, 0, 120) : '')
+            );
+            return $ok();
+        }
+
+        try {
+            $this->service->confirmByGateway(
+                $orderNo,
+                (string) $payment['orderNo'],
+                '',
+                'HissPay',
+                [],
+                $payment
+            );
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifyHissPay] 入账失败：' . $e->getMessage() . ' order=' . $orderNo);
+            return response('error', 500, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        return $ok();
+    }
+
+    /**
+     * 铭森支付（微信/支付宝）异步通知（免登录，需验签）
+     *
+     * 回调字段：memberid / orderid / amount / transaction_id / datetime / returncode / attach / sign
+     * returncode=00 表示交易成功；处理成功必须输出纯文本 OK，否则网关会重复通知。
+     */
+    public function notifySjhsll()
+    {
+        $sj   = new \app\live\service\SjhsllPayService();
+        $post = (array) $this->request->post();
+
+        try {
+            $params = $sj->verifyNotify($post);
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifySjhsll] 验签失败：' . $e->getMessage() . ' post=' . json_encode($post, JSON_UNESCAPED_UNICODE));
+            return response('FAIL', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        $orderNo = (string) ($params['orderid'] ?? '');
+        $code    = (string) ($params['returncode'] ?? '');
+        $txId    = (string) ($params['transaction_id'] ?? '');
+        $amount  = (string) ($params['amount'] ?? '');
+
+        \think\facade\Log::info(sprintf(
+            '[recharge:notifySjhsll] orderid=%s amount=%s transaction_id=%s returncode=%s',
+            $orderNo,
+            $amount,
+            $txId,
+            $code
+        ));
+
+        $ok = static fn() => response('OK', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        if ($orderNo === '' || $code !== '00') {
+            return $ok();
+        }
+
+        $order = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+            ->where('order_no', $orderNo)->find();
+        if (!$order) {
+            \think\facade\Log::warning('[recharge:notifySjhsll] 成功回调但订单不存在，已 ack order=' . $orderNo);
+            return $ok();
+        }
+
+        // 金额必须与下单金额一致，防止伪造/串单；不一致只记日志并 ack，避免网关无限重推
+        if ($amount !== '' && abs((float) $amount - (float) $order['pay_amount']) > 0.01) {
+            \think\facade\Log::error(sprintf(
+                '[recharge:notifySjhsll] 回调金额不匹配 order=%s notify=%s order_amount=%s，未入账',
+                $orderNo,
+                $amount,
+                (string) $order['pay_amount']
+            ));
+            return $ok();
+        }
+
+        try {
+            // confirmByGateway 幂等：重复回调不会重复加代币/开会员
+            $this->service->confirmByGateway($orderNo, $txId, '', '铭森支付');
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[recharge:notifySjhsll] 入账失败：' . $e->getMessage() . ' order=' . $orderNo);
+            return response('FAIL', 200, ['Content-Type' => 'text/plain;charset=utf-8']);
+        }
+
+        return $ok();
+    }
+
+    /**
+     * 铭森支付浏览器回跳入口（GET/POST）
+     *
+     * 网关以 POST 方式回跳，静态 .html 不接受 POST（nginx 405），
+     * 所以回调到本接口，再 302 到充值页 / 订阅页。
+     */
+    public function returnSjhsll()
+    {
+        $orderNo = (string) $this->request->param('orderid', '');
+        $page    = (string) config('sjhsll.return_url');
+
+        if ($orderNo !== '') {
+            $order = \think\facade\Db::connect('live_mysql')->table('lp_recharge_order')
+                ->where('order_no', $orderNo)->field('biz_type')->find();
+            if ($order && (string) ($order['biz_type'] ?? '') === 'vip') {
+                $page = (string) config('sjhsll.return_url_vip') !== ''
+                    ? (string) config('sjhsll.return_url_vip')
+                    : $page;
+            }
+        }
+        if ($page === '') {
+            $page = '/ai/tokens.html';
+        }
+
+        $sep = str_contains($page, '?') ? '&' : '?';
+        return redirect($page . ($orderNo !== '' ? $sep . 'order_no=' . urlencode($orderNo) : ''));
     }
 
     /**

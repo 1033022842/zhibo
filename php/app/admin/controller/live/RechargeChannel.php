@@ -600,6 +600,8 @@ final class RechargeChannel extends Backend
                 'cregis'     => 'Cregis(收银台)',
                 'aipowerpay' => 'AIPowerPay(信用卡)',
                 'wisonpay'   => 'WisonPay(美国钱包)',
+                'hisspay'    => 'HissPay(托管收银台)',
+                'skytrade'   => 'Skytrade(固定商品链接)',
                 default      => '人工审核',
             };
 
