@@ -14,7 +14,9 @@ final class PersonaService
     /**
      * AI 前端创建角色 → 写入 lp_persona
      * $withRoom=true：自动创建维护态房间（开播商户流程）
-     * $withRoom=false：纯聊天伴侣角色（不开直播间，status=1 直接可用）
+     * $withRoom=false：纯聊天伴侣角色。新版向导流程下 status=4（AI 草稿）——
+     *                  免费首图预览满意后由 customRoleSave 扣费转正（status=2），
+     *                  草稿不出现在 My AI / 不可聊天（listByUser 过滤）
      */
     public function createFromAi(int $userId, array $data, bool $withRoom = true): array
     {
@@ -22,7 +24,7 @@ final class PersonaService
         $persona->code = StrHelper::orderNo('P');
         $persona->name = $data['characterName'] ?? ($data['name'] ?? '未命名角色');
         $persona->cover_url = $data['characterImageUrl'] ?? ($data['photo'] ?? '');
-        $persona->status = 1; // 1=准备中
+        $persona->status = $withRoom ? 1 : 4; // 4=AI 草稿（未保存，不可聊/不进列表）
         $persona->user_id = $userId;
 
         // AI 原始属性存 JSON
@@ -57,7 +59,9 @@ final class PersonaService
      */
     public function listByUser(int $userId): array
     {
+        // AI 草稿（status=4）不出现在 My AI：未扣费保存的角色不可见/不可聊
         $personas = Persona::where('user_id', $userId)
+            ->where('status', '<>', 4)
             ->order('id', 'desc')
             ->select()
             ->toArray();
