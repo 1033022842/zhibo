@@ -141,6 +141,9 @@ def comfy(path, payload=None, timeout=60):
         r = requests.get(url, timeout=timeout)
     else:
         r = requests.post(url, json=payload, timeout=timeout)
+    if r.status_code >= 400:
+        # 校验/执行错误正文直接进日志，方便定位（ComfyUI 400 的原因在 body 里）
+        log("comfy %s %s -> %s: %s" % ("GET" if payload is None else "POST", path, r.status_code, r.text[:600]))
     r.raise_for_status()
     return r.json()
 
