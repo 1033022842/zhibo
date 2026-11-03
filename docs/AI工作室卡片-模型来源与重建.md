@@ -22,22 +22,58 @@
 | 放在 | `/data/models/diffusion_models/` |
 | Civitai 模型 | **2851079**「H3 Eros Max」（作者页面：civitai.red/models/2851079） |
 | 版本 | beta7（version id **3429412**） |
-| 下载 | `https://civitai.red/api/download/models/3429412?fileId=3346133` |
+| 下载 | `https://civitai.red/api/download/models/3429412?fileId=3329966`（21.32GB） |
 
-### beta7 有三个文件，必须选对
+### ⚠️ beta7 有三个文件，选错会导致生成直接失败
 
-| fileId | 大小 | 精度 | 说明 |
-|---|---|---|---|
-| 3329966 | 21.32 GB | int8 | 也可用，但比 3346133 旧 |
-| 3330999 | 37.46 GB | bf16 | 太大，且精度更高未必更好 |
-| **3346133** | **19.61 GB** | **int8** | ✅ **当时用的就是这个**（fileId 最大 = 最新） |
+**这是本次重建踩的最大的坑。** 三个文件大小接近，但内部结构不同：
 
-判断依据：
-1. 用户记录写「约 20GB」，19.61GB 最贴合；21.32GB / 37.46GB 都不符
-2. worker / 卡片 SQL 里写死的 `unet_name` 就是 `h3ErosMax_beta7_int8.safetensors`，精度必须是 int8
-3. beta7 描述：「Fast-Omni hybrid timestep with no gates, still 90% sparsity and 12/3 shift.
-   Complex turbo merge for fairly decent 8 step quality. Much more simple and pruned-down
-   MLP-layers merge.」— 这正是 8 步出图的依据
+| fileId | 大小 | tensors | `final_layer.video_out.bias` | 判定 |
+|---|---|---|---|---|
+| **3329966** | **21.32 GB** | 892 | **`[96]`** | ✅ **正确，用这个** |
+| 3330999 | 37.46 GB | 532 | `[96]` | 结构也对，但 bf16 更大更慢 |
+| 3346133 | 19.61 GB | 932 | `[3072]` | ❌ **head 折叠格式，ComfyUI 加载器不认** |
+
+**用 3346133 的后果**（我一开始就是按「最接近 20GB」选了这个，错了）：
+
+```
+RuntimeError: Error(s) in loading state_dict for MiniMaxH3Model:
+  size mismatch for final_layer.video_out.bias: copying a param tensor of shape
+  torch.Size([3072]) from checkpoint, the shape in current model is torch.Size([96]).
+  size mismatch for final_layer.audio_out.bias: ... [1024] vs [32]
+```
+
+它的 metadata 暴露了来源：
+
+```
+converted_by = QrusherZA Custom Script
+pdd_head_storage = head0-full;heads1-31-offset-from-head0;fp32
+qrusher_fast_h3_applied = v2_r64
+block_range_replace_source = fasth3_omniref_8step_pruned_bf16.safetensors
+```
+
+即第三方把 32 个 head 折叠进 `final_layer`（96×32=3072），需要配套的加载器支持，
+标准 ComfyUI 会按 96 维去加载，必然 shape mismatch。
+
+**判断方法（不用下 20GB）**：只取文件头即可。Civitai 的下载 URL 会 307 跳到 R2，
+必须跟随跳转后用 Range 取前 400KB：
+
+```bash
+KEY="0dbef5f0c3adafb4a3da6c027ae40446"
+URL=$(curl -s -o /dev/null -w '%{redirect_url}'   "https://civitai.red/api/download/models/3429412?fileId=3329966" -H "Authorization: Bearer $KEY")
+curl -s -L -r 0-399999 "$URL" -o hdr.bin
+python3 -c "
+import json,struct
+b=open('hdr.bin','rb').read()
+n=struct.unpack('<Q',b[:8])[0]
+h=json.loads(b[8:8+n])
+print('tensors', len([k for k in h if k!='__metadata__']))
+print('video_out.bias', h['final_layer.video_out.bias']['shape'])  # 必须是 [96]
+"
+```
+
+> 注意：直接对 `civitai.red/api/download/...` 发 `-r` 无效，CDN 会忽略 Range 返回整个流。
+> 必须先拿 `redirect_url` 再对 R2 地址发 Range。
 
 ### 下载命令
 
@@ -113,6 +149,60 @@ mv h3ErosMax_beta7_int8.safetensors.part h3ErosMax_beta7_int8.safetensors
 > legacy 版不影响卡片。它只提供 UNETLoader / VAE / CLIP / 采样器等骨架节点。
 
 ---
+
+## 四之二、本次（2026-11-03）实测记录
+
+重建过程完整跑通，留档供比对：
+
+| 步骤 | 结果 |
+|---|---|
+| 7 个 LoRA 下载 | 全部成功，`adaln=0`，tensors/attn 数正常 |
+| 基座 3346133（19.61GB） | ❌ 加载失败：`video_out.bias [3072] vs [96]` |
+| 基座 3329966（21.32GB） | ✅ `892 tensors / video_out=[96] / audio_out=[32]` |
+| ComfyUI 重启后可见性 | ✅ UNETLoader 列表包含该模型 |
+| 工作流接线 | ✅ 8 项全过（Ref2VA / t8 / 无 first_frame / ref_images / beta57 / 640 / 3 层 LoRA） |
+| 真实生成 | ✅ 出片 1.3MB，单条约 3.5 分钟（首次含模型加载） |
+
+### 两个额外发现
+
+**1. ComfyUI/input 缺人设图**
+
+真实生成第一次报：
+
+```
+Invalid image file: persona_020.jpg  (node 114 LoadImage)
+```
+
+`build_workflow` 用的是 `persona_XXX.jpg` 作参考图，这些图在旧机的
+`/opt/comfyui/ComfyUI/input/` 里。新机要补：
+
+```bash
+scp _persona_out/persona_*.jpg administrator@<gpu>:/opt/comfyui/ComfyUI/input/
+```
+
+生产链路（worker 的 `stage_input()`）会自己下载用户上传的图，不依赖这些，
+但**跑验证脚本 / 手工测试**时需要它们。
+
+**2. `audio_scale` 报错是瞬时的**
+
+日志里出现过一次：
+
+```
+AttributeError: 'ModelSamplingAdvanced' object has no attribute 'audio_scale'
+```
+
+但同一份代码实测 `ModelSamplingAV.audio_scale` 存在、MRO 正确、节点里定义的
+`class ModelSamplingAdvanced(ModelSamplingAV, CONST)` 也有该属性；之后连续 5 次
+prompt 全部成功。T8 节点包 `sampling.py:40` 还有 `callable(getattr(base_model,
+"audio_scale", None))` 的防御。
+
+结论：**这个不是必现的阻塞问题**，多半是旧版节点包在某个路径下的残余调用。
+若后续生产通道真的复现，再考虑升级节点包；本次不需要。
+
+**3. RIFE TensorRT 首次构建很慢**
+
+新机第一次生成会卡在 RIFE 引擎构建（日志 `Time taken to build: 325.8s`），
+期间 GPU 利用率 0%，容易误判为卡死。之后复用 `.trt` 文件，不再重build。
 
 ## 五、恢复后的验证步骤
 
