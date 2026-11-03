@@ -20,6 +20,7 @@ import argparse
 import importlib.util
 import io
 import os
+import shlex
 import sys
 import tarfile
 import tempfile
@@ -42,6 +43,21 @@ UPLOADS = [
      REMOTE_PHP + "/app/common/service/TtsService.php"),
     (os.path.join(REPO, "php", "app", "api", "controller", "Live.php"),
      REMOTE_PHP + "/app/api/controller/Live.php"),
+]
+
+# 音色功能涉及的前端文件（相对站点根）；sync_clients 全量同步会带上 10/31 以来的积压，
+# 预检还有 30 处 uta-api 埋点未清理，因此提供 --frontend 做本次改动的定向上传。
+FRONTEND_FILES = [
+    "Chat.html",
+    "createCharacter.html",
+    "js/chat.js",
+    "js/createCharacter.js",
+    "assets/create/voice-sweet.mp3",
+    "assets/create/voice-mature.mp3",
+    "assets/create/voice-magnetic.mp3",
+    "assets/create/voice-loli.mp3",
+    "assets/create/voice-cold.mp3",
+    "assets/create/voice-gentle.mp3",
 ]
 
 UNIT_TEMPLATE = """[Unit]
@@ -142,6 +158,20 @@ def build_tar(token: str) -> str:
     return path
 
 
+def build_frontend_tar() -> str:
+    """只打包本次音色改动的 10 个前端文件（tar 内路径相对站点根）"""
+    local_site = os.path.join(REPO, "ai-girl-malaysia.com")
+    fd, path = tempfile.mkstemp(prefix="voice_ui_", suffix=".tar.gz")
+    os.close(fd)
+    with tarfile.open(path, "w:gz") as tar:
+        for rel in FRONTEND_FILES:
+            lp = os.path.join(local_site, rel.replace("/", os.sep))
+            if not os.path.isfile(lp):
+                sys.exit("缺少本地文件: " + lp)
+            tar.add(lp, arcname=rel)
+    return path
+
+
 def run_remote(cli, cmd: str, timeout: int = 900) -> str:
     stdin, stdout, stderr = cli.exec_command(cmd, timeout=timeout)
     out = stdout.read().decode("utf-8", "replace")
@@ -186,10 +216,63 @@ def deploy_jump(cfg, connect, tar_path: str) -> str:
         j.close()
 
 
+def client_exec(cfg, connect, cmd: str, timeout: int = 600) -> str:
+    """在客户服务器上执行命令（sugus 经跳板 ssh 两跳）"""
+    if cfg.get("jump"):
+        j = connect(cfg["jump"])
+        try:
+            remote = "ssh -i %s -o StrictHostKeyChecking=no -o BatchMode=yes %s@%s %s" % (
+                cfg["key_on_jump"], cfg["user"], cfg["host"], shlex.quote(cmd))
+            return run_remote(j, remote, timeout)
+        finally:
+            j.close()
+    cli = connect(cfg)
+    try:
+        return run_remote(cli, cmd, timeout)
+    finally:
+        cli.close()
+
+
+def deploy_frontend(cfg, connect, tar_path: str) -> str:
+    """上传 10 个前端文件 -> 站点根，品牌站再跑 apply_brand"""
+    site = cfg["site"]
+    if cfg.get("jump"):
+        j = connect(cfg["jump"])
+        try:
+            sftp = j.open_sftp()
+            sftp.put(tar_path, "/tmp/voice_ui.tar.gz")
+            sftp.close()
+            remote = (
+                "cat /tmp/voice_ui.tar.gz | ssh -i %s -o StrictHostKeyChecking=no "
+                "-o BatchMode=yes %s@%s 'tar -xzf - -C %s'"
+                % (cfg["key_on_jump"], cfg["user"], cfg["host"], site)
+            )
+            out = run_remote(j, remote)
+        finally:
+            j.close()
+    else:
+        cli = connect(cfg)
+        try:
+            sftp = cli.open_sftp()
+            sftp.put(tar_path, "/tmp/voice_ui.tar.gz")
+            sftp.close()
+            out = run_remote(cli, "tar -xzf /tmp/voice_ui.tar.gz -C %s" % site)
+        finally:
+            cli.close()
+
+    if cfg.get("brand"):
+        brand_cmd = "bash %s/tools/apply_brand.sh %s %s %s 2>&1 | tail -5" % (
+            cfg["brand_kit"], cfg["brand"], site, cfg["brand_kit"])
+        out += "\n[apply_brand]\n" + client_exec(cfg, connect, brand_cmd)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--client", default="all", help="all / heygirl / sugus / kelymi / kiss")
     ap.add_argument("--dry-run", action="store_true", help="只打印计划，不连服务器")
+    ap.add_argument("--frontend", action="store_true",
+                    help="只定向上传本次音色相关的 10 个前端文件（品牌站自动跑 apply_brand）")
     ap.add_argument("--token", default=os.environ.get("EDGE_TTS_TOKEN", ""),
                     help="可选：服务访问令牌（同时需在 php/.env 配 TTS_EDGE_TOKEN）")
     args = ap.parse_args()
@@ -200,8 +283,9 @@ def main():
         if n not in clients:
             sys.exit("未知客户: %s（可选 %s）" % (n, ", ".join(clients.keys())))
 
-    tar_path = build_tar(args.token)
-    print("打包完成: %s" % tar_path)
+    mode = "前端音色文件" if args.frontend else "Edge TTS 后端"
+    tar_path = build_frontend_tar() if args.frontend else build_tar(args.token)
+    print("打包完成（%s）: %s" % (mode, tar_path))
     for n in names:
         cfg = clients[n]
         target = cfg.get("host", "")
@@ -220,7 +304,10 @@ def main():
         cfg = clients[n]
         print("\n===== [%s] =====" % n)
         try:
-            out = deploy_jump(cfg, connect, tar_path) if cfg.get("jump") else deploy_direct(cfg, connect, tar_path)
+            if args.frontend:
+                out = deploy_frontend(cfg, connect, tar_path)
+            else:
+                out = deploy_jump(cfg, connect, tar_path) if cfg.get("jump") else deploy_direct(cfg, connect, tar_path)
             print(out)
         except Exception as exc:
             failures.append(n)
