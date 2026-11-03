@@ -280,7 +280,7 @@
         return '<span class="cc-opt-fallback">' + (fallbackIcon || '✨') + '</span>'
     }
 
-    /* ── 渲染：入口步 ─────────────────────────────── */
+    /* ── 渲染：入口步（Start 走悬浮胶囊，candy 同款）────────────── */
     function renderEntry() {
         var html = ''
         html += '<div class="cc-step">'
@@ -294,9 +294,7 @@
             html += '<div class="cc-card-label">' + cat + '</div>'
             html += '</div>'
         })
-        html += '</div>'
-        html += '<div class="cc-actions"><button class="cc-btn-start" id="ccStart" type="button" ' + (profile.category ? '' : 'disabled') + '>Start →</button></div>'
-        html += '</div>'
+        html += '</div></div>'
         $('ccMain').innerHTML = html
 
         $('ccMain').querySelectorAll('.cc-card').forEach(function (card) {
@@ -308,15 +306,10 @@
                 }
                 saveState()
                 renderEntry()
+                updateFab()
             })
         })
-        var start = $('ccStart')
-        if (start) start.addEventListener('click', function () {
-            if (!profile.category) return
-            stepIndex = 1
-            saveState()
-            render()
-        })
+        updateFab()
     }
 
     /* ── 渲染：属性屏（candy 分屏：多段同屏，无内联 Next，前进走右下悬浮钮）── */
@@ -379,11 +372,16 @@
         updateFab()
     }
 
-    /* ── 悬浮前进钮（candy 同款：右下角圆形箭头，本屏选完才亮）──────── */
+    /* ── 悬浮前进钮（candy 同款：底部居中胶囊，Start/NEXT 共用）────── */
     function updateFab() {
         var fab = $('ccFab')
         if (!fab) return
-        if (stepIndex >= 1 && stepIndex <= 3 && !submitted) {
+        if (submitted) { fab.style.display = 'none'; return }
+        if (stepIndex === 0) {
+            fab.style.display = 'flex'
+            fab.disabled = !profile.category
+            fab.textContent = 'Start →'
+        } else if (stepIndex >= 1 && stepIndex <= 3) {
             fab.style.display = 'flex'
             fab.disabled = !screenComplete(stepIndex)
             fab.textContent = 'NEXT →'
@@ -394,9 +392,15 @@
     function refreshFab() { updateFab() }
 
     function fabNext() {
-        if (stepIndex < 1 || stepIndex > 3) return
-        if (!screenComplete(stepIndex)) return
-        stepIndex += 1
+        if (stepIndex === 0) {
+            if (!profile.category) return
+            stepIndex = 1
+        } else if (stepIndex >= 1 && stepIndex <= 3) {
+            if (!screenComplete(stepIndex)) return
+            stepIndex += 1
+        } else {
+            return
+        }
         saveState()
         render()
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -427,7 +431,9 @@
         html += pickerRow('kinks', 'What kinks are they into? (Max. 3)', (profile.kinks || []).join(', '))
         html += pickerRow('voice', 'Choose Voice', profile.voice)
 
-        html += '<div class="cc-actions" style="display:none" id="ccMobileCtaWrap"><button class="cc-btn-next" id="ccMobileCta" type="button">Bring my AI To Life</button></div>'
+        // candy 同款大 CTA：渐变 + 扫光 + 呼吸发光
+        html += '<button class="cc-cta-big" id="ccCta" type="button"><span>Bring my AI To Life</span></button>'
+        html += '<div class="cc-note">Free to create · No token needed</div>'
         html += '</div></div>'
         $('ccMain').innerHTML = html
 
@@ -442,21 +448,18 @@
             profile.name = nameInput.value.trim()
             $('ccNameCount').textContent = nameInput.value.length + '/20'
             saveState()
-            refreshSummary()
         })
         $('ccNameRefresh').addEventListener('click', function () {
             profile.name = NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)]
             nameInput.value = profile.name
             $('ccNameCount').textContent = profile.name.length + '/20'
             saveState()
-            refreshSummary()
         })
         var ageInput = $('ccAge')
         ageInput.addEventListener('input', function () {
             profile.age = parseInt(ageInput.value, 10)
             $('ccAgeVal').textContent = String(profile.age)
             saveState()
-            refreshSummary()
         })
 
         $('ccMain').querySelectorAll('.cc-picker').forEach(function (row) {
@@ -465,49 +468,14 @@
             })
         })
 
-        if (window.innerWidth < 1024) $('ccMobileCtaWrap').style.display = 'flex'
-        var mcta = $('ccMobileCta')
-        if (mcta) mcta.addEventListener('click', submit)
+        var cta = $('ccCta')
+        if (cta) cta.addEventListener('click', submit)
     }
 
     function pickerRow(type, label, value) {
         return '<button class="cc-picker" data-picker="' + type + '" type="button">'
             + '<span class="val' + (value ? ' set' : '') + '">' + (value ? esc(value) : esc(label)) + '</span>'
             + '<span class="edit">✎</span></button>'
-    }
-
-    /* ── 预览汇总面板 ─────────────────────────────── */
-    function summaryRows() {
-        return [
-            ['Ethnicity', profile.race],
-            ['Age', profile.age ? profile.age + ' years old' : ''],
-            ['Eye Color', profile.eye],
-            ['Body Type', profile.body],
-            ['Breast Size', profile.breast],
-            ['Hair Style', profile.hairstyle],
-            ['Hair Color', profile.hair],
-            ['Outfit', 'Bikini'],
-            ['Personality', profile.personality],
-            ['Relationship', profile.relation],
-            ['Occupation', profile.profession],
-            ['Kinks', (profile.kinks || []).join(', ')],
-            ['Voice', profile.voice],
-        ]
-    }
-
-    function refreshSummary() {
-        var html = ''
-        summaryRows().forEach(function (r) {
-            var v = r[1] || ''
-            html += '<li><span class="k">' + esc(r[0]) + '</span><span class="v' + (v ? '' : ' unset') + '">' + (v ? esc(v) : 'Not set') + '</span></li>'
-        })
-        $('ccSummary').innerHTML = html
-
-        var cta = $('ccCta')
-        if (!cta) return
-        if (submitted) return // 生成视图下 CTA 由 submit() 接管
-        var ready = profile.category && profile.race && profile.hairstyle && profile.hair && profile.eye && profile.body && profile.breast
-        cta.disabled = !ready
     }
 
     /* ── 弹窗 ─────────────────────────────────────── */
@@ -557,10 +525,11 @@
         }
         var imgKey = MODAL_IMG[type]
         var body = $('ccModalBody')
-        // 三种形态：图卡网格（personality/relation）/ 文字 chip（profession/kinks）/ 单列（voice）
+        // 三种形态：横排行（personality/relation，小图+文字并排）/ 文字 chip（profession/kinks）/ 单列（voice）
         body.className = 'cc-modal-body'
             + (type === 'voice' ? ' cc-voice-list' : '')
             + ((type === 'profession' || type === 'kinks') ? ' cc-chip-list' : '')
+            + (imgKey ? ' cc-row-list' : '')
         var html = ''
         if (type === 'voice') {
             VOICES.forEach(function (v) {
@@ -574,14 +543,16 @@
         } else {
             opts.forEach(function (o) {
                 var on = modalDraft.indexOf(o) >= 0
-                html += '<button class="cc-mopt' + (on ? ' on' : '') + '" data-val="' + esc(o) + '" type="button">'
                 if (imgKey) {
                     var img = IMG[imgKey][o]
-                    html += img
-                        ? '<span class="cc-mopt-imgwrap"><img src="' + img + '" alt="" loading="lazy"></span>'
-                        : '<span class="cc-mopt-imgwrap fallback">' + (FALLBACK_ICON[type] || '✨') + '</span>'
+                    var vis = img
+                        ? '<img class="cc-row-img" src="' + img + '" alt="" loading="lazy">'
+                        : '<span class="cc-row-img fallback">' + (FALLBACK_ICON[type] || '✨') + '</span>'
+                    html += '<button class="cc-mopt cc-row' + (on ? ' on' : '') + '" data-val="' + esc(o) + '" type="button">'
+                        + vis + '<span class="cc-row-label">' + esc(o) + '</span><span class="check">✓</span></button>'
+                } else {
+                    html += '<button class="cc-mopt' + (on ? ' on' : '') + '" data-val="' + esc(o) + '" type="button">' + esc(o) + '<span class="check">✓</span></button>'
                 }
-                html += '<span class="cc-mopt-label">' + esc(o) + '</span><span class="check">✓</span></button>'
             })
         }
         $('ccModalBody').innerHTML = html
@@ -656,8 +627,7 @@
         else if (type === 'personality') profile.personality = modalDraft[0] || ''
         saveState()
         closeModal()
-        if (stepIndex === 7) renderFinal()
-        refreshSummary()
+        renderFinal()
     }
 
     /* ── 提交 + 形象图轮询 ─────────────────────────── */
@@ -704,9 +674,7 @@
             return
         }
         var cta = $('ccCta')
-        var mcta = $('ccMobileCta')
         if (cta) cta.disabled = true
-        if (mcta) mcta.disabled = true
 
         fetch(API + '/customRoleCreate', {
             method: 'POST',
@@ -718,8 +686,7 @@
                 imageTaskId = d.data.image_task_id || 0
                 submitted = true
                 clearState()
-                if (window.innerWidth < 1024) showMobileGenerating()
-                else showDesktopGenerating()
+                showGenerating()
                 startPolling()
             } else if (d.code === '10003' || d.code === '10004') {
                 localStorage.removeItem('live_access_token')
@@ -728,77 +695,49 @@
             } else {
                 submitted = false
                 if (cta) cta.disabled = false
-                if (mcta) mcta.disabled = false
                 toast(d.msg || 'Create failed', 'error')
             }
         }).catch(function () {
             submitted = false
             if (cta) cta.disabled = false
-            if (mcta) mcta.disabled = false
             toast('Network error', 'error')
         })
     }
 
-    function showDesktopGenerating() {
-        var cta = $('ccCta')
-        if (cta) {
-            cta.disabled = true
-            cta.textContent = 'Generating…'
-        }
-        $('ccPreviewLoading').style.display = 'flex'
-    }
-
-    function showMobileGenerating() {
+    function showGenerating() {
         $('ccMain').innerHTML = '<div class="cc-step"><div class="cc-done">'
             + '<div class="cc-spinner" style="margin:0 auto 16px"></div>'
             + '<h2>Bringing your AI to life…</h2>'
             + '<p>She is being generated right now — usually 1–3 minutes.<br>You can leave this page; she will be waiting in My AI.</p>'
             + '</div></div>'
+        updateFab()
     }
 
     function showDone(imageUrl) {
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-        $('ccPreviewImg').src = imageUrl
-        $('ccPreviewLoading').style.display = 'none'
-        var cta = $('ccCta')
-        if (cta) {
-            cta.disabled = false
-            cta.textContent = 'Chat with her now ⚡'
-            cta.onclick = function () { location.href = './Chat.html?id=my-' + personaId }
-        }
-        // 移动端：内嵌完成视图
-        if ($('ccMain').querySelector('.cc-done')) {
-            $('ccMain').innerHTML = '<div class="cc-step"><div class="cc-done">'
-                + (imageUrl ? '<img src="' + esc(imageUrl) + '" alt="">' : '')
-                + '<h2>Your AI is ready ✨</h2>'
-                + '<p>' + esc(profile.name || 'She') + ' is waiting for you.</p>'
-                + '<div class="cc-actions" style="justify-content:center"><button class="cc-btn-next" style="max-width:none;padding:0 40px" id="ccGoChat" type="button">Chat with her now ⚡</button></div>'
-                + '</div></div>'
-            $('ccGoChat').addEventListener('click', function () {
-                location.href = './Chat.html?id=my-' + personaId
-            })
-        }
+        $('ccMain').innerHTML = '<div class="cc-step"><div class="cc-done">'
+            + (imageUrl ? '<img src="' + esc(imageUrl) + '" alt="">' : '')
+            + '<h2>Your AI is ready ✨</h2>'
+            + '<p>' + esc(profile.name || 'She') + ' is waiting for you.</p>'
+            + '<div class="cc-actions" style="justify-content:center"><button class="cc-btn-next" style="max-width:none;padding:0 40px" id="ccGoChat" type="button">Chat with her now ⚡</button></div>'
+            + '</div></div>'
+        $('ccGoChat').addEventListener('click', function () {
+            location.href = './Chat.html?id=my-' + personaId
+        })
+        updateFab()
     }
 
     function showFailed() {
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-        $('ccPreviewLoading').style.display = 'none'
-        var cta = $('ccCta')
-        if (cta) {
-            cta.disabled = false
-            cta.textContent = 'Go to My AI'
-            cta.onclick = function () { location.href = './charactersIndex.html' }
-        }
-        if ($('ccMain').querySelector('.cc-done')) {
-            $('ccMain').innerHTML = '<div class="cc-step"><div class="cc-done">'
-                + '<h2>Almost there</h2>'
-                + '<p>Her portrait is taking longer than usual.<br>She is already in My AI — chat with her while her portrait finishes.</p>'
-                + '<div class="cc-actions" style="justify-content:center"><button class="cc-btn-next" style="max-width:none;padding:0 40px" id="ccGoChat" type="button">Go to My AI</button></div>'
-                + '</div></div>'
-            $('ccGoChat').addEventListener('click', function () {
-                location.href = './charactersIndex.html'
-            })
-        }
+        $('ccMain').innerHTML = '<div class="cc-step"><div class="cc-done">'
+            + '<h2>Almost there</h2>'
+            + '<p>Her portrait is taking longer than usual.<br>She is already in My AI — chat with her while her portrait finishes.</p>'
+            + '<div class="cc-actions" style="justify-content:center"><button class="cc-btn-next" style="max-width:none;padding:0 40px" id="ccGoMyAi" type="button">Go to My AI</button></div>'
+            + '</div></div>'
+        $('ccGoMyAi').addEventListener('click', function () {
+            location.href = './charactersIndex.html'
+        })
+        updateFab()
     }
 
     function startPolling() {
@@ -838,7 +777,6 @@
         if (stepIndex === 0) renderEntry()
         else if (stepIndex >= 1 && stepIndex <= 3) renderScreen()
         else renderFinal()
-        refreshSummary()
         updateFab()
     }
 
@@ -846,8 +784,6 @@
         loadState()
         sanitizeForCategory()
 
-        var cta = $('ccCta')
-        if (cta) cta.addEventListener('click', submit)
         var fab = $('ccFab')
         if (fab) fab.addEventListener('click', fabNext)
         var mask = $('ccModalMask')

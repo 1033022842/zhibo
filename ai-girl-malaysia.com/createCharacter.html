@@ -37,7 +37,7 @@
 
 	<link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1" data-turbo-track="reload">
 		<link rel="stylesheet" href="./_shared/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
-		<link rel="stylesheet" href="./assets/createCharacter.css?v=20261103d" data-turbo-track="reload">
+		<link rel="stylesheet" href="./assets/createCharacter.css?v=20261104b" data-turbo-track="reload">
 		<script src="./_shared/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
 		<script src="./_shared/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
 
@@ -47,13 +47,13 @@
 		<script src="./js/main.js?v=20261030a"></script>
 		<script src="./js/shell-new.js?v=20261103studio1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
-		<script src="./js/createCharacter.js?v=20261103d"></script>
+		<script src="./js/createCharacter.js?v=20261104b"></script>
 		<script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Create your Dream AI Girl | Sugus.ai">
     <meta property="og:description" content="Create your own AI girlfriend — pick ethnicity, hair, body and personality, then bring your AI to life.">
 </head>
-	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
+	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
 
 		<noscript>
 			<iframe src="./charactersIndex_files/ns.html" height="0" width="0" style="display:none;visibility:hidden"></iframe>
@@ -358,28 +358,11 @@
 			<div class="ml-0 lg:ml-[100px] mt-[105px] md:mt-16 lg:mb-0 mb-[56px] h-full">
 				<main class="ml-0 lg:ml-[100px]">
 					<div class="px-4 py-6">
-						<div class="mx-auto max-w-6xl">
-							<!-- ===== 向导主体（js/createCharacter.js 渲染） ===== -->
-							<div class="cc-layout">
-								<section class="cc-main" id="ccMain">
-									<!-- 步骤内容由 createCharacter.js 动态渲染 -->
-								</section>
-								<aside class="cc-side" id="ccSide">
-									<div class="cc-preview">
-										<div class="cc-preview-img-wrap">
-											<img id="ccPreviewImg" class="cc-preview-img" alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='832' height='1216'><rect width='100%25' height='100%25' fill='%23262626'/><text x='50%25' y='48%25' fill='%23555555' font-family='sans-serif' font-size='44' text-anchor='middle'>✨ Your AI</text><text x='50%25' y='56%25' fill='%23444444' font-family='sans-serif' font-size='26' text-anchor='middle'>pick your preferences to preview</text></svg>">
-											<div class="cc-preview-loading" id="ccPreviewLoading" style="display:none">
-												<div class="cc-spinner"></div>
-												<div class="cc-preview-loading-text">Bringing your AI to life…</div>
-												<div class="cc-preview-loading-sub">Usually takes 1–3 minutes</div>
-											</div>
-										</div>
-										<ul class="cc-summary" id="ccSummary"><!-- 汇总由 JS 渲染 --></ul>
-										<button class="cc-cta" id="ccCta" type="button">Bring my AI To Life</button>
-										<div class="cc-note">Free to create · No token needed</div>
-									</div>
-								</aside>
-							</div>
+						<div class="mx-auto max-w-4xl">
+							<!-- ===== 向导主体（js/createCharacter.js 渲染，candy 同款无预览面板） ===== -->
+							<section class="cc-main" id="ccMain">
+								<!-- 步骤内容由 createCharacter.js 动态渲染 -->
+							</section>
 						</div>
 					</div>
 				</main>
