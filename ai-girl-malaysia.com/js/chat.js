@@ -291,7 +291,7 @@
             localStorage.removeItem('pageList')
             for (var i = localStorage.length - 1; i >= 0; i--) {
                 var k = localStorage.key(i)
-                if (k && k.indexOf('myPersona:') === 0) localStorage.removeItem(k)
+                if (k && (k.indexOf('myPersona:') === 0 || k.indexOf('myVoice:') === 0)) localStorage.removeItem(k)
             }
 
             var jumped = false
@@ -388,6 +388,11 @@
                     messageList: []
                 }
                 localStorage.setItem('myPersona:' + id, JSON.stringify({ name: info.title, desc: desc }))
+                // 她在创建时选的音色：通话/朗读按这个音色说话
+                try {
+                    if (sf.voice) localStorage.setItem('myVoice:' + id, String(sf.voice))
+                    else localStorage.removeItem('myVoice:' + id)
+                } catch (e) {}
                 getInfo([info])
                 selectConversation(String(id))
             })
@@ -1547,6 +1552,45 @@
         return t || callRoleName()
     }
 
+    // 创建角色时选择的 6 种女友声音（与 createCharacter.js 的 VOICES 同源）：
+    // 通话/朗读按角色自己的音色音高与语速说话；未选过的老角色继续沿用原来的种子逻辑
+    var VOICE_PRESETS = {
+        sweet:    { pitch: 1.4,  rate: 1.05 },
+        mature:   { pitch: 1.0,  rate: 0.95 },
+        magnetic: { pitch: 0.7,  rate: 0.85 },
+        loli:     { pitch: 1.7,  rate: 1.18 },
+        cold:     { pitch: 0.85, rate: 1.0 },
+        gentle:   { pitch: 1.18, rate: 0.9 },
+    }
+    var VOICE_ORDER = ['sweet', 'mature', 'magnetic', 'loli', 'cold', 'gentle']
+
+    // 兼容旧版音色 id（如 "Voice 1 (Confident)"）
+    function normalizeVoicePreset(v) {
+        var s = String(v || '').trim().toLowerCase()
+        if (s === '') return ''
+        if (VOICE_PRESETS[s]) return s
+        for (var i = 0; i < VOICE_ORDER.length; i++) {
+            if (s.indexOf(VOICE_ORDER[i]) >= 0) return VOICE_ORDER[i]
+        }
+        return ''
+    }
+
+    // 当前会话角色的音色：自建角色在 loadMyPersona 时写入 myVoice:my-N
+    function currentVoicePreset() {
+        var id = String(currentConversation().id || '')
+        if (id === '') return ''
+        try {
+            var cached = localStorage.getItem('myVoice:' + id)
+            if (cached) return normalizeVoicePreset(cached)
+        } catch (e) {}
+        var list = []
+        try { list = JSON.parse(localStorage.getItem('pageList') || '[]') || [] } catch (e) { list = [] }
+        for (var i = 0; i < list.length; i++) {
+            if (String(list[i] && list[i].id) === id) return normalizeVoicePreset(list[i].voice)
+        }
+        return ''
+    }
+
     // 女声 / 男声识别：各平台音色命名差异很大，先认常见女声，
     // 认不出时排除明显男声，避免把 David / Mark / Guy 这类音色分给女生角色
     var FEMALE_VOICE_RE = /(aria|jenny|michelle|ana|zira|samantha|karen|moira|tessa|victoria|serena|allison|ava|susan|joanna|kendra|kimberly|salli|ivy|amy|emma|olivia|sophia|isabella|chloe|grace|hazel|libby|sonia|natasha|clara|emily|jessica|lily|lucy|mia|nova|sky|xiaoxiao|xiaoyi|xiaohan|xiaomeng|xiaomo|xiaoxuan|xiaoyan|huihui|yaoyao|tingting|meijia|sinji|kyoko|nanami|ayumi|haruka|seoyeon|yuna|sora|female|woman|girl)/i
@@ -1610,9 +1654,13 @@
         return pool[seed % pool.length]
     }
 
-    // 角色维度的音色种子：优先 role_key（home-N / my-N），其次内容 id 与角色名
+    // 角色维度的音色种子：优先 role_key（home-N / my-N），其次内容 id 与角色名；
+    // 已选音色的角色再加一个预设偏移，让 6 种音色尽量落到不同的系统女声上
     function callVoiceSeed() {
-        return hashSeed(String(convRoleKey()) + '|' + String(convContentId()) + '|' + String(callDisplayName()))
+        var seed = hashSeed(String(convRoleKey()) + '|' + String(convContentId()) + '|' + String(callDisplayName()))
+        var preset = currentVoicePreset()
+        var idx = preset ? VOICE_ORDER.indexOf(preset) : -1
+        return idx >= 0 ? seed + idx * 131 : seed
     }
 
     // 通话状态：头部状态点 + 通话控件显隐（对齐 ai_web/chat.html）
@@ -1810,17 +1858,24 @@
             })
         }
 
+        // 创建时选过 6 种女声 → 服务端 Edge TTS 优先，保证和试听是同一个声音；
+        // 服务不可用时自动切回本地 TTS（音色为近似值）
+        if (currentVoicePreset() !== '') { tryServer(); return }
         if (callNativeTts() && !callPreferServerTts()) tryNative()
         else tryServer()
     }
 
-    // 服务端 TTS：/api/live/tts 返回 audio/mpeg（xAI /v1/tts 代理）
+    // 服务端 TTS：/api/live/tts 返回 audio/mpeg（Edge 本地服务，失败回退 xAI）
     function callSpeakServer(text, seq, onFail) {
         if (callNativeTts()) { try { window.speechSynthesis.cancel() } catch (e) {} }
+        var body = { text: text, lang: uiLang() }
+        // 已选音色的角色：服务端据此映射到对应的女声（xAI voice_id）
+        var presetId = currentVoicePreset()
+        if (presetId) body.voice = presetId
         fetch('/api/live/tts', {
             method: 'POST',
             headers: authHeaders(true),
-            body: JSON.stringify({ text: text, lang: uiLang() })
+            body: JSON.stringify(body)
         })
             .then(function (r) {
                 var ct = (r.headers.get('content-type') || '').toLowerCase()
@@ -1877,9 +1932,15 @@
             var v = pickVoice(seed)
             if (v) u.voice = v
             u.lang = (v && v.lang) ? v.lang : callSafeLang()
-            // 同一角色固定，不同角色再用音高/语速拉开区别
-            u.rate = 0.94 + (seed % 7) * 0.018
-            u.pitch = 0.88 + ((seed >> 3) % 9) * 0.05
+            // 角色创建时选过音色 → 用她自己的音高/语速；老角色继续按种子微调
+            var preset = VOICE_PRESETS[currentVoicePreset()]
+            if (preset) {
+                u.rate = preset.rate
+                u.pitch = preset.pitch
+            } else {
+                u.rate = 0.94 + (seed % 7) * 0.018
+                u.pitch = 0.88 + ((seed >> 3) % 9) * 0.05
+            }
             u.onstart = function () { started = true; clearWatchdog() }
             u.onend = function () {
                 if (settled) return
