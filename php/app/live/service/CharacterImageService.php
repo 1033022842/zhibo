@@ -80,11 +80,33 @@ final class CharacterImageService
                 . ($clothingPart !== '' ? ', ' . $clothingPart : '')
                 . ', looking at viewer, masterpiece, best quality, highly detailed, detailed face, anime artwork';
         } else {
+            // 发色短语前置并加 dyed 强调：asian + 粉/蓝等非自然色的模型先验很弱，
+            // 不强调会被「黑发」先验吞掉（生产实测 pink 生成出来是黑发）
+            $hairColor = strtolower(trim((string) ($fields['hair'] ?? '')));
             $prompt = 'Photorealistic portrait photo of a beautiful ' . $traits . ' woman'
                 . ($clothingPart !== '' ? ', ' . $clothingPart : '')
-                . '. Soft studio lighting, detailed skin texture, professional photography, 85mm lens, high quality, 4k';
+                . '. ' . ($hairColor !== '' && $hairColor !== 'black' ? 'Her hair is dyed exactly ' . $hairColor . ', vivid and clearly visible. ' : '')
+                . 'Soft studio lighting, detailed skin texture, professional photography, 85mm lens, high quality, 4k';
         }
         return $prompt;
+    }
+
+    /**
+     * 负面词反先验：用户选了非黑发/非棕眼时，把默认发色/瞳色加进负面，
+     * 压掉模型的「asian=黑发」「深色眼睛」先验（配合正向 dyed 强调）
+     */
+    public function buildNegative(string $category, array $fields): string
+    {
+        $neg = $category === 'anime' ? self::NEGATIVE_ANIME : self::NEGATIVE_REALISTIC;
+        $hair = strtolower(trim((string) ($fields['hair'] ?? '')));
+        $eye = strtolower(trim((string) ($fields['eye'] ?? '')));
+        if ($hair !== '' && $hair !== 'black') {
+            $neg .= ', black hair, dark hair';
+        }
+        if ($eye !== '' && $eye !== 'brown') {
+            $neg .= ', brown eyes';
+        }
+        return $neg;
     }
 
     /**
@@ -113,7 +135,7 @@ final class CharacterImageService
                 'style'           => $category,
                 'label'           => 'Character',
                 'prompt'          => $this->buildPrompt($fields, $category),
-                'negative_prompt' => $category === 'anime' ? self::NEGATIVE_ANIME : self::NEGATIVE_REALISTIC,
+                'negative_prompt' => $this->buildNegative($category, $fields),
                 'retry'           => 0,
             ], JSON_UNESCAPED_UNICODE);
             $task->callback_mode = 'none';
