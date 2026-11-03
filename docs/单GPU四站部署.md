@@ -1,22 +1,23 @@
 # 单台 GPU 承载四站 AI 生成
 
-> 🚨 **2026-11-01 生产事故：GPU 机全灭，四站 AI 生成中断。** 两台机器先后失联，都停在
-> 同一家机房（ColoCrossing，布法罗核心 `69.197.177.250` / `216.126.0.27`）：
+> ✅ **2026-11-03 恢复记录**：供应商同 IP 重开新机（`38.247.166.124`，全新系统 + RTX PRO 6000 96G
+> + 2T `/data`），当日从 99.11 中继 `/data/modelmig`（71G 十月迁移留存 + `cn_h3.tar.gz` 节点包）
+> 完成重建。181（11-01 临时换的机器）始终未上线，已放弃。旧机 11-01 01:35 UTC 起失联期间
+> 四站 AI 单无 worker 接单。
 >
-> | 机器 | 角色 | 状态（2026-11-01 晚） |
-> |---|---|---|
-> | `38.247.166.124` | 原生产机（文档旧值） | 网关回「无法访问目标主机」，全端口不通 |
-> | `204.12.218.181` | 换上的新机 | **同样网关回 host-unreachable**，五个方向（本机 / 99.11 / 98.55 / kelymi / kiss）TCP 全死 |
+> **重建要点**（全程 ≤2h，前提：99.11 中继留存还在）：系统 init（swap 16G + 目录）→
+> `build_comfy_166.sh`（~5 min，机房网快）→ 99.11 `push_99to166.sh` 后台推模型（~11MB/s，
+> 71G ≈ 90min）→ `cn_h3.tar.gz` 解出 31 个节点 + `build_nodes_min.sh` 收敛到 8 个 →
+> worker 栈（仓库真本：gpumig + aipc 目录）→ 附录 C 的 3 个缺口模型（fingering / MysticXXX /
+> rife onnx）从 AI 电脑 `scp -O` 补进中继。**Windows scp 大文件必须加 `-O`**（SFTP 模式会
+> 截断成 204800 字节）。
 >
-> **鉴别要点（别再误判成线路封端口）**：Windows ping 显示「已接收」时，先看回复行——
+> **事故鉴别要点（11-01 学到，留着）**：Windows ping 显示「已接收」时先看回复行——
 > `来自 69.197.177.250 的回复: 无法访问目标主机` 是**网关代答的 unreachable 报错**，
-> 不是机器应答；tracert 最后一跳停在机房核心路由并回该错误 = ARP 解析不到 = 机器没在线。
-> 真实封端口的特征是：ICMP 正常应答、只有某些 TCP 端口超时。
+> 不是机器应答；tracert 末跳停在机房核心路由并回该错误 = ARP 解析不到 = 机器没在线。
 >
-> **停机时间（站点侧证据）**：sugus access.log 里 worker 轮询 `customVideo/pending`
-> 的最后一条是 `2026-11-01 01:35 UTC`、来源仍是 166.124；181 从未出现在任何站点日志里。
-> **处理**：两台都在供应商后台续费/解封；恢复后四站 worker 会自动恢复轮询；
-> 对外开 ComfyUI 网页的步骤见第二节末尾「需求变更」。
+> 教训：**中继留存是恢复的生命线**——99.11 `/data/modelmig`（71G）+ `cn_h3.tar.gz`（节点源码包）
+> 别删；文档与仓库里 worker/工作流/service 都是唯一真本。
 
 > 更新：2026-10-21
 > 起因：原来的两台 GPU 节点（`38.247.190.236` / `204.12.218.174`，各 5090 32G）**欠费失联**，
@@ -27,16 +28,16 @@
 
 | 项 | 值 |
 |---|---|
-| 公网 IP | `204.12.218.181`（2026-11-01 起的现役机；旧机 `38.247.166.124` 已失联，仅留档） |
-| 账号 | 用户名待确认（优先试 `root`，再试 `administrator`）；密码 `2Z7Dt^@3JG2xlvhS` |
-| 旧机账号 | `administrator` / `WB*!uZfGJa9K7eG@`（166.124，已失联） |
-| 系统 | 旧机为 Ubuntu 24.04 / 32 核 / 82G / RTX PRO 6000 96G；新机规格待登录后补录 |
-| 磁盘 | 旧机：`/` 398G、`/data` 984G（模型与备份都放这里）；新机待确认 **模型是否已拷贝** |
-| 旧角色 | 旧机早先跑过 heygirl 的并行 PHP/MySQL/SRS，后只当纯 GPU 机用 |
+| 公网 IP | `38.247.166.124`（2026-11-03 同 IP 重开的新机） |
+| 账号 | `administrator` / `b&OSwg8cRGx@AUXI`（sudo 同密码） |
+| 旧机账号 | `WB*!uZfGJa9K7eG@`（11-01 失联的那台，留档） |
+| 系统 | Ubuntu 24.04 / kernel 6.8 / 32 核 / 82G 内存 / 16G swap（新建） |
+| 磁盘 | `/` 398G、`/data` **2.0T**（模型与备份都放这里） |
+| GPU | NVIDIA RTX PRO 6000 Blackwell Server Edition，**97887 MiB**，驱动 595.58.03 |
+| 历史 | 181（`204.12.218.181`）是 11-01 供应商面板里换上的备机，从未上线即失联，已弃 |
 
 > ⚠️ 本机 → GPU 机 22 端口经常被跨境线路封锁（ICMP 表面通、TCP 超时）。
 > 控制面一律走东京 `172.81.99.11` 跳板：`.zcode/gpu.py`（`--sudo` / `--put` / `--get`）。
-> **注意**：`.zcode/gpu.py` 的 `HOST` 目前仍指向旧机 166.124，新机恢复后要改成 181。
 
 ## 二、架构
 
@@ -267,6 +268,24 @@ systemctl restart comfyui
 | onnx | rife425_ensemble_False_scale_1_sim.onnx | 22777748 | — |
 
 合计约 **145 GB**（含 3 个 INT8 大模型；旧版记的 70.7 GiB 是只有 1 个 diffusion model 时的数字）。
+
+### 角色形象图（characters_v2 向导）新增模型 — **已入库并验收（2026-11-03）**
+
+worker v6.2 的 `kind=character` 通道（`customRoleCreate` 自动入队）引用以下模型：
+
+| 目录 | 文件名 | 字节 | 说明 |
+|---|---|---|---|
+| unet | qwen_image_fp8_e4m3fn.safetensors | 20430635136 | Qwen-Image 文生图（真实线），HF `Comfy-Org/Qwen-Image_ComfyUI`；text encoder/VAE 复用已有文件 |
+| models（checkpoints 映射） | Illustrious-XL-v1.0.safetensors | 6938040736 | Illustrious-XL v1.0（动漫线），HF `OnomaAIResearch/Illustrious-XL-v1.0` 官方 org，SHA 与 HF LFS oid 一致字节数 |
+
+对应工作流已部署到 `/opt/cv/tpl/` + 四站目录：`qwen_image_t2i_api.json`、`illustrious_t2i_api.json`。
+注意：t2i workflow 的 CLIPTextEncode 入参名是 **`text`**（不是 qwenedit 的 `prompt`）。
+
+**验收记录（2026-11-03，38.247.166.124）**：
+- ComfyUI 直跑两个 workflow：真实线（金发马尾/蓝眼/运动型/bikini）与动漫线（七彩刘海/黄眼/bikini）属性全部命中，人脸/线稿质量良好
+- worker v6.2 全链路 E2E（mock 后端 127.0.0.1:9999）：pending→accept→ComfyUI 生成（~2m40s）→全黑校验→uploadVideo（978KB PNG）→/aiTask/complete（task_id/video_url/duration_sec=0）字段全对
+- 生产四站 worker 已重启为 v6.2（`worker v6.2 启动 tag=...` 日志确认），旧版备份在 `/opt/cv/tpl/worker_gpu_v61.bak`
+- 待办：**PHP 后端改动（task_type=character_image 通道）尚未部署到四站**，部署后真实任务即走此链路
 
 ### 已知但未入库：Civitai 要求登录的资源
 

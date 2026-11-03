@@ -45,16 +45,18 @@ final class ShortEpisode extends Backend
             $shortIds = array_values(array_unique(array_filter(array_map('intval', array_column($items, 'short_id')))));
             $titles = [];
             $freeMap = [];
+            $posterMap = [];
             if ($shortIds) {
                 $series = Db::connect('live_mysql')
                     ->table('lp_short_item')
                     ->whereIn('id', $shortIds)
-                    ->field('id, title, free_episodes')
+                    ->field('id, title, free_episodes, poster')
                     ->select()
                     ->toArray();
                 foreach ($series as $row) {
                     $titles[(int) $row['id']] = (string) $row['title'];
                     $freeMap[(int) $row['id']] = (int) $row['free_episodes'];
+                    $posterMap[(int) $row['id']] = (string) $row['poster'];
                 }
             }
 
@@ -63,6 +65,10 @@ final class ShortEpisode extends Backend
                 $item['short_title'] = $titles[$sid] ?? '';
                 // 集号 <= 短剧的 free_episodes 时，本集实际免代币（price 不生效）
                 $item['free_by_series'] = ($sid > 0 && ($freeMap[$sid] ?? 0) >= (int) $item['episode_no']) ? 1 : 0;
+                // 本集封面留空时兜底用短剧卡片封面：列表有缩略图，运营才认得出是哪部剧的哪一集
+                if (trim((string) ($item['poster'] ?? '')) === '' && isset($posterMap[$sid])) {
+                    $item['poster'] = $posterMap[$sid];
+                }
             }
             unset($item);
         }
@@ -142,6 +148,7 @@ final class ShortEpisode extends Backend
         $data['price']      = max(0, (int) ($data['price'] ?? $existing['price'] ?? 0));
         $data['weigh']      = (int) ($data['weigh'] ?? $existing['weigh'] ?? 0);
         $data['status']     = (int) ($data['status'] ?? $existing['status'] ?? 1);
+        $data['is_r18']     = (int) ($data['is_r18'] ?? $existing['is_r18'] ?? 0) ? 1 : 0;
 
         if ($data['short_id'] <= 0) {
             $this->error('请选择所属短剧');

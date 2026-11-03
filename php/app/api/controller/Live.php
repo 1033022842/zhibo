@@ -6,6 +6,8 @@ namespace app\api\controller;
 use think\App;
 use think\facade\Db;
 use app\BaseController;
+use app\ai\model\AiTask;
+use app\common\enums\TaskStatus;
 use app\common\exception\BusinessException;
 use app\common\service\LlmService;
 use app\common\service\TtsService;
@@ -13,6 +15,7 @@ use app\common\service\SttService;
 use app\common\web\ResultCode;
 use app\live\model\UserAuth;
 use app\live\service\AffectionService;
+use app\live\service\CharacterImageService;
 use app\live\service\EmailVerifyService;
 use app\live\service\FbCapiService;
 use app\live\service\JwtService;
@@ -31,7 +34,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt', 'voiceDiag']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'customRoleCreate', 'customRoleImageStatus', 'customRoleSave', 'customRoleRegenerate', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt', 'voiceDiag']],
     ];
 
     private UserService $userService;
@@ -514,16 +517,188 @@ final class Live extends BaseController
 
     /**
      * AI 前端：创建聊天伴侣角色（免商家认证、不开直播间，角色属于当前用户）
+     *
+     * 新版向导（createCharacter）创建成功后自动入队形象图生成任务：
+     * 前端拿 task_id 轮询 customRoleImageStatus，出图后回写 cover_url。
      */
     public function customRoleCreate()
     {
         $userId = $this->getAuthUserId();
         $data = $this->request->post();
         $persona = $this->personaService->createFromAi($userId, $data, false);
+
+        $imageTask = (new CharacterImageService())->enqueue($userId, $persona, $data);
+
         return $this->jsonSuccess([
             'id'     => (int) $persona['id'],
             'name'   => $persona['name'],
             'status' => (int) $persona['status'],
+            // 形象图生成任务（可能为 null：入队失败/未部署 worker，角色仍创建成功）
+            'image_task_id' => $imageTask ? (int) $imageTask->id : null,
+            // 完成态动作定价与余额（后台「功能定价」可改；0 = 该动作免费）
+            'prices'  => self::characterPrices(),
+            'balance' => (new WalletService())->balance($userId),
+        ]);
+    }
+
+    /** 角色形象图相关动作定价（后台「提现打款配置」可改；0=免费） */
+    private static function characterPrices(): array
+    {
+        return [
+            'regen' => max(0.0, (float) WalletService::config('character_regen_price', '1')),
+            'save'  => max(0.0, (float) WalletService::config('character_save_price', '10')),
+        ];
+    }
+
+    /**
+     * AI 前端：保存 AI 草稿角色（扣费转正 → 进 My AI / 可聊天）
+     * POST live/customRoleSave {persona_id}
+     */
+    public function customRoleSave()
+    {
+        $userId = $this->getAuthUserId();
+        $personaId = (int) $this->request->post('persona_id', 0);
+        $check = $this->findOwnPersona($userId, $personaId);
+        if (!$check['ok']) {
+            return $check['resp'];
+        }
+        $wallet = new WalletService();
+
+        // 幂等：已转正直接返回
+        if ((int) $check['persona']['status'] === 2) {
+            return $this->jsonSuccess(['saved' => 1, 'already_saved' => 1, 'balance' => $wallet->balance($userId)]);
+        }
+
+        $price = self::characterPrices()['save'];
+        if ($price > 0) {
+            if ($wallet->balance($userId) < $price) {
+                return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens to save her — please top up.');
+            }
+            try {
+                $wallet->debit($userId, $price, 'character_save', $personaId, 'Save AI character');
+            } catch (BusinessException $e) {
+                return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens to save her — please top up.');
+            }
+        }
+
+        Db::connect('live_mysql')->table('lp_persona')
+            ->where('id', $personaId)
+            ->update(['status' => 2, 'updated_at' => date('Y-m-d H:i:s')]);
+
+        return $this->jsonSuccess(['saved' => 1, 'balance' => $wallet->balance($userId)]);
+    }
+
+    /**
+     * AI 前端：重新生成 AI 草稿/已保存角色的形象图（扣费）
+     * POST live/customRoleRegenerate {persona_id}
+     */
+    public function customRoleRegenerate()
+    {
+        $userId = $this->getAuthUserId();
+        $personaId = (int) $this->request->post('persona_id', 0);
+        $check = $this->findOwnPersona($userId, $personaId);
+        if (!$check['ok']) {
+            return $check['resp'];
+        }
+        $persona = $check['persona'];
+
+        // 同一角色已有进行中的形象图任务：拒绝重复排队
+        $running = AiTask::where('task_type', 'character_image')
+            ->where('persona_id', $personaId)
+            ->whereIn('status', [TaskStatus::PENDING->value, TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])
+            ->count();
+        if ($running > 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Already generating — please wait.');
+        }
+
+        $wallet = new WalletService();
+        $price = self::characterPrices()['regen'];
+        if ($price > 0) {
+            if ($wallet->balance($userId) < $price) {
+                return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens to regenerate — please top up.');
+            }
+            try {
+                $wallet->debit($userId, $price, 'character_regen', $personaId, 'Regenerate AI portrait');
+            } catch (BusinessException $e) {
+                return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens to regenerate — please top up.');
+            }
+        }
+
+        // 从 source_fields 还原属性 → 重建 prompt 入队
+        $fields = json_decode((string) $persona['source_fields'], true) ?: [];
+        $task = (new CharacterImageService())->enqueue($userId, ['id' => $personaId], $fields);
+
+        return $this->jsonSuccess([
+            'image_task_id' => $task ? (int) $task->id : null,
+            'balance'       => $wallet->balance($userId),
+        ]);
+    }
+
+    /** 归属校验：返回 ['ok'=>bool, 'persona'=>array, 'resp'=>响应] */
+    private function findOwnPersona(int $userId, int $personaId): array
+    {
+        if ($personaId <= 0) {
+            return ['ok' => false, 'persona' => null, 'resp' => $this->jsonFail(ResultCode::PARAM_ERROR, 'persona_id 必填')];
+        }
+        $persona = Db::connect('live_mysql')->table('lp_persona')
+            ->where('id', $personaId)->where('user_id', $userId)
+            ->find();
+        if (!$persona) {
+            return ['ok' => false, 'persona' => null, 'resp' => $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Character not found')];
+        }
+        return ['ok' => true, 'persona' => $persona, 'resp' => null];
+    }
+
+    /**
+     * AI 前端：角色形象图生成状态轮询（新版向导 10s 一次）
+     * GET live/customRoleImageStatus?persona_id=N
+     */
+    public function customRoleImageStatus()
+    {
+        $userId = $this->getAuthUserId();
+        $personaId = (int) $this->request->get('persona_id', 0);
+        if ($personaId <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'persona_id 必填');
+        }
+
+        // 只查自己的角色，顺带校验归属
+        $persona = Db::connect('live_mysql')->table('lp_persona')
+            ->where('id', $personaId)->where('user_id', $userId)
+            ->field('id, cover_url, status')
+            ->find();
+        if (!$persona) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Character not found');
+        }
+
+        $task = AiTask::where('task_type', 'character_image')
+            ->where('persona_id', $personaId)
+            ->order('id', 'desc')
+            ->find();
+
+        $status = 'none';
+        $imageUrl = '';
+        if ($task) {
+            $status = (string) $task->status;
+            $imageUrl = (string) $task->video_url;
+            // 成品已落库但 complete 回调没到（网络抖动）：对用户按已完成展示（同 CustomVideo::myList 口径）
+            if ($imageUrl !== '' && in_array($status, ['accepted', 'processing'], true)) {
+                $status = TaskStatus::COMPLETED->value;
+            }
+            if ($status === TaskStatus::COMPLETED->value && $imageUrl === '') {
+                $imageUrl = (string) $persona['cover_url'];
+            }
+        }
+        // completeTask 已回写 cover_url 的，兜底用 persona 封面
+        if ($imageUrl === '' && trim((string) $persona['cover_url']) !== '') {
+            $imageUrl = (string) $persona['cover_url'];
+            $status = $status === 'none' ? TaskStatus::COMPLETED->value : $status;
+        }
+
+        return $this->jsonSuccess([
+            'persona_id' => $personaId,
+            'status'     => $status,
+            // pending/accepted/processing/completed/failed/none
+            'image_url'  => $imageUrl !== '' ? '/' . ltrim($imageUrl, '/') : '',
         ]);
     }
 
@@ -1471,20 +1646,25 @@ final class Live extends BaseController
                 $lastMessage = $kind === 'voice' ? '[语音]' : ($kind === 'video' ? '[视频]' : '');
             }
 
-            // 首页角色的展示信息：home-N 对应内容表 id=N；自建角色 my-N 由前端用本地人设缓存补
+            // 展示信息：home-N 会话读 lp_home_character（首页推荐角色，与聊天入口同源）；
+            // 纯数字 content_id 会话读 lp_ai_content（平台内容角色）。两套 id 空间大量同号，不能互串。
+            // 自建角色 my-N 由前端用本地人设缓存补
             $title = '';
             $cover = '';
-            $lookupId = $cid;
-            if ($lookupId <= 0 && preg_match('/^home-(\d+)$/', $roleKey, $m) === 1) {
-                $lookupId = (int) $m[1];
-            }
-            if ($lookupId > 0) {
+            if ($cid > 0) {
                 $content = $db->table('lp_ai_content')
-                    ->where('id', $lookupId)
+                    ->where('id', $cid)
                     ->field(['title', 'cover_url'])
                     ->find();
                 $title = (string) ($content['title'] ?? '');
                 $cover = $this->fullUrl((string) ($content['cover_url'] ?? ''));
+            } elseif (preg_match('/^home-(\d+)$/', $roleKey, $m) === 1) {
+                $home = $db->table('lp_home_character')
+                    ->where('id', (int) $m[1])
+                    ->field(['name', 'cover_url'])
+                    ->find();
+                $title = (string) ($home['name'] ?? '');
+                $cover = $this->fullUrl((string) ($home['cover_url'] ?? ''));
             }
 
             $list[] = [

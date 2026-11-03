@@ -1,7 +1,7 @@
 /**
  * setting.html（新版设置页）功能适配
  *
- * 存档页原本由 candy.ai 服务端渲染、并把各种表单提交到 /current_user、/password_change、
+ * 存档页原本由参考站服务端渲染、并把各种表单提交到 /current_user、/password_change、
  * /delete_user、/user_locale/edit 等端点。这里是静态克隆，那些端点并不存在（点了只会 404），
  * 所以统一改接到站点自己的接口：
  *
@@ -451,7 +451,7 @@
   }
 
   /* ---------------- 全局聊天定制 ----------------
-     存档页这部分由 chat-customization 控制器管，保存时提交到 candy 的端点；
+     存档页这部分由 chat-customization 控制器管，保存时提交到对应端点；
      这里改成读页面控件当前值 → 存到站点 /api/live/saveUserSettings，
      而站点聊天（Live::chat）会把这些设置真正落进提示词与 max_tokens。 */
 

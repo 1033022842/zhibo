@@ -61,6 +61,12 @@
                         :input-attr="{ min: 0 }"
                         tip="0 = 免费；本集单独收费填正数。若集号 ≤ 短剧的「前N集免费」，本集实际免代币"
                     />
+                    <FormItem
+                        label="R18"
+                        v-model="baTable.form.items!.is_r18"
+                        type="radio"
+                        :input-attr="{ border: true, content: { '1': '是 · 仅充值/VIP可见', '0': '否' } }"
+                    />
                     <FormItem label="权重" v-model="baTable.form.items!.weigh" type="number" :input-attr="{ placeholder: '越大越靠前' }" />
                     <FormItem
                         label="状态"

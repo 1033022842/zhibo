@@ -334,7 +334,7 @@ final class AiTaskService
 
         $now = date('Y-m-d H:i:s');
         $task->status = TaskStatus::COMPLETED->value;
-        $task->result_type = $task->task_type === 'custom_image' ? 'image_file' : 'video_file';
+        $task->result_type = in_array($task->task_type, ['custom_image', 'character_image'], true) ? 'image_file' : 'video_file';
         $task->video_url = $videoUrl;
         $task->cover_url = $coverUrl;
         $task->duration_sec = $durationSec;
@@ -349,6 +349,23 @@ final class AiTaskService
         ]);
 
         Log::info("AiTaskService: task {$task->task_no} completed, duration={$durationSec}s");
+
+        // 角色形象图：直接回写人设封面（向导轮询 customRoleImageStatus / charactersIndex 都读 cover_url）
+        if ($task->task_type === 'character_image') {
+            try {
+                Db::connect('live_mysql')->table('lp_persona')
+                    ->where('id', (int) $task->persona_id)
+                    ->update(['cover_url' => $videoUrl, 'updated_at' => $now]);
+            } catch (\Throwable $e) {
+                Log::warning("AiTaskService: persona cover writeback failed for {$task->task_no}: {$e->getMessage()}");
+            }
+            return [
+                'task_id'     => $taskId,
+                'task_no'     => $task->task_no,
+                'status'      => TaskStatus::COMPLETED->value,
+                'finished_at' => $now,
+            ];
+        }
 
         // VIP 定制内容（视频/图片）：与直播间无关（room_id=0），跳过播单/切换调度/房间推送
         if (in_array($task->task_type, ['custom_video', 'custom_image'], true)) {
@@ -635,7 +652,7 @@ final class AiTaskService
         $cutoff = date('Y-m-d H:i:s', time() - max(10, $ttlMin) * 60);
 
         $rows = $db->table('lp_ai_task')
-            ->whereIn('task_type', ['custom_video', 'custom_image'])
+            ->whereIn('task_type', ['custom_video', 'custom_image', 'character_image'])
             ->whereIn('status', [TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])
             ->where(function ($q) use ($cutoff) {
                 $q->where('accepted_at', '<=', $cutoff)
@@ -687,7 +704,8 @@ final class AiTaskService
                 'failed_at' => $now,
                 'updated_at' => $now,
             ]);
-            $refunded = $this->refundCustomTask((int) ($row['source_ref_id'] ?? 0), $paid, $retry);
+            // 角色首图免费（没扣过额度/代币），失败不退款
+            $refunded = $row['task_type'] === 'character_image' ? false : $this->refundCustomTask((int) ($row['source_ref_id'] ?? 0), $paid, $retry);
             $this->writeLog($id, 'reaped_failed', [
                 'worker_id'  => $row['worker_id'] ?? '',
                 'paid_tokens' => $paid,

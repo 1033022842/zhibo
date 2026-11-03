@@ -76,7 +76,7 @@
             setupRebootDialog()
             avatarFallback()
         }
-        // 场景按钮（candy 新版 Show me the scene）每次进入重绑（Turbo 快照恢复丢监听）
+        // 场景按钮（参考站新版 Show me the scene）每次进入重绑（Turbo 快照恢复丢监听）
         setupSceneButtons()
         // 首页角色目录预热：home-N 人设不再依赖 localStorage（被清/被替换会导致串号或空白）
         loadHomeRoles(function () {
@@ -1058,7 +1058,7 @@
     }
 
     /* ---------- Suggestion 建议语：点击直接作为消息发送（捕获阶段拦截，避免触发原站注册弹窗） ---------- */
-    /* ---------- 场景媒体（candy 新版「Show me the scene」：点按钮发图/发视频） ---------- */
+    /* ---------- 场景媒体（参考站新版「Show me the scene」：点按钮发图/发视频） ---------- */
     var sceneMedia = { images: [], videos: [], loading: false, sending: false }
 
     // 场景媒体的角色键：home-N 原样、纯数字（= lp_ai_content.id）补成 home-N；自建/默认会话无媒体
@@ -1167,7 +1167,7 @@
         } catch (e) {}
     }
 
-    // 记住用户对右侧面板的折叠选择（candy 的 profile-toggle 控制器点完后再读一次结果）
+    // 记住用户对右侧面板的折叠选择（参考站的 profile-toggle 控制器点完后再读一次结果）
     if (!window.__chatPanelPrefBound) {
         window.__chatPanelPrefBound = true
         document.addEventListener('click', function (e) {
@@ -2319,7 +2319,7 @@
     }
 
     function setupCall() {
-        // 通话按钮：站内浏览器语音通话（不再走 candy 的 phone-call 控制器）
+        // 通话按钮：站内浏览器语音通话（不再走 参考站的 phone-call 控制器）
         document.addEventListener('click', function (e) {
             var el = e.target && e.target.closest
                 ? e.target.closest('#phone-btn, #call-btn, [data-phone-call-target="callButton"]')
@@ -2527,23 +2527,19 @@
             activeConvId = ''
             try { history.replaceState(null, '', './Chat.html') } catch (e) {}
         }
-        // 直接进入聊天页（没指定角色）：随机挑一个首页角色开场，而不是固定落在上次聊过的角色
+        // 直接进入聊天页（没指定角色）：随机挑一个「首页推荐角色」开场（内容运营-首页推荐角色 lp_home_character，
+        // girls/anime/guys 全部）。不再从 pageList（lp_ai_content 平台内容角色）随机——两套 id 空间大量同号，会串角色
         if (activeConvId === '') {
-            var pool = []
-            for (var pi = 0; pi < local.length; pi++) {
-                if (/^\d+$/.test(String(local[pi] && local[pi].id))) pool.push(local[pi])
-            }
-            if (pool.length > 0) {
-                activeConvId = String(pool[Math.floor(Math.random() * pool.length)].id)
+            var homeKeys = Object.keys(homeRoleMap())
+            if (homeKeys.length > 0) {
+                activeConvId = homeKeys[Math.floor(Math.random() * homeKeys.length)]
             } else {
-                // 本机没有角色缓存（新设备）：等预热拉取完成（轮询 pageList），拿到后随机开场
-                waitForRoleList(function (list) {
-                    if (list.length > 0 && activeConvId === '') {
-                        var pick = list[Math.floor(Math.random() * list.length)]
-                        activeConvId = String(pick.id)
-                        var convObj = { id: activeConvId, title: pick.title || '', image: pick.cover_url || '', description: pick.description || '' }
-                        convItems[activeConvId] = convObj
-                        getDetail(convObj)
+                // homeRoleMap 由 bootChat 的 loadHomeRoles 异步预热：等它就绪再随机开场（最多 8 秒）
+                waitForHomeRoles(function (map) {
+                    var keys = Object.keys(map)
+                    if (keys.length > 0 && activeConvId === '') {
+                        activeConvId = keys[Math.floor(Math.random() * keys.length)]
+                        getDetail(chatItemById(activeConvId))
                     }
                     continueChannelDetail(readPageList())
                 })
@@ -2563,6 +2559,15 @@
         if ((tries || 0) >= 40) { cb([]); return }
         if ((tries || 0) % 10 === 9) preloadRoleList()   // 2 秒还没到就再发一次预热
         setTimeout(function () { waitForRoleList(cb, (tries || 0) + 1) }, 200)
+    }
+
+    // 等待首页推荐角色目录就绪（homeRoleMap，bootChat 的 loadHomeRoles 已异步预热）；最多 8 秒
+    function waitForHomeRoles(cb, tries) {
+        var map = homeRoleMap()
+        if (Object.keys(map).length > 0) { cb(map); return }
+        if ((tries || 0) >= 40) { cb(map); return }
+        if ((tries || 0) % 10 === 9) loadHomeRoles()   // 2 秒还没到就再发一次预热
+        setTimeout(function () { waitForHomeRoles(cb, (tries || 0) + 1) }, 200)
     }
 
     // 角色目录读取：内存优先（localStorage 被禁/异常时仍可用）
@@ -2611,7 +2616,7 @@
             var guestBox = messagesBox()
             if (guestBox) guestBox.innerHTML = ''
             showIceBreaker()
-            // 场景按钮（未登录也展示，点击跳登录——candy 同款门禁）
+            // 场景按钮（未登录也展示，点击跳登录——参考站同款门禁）
             loadSceneMedia()
             return
         }

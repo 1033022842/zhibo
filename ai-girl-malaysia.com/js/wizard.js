@@ -121,6 +121,12 @@
         var step = STEPS.find(function (s) { return s.page === page })
         if (!step) return
 
+        // 入口页改跳 candy characters_v2 同款新向导（旧 chooseXxx 深链用户不受影响，仍走本脚本）
+        if (page === 'characters') {
+            location.replace('./createCharacter.html')
+            return
+        }
+
         restorePage()
 
         if (page === 'characters') {

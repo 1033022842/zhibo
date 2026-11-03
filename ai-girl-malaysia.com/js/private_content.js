@@ -1,7 +1,7 @@
 /**
  * AI 女友端 Private Content 私密内容页
  * 卡片数据来自后台「直播运营 → 私密内容管理」（GET /api/live/privateContents?tab=all|most_liked），
- * DOM 结构 / class 与原站 candy.ai/private-content 保持一致（见 .trae/_private_templates.html）。
+ * DOM 结构 / class 与参考站 /private-content 保持一致（见 .trae/_private_templates.html）。
  *
  * 与原站行为差异（前端实现）：
  *   · 搜索：原站由服务端按关键词过滤，这里改为前端按 title / creator 做 includes 过滤；
@@ -80,16 +80,16 @@
     }
 
     function alertBox(msg) {
-        if (!document.getElementById('candy-alert-skin')) {
+        if (!document.getElementById('site-alert-skin')) {
             var s = document.createElement('style')
-            s.id = 'candy-alert-skin'
-            s.textContent = '#candy-alert-dialog::backdrop{background:rgba(0,0,0,.55)}'
+            s.id = 'site-alert-skin'
+            s.textContent = '#site-alert-dialog::backdrop{background:rgba(0,0,0,.55)}'
             document.head.appendChild(s)
         }
-        var d = document.getElementById('candy-alert-dialog')
+        var d = document.getElementById('site-alert-dialog')
         if (!d) {
             d = document.createElement('dialog')
-            d.id = 'candy-alert-dialog'
+            d.id = 'site-alert-dialog'
             d.setAttribute('aria-label', 'Notice')
             d.style.cssText = 'margin:auto;padding:0;border:0;border-radius:14px;background:#1b1b1b;color:#fff;' +
                 'box-shadow:0 16px 48px rgba(0,0,0,.55);width:340px;max-width:86vw;'
@@ -500,7 +500,7 @@
 
     /* ---------- 观看弹窗（已解锁的卡片） ---------- */
     function watch(item) {
-        if (!window.CandyWatch) return
+        if (!window.SiteWatch) return
         var sub = []
         if (item.creator) sub.push(item.creator)
         var vc = Number(item.video_count || 0)
@@ -508,7 +508,7 @@
         if (vc > 0) sub.push(vc + (vc > 1 ? ' videos' : ' video') + (item.duration ? ' · ' + item.duration : ''))
         if (ic > 0) sub.push(ic + (ic > 1 ? ' photos' : ' photo'))
 
-        window.CandyWatch.open({
+        window.SiteWatch.open({
             title: item.creator || 'Private Content',
             subtitle: sub.join(' · '),
             videoUrl: item.video_url || '',
