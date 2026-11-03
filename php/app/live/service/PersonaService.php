@@ -101,9 +101,11 @@ final class PersonaService
 
     private function extractAiFields(array $data): ?string
     {
+        // 新版向导（createCharacter）直接送英文文案值（如 race=Caucasian、body=Athletic、
+        // age=精确整数），聊天侧 persona_desc 可直接拼接；旧向导的数字编码照旧兼容。
         $aiKeys = ['type', 'race', 'age', 'eye', 'hair', 'hairstyle',
                    'body', 'breast', 'hip', 'personality', 'profession',
-                   'hobby', 'relation', 'clothing'];
+                   'hobby', 'relation', 'clothing', 'voice', 'kinks'];
 
         $fields = [];
         foreach ($aiKeys as $key) {

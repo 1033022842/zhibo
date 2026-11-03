@@ -6,6 +6,8 @@ namespace app\api\controller;
 use think\App;
 use think\facade\Db;
 use app\BaseController;
+use app\ai\model\AiTask;
+use app\common\enums\TaskStatus;
 use app\common\exception\BusinessException;
 use app\common\service\LlmService;
 use app\common\service\TtsService;
@@ -13,6 +15,7 @@ use app\common\service\SttService;
 use app\common\web\ResultCode;
 use app\live\model\UserAuth;
 use app\live\service\AffectionService;
+use app\live\service\CharacterImageService;
 use app\live\service\EmailVerifyService;
 use app\live\service\FbCapiService;
 use app\live\service\JwtService;
@@ -31,7 +34,7 @@ use app\live\validate\UserValidate;
 final class Live extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt', 'voiceDiag']],
+        \app\live\middleware\Auth::class => ['only' => ['logout', 'profile', 'userInfo', 'updateProfile', 'changePassword', 'changeEmail', 'deleteAccount', 'userSettings', 'saveUserSettings', 'userPersona', 'saveUserPersona', 'subscription', 'cancelSubscription', 'customRoleOne', 'customOneList', 'customRoleImageStatus', 'upload', 'uploadMediaAsset', 'mediaAssetList', 'mediaAssetEdit', 'mediaAssetDelete', 'replayClips', 'affection', 'buyAffection', 'unlockVideo', 'unlockChatMedia', 'callCharge', 'tts', 'stt', 'voiceDiag']],
     ];
 
     private UserService $userService;
@@ -514,16 +517,77 @@ final class Live extends BaseController
 
     /**
      * AI 前端：创建聊天伴侣角色（免商家认证、不开直播间，角色属于当前用户）
+     *
+     * 新版向导（createCharacter）创建成功后自动入队形象图生成任务：
+     * 前端拿 task_id 轮询 customRoleImageStatus，出图后回写 cover_url。
      */
     public function customRoleCreate()
     {
         $userId = $this->getAuthUserId();
         $data = $this->request->post();
         $persona = $this->personaService->createFromAi($userId, $data, false);
+
+        $imageTask = (new CharacterImageService())->enqueue($userId, $persona, $data);
+
         return $this->jsonSuccess([
             'id'     => (int) $persona['id'],
             'name'   => $persona['name'],
             'status' => (int) $persona['status'],
+            // 形象图生成任务（可能为 null：入队失败/未部署 worker，角色仍创建成功）
+            'image_task_id' => $imageTask ? (int) $imageTask->id : null,
+        ]);
+    }
+
+    /**
+     * AI 前端：角色形象图生成状态轮询（新版向导 10s 一次）
+     * GET live/customRoleImageStatus?persona_id=N
+     */
+    public function customRoleImageStatus()
+    {
+        $userId = $this->getAuthUserId();
+        $personaId = (int) $this->request->get('persona_id', 0);
+        if ($personaId <= 0) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'persona_id 必填');
+        }
+
+        // 只查自己的角色，顺带校验归属
+        $persona = Db::connect('live_mysql')->table('lp_persona')
+            ->where('id', $personaId)->where('user_id', $userId)
+            ->field('id, cover_url, status')
+            ->find();
+        if (!$persona) {
+            return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'Character not found');
+        }
+
+        $task = AiTask::where('task_type', 'character_image')
+            ->where('persona_id', $personaId)
+            ->order('id', 'desc')
+            ->find();
+
+        $status = 'none';
+        $imageUrl = '';
+        if ($task) {
+            $status = (string) $task->status;
+            $imageUrl = (string) $task->video_url;
+            // 成品已落库但 complete 回调没到（网络抖动）：对用户按已完成展示（同 CustomVideo::myList 口径）
+            if ($imageUrl !== '' && in_array($status, ['accepted', 'processing'], true)) {
+                $status = TaskStatus::COMPLETED->value;
+            }
+            if ($status === TaskStatus::COMPLETED->value && $imageUrl === '') {
+                $imageUrl = (string) $persona['cover_url'];
+            }
+        }
+        // completeTask 已回写 cover_url 的，兜底用 persona 封面
+        if ($imageUrl === '' && trim((string) $persona['cover_url']) !== '') {
+            $imageUrl = (string) $persona['cover_url'];
+            $status = $status === 'none' ? TaskStatus::COMPLETED->value : $status;
+        }
+
+        return $this->jsonSuccess([
+            'persona_id' => $personaId,
+            'status'     => $status,
+            // pending/accepted/processing/completed/failed/none
+            'image_url'  => $imageUrl !== '' ? '/' . ltrim($imageUrl, '/') : '',
         ]);
     }
 
