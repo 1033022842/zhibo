@@ -273,6 +273,14 @@
             { src: './subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg', alt: 'Visa' },
             { src: './subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg', alt: 'Mastercard' }
         ],
+        hisspay: [
+            { src: './subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg', alt: 'Visa' },
+            { src: './subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg', alt: 'Mastercard' }
+        ],
+        skytrade: [
+            { src: './subscriptions2_files/visa-57fb92185412d274068aa73ef3a863471f998aaf1c9917782e6df628b45532d8.svg', alt: 'Visa' },
+            { src: './subscriptions2_files/mastercard-ffed11dee9eb67d50b5c8cf60a4ae891032a34d74f23d2a9987a3e36c0e918fe.svg', alt: 'Mastercard' }
+        ],
         cregis: [
             { src: './assets/USDT.png', alt: 'USDT' },
             { src: './taocan_files/bitcoin-eb1103743040983f739826c12ef909c787ed1e6104bb0f5eff7112d31fde0036.svg', alt: 'Bitcoin' }
@@ -339,10 +347,11 @@
         })
     }
 
-    // ===== 金额格式（整数金额不带小数，与参考页一致：$18 / $3.99）=====
+    // ===== 金额格式（整数金额不带小数；符号按站点配置，默认 $）=====
     function money(v) {
+        var sym = window.SITE_CURRENCY || '$'
         var n = Math.round((parseFloat(v) || 0) * 100) / 100
-        return '$' + (n % 1 === 0 ? n.toFixed(0) : n.toFixed(2))
+        return sym + (n % 1 === 0 ? n.toFixed(0) : n.toFixed(2))
     }
 
     function monthLabel(months) {
@@ -404,11 +413,26 @@
             if (attrs[i].name.indexOf('data-tier-') === 0) { $card.removeAttr(attrs[i].name) }
         }
 
+        // 后台档位不在页面写死的 token 选项里时（如 SVIP 1000），复用第一个选项承载该档位，
+        // 否则整张卡片会保留参考页的旧价格/旧档位，readTokens() 也读不到正确 tokens。
+        var planKeys = Object.keys(byTokens)
+        var hasMatch = false
+        $wrap.find('.token-tier-option').each(function () {
+            if (byTokens[String($(this).attr('data-tokens') || '')]) { hasMatch = true }
+        })
+        if (!hasMatch && planKeys.length) {
+            var onlyKey = planKeys[0]
+            var $firstOpt = $wrap.find('.token-tier-option').first()
+            $firstOpt.attr('data-tokens', onlyKey).attr('data-label', onlyKey + ' tokens/month')
+            $firstOpt.find('.token-tier-option-value').text(onlyKey + ' tokens/month')
+        }
+
         var keys = []
         var base = null
         $wrap.find('.token-tier-option').each(function () {
             var n = String($(this).attr('data-tokens') || '')
             if (!byTokens[n]) { $(this).hide(); return }
+            $(this).show()
             keys.push(n)
             if (!base) { base = byTokens[n] }
         })
@@ -425,7 +449,11 @@
             $card.attr('data-tier-price' + n, money(per))
             $card.attr('data-tier-amount' + n, amount.toFixed(2))
             $card.attr('data-tier-modal-title' + n, tierTitle(months, n))
-            if (cmp > 0) { $card.attr('data-tier-compare-price' + n, money(cmp)) }
+            if (cmp > per) {
+                $card.attr('data-tier-compare-price' + n, money(cmp))
+            } else {
+                $card.removeAttr('data-tier-compare-price' + n)
+            }
             $card.attr('data-tier-benefit' + n, n + ' tokens per month')
             $card.attr('data-tier-billing' + n, billText(months, amount))
         })
@@ -433,13 +461,16 @@
         // 卡片默认显示最低档
         $wrap.find('[data-token-tier-price]').text(money(basePer))
         $wrap.find('[data-token-tier-compare-price]')
-            .text(baseCmp > 0 ? money(baseCmp) : '')
-            .toggle(baseCmp > 0)
+            .text(baseCmp > basePer ? money(baseCmp) : '')
+            .toggle(baseCmp > basePer)
 
         // 折扣角标：按 5% 向下取整（参考页 70% OFF / 35% OFF 同算法）
         if (baseCmp > basePer && baseCmp > 0) {
             var off = Math.floor((1 - basePer / baseCmp) * 100 / 5) * 5
-            $wrap.find('p').filter(function () { return /% OFF/.test($(this).text()) }).text(off + '% OFF')
+            $wrap.find('p').filter(function () { return /% OFF/.test($(this).text()) }).text(off + '% OFF').show()
+        } else {
+            // 无折扣时把参考页写死的「70% OFF」藏掉，避免新定价显示假折扣
+            $wrap.find('p').filter(function () { return /% OFF/.test($(this).text()) }).hide()
         }
 
         // 弹窗取值用（candy 的控制器点击卡片时读这三个属性）
@@ -465,7 +496,7 @@
                 $opt.find('.token-tier-option-savings').hide()
             } else {
                 var delta = per - basePer
-                $opt.find('.token-tier-option-delta').text('+$' + delta.toFixed(2) + '/mo')
+                $opt.find('.token-tier-option-delta').text('+' + (window.SITE_CURRENCY || '$') + delta.toFixed(2) + '/mo')
                 if (cmp > per && cmp > 0) {
                     $opt.find('.token-tier-option-savings')
                         .text('Save ' + (Math.floor((1 - per / cmp) * 100 / 5) * 5) + '%').show()
@@ -522,7 +553,7 @@
 
     function billText(months, amount) {
         var word = months === 12 ? 'Annual' : (months === 3 ? 'Quarterly' : 'Monthly')
-        return word + ' payment billed as $' + (parseFloat(amount) || 0).toFixed(2)
+        return word + ' payment billed as ' + (window.SITE_CURRENCY || '$') + (parseFloat(amount) || 0).toFixed(2)
     }
 
     // ===== 点选记录 =====

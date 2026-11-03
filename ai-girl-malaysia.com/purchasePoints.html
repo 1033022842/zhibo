@@ -63,7 +63,7 @@
 		<script src="./js/pending-order.js?v=20261018b"></script>
 		<!--<script src="./js/event.js"></script>-->
 		<script src="./js/ui-dialog.js?v=20260927a"></script>
-		<script src="./js/purchasePoints.js?v=20261026wison1"></script>
+		<script src="./js/purchasePoints.js?v=20261103stripe3"></script>
 
 
 
@@ -753,6 +753,8 @@
 				#token-container .tk-balance { margin-top: 8px; color: #a4a4a4; font-size: 12px; line-height: 20px; }
 				#token-container .tk-wrap { display: flex; flex-direction: column; justify-content: center; margin: 24px auto 0; }
 				#token-container .tk-mid { width: 100%; max-width: 700px; margin: 0 auto; padding: 0 16px; }
+				/* 充值页样式块/权益区在部分浏览器解析下会落进 #tk-plan-grid，权益区需横跨整行 */
+				#token-container .tk-benefits-wrap { grid-column: 1 / -1; }
 				#token-container .tk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
 				#token-container .tk-only-mobile { display: block; }
 				#token-container .tk-only-md { display: none; }
