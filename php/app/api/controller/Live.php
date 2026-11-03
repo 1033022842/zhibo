@@ -2239,9 +2239,11 @@ final class Live extends BaseController
     {
         $text = (string) $this->request->post('text', '');
         $lang = (string) $this->request->post('lang', 'en');
+        // 角色创建时选择的 6 种女声之一（createCharacter 向导写入 source_fields.voice）
+        $voice = (string) $this->request->post('voice', '');
 
         try {
-            $audio = (new TtsService())->speak($text, $lang);
+            $audio = (new TtsService())->speak($text, $lang, $voice);
         } catch (BusinessException $e) {
             return $this->jsonFail($e->resultCode, $e->getMessage());
         }

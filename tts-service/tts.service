@@ -1,0 +1,19 @@
+[Unit]
+Description=Edge TTS local service (for PHP /api/live/tts)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Environment=EDGE_TTS_HOST=127.0.0.1
+Environment=EDGE_TTS_PORT=8100
+# 与 php/.env 里的 TTS_EDGE_TOKEN 保持一致；留空则不校验
+Environment=EDGE_TTS_TOKEN=
+ExecStart=/usr/bin/python3 /www/tts-service/server.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
