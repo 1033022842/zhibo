@@ -24,20 +24,59 @@
         return s
     }
 
-    /* ---------- 收藏：localStorage 按卡片（预设）id 存，收藏页 = 网格的子集 ---------- */
+    /* ---------- 收藏：登录走账号（/api/aiShort/favs + favToggle），
+       未登录/接口异常退回 localStorage（按浏览器记忆）。收藏页 = 网格的子集 ---------- */
     var FAV_KEY = 'gs_favs'
-    function favList() {
+    var favServer = new Map()      // code -> true（账号收藏，登录且加载成功后生效）
+    var favServerLoaded = false    // false 时 favHas 先按本地值渲染，避免闪烁
+
+    function favLocal() {
         try {
             var a = JSON.parse(localStorage.getItem(FAV_KEY) || '[]')
             return Array.isArray(a) ? a.map(String) : []
         } catch (e) { return [] }
     }
-    function favHas(id) { return favList().indexOf(String(id)) >= 0 }
+    function favList() { return favLocal() }
+    function favHas(id) {
+        id = String(id)
+        if (token && favServerLoaded) return favServer.has(id)
+        return favLocal().indexOf(id) >= 0
+    }
     function favToggle(id) {
-        var a = favList(), i = a.indexOf(String(id))
-        if (i >= 0) a.splice(i, 1); else a.unshift(String(id))
+        id = String(id)
+        if (token && favServerLoaded) {
+            var on = !favServer.has(id)
+            if (on) favServer.set(id, true); else favServer.delete(id)
+            var fd = new FormData()
+            fd.append('code', id)
+            fd.append('on', on ? '1' : '0')
+            authJson(API + '/favToggle', { method: 'POST', body: fd })
+                .then(function (d) {
+                    if (!d || d.code !== '00000') throw new Error(d && d.msg || 'fav failed')
+                })
+                .catch(function () {
+                    // 失败回滚 + 提示，避免界面与账号状态不一致
+                    if (on) favServer.delete(id); else favServer.set(id, true)
+                    toast('Failed to save favorite — try again')
+                })
+            return on
+        }
+        var a = favLocal(), i = a.indexOf(id)
+        if (i >= 0) a.splice(i, 1); else a.unshift(id)
         try { localStorage.setItem(FAV_KEY, JSON.stringify(a)) } catch (e) {}
         return i < 0    // true = 刚收藏
+    }
+    // 登录用户拉取账号收藏；失败则继续用本地值（favServerLoaded 保持 false）
+    function loadFavs() {
+        if (!token || favServerLoaded) return
+        authJson(API + '/favs')
+            .then(function (d) {
+                if (!d || d.code !== '00000' || !Array.isArray(d.data.codes)) return
+                favServer = new Map(d.data.codes.map(function (c) { return [String(c), true] }))
+                favServerLoaded = true
+                renderGallery()
+            })
+            .catch(function () {})
     }
     var HEART_SVG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21.2l7.7-7.8 1.1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>'
 
@@ -1115,6 +1154,7 @@
         if (exp) exp.addEventListener('click', function () { setMode('explore') })
         var favs = $('cvTabFavs')
         if (favs) favs.addEventListener('click', function () { setMode('favs') })
+        loadFavs()
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init)
