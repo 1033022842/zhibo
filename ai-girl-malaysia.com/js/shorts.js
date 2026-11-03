@@ -1,10 +1,10 @@
 /**
- * AI 女友端 Candy Shorts 短剧页
+ * AI 女友端 Shorts 短剧页
  * 卡片数据来自后台「直播运营 → 短剧管理」（GET /api/live/shorts），
- * DOM 结构与 class 与原站 candy.ai/candy-shorts 保持一致（像素级复刻）。
+ * DOM 结构与 class 与参考站 /shorts 保持一致（像素级复刻）。
  *
  * 观看：点卡片一律在本站弹窗播放（video_url 由后台「短剧管理」上传）；
- *       没配视频时弹窗展示封面并提示补传，不会再跳 candy.ai 站外链接。
+ *       没配视频时弹窗展示封面并提示补传，不再跳站外链接。
  */
 (function () {
     var API_LIST = '/api/live/shorts'
@@ -40,11 +40,11 @@
             var item = byId[String(shortId)] || null
             e.preventDefault()
 
-            // 一律弹 candy.ai 同款的剧集弹窗（左视频 / 右介绍+剧集）：
+            // 一律弹参考版同款的剧集弹窗（左视频 / 右介绍+剧集）：
             // 后台配了剧集就列多集，没配就用剧自身视频兜底成第 1 集
             // 观看历史卡片带 data-episode-id，直接恢复到当时那一集
-            if (window.CandySeries) {
-                window.CandySeries.open({
+            if (window.SiteSeries) {
+                window.SiteSeries.open({
                     shortId: shortId,
                     title: item ? (item.title || '') : (el.getAttribute('aria-label') || ''),
                     description: item ? (item.description || '') : '',
@@ -54,9 +54,9 @@
             }
 
             // 极端情况（新版弹窗脚本没加载出来）才回退到旧的单视频弹窗
-            if (!item || !window.CandyWatch) return
+            if (!item || !window.SiteWatch) return
 
-            window.CandyWatch.open({
+            window.SiteWatch.open({
                 title: item.title || '',
                 subtitle: SECTION_LABEL[String(item.section)] || '',
                 videoUrl: item.video_url || '',
@@ -183,7 +183,7 @@
 
     /* ---------- 三个分区渲染（分区为空时整块隐藏） ---------- */
     function renderContinueWatching(items) {
-        var h2 = document.getElementById('candy-shorts-continue-watching-title')
+        var h2 = document.getElementById('shorts-continue-watching-title')
         var section = h2 && h2.closest ? h2.closest('section') : null
         if (!section) return
         var row = section.querySelector('.cs-row-scroller')
@@ -200,7 +200,7 @@
     }
 
     function renderTopSeries(items) {
-        var h2 = document.getElementById('candy-shorts-top-series-title')
+        var h2 = document.getElementById('shorts-top-series-title')
         var section = h2 && h2.closest ? h2.closest('section') : null
         if (!section) return
         var row = section.querySelector('.cs-row-scroller')
@@ -217,11 +217,11 @@
     }
 
     function renderExplore(items) {
-        var frame = document.getElementById('candy-shorts-library-grid')
+        var frame = document.getElementById('shorts-library-grid')
         if (!frame) return
         // 用 id 取标题：空结果提示会插在 grid 前面，previousElementSibling 不再可靠
-        var title = document.getElementById('candy-shorts-explore-title')
-        var grid = document.getElementById('candy-shorts-library-cards-all-all')
+        var title = document.getElementById('shorts-explore-title')
+        var grid = document.getElementById('shorts-library-cards-all-all')
         if (!grid) return
         if (!items.length) {
             frame.classList.add('hidden')
@@ -297,8 +297,8 @@
     var TYPE_ALL = 'all'
     var TYPE_LABELS = {
         'all': 'All',
-        'creator': 'Candy Creators',
-        'character': 'Candy characters',
+        'creator': 'Creators',
+        'character': 'Characters',
         'other': 'Other characters',
     }
     var CAT_ALL = 'all'
@@ -384,7 +384,7 @@
     function renderEmptyState(isEmpty) {
         var box = document.getElementById('cs-filter-empty')
         if (!box) {
-            var grid = document.getElementById('candy-shorts-library-grid')
+            var grid = document.getElementById('shorts-library-grid')
             if (!grid || !grid.parentNode) return
             box = document.createElement('div')
             box.id = 'cs-filter-empty'
@@ -536,10 +536,10 @@
     function openDeepLink() {
         var id = 0
         try { id = parseInt(new URLSearchParams(location.search).get('short') || '0', 10) || 0 } catch (e) {}
-        if (!id || !window.CandySeries) return
+        if (!id || !window.SiteSeries) return
         var item = byId[String(id)]
         if (!item) return
-        window.CandySeries.open({
+        window.SiteSeries.open({
             shortId: id,
             title: item.title || '',
             description: item.description || '',

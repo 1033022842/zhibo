@@ -2,7 +2,7 @@
  * AI 女友端 Discover（原 Posts 动态流）
  *
  * 素材全部来自「直播运营 → 短剧管理」（GET /api/live/shorts），不再混入动态/私密内容。
- * 交互沿用 candy.ai/feed/posts 的原站结构：
+ * 交互沿用 参考站 feed/posts 的原站结构：
  *   - 竖向 scroll-snap 吸附，一次一屏一部剧
  *   - IntersectionObserver 给当前可见卡片加 is-visible 并自动播放（带声音；被浏览器拦截时静音起播，首次交互后恢复声音）
  *   - 点击媒体切换播放 / 暂停，暂停时显示共享的 .feed-play-overlay

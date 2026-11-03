@@ -135,7 +135,7 @@
 			.c-row.fade-left.fade-right,.c-chips.fade-left.fade-right{
 				-webkit-mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%);
 				mask-image:linear-gradient(to right,transparent 0,#000 70px,#000 calc(100% - 70px),transparent 100%)}
-			/* 顶栏分类栏（照 candy.ai 原版 #head-btn-group，高亮规则在 assets/fy.css?v=20261018c 统一维护） */
+			/* 顶栏分类栏（参考版 #head-btn-group，高亮规则在 assets/fy.css?v=20261018c 统一维护） */
 
 			/* 滚动箭头：标题行 / chips 行 / 卡片行 */
 			.c-arrow{width:24px;height:24px;padding:0;border:none;background:transparent;color:var(--h-grey);cursor:pointer;
@@ -220,7 +220,7 @@
 			.c-viewall-short{width:190px;height:271px}
 			.c-viewall-tall{width:190px;height:auto;aspect-ratio:9/16}
 
-			/* ---------- Private Content 卡片：样式对齐 candy.ai/private-content（参考页 siren.html）
+			/* ---------- Private Content 卡片：样式对齐参考页 siren.html
 			   栏目布局（横向单排）不变，只统一卡片本身的观感：模糊封面 + 头像/昵称 + New 角标
 			   + 播放按钮与视频/图片数 + 代币价与星级 + 两行简介 + Unlock/Watch 按钮 ---------- */
 			.pc-item{width:190px;list-style:none}
@@ -594,7 +594,7 @@
 			</a>
 			<!-- Separator -->
 			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
-			<!-- 分类栏（照 candy.ai 原版 #head-btn-group：PC 内联在 logo 后，手机端顶栏下方整条深色栏、带图标） -->
+			<!-- 分类栏（参考版 #head-btn-group：PC 内联在 logo 后，手机端顶栏下方整条深色栏、带图标） -->
 			<div id="head-btn-group" class="flex flex-grow-0 flex-shrink basis-0 absolute md:relative justify-center md:justify-start h-[42px] md:h-full w-full top-[64px] md:top-auto bg-[#212121] md:bg-transparent ml-0 md:ml-12 -mb-[2px] pl-0 left-0 md:left-auto">
 				<button type="button" data-cat="girls" class="head-btn active w-[93px] h-full justify-center items-center inline-flex mr-5 md:mr-0 border-b-4 border-transparent group">
 					<div class="flex items-center">
@@ -1468,14 +1468,14 @@
 				initShelf(sec)
 			}
 
-			// 点击短剧卡：剧集弹窗（series-dialog.js 提供 CandySeries）
+			// 点击短剧卡：剧集弹窗（series-dialog.js 提供 SiteSeries）
 			document.addEventListener('click', function(e) {
 				var el = e.target.closest ? e.target.closest('[data-short-id]') : null
 				if (!el) return
 				e.preventDefault()
 				var s = shortsById[String(el.getAttribute('data-short-id') || '')]
-				if (!s || !window.CandySeries) return
-				window.CandySeries.open({
+				if (!s || !window.SiteSeries) return
+				window.SiteSeries.open({
 					shortId: s.id,
 					title: s.title || '',
 					description: s.description || ''
@@ -1648,13 +1648,13 @@
 				initShelf(sec)
 			}
 			function watchPriv(item) {
-				if (!window.CandyWatch) { location.href = './private_content.html?id=' + encodeURIComponent(item.id); return }
+				if (!window.SiteWatch) { location.href = './private_content.html?id=' + encodeURIComponent(item.id); return }
 				var sub = []
 				if (item.creator) sub.push(item.creator)
 				var vc = Number(item.video_count || 0), ic = Number(item.image_count || 0)
 				if (vc > 0) sub.push(vc + (vc > 1 ? ' videos' : ' video') + (item.duration ? ' · ' + item.duration : ''))
 				if (ic > 0) sub.push(ic + (ic > 1 ? ' photos' : ' photo'))
-				window.CandyWatch.open({
+				window.SiteWatch.open({
 					title: item.title || '',
 					subtitle: sub.join(' · '),
 					videoUrl: item.video_url || '',
@@ -1862,7 +1862,7 @@ document.addEventListener('click', function (e) {
 		</div>
 	</div>
 	<script>
-	/* 「添加到主屏幕」安装教程：顶部提示条 或 抽屉「Get Candy.ai app」(#install-app) 打开 */
+	/* 「添加到主屏幕」安装教程：顶部提示条 或 抽屉「Get App」(#install-app) 打开 */
 	(function () {
 		var KEY = 'sugus.appdl.dismissed';
 		var body = document.body;
@@ -1914,7 +1914,7 @@ document.addEventListener('click', function (e) {
 			});
 		}
 
-		// 抽屉「Get Candy.ai app」深链：进入 Home.html#install-app 直接打开教程
+		// 抽屉「Get App」深链：进入 Home.html#install-app 直接打开教程
 		function openFromHash() {
 			if (location.hash === '#install-app') {
 				openModal();

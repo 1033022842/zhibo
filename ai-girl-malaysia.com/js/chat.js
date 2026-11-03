@@ -76,7 +76,7 @@
             setupRebootDialog()
             avatarFallback()
         }
-        // 场景按钮（candy 新版 Show me the scene）每次进入重绑（Turbo 快照恢复丢监听）
+        // 场景按钮（参考站新版 Show me the scene）每次进入重绑（Turbo 快照恢复丢监听）
         setupSceneButtons()
         // 首页角色目录预热：home-N 人设不再依赖 localStorage（被清/被替换会导致串号或空白）
         loadHomeRoles(function () {
@@ -1058,7 +1058,7 @@
     }
 
     /* ---------- Suggestion 建议语：点击直接作为消息发送（捕获阶段拦截，避免触发原站注册弹窗） ---------- */
-    /* ---------- 场景媒体（candy 新版「Show me the scene」：点按钮发图/发视频） ---------- */
+    /* ---------- 场景媒体（参考站新版「Show me the scene」：点按钮发图/发视频） ---------- */
     var sceneMedia = { images: [], videos: [], loading: false, sending: false }
 
     // 场景媒体的角色键：home-N 原样、纯数字（= lp_ai_content.id）补成 home-N；自建/默认会话无媒体
@@ -1167,7 +1167,7 @@
         } catch (e) {}
     }
 
-    // 记住用户对右侧面板的折叠选择（candy 的 profile-toggle 控制器点完后再读一次结果）
+    // 记住用户对右侧面板的折叠选择（参考站的 profile-toggle 控制器点完后再读一次结果）
     if (!window.__chatPanelPrefBound) {
         window.__chatPanelPrefBound = true
         document.addEventListener('click', function (e) {
@@ -2319,7 +2319,7 @@
     }
 
     function setupCall() {
-        // 通话按钮：站内浏览器语音通话（不再走 candy 的 phone-call 控制器）
+        // 通话按钮：站内浏览器语音通话（不再走 参考站的 phone-call 控制器）
         document.addEventListener('click', function (e) {
             var el = e.target && e.target.closest
                 ? e.target.closest('#phone-btn, #call-btn, [data-phone-call-target="callButton"]')
@@ -2616,7 +2616,7 @@
             var guestBox = messagesBox()
             if (guestBox) guestBox.innerHTML = ''
             showIceBreaker()
-            // 场景按钮（未登录也展示，点击跳登录——candy 同款门禁）
+            // 场景按钮（未登录也展示，点击跳登录——参考站同款门禁）
             loadSceneMedia()
             return
         }

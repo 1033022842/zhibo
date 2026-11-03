@@ -70,7 +70,7 @@
             .catch(function () { return [] })
     }
 
-    /* ---------- 卡片（带进度条；风格对齐 candy 的 Continue watching） ---------- */
+    /* ---------- 卡片（带进度条；风格对齐参考版的 Continue watching） ---------- */
     function card(item, opts) {
         var o = opts || {}
         var p = Math.max(0, Math.min(100, Number(item.progress) || 0))
@@ -104,8 +104,8 @@
     function open(item) {
         if (!item || !item.id) return
         if (item.type === 'short') {
-            if (window.CandySeries) {
-                window.CandySeries.open({
+            if (window.SiteSeries) {
+                window.SiteSeries.open({
                     shortId: item.id,
                     title: item.title || '',
                     episodeId: item.episode_id || 0
@@ -125,12 +125,12 @@
                     location.href = './private_content.html'
                     return
                 }
-                if (!window.CandyWatch) return
+                if (!window.SiteWatch) return
                 var sub = []
                 if (it.creator) sub.push(it.creator)
                 if (Number(it.video_count) > 0) sub.push(it.video_count + (Number(it.video_count) > 1 ? ' videos' : ' video'))
                 if (Number(it.image_count) > 0) sub.push(it.image_count + (Number(it.image_count) > 1 ? ' photos' : ' photo'))
-                window.CandyWatch.open({
+                window.SiteWatch.open({
                     title: it.title || it.creator || 'Private Content',
                     subtitle: sub.join(' · '),
                     videoUrl: it.video_url || '',
