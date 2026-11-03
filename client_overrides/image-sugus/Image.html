@@ -185,7 +185,7 @@
 
 
 	<script src="./js/ui-dialog.js?v=20260928d"></script>
-	<script src="./js/customVideo.js?v=20261031p2"></script>
+	<script src="./js/customVideo.js?v=20261103fav1"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
@@ -665,6 +665,7 @@
 					<div class="gs-nav">
 						<button type="button" class="gs-nav-item on" id="cvTabExplore">Explore</button>
 						<button type="button" class="gs-nav-item" id="cvTabWorks">My Works</button>
+						<button type="button" class="gs-nav-item" id="cvTabFavs">Favorites</button>
 						<span class="gs-nav-new">NEW</span>
 					</div>
 					<div class="gs-filter">
@@ -785,16 +786,22 @@
 .cv-empty{padding:56px 15px;text-align:center;color:var(--sg-grey);font-size:14px}
 </style>
 
-				<div class="gs-modal" id="gsWorksModal" aria-hidden="true">
-					<div class="gs-modal__panel" role="dialog" aria-modal="true" aria-label="My Works">
-						<button type="button" class="gs-modal__close" data-gs-close="gsWorksModal" aria-label="Close">✕</button>
-						<div class="gs-modal__body">
-							<div class="gs-modal__title">My Works</div>
-							<div class="cv-empty" id="cvWorksEmpty">No videos yet — create your first one! ✨</div>
-							<div class="cv-works" id="cvWorksGrid"></div>
-						</div>
-					</div>
+				<div class="cv-works-page" id="cvWorksPage" style="display:none">
+					<div class="cv-empty" id="cvWorksEmpty" style="display:none">No videos yet — create your first one! ✨</div>
+					<div class="cv-works" id="cvWorksGrid"></div>
 				</div>
+				<style>
+/* My Works 页签容器：替换原弹窗，历史生成记录整页展示 */
+.cv-works-page{padding:4px 2px 24px;min-height:40vh}
+/* 卡片收藏爱心：右上角悬浮，hover 出现、收藏后常亮 */
+.gs-card__like{position:absolute;top:10px;right:10px;z-index:5;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(10,10,12,.55);backdrop-filter:blur(4px);color:rgba(255,255,255,.85);cursor:pointer;transition:transform .15s ease,background .2s ease,opacity .2s ease;opacity:0}
+.gs-card:hover .gs-card__like,.gs-card__like.on{opacity:1}
+.gs-card__like:hover{transform:scale(1.08);background:rgba(10,10,12,.75)}
+.gs-card__like.on{color:#f97187}
+.gs-card__like.on svg path{fill:#f97187;stroke:#f97187}
+.gs-card__like svg{pointer-events:none}
+@media (hover:none){.gs-card__like{opacity:1}}
+</style>
 				<div class="gs-modal" id="gsCardModal" aria-hidden="true">
 					<div class="gs-modal__panel gs-gen" role="dialog" aria-modal="true" aria-label="Create">
 						<div class="gs-gen__head">
