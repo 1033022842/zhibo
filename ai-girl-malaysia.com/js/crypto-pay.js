@@ -161,9 +161,10 @@
     }
 
     function money(v) {
+        var sym = window.SITE_CURRENCY || '$'
         var n = parseFloat(v)
-        if (isNaN(n)) { return '$' + v }
-        return '$' + n.toFixed(2)
+        if (isNaN(n)) { return sym + v }
+        return sym + n.toFixed(2)
     }
 
     // ---------- 金额 / 描述 ----------
@@ -185,7 +186,11 @@
                 $('cp-continue').disabled = true
                 return
             }
-            var level = String(plan.level || 'premium') === 'premium_plus' ? 'Premium Plus' : 'Premium'
+            // 人民币站点（Kelymi）对外用 VIP / SVIP；其他站点保持 Premium / Premium Plus
+            var cny = window.SITE_CURRENCY === '¥'
+            var level = String(plan.level || 'premium') === 'premium_plus'
+                ? (cny ? 'SVIP' : 'Premium Plus')
+                : (cny ? 'VIP' : 'Premium')
             var months = parseInt(plan.months, 10) || 1
             var tk = plan.tokens_month ? ' · ' + plan.tokens_month + ' tokens/mo' : ''
             $('cp-desc').textContent = level + ' | ' + months + ' Month' + (months > 1 ? 's' : '') + tk
@@ -252,7 +257,7 @@
      */
     var WISON_LABELS = { US: 'United States', IN: 'India', TH: 'Thailand', ID: 'Indonesia' }
     var WISON_PHONE = {
-        US: { placeholder: '14241276442', hint: '10 digits, with country code 1' },
+        US: { placeholder: '14241276442', hint: 'US number: 10 digits, or 11 digits starting with 1' },
         IN: { placeholder: '9876543210', hint: '10 digits, without +91' },
         TH: { placeholder: '0812345678', hint: '10 digits' },
         ID: { placeholder: '08123456789', hint: 'starts with 0 or 62' }
@@ -315,6 +320,19 @@
         if (phone) {
             phone.placeholder = info.placeholder
             phone.setAttribute('inputmode', 'numeric')
+            phone.setCustomValidity('')
+            if (!phone.getAttribute('data-phone-bound')) {
+                phone.setAttribute('data-phone-bound', '1')
+                phone.addEventListener('input', function () { phone.setCustomValidity('') })
+            }
+            var hint = $('cp-payer-phone-hint')
+            if (!hint) {
+                hint = document.createElement('small')
+                hint.id = 'cp-payer-phone-hint'
+                hint.style.cssText = 'display:block;margin-top:4px;font-size:12px;color:#6B7280;'
+                phone.parentNode.appendChild(hint)
+            }
+            hint.textContent = info.hint
         }
         var extra = $('cp-payer-extra')
         var methods = WISON_METHODS[code] || []
@@ -337,6 +355,30 @@
         syncPayerMethod(code)
     }
 
+    /** HissPay：只需姓名 / 邮箱 / 手机号，手机号 5–15 位数字 */
+    function renderHissPayerFields() {
+        var phone = $('cp-payer-mobile')
+        if (phone) {
+            phone.placeholder = '14155552671'
+            phone.setAttribute('inputmode', 'numeric')
+            phone.setCustomValidity('')
+            if (!phone.getAttribute('data-phone-bound')) {
+                phone.setAttribute('data-phone-bound', '1')
+                phone.addEventListener('input', function () { phone.setCustomValidity('') })
+            }
+            var hint = $('cp-payer-phone-hint')
+            if (!hint) {
+                hint = document.createElement('small')
+                hint.id = 'cp-payer-phone-hint'
+                hint.style.cssText = 'display:block;margin-top:4px;font-size:12px;color:#6B7280;'
+                phone.parentNode.appendChild(hint)
+            }
+            hint.textContent = '5–15 digits, include country code, no + or spaces'
+        }
+        var extra = $('cp-payer-extra')
+        if (extra) { extra.hidden = true }
+    }
+
     /** 泰国/印尼：选到银行卡才显示银行下拉（泰国还要卡号） */
     function syncPayerMethod(code) {
         var mSel = $('cp-payer-method')
@@ -346,6 +388,19 @@
         $('cp-payer-card-wrap').hidden = !(isBank && code === 'TH')
         var card = $('cp-payer-card')
         if (card) { card.required = isBank && code === 'TH' }
+    }
+
+    /** 美国通道只认美国号码（网关会返回 INVALID_MOBILE_NUMBER，这里提前拦截并说明原因） */
+    function validatePayerPhone() {
+        var phone = $('cp-payer-mobile')
+        if (!phone) { return true }
+        var code = currentRegion()
+        var digits = String(phone.value || '').replace(/[^0-9]/g, '')
+        var ok = code !== 'US' || /^(?:1[0-9]{10}|[0-9]{10})$/.test(digits)
+        phone.setCustomValidity(ok
+            ? ''
+            : 'Please enter a valid US phone number (10 digits, or 11 digits starting with 1). If your number belongs to another country, choose that country/region.')
+        return ok
     }
 
     /** 取通道配置（币种 / 后台汇率 / 精度），用于付款前预估 */
@@ -365,14 +420,20 @@
                 wisonRegions = list.filter(function (c) { return c.gateway === 'wisonpay' })
             }
             $('cp-continue').disabled = false
+            var needsPayer = fiatChannel.gateway === 'wisonpay' || fiatChannel.gateway === 'hisspay'
             if ($('cp-payer')) {
-                $('cp-payer').hidden = fiatChannel.gateway !== 'wisonpay'
+                $('cp-payer').hidden = !needsPayer
                 $('cp-payer').addEventListener('submit', function (event) {
                     event.preventDefault()
                     if (!$('cp-continue').disabled) createOrder()
                 })
             }
+            // 国家/地区选择只有 WisonPay 需要；HissPay 只收姓名/邮箱/手机号
+            if ($('cp-payer-country')) {
+                $('cp-payer-country').parentNode.hidden = fiatChannel.gateway !== 'wisonpay'
+            }
             if (wisonRegions.length) { renderCountrySelect() }
+            if (fiatChannel.gateway === 'hisspay') { renderHissPayerFields() }
             renderFiatPreview()
         })
     }
@@ -405,14 +466,16 @@
             name = 'WisonPay' + (/test merchant/i.test(fiatChannel.instructions || '') ? ' (Test)' : '')
         }
         $('cp-fiat-meta').textContent = name +
-            ' · 1 USD = ' + fiatChannel.usd_rate + ' ' + fiatChannel.currency
+            (String(fiatChannel.currency || '').toUpperCase() === 'CNY'
+                ? ''
+                : ' · 1 USD = ' + fiatChannel.usd_rate + ' ' + fiatChannel.currency)
     }
 
     /** 法币下单：服务端按后台汇率折算成本币，并把当次汇率锁进订单 */
     function createFiatOrder() {
         var req
         var payer = {}
-        if (fiatChannel && fiatChannel.gateway === 'wisonpay') {
+        if (fiatChannel && (fiatChannel.gateway === 'wisonpay' || fiatChannel.gateway === 'hisspay')) {
             payer = {
                 payer_name: $('cp-payer-name').value.trim(),
                 payer_email: $('cp-payer-email').value.trim(),
@@ -466,8 +529,10 @@
     // ---------- 下单 ----------
     function createOrder() {
         if (!isFiat && !picked) { return }
-        if (isFiat && fiatChannel && fiatChannel.gateway === 'wisonpay'
-            && (!$('cp-payer') || !$('cp-payer').reportValidity())) { return }
+        if (isFiat && fiatChannel
+            && (fiatChannel.gateway === 'wisonpay' || fiatChannel.gateway === 'hisspay')
+            && (!$('cp-payer') || !$('cp-payer').reportValidity()
+                || (fiatChannel.gateway === 'wisonpay' && !validatePayerPhone()))) { return }
         var btn = $('cp-continue')
         if (btn.disabled) { return }
         btn.disabled = true
@@ -576,9 +641,13 @@
         $('cp-exact-label').textContent = 'Please pay'
         $('cp-exact').textContent = fiatMoney(f, f.amount)
         $('cp-exact-copy').hidden = true
-        // 本币是本单锁定值，同时把折算前的 USD 与汇率标出来，方便用户对账
-        $('cp-usd-note').hidden = false
-        $('cp-usd-note').textContent = '= $' + f.usd + ' · 1 USD = ' + f.rate + ' ' + f.currency
+        // 本币是本单锁定值；CNY 通道汇率=1，不再展示 USD 折算行，避免出现“$”和 1 USD=1 CNY 的误导
+        if (String(f.currency || '').toUpperCase() === 'CNY') {
+            $('cp-usd-note').hidden = true
+        } else {
+            $('cp-usd-note').hidden = false
+            $('cp-usd-note').textContent = '= ' + fiatMoney(f, f.usd) + ' · 1 USD = ' + f.rate + ' ' + f.currency
+        }
 
         $('cp-addr-block').hidden = true
         $('cp-memo-block').hidden = true

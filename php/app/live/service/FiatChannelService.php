@@ -56,6 +56,10 @@ final class FiatChannelService
             'decimals'   => (int) $row['decimals'],
             'min_amount' => (float) $row['min_amount'],
             'diamond_rate' => (float) $row['diamond_rate'],
+            // 固定金额档位的网关（HissPay）：前台只在这些金额上展示该通道
+            'amounts'    => (string) $row['gateway'] === 'hisspay'
+                ? array_values((array) config('hisspay.amounts'))
+                : [],
         ];
     }
 
