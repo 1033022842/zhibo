@@ -22,5 +22,6 @@ Route::group('v1/vip', function () {
     Route::post('buy', '\app\api\controller\Vip@buy');
     Route::post('order', '\app\api\controller\Vip@order');
     Route::get('status', '\app\api\controller\Vip@status');
+    Route::get('orders', '\app\api\controller\Vip@orders');
     Route::post('claim-daily', '\app\api\controller\Vip@claimDaily');
 });
