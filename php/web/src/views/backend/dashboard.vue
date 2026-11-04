@@ -24,7 +24,7 @@
                 <div class="big-info">
                     <div class="big-num">{{ c.value }}</div>
                     <div class="big-label">{{ c.label }}</div>
-                    <div class="big-sub">{{ c.sub }}</div>
+                    <div class="big-sub"><span v-if="c.live" class="live-dot"></span>{{ c.sub }}</div>
                 </div>
             </div>
         </div>
@@ -203,6 +203,7 @@ const stats = reactive({
     users_total: 0,
     users_today: 0,
     users_period: 0,
+    online_users: -1,
     rooms_total: 0,
     rooms_live: -1,
     recharge_period_usd: 0,
@@ -246,6 +247,15 @@ const bigCards = computed(() => [
         icon: 'fa fa-users',
         color: '#4A90E2',
         bg: 'rgba(74, 144, 226, 0.12)',
+    },
+    {
+        label: '在线人数',
+        value: stats.online_users >= 0 ? fmtInt(stats.online_users) : '—',
+        sub: '近 5 分钟活跃',
+        live: true,
+        icon: 'fa fa-user-circle',
+        color: '#67C23A',
+        bg: 'rgba(103, 194, 58, 0.12)',
     },
     {
         label: '累计充值（USDT）',
@@ -333,6 +343,16 @@ const applyQuick = (days: number) => {
     loadData()
 }
 
+// 在线人数：只取在线口径，15 秒轮询一次
+const refreshOnline = () => {
+    index({ scope: 'online' })
+        .then((res) => {
+            const n = res.data?.online_users
+            if (typeof n === 'number') stats.online_users = n
+        })
+        .catch(() => {})
+}
+
 // 系统时间
 const clock = ref('')
 const tzText = computed(() => {
@@ -340,9 +360,27 @@ const tzText = computed(() => {
     return `GMT${off >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`
 })
 let timer: ReturnType<typeof setInterval> | null = null
+let onlineTimer: ReturnType<typeof setInterval> | null = null
 const tick = () => {
     const d = new Date()
     clock.value = `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
+const startTimers = () => {
+    tick()
+    if (!timer) timer = setInterval(tick, 1000)
+    if (!onlineTimer) onlineTimer = setInterval(refreshOnline, 15000)
+}
+
+const stopTimers = () => {
+    if (timer) {
+        clearInterval(timer)
+        timer = null
+    }
+    if (onlineTimer) {
+        clearInterval(onlineTimer)
+        onlineTimer = null
+    }
 }
 
 let activated = false
@@ -351,30 +389,21 @@ onBeforeMount(() => {
 })
 
 onMounted(() => {
-    tick()
-    timer = setInterval(tick, 1000)
+    startTimers()
 })
 
 onActivated(() => {
-    if (activated) loadData()
+    if (activated) {
+        loadData()
+        refreshOnline()
+    }
     activated = true
-    tick()
-    if (!timer) timer = setInterval(tick, 1000)
+    startTimers()
 })
 
-onDeactivated(() => {
-    if (timer) {
-        clearInterval(timer)
-        timer = null
-    }
-})
+onDeactivated(stopTimers)
 
-onUnmounted(() => {
-    if (timer) {
-        clearInterval(timer)
-        timer = null
-    }
-})
+onUnmounted(stopTimers)
 </script>
 
 <style scoped lang="scss">
@@ -422,7 +451,7 @@ onUnmounted(() => {
 
     .big-cards {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 14px;
         margin-top: 14px;
         .big-card {
@@ -459,6 +488,16 @@ onUnmounted(() => {
                     margin-top: 2px;
                     font-size: 12px;
                     color: var(--el-text-color-placeholder);
+                    .live-dot {
+                        display: inline-block;
+                        width: 6px;
+                        height: 6px;
+                        margin-right: 4px;
+                        border-radius: 50%;
+                        background: #67c23a;
+                        vertical-align: middle;
+                        animation: livePulse 1.6s ease-in-out infinite;
+                    }
                 }
             }
         }
@@ -604,6 +643,16 @@ onUnmounted(() => {
             font-weight: 600;
             cursor: default;
         }
+    }
+}
+
+@keyframes livePulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.25;
     }
 }
 
