@@ -17,6 +17,15 @@ class Dashboard extends Backend
         $db    = Db::connect('live_mysql');
         $today = date('Y-m-d');
 
+        // 在线人数（近 5 分钟有带 token 请求的用户，口径同会员列表 UserService::ONLINE_WINDOW）
+        $onlineUsers = $this->onlineUsers($db);
+
+        // scope=online：控制台实时轮询只取在线人数，避免整页重复统计
+        if (trim((string) $this->request->param('scope', '')) === 'online') {
+            $this->success('', ['online_users' => $onlineUsers]);
+            return;
+        }
+
         // ── 统计区间（默认今日，半开区间 [start, end) 避免边界重复计数）──
         [$from, $to] = $this->range();
         $start = $from . ' 00:00:00';
@@ -119,6 +128,7 @@ class Dashboard extends Backend
                 'users_total'           => $usersTotal,
                 'users_today'           => $usersToday,
                 'users_period'          => $usersPeriod,
+                'online_users'          => $onlineUsers,
                 'rooms_total'           => $roomsTotal,
                 'rooms_live'            => $roomsLive,
 
@@ -177,6 +187,18 @@ class Dashboard extends Backend
                 return $r;
             }, $latestWithdraw),
         ]);
+    }
+
+    /** 在线人数：最近 5 分钟内有过带 token 请求的用户（-1 表示字段缺失，无法统计） */
+    private function onlineUsers($db): int
+    {
+        try {
+            return $db->table('lp_user_profile')
+                ->where('last_active_at', '>=', date('Y-m-d H:i:s', time() - 300))
+                ->count();
+        } catch (\Throwable $e) {
+            return -1;
+        }
     }
 
     /** 解析统计区间：from / to（Y-m-d），非法或缺失时默认今日 */
