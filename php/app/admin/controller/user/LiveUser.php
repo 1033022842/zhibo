@@ -39,6 +39,23 @@ class LiveUser extends Backend
         $this->model = new LiveUserModel();
     }
 
+    /** 代理账号只能查看自己团队的会员 */
+    private function assertAgentUser(int $userId): void
+    {
+        if (!$this->agentAccount || $userId <= 0) {
+            return;
+        }
+        $team  = \app\live\service\AgentService::teamIds((int) $this->agentAccount['id']);
+        $owner = (int) Db::connect('live_mysql')->table('lp_user')->where('id', $userId)->value('reg_agent_id');
+        if (!in_array($owner, $team, true)) {
+            if ($this->request->isAjax()) {
+                $this->error('无权查看该会员', [], 403);
+            }
+            response('无权查看该会员', 403)->send();
+            exit;
+        }
+    }
+
     public function registrationSettings(): void
     {
         if (!$this->auth->isSuperAdmin() && !$this->auth->check('user/liveUser/index')) {
@@ -178,7 +195,7 @@ class LiveUser extends Backend
     {
         list($where, $alias, $limit, $order) = $this->queryBuilder();
 
-        $res = $this->model
+        $query = $this->model
             ->field('
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
                 live_user.email, live_user.status, live_user.level, live_user.vip_expire_at, live_user.created_at,
@@ -206,9 +223,20 @@ class LiveUser extends Backend
             ->leftJoin('lp_user_profile', 'lp_user_profile.user_id = live_user.id')
             ->leftJoin('lp_merchant_certification cert', 'cert.user_id = live_user.id')
             ->where($where)
-            ->where('live_user.is_deleted', 0)
-            ->order($order)
-            ->paginate($limit);
+            ->where('live_user.is_deleted', 0);
+
+        // 在线状态筛选：1=在线（近 5 分钟有心跳），0=离线（含从未登录过）
+        $online = (string) $this->request->param('online', '');
+        if ($online === '1' || $online === '0') {
+            $threshold = date('Y-m-d H:i:s', time() - UserService::ONLINE_WINDOW);
+            if ($online === '1') {
+                $query->where('lp_user_profile.last_active_at', '>=', $threshold);
+            } else {
+                $query->whereRaw('(lp_user_profile.last_active_at IS NULL OR lp_user_profile.last_active_at < ?)', [$threshold]);
+            }
+        }
+
+        $res = $query->order($order)->paginate($limit);
 
         // 像素名映射：reg_px 存的是 lp_promo_pixel.id 或像素ID字符串，两种都映射一份（仅用于悬浮明细展示）
         $pixelNames = [];
@@ -536,6 +564,7 @@ class LiveUser extends Backend
         if ($userId <= 0) {
             $this->error(__('Parameter error'));
         }
+        $this->assertAgentUser($userId);
 
         $rows = Db::connect('live_mysql')->table('lp_invite_record')->alias('ir')
             ->join('lp_user u', 'u.id = ir.invitee_id')
@@ -574,6 +603,7 @@ class LiveUser extends Backend
     public function detail(): void
     {
         $userId = $this->request->param('id/d', 0);
+        $this->assertAgentUser($userId);
         $user = $this->model->find($userId);
         if (!$user) {
             response('用户不存在')->send();

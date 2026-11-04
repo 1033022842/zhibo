@@ -43,6 +43,13 @@
                 border-radius: 6px;
             "
         >
+            <span style="color: #606266; font-size: 13px">在线状态</span>
+            <el-select v-model="onlineFilter" size="small" style="width: 100px" @change="applyOnlineFilter">
+                <el-option label="全部" value="" />
+                <el-option label="在线" value="1" />
+                <el-option label="离线" value="0" />
+            </el-select>
+            <span style="width: 1px; height: 18px; background: var(--el-border-color); margin: 0 4px"></span>
             <span style="color: #606266; font-size: 13px">来源筛选</span>
             <el-select v-model="srcFilter.field" size="small" style="width: 150px">
                 <el-option v-for="f in SRC_FIELDS" :key="f.value" :label="f.label" :value="f.value" />
@@ -154,7 +161,7 @@
 </template>
 
 <script setup lang="ts">
-import { provide, reactive, h, defineComponent, onMounted, onUnmounted } from 'vue'
+import { provide, reactive, ref, h, defineComponent, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElTag, ElTooltip } from 'element-plus'
 import baTableClass from '/@/utils/baTable'
@@ -337,6 +344,21 @@ const openInvitees = (row: TableRow) => {
         .catch(() => {
             inviteState.loading = false
         })
+}
+
+// ---------------- 在线状态筛选（在线 = 近 5 分钟有心跳，口径同 UserService::ONLINE_WINDOW） ----------------
+const onlineFilter = ref('')
+
+const applyOnlineFilter = () => {
+    const filter = baTable.table.filter
+    if (!filter) return
+    if (onlineFilter.value === '') {
+        delete (filter as any).online
+    } else {
+        ;(filter as any).online = onlineFilter.value
+    }
+    filter.page = 1
+    baTable.getData()
 }
 
 // ---------------- 来源筛选（顶部筛选器 / 点列表「来源」标签） ----------------
