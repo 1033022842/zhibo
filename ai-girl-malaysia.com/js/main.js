@@ -6,7 +6,7 @@
         gatewayScript.id = 'live-login-gateway-script'
         var mainScriptUrl = document.currentScript && document.currentScript.src
             ? document.currentScript.src : new URL('./js/main.js', location.href).href
-        gatewayScript.src = new URL('./login-gateway.js?v=20261030a', mainScriptUrl).href
+        gatewayScript.src = new URL('./login-gateway.js?v=20261104a', mainScriptUrl).href
         document.head.appendChild(gatewayScript)
     }
     var cacheTemplate = ''
@@ -324,6 +324,7 @@
           form.append("reg_channel", localStorage.getItem('reg_channel') || '');
           form.append("reg_px", localStorage.getItem('promo_px') || '');
           form.append("reg_link_name", localStorage.getItem('promo_name') || '');
+          form.append("reg_link", localStorage.getItem('promo_l') || '');
           form.append("source_url", location.href);
           // 广告归因明细：广告系列 / 广告组 / 广告（utm_* 与 FB 宏参数，tracking.js 首触记录）
           try {
