@@ -164,7 +164,8 @@ final class LoginGateway extends BaseController
             'attr' => [
                 'domain' => $pick(['reg_domain']) ?: $this->request->host(),
                 'channel' => $pick(['reg_channel'], 64), 'px' => $pick(['reg_px'], 64),
-                'link_name' => $pick(['reg_link_name']), 'platform' => $pick(['reg_platform'], 32),
+                'link_name' => $pick(['reg_link_name']), 'link_id' => $pick(['reg_link'], 16),
+                'platform' => $pick(['reg_platform'], 32),
                 'utm_source' => $pick(['utm_source']), 'utm_medium' => $pick(['utm_medium']),
                 'campaign' => $pick(['campaign_name', 'campaign_id', 'utm_campaign']),
                 'adset' => $pick(['adset_name', 'adset_id', 'utm_term']),

@@ -254,7 +254,7 @@ tr:last-child td{border-bottom:none}
         <h2>复制推广链接<span class="muted" style="font-weight:400"> · 本页只负责看数据</span></h2>
         <div class="sub" style="margin:0">
             现在不再单独维护「推广链接」页了；请直接到 <b>「推广与像素 &gt; 渠道配置」</b> 列表里复制每条渠道的默认投放链接。
-            复制出的链接会自动带上 <b>?px= / ?name= / ?ch=</b> 参数，并继续归因到本报表的 <b>推广链接名称</b> 维度。当前已收录 <b>{$domainCount}</b> 个推广域名。
+            复制出的短链接只带 <b>?px=</b>（+ <b>?ch=</b>）参数，注册时后台按渠道ID 反解出渠道名称；需要按「链接名称」区分来源时，请用「推广链接」页生成的命名短链接。当前已收录 <b>{$domainCount}</b> 个推广域名。
         </div>
         <div class="link-box" style="margin-top:12px">
             <button class="btn" onclick="gotoPromoSetting()">去「渠道配置」页复制 →</button>

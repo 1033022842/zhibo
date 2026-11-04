@@ -75,6 +75,7 @@ final class Live extends BaseController
             'channel'    => (string) ($params['reg_channel'] ?? ''),
             'px'         => (string) ($params['reg_px'] ?? ''),
             'link_name'  => (string) ($params['reg_link_name'] ?? ''),
+            'link_id'    => (string) ($params['reg_link'] ?? ''),
             'platform'   => (string) ($params['reg_platform'] ?? ''),
             'utm_source' => (string) ($params['utm_source'] ?? ''),
             'utm_medium' => (string) ($params['utm_medium'] ?? ''),
