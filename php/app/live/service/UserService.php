@@ -123,8 +123,9 @@ final class UserService
 
     private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, array $attr = []): array
     {
+        $attr = $this->resolvePromoLinkAttr($attr);
         $attr = array_merge([
-            'domain' => '', 'channel' => '', 'px' => '', 'link_name' => '',
+            'domain' => '', 'channel' => '', 'px' => '', 'link_name' => '', 'link_id' => '',
             'platform' => '', 'campaign' => '', 'adset' => '', 'ad' => '',
             'utm_source' => '', 'utm_medium' => '',
         ], $attr);
@@ -695,6 +696,40 @@ final class UserService
             $reason === '' ? '-' : $reason,
             $description === '' ? '-' : $description
         ));
+    }
+
+    /**
+     * 短链接归因：链接形如 ?px=37&l=12，名称/渠道/像素按 l 从 lp_promo_link 反解
+     * 旧版长链接（?px=&name=&ch=）不传 l，走原有逻辑，保持兼容
+     */
+    private function resolvePromoLinkAttr(array $attr): array
+    {
+        $linkId = (int) ($attr['link_id'] ?? 0);
+        if ($linkId <= 0) {
+            return $attr;
+        }
+        try {
+            $row = Db::connect('live_mysql')->table('lp_promo_link')->where('id', $linkId)->find();
+        } catch (\Throwable $e) {
+            Log::warning('[promo] 短链接反解失败 l=' . $linkId . ' err=' . $e->getMessage());
+            return $attr;
+        }
+        if (!$row) {
+            return $attr;
+        }
+        $name = trim((string) ($row['name'] ?? ''));
+        if ($name !== '') {
+            $attr['link_name'] = $name;
+        }
+        $channel = trim((string) ($row['channel'] ?? ''));
+        if ($channel !== '' && trim((string) ($attr['channel'] ?? '')) === '') {
+            $attr['channel'] = $channel;
+        }
+        $pixelId = (int) ($row['pixel_id'] ?? 0);
+        if ($pixelId > 0 && trim((string) ($attr['px'] ?? '')) === '') {
+            $attr['px'] = (string) $pixelId;
+        }
+        return $attr;
     }
 
     /**

@@ -184,7 +184,6 @@ final class PromoSetting extends Backend
             $eventsV    = $events === [] ? '<span class="muted">全部</span>' : htmlspecialchars(implode(' / ', $events), ENT_QUOTES);
             $statusHtml = $status === 1 ? '<span class="flag flag-on">启用</span>' : '<span class="flag flag-off">停用</span>';
             $toggleText = $status === 1 ? '停用' : '启用';
-            $linkName      = trim($nameRaw) !== '' ? trim($nameRaw) : ('channel-' . $id);
             $copyPromoBtn  = '';
             $copyPromoHint = '';
             if ($status === 1) {
@@ -192,10 +191,12 @@ final class PromoSetting extends Backend
                     if (strpos($promoDomain, '*') !== false) {
                         continue;
                     }
-                    // 普通推广 / 其他不绑定像素：链接只带渠道ID（最短写法），注册时后台按 ID 反解出渠道名称
-                    $promoUrl = in_array($platform, ['general', 'other'], true)
-                        ? $this->buildPromoLink($promoDomain, (string) $id, '', '')
-                        : $this->buildPromoLink($promoDomain, (string) $id, $linkName, $platform);
+                    // 短链接只带渠道ID（+平台），不带渠道名称：注册时后台按 px 反解出渠道名称
+                    $promoUrl = $this->buildPromoLink(
+                        $promoDomain,
+                        (string) $id,
+                        in_array($platform, ['general', 'other'], true) ? '' : $platform
+                    );
                     $promoUrlEsc = htmlspecialchars($promoUrl, ENT_QUOTES);
                     $promoDomainEsc = htmlspecialchars($promoDomain, ENT_QUOTES);
                     $copyPromoBtn = '<button type="button" class="link-copy-btn" data-link="' . $promoUrlEsc . '" title="复制 ' . $promoDomainEsc . ' 的推广链接" style="cursor:pointer" onmousedown="this.style.transform=\'translateY(1px) scale(.97)\';this.style.boxShadow=\'0 1px 3px rgba(64,158,255,.22)\';" onmouseup="this.style.transform=\'\';this.style.boxShadow=\'\';" onmouseleave="this.style.transform=\'\';this.style.boxShadow=\'\';" onclick="return onCopyPromoLink(this)">复制链接</button>';
@@ -1005,14 +1006,11 @@ HTML;
         return array_values(array_filter(array_map('trim', $siteDomains)));
     }
 
-    private function buildPromoLink(string $domain, string $px, string $name, string $channel): string
+    private function buildPromoLink(string $domain, string $px, string $channel): string
     {
         $qs = [];
         if ($px !== '') {
             $qs['px'] = $px;
-        }
-        if ($name !== '') {
-            $qs['name'] = $name;
         }
         if ($channel !== '') {
             $qs['ch'] = $channel;

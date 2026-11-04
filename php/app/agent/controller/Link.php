@@ -25,8 +25,8 @@ final class Link extends Base
         $agentId = $this->agentId();
         $db      = Db::connect('live_mysql');
 
-        $domains = AgentService::domains($agentId, true);
-        $pixels  = AgentService::pixels($agentId, true);
+        $domains = AgentService::effectiveDomains($agentId, true);
+        $pixels  = AgentService::effectivePixels($agentId, true);
         $canNew  = AgentService::hasPerm($agent, 'link_create');
 
         $links = $db->table('lp_promo_link')->where('agent_id', $agentId)
@@ -83,7 +83,7 @@ final class Link extends Base
             $pay = $payMap[$name] ?? ['b' => 0, 'amt' => 0.0];
             $sub = $subMap[$name] ?? ['b' => 0, 'amt' => 0.0];
 
-            $url = $domain !== '' ? AgentService::buildLink($domain, $px, $name, $ch) : '';
+            $url = $domain !== '' ? AgentService::buildLink($domain, $id, $px) : '';
             $linkCell = $url === ''
                 ? '<span class="muted">未设置域名</span>'
                 : '<div class="lk"><code>' . AgentView::h($url) . '</code>'
@@ -119,7 +119,7 @@ final class Link extends Base
                 $domOptions .= '<option value="' . AgentView::h($dv) . '">' . AgentView::h($dv) . '</option>';
             }
             if ($domOptions === '') {
-                $domOptions = '<option value="">（总部尚未分配域名）</option>';
+                $domOptions = '<option value="">（暂无可用域名）</option>';
             }
             $pxOptions = '<option value="0">不绑定渠道</option>';
             foreach ($pixels as $p) {
@@ -183,13 +183,13 @@ HTML;
             $this->flashError('请填写链接别名');
         }
 
-        $assignedDomains = array_map(static fn(array $d): string => (string) $d['domain'], AgentService::domains($agentId, true));
+        $assignedDomains = array_map(static fn(array $d): string => (string) $d['domain'], AgentService::effectiveDomains($agentId, true));
         if ($domain === '' || !in_array($domain, $assignedDomains, true)) {
-            $this->flashError('请选择总部已分配给你的推广域名');
+            $this->flashError('请选择总部或上级分配给你的推广域名');
         }
 
         if ($pixelId > 0) {
-            $allowed = array_map(static fn(array $p): int => (int) $p['id'], AgentService::pixels($agentId, true));
+            $allowed = array_map(static fn(array $p): int => (int) $p['id'], AgentService::effectivePixels($agentId, true));
             if (!in_array($pixelId, $allowed, true)) {
                 $this->flashError('该渠道未分配给你，请重新选择');
             }

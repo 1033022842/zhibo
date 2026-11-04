@@ -4,9 +4,10 @@
  * 访问: /admin/live.PromoLink/index?_key=<ADMIN_FLOAT_KEY>
  *
  * 一条推广链接 = 链接名称 + 推广域名 + 绑定像素 + 渠道。
- * 生成的链接形如：https://域名/?px=像素ID&name=链接名称&ch=渠道
- * 客户从这个链接进来并注册后，lp_user.reg_link_name 会记录「链接名称」，
+ * 生成的短链接形如：https://域名/?px=像素ID&l=链接ID
+ * 客户从这个链接进来并注册后，服务端按 l 反解出「链接名称」写入 lp_user.reg_link_name，
  * 后台「会员列表」与「推广数据（按推广链接名称维度）」即可区分是哪条链接带来的客户。
+ * 旧版长链接（?px=&name=&ch=）仍然兼容，已投放的链接无需更换。
  */
 declare(strict_types=1);
 
@@ -27,6 +28,12 @@ final class PromoLink extends Backend
 
     public function index(): void
     {
+        // 代理账号：推广链接统一在代理中心维护，后台只读入口直接跳过去
+        if (\app\live\service\AgentService::scopeTeamIds() !== []) {
+            header('Location: /agent/link/index');
+            exit;
+        }
+
         $db = Db::connect('live_mysql');
 
         $svc     = new PromoService();
@@ -110,7 +117,7 @@ final class PromoLink extends Backend
             $sumReg += $reg;
             $sumPay += (float) $pay['amt'];
 
-            $url    = $domain !== '' ? $this->buildLink($domain, $px, $name, $ch) : '';
+            $url    = $domain !== '' ? $this->buildLink($domain, $lid, $px) : '';
             $urlEsc = htmlspecialchars($url, ENT_QUOTES);
             $linkCell = $url === ''
                 ? '<span class="muted">未设置域名</span>'
@@ -266,7 +273,7 @@ td.ops a.danger{color:#ff2d55}
 <body>
 <div class="container">
     <h1>推广链接</h1>
-    <div class="sub">每条推广链接有独立「名称」，生成 <b>?px=&amp;name=&amp;ch=</b> 三个参数。
+    <div class="sub">每条推广链接有独立「名称」，生成短链接 <b>?px=&amp;l=</b>（l 为链接 ID）。
         客户从链接进来注册后，后台「会员列表」与「推广数据（推广链接名称维度）」即可区分是<b>哪条链接</b>带来的客户。</div>
 
     <div class="stats">
@@ -312,8 +319,9 @@ td.ops a.danger{color:#ff2d55}
                 <label class="muted" style="margin-left:auto"><input type="checkbox" name="status" value="1"{$eStatus}> 启用</label>
             </div>
         </form>
-        <div class="tip">绑定像素后生成 <b>?px=像素ID</b>：从该链接进来的访客只打这一条像素（不受域名规则影响），跳转其它页面也保持绑定。<br>
-            不绑定像素也可以，只靠 <b>?name=</b> 做来源区分（像素按「推广与像素」页的域名规则匹配）。</div>
+        <div class="tip">绑定像素后短链接带 <b>?px=像素ID</b>：从该链接进来的访客只打这一条像素（不受域名规则影响），跳转其它页面也保持绑定。<br>
+            不绑定像素也可以，只靠 <b>?l=链接ID</b> 做来源区分（像素按「推广与像素」页的域名规则匹配）。<br>
+            旧版 <b>?px=&amp;name=&amp;ch=</b> 长链接仍可正常使用，已投放的链接无需更换。</div>
     </div>
 
     <div class="card">
@@ -446,20 +454,15 @@ HTML;
 
     // ================= 内部 =================
 
-    /** 组装推广链接：https://域名/?px=像素ID&name=名称&ch=渠道 */
-    private function buildLink(string $domain, int $pixelId, string $name, string $channel): string
+    /** 组装短推广链接：https://域名/?px=像素ID&l=链接ID（名称/渠道由服务端按 l 反解） */
+    private function buildLink(string $domain, int $linkId, int $pixelId): string
     {
         $qs = [];
         if ($pixelId > 0) {
             $qs['px'] = (string) $pixelId;
         }
-        if ($name !== '') {
-            $qs['name'] = $name;
-        }
-        if ($channel !== '') {
-            $qs['ch'] = $channel;
-        }
-        return 'https://' . $domain . '/' . ($qs !== [] ? '?' . http_build_query($qs) : '');
+        $qs['l'] = (string) $linkId;
+        return 'https://' . $domain . '/?' . http_build_query($qs);
     }
 
     /** 保留当前 _key，便于首次访问的飘页鉴权不断 */
