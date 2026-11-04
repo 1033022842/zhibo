@@ -36,6 +36,10 @@ if (!preg_match('/^[A-Za-z0-9._-]+\.html$/', $page) || !is_file(__DIR__ . '/' . 
 $script = (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php');
 $prefix = rtrim(str_replace('/index.php', '', $script), '/');
 
+// 保留原始查询参数：推广链接（?px=&l= 等）落在根路径时，302 到落地页不能丢参数
+$query = (string) ($_SERVER['QUERY_STRING'] ?? '');
+$location = $prefix . '/' . $page . ($query !== '' ? '?' . $query : '');
+
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Location: ' . $prefix . '/' . $page, true, 302);
+header('Location: ' . $location, true, 302);
 exit;
