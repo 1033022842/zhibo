@@ -723,6 +723,15 @@ const baTable = new baTableClass(
                 showOverflowTooltip: true,
             },
             {
+                // IP 所在地：后台按登入IP批量解析（缓存 30 天），非主表字段，不提供筛选
+                label: 'IP 所在地',
+                prop: 'ip_region',
+                align: 'center',
+                operator: false,
+                width: 200,
+                showOverflowTooltip: true,
+            },
+            {
                 label: '操作',
                 align: 'center',
                 width: 400,

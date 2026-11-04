@@ -9,6 +9,7 @@ use app\admin\model\live\LiveUser as LiveUserModel;
 use app\live\service\RegistrationSettingService;
 use app\live\service\UserService;
 use app\live\service\InviteService;
+use app\live\service\IpRegionService;
 
 class LiveUser extends Backend
 {
@@ -254,6 +255,12 @@ class LiveUser extends Backend
         // 附加认证状态展示字段（给前端 tag 渲染用）
         $items = $res->items();
 
+        // IP 归属地：只解析当前页的登入 IP，结果缓存 30 天（失败缓存 10 分钟）
+        $ipRegions = IpRegionService::regions(array_map(
+            static fn($r) => (string) ($r['last_login_ip'] ?? ''),
+            $items
+        ));
+
         // 会员身份：Free / Premium / Premium Plus
         // Premium Plus = 名下有生效中的 premium_plus 订单（其余有效会员归为 Premium）
         $plusUsers = [];
@@ -282,6 +289,13 @@ class LiveUser extends Backend
             $activeAt = (string) ($row['last_active_at'] ?? '');
             $row['online']       = $activeAt !== '' && (time() - strtotime($activeAt)) <= UserService::ONLINE_WINDOW;
             $row['online_label'] = $row['online'] ? '在线' : '离线';
+
+            // IP 所在地：解析不出（内网/失败）时显示 -
+            $loginIp = (string) ($row['last_login_ip'] ?? '');
+            $row['ip_region'] = $loginIp !== '' ? ($ipRegions[$loginIp] ?? '') : '';
+            if ($row['ip_region'] === '') {
+                $row['ip_region'] = '-';
+            }
 
             // 会员身份标签
             $vipExpire   = (string) ($row['vip_expire_at'] ?? '');
