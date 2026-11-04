@@ -62,6 +62,7 @@
       data.reg_channel = localStorage.getItem('reg_channel') || ''
       data.reg_px = localStorage.getItem('promo_px') || ''
       data.reg_link_name = localStorage.getItem('promo_name') || ''
+      data.reg_link = localStorage.getItem('promo_l') || ''
       var invite = document.getElementById('user_code_registration')
       data.invite_code = (invite && invite.value) || localStorage.getItem('code') || ''
     } catch (e) { /* 本地存储不可用不阻断登录。 */ }

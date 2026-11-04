@@ -206,7 +206,15 @@
 .cc-next-fab:hover:not(:disabled) { filter: brightness(1.07); }
 .cc-next-fab:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 1023px) {
-  .cc-next-fab { bottom: 86px; min-width: calc(100vw - 60px); }
+  /* 手机端左侧 100px 侧栏是抽屉（默认 translateX(-100%) 收在屏幕外），
+     可见区域就是整个视口，不能再按 50vw + 50px 定位，否则胶囊整体右偏且右侧被裁。 */
+  .cc-next-fab {
+    bottom: 86px;
+    left: 50%;
+    width: calc(100vw - 32px);
+    max-width: 480px;
+    min-width: 0;
+  }
 }
 
 /* 分屏内的段落标题（Hair Color / Eye Color / Breast Size） */
