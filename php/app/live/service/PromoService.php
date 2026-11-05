@@ -334,6 +334,10 @@ final class PromoService
             $domains = array_values(array_filter(
                 preg_split('/[\s,;]+/', (string) $row['domains']) ?: []
             ));
+            // 代理像素：没限定域名时只在带 ?px= 的链接里生效，避免共用平台域名时对全站访客打点
+            if ((int) ($row['agent_id'] ?? 0) > 0 && $domains === []) {
+                $domains = ['__px_only__'];
+            }
             $code = trim((string) ($row['code'] ?? ''));
             $pixelId = trim((string) $row['pixel_id']);
             // 既没有 ID 也没有自定义代码的空记录不发给前端

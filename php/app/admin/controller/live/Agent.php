@@ -5,7 +5,6 @@ namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
 use app\live\service\AgentService;
-use app\live\service\PromoService;
 use think\facade\Db;
 
 /**
@@ -82,15 +81,13 @@ final class Agent extends Backend
         // 后台登录账号（代理用它在后台登录页登录）
         $adminNames = AgentService::adminUsernames(array_column($agents, 'admin_id'));
 
-        // 域名 / 渠道归属
+        // 像素 / 域名归属（只读展示）
         $domainsByAgent = [];
         foreach ($db->table('lp_agent_domain')->order('is_primary', 'desc')->order('id', 'asc')->select()->toArray() as $d) {
             $domainsByAgent[(int) $d['agent_id']][] = $d;
         }
         $pixelsByAgent = [];
-        $allPixels = [];
         foreach ($db->table('lp_promo_pixel')->order('sort', 'asc')->order('id', 'asc')->select()->toArray() as $p) {
-            $allPixels[] = $p;
             if ((int) $p['agent_id'] > 0) {
                 $pixelsByAgent[(int) $p['agent_id']][] = $p;
             }
@@ -167,7 +164,7 @@ final class Agent extends Backend
                 . '<div class="agent-no">' . $this->e((string) $a['agent_no']) . ' · ' . $this->e($parentText) . '</div></td>'
                 . '<td><div>' . $this->e((string) $a['username']) . '</div>'
                 . '<div class="agent-no">后台：' . ($adminName !== '' ? $this->e($adminName) : '<span class="muted">保存后生成</span>') . '</div></td>'
-                . '<td><div>' . $tagList($domains) . '</div><div style="margin-top:4px">' . $tagList($pixels, 'alt') . '</div></td>'
+                . '<td><div>' . $tagList($pixels, 'alt') . '</div><div style="margin-top:4px">' . $tagList($domains) . '</div></td>'
                 . '<td><div class="mini-chips">' . $permChips . '</div></td>'
                 . '<td class="num"><div>注册 ' . (int) $a['regs'] . '</div>'
                 . '<div class="muted" style="font-size:11.5px;margin-top:2px">'
@@ -197,20 +194,13 @@ final class Agent extends Backend
         $eRemark   = $this->e((string) ($edit['remark'] ?? ''));
         $eStatus   = (int) $edit['status'] === 1 ? ' checked' : '';
         $ePerms    = AgentService::parsePerms($edit['perms'] ?? null);
-        $eDomainArr = array_map(static fn(array $d): string => (string) $d['domain'], $domainsByAgent[$eId] ?? []);
-        $ePixels   = array_map(static fn(array $p): int => (int) $p['id'], $pixelsByAgent[$eId] ?? []);
 
-        // 域名下拉（可多选）：来源「推广与像素 → 前端域名列表」，并保留已分配但已从列表移除的旧域名
-        $siteDomains = (new PromoService())->siteDomains();
-        $domainPool  = array_values(array_unique(array_merge($siteDomains, $eDomainArr)));
-        $domainOptions = '';
-        foreach ($domainPool as $d) {
-            $checked = in_array($d, $eDomainArr, true) ? ' checked' : '';
-            $domainOptions .= '<label class="ms-opt"><input type="checkbox" name="domains[]" value="' . $this->e($d) . '"' . $checked . '><span>' . $this->e($d) . '</span></label>';
-        }
-        if ($domainOptions === '') {
-            $domainOptions = '<div class="ms-empty">暂无域名，请先在「推广与像素」配置前端域名</div>';
-        }
+        // 只读展示：该代理当前自建的像素 / 独有域名（不再由总部分配）
+        $ownPixelNames = array_map(
+            static fn(array $p): string => (string) ($p['name'] !== '' ? $p['name'] : ('渠道#' . $p['id'])),
+            $pixelsByAgent[$eId] ?? []
+        );
+        $ownDomainNames = array_map(static fn(array $d): string => (string) $d['domain'], $domainsByAgent[$eId] ?? []);
 
         $permBoxes = '';
         foreach (AgentService::PERMS as $key => $label) {
@@ -240,27 +230,6 @@ final class Agent extends Backend
             $adminMenuBoxes = '<div class="muted" style="font-size:12.5px">子代理自动继承上级已开放的后台菜单（只读），无需单独勾选。</div>';
         }
 
-        $pixelBoxes = '';
-        foreach ($allPixels as $p) {
-            $pid   = (int) $p['id'];
-            $owner = (int) $p['agent_id'];
-            $pf    = PromoService::PIXEL_PLATFORMS[(string) $p['platform']] ?? (string) $p['platform'];
-            $pn    = trim((string) $p['name']);
-            $label = $pf . ($pn !== '' ? ' · ' . $pn : '');
-            if ($owner > 0 && $owner !== $eId) {
-                $ownerName = $agentNames[$owner] ?? ('代理#' . $owner);
-                $pixelBoxes .= '<label class="perm is-disabled"><input type="checkbox" disabled>'
-                    . '<span><b>' . $this->e($label) . '</b><small>已属于 ' . $this->e($ownerName) . '</small></span></label>';
-            } else {
-                $checked = in_array($pid, $ePixels, true) ? ' checked' : '';
-                $pixelBoxes .= '<label class="perm"><input type="checkbox" name="pixels[]" value="' . $pid . '"' . $checked . '>'
-                    . '<span><b>' . $this->e($label) . '</b><small>渠道 #' . $pid . '</small></span></label>';
-            }
-        }
-        if ($pixelBoxes === '') {
-            $pixelBoxes = '<div class="muted" style="font-size:12.5px">还没有渠道，请先到「推广与像素」创建。</div>';
-        }
-
         $ok = (string) $this->request->param('ok', '');
         $alert = $ok !== '' ? '<div class="alert ok">' . $this->e($ok) . '</div>' : '';
         $formTitle = $eId > 0 ? '编辑代理 · ' . $eName : '新建代理';
@@ -271,7 +240,7 @@ final class Agent extends Backend
         $formHint    = $eId > 0
             ? '修改后立即生效；改密码或停用会强制该代理重新登录。'
             : ($isAgent
-                ? '创建的是你自己的子代理，推广域名与渠道自动继承你名下的资源。'
+                ? '创建的是你自己的子代理，共用平台统一域名，数据按各自的 ?px= 推广链接区分。'
                 : '代理用下面的「后台账号」在主站后台登录页登录，只能看到勾选的菜单与自己团队的数据。');
         $headActions = '<a class="btn-line" href="' . $newUrl . '">新建代理</a>';
 
@@ -280,36 +249,15 @@ final class Agent extends Backend
                 . '<input type="text" value="' . $this->e((string) ($selfAgentRow['name'] ?? '')) . '（当前代理）" disabled>'
             : '<select name="parent_id">' . $parentOptions . '</select>';
         $resourceSection = $isAgent
-            ? '<div class="divider"></div><div class="hint">推广域名与渠道自动继承上级代理，子代理无需单独分配。</div>'
+            ? '<div class="divider"></div><div class="hint">子代理不用单独分配域名和像素：共用平台统一域名，代理自己在代理后台「推广与像素」创建像素、复制带 <b>?px=</b> 的链接，数据按像素区分。</div>'
             : '<div class="divider"></div><div class="two-col">'
-                . '<div class="field-block"><h3>专属推广域名</h3>'
-                . '<div class="ms" id="domainMs">'
-                . '<button type="button" class="ms-btn" id="domainMsBtn">请选择域名</button>'
-                . '<div class="ms-pop" id="domainMsPop">'
-                . '<div class="ms-tools"><a data-ms="all">全选</a><a data-ms="none">清空</a></div>'
-                . $domainOptions
-                . '</div></div>'
-                . '<div class="hint">可多选，点击选项前的方框勾选。列表来自「推广与像素 → 前端域名列表」，域名直访会自动归属该代理。</div></div>'
-                . '<div class="field-block"><h3>分配渠道</h3><div class="perm-grid compact">' . $pixelBoxes . '</div>'
-                . '<div class="hint">代理只能看到渠道名称，看不到像素 ID 和 CAPI Token。</div></div>'
+                . '<div class="field-block"><h3>像素渠道（只读）</h3><div>' . $tagList($ownPixelNames, 'alt') . '</div>'
+                . '<div class="hint">像素由代理在代理后台「推广与像素」里自行创建；总部不再分配像素，避免把平台流量算到代理名下。</div></div>'
+                . '<div class="field-block"><h3>专属域名（只读）</h3><div>' . $tagList($ownDomainNames) . '</div>'
+                . '<div class="hint">默认共用平台统一域名，归因靠代理自己的 <b>?px=</b> 链接；只有单独给该代理配了域名时，域名直访才会归到他。</div></div>'
                 . '</div>';
 
         $content = <<<HTML
-<style>
-.ms{position:relative}
-.ms-btn{width:100%;min-height:38px;text-align:left;padding:8px 32px 8px 12px;border:1px solid #e2e5ee;border-radius:10px;background:#fff;color:#8a90a3;font-size:13.5px;cursor:pointer;position:relative;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ms-btn.has{color:#1f2430}
-.ms-btn:after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#9aa0b0}
-.ms.open .ms-btn{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
-.ms-pop{display:none;position:absolute;z-index:30;left:0;right:0;top:calc(100% + 6px);max-height:220px;overflow:auto;background:#fff;border:1px solid #e2e5ee;border-radius:10px;box-shadow:0 12px 28px rgba(30,34,60,.14);padding:6px}
-.ms.open .ms-pop{display:block}
-.ms-tools{display:flex;gap:14px;padding:4px 10px 8px;border-bottom:1px solid #f1f2f8;margin-bottom:4px;font-size:12px;color:#6366f1}
-.ms-tools a{cursor:pointer}
-.ms-opt{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13.5px;color:#3a4051;cursor:pointer;font-weight:400}
-.ms-opt:hover{background:#f5f6fb}
-.ms-opt input{accent-color:#6366f1;width:15px;height:15px;margin:0}
-.ms-empty{padding:10px;font-size:12.5px;color:#9aa0b0}
-</style>
 {$alert}
 <div class="card">
   <div class="card-head">
@@ -347,43 +295,13 @@ final class Agent extends Backend
   <div class="table-wrap">
     <table class="data-table">
       <thead><tr>
-        <th>代理</th><th>账号</th><th>域名 / 渠道</th><th>权限</th>
+        <th>代理</th><th>账号</th><th>像素 / 域名</th><th>权限</th>
         <th class="num">注册 / 充值</th><th>状态</th><th>最后登录</th><th>操作</th>
       </tr></thead>
       <tbody>{$rows}</tbody>
     </table>
   </div>
 </div>
-<script>
-(function () {
-    var ms = document.getElementById('domainMs');
-    if (!ms) return;
-    var btn = document.getElementById('domainMsBtn');
-    var pop = document.getElementById('domainMsPop');
-    var boxes = Array.prototype.slice.call(pop.querySelectorAll('input[type=checkbox][name="domains[]"]'));
-    function sync() {
-        var sel = boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
-        btn.textContent = sel.length ? sel.join('，') : '请选择域名';
-        btn.className = sel.length ? 'ms-btn has' : 'ms-btn';
-    }
-    btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        ms.classList.toggle('open');
-    });
-    pop.addEventListener('click', function (e) { e.stopPropagation(); });
-    document.addEventListener('click', function () { ms.classList.remove('open'); });
-    boxes.forEach(function (b) { b.addEventListener('change', sync); });
-    pop.querySelectorAll('.ms-tools a').forEach(function (a) {
-        a.addEventListener('click', function (e) {
-            e.preventDefault();
-            var all = a.getAttribute('data-ms') === 'all';
-            boxes.forEach(function (b) { b.checked = all; });
-            sync();
-        });
-    });
-    sync();
-})();
-</script>
 HTML;
 
         $this->renderPage(
@@ -415,22 +333,17 @@ HTML;
                 ? max(0, (int) $this->request->post('parent_id', 0))
                 : 0;
             $perms    = AgentService::permsJson((array) $this->request->post('perms', []));
-            $domainsIn  = $this->request->post('domains', '');
-            $domainsRaw = is_array($domainsIn) ? implode("\n", $domainsIn) : (string) $domainsIn;
-            $pixels   = array_values(array_unique(array_map('intval', (array) $this->request->post('pixels', []))));
 
             // 代理账号维护子代理：只能建在自己下面、只能编辑直属子代理、
-            // 只能授予自己有的代理端权限，域名与渠道继承上级（不接受提交）
+            // 只能授予自己有的代理端权限
             $selfAgent = $this->actingAgent();
             if ($selfAgent) {
                 $selfAgentId = (int) $selfAgent['id'];
                 if ($id > 0 && !AgentService::isDirectChild($selfAgentId, $id)) {
                     throw new \InvalidArgumentException('只能管理自己的直属子代理');
                 }
-                $parentId   = $selfAgentId;
-                $domainsRaw = '';
-                $pixels     = [];
-                $perms      = AgentService::permsJson(AgentService::restrictPerms(
+                $parentId = $selfAgentId;
+                $perms    = AgentService::permsJson(AgentService::restrictPerms(
                     (array) $this->request->post('perms', []),
                     AgentService::grantablePerms($selfAgent)
                 ));
@@ -447,14 +360,6 @@ HTML;
             }
             if ($password !== '' && (mb_strlen($password) < 6 || mb_strlen($password) > 32)) {
                 throw new \InvalidArgumentException('密码长度需为 6-32 位');
-            }
-
-            $domains = [];
-            foreach (preg_split('/[\s,;]+/', $domainsRaw) ?: [] as $raw) {
-                $d = PromoService::normalizeDomain($raw);
-                if ($d !== '' && !in_array($d, $domains, true)) {
-                    $domains[] = $d;
-                }
             }
 
             $db  = Db::connect('live_mysql');
@@ -505,56 +410,8 @@ HTML;
                     $id = (int) $db->table('lp_agent')->insertGetId($data);
                 }
 
-                // 域名同步：不在本次列表里的删除，新域名查重后插入
-                $existing = $db->table('lp_agent_domain')->where('agent_id', $id)->select()->toArray();
-                $keep = [];
-                $hasPrimary = $existing !== [];
-                foreach ($domains as $d) {
-                    $other = $db->table('lp_agent_domain')->where('domain', $d)->where('agent_id', '<>', $id)->find();
-                    if ($other) {
-                        throw new \InvalidArgumentException('域名「' . $d . '」已分配给其他代理');
-                    }
-                    $hit = null;
-                    foreach ($existing as $e) {
-                        if ((string) $e['domain'] === $d) {
-                            $hit = $e;
-                            break;
-                        }
-                    }
-                    if ($hit) {
-                        $keep[] = (int) $hit['id'];
-                        $db->table('lp_agent_domain')->where('id', (int) $hit['id'])->update([
-                            'status' => 1, 'updated_at' => $now,
-                        ]);
-                    } else {
-                        $db->table('lp_agent_domain')->insert([
-                            'agent_id' => $id, 'domain' => $d, 'is_primary' => $hasPrimary ? 0 : 1,
-                            'status' => 1, 'created_at' => $now, 'updated_at' => $now,
-                        ]);
-                        $hasPrimary = true;
-                    }
-                }
-                foreach ($existing as $e) {
-                    if (!in_array((int) $e['id'], $keep, true)) {
-                        $db->table('lp_agent_domain')->where('id', (int) $e['id'])->delete();
-                    }
-                }
-
-                // 渠道同步：先释放不再勾选的，再占用新勾选的
-                $db->table('lp_promo_pixel')->where('agent_id', $id)->whereNotIn('id', $pixels ?: [0])
-                    ->update(['agent_id' => 0, 'updated_at' => $now]);
-                foreach ($pixels as $pid) {
-                    $p = $db->table('lp_promo_pixel')->where('id', $pid)->find();
-                    if (!$p) {
-                        continue;
-                    }
-                    if ((int) $p['agent_id'] > 0 && (int) $p['agent_id'] !== $id) {
-                        throw new \InvalidArgumentException('渠道 #' . $pid . ' 已分配给其他代理');
-                    }
-                    $db->table('lp_promo_pixel')->where('id', $pid)->update([
-                        'agent_id' => $id, 'updated_at' => $now,
-                    ]);
-                }
+                // 域名与像素不再由总部在代理管理里分配：
+                // 代理共用平台统一域名，像素由代理在代理后台「推广与像素」自行创建，数据按 ?px= 归因
 
                 // 同步总后台账号与菜单权限（复用 BuildAdmin 界面）
                 if (AgentService::hasColumn('lp_agent', 'admin_id')) {

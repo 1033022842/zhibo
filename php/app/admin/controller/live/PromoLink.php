@@ -28,9 +28,9 @@ final class PromoLink extends Backend
 
     public function index(): void
     {
-        // 代理账号：推广链接统一在代理中心维护，后台只读入口直接跳过去
+        // 代理账号：推广链接统一在代理中心「推广与像素」里生成
         if (\app\live\service\AgentService::scopeTeamIds() !== []) {
-            header('Location: /agent/link/index');
+            header('Location: /agent/pixel/index');
             exit;
         }
 

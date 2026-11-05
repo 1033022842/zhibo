@@ -20,13 +20,11 @@ final class AgentService
     /** 代理端权限：key => 名称 */
     public const PERMS = [
         'overview'    => '数据概览',
-        'link'        => '推广链接（查看/复制）',
-        'link_create' => '新建推广链接',
         'member'      => '会员明细',
         'order'       => '充值订单',
         'withdraw'    => '提现记录',
         'cs'          => '独立客服',
-        'domain'      => '专属域名',
+        'pixel'       => '推广与像素',
         'sub_agent'   => '子代理管理',
         'account'     => '账号设置',
     ];
@@ -34,13 +32,11 @@ final class AgentService
     /** 权限说明（后台勾选卡片用） */
     public const PERM_DESCS = [
         'overview'    => '查看自己与全部下级代理的注册、充值、订阅与转化',
-        'link'        => '查看并复制自己名下的推广链接',
-        'link_create' => '允许自助创建、停用和删除推广链接',
         'member'      => '查看自己与下级代理名下的会员明细（邮箱打码）',
         'order'       => '查看自己与下级代理名下会员的充值/订阅订单（只读）',
         'withdraw'    => '查看自己与下级代理名下会员的提现申请与打款状态（只读）',
         'cs'          => '配置自己专属域名下的客服渠道（每个代理独立）',
-        'domain'      => '查看总部/上级分配的专属推广域名',
+        'pixel'       => '管理自己的像素渠道、推广链接与按像素归因的统计数据',
         'sub_agent'   => '创建和管理自己的下级代理（可继续开下级）',
         'account'     => '修改自己的登录密码（始终可用）',
     ];
@@ -48,19 +44,17 @@ final class AgentService
     /** 权限短名（列表标签用，避免换行） */
     public const PERM_SHORT = [
         'overview'    => '概览',
-        'link'        => '链接',
-        'link_create' => '建链',
         'member'      => '会员',
         'order'       => '订单',
         'withdraw'    => '提现',
         'cs'          => '客服',
-        'domain'      => '域名',
+        'pixel'       => '像素',
         'sub_agent'   => '子代理',
         'account'     => '账号',
     ];
 
     /** 新建代理时默认勾选（账号设置不可关闭） */
-    public const DEFAULT_PERMS = ['overview', 'link', 'link_create', 'member', 'order', 'withdraw', 'cs', 'account'];
+    public const DEFAULT_PERMS = ['overview', 'member', 'order', 'withdraw', 'cs', 'pixel', 'account'];
 
     /** 无论怎么配置都保留的权限 */
     public const ALWAYS_PERMS = ['account'];
@@ -374,7 +368,7 @@ final class AgentService
      *
      * @return array{id:int,name:string}
      */
-    public static function resolve(string $domain, string $linkName): array
+    public static function resolve(string $domain, string $linkName, string $px = ''): array
     {
         $empty = ['id' => 0, 'name' => ''];
         if (!self::ready()) {
@@ -382,23 +376,12 @@ final class AgentService
         }
 
         $domain = PromoService::normalizeDomain($domain);
+        $linkName = mb_substr(trim($linkName), 0, 128);
+        $px = mb_substr(trim($px), 0, 64);
         try {
             $db = Db::connect('live_mysql');
 
-            if ($domain !== '') {
-                $row = $db->query(
-                    'SELECT a.id, a.name FROM lp_agent_domain d
-                     JOIN lp_agent a ON a.id = d.agent_id
-                     WHERE d.domain = ? AND d.status = 1 AND a.status = 1
-                     LIMIT 1',
-                    [$domain]
-                );
-                if ($row) {
-                    return ['id' => (int) $row[0]['id'], 'name' => (string) $row[0]['name']];
-                }
-            }
-
-            $linkName = mb_substr(trim($linkName), 0, 128);
+            // 1) 推广链接名称：总部给代理创建的专属链接
             if ($linkName !== '') {
                 $row = $db->query(
                     'SELECT a.id, a.name FROM lp_promo_link l
@@ -411,9 +394,31 @@ final class AgentService
                     return ['id' => (int) $row[0]['id'], 'name' => (string) $row[0]['name']];
                 }
             }
+
+            // 2) ?px= 渠道/像素：按像素归属代理区分（多个代理共用同一域名时靠这个）
+            if ($px !== '') {
+                $row = $db->query(
+                    'SELECT a.id, a.name FROM lp_promo_pixel p
+                     JOIN lp_agent a ON a.id = p.agent_id
+                     WHERE p.id = ? AND p.agent_id > 0 AND a.status = 1
+                     LIMIT 1',
+                    [(int) $px]
+                );
+                if ($row) {
+                    return ['id' => (int) $row[0]['id'], 'name' => (string) $row[0]['name']];
+                }
+            }
+
+            // 3) 域名：只认代理独有域名；平台主域名不参与归因
+            if ($domain !== '') {
+                $agentId = self::agentByDomain($domain);
+                if ($agentId > 0) {
+                    return ['id' => $agentId, 'name' => self::agentName($agentId)];
+                }
+            }
         } catch (\Throwable $e) {
             // 归因失败绝不影响注册
-            Log::warning('[agent] 注册归因失败 domain=' . $domain . ' name=' . $linkName . ' err=' . $e->getMessage());
+            Log::warning('[agent] 注册归因失败 domain=' . $domain . ' name=' . $linkName . ' px=' . $px . ' err=' . $e->getMessage());
         }
 
         return $empty;
@@ -777,6 +782,14 @@ final class AgentService
         $host = strtolower(trim($host));
         if ($host === '') {
             return 0;
+        }
+        // 平台主域名不参与代理归因：多个代理共用统一域名时，靠 ?px= / 推广链接区分
+        try {
+            if (in_array($host, (new PromoService())->siteDomains(), true)) {
+                return 0;
+            }
+        } catch (\Throwable) {
+            // 配置读取失败时继续往下判断
         }
         try {
             $row = Db::connect('live_mysql')->table('lp_agent_domain')
