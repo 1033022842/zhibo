@@ -13,6 +13,7 @@
  */
 (function () {
   'use strict'
+// Collab-check selftest 2026-11-06 (safe to remove)
 
   /* ---------- 关闭旧包遗留的 Turbo Drive（修「点导航后底栏变 4 格」的 bug） ----------
    * 镜像页带的旧 application.js 里 Turbo Drive 会拦截 <a> 点击做局部换页；
