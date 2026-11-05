@@ -79,6 +79,9 @@
             .catch(function () {})
     }
     var HEART_SVG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21.2l7.7-7.8 1.1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>'
+    // 金币图标：直接复用站里导航栏那颗（Chat_files/bottom_bar_tokens_default*.svg），
+    // 拷到 img/coin.svg 后用 img 标签引用，避免把 11 条 path 内联进 JS。
+    var COIN_SVG = '<img class="gs-coin" src="./img/coin.svg" alt="" aria-hidden="true">'
 
     /* ---------- 弹窗：通用壳（遮罩 .45 + blur8，#121212，16 圆角） ---------- */
     function openModal(id) {
@@ -711,11 +714,13 @@
             return
         }
         if (Number(cost.balance) < price) {
-            el.textContent = 'Not enough'
+            el.innerHTML = COIN_SVG + '<span>Not enough</span>'
             el.className = 'gs-gen__cost gs-gen__cost--warn'
             return
         }
-        el.textContent = cost.price_text + ' tokens'
+        // 价格前面挂金币图标：站内现成的 token 图标（img/coin.svg），
+        // 比纯文字「50 tokens」更直观，也和导航栏余额的视觉一致。
+        el.innerHTML = COIN_SVG + '<span>' + esc(cost.price_text) + '</span>'
         el.className = 'gs-gen__cost gs-gen__cost--paid'
     }
 
@@ -1197,6 +1202,39 @@
        参考站规格（实测 1280 视口）：4:5 宽高比、固定 3 列、gap 12px。
        原来用 auto-fit minmax(300px)，只有 1 个视频时那一列被拉满整个宽度，
        视频被拉成巨幅，所以看起来"变形"。现在网格列数固定，卡片自己撑比例。 */
+    /* 失败卡的退款提示
+       ---------------
+       用户为这条任务付过金币或免费次数，失败后必须让他看到钱回来了，
+       否则只会觉得是「花了钱什么都没拿到」。三种情况：
+         代币已退   → Refunded 50（带金币图标，绿色）
+         免费次数退 → Free credit returned（绿色）
+         没退成     → Refund pending, contact support（红色，需要人工介入）
+       退款字段来自 /myList 的 refunded_tokens / refunded_credit / refunded_at。 */
+    function refundLine(t) {
+        var amt = Number(t.refunded_tokens) || 0
+        var credit = Number(t.refunded_credit) || 0
+        var at = String(t.refunded_at || '')
+        if (amt > 0) {
+            return '<span class="wc__refund wc__refund--ok">' + COIN_SVG +
+                '<span>Refunded ' + esc(fmtAmount(amt)) + '</span></span>'
+        }
+        if (credit > 0) {
+            return '<span class="wc__refund wc__refund--ok">' +
+                '<span>Free credit returned</span></span>'
+        }
+        // 失败但没退款记录：付费任务才提示联系客服（免费的没损失，不必打扰）
+        var paid = Number(t.paid_tokens) || 0
+        if (paid > 0 && !at) {
+            return '<span class="wc__refund wc__refund--bad">' +
+                '<span>Refund pending — contact support</span></span>'
+        }
+        return ''
+    }
+
+    function fmtAmount(v) {
+        return String(Math.round(Number(v) * 100) / 100)
+    }
+
     function workCard(t) {
         var m = STATUS_META[t.status] || { label: t.status, cls: 'wait' }
         var done = t.status === 'completed' && t.video_url
@@ -1210,12 +1248,14 @@
                 media = '<video class="wc__media" controls playsinline preload="metadata" src="' +
                     esc(t.video_url) + '" poster="' + esc(t.cover_url || '') + '"></video>'
             }
-        } else if (t.status === 'failed') {
+        } else if (t.status === 'failed' || t.status === 'expired') {
             media = '<div class="wc__state wc__state--err">' +
                 '<svg width="22" height="22" viewBox="0 0 24 24" fill="none">' +
                 '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>' +
                 '<path d="M12 8v5M12 16v.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
-                '<span>Generation failed</span><span class="wc__state-sub">Please try again</span></div>'
+                '<span>' + (t.status === 'expired' ? 'Expired' : 'Generation failed') + '</span>' +
+                '<span class="wc__state-sub">' + esc((t.error || '').slice(0, 60) || 'Please try again') + '</span>' +
+                refundLine(t) + '</div>'
         } else {
             media = '<div class="wc__state wc__state--run"><span class="wc__spinner"></span>' +
                 '<span>Generating…</span><span class="wc__state-sub">usually takes a few minutes</span></div>'

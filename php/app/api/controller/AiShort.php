@@ -411,6 +411,12 @@ final class AiShort extends BaseController
                 'video_url'   => $t['video_url'] ? $this->absUrl((string) $t['video_url']) : '',
                 'cover_url'   => $t['cover_url'] ? $this->absUrl((string) $t['cover_url']) : '',
                 'duration'    => (int) $t['duration_sec'],
+                'error'       => (string) ($c['error'] ?? ''),
+                // 退款信息：失败卡片上要写「Refunded 50 tokens」/「Free credit returned」
+                'paid_tokens'     => (float) ($c['paid_tokens'] ?? 0),
+                'refunded_tokens' => (float) ($c['refunded_tokens'] ?? 0),
+                'refunded_credit' => (int) ($c['refunded_credit'] ?? 0),
+                'refunded_at'     => (string) ($c['refunded_at'] ?? ''),
                 'created_at'  => $t['created_at'],
                 'finished_at' => $t['finished_at'],
             ];
@@ -445,6 +451,11 @@ final class AiShort extends BaseController
             'cover_url'   => $t->cover_url ? $this->absUrl((string) $t->cover_url) : '',
             'duration'    => (int) $t->duration_sec,
             'error'       => (string) ($c['error'] ?? ''),
+            // 退款信息：前端据此在失败卡片上写「Refunded 50 tokens」
+            'paid_tokens'     => (float) ($c['paid_tokens'] ?? 0),
+            'refunded_tokens' => (float) ($c['refunded_tokens'] ?? 0),
+            'refunded_credit' => (int) ($c['refunded_credit'] ?? 0),
+            'refunded_at'     => (string) ($c['refunded_at'] ?? ''),
             'created_at'  => $t->created_at,
             'finished_at' => $t->finished_at,
         ]);
@@ -697,7 +708,12 @@ final class AiShort extends BaseController
         ]);
     }
 
-    /** 退款：付费退回代币，免费额度退回 1 次 */
+    /**
+     * 退款：付费退回代币，免费额度退回 1 次
+     *
+     * 退款结果要写回 content，前端才能告诉用户「已退回」。否则用户只看到
+     * 「Generation failed」，不知道钱回没回来，会反复找客服。
+     */
     private function refund(AiTask $task, string $reason): void
     {
         $userId = (int) $task->source_ref_id;
@@ -708,19 +724,34 @@ final class AiShort extends BaseController
         $paid = (float) ($c['paid_tokens'] ?? 0);
         // 把错误信息留在 content 里，前端 task 接口可读
         $c['error'] = mb_substr($reason, 0, 200);
-        $task->content = json_encode($c, JSON_UNESCAPED_UNICODE);
-        $task->save();
+
+        // 幂等：worker 重试 / fail 重复调用时不重复退款
+        if (!empty($c['refunded_at'])) {
+            $task->content = json_encode($c, JSON_UNESCAPED_UNICODE);
+            $task->save();
+            return;
+        }
 
         try {
             if ($paid > 0.0) {
                 (new WalletService())->credit($userId, $paid, 'video_gen_refund', 0, 'AI short generation refund');
-                return;
+                $c['refunded_at']     = date('Y-m-d H:i:s');
+                $c['refunded_tokens'] = $paid;
+            } else {
+                $ent = (new VipService())->entitlements($userId);
+                (new GenCreditService())->refund($userId, max(1, (int) ($ent['image_daily_limit'] ?? 1)));
+                // 退的是免费次数，不是代币：用 refunded_credit 标记，前端显示「次数已退回」
+                $c['refunded_at']     = date('Y-m-d H:i:s');
+                $c['refunded_tokens'] = 0;
+                $c['refunded_credit'] = 1;
             }
-            $ent = (new VipService())->entitlements($userId);
-            (new GenCreditService())->refund($userId, max(1, (int) ($ent['image_daily_limit'] ?? 1)));
         } catch (\Throwable $e) {
             Log::error("[aiShort] refund failed user={$userId}: {$e->getMessage()}");
+            $c['refund_error'] = mb_substr($e->getMessage(), 0, 120);
         }
+
+        $task->content = json_encode($c, JSON_UNESCAPED_UNICODE);
+        $task->save();
     }
 
     /**

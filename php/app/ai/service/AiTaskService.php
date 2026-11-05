@@ -11,6 +11,9 @@ use app\common\enums\RoomState;
 use app\common\exception\BusinessException;
 use app\common\util\StrHelper;
 use app\common\web\ResultCode;
+use app\live\service\GenCreditService;
+use app\live\service\VipService;
+use app\live\service\WalletService;
 use app\room\model\RoomPlayTask;
 use app\room\model\RoomSwitchTask;
 use app\room\service\ChannelWorkerGateway;
@@ -628,6 +631,10 @@ final class AiTaskService
             $task->updated_at = date('Y-m-d H:i:s');
             $task->save();
 
+            // 过期也要退款：用户为这条任务付过代币/免费次数，没出片就该退回。
+            // 以前这里只改状态不退款，付费任务的代币会凭空消失。
+            $this->refundExpired($task);
+
             $this->writeLog((int) $task->id, 'expired', [
                 'deadline_at' => $task->deadline_at,
             ]);
@@ -644,6 +651,48 @@ final class AiTaskService
         }
 
         return $result;
+    }
+
+    /**
+     * 过期任务退款（只处理 aiShort 通道）
+     *
+     * 定制生成（custom_video / custom_image）走另一套计费，这里不碰。
+     * 退款结果写回 content.refunded_at / refunded_tokens，前端可显示「已退回」。
+     * 幂等：content 里已有 refunded_at 就直接跳过。
+     */
+    private function refundExpired(AiTask $task): void
+    {
+        if (!in_array($task->task_type, ['ai_short_video', 'ai_short_image'], true)) {
+            return;
+        }
+        $userId = (int) $task->source_ref_id;
+        if ($userId <= 0) {
+            return;
+        }
+        $c = json_decode((string) $task->content, true) ?: [];
+        if (!empty($c['refunded_at'])) {
+            return;
+        }
+        $paid = (float) ($c['paid_tokens'] ?? 0);
+        try {
+            if ($paid > 0.0) {
+                (new WalletService())->credit($userId, $paid, 'video_gen_refund', 0,
+                    'AI short generation refund (expired)');
+                $c['refunded_tokens'] = $paid;
+            } else {
+                $ent = (new VipService())->entitlements($userId);
+                (new GenCreditService())->refund($userId, max(1, (int) ($ent['image_daily_limit'] ?? 1)));
+                $c['refunded_tokens'] = 0;
+                $c['refunded_credit'] = 1;
+            }
+            $c['refunded_at'] = date('Y-m-d H:i:s');
+            $c['error'] = 'Expired before a worker picked it up';
+        } catch (\Throwable $e) {
+            Log::error("[aiTask] expired refund failed task={$task->id}: {$e->getMessage()}");
+            $c['refund_error'] = mb_substr($e->getMessage(), 0, 120);
+        }
+        $task->content = json_encode($c, JSON_UNESCAPED_UNICODE);
+        $task->save();
     }
 
     /**
