@@ -74,7 +74,7 @@ final class AiShort extends BaseController
     {
         $rows = $this->db()->table('lp_short_preset')
             ->where('status', 1)
-            ->field('code, title, category, kind, duration_sec, cover_url, preview_url, '
+            ->field('code, title, category, kind, duration_sec, price_tokens, cover_url, preview_url, '
                 . 'persona_thumb, reference_image, task_type')
             ->order('weigh', 'desc')
             ->order('id', 'asc')
@@ -185,9 +185,17 @@ final class AiShort extends BaseController
         $wallet = new WalletService();
         $paidTokens = 0.0;
 
+        // 卡片定价：price_tokens >= 0 用卡片价（0=免费卡），-1 跟随站点全局单价
+        $pt = isset($preset['price_tokens']) ? (float) $preset['price_tokens'] : -1.0;
+        $useCardPrice = $pt >= 0;
+        $cardPrice = $useCardPrice ? $pt : $this->genPrice($kind);
+
         $credits->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
-        if (!$credits->consume($userId)) {
-            $price = $this->genPrice($kind);
+        if ($useCardPrice && $cardPrice <= 0) {
+            // 免费卡：不消耗免费额度，直接放行
+            $paidTokens = 0.0;
+        } elseif (!$credits->consume($userId)) {
+            $price = $cardPrice;
             if ($price <= 0) {
                 return $this->jsonFail(
                     ResultCode::PARAM_ERROR,
@@ -316,6 +324,7 @@ final class AiShort extends BaseController
     {
         $userId = $this->getAuthUserId();
         $kind = ((string) $this->request->get('kind', 'video')) === 'image' ? 'image' : 'video';
+        $code = trim((string) $this->request->get('code', ''));
 
         $ent = (new VipService())->entitlements($userId);
         $dailyLimit   = max(1, (int) ($ent['image_daily_limit'] ?? 2));
@@ -323,6 +332,15 @@ final class AiShort extends BaseController
 
         $remain = (new GenCreditService())->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
         $price  = $this->genPrice($kind);
+        if ($code !== '') {
+            // 卡片定价优先：price_tokens >= 0 用卡片价，否则全局价
+            $p = $this->db()->table('lp_short_preset')
+                ->where('code', $code)->where('status', 1)
+                ->value('price_tokens');
+            if ($p !== null && (float) $p >= 0) {
+                $price = (float) $p;
+            }
+        }
 
         return $this->jsonSuccess([
             'kind'        => $kind,
@@ -487,6 +505,7 @@ final class AiShort extends BaseController
                 'prompt'       => (string) $r['prompt'],
                 'lora_chain'   => json_decode((string) $r['lora_chain'], true) ?: [],
                 'duration_sec' => (int) $r['duration_sec'],
+                'price_tokens' => isset($r['price_tokens']) ? (float) $r['price_tokens'] : -1.0,
                 'cover_url'    => $this->absUrl((string) $r['cover_url']),
                 'preview_url'  => $this->absUrl((string) $r['preview_url']),
             ];

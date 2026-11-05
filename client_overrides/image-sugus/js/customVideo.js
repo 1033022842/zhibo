@@ -3,6 +3,7 @@
 (function () {
     var token = localStorage.getItem('live_access_token')
     var WORKS_API = '/api/aiShort/myList'
+    var CV_API = '/api/customVideo'
 
     function $(id) { return document.getElementById(id) }
 
@@ -740,7 +741,8 @@
             renderCost()
             return Promise.resolve()
         }
-        return authJson(API + '/quota?kind=' + encodeURIComponent((gen.preset && gen.preset.kind) || 'video'))
+        var code = gen.preset ? encodeURIComponent(gen.preset.code) : ''
+        return authJson(API + '/quota?kind=' + encodeURIComponent((gen.preset && gen.preset.kind) || 'video') + (code ? '&code=' + code : ''))
             .then(function (d) {
                 if (!d || d.code !== '00000' || !d.data) return
                 gen.quota = d.data
@@ -1318,16 +1320,27 @@
             renderWorks([])
             return
         }
-        fetch(WORKS_API, { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' })
-            .then(function (r) { return r.json() })
-            .then(function (d) {
-                var list = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
-                renderWorks(list)
-                var active = list.some(function (t) { return ['pending', 'accepted', 'processing'].indexOf(t.status) >= 0 })
-                if (active && !pollTimer) pollTimer = setInterval(loadWorks, 10000)
-                if (!active && pollTimer) { clearInterval(pollTimer); pollTimer = null }
-            })
-            .catch(function () { renderWorks([]) })
+        // 两条通道合并：aiShort（卡片）+ customVideo（换装 image / 定制）
+        Promise.all([
+            fetch(WORKS_API, { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' }).then(function (r) { return r.json() }).catch(function () { return null }),
+            fetch(CV_API + '/myList', { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' }).then(function (r) { return r.json() }).catch(function () { return null }),
+        ]).then(function (res) {
+            var a = res[0], b = res[1]
+            var list = (a && a.code === '00000' && Array.isArray(a.data)) ? a.data : []
+            var cv = (b && b.code === '00000' && Array.isArray(b.data)) ? b.data : []
+            var merged = list.concat(cv.map(function (t) {
+                return {
+                    id: 'cv' + t.id, task_no: t.task_no, kind: t.kind, status: t.status,
+                    video_url: t.video_url, cover_url: t.cover_url, created_at: t.created_at,
+                    error: t.error, refunded_tokens: t.refunded_tokens, refunded_credit: t.refunded_credit, refunded_at: t.refunded_at,
+                }
+            }))
+            merged.sort(function (x, y) { return String(y.created_at || '').localeCompare(String(x.created_at || '')) })
+            renderWorks(merged)
+            var active = merged.some(function (t) { return ['pending', 'accepted', 'processing'].indexOf(t.status) >= 0 })
+            if (active && !pollTimer) pollTimer = setInterval(loadWorks, 10000)
+            if (!active && pollTimer) { clearInterval(pollTimer); pollTimer = null }
+        }).catch(function () { renderWorks([]) })
     }
 
     /* ---------- 页签切换：Explore / My Works / Favorites 三态 ----------
@@ -1363,11 +1376,182 @@
         }
     }
 
+    /* ---------- Shop 换装（customVideo 通道，outfit）----------
+       入口：筛选栏 Shop 按钮 → 服装列表（options.image_presets，owned/locked）；
+       选已购 → 上传照片 → /customVideo/submit(type=image+item_id)；
+       成品在 My Works 里以 kind=image 展示（loadWorks 已合并两通道）。 */
+    var CV_API2 = '/api/customVideo'
+    var shop = { items: [], sel: null, file: null, confirmPaid: false, price: 0, balance: 0, remain: null, loaded: false }
+
+    function openShop() {
+        if (!token) { location.href = './Login.html'; return }
+        openModal('gsShopModal')
+        if (shop.loaded) { renderShop(); return }
+        renderShopLoading()
+        authJson(CV_API2 + '/options').then(function (d) {
+            if (!d || d.code !== '00000' || !d.data) throw new Error((d && d.msg) || 'Failed to load outfits')
+            shop.items = d.data.image_presets || []
+            shop.price = Number(d.data.image_price) || 0
+            shop.balance = Number(d.data.balance) || 0
+            shop.remain = d.data.quota != null && d.data.quota !== '' ? Number(d.data.quota) : null
+            shop.loaded = true
+            renderShop()
+        }).catch(function (e) {
+            $('gsShopGrid').innerHTML = '<div class="cv-empty">Failed to load outfits — try again.</div>'
+            toast(e.message || 'Network error', 'error')
+        })
+    }
+
+    function renderShopLoading() {
+        var grid = $('gsShopGrid')
+        if (grid) grid.innerHTML = '<div class="cv-empty">Loading…</div>'
+    }
+
+    function renderShop() {
+        var grid = $('gsShopGrid')
+        if (!grid) return
+        if (!shop.items.length) {
+            grid.innerHTML = '<div class="cv-empty">No outfits in the shop yet.</div>'
+            return
+        }
+        grid.innerHTML = shop.items.map(function (p) {
+            var owned = Number(p.owned) > 0
+            return '<button type="button" class="gs-shop__card' + (owned ? '' : ' is-locked') + '" data-gs-outfit="' + esc(p.item_id) + '">' +
+                '<span class="gs-shop__cover" style="background-image:url(&quot;' + esc(p.cover_url || '') + '&quot;)"></span>' +
+                '<span class="gs-shop__meta">' +
+                '<span class="gs-shop__label">' + esc(p.label || '') + '</span>' +
+                '<span class="gs-shop__price">' + (owned ? '✓ Owned — tap to wear' : '🔒 ' + esc(fmtAmount(Number(p.price) || 0)) + ' · buy in Shop') + '</span>' +
+                '</span></button>'
+        }).join('')
+    }
+
+    function openOutfit(item) {
+        closeModal('gsShopModal')
+        shop.sel = item
+        shop.file = null
+        shop.confirmPaid = false
+        $('gsOutfitTitle').textContent = item.label || 'Outfit'
+        $('gsOutfitPills').innerHTML = '<span class="gs-gen__pill">' + esc(String(item.desc || '').slice(0, 48)) + '</span>'
+        $('gsOutfitCover').src = item.cover_url || ''
+        $('gsOutfitPreview').style.display = 'none'
+        $('gsOutfitPreview').removeAttribute('src')
+        $('gsOutfitFile').value = ''
+        $('gsOutfitUploadText').textContent = 'upload her photo'
+        var sb = $('gsOutfitSubmit')
+        if (sb) { sb.classList.remove('is-confirm'); sb.disabled = false }
+        $('gsOutfitSubmitText').textContent = 'Apply Outfit'
+        outfitCost()
+        openModal('gsOutfitModal')
+    }
+
+    function outfitCost() {
+        var el = $('gsOutfitCost')
+        if (!el) return
+        // 免费额度与 customVideo 通道一致（options.quota = 剩余免费次数）
+        if (shop.remain !== null && shop.remain > 0) {
+            el.textContent = 'Free'
+        } else {
+            el.textContent = shop.price > 0 ? ('💰 ' + fmtAmount(shop.price)) : 'Free'
+        }
+    }
+
+    function outfitSubmit(confirmed) {
+        if (shop.submitting) return
+        if (!shop.file) { toast('Please upload her photo first', 'error'); return }
+        shop.submitting = true
+        var btn = $('gsOutfitSubmit'), txt = $('gsOutfitSubmitText')
+        btn.disabled = true
+        txt.textContent = 'Submitting…'
+
+        var fd = new FormData()
+        fd.append('image', shop.file)
+        fd.append('type', 'image')
+        fd.append('item_id', shop.sel.item_id)
+        fd.append('agreed_policy', '1')
+        if (confirmed) fd.append('confirm_paid', '1')
+
+        authJson(CV_API2 + '/submit', { method: 'POST', body: fd }).then(function (d) {
+            shop.submitting = false
+            btn.disabled = false
+            if (!d) { txt.textContent = 'Apply Outfit'; return }
+            if (d.code === 'C0102') {
+                // 免费额度用尽需付费：就地二次确认（与卡片生成一致）
+                shop.confirmPaid = true
+                btn.disabled = false
+                txt.textContent = 'Confirm · ' + fmtAmount(shop.price) + ' tokens — tap again'
+                return
+            }
+            if (d.code === 'C0100') {
+                txt.textContent = 'Apply Outfit'
+                toast('Not enough tokens — please top up', 'error')
+                return
+            }
+            if (d.code !== '00000') {
+                txt.textContent = 'Apply Outfit'
+                toast(d.msg || 'Submit failed', 'error')
+                return
+            }
+            shop.file = null
+            shop.confirmPaid = false
+            closeModal('gsOutfitModal')
+            txt.textContent = 'Apply Outfit'
+            toast('Outfit applied — check My Works', 'success')
+            setMode('works')
+            loadWorks()
+        }).catch(function () {
+            shop.submitting = false
+            btn.disabled = false
+            txt.textContent = 'Apply Outfit'
+            toast('Network error', 'error')
+        })
+    }
+
+    function bindShop() {
+        var btn = $('gsShopBtn')
+        if (btn) btn.addEventListener('click', openShop)
+        var grid = $('gsShopGrid')
+        if (grid && !grid.getAttribute('data-gs-bound')) {
+            grid.setAttribute('data-gs-bound', '1')
+            grid.addEventListener('click', function (e) {
+                var card = e.target.closest ? e.target.closest('[data-gs-outfit]') : null
+                if (!card) return
+                var id = card.getAttribute('data-gs-outfit')
+                var item = null
+                for (var i = 0; i < shop.items.length; i++) {
+                    if (String(shop.items[i].item_id) === String(id)) { item = shop.items[i]; break }
+                }
+                if (!item) return
+                if (Number(item.owned) > 0) { openOutfit(item) } else {
+                    toast('Buy this outfit in the Shop first', 'error')
+                    setTimeout(function () { location.href = './shop.html' }, 900)
+                }
+            })
+        }
+        var up = $('gsOutfitUpload'), fl = $('gsOutfitFile'), sb = $('gsOutfitSubmit')
+        if (up && fl) {
+            up.addEventListener('click', function () { fl.click() })
+            fl.addEventListener('change', function () {
+                if (!this.files || !this.files[0]) return
+                shop.file = this.files[0]
+                var r = new FileReader()
+                r.onload = function (ev) {
+                    var pv = $('gsOutfitPreview')
+                    pv.src = ev.target.result
+                    pv.style.display = 'block'
+                    $('gsOutfitUploadText').textContent = shop.file.name
+                }
+                r.readAsDataURL(shop.file)
+            })
+        }
+        if (sb) sb.addEventListener('click', function () { outfitSubmit(shop.confirmPaid) })
+    }
+
     function init() {
         if (!$('gsGrid')) return
         bindModalClose()
         bindGallery()
         bindGen()
+        bindShop()
         var works = $('cvTabWorks')
         if (works) works.addEventListener('click', function () { setMode('works') })
         var exp = $('cvTabExplore')
