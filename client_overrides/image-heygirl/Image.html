@@ -192,7 +192,7 @@
 
 
 	<script src="./js/ui-dialog.js?v=20260928d"></script>
-	<script src="./js/customVideo.js?v=20261105shop1"></script>
+	<script src="./js/customVideo.js?v=20261105shop2"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
@@ -935,11 +935,7 @@
 							<input type="file" id="gsOutfitFile" accept="image/jpeg,image/png,image/webp" style="display:none">
 						</div>
 						<div class="gs-gen__frame gs-gen__frame--out">
-							<img id="gsOutfitPhoto" class="is-sharp" alt="" style="display:none">
-							<div class="gs-outfit-placeholder" id="gsOutfitPlaceholder">
-								<span class="gs-outfit-placeholder-emoji">👗</span>
-								<span>上传她的照片<br>AI 帮她换上这套服装</span>
-							</div>
+							<img id="gsOutfitCover" alt="">
 						</div>
 					</div>
 					<div class="gs-gen__actions">
@@ -973,7 +969,7 @@
 /* Outfit 面板：上传照片预览（右侧大框）+ 占位 */
 .gs-outfit-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:rgba(255,255,255,.45);font-size:13px;text-align:center;line-height:1.6}
 .gs-outfit-placeholder-emoji{font-size:34px}
-#gsOutfitPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:2}
+#gsOutfitCover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#101010}
 .gs-outfit-thumb{width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,.18);background:#161616}
 .gs-outfit-thumb[style*="none"],.gs-outfit-thumb:not([src]){display:none}
 </style>
