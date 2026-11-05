@@ -10,6 +10,12 @@
 
 ## 一、这套体系是什么
 
+
+> **协作冲突检查钩子（2026-11-06 新增）**：仓库内 `tools/hooks/pre-push` 会在 push main 时
+> 检测"本次推送是否变更了 gitee main 近 7 天由他人修改过的文件"，命中则列出清单要求确认，
+> 防止"回填线上旧基线"覆盖同事进行中工作（11-04 入口直达被回填覆盖事故的防复发）。
+> 安装：`git config core.hooksPath tools/hooks`（每个 clone 一次）；应急跳过：`GIT_SKIP_COLLAB_CHECK=1`。
+
 ```
                     ┌──────────────────────────────────────────────┐
                     │  douyin 仓库（D:\ever\douyin\douyin）          │

@@ -1,0 +1,99 @@
+#!/bin/sh
+# pre-push 协作冲突检查 —— 防止覆盖同事近期的进行中工作
+#
+# 背景（2026-11-04 入口直达被回填覆盖事故）：
+#   双向修改共享文件（侧栏/导航散落 41 个 HTML）+ "线上改完用旧基线整文件回填"的工作流，
+#   结构上必然互相覆盖。本钩子在 push 前做最后一道检测：
+#   若本次推送会变更「gitee main 近 7 天由他人（非本人）修改过」的文件，列出清单并要求确认。
+#
+# 安装（每个 clone 一次）：
+#   git config core.hooksPath tools/hooks
+#
+# 逃生阀：GIT_SKIP_COLLAB_CHECK=1 git push ...   （跳过本检查，应急用）
+#
+# 只校验 main 分支；其它分支/删除操作直接放行。
+
+input=$(cat)
+FLAG=$(mktemp)
+: > "$FLAG"
+
+echo "$input" | while read local_ref local_sha remote_ref remote_sha
+do
+    [ "$remote_ref" = "refs/heads/main" ] || continue
+    # 分支删除 / 新分支：放行
+    [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+
+    if [ "$GIT_SKIP_COLLAB_CHECK" = "1" ]; then
+        echo "pre-push: 协作冲突检查已跳过（GIT_SKIP_COLLAB_CHECK=1）"
+        continue
+    fi
+
+    REMOTE="${GIT_PUSH_REMOTE:-gitee}"
+    git fetch --quiet "$REMOTE" main 2>/dev/null
+    REMOTE_HEAD=$(git rev-parse --quiet --verify "$REMOTE/main" 2>/dev/null)
+    [ -n "$REMOTE_HEAD" ] || REMOTE_HEAD="$remote_sha"
+
+    MB=$(git merge-base --quiet "$local_sha" "$REMOTE_HEAD" 2>/dev/null)
+    [ -n "$MB" ] || MB="$REMOTE_HEAD"
+
+    # 已是最新 / 落后（push 会被远端拒绝）：无需检查
+    [ "$MB" = "$local_sha" ] && continue
+
+    ME=$(git config user.email)
+    [ -n "$ME" ] || ME="unknown"
+
+    # 本次推送将引入的全部提交
+    PENDING=$(git rev-list "$MB..$local_sha")
+    [ -n "$PENDING" ] || continue
+
+    # 待推文件清单
+    FILES=$(git diff --name-only "$MB" "$local_sha")
+    [ -n "$FILES" ] || continue
+
+    # 他人近 7 天在 gitee main 上改过的文件 → "文件 作者 邮箱 日期 hash"
+    OTHER_TOUCHED=$(git log --since="7.days.ago" --no-merges \
+        --format='%an%x09%ae%x09%ci%x09%h' --name-only "$REMOTE_HEAD" 2>/dev/null \
+    | awk -F'\t' -v me="$ME" '
+        NF == 4 && $1 != "" { an=$1; ae=$2; ad=$3; ah=$4; next }
+        NF >= 1 && $0 != "" { if (ae != "" && ae != me) print $0 "\t" an "\t" ad "\t" ah }
+    ' | sort -u)
+
+    conflicts=""
+    echo "$FILES" | while IFS= read -r f
+    do
+        hit=$(echo "$OTHER_TOUCHED" | grep -F "$f" | head -1)
+        [ -n "$hit" ] && echo "$f|$hit"
+    done > /tmp/prepush_conflicts.$$
+
+    if [ -s /tmp/prepush_conflicts.$$ ]; then
+        echo ""
+        echo "⚠⚠  pre-push 协作冲突检查：本次推送将变更以下【近 7 天他人修改过】的文件："
+        echo "----------------------------------------------------------------"
+        while IFS='|' read -r f an ad ah
+        do
+            printf '  %-55s 最后修改: %s @ %s (%s)\n' "$f" "$an" "${ad%% *}" "${ah%% *}"
+        done < /tmp/prepush_conflicts.$$
+        echo "----------------------------------------------------------------"
+        echo "  SOP：共享文件（导航/侧栏/shell）改动请先在群里同步；确认同事不在做"
+        echo "  相关改动后可继续。应急跳过：GIT_SKIP_COLLAB_CHECK=1"
+        rm -f /tmp/prepush_conflicts.$$
+        # 确认从终端读（不能用 push 的 stdin）
+        if [ "$CC_HOOK_ASSUME_YES" != "1" ]; then
+            printf '仍要推送请输入 y：'
+            Ans=""
+            read Ans < /dev/tty 2>/dev/null || Ans=""
+            [ "$Ans" = "y" ] || { echo "已中止推送。"; echo 1 > "$FLAG"; }
+        fi
+    else
+        rm -f /tmp/prepush_conflicts.$$
+        echo "pre-push: 协作冲突检查通过（无近 7 天他人改动的交集）"
+    fi
+done
+
+# while 在子 shell 里运行，用标志文件把中止决定带回主 shell
+if [ -f "$FLAG" ] && grep -q 1 "$FLAG"; then
+    rm -f "$FLAG"
+    exit 1
+fi
+rm -f "$FLAG"
+exit 0
