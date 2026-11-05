@@ -73,7 +73,7 @@
         if (post.video_url) {
             return '<div class="absolute inset-0">' +
                 '<div class="absolute inset-0 flex items-center justify-center">' +
-                  '<img class="absolute inset-0 w-full h-full object-cover" src="' + esc(post.poster_url) + '" alt="" aria-hidden="true">' +
+                  '<img class="absolute inset-0 w-full h-full object-cover feed-desktop-media" src="' + esc(post.poster_url) + '" alt="" aria-hidden="true">' +
                 '</div>' +
                 '<video src="' + esc(post.video_url) + '"' + poster + ' class="absolute inset-0 w-full h-full object-cover cursor-pointer feed-desktop-media" muted="" playsinline="" loop="" preload="metadata" webkit-playsinline="true" x-webkit-airplay="allow"></video>' +
               '</div>'
