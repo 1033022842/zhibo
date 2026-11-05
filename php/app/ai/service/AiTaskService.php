@@ -350,6 +350,23 @@ final class AiTaskService
 
         Log::info("AiTaskService: task {$task->task_no} completed, duration={$durationSec}s");
 
+        // 预生成池：成品回写池行（ready），由 ai:pool:cron/claim 消费
+        if ($task->task_type === 'pool_image') {
+            try {
+                Db::connect('live_mysql')->table('lp_character_image_pool')
+                    ->where('task_id', (int) $task->id)
+                    ->update(['status' => 'ready', 'image_url' => $videoUrl, 'updated_at' => $now]);
+            } catch (\Throwable $e) {
+                Log::warning("AiTaskService: pool row ready writeback failed for {$task->task_no}: {$e->getMessage()}");
+            }
+            return [
+                'task_id'     => $taskId,
+                'task_no'     => $task->task_no,
+                'status'      => TaskStatus::COMPLETED->value,
+                'finished_at' => $now,
+            ];
+        }
+
         // 角色形象图：直接回写人设封面（向导轮询 customRoleImageStatus / charactersIndex 都读 cover_url）
         if ($task->task_type === 'character_image') {
             try {
@@ -652,7 +669,7 @@ final class AiTaskService
         $cutoff = date('Y-m-d H:i:s', time() - max(10, $ttlMin) * 60);
 
         $rows = $db->table('lp_ai_task')
-            ->whereIn('task_type', ['custom_video', 'custom_image', 'character_image'])
+            ->whereIn('task_type', ['custom_video', 'custom_image', 'character_image', 'pool_image'])
             ->whereIn('status', [TaskStatus::ACCEPTED->value, TaskStatus::PROCESSING->value])
             ->where(function ($q) use ($cutoff) {
                 $q->where('accepted_at', '<=', $cutoff)
@@ -704,6 +721,11 @@ final class AiTaskService
                 'failed_at' => $now,
                 'updated_at' => $now,
             ]);
+            // 池任务失败：池行置 failed（ai:pool:cron 删行释放 seq 后重发）
+            if ($row['task_type'] === 'pool_image') {
+                $db->table('lp_character_image_pool')->where('task_id', $id)
+                    ->update(['status' => 'failed', 'updated_at' => $now]);
+            }
             // 角色首图免费（没扣过额度/代币），失败不退款
             $refunded = $row['task_type'] === 'character_image' ? false : $this->refundCustomTask((int) ($row['source_ref_id'] ?? 0), $paid, $retry);
             $this->writeLog($id, 'reaped_failed', [

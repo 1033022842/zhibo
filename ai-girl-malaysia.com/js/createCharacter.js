@@ -931,13 +931,19 @@
             tries += 1
             // 20 分钟上限：到点直接引导去 My AI（worker 侧 90 分钟回收由 cron 兜底）
             if (tries > 120) { showFailed(); return }
-            // 生成通道未部署（image_task_id 为空）：直接完成跳转，不空转
+            // image_task_id 为空有两种情况：
+            //   a) 预生成池命中（instant=true）：persona.cover_url 已就位 → 查一次状态直接完成
+            //   b) 生成通道未部署（老站点）：角色创建成功 → 跳列表页（保留旧行为）
             if (!imageTaskId) {
-                // 角色已创建成功，封面可能是旧流程人工素材 → 直接去列表页
-                if (tries === 1) {
+                if (tries > 1) return  // 只查一次，之后按结果走
+                fetch(API + '/customRoleImageStatus?persona_id=' + personaId, {
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    cache: 'no-store',
+                }).then(function (r) { return r.json() }).then(function (d) {
                     if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-                    location.href = './charactersIndex.html'
-                }
+                    var url = d && d.code === '00000' && d.data ? (d.data.image_url || '') : ''
+                    if (url) { showDone(url) } else { location.href = './charactersIndex.html' }
+                }).catch(function () { location.href = './charactersIndex.html' })
                 return
             }
             fetch(API + '/customRoleImageStatus?persona_id=' + personaId, {
