@@ -92,6 +92,8 @@ final class AiShort extends BaseController
                     'kind'         => (string) $r['kind'],
                     'task_type'    => (string) ($r['task_type'] ?? ''),
                     'duration_sec' => (int) $r['duration_sec'],
+                    // 卡片代币价：-1=跟随站点全局单价（前端按 quota 展示），0=免费，>0=固定价
+                    'price_tokens' => isset($r['price_tokens']) ? (float) $r['price_tokens'] : -1.0,
                     'cover_url'    => $this->absUrl((string) $r['cover_url']),
                     'preview_url'  => $this->absUrl((string) $r['preview_url']),
                     // 卡片左上角人设缩略图
