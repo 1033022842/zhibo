@@ -918,6 +918,7 @@
 					<div class="gs-gen__head">
 						<h2 class="gs-gen__title" id="gsOutfitTitle">Outfit</h2>
 						<div class="gs-gen__head-act">
+							<img id="gsOutfitThumb" class="gs-outfit-thumb" alt="" style="display:none">
 							<button type="button" class="gs-gen__icon" data-gs-close="gsOutfitModal" aria-label="Close">
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
 							</button>
@@ -934,8 +935,11 @@
 							<input type="file" id="gsOutfitFile" accept="image/jpeg,image/png,image/webp" style="display:none">
 						</div>
 						<div class="gs-gen__frame gs-gen__frame--out">
-							<img id="gsOutfitCover" alt="">
-							<div class="gs-gen__state" id="gsOutfitState">Outfit</div>
+							<img id="gsOutfitPhoto" class="is-sharp" alt="" style="display:none">
+							<div class="gs-outfit-placeholder" id="gsOutfitPlaceholder">
+								<span class="gs-outfit-placeholder-emoji">👗</span>
+								<span>上传她的照片<br>AI 帮她换上这套服装</span>
+							</div>
 						</div>
 					</div>
 					<div class="gs-gen__actions">
@@ -961,6 +965,17 @@
 .gs-shop__card.is-locked .gs-shop__cover{filter:grayscale(.7) brightness(.6)}
 .gs-shop__card.is-locked .gs-shop__price{color:#f97187}
 .gs-chip--shop{color:#f9c971}
+/* 服装列表：隐藏原生滚动条（保留滚动能力） */
+.gs-shop__grid{scrollbar-width:none;-ms-overflow-style:none}
+.gs-shop__grid::-webkit-scrollbar{display:none}
+.gs-shop .gs-modal__body{scrollbar-width:none;-ms-overflow-style:none}
+.gs-shop .gs-modal__body::-webkit-scrollbar{display:none}
+/* Outfit 面板：上传照片预览（右侧大框）+ 占位 */
+.gs-outfit-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:rgba(255,255,255,.45);font-size:13px;text-align:center;line-height:1.6}
+.gs-outfit-placeholder-emoji{font-size:34px}
+#gsOutfitPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:2}
+.gs-outfit-thumb{width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,.18);background:#161616}
+.gs-outfit-thumb[style*="none"],.gs-outfit-thumb:not([src]){display:none}
 </style>
 		</turbo-frame></div>
 <div id="character-registration-modal"></div>
