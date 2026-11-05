@@ -128,6 +128,7 @@
     affiliate: { svg: '<svg viewBox="0 0 24 24" ' + S + '><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>' },
     appdl: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7.5v6m0 0l-2.4-2.4M12 13.5l2.4-2.4"/></svg>' },
     banknote: { svg: '<svg viewBox="0 0 24 24" ' + S + '><rect x="2.5" y="6" width="19" height="12" rx="3"/><circle cx="12" cy="12" r="2.75"/><path d="M6 9.5v5M18 9.5v5"/></svg>' },
+    history: { svg: '<svg viewBox="0 0 24 24" ' + S + '><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4.5V9h4.5"/><path d="M12 7.5V12l3 1.8"/></svg>' },
 
     // 头像下拉「Notifications」：沿用原站 settings_files 里的铃铛
     bell: { src: './settings_files/bell-5e96b0cd2e66a4ce6eb9b4f17fecd9f952a1780b89d2be511c619832e96f5897.png' }
@@ -797,6 +798,7 @@
     }
     return row('./Subscriptions.html', 'premium', 'Subscription') +
       row('./purchasePoints.html', 'coin', 'Tokens') +
+      row('./Financial.html', 'history', 'Transactions') +
       row('./Withdrawal.html', 'banknote', 'Withdraw') +
       row('./Inviter.html', 'gift', 'Get 100 tokens') +
       row('./setting.html', 'settings', 'Settings') +

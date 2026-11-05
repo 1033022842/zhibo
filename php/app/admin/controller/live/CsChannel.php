@@ -45,7 +45,7 @@ final class CsChannel extends Backend
         // 编辑中的渠道
         $edit = ['id' => 0, 'type' => 'telegram', 'name' => '', 'url' => '', 'icon' => '', 'sort' => 0, 'status' => 1];
         if ($editId > 0) {
-            $row = Db::connect('live_mysql')->table('lp_cs_channel')->where('id', $editId)->find();
+            $row = Db::connect('live_mysql')->table('lp_cs_channel')->where('id', $editId)->where('agent_id', 0)->find();
             if ($row) {
                 $edit = array_merge($edit, $row);
             }
@@ -373,8 +373,10 @@ HTML;
                 'sort' => $sort, 'status' => $status, 'updated_at' => $now,
             ];
             if ($id > 0) {
-                $db->table('lp_cs_channel')->where('id', $id)->update($data);
+                // 只允许改总部渠道，代理自己的渠道在代理中心维护
+                $db->table('lp_cs_channel')->where('id', $id)->where('agent_id', 0)->update($data);
             } else {
+                $data['agent_id']   = 0;
                 $data['created_at'] = $now;
                 $db->table('lp_cs_channel')->insert($data);
             }
@@ -390,7 +392,7 @@ HTML;
     {
         $id = (int) $this->request->param('id', 0);
         $db = Db::connect('live_mysql');
-        $row = $id ? $db->table('lp_cs_channel')->where('id', $id)->find() : null;
+        $row = $id ? $db->table('lp_cs_channel')->where('id', $id)->where('agent_id', 0)->find() : null;
         if ($row) {
             $db->table('lp_cs_channel')->where('id', $id)->update([
                 'status'     => (int) $row['status'] === 1 ? 0 : 1,
@@ -406,7 +408,7 @@ HTML;
     {
         $id = (int) $this->request->param('id', 0);
         if ($id > 0) {
-            Db::connect('live_mysql')->table('lp_cs_channel')->where('id', $id)->delete();
+            Db::connect('live_mysql')->table('lp_cs_channel')->where('id', $id)->where('agent_id', 0)->delete();
             (new PromoService())->flushCache();
         }
         $this->backToIndex('已删除');

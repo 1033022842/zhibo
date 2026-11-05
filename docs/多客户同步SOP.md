@@ -275,6 +275,7 @@ client_overrides/
 | 覆盖页被还原成上游版 | 有人在客户仓库手敲了 `git checkout douyin/main -- ...` | 重跑一次同步（脚本会把覆盖文件写回）；提交后再核对 blob hash |
 | 通话在 App 内置浏览器里完全没声音 | 微信/Instagram/Facebook 内置浏览器、iOS Chrome（WKWebView）没有 Web Speech API（`speechSynthesis`） | 前端已自动改走服务端 TTS `/api/live/tts`（xAI `/v1/tts` 代理，需登录、600 字符上限、1 小时缓存）；php 侧需部署 `app/common/service/TtsService.php` 与 `app/api/controller/Live.php`。该接口只影响无 TTS 的浏览器，正常 Safari/Chrome 仍走本地合成，不产生额外费用 |
 | 通话里说话没反应（能听到 AI） | 同类 WebView 也缺 `SpeechRecognition`；有些 WebView 暴露了 API 但没有可用引擎 | 前端已自动改走 WebAudio 录音（PCM→16k WAV，静音 0.9s 自动结束，最长 12s）+ `/api/live/stt`（xAI `/v1/stt`，需登录）；php 需部署 `app/common/service/SttService.php`；麦克风被拒时会提示改文字输入 |
+| 会员订阅成功、会员已生效，但页面承诺的赠送 Token 没到账 | ① 站点 `VipService.php` 是旧版，没有 `vip_grant`；② 旧逻辑只在 `daily_diamond=0` 时发，老套餐 `daily_diamond>0` 被跳过 | 按第六节 B''''' 升级 `php/app/live/service/VipService.php` 并 reload php-fpm；历史单用 `WalletService::credit(...,'vip_grant',...)` 补发，备注带订单号便于对账 |
 
 | 所有上传接口 500（nginx error.log 里有 `File upload error - unable to create a temporary file`） | `/tmp` 权限被改成 `755 root:root`，php-fpm 的 `www-data` 无法在其中创建上传临时文件。上传默认落 `/tmp`，而 session 在 `/var/lib/php/sessions`，所以站点其他功能看起来正常，只有上传全挂 | `chmod 1777 /tmp`；自测 `su -s /bin/sh www-data -c 'touch /tmp/x'` 应成功。四台服务器都查一遍（2026-10-29 sugus 只此一台异常） |
 
@@ -366,14 +367,33 @@ client_overrides/
 - 签名：请求体 + 请求头 `appId/timestamp(毫秒)/nonce/sign` 按 key 升序拼 `k=v&k=v`，末尾直接追加 `appSecret`，SHA-256 小写十六进制；不是 HMAC/RSA，空值保留、`null` 不参与
 - 代码：`php/config/hisspay.php`、`php/app/live/service/HissPayService.php`、`RechargeService`（法币下单 / `callFiatGateway` / `reconcileGateway` / `confirmByGateway`）、`Recharge`（`notifyHissPay`）、`api/route/recharge.php`、`live/FiatChannel.php`、`live/RechargeChannel.php`、`live/RechargeOrder.php`；前台 `js/crypto-pay.js`（姓名/邮箱/手机号表单）、`js/purchasePoints.js` 与 `js/subscriptions.js`（Visa/Mastercard 标）
 - 回调：`https://域名/api/v1/recharge/notifyHissPay`，验签后必须返回**纯文本 `SUCCESS`**（无换行）；失败通知 `status=2` 只写 `pay_state=2`，不冲正已入账订单
-- `.env` 新增 `[HISSPAY]`：`APP_ID=PzRlHNO`、`APP_SECRET`、`NOTIFY_URL`、`RETURN_URL`、`RETURN_URL_VIP`、`CURRENCY=USD`、`PRODUCT=USD-YKMZXQKYCA`、`PAY_TYPE=CARD`、`AMOUNTS=<45 个固定金额>`、`ORDER_PREFIX=HSP`
-- **已跑通（2026-11-03）**：产品 `USD-YKMZXQKYCA` + `payType=CARD`；`49.99` 下单成功返回 `payUrl`（`checkout.moneygo.ai`），`10.00` 被拒。通道行 `lp_fiat_channel` id=14（`gateway=hisspay`，USD/2 位）`status=1`，`gateway_ref=USD-YKMZXQKYCA`
-- **金额限制**：该产品只支持《商品ID及价格-新.xlsx》里的 45 个固定金额（1.99~499）。`.env` 的 `AMOUNTS` 逗号分隔配置；`HissPayService::createOrder` 会在下单前拦截非档位金额并返回明确提示，不会把无效金额发给网关（网关会返回 `10005/10009`）
+- `.env` 新增 `[HISSPAY]`：`APP_ID=PzRlHNO`、`APP_SECRET`、`NOTIFY_URL`、`RETURN_URL`、`RETURN_URL_VIP`、`CURRENCY=USD`、`PRODUCT=USD-YKMZXQKYCA`、`PAY_TYPE=CARD`、`AMOUNTS=<48 个固定金额>`、`ORDER_PREFIX=HSP`
+- **已跑通**：2026-11-03 产品 `USD-YKMZXQKYCA` + `payType=CARD` 用 `49.99` 打通；2026-11-05 商户补开三档后，`10.00 / 34.99 / 299.99` 也均返回 `payUrl`。通道行 `lp_fiat_channel` id=14（`gateway=hisspay`，USD/2 位）`status=1`，`gateway_ref=USD-YKMZXQKYCA`
+- **金额限制**：该产品只支持《商品ID及价格-新.xlsx》里的固定金额（1.99~499）。2026-11-04 商户补开了 `10 / 34.99 / 299.99` 三个面额，现共 48 档；`.env` 的 `AMOUNTS` 逗号分隔配置。`HissPayService::createOrder` 会在下单前拦截非档位金额并返回明确提示，不会把无效金额发给网关（网关会返回 `10005/10009`）
+- **2026-11-05 已补齐**：`10 / 34.99 / 299.99` 已追加到 `.env AMOUNTS`（共 48 档）；用站点自身 `HissPayService::createOrder` 实测三档均返回 `payUrl`，`47.88` 这类非档位金额被本地白名单拦截。`/api/v1/recharge/fiat-channels` 的 `amounts` 已含三档；JS 无需改、版本号无需 bump
 - **前台联动**：`FiatChannelService::normalize` 把 `amounts` 下发给前台；`js/purchasePoints.js` 与 `js/subscriptions.js` 只在当前套餐价命中档位时才展示 HissPay，避免用户点到必失败的支付方式。改这两个 JS 后 HTML 里的版本号要同步 bump（kiss 已改到 `?v=20261103hiss3`）
-- **价格策略（2026-11-03 客户确认）**：不改现有套餐/VIP 价格，只放开命中的档位。当前 Token 套餐 `49.99/99.99/199.99` 可用，`10.00/34.99/299.99` 不显示 HissPay；VIP 里 `19.99/24.99/49.99/59.99/69.99/79.99/139.99` 可用，`47.88/119.88/191.88/335.99` 等不显示 HissPay（继续走其它网关）
+- **价格策略（2026-11-03 客户确认）**：不改现有套餐/VIP 价格，只放开命中的档位。2026-11-04 补开三档后，6 个 Token 套餐（`10.00/34.99/49.99/99.99/199.99/299.99`）全部显示 HissPay；VIP 里 `19.99/24.99/49.99/59.99/69.99/79.99/139.99` 可用，`47.88/119.88/191.88/335.99` 等仍不显示 HissPay（继续走其它网关）
 - 以前试过的产品码：`USD-EKCBBONA`、`USD-APPLEPAY-PAYIN`、`USD-CASHAPP-PAYIN` 返回 `10004 The product is not activated yet`；`USD-CARD-PAYIN` / `USD-HOSTED-PAYIN` / `USD-LOCAL-PAYOUT` 返回 `10011 The product invalid`；`USD-XGZBJQNJMI` 返回 `10005 No available channels`（该码无可用通道，已弃用）
 - 部署备份：`/root/kiss_hisspay_bak_20261103_083652`；`.env` 另有 `.env.bak.hisspay_20261103_product` / `.env.bak.hisspay_20261103_ykm` / `.env.bak.hisspay_20261103_amounts`；`php-fpm` 已 reload，`notifyHissPay` 路由已通（无效签名返回 400 `FAIL`）
 - 联调结论：网关签名、余额查询、建单、通知验签均已通过；只差真实付款后的回调入账验证
+
+### B'''''. 会员赠送 Token 漏发修复（2026-11-04，全站）
+
+- 现象：heygirl 客户订阅 1 个月成功、会员已生效，但页面承诺的 100 tokens 没到账（用户 34 / 订单 `RC202611032043490298` / Premium · 1 Month · 100 tokens/mo）
+- 根因 ①：heygirl / sugus 服务器上的 `php/app/live/service/VipService.php` 仍是旧版，**没有 `vip_grant` 发放逻辑**（kelymi 已有）
+- 根因 ②：旧逻辑只在 `lp_vip_plan.daily_diamond = 0` 时发放，heygirl / sugus 老 18 档套餐的 `daily_diamond` 是 20/25/30/50/60/80，因此即使代码升级也会被跳过；前台又没有「每日领取」入口，这笔 Token 永远拿不到
+- 修复：`VipService::activate` 改为**外部订单（网关支付 / 后台人工开通）一律按 `tokens_month × months` 发放**，不再看 `daily_diamond`；发放移入开通事务（失败整体回滚，网关重试可补），流水备注带订单号。站内 Token 直购（`buy()` 传空订单号）仍不赠送，避免套利
+- 已部署：sugus `172.81.98.55`（库 `zhibo`）、heygirl `172.81.99.11`、kelymi `172.81.99.42`、kiss `103.217.252.52`；四台均 `php -l` 通过并 reload `php8.3-fpm`。备份：`VipService.php.bak.20261104_125925`（kiss 为 `bak.20261105_143742`）
+- 2026-11-05 kiss 主机恢复后已单独同步 `VipService.php`（md5 `62d20cca...`）；kiss 老套餐同样是 `daily_diamond>0`，不同步会继续漏发
+- 历史漏发补发（`WalletService::credit`，`biz_type=vip_grant`，备注带订单号）：
+  - sugus 用户 25 / `RC202610071254261048` / 3960（Premium Plus 12 月 330/mo，余额 2246 → 6206）
+  - heygirl 用户 34 / `RC202611032043490298` / 100（本次投诉，余额 0 → 100）
+  - heygirl 用户 9 / `MKHM202610201630516948` / 100（余额 4845 → 4945）
+  - kelymi 用户 2 / `RC202610211715119802` / 100（余额 3305 → 3405）
+  - kiss 用户 8 / `RC202610211340482918` / 100（余额 2181 → 2281）
+  - kiss 用户 11 / `RC202610241752341747` / 100（余额 80 → 180）
+- 复盘口径：以后核对会员到账，要同时看 `lp_vip_order`（会员单）、`lp_recharge_order`（支付单 status=1）和 `lp_wallet_ledger`（`biz_type='vip_grant'`）；只有前两者、没有后者就是漏发
+- 排查 SQL：`SELECT r.order_no,r.user_id,r.vip_plan_id,p.name,p.tokens_month,p.months FROM lp_recharge_order r JOIN lp_vip_plan p ON p.id=r.vip_plan_id WHERE r.biz_type='vip' AND r.status=1 AND p.tokens_month>0 AND NOT EXISTS (SELECT 1 FROM lp_wallet_ledger l WHERE l.user_id=r.user_id AND l.biz_type='vip_grant' AND ABS(TIMESTAMPDIFF(MINUTE,l.created_at,r.created_at))<=10);`
 
 ### B''. kiss 全栈初始化实录（2026-10-19 装机 → 2026-10-20 域名/仓库收尾，裸机 Ubuntu 22.04）
 
@@ -723,3 +743,53 @@ heygirl/kelymi 的 nginx listen 绑定具体 IP，本机 curl 测试用 `--resol
   表面看「改了配置没反应」。备份一律放 `/root/nginx_bak/`。
 - 生效范围只在公开 vhost；`douyin-8082`（回源口）同步加 `location = /index.php` 只是方便本机排查。
 - Bunny 对 HTML 默认缓存 60s（`map $ai_cache`），改完首页最多 1 分钟全边缘生效。
+
+## 十二、流量来源面板（访问 / 注册 / 付费，2026-11-05 四站同步）
+
+客户诉求：后台能看到「哪个平台（X / TikTok / Instagram / Reddit / Threads / YouTube…）带来多少点击、注册、付费」，用于分配投放预算。
+
+### 12.1 数据链路
+
+| 环节 | 实现 |
+|---|---|
+| 落地访问 | 前台 `js/tracking.js` 每个标签页会话 POST `/api/v1/site/visit` 一次（`sessionStorage` 去重） |
+| 入库 | `lp_promo_visit`：平台 / 域名 / Referer / ch / l / px / 广告宏参数 / UA / IP |
+| 注册归因 | `lp_user.reg_platform`（首触）；`main.js` / `login-gateway.js` 已提交 `reg_platform` |
+| 付费归因 | `lp_recharge_order` 已支付订单，按会员的 `reg_*` 归属 |
+| 报表 | `/admin/live.PromoSource/index`（菜单「流量来源」）：平台分布 + 访客/访问/注册率/付费率/金额 |
+
+平台识别优先级：链接参数 `?px=`（渠道配置ID）/ `?ch=` / `?l=` → 推广链接名称关键词 → 像素平台 → Referer 域名 → App 内置浏览器 UA（Instagram / TikTok / FBAN / Twitter 等）→ 直接访问。
+
+> **曝光量（展现）无法从站内采集**：自然流量平台不提供展现数据；付费广告的展现需要接各平台 Marketing API。
+> 面板提供的是站内可验证的点击/访客/注册/付费，不虚构曝光。
+
+### 12.2 每个客户上线步骤
+
+```bash
+# ① 先跑 SQL（建 lp_promo_visit + 补 reg_platform + 菜单改名，幂等）
+mysql -u<user> -p<pwd> <db> < php/sql/upgrade_promo_visit.sql
+
+# ② 正常同步（静态站 + PHP 一起）
+python .zcode/sync_clients.py --client kiss --dry-run
+python .zcode/sync_clients.py --client kiss
+#    其余客户同理：heygirl / sugus / kelymi
+
+# ③ 验证
+curl -sk -X POST 'https://<域名>/api/v1/site/visit' \
+  -H 'Content-Type: application/json' \
+  -d '{"sid":"test-20261105","vid":"v-test","domain":"<域名>","ch":"x","referer":""}'
+# 返回 {"code":"00000"} 后，后台「流量来源」应出现 1 次访问（X / Twitter）
+```
+
+### 12.3 给客户的使用方式（重点）
+
+- 每个平台单独建一条「渠道配置」，平台选 X / Instagram / Reddit / Threads / YouTube 等（这些平台不要求像素ID）。
+- 从该渠道复制推广链接（带 `?px=渠道ID&ch=平台`），分别投放到对应平台的直播 / 视频 / 简介。
+- 社媒 App 内置浏览器经常不带 Referer；**不要依赖 Referer，依赖每个平台自己的链接**最准确。
+- 老库历史注册没有 `reg_platform` 的，会在平台报表里落到「未填 / 未识别」；新流量开始后逐步补齐。
+
+### 12.4 坑
+
+- `lp_promo_visit` 未建表时，面板不会 500，会提示「访问表尚未创建」，但访问接口写入会静默失败（不影响前台）。
+- 访问按访问时间、注册按注册时间、订单按会员注册时间；跨阶段转化率不要用「今天访问 ÷ 今天注册」硬算。
+- 新加平台后，`PromoSetting` 的渠道统计 Tab 仍按原来的广告平台列统计（X/Reddit 等不进那几列），以「流量来源」面板为准。

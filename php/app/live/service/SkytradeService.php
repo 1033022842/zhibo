@@ -45,10 +45,17 @@ final class SkytradeService
         $url    = (string) ($this->cfg['links'][$group][$amount] ?? '');
 
         if ($url === '') {
-            throw new BusinessException(
-                ResultCode::PARAM_ERROR,
-                '该金额暂不支持当前支付方式（$' . $amount . '），请选择其他套餐或联系客服'
-            );
+            // 自选点数等「金额不固定」的订单走自定义金额商品页（第三方按 amount 参数收款），
+            // 只有站点在 config('skytrade.custom_url') 里配了该链接才启用。
+            $custom = (string) ($this->cfg['custom_url'] ?? '');
+            if ($custom === '') {
+                throw new BusinessException(
+                    ResultCode::PARAM_ERROR,
+                    '该金额暂不支持当前支付方式（$' . $amount . '），请选择其他套餐或联系客服'
+                );
+            }
+            $sep = str_contains($custom, '?') ? '&' : '?';
+            return $custom . $sep . 'amount=' . $amount . '&order_no=' . urlencode($orderNo);
         }
 
         $sep = str_contains($url, '?') ? '&' : '?';

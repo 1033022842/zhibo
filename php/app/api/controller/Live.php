@@ -75,6 +75,7 @@ final class Live extends BaseController
             'channel'    => (string) ($params['reg_channel'] ?? ''),
             'px'         => (string) ($params['reg_px'] ?? ''),
             'link_name'  => (string) ($params['reg_link_name'] ?? ''),
+            'link_id'    => (string) ($params['reg_link'] ?? ''),
             'platform'   => (string) ($params['reg_platform'] ?? ''),
             'utm_source' => (string) ($params['utm_source'] ?? ''),
             'utm_medium' => (string) ($params['utm_medium'] ?? ''),
@@ -2259,9 +2260,11 @@ final class Live extends BaseController
     {
         $text = (string) $this->request->post('text', '');
         $lang = (string) $this->request->post('lang', 'en');
+        // 角色创建时选择的 6 种女声之一（createCharacter 向导写入 source_fields.voice）
+        $voice = (string) $this->request->post('voice', '');
 
         try {
-            $audio = (new TtsService())->speak($text, $lang);
+            $audio = (new TtsService())->speak($text, $lang, $voice);
         } catch (BusinessException $e) {
             return $this->jsonFail($e->resultCode, $e->getMessage());
         }

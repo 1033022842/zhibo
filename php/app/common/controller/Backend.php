@@ -35,6 +35,12 @@ class Backend extends Api
     protected Auth $auth;
 
     /**
+     * 当前后台账号若绑定代理，则为该代理行（用于数据范围隔离）
+     * @var array|null
+     */
+    protected ?array $agentAccount = null;
+
+    /**
      * 模型类实例
      * @var object
      * @phpstan-var Model
@@ -167,6 +173,30 @@ class Backend extends Api
 
         // 管理员验权和登录标签位
         Event::trigger('backendInit', $this->auth);
+
+        // 代理账号：只读 + 数据范围隔离
+        if ($this->auth->isLogin()) {
+            $this->agentAccount = \app\live\service\AgentService::agentByAdminId((int) $this->auth->id);
+            if ($this->agentAccount) {
+                $action = strtolower($this->request->action());
+                // 代理只读；例外：代理可维护自己的子代理（live.Agent 的 save/toggle），
+                // 以及退出登录
+                $ctrl      = strtolower((string) ($this->app->request->controllerPath ?? ''));
+                $allowPost = $action === 'logout'
+                    || ($ctrl === 'live.agent' && in_array($action, ['save', 'toggle'], true));
+                if ($this->request->isPost() && !$allowPost) {
+                    $this->error('代理账号为只读权限，暂不支持修改操作', [], 403);
+                }
+                // 代理退出后台时清掉数据范围 Cookie
+                if ($action === 'logout') {
+                    \app\live\service\AgentService::clearScopeCookie();
+                } elseif (empty($_COOKIE['agent_scope'])) {
+                    // 代理直接在 /admin/ 登录时没有 Cookie，补写一次并立即生效，
+                    // 让本请求的控制台与后续 iframe 页面（代理数据/推广链接）都按团队范围展示
+                    \app\live\service\AgentService::primeScope((int) $this->agentAccount['id']);
+                }
+            }
+        }
     }
 
     /**
@@ -300,6 +330,18 @@ class Backend extends Api
         $dataLimitAdminIds = $this->getDataLimitAdminIds();
         if ($dataLimitAdminIds) {
             $where[] = [$mainTableAlias . $this->dataLimitField, 'in', $dataLimitAdminIds];
+        }
+
+        // 代理账号：只统计自己团队的数据
+        if ($this->agentAccount) {
+            $scope = \app\live\service\AgentService::queryScope(
+                $this->model->getTable(),
+                $mainTableAlias,
+                \app\live\service\AgentService::teamIds((int) $this->agentAccount['id'])
+            );
+            if ($scope) {
+                $where[] = $scope;
+            }
         }
 
         return [$where, $alias, $limit, $this->queryOrderBuilder()];

@@ -123,8 +123,9 @@ final class UserService
 
     private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, array $attr = []): array
     {
+        $attr = $this->resolvePromoLinkAttr($attr);
         $attr = array_merge([
-            'domain' => '', 'channel' => '', 'px' => '', 'link_name' => '',
+            'domain' => '', 'channel' => '', 'px' => '', 'link_name' => '', 'link_id' => '',
             'platform' => '', 'campaign' => '', 'adset' => '', 'ad' => '',
             'utm_source' => '', 'utm_medium' => '',
         ], $attr);
@@ -149,10 +150,17 @@ final class UserService
             $user->reg_channel  = mb_substr(trim((string) $attr['channel']), 0, 64);
             // 平台：先按渠道/utm 识别；识别不出时再按推广像素反解（推广链接只带 ?px= 也能绑定注册来源）
             $regPlatform = self::normalizePlatform($attr);
-            if ($regPlatform === '' || $regPlatform === 'other') {
+            if (in_array($regPlatform, ['', 'other', 'direct'], true)) {
                 $pxPlatform = self::resolvePlatformByPx((string) $attr['px']);
                 if ($pxPlatform !== '') {
                     $regPlatform = $pxPlatform;
+                }
+            }
+            // Referer 被社媒 App 抹掉时，用注册请求的 UA 兜底识别平台
+            if (in_array($regPlatform, ['', 'other', 'direct'], true)) {
+                $uaPlatform = PromoService::platformFromUserAgent((string) request()->header('user-agent', ''));
+                if ($uaPlatform !== '') {
+                    $regPlatform = $uaPlatform;
                 }
             }
             $user->reg_platform = mb_substr($regPlatform, 0, 32);
@@ -698,6 +706,40 @@ final class UserService
     }
 
     /**
+     * 短链接归因：链接形如 ?px=37&l=12，名称/渠道/像素按 l 从 lp_promo_link 反解
+     * 旧版长链接（?px=&name=&ch=）不传 l，走原有逻辑，保持兼容
+     */
+    private function resolvePromoLinkAttr(array $attr): array
+    {
+        $linkId = (int) ($attr['link_id'] ?? 0);
+        if ($linkId <= 0) {
+            return $attr;
+        }
+        try {
+            $row = Db::connect('live_mysql')->table('lp_promo_link')->where('id', $linkId)->find();
+        } catch (\Throwable $e) {
+            Log::warning('[promo] 短链接反解失败 l=' . $linkId . ' err=' . $e->getMessage());
+            return $attr;
+        }
+        if (!$row) {
+            return $attr;
+        }
+        $name = trim((string) ($row['name'] ?? ''));
+        if ($name !== '') {
+            $attr['link_name'] = $name;
+        }
+        $channel = trim((string) ($row['channel'] ?? ''));
+        if ($channel !== '' && trim((string) ($attr['channel'] ?? '')) === '') {
+            $attr['channel'] = $channel;
+        }
+        $pixelId = (int) ($row['pixel_id'] ?? 0);
+        if ($pixelId > 0 && trim((string) ($attr['px'] ?? '')) === '') {
+            $attr['px'] = (string) $pixelId;
+        }
+        return $attr;
+    }
+
+    /**
      * 解析「渠道名称」用于注册时快照
      * 优先 ?px= 对应的渠道配置名称，其次推广链接名称(?name=)，最后兜底 ch 参数
      */
@@ -750,7 +792,10 @@ final class UserService
             return '';
         }
         $platform = strtolower($platform);
-        return in_array($platform, ['facebook', 'tiktok', 'google'], true) ? $platform : '';
+        if ($platform === '' || in_array($platform, ['general', 'other', 'direct'], true)) {
+            return '';
+        }
+        return isset(PromoService::TRAFFIC_PLATFORMS[$platform]) ? $platform : '';
     }
 
     /**
@@ -782,29 +827,25 @@ final class UserService
      */
     private static function normalizePlatform(array $attr): string
     {
-        $raw = strtolower(trim(
-            (string) $attr['platform'] . ' '
-            . (string) $attr['channel'] . ' '
-            . (string) $attr['utm_source'] . ' '
-            . (string) $attr['utm_medium']
-        ));
+        // 前台首触已经识别的平台（含 direct）直接采用
+        $explicit = strtolower(trim((string) ($attr['platform'] ?? '')));
+        if ($explicit !== '' && isset(PromoService::TRAFFIC_PLATFORMS[$explicit])) {
+            return $explicit;
+        }
+
+        $raw = trim(
+            (string) ($attr['platform'] ?? '') . ' '
+            . (string) ($attr['channel'] ?? '') . ' '
+            . (string) ($attr['utm_source'] ?? '') . ' '
+            . (string) ($attr['utm_medium'] ?? '')
+        );
         if ($raw === '') {
             return '';
         }
 
-        $map = [
-            'facebook' => ['facebook', 'fb', 'meta', 'instagram', 'ig', 'messenger'],
-            'tiktok'   => ['tiktok', 'tt', 'douyin'],
-            'google'   => ['google', 'gg', 'adwords', 'youtube', 'yt', 'gdn'],
-        ];
-        foreach ($map as $platform => $keys) {
-            foreach ($keys as $k) {
-                if (preg_match('/(?:^|[^a-z])' . preg_quote($k, '/') . '(?:[^a-z]|$)/', $raw)) {
-                    return $platform;
-                }
-            }
-        }
-        return 'other';
+        // 统一走 PromoService 的平台词表（X / Instagram / Reddit / Threads / YouTube …）
+        $platform = PromoService::platformFromText($raw);
+        return $platform !== '' ? $platform : 'other';
     }
 
     /**

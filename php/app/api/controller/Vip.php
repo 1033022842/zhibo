@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\api\controller;
 
 use think\App;
+use think\facade\Db;
 use app\BaseController;
 use app\common\web\ResultCode;
 use app\live\service\RechargeService;
@@ -15,7 +16,7 @@ use app\live\service\VipService;
 final class Vip extends BaseController
 {
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['buy', 'order', 'status', 'claimDaily']],
+        \app\live\middleware\Auth::class => ['only' => ['buy', 'order', 'orders', 'status', 'claimDaily']],
     ];
 
     private VipService $service;
@@ -132,6 +133,39 @@ final class Vip extends BaseController
     public function status()
     {
         return $this->jsonSuccess($this->service->status($this->getAuthUserId()));
+    }
+
+    /**
+     * 我的订阅记录（lp_vip_order：代币购买 / 网关·链上付款 / 后台手动开通）
+     * GET ?page=&page_size=
+     */
+    public function orders()
+    {
+        $userId   = $this->getAuthUserId();
+        $page     = max(1, (int) $this->request->param('page', 1));
+        $pageSize = min(50, max(1, (int) $this->request->param('page_size', 20)));
+
+        $query = Db::connect('live_mysql')->table('lp_vip_order')->alias('o')
+            ->leftJoin('lp_vip_plan p', 'p.id = o.plan_id')
+            ->where('o.user_id', $userId);
+
+        $total = (int) $query->count();
+        $list  = $query->field('o.id,o.order_no,o.plan_id,o.diamond_amount,o.expire_from,o.expire_to,o.status,o.created_at,p.name AS plan_name,p.months')
+            ->order('o.id', 'desc')
+            ->page($page, $pageSize)
+            ->select()->toArray();
+
+        $now = date('Y-m-d H:i:s');
+        foreach ($list as &$row) {
+            $isActive = (int) $row['status'] === 1 && (string) ($row['expire_to'] ?? '') >= $now;
+            $row['is_active']     = $isActive;
+            $row['status_text']   = (int) $row['status'] !== 1 ? 'Failed' : ($isActive ? 'Active' : 'Expired');
+            $row['diamond_amount'] = (float) $row['diamond_amount'];
+            $row['months']        = (int) ($row['months'] ?? 0);
+        }
+        unset($row);
+
+        return $this->jsonSuccess(['list' => $list, 'total' => $total]);
     }
 
     /**

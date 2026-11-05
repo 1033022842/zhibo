@@ -1,15 +1,20 @@
 <?php
 /**
- * 推广数据（多维度归因报表 + 推广链接生成器）
+ * 流量来源（访问 / 注册 / 付费 多维度报表）
  * 访问: /admin/live.PromoSource/index?_key=<ADMIN_FLOAT_KEY>
  *
- * 归因维度（注册时记录在 lp_user 上，首触）：
- *   reg_domain   来源域名
- *   reg_platform 来源平台（facebook / tiktok / google / other）
- *   reg_channel  渠道参数 ?ch=
- *   reg_px       推广像素 ?px=
+ * 数据来源：
+ *   访问：lp_promo_visit（前台 tracking.js 每个会话落地写一行，按访问时间筛选）
+ *   注册：lp_user 的 reg_* 首触归因（按注册时间筛选）
+ *   付费：lp_recharge_order 已支付订单（按会员注册时间筛选，口径同会员列表）
  *
- * 指标口径：充值/订阅都取「已支付订单」lp_recharge_order(status=1)，按 biz_type 区分买代币与订阅。
+ * 归因维度：
+ *   平台      reg_platform   （x / instagram / tiktok / reddit / threads / youtube …）
+ *   来源域名  reg_domain
+ *   推广链接  reg_link_name
+ *   渠道(ch)  reg_channel
+ *   渠道/像素 reg_px
+ *   来源网站  lp_promo_visit.referer（只有访问数据，注册/付费无法按 Referer 拆）
  */
 declare(strict_types=1);
 
@@ -27,121 +32,304 @@ final class PromoSource extends Backend
         \app\admin\middleware\FloatAuth::class,
     ];
 
-    /** 可选的归因维度：key => [名称, lp_user 列] */
+    /**
+     * 可选归因维度：key => [名称, lp_promo_visit 列, lp_user 列(null=只统计访问)]
+     */
     private const DIMS = [
-        'domain'   => ['来源域名', 'reg_domain'],
-        'platform' => ['平台', 'reg_platform'],
-        'channel'  => ['渠道(ch)', 'reg_channel'],
-        'link'     => ['推广链接名称', 'reg_link_name'],
-        'px'       => ['推广像素', 'reg_px'],
+        'platform' => ['平台', 'platform', 'reg_platform'],
+        'domain'   => ['来源域名', 'domain', 'reg_domain'],
+        'link'     => ['推广链接名称', 'link_name', 'reg_link_name'],
+        'channel'  => ['渠道(ch)', 'channel', 'reg_channel'],
+        'px'       => ['渠道 / 像素', 'px', 'reg_px'],
+        'referer'  => ['来源网站(Referer)', 'referer', null],
     ];
 
     public function index(): void
     {
         $db = Db::connect('live_mysql');
 
-        $dim  = (string) $this->request->param('dim', 'domain');
+        $dim = (string) $this->request->param('dim', 'platform');
         if (!isset(self::DIMS[$dim])) {
-            $dim = 'domain';
+            $dim = 'platform';
         }
-        $col  = self::DIMS[$dim][1];
+        [$dimLabel, $visitCol, $userCol] = self::DIMS[$dim];
 
         $from = trim((string) $this->request->param('from', ''));
         $to   = trim((string) $this->request->param('to', ''));
         $from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ? $from : '';
         $to   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) ? $to : '';
 
-        // 时间条件（按注册时间）。每条子查询用独立的参数名，避免重复占位符的兼容问题
-        $mkWhere = static function (string $sfx) use ($from, $to): array {
-            $w = '';
-            $b = [];
+        // 各表按自己的事件时间过滤（访问=访问时间，注册=注册时间，付费=会员注册时间）
+        $range = static function (string $col) use ($from, $to): array {
+            $where = [];
+            $bind  = [];
             if ($from !== '') {
-                $w .= ' AND u.created_at >= :from' . $sfx;
-                $b['from' . $sfx] = $from . ' 00:00:00';
+                $where[] = $col . ' >= ?';
+                $bind[]  = $from . ' 00:00:00';
             }
             if ($to !== '') {
-                $w .= ' AND u.created_at <= :to' . $sfx;
-                $b['to' . $sfx] = $to . ' 23:59:59';
+                $where[] = $col . ' <= ?';
+                $bind[]  = $to . ' 23:59:59';
             }
-            return [$w, $b];
+            return [$where === [] ? '' : ' AND ' . implode(' AND ', $where), $bind];
         };
-        [$w1, $b1] = $mkWhere('1');
-        [$w2, $b2] = $mkWhere('2');
-        [$w3, $b3] = $mkWhere('3');
-        [$w4, $b4] = $mkWhere('4');
-        [$w5, $b5] = $mkWhere('5');
-        [$w6, $b6] = $mkWhere('6');
 
-        // 各维度聚合（注册 / 充值 / 订阅）
-        $sql = "SELECT d.k AS k, d.regs AS regs,
-                       IFNULL(p.buyers,0) AS buyers, IFNULL(p.amount,0) AS amount,
-                       IFNULL(v.subs,0) AS subs, IFNULL(v.amount,0) AS sub_amount
-                FROM (
-                    SELECT `{$col}` AS k, COUNT(*) AS regs
-                    FROM lp_user u WHERE 1=1 {$w1}
-                    GROUP BY `{$col}`
-                ) d
-                LEFT JOIN (
-                    SELECT u.`{$col}` AS k, COUNT(DISTINCT o.user_id) AS buyers, SUM(o.pay_amount) AS amount
-                    FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
-                    WHERE o.status = 1 AND o.biz_type <> 'vip' {$w2}
-                    GROUP BY u.`{$col}`
-                ) p ON p.k = d.k
-                LEFT JOIN (
-                    SELECT u.`{$col}` AS k, COUNT(DISTINCT o.user_id) AS subs, SUM(o.pay_amount) AS amount
-                    FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
-                    WHERE o.status = 1 AND o.biz_type = 'vip' {$w3}
-                    GROUP BY u.`{$col}`
-                ) v ON v.k = d.k
-                ORDER BY d.regs DESC, regs DESC
-                LIMIT 500";
-        $rows = $db->query($sql, array_merge($b1, $b2, $b3));
+        [$visitWhere, $visitBind] = $range('v.created_at');
+        [$userWhere, $userBind]   = $range('u.created_at');
 
-        // 顶部汇总
-        $totalRegs = (int) $db->query("SELECT COUNT(*) AS c FROM lp_user u WHERE 1=1 {$w4}", $b4)[0]['c'] ?? 0;
-        $withSrc   = (int) $db->query("SELECT COUNT(*) AS c FROM lp_user u WHERE u.reg_domain <> '' {$w4}", $b4)[0]['c'] ?? 0;
-        $payAgg    = $db->query("SELECT COUNT(DISTINCT o.user_id) AS buyers, IFNULL(SUM(o.pay_amount),0) AS amount
-                                 FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
-                                 WHERE o.status = 1 AND o.biz_type <> 'vip' {$w5}", $b5)[0] ?? [];
-        $subAgg    = $db->query("SELECT COUNT(DISTINCT o.user_id) AS subs, IFNULL(SUM(o.pay_amount),0) AS amount
-                                 FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
-                                 WHERE o.status = 1 AND o.biz_type = 'vip' {$w6}", $b6)[0] ?? [];
+        // ---------- 访问 ----------
+        $visitRows  = [];
+        $visitReady = true;
+        try {
+            $visitRows = $db->query(
+                "SELECT v.`{$visitCol}` AS k, COUNT(*) AS pv,
+                        COUNT(DISTINCT CASE WHEN v.vid <> '' THEN v.vid ELSE v.sid END) AS uv
+                 FROM lp_promo_visit v WHERE 1=1 {$visitWhere}
+                 GROUP BY v.`{$visitCol}`",
+                $visitBind
+            );
+        } catch (\Throwable $e) {
+            // 升级脚本还没跑时不拖垮整个报表
+            $visitReady = false;
+        }
+        $visitMap = [];
+        foreach ($visitRows as $r) {
+            $visitMap[(string) ($r['k'] ?? '')] = [
+                'pv' => (int) ($r['pv'] ?? 0),
+                'uv' => (int) ($r['uv'] ?? 0),
+            ];
+        }
 
-        // 表格行
-        $dimLabel = self::DIMS[$dim][0];
+        // ---------- 注册 / 付费 ----------
+        $regMap = [];
+        $payMap = [];
+        $subMap = [];
+        if ($userCol !== null) {
+            foreach ($db->query(
+                "SELECT u.`{$userCol}` AS k, COUNT(*) AS c
+                 FROM lp_user u WHERE 1=1 {$userWhere}
+                 GROUP BY u.`{$userCol}`",
+                $userBind
+            ) as $r) {
+                $regMap[(string) ($r['k'] ?? '')] = (int) ($r['c'] ?? 0);
+            }
+
+            foreach ($db->query(
+                "SELECT u.`{$userCol}` AS k, COUNT(DISTINCT o.user_id) AS buyers,
+                        IFNULL(SUM(o.pay_amount),0) AS amount
+                 FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
+                 WHERE o.status = 1 AND o.biz_type <> 'vip' {$userWhere}
+                 GROUP BY u.`{$userCol}`",
+                $userBind
+            ) as $r) {
+                $payMap[(string) ($r['k'] ?? '')] = [
+                    'buyers' => (int) ($r['buyers'] ?? 0),
+                    'amount' => (float) ($r['amount'] ?? 0),
+                ];
+            }
+
+            foreach ($db->query(
+                "SELECT u.`{$userCol}` AS k, COUNT(DISTINCT o.user_id) AS subs,
+                        IFNULL(SUM(o.pay_amount),0) AS amount
+                 FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
+                 WHERE o.status = 1 AND o.biz_type = 'vip' {$userWhere}
+                 GROUP BY u.`{$userCol}`",
+                $userBind
+            ) as $r) {
+                $subMap[(string) ($r['k'] ?? '')] = [
+                    'subs'   => (int) ($r['subs'] ?? 0),
+                    'amount' => (float) ($r['amount'] ?? 0),
+                ];
+            }
+        }
+
+        // ---------- 顶部汇总 ----------
+        $totalVisit = $visitReady ? ($db->query(
+            "SELECT COUNT(*) AS pv, COUNT(DISTINCT CASE WHEN v.vid <> '' THEN v.vid ELSE v.sid END) AS uv
+             FROM lp_promo_visit v WHERE 1=1 {$visitWhere}",
+            $visitBind
+        )[0] ?? []) : [];
+        $totalPv = (int) ($totalVisit['pv'] ?? 0);
+        $totalUv = (int) ($totalVisit['uv'] ?? 0);
+
+        $totalRegs = (int) ($db->query(
+            "SELECT COUNT(*) AS c FROM lp_user u WHERE 1=1 {$userWhere}",
+            $userBind
+        )[0]['c'] ?? 0);
+
+        $payAgg = $db->query(
+            "SELECT COUNT(DISTINCT o.user_id) AS buyers, IFNULL(SUM(o.pay_amount),0) AS amount
+             FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
+             WHERE o.status = 1 AND o.biz_type <> 'vip' {$userWhere}",
+            $userBind
+        )[0] ?? [];
+        $subAgg = $db->query(
+            "SELECT COUNT(DISTINCT o.user_id) AS subs, IFNULL(SUM(o.pay_amount),0) AS amount
+             FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
+             WHERE o.status = 1 AND o.biz_type = 'vip' {$userWhere}",
+            $userBind
+        )[0] ?? [];
+        $payAgg = [
+            'buyers' => (int) ($payAgg['buyers'] ?? 0),
+            'amount' => (float) ($payAgg['amount'] ?? 0),
+        ];
+        $subAgg = [
+            'subs'   => (int) ($subAgg['subs'] ?? 0),
+            'amount' => (float) ($subAgg['amount'] ?? 0),
+        ];
+
+        // ---------- 按平台总览（固定展示，便于直接看各平台投入产出） ----------
+        $pfVisitMap = [];
+        if ($visitReady) {
+            foreach ($db->query(
+                "SELECT v.platform AS k, COUNT(*) AS pv,
+                        COUNT(DISTINCT CASE WHEN v.vid <> '' THEN v.vid ELSE v.sid END) AS uv
+                 FROM lp_promo_visit v WHERE 1=1 {$visitWhere}
+                 GROUP BY v.platform",
+                $visitBind
+            ) as $r) {
+                $pfVisitMap[(string) ($r['k'] ?? '')] = [
+                    'pv' => (int) ($r['pv'] ?? 0),
+                    'uv' => (int) ($r['uv'] ?? 0),
+                ];
+            }
+        }
+        $pfRegMap = [];
+        $pfPayMap = [];
+        foreach ($db->query(
+            "SELECT u.reg_platform AS k, COUNT(*) AS c
+             FROM lp_user u WHERE 1=1 {$userWhere}
+             GROUP BY u.reg_platform",
+            $userBind
+        ) as $r) {
+            $pfRegMap[(string) ($r['k'] ?? '')] = (int) ($r['c'] ?? 0);
+        }
+        foreach ($db->query(
+            "SELECT u.reg_platform AS k, COUNT(DISTINCT o.user_id) AS buyers,
+                    IFNULL(SUM(o.pay_amount),0) AS amount
+             FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
+             WHERE o.status = 1 AND o.biz_type <> 'vip' {$userWhere}
+             GROUP BY u.reg_platform",
+            $userBind
+        ) as $r) {
+            $pfPayMap[(string) ($r['k'] ?? '')] = [
+                'buyers' => (int) ($r['buyers'] ?? 0),
+                'amount' => (float) ($r['amount'] ?? 0),
+            ];
+        }
+
+        $pfKeys = array_values(array_unique(array_merge(
+            array_keys($pfVisitMap),
+            array_keys($pfRegMap),
+            array_keys($pfPayMap)
+        )));
+        usort($pfKeys, static function ($a, $b) use ($pfVisitMap, $pfRegMap): int {
+            $va = (int) ($pfVisitMap[$a]['pv'] ?? 0);
+            $vb = (int) ($pfVisitMap[$b]['pv'] ?? 0);
+            if ($va !== $vb) {
+                return $vb <=> $va;
+            }
+            return ((int) ($pfRegMap[$b] ?? 0)) <=> ((int) ($pfRegMap[$a] ?? 0));
+        });
+        $pfKeys = array_slice($pfKeys, 0, 12);
+        $pfMaxPv = 0;
+        foreach ($pfKeys as $k) {
+            $pfMaxPv = max($pfMaxPv, (int) ($pfVisitMap[$k]['pv'] ?? 0));
+        }
+
+        $platformBars = '';
+        foreach ($pfKeys as $k) {
+            $key      = (string) $k;
+            $label    = PromoService::platformLabel($key);
+            $pv       = (int) ($pfVisitMap[$key]['pv'] ?? 0);
+            $uv       = (int) ($pfVisitMap[$key]['uv'] ?? 0);
+            $regs     = (int) ($pfRegMap[$key] ?? 0);
+            $buyers   = (int) ($pfPayMap[$key]['buyers'] ?? 0);
+            $amount   = (float) ($pfPayMap[$key]['amount'] ?? 0);
+            $width    = $pfMaxPv > 0 ? max(2, round($pv / $pfMaxPv * 100)) : 2;
+            $regRate  = $uv > 0 ? number_format($regs / $uv * 100, 1) . '%' : '—';
+            $payRate  = $regs > 0 ? number_format($buyers / $regs * 100, 1) . '%' : '—';
+            $platformBars .= '<div class="pf-row">'
+                . '<div class="pf-name" title="' . htmlspecialchars($key, ENT_QUOTES) . '">' . htmlspecialchars($label, ENT_QUOTES) . '</div>'
+                . '<div class="pf-bar"><span style="width:' . $width . '%"></span></div>'
+                . '<div class="pf-nums"><b>' . number_format($pv) . '</b> 访问 · '
+                    . number_format($uv) . ' 访客 · ' . number_format($regs) . ' 注册 · '
+                    . number_format($buyers) . ' 付费</div>'
+                . '<div class="pf-side">注册 ' . $regRate . ' · 付费 ' . $payRate . ' · $' . number_format($amount, 2) . '</div>'
+                . '</div>';
+        }
+        if (!$visitReady) {
+            $platformBars = '<div class="empty">访问表尚未创建，请先在数据库执行 <b>php/sql/upgrade_promo_visit.sql</b></div>';
+        } elseif ($platformBars === '') {
+            $platformBars = '<div class="empty">暂无访问数据（前台 tracking.js 上报后自动出现）</div>';
+        }
+
+        // ---------- 表格 ----------
+        $keys = array_values(array_unique(array_merge(
+            array_keys($visitMap),
+            array_keys($regMap),
+            array_keys($payMap),
+            array_keys($subMap)
+        )));
+        usort($keys, static function ($a, $b) use ($visitMap, $regMap): int {
+            $ua = (int) ($visitMap[$a]['uv'] ?? 0);
+            $ub = (int) ($visitMap[$b]['uv'] ?? 0);
+            if ($ua !== $ub) {
+                return $ub <=> $ua;
+            }
+            return ((int) ($regMap[$b] ?? 0)) <=> ((int) ($regMap[$a] ?? 0));
+        });
+
         $tableRows = '';
-        foreach ($rows as $r) {
-            $k     = (string) ($r['k'] ?? '');
-            $regs  = (int) ($r['regs'] ?? 0);
-            $b     = (int) ($r['buyers'] ?? 0);
-            $rate  = $regs > 0 ? number_format($b / $regs * 100, 1) . '%' : '-';
-            $label = $k === ''
-                ? '<span class="muted">' . ($dim === 'domain' ? '未知 / 直连' : '未填') . '</span>'
-                : htmlspecialchars($k);
-            $kEsc  = htmlspecialchars($k, ENT_QUOTES);
+        foreach (array_slice($keys, 0, 500) as $k) {
+            $key    = (string) $k;
+            $visits = $visitMap[$key] ?? ['pv' => 0, 'uv' => 0];
+            $regs   = (int) ($regMap[$key] ?? 0);
+            $pay    = $payMap[$key] ?? ['buyers' => 0, 'amount' => 0.0];
+            $sub    = $subMap[$key] ?? ['subs' => 0, 'amount' => 0.0];
+
+            $uv = (int) $visits['uv'];
+            $pv = (int) $visits['pv'];
+            $regRate = $userCol !== null && $uv > 0 ? number_format($regs / $uv * 100, 1) . '%' : '—';
+            $payRate = $userCol !== null && $regs > 0 ? number_format((int) $pay['buyers'] / $regs * 100, 1) . '%' : '—';
+            $payRateUv = $userCol !== null && $uv > 0 ? number_format((int) $pay['buyers'] / $uv * 100, 1) . '%' : '—';
+
+            if ($key === '') {
+                $label = '<span class="muted">' . ($dim === 'domain' ? '未知 / 直连' : '未填 / 未识别') . '</span>';
+            } else {
+                $text  = $dim === 'platform' ? PromoService::platformLabel($key) : $key;
+                $label = htmlspecialchars($text);
+            }
+            $keyEsc = htmlspecialchars($key, ENT_QUOTES);
+            $ops    = $userCol !== null
+                ? '<button type="button" class="btn-link" data-dim="' . $dim . '" data-val="' . $keyEsc . '">查看会员</button>'
+                : '<span class="muted">—</span>';
+
             $tableRows .= '<tr>'
                 . '<td>' . $label . '</td>'
-                . '<td class="num">' . $regs . '</td>'
-                . '<td class="num">' . $b . '</td>'
-                . '<td class="num">' . $rate . '</td>'
-                . '<td class="num">' . number_format((float) ($r['amount'] ?? 0), 2) . '</td>'
-                . '<td class="num">' . (int) ($r['subs'] ?? 0) . '</td>'
-                . '<td class="num">' . number_format((float) ($r['sub_amount'] ?? 0), 2) . '</td>'
-                . '<td><button type="button" class="btn-link" data-dim="' . $dim . '" data-val="' . $kEsc . '">查看会员</button></td>'
+                . '<td class="num">' . number_format($uv) . '</td>'
+                . '<td class="num">' . number_format($pv) . '</td>'
+                . '<td class="num">' . number_format($regs) . '</td>'
+                . '<td class="num">' . $regRate . '</td>'
+                . '<td class="num">' . (int) $pay['buyers'] . '</td>'
+                . '<td class="num">' . $payRate . '</td>'
+                . '<td class="num">' . $payRateUv . '</td>'
+                . '<td class="num">' . number_format((float) $pay['amount'], 2) . '</td>'
+                . '<td class="num">' . (int) $sub['subs'] . ' / ' . number_format((float) $sub['amount'], 2) . '</td>'
+                . '<td>' . $ops . '</td>'
                 . '</tr>';
         }
         if ($tableRows === '') {
-            $tableRows = '<tr><td colspan="8" class="empty">该条件下暂无数据</td></tr>';
+            $tableRows = '<tr><td colspan="11" class="empty">该条件下暂无数据</td></tr>';
         }
 
-        // 维度下拉
+        // ---------- 表单 ----------
         $dimOptions = '';
-        foreach (self::DIMS as $key => [$name, $_]) {
+        foreach (self::DIMS as $key => [$name, $_v, $_u]) {
             $sel = $key === $dim ? ' selected' : '';
             $dimOptions .= '<option value="' . $key . '"' . $sel . '>' . $name . '</option>';
         }
 
-        // 快捷时间
         $today = date('Y-m-d');
         $d7    = date('Y-m-d', strtotime('-6 day'));
         $d30   = date('Y-m-d', strtotime('-29 day'));
@@ -152,19 +340,22 @@ final class PromoSource extends Backend
             . '<a href="' . $qs($d30, $today) . '">近30天</a>'
             . '<a href="/admin/live.PromoSource/index?dim=' . urlencode($dim) . '">全部</a>';
 
-        // 本页只做报表；建链接在「推广链接」页，这里只统计已收录域名数
-        $svc         = new PromoService();
-        $domainCount = count($svc->siteDomains());
+        $domainCount = count((new PromoService())->siteDomains());
+        $dimTip      = $userCol === null
+            ? '<span class="muted" style="font-weight:400"> · 该维度只有访问数据，注册/付费请切到「平台」</span>'
+            : '<span class="muted" style="font-weight:400"> · 点「查看会员」看该来源的注册用户</span>';
 
-        $totalRegsFmt  = number_format($totalRegs);
-        $withSrcFmt    = number_format($withSrc);
-        $unknownFmt    = number_format($totalRegs - $withSrc);
-        $payAmtFmt     = number_format((float) ($payAgg['amount'] ?? 0), 2);
-        $payBuyersFmt  = number_format((int) ($payAgg['buyers'] ?? 0));
-        $subAmtFmt     = number_format((float) ($subAgg['amount'] ?? 0), 2);
-        $subSubsFmt    = number_format((int) ($subAgg['subs'] ?? 0));
-        $fromVal       = htmlspecialchars($from, ENT_QUOTES);
-        $toVal         = htmlspecialchars($to, ENT_QUOTES);
+        $totalPvFmt   = number_format($totalPv);
+        $totalUvFmt   = number_format($totalUv);
+        $totalRegsFmt = number_format($totalRegs);
+        $regRateFmt   = $totalUv > 0 ? number_format($totalRegs / $totalUv * 100, 1) . '%' : '—';
+        $buyersFmt    = number_format((int) ($payAgg['buyers'] ?? 0));
+        $payRateFmt   = $totalRegs > 0 ? number_format((int) ($payAgg['buyers'] ?? 0) / $totalRegs * 100, 1) . '%' : '—';
+        $payAmtFmt    = number_format((float) ($payAgg['amount'] ?? 0), 2);
+        $subsFmt      = number_format((int) ($subAgg['subs'] ?? 0));
+        $subAmtFmt    = number_format((float) ($subAgg['amount'] ?? 0), 2);
+        $fromVal      = htmlspecialchars($from, ENT_QUOTES);
+        $toVal        = htmlspecialchars($to, ENT_QUOTES);
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -172,38 +363,48 @@ final class PromoSource extends Backend
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>推广数据</title>
+<title>流量来源</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f4f5fb;color:#1f2430;font-size:14px}
-.container{max-width:1180px;margin:0 auto;padding:28px 24px 60px}
+.container{max-width:1320px;margin:0 auto;padding:28px 24px 60px}
 h1{font-size:23px;font-weight:700;color:#1a1f36}
 .sub{margin-top:6px;font-size:13px;color:#8a90a3;line-height:1.7}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:22px 0}
 .stat{background:#fff;border:1px solid #eef0f6;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(30,34,60,.04)}
 .stat .v{font-size:20px;font-weight:700;color:#1a1f36}
 .stat .k{font-size:12px;color:#8a90a3;margin-top:3px}
+.stat .s{font-size:12px;color:#6366f1;margin-top:5px}
 .card{background:#fff;border:1px solid #eef0f6;border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(30,34,60,.04)}
 .card h2{font-size:15px;font-weight:700;margin-bottom:14px;color:#1a1f36}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 select,input{height:38px;padding:0 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:#1f2430;background:#fff;outline:none}
-select{min-width:170px}
+select{min-width:190px}
 input{flex:1;min-width:180px}
 .btn{height:38px;padding:0 18px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
 .presets a{display:inline-block;margin-right:10px;font-size:13px;color:#6366f1;text-decoration:none}
 .presets a:hover{text-decoration:underline}
-.link-box{margin-top:12px;display:flex;gap:10px;align-items:center}
-.link-box input{background:#fafbfe;font-family:Consolas,Menlo,monospace;font-size:13px}
 table{width:100%;border-collapse:collapse}
-th{background:#fafbfe;font-weight:600;font-size:12px;color:#8a90a3;text-align:left;padding:12px 14px;border-bottom:1px solid #eef0f6;white-space:nowrap}
-td{padding:12px 14px;border-bottom:1px solid #f2f3f8;font-size:13px;color:#3a4051}
+th{background:#fafbfe;font-weight:600;font-size:12px;color:#8a90a3;text-align:left;padding:12px 12px;border-bottom:1px solid #eef0f6;white-space:nowrap}
+td{padding:12px 12px;border-bottom:1px solid #f2f3f8;font-size:13px;color:#3a4051}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 tr:last-child td{border-bottom:none}
 .empty{text-align:center;color:#9aa0b0;padding:26px 0}
 .muted{color:#9aa0b0}
-.tip{font-size:12px;color:#9aa0b0;margin-top:10px;line-height:1.7}
+.tip{font-size:12px;color:#9aa0b0;margin-top:10px;line-height:1.8}
 .btn-link{padding:4px 10px;border:1px solid #6366f1;border-radius:8px;background:#fff;color:#6366f1;font-size:12px;cursor:pointer}
 .btn-link:hover{background:#eef0ff}
+/* 平台分布 */
+.pf-row{display:grid;grid-template-columns:120px 1fr 270px 210px;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid #f6f7fb}
+.pf-row:last-child{border-bottom:none}
+.pf-name{font-weight:600;color:#1a1f36;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-bar{height:12px;border-radius:6px;background:#eef0f8;overflow:hidden}
+.pf-bar span{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#4f7cff,#7aa2ff)}
+.pf-nums{font-size:12px;color:#5b6072;font-variant-numeric:tabular-nums}
+.pf-nums b{color:#1a1f36}
+.pf-side{font-size:12px;color:#8a90a3;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:900px){.pf-row{grid-template-columns:100px 1fr}.pf-nums,.pf-side{display:none}}
+/* 会员明细弹窗 */
 .mem-mask{display:none;position:fixed;inset:0;z-index:1000;background:rgba(20,22,40,.45)}
 .mem-mask.open{display:flex;align-items:center;justify-content:center}
 .mem-panel{width:min(1080px,94vw);max-height:82vh;display:flex;flex-direction:column;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(20,22,40,.25)}
@@ -215,15 +416,17 @@ tr:last-child td{border-bottom:none}
 </head>
 <body>
 <div class="container">
-    <h1>推广数据</h1>
-    <div class="sub">按 <b>来源域名 / 平台 / 渠道 / 推广链接名称 / 推广像素</b> 归因统计注册与付费（首触归因，注册时记录）。
-        充值/订阅金额取「已支付订单」口径。</div>
+    <h1>流量来源</h1>
+    <div class="sub">看清每个平台带来多少<b>访问 → 注册 → 付费</b>：X / TikTok / Instagram / Reddit / Threads / YouTube / Facebook / Google 等。
+        访问按<b>访问时间</b>统计，注册按<b>注册时间</b>，充值/订阅取「已支付订单」。</div>
 
     <div class="stats">
-        <div class="stat"><div class="v">{$totalRegsFmt}</div><div class="k">总注册数</div></div>
-        <div class="stat"><div class="v">{$withSrcFmt}</div><div class="k">带来源域名</div></div>
-        <div class="stat"><div class="v">{$payBuyersFmt} / {$payAmtFmt}</div><div class="k">充值人数 / 金额(USD)</div></div>
-        <div class="stat"><div class="v">{$subSubsFmt} / {$subAmtFmt}</div><div class="k">订阅人数 / 金额(USD)</div></div>
+        <div class="stat"><div class="v">{$totalUvFmt}</div><div class="k">访客数（UV）</div></div>
+        <div class="stat"><div class="v">{$totalPvFmt}</div><div class="k">访问次数（点击）</div></div>
+        <div class="stat"><div class="v">{$totalRegsFmt}</div><div class="k">注册数</div><div class="s">注册率 {$regRateFmt}</div></div>
+        <div class="stat"><div class="v">{$buyersFmt}</div><div class="k">付费人数</div><div class="s">付费率 {$payRateFmt}</div></div>
+        <div class="stat"><div class="v">{$payAmtFmt}</div><div class="k">充值金额(USD)</div></div>
+        <div class="stat"><div class="v">{$subsFmt} / {$subAmtFmt}</div><div class="k">订阅人数 / 金额(USD)</div></div>
     </div>
 
     <div class="card">
@@ -236,29 +439,29 @@ tr:last-child td{border-bottom:none}
             <button class="btn" type="submit">查询</button>
         </form>
         <div class="presets" style="margin-top:10px">{$presets}</div>
-        <div class="tip">时间按「注册时间」过滤。</div>
+        <div class="tip">时间口径：访问按访问时间、注册按注册时间、订单按会员注册时间。跨阶段对比建议用同一时间段看趋势，不要拿「今天访问」直接除「今天注册」当最终转化率。</div>
     </div>
 
     <div class="card">
-        <h2>按{$dimLabel}统计<span class="muted" style="font-weight:400"> · 点「查看会员」看该来源的注册用户</span></h2>
+        <h2>平台分布<span class="muted" style="font-weight:400"> · 访问量 / 注册 / 付费（当前时间范围）</span></h2>
+        {$platformBars}
+        <div class="tip">平台识别优先级：推广链接参数（?px= / ?ch= / ?l=）→ 链接名称关键词 → Referer 域名。
+            社媒 App 内置浏览器经常不带 Referer，<b>给每个平台单独生成一条推广链接</b>（渠道配置里选对应平台后复制链接）最准确。
+            <a href="/admin/live.PromoSetting/index?tab=config" style="color:#6366f1;text-decoration:none">去渠道配置创建平台链接 →</a></div>
+    </div>
+
+    <div class="card">
+        <h2>按{$dimLabel}统计{$dimTip}</h2>
         <table>
             <thead><tr>
-                <th>{$dimLabel}</th><th class="num">注册数</th><th class="num">充值人数</th><th class="num">付费率</th>
-                <th class="num">充值金额</th><th class="num">订阅人数</th><th class="num">订阅金额</th><th>操作</th>
+                <th>{$dimLabel}</th><th class="num">访客数</th><th class="num">访问次数</th>
+                <th class="num">注册数</th><th class="num">注册率</th>
+                <th class="num">付费人数</th><th class="num">付费率(注册)</th><th class="num">付费率(访客)</th>
+                <th class="num">充值金额</th><th class="num">订阅人数 / 金额</th><th>操作</th>
             </tr></thead>
             <tbody>{$tableRows}</tbody>
         </table>
-    </div>
-
-    <div class="card">
-        <h2>复制推广链接<span class="muted" style="font-weight:400"> · 本页只负责看数据</span></h2>
-        <div class="sub" style="margin:0">
-            现在不再单独维护「推广链接」页了；请直接到 <b>「推广与像素 &gt; 渠道配置」</b> 列表里复制每条渠道的默认投放链接。
-            复制出的链接会自动带上 <b>?px= / ?name= / ?ch=</b> 参数，并继续归因到本报表的 <b>推广链接名称</b> 维度。当前已收录 <b>{$domainCount}</b> 个推广域名。
-        </div>
-        <div class="link-box" style="margin-top:12px">
-            <button class="btn" onclick="gotoPromoSetting()">去「渠道配置」页复制 →</button>
-        </div>
+        <div class="tip">当前已收录 <b>{$domainCount}</b> 个推广域名。曝光量（展现）无法从站内采集：自然流量平台不提供展现数据，付费广告需接各平台 Marketing API；本页提供的是站内可验证的<b>点击/访客/注册/付费</b>。</div>
     </div>
 </div>
 
@@ -278,10 +481,6 @@ tr:last-child td{border-bottom:none}
     </div>
 </div>
 <script>
-// 本页只做报表，复制链接统一在「渠道配置」页
-function gotoPromoSetting(){ location.href = '/admin/live.PromoSetting/index?tab=config'; }
-
-/*---------- 查看会员：某个维度值下的注册用户明细 ----------*/
 function esc(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -346,18 +545,28 @@ HTML;
      */
     public function members(): void
     {
-        $dim = (string) $this->request->param('dim', 'domain');
+        $dim = (string) $this->request->param('dim', 'platform');
         if (!isset(self::DIMS[$dim])) {
-            $dim = 'domain';
+            $dim = 'platform';
         }
-        $col = self::DIMS[$dim][1];
+        [, , $col] = self::DIMS[$dim];
         $val = (string) $this->request->param('val', '');
+
+        if ($col === null) {
+            $payload = json_encode([
+                'code' => '00000',
+                'msg'  => 'ok',
+                'data' => ['total' => 0, 'buyers' => 0, 'subs' => 0, 'amount' => '0.00', 'sub_amount' => '0.00', 'list' => []],
+            ], JSON_UNESCAPED_UNICODE);
+            response($payload, 200, ['Content-Type' => 'application/json; charset=utf-8'])->send();
+            exit;
+        }
 
         $db = Db::connect('live_mysql');
 
         $agg = $db->query("SELECT COUNT(DISTINCT u.id) AS total,
-                COUNT(DISTINCT p.user_id) AS buyers, IFNULL(SUM(p.pay_amount),0) AS amount,
-                COUNT(DISTINCT s.user_id) AS subs, IFNULL(SUM(s.pay_amount),0) AS sub_amount
+                COUNT(DISTINCT p.user_id) AS buyers,
+                COUNT(DISTINCT s.user_id) AS subs
             FROM lp_user u
             LEFT JOIN lp_recharge_order p ON p.user_id = u.id AND p.status = 1 AND p.biz_type <> 'vip'
             LEFT JOIN lp_recharge_order s ON s.user_id = u.id AND s.status = 1 AND s.biz_type = 'vip'
