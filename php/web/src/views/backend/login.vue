@@ -18,7 +18,8 @@
         <div class="login">
             <div class="login-box">
                 <div class="head">
-                    <img src="~assets/sugus-logo.png" alt="Sugus" />
+                    <img v-if="brandLogo" :src="brandLogo" alt="Admin" />
+                    <img v-else src="~assets/sugus-logo.png" alt="Sugus" />
                 </div>
                 <div class="form">
                     <img class="profile-avatar" :src="fullUrl('/static/images/avatar.png')" alt="" />
@@ -86,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, reactive, nextTick, useTemplateRef } from 'vue'
+import { onMounted, onBeforeUnmount, reactive, nextTick, ref, useTemplateRef } from 'vue'
 import * as pageBubble from '/@/utils/pageBubble'
 import { useI18n } from 'vue-i18n'
 import { editDefaultLang } from '/@/lang/index'
@@ -116,6 +117,18 @@ const state = reactive({
     submitLoading: false,
     totpRequired: false,
 })
+
+// 登录页品牌标识：各站把 login-logo.png 放到 admin/dist 根目录即可覆盖默认标识，
+// 文件不存在时（SPA 回落返回 HTML 导致图片加载失败）自动用默认 Sugus 标识
+const brandLogo = ref('')
+const brandLogoUrl = `${import.meta.env.BASE_URL}login-logo.png`
+const probeBrandLogo = () => {
+    const img = new Image()
+    img.onload = () => {
+        brandLogo.value = brandLogoUrl
+    }
+    img.src = brandLogoUrl
+}
 const form = reactive({
     username: '',
     password: '',
@@ -156,6 +169,8 @@ onMounted(() => {
     timer = window.setTimeout(() => {
         pageBubble.init()
     }, 1000)
+
+    probeBrandLogo()
 
     login('get')
         .then((res) => {
