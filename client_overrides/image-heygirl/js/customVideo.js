@@ -240,10 +240,12 @@
 
     function gsView() {
         var list = gsList.slice()
-        // 收藏页：只保留收藏卡片（预设 id）的样片
+        // 收藏页：只保留收藏卡片（预设 id）的样片。
+        // 必须用 favHas() 而不是 favList()：登录用户的收藏在服务端（favServer），
+        // 本地 localStorage 是他未登录时的临时记录。直接读本地会让登录用户的
+        // 收藏在 Favorites 里全部消失 —— 这正是之前点了爱心却看不到卡片的根因。
         if (gsMode === 'favs') {
-            var favs = favList()
-            list = list.filter(function (c) { return favs.indexOf(String(c.id)) >= 0 })
+            list = list.filter(function (c) { return favHas(c.id) })
         }
         if (gsKw) {
             var k = gsKw.toLowerCase()
@@ -730,9 +732,24 @@
         // 用户必须自己上传一张才会解锁提交按钮。
         // 弹窗左框约 260×360，用左上角那张 120×156 的角标缩略图放大必然糊。
         // 这里换成同人设的 480×640 大图（prev_persona_XXX.webp）。
+        //
+        // 关键：不能在旧图上直接改 src。浏览器会一直显示上一张图，直到新图
+        // 下载完才替换 —— 表现就是「先闪一下上个卡片的图」。所以先清空 src，
+        // 再用 Image 预加载，下载好了才真正换上。
         var pv = $('gsGenPreview')
-        pv.src = GS_BASE + previewOf(c)
+        pv.removeAttribute('src')
         pv.style.display = 'block'
+        pv.style.opacity = '0'
+        var want = GS_BASE + previewOf(c)
+        var pre = new Image()
+        pre.onload = function () {
+            // 预加载期间可能已经切换到别的卡片，别把旧结果盖上去
+            if (!gen.current || String(gen.current.slug || gen.current.id) !== String(c.slug || c.id)) return
+            pv.src = want
+            pv.style.opacity = '1'
+        }
+        pre.onerror = function () { pv.style.opacity = '1' }
+        pre.src = want
         $('gsGenUploadText').textContent = 'upload image'
         $('gsGenFile').value = ''
 
@@ -761,6 +778,7 @@
         var img = $('gsGenPreview')
         img.src = URL.createObjectURL(f)
         img.style.display = 'block'
+        img.style.opacity = '1'
         $('gsGenUploadText').textContent = 'change image'
         syncSubmitState()
     }
@@ -1035,25 +1053,47 @@
         expired: { label: 'Expired', cls: 'wait' }
     }
 
+    /* My Works 卡片：照 genspicy.ai/collection 的排版重做。
+       参考站规格（实测 1280 视口）：4:5 宽高比、固定 3 列、gap 12px。
+       原来用 auto-fit minmax(300px)，只有 1 个视频时那一列被拉满整个宽度，
+       视频被拉成巨幅，所以看起来"变形"。现在网格列数固定，卡片自己撑比例。 */
     function workCard(t) {
         var m = STATUS_META[t.status] || { label: t.status, cls: 'wait' }
-        var body
-        if (t.status === 'completed' && t.video_url) {
-            body = t.kind === 'image'
-                ? '<a href="' + esc(t.video_url) + '" target="_blank"><img src="' + esc(t.cover_url || t.video_url) + '" style="width:100%;display:block;background:#000" alt=""></a>'
-                : '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '" poster="' + esc(t.cover_url || '') + '"></video>'
+        var done = t.status === 'completed' && t.video_url
+        var media
+
+        if (done) {
+            if (t.kind === 'image') {
+                media = '<img class="wc__media" src="' + esc(t.cover_url || t.video_url) +
+                    '" alt="" loading="lazy">'
+            } else {
+                media = '<video class="wc__media" controls playsinline preload="metadata" src="' +
+                    esc(t.video_url) + '" poster="' + esc(t.cover_url || '') + '"></video>'
+            }
         } else if (t.status === 'failed') {
-            body = '<div class="cv-wait-body">Generation failed — please retry later.</div>'
+            media = '<div class="wc__state wc__state--err">' +
+                '<svg width="22" height="22" viewBox="0 0 24 24" fill="none">' +
+                '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>' +
+                '<path d="M12 8v5M12 16v.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+                '<span>Generation failed</span><span class="wc__state-sub">Please try again</span></div>'
         } else {
-            body = '<div class="cv-wait-body">⏳ Still generating…<br>an 8s clip takes ~10 min</div>'
+            media = '<div class="wc__state wc__state--run"><span class="wc__spinner"></span>' +
+                '<span>Generating…</span><span class="wc__state-sub">usually takes a few minutes</span></div>'
         }
-        return '<div class="cv-work">' +
-            '<div class="hd"><span class="n">' + esc(t.title || t.preset_code || 'Preset clip') + '</span>' +
-            '<span class="cv-badge ' + m.cls + '">' + m.label + '</span></div>' +
-            body +
-            '<div class="ft"><span>' + esc((t.created_at || '').replace('T', ' ').slice(0, 16)) + '</span>' +
-            (t.status === 'completed' && t.video_url ? '<a href="' + esc(t.video_url) + '" download>⬇ Download</a>' : '') +
-            '</div></div>'
+
+        var dl = done ? '<a class="wc__dl" href="' + esc(t.video_url) + '" download ' +
+            'aria-label="Download"><svg width="16" height="16" viewBox="0 0 24 24" fill="none">' +
+            '<path d="M12 4v10m0 0 4-4m-4 4-4-4M5 18h14" stroke="currentColor" stroke-width="1.8" ' +
+            'stroke-linecap="round" stroke-linejoin="round"/></svg></a>' : ''
+
+        return '<article class="wc">' +
+            '<div class="wc__frame">' + media +
+            '<span class="wc__badge wc__badge--' + m.cls + '">' + esc(m.label) + '</span>' + dl +
+            '</div>' +
+            '<div class="wc__meta">' +
+            '<span class="wc__title">' + esc(t.title || t.preset_code || 'Preset clip') + '</span>' +
+            '<span class="wc__time">' + esc((t.created_at || '').replace('T', ' ').slice(0, 16)) + '</span>' +
+            '</div></article>'
     }
 
     var lastSig = ''
