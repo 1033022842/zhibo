@@ -1254,7 +1254,7 @@
                 '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>' +
                 '<path d="M12 8v5M12 16v.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
                 '<span>' + (t.status === 'expired' ? 'Expired' : 'Generation failed') + '</span>' +
-                '<span class="wc__state-sub">' + esc((t.error || '').slice(0, 60) || 'Please try again') + '</span>' +
+                '<span class="wc__state-sub">' + esc(decodeEntities((t.error || '')).slice(0, 80) || 'Please try again') + '</span>' +
                 refundLine(t) + '</div>'
         } else {
             media = '<div class="wc__state wc__state--run"><span class="wc__spinner"></span>' +
