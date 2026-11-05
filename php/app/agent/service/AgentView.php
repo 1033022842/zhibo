@@ -26,6 +26,7 @@ final class AgentView
         $icons = [
             'overview' => '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>',
             'link'     => '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.07 0l1.42-1.42a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.51 12.42a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>',
+            'pixel'    => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/></svg>',
             'member'   => '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
             'order'    => '<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>',
             'withdraw' => '<svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>',
@@ -38,13 +39,12 @@ final class AgentView
 
         $items = [
             'overview' => ['/agent/index/index', '数据概览', AgentService::hasPerm($agent, 'overview')],
-            'link'     => ['/agent/link/index', '推广链接', AgentService::hasPerm($agent, 'link')],
+            'pixel'    => ['/agent/pixel/index', '推广与像素', AgentService::hasPerm($agent, 'pixel')],
             'member'   => ['/agent/member/index', '会员明细', AgentService::hasPerm($agent, 'member')],
             'order'    => ['/agent/order/index', '充值订单', AgentService::hasPerm($agent, 'order')],
             'withdraw' => ['/agent/withdraw/index', '提现记录', AgentService::hasPerm($agent, 'withdraw')],
             'cs'       => ['/agent/cs/index', '独立客服', AgentService::hasPerm($agent, 'cs')],
             'sub_agent' => ['/agent/subagent/index', '子代理', AgentService::hasPerm($agent, 'sub_agent')],
-            'domain'   => ['/agent/domain/index', '专属域名', AgentService::hasPerm($agent, 'domain')],
             'account'  => ['/agent/account/index', '账号设置', true],
             'admin'    => ['/agent/auth/admin', '管理后台', true],
         ];
@@ -176,6 +176,11 @@ td.nowrap,th.nowrap{white-space:nowrap}
 .fld{display:flex;flex-direction:column;gap:6px}
 .fld label{font-size:12px;color:var(--muted)}
 .fld input,.fld select{height:38px;padding:0 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:var(--text);background:#fff;outline:none;width:100%;transition:border-color .15s,box-shadow .15s}
+.fld textarea{padding:9px 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:13px;color:var(--text);background:#fff;outline:none;width:100%;font-family:Consolas,Menlo,monospace;resize:vertical;transition:border-color .15s,box-shadow .15s}
+.fld textarea:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.chk-row{display:flex;flex-wrap:wrap;gap:8px}
+.chk-row label{display:inline-flex;align-items:center;gap:6px;border:1px solid #e6e8f2;border-radius:9px;padding:7px 11px;font-size:12.5px;color:#3a4051;background:#fbfbff;cursor:pointer}
+.chk-row input{accent-color:#6366f1;width:15px;height:15px;margin:0}
 .fld input:focus,.fld select:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;margin-top:2px}
 .btn{height:38px;padding:0 20px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.22)}
