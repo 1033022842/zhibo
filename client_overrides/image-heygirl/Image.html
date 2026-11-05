@@ -192,7 +192,7 @@
 
 
 	<script src="./js/ui-dialog.js?v=20260928d"></script>
-	<script src="./js/customVideo.js?v=20261105pay5"></script>
+	<script src="./js/customVideo.js?v=20261105coin"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
@@ -806,6 +806,16 @@
 .wc__state--err{color:#f87171}
 .wc__state--run{color:#fbbf24}
 .wc__state-sub{color:#6b6b6b;font-size:11px;font-weight:400}
+/* 金币图标：按钮徽章和退款提示共用，跟随字号缩放 */
+.gs-coin{display:inline-block;width:14px;height:14px;vertical-align:-2px;flex:0 0 auto}
+.gs-gen__cost .gs-coin{width:13px;height:13px;vertical-align:-2px;margin-right:3px}
+.gs-gen__cost{display:inline-flex;align-items:center;gap:3px}
+/* 失败卡的退款标签：让用户一眼看到钱回来了 */
+.wc__refund{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:4px 10px;
+  border-radius:999px;font-size:11px;font-weight:700;line-height:1.3}
+.wc__refund .gs-coin{width:12px;height:12px;vertical-align:0}
+.wc__refund--ok{background:rgba(16,185,129,.16);color:#34d399}
+.wc__refund--bad{background:rgba(239,68,68,.16);color:#f87171}
 .wc__spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(251,191,36,.25);
   border-top-color:#fbbf24;animation:wc-spin .8s linear infinite}
 @keyframes wc-spin{to{transform:rotate(360deg)}}
