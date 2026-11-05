@@ -29,9 +29,12 @@ final class Index extends Base
             default => date('Y-m-d', strtotime('-6 days')),
         };
 
-        $stats = AgentService::stats($this->agentId(), $from, $to);
-        $links = AgentService::topLinks($this->agentId(), 8);
-        $doms  = AgentService::domains($this->agentId(), true);
+        $teamIds  = AgentService::teamIds($this->agentId());
+        $teamSize = count($teamIds) - 1;
+
+        $stats = AgentService::stats($teamIds, $from, $to);
+        $links = AgentService::topLinks($teamIds, 8);
+        $doms  = AgentService::effectiveDomains($this->agentId(), true);
 
         $rangeLabel = ['today' => '今日', '7d' => '近 7 天', '30d' => '近 30 天'][$range];
         $tabs = '';
@@ -59,7 +62,7 @@ final class Index extends Base
 
         $recent = '';
         if (AgentService::hasPerm($agent, 'member')) {
-            $page  = AgentService::memberPage($this->agentId(), 1, 8);
+            $page  = AgentService::memberPage($teamIds, 1, 8);
             $rows  = '';
             foreach ($page['rows'] as $m) {
                 $rows .= '<tr>'
@@ -79,14 +82,15 @@ final class Index extends Base
 
         $domainTip = '';
         if ($doms === []) {
-            $domainTip = '<div class="alert err">总部还没有给你分配专属推广域名，暂时只能使用总部域名下的推广链接。</div>';
+            $domainTip = '<div class="alert err">总部或你的上级还没有分配推广域名，暂时无法创建推广链接。</div>';
         }
+        $teamNote = $teamSize > 0 ? '（团队合计，含 ' . $teamSize . ' 个下级代理）' : '';
 
         $content = <<<HTML
 <div class="head">
   <div>
     <h1>数据概览</h1>
-    <div class="sub">统计口径：注册按首触归因；充值与订阅取已支付订单。当前范围：{$rangeLabel}</div>
+    <div class="sub">统计口径：注册按首触归因；充值与订阅取已支付订单。当前范围：{$rangeLabel}{$teamNote}</div>
   </div>
   <div style="margin:0">{$tabs}</div>
 </div>

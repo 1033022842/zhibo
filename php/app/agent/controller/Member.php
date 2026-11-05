@@ -17,15 +17,21 @@ final class Member extends Base
 
         $page    = max(1, (int) ($this->request->param('page') ?? 1));
         $keyword = mb_substr(trim((string) ($this->request->param('kw') ?? '')), 0, 64);
-        $data    = AgentService::memberPage($this->agentId(), $page, 30, $keyword);
+        $selfId  = $this->agentId();
+        $data    = AgentService::memberPage(AgentService::teamIds($selfId), $page, 30, $keyword);
 
         $rows = '';
         foreach ($data['rows'] as $m) {
             $pay = (float) ($m['pay_amount'] ?? 0);
             $sub = (float) ($m['sub_amount'] ?? 0);
+            $ownerId = (int) ($m['reg_agent_id'] ?? 0);
+            $owner = $ownerId === $selfId
+                ? '<span class="muted">本人</span>'
+                : AgentView::h(AgentService::agentName($ownerId) ?: ('代理#' . $ownerId));
             $rows .= '<tr>'
                 . '<td>' . AgentView::h((string) $m['nickname']) . '</td>'
                 . '<td>' . AgentView::h(AgentService::maskEmail((string) $m['email'])) . '</td>'
+                . '<td>' . $owner . '</td>'
                 . '<td>' . AgentView::h((string) (($m['reg_link_name'] ?? '') !== '' ? $m['reg_link_name'] : '直接访问')) . '</td>'
                 . '<td class="num">' . number_format($pay, 2) . '</td>'
                 . '<td class="num">' . number_format($sub, 2) . '</td>'
@@ -33,7 +39,7 @@ final class Member extends Base
                 . '</tr>';
         }
         if ($rows === '') {
-            $rows = '<tr><td colspan="6" class="empty">没有找到会员</td></tr>';
+            $rows = '<tr><td colspan="7" class="empty">没有找到会员</td></tr>';
         }
 
         $pager  = '';
@@ -59,7 +65,7 @@ final class Member extends Base
 <div class="head">
   <div>
     <h1>会员明细</h1>
-    <div class="sub">仅展示通过你名下链接或专属域名注册的会员；邮箱已打码，不提供导出。</div>
+    <div class="sub">展示通过你或你的下级代理名下链接、专属域名注册的会员；邮箱已打码，不提供导出。</div>
   </div>
 </div>
 <div class="card">
@@ -68,7 +74,7 @@ final class Member extends Base
     <button class="btn-line" type="submit">搜索</button>
   </form>
   <div class="table-wrap"><table><thead><tr>
-    <th>昵称</th><th>邮箱</th><th>来源链接</th>
+    <th>昵称</th><th>邮箱</th><th>归属代理</th><th>来源链接</th>
     <th class="num">累计充值(USD)</th><th class="num">累计订阅(USD)</th><th>注册时间</th>
   </tr></thead><tbody>{$rows}</tbody></table></div>
   {$pager}

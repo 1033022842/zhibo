@@ -23,6 +23,9 @@ final class AgentService
         'link'        => '推广链接（查看/复制）',
         'link_create' => '新建推广链接',
         'member'      => '会员明细',
+        'order'       => '充值订单',
+        'withdraw'    => '提现记录',
+        'cs'          => '独立客服',
         'domain'      => '专属域名',
         'sub_agent'   => '子代理管理',
         'account'     => '账号设置',
@@ -34,6 +37,9 @@ final class AgentService
         'link'        => '查看并复制自己名下的推广链接',
         'link_create' => '允许自助创建、停用和删除推广链接',
         'member'      => '查看自己与下级代理名下的会员明细（邮箱打码）',
+        'order'       => '查看自己与下级代理名下会员的充值/订阅订单（只读）',
+        'withdraw'    => '查看自己与下级代理名下会员的提现申请与打款状态（只读）',
+        'cs'          => '配置自己专属域名下的客服渠道（每个代理独立）',
         'domain'      => '查看总部/上级分配的专属推广域名',
         'sub_agent'   => '创建和管理自己的下级代理（可继续开下级）',
         'account'     => '修改自己的登录密码（始终可用）',
@@ -45,13 +51,16 @@ final class AgentService
         'link'        => '链接',
         'link_create' => '建链',
         'member'      => '会员',
+        'order'       => '订单',
+        'withdraw'    => '提现',
+        'cs'          => '客服',
         'domain'      => '域名',
         'sub_agent'   => '子代理',
         'account'     => '账号',
     ];
 
     /** 新建代理时默认勾选（账号设置不可关闭） */
-    public const DEFAULT_PERMS = ['overview', 'link', 'link_create', 'member', 'account'];
+    public const DEFAULT_PERMS = ['overview', 'link', 'link_create', 'member', 'order', 'withdraw', 'cs', 'account'];
 
     /** 无论怎么配置都保留的权限 */
     public const ALWAYS_PERMS = ['account'];
@@ -582,6 +591,163 @@ final class AgentService
         return $out;
     }
 
+    /**
+     * 充值订单分页（团队口径：自己 + 全部下级）
+     * @param array $filter keyword/status/biz/from/to
+     */
+    public static function orderPage(int|array $agentIds, int $page = 1, int $perPage = 30, array $filter = []): array
+    {
+        $out = ['total' => 0, 'rows' => [], 'page' => 1, 'pages' => 0, 'paid_count' => 0, 'paid_usd' => 0.0];
+        $ids = self::normalizeIds($agentIds);
+        if ($ids === [] || !self::ready()) {
+            return $out;
+        }
+
+        $page    = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        $ph      = implode(',', array_fill(0, count($ids), '?'));
+        $where   = "u.reg_agent_id IN ({$ph})";
+        $bind    = $ids;
+
+        $keyword = trim((string) ($filter['keyword'] ?? ''));
+        if ($keyword !== '') {
+            $where .= ' AND (o.order_no LIKE ? OR u.nickname LIKE ? OR u.email LIKE ?)';
+            $like   = '%' . $keyword . '%';
+            $bind[] = $like;
+            $bind[] = $like;
+            $bind[] = $like;
+        }
+        $status = (string) ($filter['status'] ?? '');
+        if ($status !== '' && preg_match('/^\d$/', $status)) {
+            $where .= ' AND o.status = ?';
+            $bind[] = (int) $status;
+        }
+        $biz = (string) ($filter['biz'] ?? '');
+        if ($biz === 'coin' || $biz === 'vip') {
+            $where .= ' AND o.biz_type = ?';
+            $bind[] = $biz;
+        }
+        $from = (string) ($filter['from'] ?? '');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) {
+            $where .= ' AND o.created_at >= ?';
+            $bind[] = $from . ' 00:00:00';
+        }
+        $to = (string) ($filter['to'] ?? '');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            $where .= ' AND o.created_at <= ?';
+            $bind[] = $to . ' 23:59:59';
+        }
+
+        try {
+            $db    = Db::connect('live_mysql');
+            $total = (int) ($db->query(
+                "SELECT COUNT(*) AS c FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id WHERE {$where}",
+                $bind
+            )[0]['c'] ?? 0);
+            $pages  = $total > 0 ? (int) ceil($total / $perPage) : 0;
+            $page   = $pages > 0 ? min($page, $pages) : 1;
+            $offset = ($page - 1) * $perPage;
+
+            $rows = $db->query(
+                "SELECT o.id, o.order_no, o.biz_type, o.pay_channel, o.pay_amount, o.usd_amount,
+                        o.diamond_amount, o.status, o.pay_state, o.created_at, o.paid_at,
+                        u.nickname, u.email, u.reg_agent_id
+                 FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
+                 WHERE {$where} ORDER BY o.id DESC LIMIT {$offset}, {$perPage}",
+                $bind
+            );
+
+            $sum = $db->query(
+                "SELECT COUNT(*) AS c, IFNULL(SUM(o.usd_amount),0) AS usd
+                 FROM lp_recharge_order o JOIN lp_user u ON u.id = o.user_id
+                 WHERE {$where} AND o.status = 1",
+                $bind
+            )[0] ?? [];
+
+            $out = [
+                'total'      => $total,
+                'rows'       => $rows,
+                'page'       => $page,
+                'pages'      => $pages,
+                'paid_count' => (int) ($sum['c'] ?? 0),
+                'paid_usd'   => (float) ($sum['usd'] ?? 0),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('[agent] 充值订单列表失败 agent=' . implode(',', $ids) . ' err=' . $e->getMessage());
+        }
+
+        return $out;
+    }
+
+    /** 提现记录分页（团队口径） */
+    public static function withdrawPage(int|array $agentIds, int $page = 1, int $perPage = 30, array $filter = []): array
+    {
+        $out = ['total' => 0, 'rows' => [], 'page' => 1, 'pages' => 0, 'paid_usdt' => 0.0];
+        $ids = self::normalizeIds($agentIds);
+        if ($ids === [] || !self::ready()) {
+            return $out;
+        }
+
+        $page    = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        $ph      = implode(',', array_fill(0, count($ids), '?'));
+        $where   = "u.reg_agent_id IN ({$ph})";
+        $bind    = $ids;
+
+        $keyword = trim((string) ($filter['keyword'] ?? ''));
+        if ($keyword !== '') {
+            $where .= ' AND (w.order_no LIKE ? OR u.nickname LIKE ? OR u.email LIKE ?)';
+            $like   = '%' . $keyword . '%';
+            $bind[] = $like;
+            $bind[] = $like;
+            $bind[] = $like;
+        }
+        $status = (string) ($filter['status'] ?? '');
+        if ($status !== '' && preg_match('/^\d$/', $status)) {
+            $where .= ' AND w.status = ?';
+            $bind[] = (int) $status;
+        }
+
+        try {
+            $db    = Db::connect('live_mysql');
+            $total = (int) ($db->query(
+                "SELECT COUNT(*) AS c FROM lp_withdrawal w JOIN lp_user u ON u.id = w.user_id WHERE {$where}",
+                $bind
+            )[0]['c'] ?? 0);
+            $pages  = $total > 0 ? (int) ceil($total / $perPage) : 0;
+            $page   = $pages > 0 ? min($page, $pages) : 1;
+            $offset = ($page - 1) * $perPage;
+
+            $rows = $db->query(
+                "SELECT w.id, w.order_no, w.diamond_amount, w.usdt_amount, w.fee_usdt, w.actual_usdt,
+                        w.network, w.address, w.status, w.tx_hash, w.reject_reason,
+                        w.created_at, w.paid_at, u.nickname, u.email, u.reg_agent_id
+                 FROM lp_withdrawal w JOIN lp_user u ON u.id = w.user_id
+                 WHERE {$where} ORDER BY w.id DESC LIMIT {$offset}, {$perPage}",
+                $bind
+            );
+
+            $sum = $db->query(
+                "SELECT IFNULL(SUM(w.usdt_amount),0) AS usd
+                 FROM lp_withdrawal w JOIN lp_user u ON u.id = w.user_id
+                 WHERE {$where} AND w.status = 1",
+                $bind
+            )[0] ?? [];
+
+            $out = [
+                'total'     => $total,
+                'rows'      => $rows,
+                'page'      => $page,
+                'pages'     => $pages,
+                'paid_usdt' => (float) ($sum['usd'] ?? 0),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('[agent] 提现列表失败 agent=' . implode(',', $ids) . ' err=' . $e->getMessage());
+        }
+
+        return $out;
+    }
+
     /** 邮箱打码：ab***@gmail.com */
     public static function maskEmail(string $email): string
     {
@@ -604,6 +770,22 @@ final class AgentService
     }
 
     // ================= 代理资源 =================
+
+    /** 按访问域名反查代理（前台按域名下发代理专属客服用；未分配返回 0） */
+    public static function agentByDomain(string $host): int
+    {
+        $host = strtolower(trim($host));
+        if ($host === '') {
+            return 0;
+        }
+        try {
+            $row = Db::connect('live_mysql')->table('lp_agent_domain')
+                ->where('domain', $host)->where('status', 1)->find();
+            return $row ? (int) $row['agent_id'] : 0;
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
 
     /** 代理被分配的域名 */
     public static function domains(int $agentId, bool $onlyEnabled = false): array

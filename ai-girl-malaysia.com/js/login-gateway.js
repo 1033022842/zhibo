@@ -60,6 +60,7 @@
       })
       data.reg_domain = localStorage.getItem('reg_domain') || location.hostname
       data.reg_channel = localStorage.getItem('reg_channel') || ''
+      data.reg_platform = localStorage.getItem('reg_platform') || ''
       data.reg_px = localStorage.getItem('promo_px') || ''
       data.reg_link_name = localStorage.getItem('promo_name') || ''
       data.reg_link = localStorage.getItem('promo_l') || ''

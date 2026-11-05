@@ -76,9 +76,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .frm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 16px}
 .fld{display:flex;flex-direction:column;gap:6px}
 .fld label{font-size:12px;color:var(--muted)}
-.fld input,.fld textarea{padding:9px 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:var(--text);background:#fff;outline:none;width:100%;font-family:inherit;transition:border-color .15s,box-shadow .15s}
-.fld input{height:38px}
-.fld input:focus,.fld textarea:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.fld input,.fld textarea,.fld select{padding:9px 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:var(--text);background:#fff;outline:none;width:100%;font-family:inherit;transition:border-color .15s,box-shadow .15s}
+.fld input,.fld select{height:38px}
+.fld input:focus,.fld textarea:focus,.fld select:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .fld.full{grid-column:1/-1}
 .perm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .perm{display:flex;gap:10px;align-items:flex-start;padding:12px 13px;border:1px solid #e8eaf2;border-radius:11px;background:#fff;cursor:pointer;transition:.15s}
@@ -102,6 +102,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .toolbar input[type=date]{height:36px;padding:0 11px;border:1px solid #e2e5ee;border-radius:9px;outline:none;color:#3a4051;background:#fff}
 .toolbar input[type=text]{height:36px;padding:0 11px;border:1px solid #e2e5ee;border-radius:9px;outline:none;color:#3a4051;background:#fff;min-width:200px}
+.toolbar select{height:36px;padding:0 10px;border:1px solid #e2e5ee;border-radius:9px;outline:none;color:#3a4051;background:#fff;max-width:260px}
 .toolbar input:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .toolbar .muted{font-size:12px}
 .bar{height:6px;border-radius:999px;background:#f0f2f7;overflow:hidden;min-width:70px;margin-top:6px}

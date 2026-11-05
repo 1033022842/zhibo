@@ -28,6 +28,75 @@
     'campaign_id', 'campaign_name', 'adset_id', 'adset_name', 'ad_id', 'ad_name', 'fbclid'
   ]
 
+  /* ---------------- 平台识别（与后端 PromoService 规则保持一致） ----------------
+     X / TikTok / Instagram / Reddit / Threads / YouTube 等社媒的内置浏览器经常不带 Referer，
+     所以最可靠的是「每个平台一条推广链接」（链接带 ?px= 或 ?ch=）。
+     这里先根据参数 + Referer 识别一次，注册时作为 reg_platform 提交。 */
+  function detectPlatform(text, refHost) {
+    var s = String(text || '').toLowerCase()
+    var rules = [
+      ['youtube', /youtube|youtu\.be|(?:^|[^a-z])yt\d*(?:[^a-z]|$)/i],
+      ['instagram', /instagram|insta|(?:^|[^a-z])(?:ig|ins)\d*(?:[^a-z]|$)/i],
+      ['threads', /threads/i],
+      ['reddit', /reddit|redd\.it/i],
+      ['x', /twitter|x-twitter|x\.com|t\.co|(?:^|[\s_])x\d*(?:[-\s_]|$)/i],
+      ['tiktok', /tiktok|douyin|(?:^|[^a-z])tt\d*(?:[^a-z]|$)/i],
+      ['facebook', /facebook|(?:^|[^a-z])fb\d*(?:[^a-z]|$)|meta|messenger/i],
+      ['snapchat', /snapchat|(?:^|[^a-z])snap\d*(?:[^a-z]|$)/i],
+      ['kwai', /kwai|kuaishou/i],
+      ['pinterest', /pinterest|pin\.it/i],
+      ['bing', /bing/i],
+      ['linkedin', /linkedin|lnkd\.in/i],
+      ['quora', /quora/i],
+      ['telegram', /telegram|t\.me|(?:^|[^a-z])tg\d*(?:[^a-z]|$)/i],
+      ['whatsapp', /whatsapp|wa\.me|(?:^|[^a-z])wa\d*(?:[^a-z]|$)/i],
+      ['line', /(?:^|[^a-z])line\d*(?:[^a-z]|$)/i],
+      ['discord', /discord/i],
+      ['google', /google|adwords|(?:^|[^a-z])(?:gdn|gg)\d*(?:[^a-z]|$)/i]
+    ]
+    for (var i = 0; i < rules.length; i++) {
+      if (rules[i][1].test(s)) return rules[i][0]
+    }
+
+    var h = String(refHost || '').toLowerCase().replace(/^www\./, '')
+    if (!h) return ''
+    var map = {
+      x: ['x.com', 'twitter.com', 't.co'],
+      tiktok: ['tiktok.com'],
+      instagram: ['instagram.com', 'ig.me'],
+      reddit: ['reddit.com', 'redd.it'],
+      threads: ['threads.net', 'threads.com'],
+      youtube: ['youtube.com', 'youtu.be'],
+      facebook: ['facebook.com', 'fb.com', 'fb.me'],
+      snapchat: ['snapchat.com'],
+      kwai: ['kwai.com', 'kwai-video.com'],
+      pinterest: ['pinterest.com', 'pin.it'],
+      bing: ['bing.com'],
+      linkedin: ['linkedin.com', 'lnkd.in'],
+      quora: ['quora.com'],
+      telegram: ['t.me', 'telegram.me'],
+      whatsapp: ['wa.me', 'whatsapp.com'],
+      line: ['line.me', 'line.com'],
+      discord: ['discord.com', 'discord.gg']
+    }
+    var keys = Object.keys(map)
+    for (var k = 0; k < keys.length; k++) {
+      var hosts = map[keys[k]]
+      for (var j = 0; j < hosts.length; j++) {
+        if (h === hosts[j] || h.slice(-(hosts[j].length + 1)) === '.' + hosts[j]) return keys[k]
+      }
+    }
+    if (/^google\.[a-z.]+$/.test(h)) return 'google'
+    return ''
+  }
+
+  function refererHost() {
+    try {
+      var h = document.referrer ? new URL(document.referrer).hostname : ''
+      return String(h || '').toLowerCase()
+    } catch (e) { return '' }
+  }
+
   ;(function captureSource() {
     try {
       var q = new URLSearchParams(location.search)
@@ -36,7 +105,18 @@
         var host = (location.hostname || '').toLowerCase()
         if (!host || /^\d+\.\d+\.\d+\.\d+$/.test(host) || host === 'localhost') host = ''
         var ch = String(q.get('ch') || q.get('src') || q.get('utm_source') || '').slice(0, 64)
+        var refH = refererHost()
+        if (refH === (location.hostname || '').toLowerCase()) refH = ''
+        var hint = [
+          ch,
+          String(q.get('name') || ''),
+          String(q.get('utm_medium') || ''),
+          refH
+        ].join(' ')
+        var platform = detectPlatform(hint, refH)
+        if (!platform) platform = (refH === '' && hint.trim() === '') ? 'direct' : 'other'
         localStorage.setItem('reg_domain', host)
+        localStorage.setItem('reg_platform', platform)
         if (ch) localStorage.setItem('reg_channel', ch)
         var exp = new Date(Date.now() + 90 * 864e5).toUTCString()
         document.cookie = 'reg_domain=' + encodeURIComponent(host) + ';expires=' + exp + ';path=/;SameSite=Lax'
@@ -117,6 +197,104 @@
       }
     } catch (e) { /* 忽略 */ }
     pxOverride = fromUrl.px || readStoredPromo('px') || ''
+  })()
+
+  /* ---------------- 流量来源：落地访问上报 ----------------
+     每个标签页会话只上报一次（sessionStorage 标记），记录：
+     平台 / 域名 / Referer / 渠道 / 推广链接 / 像素 / 广告宏参数。
+     后台「流量来源」面板按平台统计 访问 → 注册 → 付费。
+     任何异常都不影响页面。 */
+  function newId(prefix) {
+    try {
+      if (window.crypto && window.crypto.randomUUID) return prefix + crypto.randomUUID()
+    } catch (e) { /* 忽略 */ }
+    return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
+  }
+
+  function readCookie(name) {
+    try {
+      var m = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]*)'))
+      return m ? decodeURIComponent(m[1]) : ''
+    } catch (e) { return '' }
+  }
+
+  function visitorId() {
+    var vid = ''
+    try { vid = localStorage.getItem('sugus.vid') || '' } catch (e) { /* 忽略 */ }
+    if (!vid) vid = readCookie('sugus_vid')
+    if (!vid) {
+      vid = newId('v_')
+      try { localStorage.setItem('sugus.vid', vid) } catch (e) { /* 忽略 */ }
+      try {
+        var exp = new Date(Date.now() + 365 * 864e5).toUTCString()
+        document.cookie = 'sugus_vid=' + encodeURIComponent(vid) + ';expires=' + exp + ';path=/;SameSite=Lax'
+      } catch (e) { /* 忽略 */ }
+    }
+    return vid
+  }
+
+  function sessionId() {
+    var sid = ''
+    try { sid = sessionStorage.getItem('sugus.sid') || '' } catch (e) { /* 忽略 */ }
+    if (!sid) {
+      sid = newId('s_')
+      try { sessionStorage.setItem('sugus.sid', sid) } catch (e) { /* 忽略 */ }
+    }
+    return sid
+  }
+
+  ;(function reportVisit() {
+    try {
+      if (/^\/(admin|api|storage)\//.test(location.pathname)) return
+      if (sessionStorage.getItem('sugus.visit.sent') === '1') return
+      sessionStorage.setItem('sugus.visit.sent', '1')
+
+      var q = new URLSearchParams(location.search)
+      var attr = {}
+      try { attr = JSON.parse(localStorage.getItem('sugus.attr') || '{}') || {} } catch (e) { attr = {} }
+
+      function first() {
+        for (var i = 0; i < arguments.length; i++) {
+          var v = arguments[i]
+          if (v) return String(v)
+        }
+        return ''
+      }
+
+      // 本次落地 URL 自带推广参数时，只用本次参数；否则才回落到 90 天首触存储，
+      // 避免「老 FB 首触」把新的 X 链接访问记成 FB。
+      var urlHasPromo = !!(q.get('px') || q.get('pixel_id') || q.get('l') || q.get('ch') || q.get('name'))
+      function promo(urlVal, storedKey) {
+        if (urlHasPromo) return urlVal || ''
+        return urlVal || readStoredPromo(storedKey)
+      }
+
+      var payload = {
+        vid: visitorId(),
+        sid: sessionId(),
+        domain: (location.hostname || '').toLowerCase(),
+        landing: location.pathname + location.search,
+        referer: document.referrer || '',
+        ch: promo(first(q.get('ch'), q.get('src'), q.get('utm_source')), 'ch'),
+        l: promo(q.get('l'), 'l'),
+        name: promo(q.get('name'), 'name'),
+        px: promo(first(q.get('px'), q.get('pixel_id')), 'px'),
+        utm_source: first(q.get('utm_source'), attr.utm_source),
+        utm_medium: first(q.get('utm_medium'), attr.utm_medium),
+        campaign: first(attr.campaign_name, attr.campaign_id, q.get('utm_campaign')),
+        adset: first(attr.adset_name, attr.adset_id, q.get('utm_term')),
+        ad: first(attr.ad_name, attr.ad_id, q.get('utm_content')),
+        ua: navigator.userAgent || ''
+      }
+
+      fetch('/api/v1/site/visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true,
+        credentials: 'omit'
+      }).catch(function () { /* 统计失败不影响页面 */ })
+    } catch (e) { /* 隐私模式 / API 不可用：忽略 */ }
   })()
 
   /* 站内切页面时把会话里的推广参数继续带上，避免「点几下导航参数就没了」 */
@@ -365,12 +543,18 @@
     ttReady = !!window.ttq
 
     // 推广链接绑定像素（?px=）：独占，只打匹配的那一条，忽略域名与其余像素
+    // 纯归因渠道（如 X / Reddit，没有像素）匹配不到时回落到域名规则，避免整站像素被关掉
     if (pxOverride) {
-      items = items.filter(function (it) {
+      var matchedPx = items.filter(function (it) {
         if (!it) return false
         return String(it.id || '') === pxOverride ||
                String(it.pixel || '').trim() === pxOverride
       })
+      if (matchedPx.length) {
+        items = matchedPx
+      } else {
+        pxOverride = ''
+      }
     }
 
     for (var i = 0; i < items.length; i++) {
