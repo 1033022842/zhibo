@@ -354,12 +354,21 @@ gpu-health
 
 ①+② 合计约 **74 GB**——装完即可恢复生产。
 
+> ✅ **2026-11-05 更新**：卡片时代模型已全部就位于本机（h3ErosMax_beta7_int8 22.9GB
+> + 7 个卡片 LoRA），36 卡全可用；aiShort 视频 T8 管线端到端验证通过（含音频）。
+> ⚠️ ComfyUI **重启后模型列表才会刷新**——新传模型必须重启 comfyui，否则校验报
+> 「value_not_in_list」。
+
 **③ 暂不装（附录 A 有记录、当前生产工作流不引用）：**
 `minimax_h3_fl2va_int8_convrot`（34G 全量）、`minimax_h3_ref2va_int8_convrot`（34G）、
 turbo 4step 两个加速 lora、`soulmate_h3_v1`、`H3_slop_bounce`、`cum_facial_000005400`（无引用）。
 磁盘有余再补；`H3 Ass jiggle` 仍未下载（Civitai 要 token，见附录 A）。
 
 **④ 自定义节点（8 个，`build_nodes_min.sh` 清单）——⚠️ 源码不在仓库，两个来源：**
+**另必须安装 `comfyui-minimax-h3-audio-T8` 包**（Ref2VA/t8 卡的 AudioConditioningT8、
+DualClockSampler、audio_scale 采样全在这个包里，缺它 aiShort 卡全部 400）。
+来源：本机 `D:\minimaxH3\【5】MiniMax-H3-T8双时钟四步采样（建议8步）\custom_nodes\`，
+或旧机 `/opt/comfyui/ComfyUI/custom_nodes/`（若可救回）。
 旧机 `/opt/comfyui/ComfyUI/custom_nodes`（若旧机能救回）或 **AI 电脑同路径目录**（重装时从这里拷，
 再跑 `build_nodes_min.sh` 装依赖）。`MiniMaxH3-TimelineDirector` / `sol-attn` 这类私有节点
 网上没有，AI 电脑是唯一来源。
