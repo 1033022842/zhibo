@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `lp_character_image_pool` (
   `age_bin`     VARCHAR(8)   NOT NULL DEFAULT '' COMMENT '年龄段 18-19/20-24/25-29/30-39/40-55',
   `seq`         TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '同组合第几张(1..3)',
   `status`      VARCHAR(16)  NOT NULL DEFAULT 'pending' COMMENT 'pending|generating|ready|served|failed',
+  `persona_id`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '恒为0（池行不占用户空间）',
   `task_id`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '关联 lp_ai_task.id',
   `image_url`   VARCHAR(500) NOT NULL DEFAULT '' COMMENT '成品图',
   `served_at`   DATETIME DEFAULT NULL COMMENT '被用户领取时间',
