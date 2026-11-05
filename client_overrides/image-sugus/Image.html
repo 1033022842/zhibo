@@ -128,7 +128,14 @@
 .gs-gen .gs-gen__submit{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 12px;border:0;border-radius:16px;background:linear-gradient(90deg,#ff5c9e,#ff478f,#ff5c9e);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 25px rgba(255,92,158,.45)}
 .gs-gen .gs-gen__submit:hover{filter:brightness(1.06)}
 .gs-gen .gs-gen__submit:disabled{opacity:.6;cursor:not-allowed;box-shadow:none}
+/* 二次确认态：扣费前要点两次，第一次把按钮变成琥珀色并显示真实价格 */
+.gs-gen .gs-gen__submit.is-confirm{background:linear-gradient(90deg,#f59e0b,#f97316,#f59e0b);box-shadow:0 4px 25px rgba(245,158,11,.45)}
+/* 已提交态：锁住按钮，给一个明确的完成感 */
+.gs-gen .gs-gen__submit.is-done{background:linear-gradient(90deg,#10b981,#059669,#10b981);box-shadow:0 4px 25px rgba(16,185,129,.35);opacity:1}
 .gs-gen__cost{padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.2);font-size:12px;font-weight:400;opacity:.9}
+/* 付费/不足时徽章更醒目：让用户在点击之前就知道会发生什么 */
+.gs-gen__cost--paid{background:rgba(0,0,0,.34);color:#ffe08a;font-weight:700}
+.gs-gen__cost--warn{background:rgba(239,68,68,.22);color:#fca5a5;font-weight:700}
 .gs-gen .gs-gen__info{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#fff;font-size:13px;font-style:italic;font-family:Georgia,serif;cursor:pointer}
 .gs-gen__note{margin-top:8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:rgba(255,255,255,.7);font-size:11px;line-height:1.6}
 .gs-gen__hint{margin-top:8px;color:rgba(255,255,255,.38);font-size:10px;line-height:1.5}
@@ -185,7 +192,7 @@
 
 
 	<script src="./js/ui-dialog.js?v=20260928d"></script>
-	<script src="./js/customVideo.js?v=20261105fix"></script>
+	<script src="./js/customVideo.js?v=20261105pay5"></script>
 <script src="./js/tracking.js?v=20261018a"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">

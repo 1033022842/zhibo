@@ -42,7 +42,7 @@ final class AiShort extends BaseController
     private const MAX_DURATION = 15;
 
     protected array $middleware = [
-        \app\live\middleware\Auth::class => ['only' => ['detail', 'submit', 'myList', 'task', 'favs', 'favToggle']],
+        \app\live\middleware\Auth::class => ['only' => ['detail', 'submit', 'myList', 'task', 'favs', 'favToggle', 'quota']],
         \app\ai\middleware\AiAuth::class => ['only' => ['pending', 'accept', 'upload', 'complete', 'fail', 'stats', 'progress', 'export']],
     ];
 
@@ -299,6 +299,41 @@ final class AiShort extends BaseController
     /**
      * 我的作品（需登录）
      */
+    /**
+     * 额度与单价（登录）：弹窗打开时查一次
+     *
+     * 为什么需要
+     * ---------
+     * 以前只有提交时才知道要不要扣费：免费额度用完，服务端返回 C0102，
+     * 前端再弹 window.confirm 让用户确认。原生弹窗既突兀、又只在点过一次
+     * 之后才出现。开这个只读接口后，按钮能直接显示「Free」或「50 tokens」，
+     * 确认也在按钮上就地完成。
+     *
+     * 注意：refillAndGet 与 submit 里调的是同一个方法（按天补额度，幂等），
+     * 这里调用不会多送额度，也不会消费。
+     */
+    public function quota()
+    {
+        $userId = $this->getAuthUserId();
+        $kind = ((string) $this->request->get('kind', 'video')) === 'image' ? 'image' : 'video';
+
+        $ent = (new VipService())->entitlements($userId);
+        $dailyLimit   = max(1, (int) ($ent['image_daily_limit'] ?? 2));
+        $refillPerDay = max(0, (int) ($ent['image_daily_refill'] ?? 1));
+
+        $remain = (new GenCreditService())->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
+        $price  = $this->genPrice($kind);
+
+        return $this->jsonSuccess([
+            'kind'        => $kind,
+            'remain'      => $remain,
+            'daily_limit' => $dailyLimit,
+            'price'       => $price,
+            'price_text'  => $this->fmtPrice($price),
+            'balance'     => (new WalletService())->balance($userId),
+        ]);
+    }
+
     /** 收藏列表（登录）：返回该用户收藏的预设 code（新→旧） */
     public function favs()
     {
