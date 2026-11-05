@@ -49,7 +49,7 @@
 		<script src="./js/main.js?v=20261105a"></script>
 		<script src="./js/shell-new.js?v=20261104tx"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
-		<script src="./js/posts.js?v=20261104brand" defer></script>
+		<script src="./js/posts.js?v=20261105top" defer></script>
 
 			<style>
   /* Desktop feed container - scroll-based navigation */
@@ -320,9 +320,9 @@
     border-radius: 20px;
   }
 
-  /* Apply top offset only to the currently visible slide */
+  /* 顶栏高 64px：可见卡片从顶栏下沿开始，避免视频上方多出一条封面/留白 */
   .feed-desktop-video.is-visible .feed-desktop-media {
-    margin-top: 75px;
+    margin-top: 64px;
   }
 
   /* ============================================================
