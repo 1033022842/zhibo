@@ -1433,6 +1433,7 @@
         $('gsOutfitTitle').textContent = item.label || 'Outfit'
         $('gsOutfitPills').innerHTML = '<span class="gs-gen__pill">' + esc(String(item.desc || '').slice(0, 48)) + '</span>'
         // 服装缩略图：小徽章展示，加载失败自动隐藏（外链图不强求大图）
+        $('gsOutfitCover').src = item.cover_url || ''
         var thumb = $('gsOutfitThumb')
         thumb.style.display = 'none'
         thumb.removeAttribute('src')
@@ -1443,9 +1444,6 @@
         }
         $('gsOutfitPreview').style.display = 'none'
         $('gsOutfitPreview').removeAttribute('src')
-        $('gsOutfitPhoto').style.display = 'none'
-        $('gsOutfitPhoto').removeAttribute('src')
-        $('gsOutfitPlaceholder').style.display = 'flex'
         $('gsOutfitFile').value = ''
         $('gsOutfitUploadText').textContent = 'upload her photo'
         var sb = $('gsOutfitSubmit')
@@ -1550,11 +1548,6 @@
                     pv.src = ev.target.result
                     pv.style.display = 'block'
                     $('gsOutfitUploadText').textContent = shop.file.name
-                    // 右侧大框同步显示上传照片
-                    var ph = $('gsOutfitPhoto')
-                    ph.src = ev.target.result
-                    ph.style.display = 'block'
-                    $('gsOutfitPlaceholder').style.display = 'none'
                 }
                 r.readAsDataURL(shop.file)
             })
