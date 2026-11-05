@@ -654,17 +654,95 @@
     function syncSubmitState() {
         var btn = $('gsGenSubmit'), txt = $('gsGenSubmitText')
         if (!btn) return
+        // 已提交（等待出片）时保持「Submitted ✓」不可点，直到任务结束或用户重开弹窗
+        if (btn.classList.contains('is-done') && !gen.submitting) {
+            btn.disabled = true
+            btn.classList.remove('is-locked')
+            if (txt) txt.textContent = 'Submitted ✓'
+            var c0 = $('gsGenCost')
+            if (c0) c0.style.display = 'none'
+            return
+        }
         var ready = !!gen.file && !gen.submitting
         btn.disabled = !ready
         btn.classList.toggle('is-locked', !gen.file)
         if (!gen.submitting) txt.textContent = gen.file ? 'Generate' : 'Upload image first'
     }
 
+    /* 按钮上的费用显示
+       ------------------
+       三种状态：
+         Free             有免费额度
+         50 tokens        免费额度用完，点一下会扣这么多
+         Not enough       余额不足，点了也发不出去
+       价格来自 /quota（弹窗打开时查），不再等服务端 C0102 才在原生弹窗里告诉用户。 */
     function renderCost() {
         var el = $('gsGenCost')
         if (!el) return
-        if (gen.remain === null || gen.remain < 0) { el.textContent = 'Free'; return }
-        el.textContent = gen.remain > 0 ? 'Free' : 'Paid'
+        // 已提交态下不再显示价格：按钮已经是「Submitted ✓」，
+        // 旁边再挂个「50 tokens」或「Not enough」只会让人以为还要再付一次。
+        // loadQuota() 是异步的，回来后还会调本函数，所以必须在源头判断。
+        var sb = $('gsGenSubmit')
+        if (sb && sb.classList.contains('is-done')) {
+            el.style.display = 'none'
+            return
+        }
+        // 确认态下按钮文案已经写了「Confirm · 50 tokens」，徽章再显示一次就重复了
+        if (sb && sb.classList.contains('is-confirm')) {
+            el.style.display = 'none'
+            return
+        }
+        var cost = gen.quota
+        if (!cost) { el.textContent = ''; el.style.display = 'none'; return }
+        el.style.display = ''
+        var price = Number(cost.price) || 0
+
+        if (gen.remain === null) { el.textContent = ''; el.style.display = 'none'; return }
+
+        if (gen.remain > 0) {
+            el.textContent = 'Free'
+            el.className = 'gs-gen__cost'
+            return
+        }
+        if (price <= 0) {
+            // 后台把价格关了：额度用完就是不能再用
+            el.textContent = 'Limit reached'
+            el.className = 'gs-gen__cost gs-gen__cost--warn'
+            return
+        }
+        if (Number(cost.balance) < price) {
+            el.textContent = 'Not enough'
+            el.className = 'gs-gen__cost gs-gen__cost--warn'
+            return
+        }
+        el.textContent = cost.price_text + ' tokens'
+        el.className = 'gs-gen__cost gs-gen__cost--paid'
+    }
+
+    /** 是否需要付费确认（额度耗尽但余额够） */
+    function needsPaidConfirm() {
+        var cost = gen.quota
+        if (!cost || gen.remain === null || gen.remain > 0) return false
+        var price = Number(cost.price) || 0
+        return price > 0 && Number(cost.balance) >= price
+    }
+
+    // 弹窗打开时拉一次额度与单价
+    function loadQuota() {
+        if (!token) {
+            gen.quota = null
+            gen.remain = null
+            renderCost()
+            return Promise.resolve()
+        }
+        return authJson(API + '/quota?kind=' + encodeURIComponent((gen.preset && gen.preset.kind) || 'video'))
+            .then(function (d) {
+                if (!d || d.code !== '00000' || !d.data) return
+                gen.quota = d.data
+                gen.remain = Number(d.data.remain)
+                renderCost()
+            })
+            .catch(function () {})
     }
 
     // 右侧画面回到「预设的参考片」
@@ -757,10 +835,18 @@
         $('gsGenNote').style.display = 'none'
         $('gsGenNote').textContent = ''
         renderAddons()
+        // 重置上一次残留的「二次确认」态，再拉当前额度
+        gen.confirmPaid = false
+        gen.quota = null
+        gen.remain = null
+        clearTimeout(gen.confirmTimer)
+        var sb = $('gsGenSubmit')
+        if (sb) sb.classList.remove('is-confirm', 'is-done')
         renderCost()
         syncSubmitState()
         syncGenLike()
         openModal('gsCardModal')
+        loadQuota()
         loadPresets().then(function () {
             // 预设元信息到齐后刷新标题、标签与时长选项（首次打开时可能还没加载完）
             if (gen.current !== c) return
@@ -791,7 +877,30 @@
         }
         if (!gen.file) { toast('Please upload her picture first'); return }
         if (!gen.preset) return
-        doSubmit(false)
+
+        // 要扣费时，就地改成「二次确认」态：按钮文案变成
+        // 「Confirm · 50 tokens — tap again」，再点一次才真正提交。
+        // 不用 window.confirm —— 原生弹窗打断感强，也不能显示真实价格。
+        if (needsPaidConfirm() && !gen.confirmPaid) {
+            gen.confirmPaid = true
+            var btn = $('gsGenSubmit'), txt = $('gsGenSubmitText')
+            txt.textContent = 'Confirm · ' + gen.quota.price_text + ' tokens'
+            btn.classList.add('is-confirm')
+            renderCost()
+            showNote('This will use ' + gen.quota.price_text + ' tokens from your balance. '
+                + 'Tap the button again to confirm.')
+            // 不自动超时退回：用户可能正在读文案，这时把按钮重置回「Generate」
+            // 会让人以为点过的那一步没生效。确认态一直保留到再点一次或关掉弹窗。
+            return
+        }
+
+        var paid = gen.confirmPaid === true
+        gen.confirmPaid = false
+        clearTimeout(gen.confirmTimer)
+        var b2 = $('gsGenSubmit')
+        if (b2) b2.classList.remove('is-confirm')
+        $('gsGenNote').style.display = 'none'
+        doSubmit(paid)
     }
 
     function doSubmit(confirmed) {
@@ -814,8 +923,24 @@
             syncSubmitState()
             if (!d || d.code !== '00000') {
                 if (d && d.code === 'C0102') {
-                    // 免费额度用尽：服务端已给出价格文案，确认后带 confirm_paid 重提
-                    if (window.confirm(d.msg || 'This one costs tokens. Continue?')) doSubmit(true)
+                    // 服务端仍要确认（例如余额在我们查 quota 之后变了）：
+                    // 走同一条「就地二次确认」路径，不弹原生窗口
+                    gen.remain = 0
+                    if (d.data && typeof d.data.price_text === 'string') {
+                        gen.quota = gen.quota || {}
+                        gen.quota.price_text = d.data.price_text
+                        gen.quota.price = Number(d.data.price) || gen.quota.price
+                    }
+                    renderCost()
+                    showNote(d.msg || ('This costs ' + ((gen.quota && gen.quota.price_text) || 'tokens') + '.'))
+                    if (gen.quota && gen.quota.price_text) {
+                        gen.confirmPaid = false
+                        $('gsGenSubmitText').textContent =
+                            'Confirm · ' + gen.quota.price_text + ' tokens'
+                        $('gsGenSubmit').classList.add('is-confirm')
+                        $('gsGenSubmit').disabled = false
+                        gen.confirmPaid = true
+                    }
                     return
                 }
                 if (d && d.code === 'C0100') { showNote(d.msg || 'Not enough tokens.'); return }
@@ -830,9 +955,24 @@
             if (typeof data.remain === 'number') gen.remain = data.remain
             if (typeof data.balance === 'number') gen.balance = data.balance
             gen.taskId = Number(data.task_id) || 0
+            if (typeof data.balance === 'number' && gen.quota) gen.quota.balance = data.balance
             if (window.refreshTokenBalance) window.refreshTokenBalance()
+            // 提交成功后额度已变（免费次数 -1 或代币已扣），重查一次让按钮显示准确
+            loadQuota()
             renderCost()
-            setState('Queued…')
+            // 明确反馈：按钮本身改成「已提交」，右侧画面给状态，再弹一条 toast。
+            // 之前只有右侧一行小字，用户很容易以为没点上。
+            var b3 = $('gsGenSubmit'), t3 = $('gsGenSubmitText')
+            if (b3) { b3.disabled = true; b3.classList.add('is-done') }
+            if (t3) t3.textContent = 'Submitted ✓'
+            // is-done 是刚加上的，syncSubmitState 要再跑一次才会把费用徽章藏掉
+            syncSubmitState()
+            setState('Queued — generating…')
+            var used = confirmed === true && gen.quota
+                ? ('-' + gen.quota.price_text + ' tokens')
+                : ''
+            toast('Submitted! Your video is queued' + (used ? ' (' + used + ')' : '') +
+                ' — check My Works in a few minutes.')
             watchResult(gen.taskId)
         }).catch(function () {
             gen.submitting = false
