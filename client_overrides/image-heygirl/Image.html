@@ -683,6 +683,7 @@
 							<button type="button" class="gs-chip" data-gs-filter="vip">VIP</button>
 							<button type="button" class="gs-chip" data-gs-filter="free">Free</button>
 							<a class="gs-chip gs-chip--promo" href="./Subscriptions.html">Up to 75% OFF</a>
+							<button type="button" class="gs-chip gs-chip--shop" id="gsShopBtn">👗 Shop</button>
 						</div>
 						<button type="button" class="gs-icon" id="gsSearchBtn" aria-label="Search">
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
@@ -902,6 +903,65 @@
 					</div>
 				</div>
 			</div>
+			<div class="gs-modal" id="gsShopModal" aria-hidden="true">
+				<div class="gs-modal__panel gs-shop" role="dialog" aria-modal="true" aria-label="Shop Outfits">
+					<button type="button" class="gs-modal__close" data-gs-close="gsShopModal" aria-label="Close">✕</button>
+					<div class="gs-modal__body">
+						<div class="gs-modal__title">Shop Outfits</div>
+						<p class="gs-shop__hint">Upload her photo, pick an outfit you own — she wears it. Locked outfits can be bought in the Shop.</p>
+						<div class="gs-shop__grid" id="gsShopGrid"><div class="cv-empty">Loading…</div></div>
+					</div>
+				</div>
+			</div>
+			<div class="gs-modal" id="gsOutfitModal" aria-hidden="true">
+				<div class="gs-modal__panel gs-gen" role="dialog" aria-modal="true" aria-label="Apply Outfit">
+					<div class="gs-gen__head">
+						<h2 class="gs-gen__title" id="gsOutfitTitle">Outfit</h2>
+						<div class="gs-gen__head-act">
+							<button type="button" class="gs-gen__icon" data-gs-close="gsOutfitModal" aria-label="Close">
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+							</button>
+						</div>
+					</div>
+					<div class="gs-gen__pills" id="gsOutfitPills"></div>
+					<div class="gs-gen__stage">
+						<div class="gs-gen__frame" id="gsOutfitDrop">
+							<img id="gsOutfitPreview" alt="" style="display:none">
+							<button type="button" class="gs-gen__upload" id="gsOutfitUpload">
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7 9m5-5l5 5"></path><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"></path></svg>
+								<span id="gsOutfitUploadText">upload her photo</span>
+							</button>
+							<input type="file" id="gsOutfitFile" accept="image/jpeg,image/png,image/webp" style="display:none">
+						</div>
+						<div class="gs-gen__frame gs-gen__frame--out">
+							<img id="gsOutfitCover" alt="">
+							<div class="gs-gen__state" id="gsOutfitState">Outfit</div>
+						</div>
+					</div>
+					<div class="gs-gen__actions">
+						<button type="button" class="gs-gen__submit" id="gsOutfitSubmit">
+							<span id="gsOutfitSubmitText">Apply Outfit</span>
+							<span class="gs-gen__cost" id="gsOutfitCost"></span>
+						</button>
+					</div>
+					<div class="gs-gen__hint">Only AI-generated, anime, or self-authorized photos. You are responsible for your uploads.</div>
+				</div>
+			</div>
+			<style>
+/* Shop 换装：服装卡网格 + 选中生成面板 */
+.gs-shop{width:min(100%,720px)}
+.gs-shop__hint{margin:4px 2px 12px;color:var(--sg-grey,#a4a4a4);font-size:12.5px;line-height:1.55}
+.gs-shop__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;max-height:56vh;overflow-y:auto;padding:2px}
+.gs-shop__card{position:relative;display:flex;flex-direction:column;gap:8px;padding:0;border:1px solid #2c2c2c;border-radius:12px;background:#161616;cursor:pointer;overflow:hidden;text-align:left;transition:border-color .2s ease,transform .15s ease}
+.gs-shop__card:hover{border-color:rgba(249,113,135,.6);transform:translateY(-2px)}
+.gs-shop__cover{display:block;width:100%;aspect-ratio:3/4;background-size:cover;background-position:center;background-color:#101010}
+.gs-shop__meta{display:flex;flex-direction:column;gap:2px;padding:8px 10px 10px}
+.gs-shop__label{font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gs-shop__price{font-size:11px;color:rgba(255,255,255,.55)}
+.gs-shop__card.is-locked .gs-shop__cover{filter:grayscale(.7) brightness(.6)}
+.gs-shop__card.is-locked .gs-shop__price{color:#f97187}
+.gs-chip--shop{color:#f9c971}
+</style>
 		</turbo-frame></div>
 <div id="character-registration-modal"></div>
 		<div id="character-subscribe-modal"></div>
