@@ -464,7 +464,7 @@ final class CustomVideo extends BaseController
     public function pending()
     {
         $count = min(3, max(1, (int) ($this->request->get('count') ?? 1)));
-        $tasks = AiTask::whereIn('task_type', ['custom_video', 'custom_image', 'character_image'])
+        $tasks = AiTask::whereIn('task_type', ['custom_video', 'custom_image', 'character_image', 'pool_image'])
             ->where('status', TaskStatus::PENDING->value)
             ->order('priority', 'desc')
             ->order('id', 'asc')
@@ -474,7 +474,7 @@ final class CustomVideo extends BaseController
         return $this->jsonSuccess(array_map(function (array $t) {
             $c = json_decode((string) $t['content'], true) ?: [];
             // kind=character：角色形象图（纯文生图，worker v6.2+ 无需下载参考图）
-            $kind = $t['task_type'] === 'character_image' ? 'character'
+            $kind = in_array($t['task_type'], ['character_image', 'pool_image'], true) ? 'character'
                 : ($t['task_type'] === 'custom_image' ? 'image' : 'video');
             return [
                 'task_id'    => (int) $t['id'],
@@ -499,7 +499,7 @@ final class CustomVideo extends BaseController
         $taskId = (int) $this->request->post('task_id', 0);
         $workerId = (string) ($this->request->aiWorkerId ?? 'unknown');
         $task = AiTask::find($taskId);
-        if (!$task || !in_array($task->task_type, ['custom_video', 'custom_image', 'character_image'], true)) {
+        if (!$task || !in_array($task->task_type, ['custom_video', 'custom_image', 'character_image', 'pool_image'], true)) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task 不存在');
         }
         if ($task->status !== TaskStatus::PENDING->value) {
@@ -556,7 +556,7 @@ final class CustomVideo extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task_id / video 必填');
         }
         $task = AiTask::find($taskId);
-        if (!$task || !in_array($task->task_type, ['custom_video', 'custom_image', 'character_image'], true)) {
+        if (!$task || !in_array($task->task_type, ['custom_video', 'custom_image', 'character_image', 'pool_image'], true)) {
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task 不存在');
         }
 
@@ -573,7 +573,7 @@ final class CustomVideo extends BaseController
         }
 
         // 视频文件不计入图片自动压缩（Upload 内部已按类型判断）
-        $task->result_type = in_array($task->task_type, ['custom_image', 'character_image'], true) ? 'image_file' : 'video_file';
+        $task->result_type = in_array($task->task_type, ['custom_image', 'character_image', 'pool_image'], true) ? 'image_file' : 'video_file';
         // 成品地址必须落库：万一 worker 随后的 /aiTask/complete 失败（任务状态已不是
         // accepted/processing），前端仍能从 video_url 拿到结果，不会一直停在「生成中」
         $task->video_url = $videoUrl;

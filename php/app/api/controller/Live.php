@@ -527,14 +527,34 @@ final class Live extends BaseController
         $data = $this->request->post();
         $persona = $this->personaService->createFromAi($userId, $data, false);
 
-        $imageTask = (new CharacterImageService())->enqueue($userId, $persona, $data);
+        // 词条组合预生成池：命中直接秒回（cover_url 已就位，前端按已完成展示），未命中走实时生成
+        $imageTask = null;
+        $instant = false;
+        try {
+            $imageService = new CharacterImageService();
+            $poolUrl = $imageService->claimFromPool($imageService->poolHashFor($data));
+            if ($poolUrl !== null) {
+                $instant = true;
+                Db::connect('live_mysql')->table('lp_persona')
+                    ->where('id', (int) $persona['id'])
+                    ->update(['cover_url' => $poolUrl, 'updated_at' => date('Y-m-d H:i:s')]);
+                $persona['cover_url'] = $poolUrl;
+            } else {
+                $imageTask = $imageService->enqueue($userId, $persona, $data);
+            }
+        } catch (\Throwable $e) {
+            // 池表未部署/异常：回退现有实时生成路径
+            $imageTask = (new CharacterImageService())->enqueue($userId, $persona, $data);
+        }
 
         return $this->jsonSuccess([
             'id'     => (int) $persona['id'],
             'name'   => $persona['name'],
             'status' => (int) $persona['status'],
-            // 形象图生成任务（可能为 null：入队失败/未部署 worker，角色仍创建成功）
+            // 形象图生成任务（可能为 null：入队失败/未部署 worker/池命中秒回，角色仍创建成功）
             'image_task_id' => $imageTask ? (int) $imageTask->id : null,
+            // true = 预生成池命中，cover_url 已就位，前端可直接按完成态展示
+            'instant' => $instant,
             // 完成态动作定价与余额（后台「功能定价」可改；0 = 该动作免费）
             'prices'  => self::characterPrices(),
             'balance' => (new WalletService())->balance($userId),
