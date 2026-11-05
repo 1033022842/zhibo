@@ -197,8 +197,20 @@ final class Agent extends Backend
         $eRemark   = $this->e((string) ($edit['remark'] ?? ''));
         $eStatus   = (int) $edit['status'] === 1 ? ' checked' : '';
         $ePerms    = AgentService::parsePerms($edit['perms'] ?? null);
-        $eDomains  = implode("\n", array_map(static fn(array $d): string => (string) $d['domain'], $domainsByAgent[$eId] ?? []));
+        $eDomainArr = array_map(static fn(array $d): string => (string) $d['domain'], $domainsByAgent[$eId] ?? []);
         $ePixels   = array_map(static fn(array $p): int => (int) $p['id'], $pixelsByAgent[$eId] ?? []);
+
+        // 域名下拉（可多选）：来源「推广与像素 → 前端域名列表」，并保留已分配但已从列表移除的旧域名
+        $siteDomains = (new PromoService())->siteDomains();
+        $domainPool  = array_values(array_unique(array_merge($siteDomains, $eDomainArr)));
+        $domainOptions = '';
+        foreach ($domainPool as $d) {
+            $checked = in_array($d, $eDomainArr, true) ? ' checked' : '';
+            $domainOptions .= '<label class="ms-opt"><input type="checkbox" name="domains[]" value="' . $this->e($d) . '"' . $checked . '><span>' . $this->e($d) . '</span></label>';
+        }
+        if ($domainOptions === '') {
+            $domainOptions = '<div class="ms-empty">暂无域名，请先在「推广与像素」配置前端域名</div>';
+        }
 
         $permBoxes = '';
         foreach (AgentService::PERMS as $key => $label) {
@@ -254,7 +266,6 @@ final class Agent extends Backend
         $formTitle = $eId > 0 ? '编辑代理 · ' . $eName : '新建代理';
         $cancel = $eId > 0 ? '<a class="btn-line" href="/admin/live.Agent/index' . $this->keyQuery() . '">取消编辑</a>' : '';
         $pwdHint = $eId > 0 ? '留空表示不修改密码' : '新建代理必填，至少 6 位';
-        $eDomainsEsc = $this->e($eDomains);
         $saveUrl     = '/admin/live.Agent/save' . $this->keyQuery();
         $newUrl      = '/admin/live.Agent/index' . $this->keyQuery();
         $formHint    = $eId > 0
@@ -272,13 +283,33 @@ final class Agent extends Backend
             ? '<div class="divider"></div><div class="hint">推广域名与渠道自动继承上级代理，子代理无需单独分配。</div>'
             : '<div class="divider"></div><div class="two-col">'
                 . '<div class="field-block"><h3>专属推广域名</h3>'
-                . '<textarea name="domains" rows="5" placeholder="agent1.example.com" style="width:100%;padding:10px 12px;border:1px solid #e2e5ee;border-radius:10px;font-size:14px;color:#1f2430;font-family:inherit;outline:none;resize:vertical">' . $eDomainsEsc . '</textarea>'
-                . '<div class="hint">一行一个。域名需先完成 DNS 解析和 HTTPS 证书配置；域名直访会自动归属该代理。</div></div>'
+                . '<div class="ms" id="domainMs">'
+                . '<button type="button" class="ms-btn" id="domainMsBtn">请选择域名</button>'
+                . '<div class="ms-pop" id="domainMsPop">'
+                . '<div class="ms-tools"><a data-ms="all">全选</a><a data-ms="none">清空</a></div>'
+                . $domainOptions
+                . '</div></div>'
+                . '<div class="hint">可多选，点击选项前的方框勾选。列表来自「推广与像素 → 前端域名列表」，域名直访会自动归属该代理。</div></div>'
                 . '<div class="field-block"><h3>分配渠道</h3><div class="perm-grid compact">' . $pixelBoxes . '</div>'
                 . '<div class="hint">代理只能看到渠道名称，看不到像素 ID 和 CAPI Token。</div></div>'
                 . '</div>';
 
         $content = <<<HTML
+<style>
+.ms{position:relative}
+.ms-btn{width:100%;min-height:38px;text-align:left;padding:8px 32px 8px 12px;border:1px solid #e2e5ee;border-radius:10px;background:#fff;color:#8a90a3;font-size:13.5px;cursor:pointer;position:relative;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-btn.has{color:#1f2430}
+.ms-btn:after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#9aa0b0}
+.ms.open .ms-btn{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.ms-pop{display:none;position:absolute;z-index:30;left:0;right:0;top:calc(100% + 6px);max-height:220px;overflow:auto;background:#fff;border:1px solid #e2e5ee;border-radius:10px;box-shadow:0 12px 28px rgba(30,34,60,.14);padding:6px}
+.ms.open .ms-pop{display:block}
+.ms-tools{display:flex;gap:14px;padding:4px 10px 8px;border-bottom:1px solid #f1f2f8;margin-bottom:4px;font-size:12px;color:#6366f1}
+.ms-tools a{cursor:pointer}
+.ms-opt{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13.5px;color:#3a4051;cursor:pointer;font-weight:400}
+.ms-opt:hover{background:#f5f6fb}
+.ms-opt input{accent-color:#6366f1;width:15px;height:15px;margin:0}
+.ms-empty{padding:10px;font-size:12.5px;color:#9aa0b0}
+</style>
 {$alert}
 <div class="card">
   <div class="card-head">
@@ -323,6 +354,36 @@ final class Agent extends Backend
     </table>
   </div>
 </div>
+<script>
+(function () {
+    var ms = document.getElementById('domainMs');
+    if (!ms) return;
+    var btn = document.getElementById('domainMsBtn');
+    var pop = document.getElementById('domainMsPop');
+    var boxes = Array.prototype.slice.call(pop.querySelectorAll('input[type=checkbox][name="domains[]"]'));
+    function sync() {
+        var sel = boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+        btn.textContent = sel.length ? sel.join('，') : '请选择域名';
+        btn.className = sel.length ? 'ms-btn has' : 'ms-btn';
+    }
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        ms.classList.toggle('open');
+    });
+    pop.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', function () { ms.classList.remove('open'); });
+    boxes.forEach(function (b) { b.addEventListener('change', sync); });
+    pop.querySelectorAll('.ms-tools a').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            e.preventDefault();
+            var all = a.getAttribute('data-ms') === 'all';
+            boxes.forEach(function (b) { b.checked = all; });
+            sync();
+        });
+    });
+    sync();
+})();
+</script>
 HTML;
 
         $this->renderPage(
@@ -354,7 +415,8 @@ HTML;
                 ? max(0, (int) $this->request->post('parent_id', 0))
                 : 0;
             $perms    = AgentService::permsJson((array) $this->request->post('perms', []));
-            $domainsRaw = (string) $this->request->post('domains', '');
+            $domainsIn  = $this->request->post('domains', '');
+            $domainsRaw = is_array($domainsIn) ? implode("\n", $domainsIn) : (string) $domainsIn;
             $pixels   = array_values(array_unique(array_map('intval', (array) $this->request->post('pixels', []))));
 
             // 代理账号维护子代理：只能建在自己下面、只能编辑直属子代理、
