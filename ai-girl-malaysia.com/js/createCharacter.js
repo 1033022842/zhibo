@@ -171,20 +171,33 @@
     var RELATIONSHIPS = ['Stranger', 'Girlfriend', 'Sex Friend', 'School Mate', 'Work Colleague', 'Wife', 'Mistress', 'Friend', 'Step Sister', 'Step Mom', 'Step Daughter', 'Landlord', 'Sugar Baby', 'Boss', 'Teacher', 'Student', 'Neighbour', 'Mother-In-Law', 'Sister-In-Law']
     var OCCUPATIONS = ['🎓 Student', '💃 Dancer', '👗 Model', '👠 Stripper', '🧹 Maid', '💻 Cam Girl', '👔 Boss / CEO', '🎥 Pornstar', '🎮 Streamer', '🍹 Bartender', '💻 Tech Engineer', '🛟 Lifeguard', '💵 Cashier', '💆‍♀️ Massage Therapist', '👩‍🏫 Teacher', '💉 Nurse', '💼 Secretary', '🧘‍♀️ Yoga Instructor', '🏋️‍♂️ Fitness Coach', '👨‍🍳 Cook', '🖌️ Artist', '🎬 Movie Star/Actress', '🩺 Doctor', '📚 Librarian', '🕵️‍♂️ Spy', '👮 Police Officer', '🪖 Soldier', '⚖️ Lawyer', '💇‍♀️ Hairdresser', '🦷 Dentist', '🎤 Singer/Musician', '👩‍⚕️ Gynecologist', '✍️ Writer', '✈️ Flight Attendant', '🏅 Professional Athlete', '🔬 Scientist', '🌸 Florist', '💄 Makeup Artist', '📸 Photographer', '🤝 Social Worker', '🎨 Designer', '💊 Pharmacist', '🥦 Nutritionist']
     var KINKS = ['Bondage', 'Spanking', 'Collar & Leash', 'Punishment', 'Humiliation', 'Public Play', 'Roleplay', 'Anal Play', 'Oral Play', 'Cum Play', 'Creampie', 'Squirting', 'Dirty Talk', 'Breeding', 'Daddy Dominance', 'Edging', 'Obedience', 'Control', 'Inexperienced', 'Shy Flirting', 'Playful Teasing', 'Cuddling', 'Slow & Sensual', 'Hair Pulling']
+    /* 固定 6 种女声（与创作端音色枚举 sweet/mature/magnetic/loli/cold/gentle 一致）：
+       id 会随角色一起入库（source_fields.voice），聊天/通话按该音色说话 */
     var VOICES = [
-        { id: 'Voice 1 (Confident)', name: 'Voice 1', tag: 'Confident', pitch: 0.9, rate: 1.0 },
-        { id: 'Voice 2 (Cheerful)', name: 'Voice 2', tag: 'Cheerful', pitch: 1.3, rate: 1.1 },
-        { id: 'Voice 3 (Dominant)', name: 'Voice 3', tag: 'Dominant', pitch: 0.8, rate: 0.9 },
-        { id: 'Voice 4 (Innocent)', name: 'Voice 4', tag: 'Innocent', pitch: 1.4, rate: 1.0 },
-        { id: 'Voice 5 (Sweet)', name: 'Voice 5', tag: 'Sweet', pitch: 1.25, rate: 0.95 },
-        { id: 'Voice 6 (Sultry)', name: 'Voice 6', tag: 'Sultry', pitch: 0.85, rate: 0.85 },
-        { id: 'Voice 7 (Calm)', name: 'Voice 7', tag: 'Calm', pitch: 1.0, rate: 0.9 },
-        { id: 'Voice 8 (Thoughtful)', name: 'Voice 8', tag: 'Thoughtful', pitch: 1.05, rate: 0.85 },
-        { id: 'Voice 9 (Whimsical)', name: 'Voice 9', tag: 'Whimsical', pitch: 1.2, rate: 1.05 },
+        /* pitch 拉开到 6 个明显不同的档位（浏览器 TTS 只有音高/语速可调） */
+        { id: 'sweet', name: 'Sweet', tag: 'Soft & warm', pitch: 1.4, rate: 1.05 },
+        { id: 'mature', name: 'Mature', tag: 'Calm & confident', pitch: 1.0, rate: 0.95 },
+        { id: 'magnetic', name: 'Magnetic', tag: 'Deep & husky', pitch: 0.7, rate: 0.85 },
+        { id: 'loli', name: 'Loli', tag: 'Cute & youthful', pitch: 1.7, rate: 1.18 },
+        { id: 'cold', name: 'Cold', tag: 'Cool & aloof', pitch: 0.85, rate: 1.0 },
+        { id: 'gentle', name: 'Gentle', tag: 'Soft & soothing', pitch: 1.18, rate: 0.9 },
     ]
+    /* 6 段固定试听样音（assets/create/voice-*.mp3）：系统音色数量不一致，
+       预生成才能保证每种音色听起来真的不同；加载失败时再退回浏览器本地 TTS */
+    var VOICE_SAMPLE = {
+        sweet: './assets/create/voice-sweet.mp3?v=20261103voice1',
+        mature: './assets/create/voice-mature.mp3?v=20261103voice1',
+        magnetic: './assets/create/voice-magnetic.mp3?v=20261103voice1',
+        loli: './assets/create/voice-loli.mp3?v=20261103voice1',
+        cold: './assets/create/voice-cold.mp3?v=20261103voice1',
+        gentle: './assets/create/voice-gentle.mp3?v=20261103voice1',
+    }
     var NAME_POOL = ['Luna', 'Aria', 'Mia', 'Chloe', 'Zoe', 'Ruby', 'Ivy', 'Stella', 'Nova', 'Bella', 'Zara', 'Zoey', 'Lily', 'Rose', 'Daisy', 'Zelda', 'Willow', 'Autumn', 'Sienna', 'Skylar', 'Aurora', 'Cleo', 'Jade', 'Nora', 'Riley', 'Sasha', 'Tessa', 'Violet', 'Wren', 'Yara', 'Aiko', 'Mei', 'Sakura', 'Yuki', 'Camila', 'Lucia', 'Sofia', 'Valentina', 'Amara', 'Zahra', 'Layla', 'Nadia', 'Aisha', 'Priya', 'Elena', 'Katya', 'Mila', 'Anya', 'Freya']
     var SAMPLE_LINE = "Hi there... I'm so happy you made me just for you."
-    var FEMALE_VOICE_RE = /(female|woman|girl|zira|samantha|karen|moira|tessa|victoria|serena|allison|ava|susan|joanna|kendra|kimberly|salli|ivy|amy|emma|olivia|sophia|isabella|chloe|grace|hazel|libby|sonia|natasha|aria|jenny|michelle|ana)/i
+    var FEMALE_VOICE_RE = /(female|woman|girl|zira|samantha|karen|moira|tessa|victoria|serena|allison|ava|susan|joanna|kendra|kimberly|salli|ivy|amy|emma|olivia|sophia|isabella|chloe|grace|hazel|libby|sonia|natasha|aria|jenny|michelle|ana|xiaoxiao|xiaoyi|huihui|yaoyao|tingting|meijia|kyoko|nanami|ayumi|haruka|seoyeon|yuna|sora)/i
+    /* 试听时排除明显男声；Google 的 "Google US English" 等中性音色实际是女声，单独放行 */
+    var MALE_VOICE_RE = /(\bmale\b|\bman\b|\bboy\b|david|mark|guy|alex|daniel|fred|george|james|ryan|thomas|oliver|arthur|diego|jorge|luca|matteo|paul|richard|xander|yannick|filip|ravi|rishi|hemant|kumar|liam|eric|andrew|brian|christopher|steven|tony|william|jason|kevin|peter|robert)/i
+    var NEUTRAL_VOICE_RE = /google\s+(us|uk|australia|canada|india|new zealand|ireland|south africa)?\s*english/i
     var FALLBACK_ICON = { personality: '💫', relation: '💞' }
 
     /* ── 状态 ─────────────────────────────────────── */
@@ -211,6 +224,26 @@
 
     function $(id) { return document.getElementById(id) }
 
+    /* 旧草稿里可能存着上一版音色 id（如 "Voice 1 (Confident)"）→ 归一到当前 6 音色 */
+    function normalizeVoiceId(v) {
+        var s = String(v || '').trim().toLowerCase()
+        if (s === '') return ''
+        for (var i = 0; i < VOICES.length; i++) {
+            if (VOICES[i].id === s) return s
+        }
+        for (var j = 0; j < VOICES.length; j++) {
+            if (s.indexOf(VOICES[j].id) >= 0) return VOICES[j].id
+        }
+        return ''
+    }
+
+    function voiceLabel(id) {
+        for (var i = 0; i < VOICES.length; i++) {
+            if (VOICES[i].id === id) return VOICES[i].name
+        }
+        return id
+    }
+
     function loadState() {
         try {
             var saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null')
@@ -218,6 +251,7 @@
                 for (var k in profile) {
                     if (saved[k] !== undefined) profile[k] = saved[k]
                 }
+                profile.voice = normalizeVoiceId(profile.voice)
             }
             stepIndex = parseInt(localStorage.getItem(STEP_KEY) || '0', 10) || 0
             if (stepIndex < 0 || stepIndex > 4) stepIndex = 0
@@ -440,7 +474,7 @@
         html += pickerRow('relation', 'Choose Relationship', profile.relation)
         html += pickerRow('profession', 'Choose Occupation', profile.profession)
         html += pickerRow('kinks', 'What kinks are they into? (Max. 3)', (profile.kinks || []).join(', '))
-        html += pickerRow('voice', 'Choose Voice', profile.voice)
+        html += pickerRow('voice', 'Choose Voice', profile.voice ? voiceLabel(profile.voice) : '')
 
         // candy 同款大 CTA：渐变 + 扫光 + 呼吸发光
         html += '<button class="cc-cta-big" id="ccCta" type="button"><span>Bring my AI To Life</span></button>'
@@ -552,7 +586,7 @@
             VOICES.forEach(function (v) {
                 var on = modalDraft.indexOf(v.id) >= 0
                 html += '<button class="cc-mopt' + (on ? ' on' : '') + '" data-val="' + esc(v.id) + '" type="button">'
-                html += '<div class="cc-voice"><div class="vmain"><span class="vname">' + esc(v.name) + '</span><span class="vtag">' + esc(v.tag) + '</span></div>'
+                html += '<div class="cc-voice"><div class="vmain"><span class="vname">' + esc(v.name) + '</span><span class="vtag">Female · ' + esc(v.tag) + '</span></div>'
                 html += '<span class="check">✓</span>'
                 html += '<span class="cc-play" data-play="' + esc(v.id) + '" title="Preview">▶</span>'
                 html += '</div></button>'
@@ -601,33 +635,109 @@
 
     /* Web Speech API 本地试听（零素材、零流量；正式音色由聊天 TTS 按 voice 字段映射） */
     var speaking = null
+    var previewAudio = null
+    var previewSeq = 0
+
+    // 可用于试听的女声池：排除明显男声，放行常见女声与 Google 中性英文音色
+    function voicePool() {
+        var synth = window.speechSynthesis
+        var voices = (synth && synth.getVoices) ? (synth.getVoices() || []) : []
+        var pool = []
+        for (var i = 0; i < voices.length; i++) {
+            var name = String(voices[i].name || '')
+            if (MALE_VOICE_RE.test(name)) continue
+            if (FEMALE_VOICE_RE.test(name) || NEUTRAL_VOICE_RE.test(name)) pool.push(voices[i])
+        }
+        return pool
+    }
+
+    function resetPlayBtn(btn) {
+        if (btn) { btn.textContent = '▶'; btn.classList.remove('playing') }
+    }
+
+    /* 优先播固定样音（6 段真实女声，跨设备差异明显） */
     function previewVoice(voiceId, btn) {
         stopSpeaking()
-        if (!window.speechSynthesis) return
+        var src = VOICE_SAMPLE[voiceId]
+        if (src && window.Audio) {
+            var seq = ++previewSeq
+            var a = new Audio(src)
+            a.preload = 'auto'
+            previewAudio = a
+            a.onended = function () {
+                if (seq !== previewSeq) return
+                previewAudio = null
+                resetPlayBtn(btn)
+            }
+            a.onerror = function () {
+                if (seq !== previewSeq) return
+                previewAudio = null
+                previewVoiceTts(voiceId, btn)
+            }
+            if (btn) { btn.textContent = '■'; btn.classList.add('playing') }
+            var p = a.play()
+            if (p && p.catch) {
+                p.catch(function () {
+                    if (seq !== previewSeq) return
+                    previewVoiceTts(voiceId, btn)
+                })
+            }
+            return
+        }
+        previewVoiceTts(voiceId, btn)
+    }
+
+    /* 兜底：样音加载失败 / 不支持 <audio> 时用浏览器本地 TTS */
+    function previewVoiceTts(voiceId, btn) {
+        stopSpeaking()
+        var synth = window.speechSynthesis
+        if (!synth) return
         var v = null
+        var vi = 0
         for (var i = 0; i < VOICES.length; i++) {
-            if (VOICES[i].id === voiceId) { v = VOICES[i]; break }
+            if (VOICES[i].id === voiceId) { v = VOICES[i]; vi = i; break }
         }
         if (!v) return
+        var seq = ++previewSeq
         var u = new SpeechSynthesisUtterance(SAMPLE_LINE)
         u.pitch = Math.max(0, Math.min(2, v.pitch))
-        u.rate = Math.max(0.5, Math.min(1.5, v.rate))
-        var voices = window.speechSynthesis.getVoices() || []
-        var female = null
-        for (var j = 0; j < voices.length; j++) {
-            if (FEMALE_VOICE_RE.test(voices[j].name)) { female = voices[j]; break }
+        u.rate = Math.max(0.5, Math.min(2, v.rate))
+
+        function speakNow() {
+            if (seq !== previewSeq) return
+            var pool = voicePool()
+            if (pool.length) u.voice = pool[vi % pool.length]
+            u.onend = function () { speaking = null; resetPlayBtn(btn) }
+            u.onerror = function () { speaking = null; resetPlayBtn(btn) }
+            speaking = u
+            if (btn) { btn.textContent = '■'; btn.classList.add('playing') }
+            try { synth.speak(u) } catch (e) { speaking = null; resetPlayBtn(btn) }
         }
-        if (female) u.voice = female
-        u.onend = function () {
-            speaking = null
-            if (btn) { btn.textContent = '▶'; btn.classList.remove('playing') }
+
+        // 音色列表在部分浏览器里异步加载：先等 voiceschanged（最多 800ms），
+        // 否则首次点击会退回系统默认音色，6 个试听听起来就会一模一样
+        if (synth.getVoices && synth.getVoices().length) { speakNow(); return }
+        var fired = false
+        var run = function () {
+            if (fired) return
+            fired = true
+            synth.onvoiceschanged = null
+            speakNow()
         }
-        speaking = u
-        if (btn) { btn.textContent = '■'; btn.classList.add('playing') }
-        window.speechSynthesis.speak(u)
+        synth.onvoiceschanged = run
+        setTimeout(run, 800)
     }
+
     function stopSpeaking() {
-        if (window.speechSynthesis) window.speechSynthesis.cancel()
+        previewSeq++
+        if (previewAudio) {
+            try { previewAudio.pause() } catch (e) {}
+            previewAudio = null
+        }
+        if (window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = null
+            window.speechSynthesis.cancel()
+        }
         speaking = null
         $('ccModalBody').querySelectorAll('.cc-play').forEach(function (b) {
             b.textContent = '▶'

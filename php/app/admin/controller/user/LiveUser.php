@@ -6,9 +6,11 @@ use Throwable;
 use think\facade\Db;
 use app\common\controller\Backend;
 use app\admin\model\live\LiveUser as LiveUserModel;
+use app\live\service\PromoService;
 use app\live\service\RegistrationSettingService;
 use app\live\service\UserService;
 use app\live\service\InviteService;
+use app\live\service\IpRegionService;
 
 class LiveUser extends Backend
 {
@@ -37,6 +39,23 @@ class LiveUser extends Backend
     {
         parent::initialize();
         $this->model = new LiveUserModel();
+    }
+
+    /** 代理账号只能查看自己团队的会员 */
+    private function assertAgentUser(int $userId): void
+    {
+        if (!($this->agentAccount ?? null) || $userId <= 0) {
+            return;
+        }
+        $team  = \app\live\service\AgentService::teamIds((int) $this->agentAccount['id']);
+        $owner = (int) Db::connect('live_mysql')->table('lp_user')->where('id', $userId)->value('reg_agent_id');
+        if (!in_array($owner, $team, true)) {
+            if ($this->request->isAjax()) {
+                $this->error('无权查看该会员', [], 403);
+            }
+            response('无权查看该会员', 403)->send();
+            exit;
+        }
     }
 
     public function registrationSettings(): void
@@ -178,7 +197,7 @@ class LiveUser extends Backend
     {
         list($where, $alias, $limit, $order) = $this->queryBuilder();
 
-        $res = $this->model
+        $query = $this->model
             ->field('
                 live_user.id, live_user.user_no, live_user.nickname, live_user.avatar,
                 live_user.email, live_user.status, live_user.level, live_user.vip_expire_at, live_user.created_at,
@@ -206,9 +225,20 @@ class LiveUser extends Backend
             ->leftJoin('lp_user_profile', 'lp_user_profile.user_id = live_user.id')
             ->leftJoin('lp_merchant_certification cert', 'cert.user_id = live_user.id')
             ->where($where)
-            ->where('live_user.is_deleted', 0)
-            ->order($order)
-            ->paginate($limit);
+            ->where('live_user.is_deleted', 0);
+
+        // 在线状态筛选：1=在线（近 5 分钟有心跳），0=离线（含从未登录过）
+        $online = (string) $this->request->param('online', '');
+        if ($online === '1' || $online === '0') {
+            $threshold = date('Y-m-d H:i:s', time() - UserService::ONLINE_WINDOW);
+            if ($online === '1') {
+                $query->where('lp_user_profile.last_active_at', '>=', $threshold);
+            } else {
+                $query->whereRaw('(lp_user_profile.last_active_at IS NULL OR lp_user_profile.last_active_at < ?)', [$threshold]);
+            }
+        }
+
+        $res = $query->order($order)->paginate($limit);
 
         // 像素名映射：reg_px 存的是 lp_promo_pixel.id 或像素ID字符串，两种都映射一份（仅用于悬浮明细展示）
         $pixelNames = [];
@@ -225,6 +255,12 @@ class LiveUser extends Backend
 
         // 附加认证状态展示字段（给前端 tag 渲染用）
         $items = $res->items();
+
+        // IP 归属地：只解析当前页的登入 IP，结果缓存 30 天（失败缓存 10 分钟）
+        $ipRegions = IpRegionService::regions(array_map(
+            static fn($r) => (string) ($r['last_login_ip'] ?? ''),
+            $items
+        ));
 
         // 会员身份：Free / Premium / Premium Plus
         // Premium Plus = 名下有生效中的 premium_plus 订单（其余有效会员归为 Premium）
@@ -254,6 +290,13 @@ class LiveUser extends Backend
             $activeAt = (string) ($row['last_active_at'] ?? '');
             $row['online']       = $activeAt !== '' && (time() - strtotime($activeAt)) <= UserService::ONLINE_WINDOW;
             $row['online_label'] = $row['online'] ? '在线' : '离线';
+
+            // IP 所在地：解析不出（内网/失败）时显示 -
+            $loginIp = (string) ($row['last_login_ip'] ?? '');
+            $row['ip_region'] = $loginIp !== '' ? ($ipRegions[$loginIp] ?? '') : '';
+            if ($row['ip_region'] === '') {
+                $row['ip_region'] = '-';
+            }
 
             // 会员身份标签
             $vipExpire   = (string) ($row['vip_expire_at'] ?? '');
@@ -287,26 +330,17 @@ class LiveUser extends Backend
             $regPlatform = (string) ($row['reg_platform'] ?? '');
             $regDomain   = (string) ($row['reg_domain'] ?? '');
 
-            $pfShort = match ($regPlatform) {
-                'facebook' => 'FB',
-                'tiktok'   => 'TT',
-                'google'   => 'GG',
-                default    => '',
-            };
+            $pfShort = PromoService::platformShort($regPlatform);
             if ($pfShort === '') {
                 // 老数据 platform 为空时，按渠道 / 链接名兜底识别
-                $hint = $regChannel . ' ' . $regLink;
-                if (preg_match('/facebook|meta|instagram|fb/i', $hint)) {
-                    $pfShort = 'FB';
-                } elseif (preg_match('/tiktok|douyin/i', $hint)) {
-                    $pfShort = 'TT';
-                } elseif (preg_match('/google|adwords|gdn|youtube/i', $hint)) {
-                    $pfShort = 'GG';
-                }
+                $detected = PromoService::platformFromText($regChannel . ' ' . $regLink);
+                $pfShort  = PromoService::platformShort($detected);
             }
             $row['reg_source_label'] = $pfShort;
             $row['reg_source_type']  = match ($pfShort) {
-                'FB' => 'primary', 'TT' => 'danger', 'GG' => 'success', default => 'info',
+                'FB' => 'primary', 'TT' => 'danger', 'GG' => 'success',
+                'X' => 'info', 'INS' => 'danger', 'YT' => 'danger', 'REDDIT' => 'warning',
+                default => 'info',
             };
 
             // 注册渠道 = 渠道名称 + 推广域名
@@ -536,6 +570,7 @@ class LiveUser extends Backend
         if ($userId <= 0) {
             $this->error(__('Parameter error'));
         }
+        $this->assertAgentUser($userId);
 
         $rows = Db::connect('live_mysql')->table('lp_invite_record')->alias('ir')
             ->join('lp_user u', 'u.id = ir.invitee_id')
@@ -574,6 +609,7 @@ class LiveUser extends Backend
     public function detail(): void
     {
         $userId = $this->request->param('id/d', 0);
+        $this->assertAgentUser($userId);
         $user = $this->model->find($userId);
         if (!$user) {
             response('用户不存在')->send();
@@ -638,7 +674,9 @@ class LiveUser extends Backend
         $rateCustomPct = ($rateCustomRaw === null || $rateCustomRaw === '')
             ? ''
             : rtrim(rtrim(number_format((float) $rateCustomRaw * 100, 2, '.', ''), '0'), '.');
-        $globalRatePct = rtrim(rtrim(number_format(InviteService::globalRechargeRate() * 100, 2, '.', ''), '0'), '.');
+        // 兼容尚未升级邀请返佣的站点（旧版 InviteService 没有全局比例方法）
+        $globalRate = method_exists(InviteService::class, 'globalRechargeRate') ? InviteService::globalRechargeRate() : 0.0;
+        $globalRatePct = rtrim(rtrim(number_format($globalRate * 100, 2, '.', ''), '0'), '.');
         $globalRatePct = $globalRatePct !== '' ? $globalRatePct : '0';
         $rateHint = '留空 = 跟随全局 ' . $globalRatePct . '% ；填 0 = 该用户不返佣';
         $editCard = '';
@@ -709,9 +747,7 @@ EDIT;
         if ($channelName === '') {
             $channelName = $regLinkRaw;
         }
-        $pfShort = match (strtolower($regPlatformRaw)) {
-            'facebook' => 'FB', 'tiktok' => 'TT', 'google' => 'GG', default => '',
-        };
+        $pfShort = PromoService::platformShort($regPlatformRaw);
         $chParts = [];
         if ($channelName !== '') { $chParts[] = htmlspecialchars($channelName); }
         if ($regDomainRaw !== '') { $chParts[] = htmlspecialchars($regDomainRaw); }

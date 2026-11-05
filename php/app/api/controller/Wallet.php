@@ -17,7 +17,7 @@ final class Wallet extends BaseController
     ];
 
     /**
-     * GET 资金流水分页 ?page=&page_size=&type=
+     * GET 资金流水分页 ?page=&page_size=&type=&flow=income|expense
      */
     public function ledger()
     {
@@ -25,6 +25,7 @@ final class Wallet extends BaseController
         $page = (int) $this->request->param('page', 1);
         $pageSize = min(50, (int) $this->request->param('page_size', 20));
         $type = trim((string) $this->request->param('type', ''));
+        $flow = trim((string) $this->request->param('flow', ''));
 
         $query = Db::connect('live_mysql')->table('lp_wallet_ledger')
             ->where('user_id', $userId)
@@ -32,36 +33,50 @@ final class Wallet extends BaseController
         if ($type !== '') {
             $query->where('biz_type', $type);
         }
+        if ($flow === 'income') {
+            $query->where('direction', 1);
+        } elseif ($flow === 'expense') {
+            $query->where('direction', 2);
+        }
 
         $total = $query->count();
         $list = $query->page($page, $pageSize)->select()->toArray();
 
         $typeMap = [
-            'recharge'             => '充值',
-            'gift'                 => '送礼',
-            'gift_income'          => '礼物收入',
-            'gift_commission'      => '平台抽成',
-            'gift_refund'          => '礼物退款',
-            'short_unlock'         => '解锁短剧',
-            'short_income'         => '短剧收入',
-            'affection_buy'        => '购买好感度',
-            'affection_income'     => '好感度收入',
-            'media_unlock'         => '解锁视频',
-            'media_income'         => '视频解锁收入',
-            'chat_overage'         => '代币续聊',
-            'chat_income'          => '聊天续聊收入',
-            'call_buy'             => '语音通话',
-            'call_income'          => '语音通话收入',
-            'crowdfunding_pledge'  => '众筹支持',
-            'crowdfunding_unlock'  => '众筹划转',
-            'crowdfunding_refund'  => '众筹退款',
-            'crowdfunding_commission' => '众筹抽成',
-            'vip_buy'              => '购买会员',
-            'vip_refund'           => '会员退款',
-            'vip_daily'            => '会员日领',
-            'withdraw'             => '提现冻结',
-            'withdraw_refund'      => '提现退回',
-            'adjust'               => '调整',
+            'recharge'             => 'Token top-up',
+            'gift'                 => 'Gift sent',
+            'gift_income'          => 'Gift received',
+            'gift_commission'      => 'Platform commission',
+            'gift_refund'          => 'Gift refund',
+            'short_unlock'         => 'Short video unlocked',
+            'short_income'         => 'Short video income',
+            'affection_buy'        => 'Affection purchased',
+            'affection_income'     => 'Affection income',
+            'media_unlock'         => 'Video unlocked',
+            'media_income'         => 'Video unlock income',
+            'chat_overage'         => 'Chat top-up',
+            'chat_income'          => 'Chat income',
+            'call_buy'             => 'Voice call',
+            'call_income'          => 'Voice call income',
+            'crowdfunding_pledge'  => 'Crowdfunding pledge',
+            'crowdfunding_unlock'  => 'Crowdfunding transfer',
+            'crowdfunding_refund'  => 'Crowdfunding refund',
+            'crowdfunding_commission' => 'Crowdfunding commission',
+            'vip_buy'              => 'Membership purchase',
+            'vip_refund'           => 'Membership refund',
+            'vip_daily'            => 'Daily member reward',
+            'withdraw'             => 'Withdrawal',
+            'withdraw_refund'      => 'Withdrawal refund',
+            'adjust'               => 'Adjustment',
+            'video_gen'            => 'AI video generation',
+            'video_gen_refund'     => 'AI video refund',
+            'character_save'       => 'AI character saved',
+            'character_regen'      => 'AI portrait regenerated',
+            'chat_gift'            => 'Chat gift',
+            'private_unlock'       => 'Private content unlocked',
+            'shop_buy'             => 'Shop purchase',
+            'invite_commission'    => 'Referral commission',
+            'invite_recharge'      => 'Referral recharge bonus',
         ];
 
         foreach ($list as &$r) {

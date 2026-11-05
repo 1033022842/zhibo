@@ -17,6 +17,63 @@ class Dashboard extends Backend
         $db    = Db::connect('live_mysql');
         $today = date('Y-m-d');
 
+        // 代理账号：控制台只展示自己团队的注册与充值，其余指标置 0
+        // 兼容旧版 AgentService（部分站点尚未升级代理团队功能）
+        $scopeIds = method_exists(\app\live\service\AgentService::class, 'scopeTeamIds')
+            ? \app\live\service\AgentService::scopeTeamIds()
+            : [];
+        if ($scopeIds !== []) {
+            $all   = \app\live\service\AgentService::stats($scopeIds);
+            $todayStat = \app\live\service\AgentService::stats($scopeIds, $today, $today);
+            $this->success('', [
+                'remark' => '',
+                'range'  => ['from' => $today, 'to' => $today],
+                'stats'  => [
+                    'users_total'           => (int) $all['regs'],
+                    'users_today'           => (int) $todayStat['regs'],
+                    'users_period'          => (int) $todayStat['regs'],
+                    'online_users'          => 0,
+                    'rooms_total'           => 0,
+                    'rooms_live'            => 0,
+                    'recharge_period_usd'   => round((float) $todayStat['amount'], 2),
+                    'recharge_period_cnt'   => 0,
+                    'recharge_period_users' => (int) $todayStat['buyers'],
+                    'recharge_first_users'  => 0,
+                    'recharge_repeat_users' => 0,
+                    'recharge_total_usd'    => round((float) $all['amount'], 2),
+                    'recharge_total_cnt'    => 0,
+                    'recharge_pending'      => 0,
+                    'recharge_pending_usd'  => 0,
+                    'gift_period_diamonds'  => 0,
+                    'gift_period_cnt'       => 0,
+                    'gift_period_users'     => 0,
+                    'gift_total_diamonds'   => 0,
+                    'gift_total_cnt'        => 0,
+                    'anchor_income'         => 0,
+                    'withdraw_period_usd'   => 0,
+                    'withdraw_period_cnt'   => 0,
+                    'withdraw_period_users' => 0,
+                    'withdraw_total_usd'    => 0,
+                    'withdraw_pending'      => 0,
+                    'withdraw_pending_usd'  => 0,
+                    'wallet_diamonds'       => 0,
+                ],
+                'latest_recharge' => [],
+                'latest_gift'     => [],
+                'latest_withdraw' => [],
+            ]);
+            return;
+        }
+
+        // 在线人数（近 5 分钟有带 token 请求的用户，口径同会员列表 UserService::ONLINE_WINDOW）
+        $onlineUsers = $this->onlineUsers($db);
+
+        // scope=online：控制台实时轮询只取在线人数，避免整页重复统计
+        if (trim((string) $this->request->param('scope', '')) === 'online') {
+            $this->success('', ['online_users' => $onlineUsers]);
+            return;
+        }
+
         // ── 统计区间（默认今日，半开区间 [start, end) 避免边界重复计数）──
         [$from, $to] = $this->range();
         $start = $from . ' 00:00:00';
@@ -119,6 +176,7 @@ class Dashboard extends Backend
                 'users_total'           => $usersTotal,
                 'users_today'           => $usersToday,
                 'users_period'          => $usersPeriod,
+                'online_users'          => $onlineUsers,
                 'rooms_total'           => $roomsTotal,
                 'rooms_live'            => $roomsLive,
 
@@ -177,6 +235,18 @@ class Dashboard extends Backend
                 return $r;
             }, $latestWithdraw),
         ]);
+    }
+
+    /** 在线人数：最近 5 分钟内有过带 token 请求的用户（-1 表示字段缺失，无法统计） */
+    private function onlineUsers($db): int
+    {
+        try {
+            return $db->table('lp_user_profile')
+                ->where('last_active_at', '>=', date('Y-m-d H:i:s', time() - 300))
+                ->count();
+        } catch (\Throwable $e) {
+            return -1;
+        }
     }
 
     /** 解析统计区间：from / to（Y-m-d），非法或缺失时默认今日 */

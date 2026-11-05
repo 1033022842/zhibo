@@ -575,6 +575,8 @@ final class Recharge extends BaseController
         if ($page === '') {
             $page = '/ai/purchasePoints.html';
         }
+        // 回跳到下单时的域名：站点跑多域名，换域名回来会读不到 localStorage 里的登录态
+        $page = $this->withReturnOrigin($page, $orderNo);
 
         $query = [];
         if ($orderNo !== '') {
@@ -922,9 +924,23 @@ final class Recharge extends BaseController
         if ($page === '') {
             $page = '/ai/tokens.html';
         }
+        // 回跳到下单时的域名（多域名站点：换域名回来会读不到 localStorage 里的登录态）
+        $page = $this->withReturnOrigin($page, $orderNo);
 
         $sep = str_contains($page, '?') ? '&' : '?';
         return redirect($page . ($orderNo !== '' ? $sep . 'order_no=' . urlencode($orderNo) : ''));
+    }
+
+    /**
+     * 相对路径的回跳页拼上下单时记录的域名；配置里写死绝对地址时保持原样
+     */
+    private function withReturnOrigin(string $page, string $orderNo): string
+    {
+        if ($page === '' || !str_starts_with($page, '/')) {
+            return $page;
+        }
+        $origin = $this->service->returnOrigin($orderNo);
+        return $origin !== '' ? rtrim($origin, '/') . $page : $page;
     }
 
     /**

@@ -105,6 +105,43 @@ SET @ddl = IF(@has_col = 0,
 PREPARE _stmt FROM @ddl; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 -- --------------------------------------------
+-- 6.1 代理层级（总部 → 代理 → 子代理，可多级）
+-- --------------------------------------------
+SET @has_col = (SELECT COUNT(*) FROM `information_schema`.`COLUMNS`
+  WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = 'lp_agent' AND `COLUMN_NAME` = 'parent_id');
+SET @ddl = IF(@has_col = 0,
+  'ALTER TABLE `lp_agent`
+     ADD COLUMN `parent_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT ''上级代理ID，0=总部直属'',
+     ADD INDEX `idx_parent` (`parent_id`)',
+  'SELECT ''lp_agent.parent_id 已存在，跳过'' AS msg');
+PREPARE _stmt FROM @ddl; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+-- --------------------------------------------
+-- 6.2 代理绑定总后台账号（复用 BuildAdmin 界面）
+-- --------------------------------------------
+SET @has_col = (SELECT COUNT(*) FROM `information_schema`.`COLUMNS`
+  WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = 'lp_agent' AND `COLUMN_NAME` = 'admin_id');
+SET @ddl = IF(@has_col = 0,
+  'ALTER TABLE `lp_agent`
+     ADD COLUMN `admin_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT ''绑定的后台管理员ID'',
+     ADD COLUMN `admin_group_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT ''代理专属后台角色组ID'',
+     ADD COLUMN `admin_rules` TEXT NULL COMMENT ''代理后台菜单规则ID JSON''',
+  'SELECT ''lp_agent.admin_id 已存在，跳过'' AS msg');
+PREPARE _stmt FROM @ddl; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+-- --------------------------------------------
+-- 6.3 代理独立客服：客服渠道加归属代理（0=总部全局）
+-- --------------------------------------------
+SET @has_col = (SELECT COUNT(*) FROM `information_schema`.`COLUMNS`
+  WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = 'lp_cs_channel' AND `COLUMN_NAME` = 'agent_id');
+SET @ddl = IF(@has_col = 0,
+  'ALTER TABLE `lp_cs_channel`
+     ADD COLUMN `agent_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT ''归属代理ID，0=总部全局'',
+     ADD INDEX `idx_agent` (`agent_id`)',
+  'SELECT ''lp_cs_channel.agent_id 已存在，跳过'' AS msg');
+PREPARE _stmt FROM @ddl; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+-- --------------------------------------------
 -- 7. 历史数据回填（按推广链接名称 / 来源域名反推，近似归属）
 -- --------------------------------------------
 -- 注意：各站 lp_user 的来源字段可能是 utf8mb4_0900_ai_ci，而推广表是 utf8mb4_unicode_ci，

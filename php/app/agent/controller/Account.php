@@ -38,11 +38,16 @@ final class Account extends Base
         }
         $permText = $permLabels === [] ? '—' : implode('、', $permLabels);
 
+        $parentId = AgentService::parentId($this->agentId());
+        $parentText = $parentId > 0
+            ? AgentView::h(AgentService::agentName($parentId) ?: ('代理#' . $parentId))
+            : '总部直属';
+
         $content = <<<HTML
 <div class="head">
   <div>
     <h1>账号设置</h1>
-    <div class="sub">代理账号由总部创建，如需调整权限、域名或停用账号，请联系总部管理员。</div>
+    <div class="sub">代理账号由总部或上级创建，如需调整权限、域名或停用账号，请联系上级代理或总部管理员。</div>
   </div>
 </div>
 {$notice}
@@ -50,6 +55,7 @@ final class Account extends Base
   <h2>账号信息</h2>
   <div class="table-wrap"><table><tbody>
     <tr><th style="width:160px">代理编号</th><td>{$no}</td></tr>
+    <tr><th>上级代理</th><td>{$parentText}</td></tr>
     <tr><th>代理名称</th><td>{$name}</td></tr>
     <tr><th>登录账号</th><td>{$user}</td></tr>
     <tr><th>联系方式</th><td>{$contact}</td></tr>
@@ -98,6 +104,19 @@ HTML;
             'password_hash' => hash_password($new),
             'updated_at'    => date('Y-m-d H:i:s'),
         ]);
+
+        // 同步总后台账号密码（代理从代理中心进入总后台时共用同一密码）
+        try {
+            $fresh = Db::connect('live_mysql')->table('lp_agent')->where('id', $this->agentId())->find();
+            if ($fresh && \app\live\service\AgentService::hasColumn('lp_agent', 'admin_id')) {
+                \app\live\service\AgentService::syncAdminAccount(
+                    $fresh,
+                    \app\live\service\AgentService::adminMenuNames($fresh['admin_rules'] ?? null)
+                );
+            }
+        } catch (\Throwable) {
+            // 同步失败不影响改密码
+        }
 
         try {
             Token::clear(AuthMiddleware::TYPE, $this->agentId());

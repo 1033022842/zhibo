@@ -58,14 +58,17 @@ abstract class Base extends BaseController
 
     protected function render(string $active, string $title, string $content, int $status = 200): void
     {
-        http_response_code($status);
         $html = AgentView::page($this->agent(), $active, $title, $content, $this->csrf());
         // 代理后台可能挂在 CDN 域名下，禁止缓存和搜索引擎收录
-        response($html)->header([
+        $response = response($html)->header([
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma'        => 'no-cache',
             'X-Robots-Tag'  => 'noindex, nofollow',
-        ])->send();
+        ]);
+        if ($status !== 200) {
+            $response->code($status);
+        }
+        $response->send();
         exit;
     }
 
