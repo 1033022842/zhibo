@@ -36,7 +36,25 @@ final class AgentReport extends Backend
         $from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ? $from : '';
         $to   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) ? $to : '';
 
-        $agents = AgentService::allAgentStats($from, $to);
+        $allAgents = AgentService::allAgentStats($from, $to);
+        $agents    = $allAgents;
+
+        // 代理账号（从代理中心进入后台）：只看自己团队
+        $scopeIds = AgentService::scopeTeamIds();
+        if ($scopeIds !== []) {
+            $allAgents = array_values(array_filter(
+                $allAgents,
+                static fn(array $a): bool => in_array((int) $a['id'], $scopeIds, true)
+            ));
+            $agents = $allAgents;
+        }
+
+        // 团队筛选：只看某个代理及其全部下级
+        $teamOf = (int) $this->request->param('team_of', 0);
+        if ($teamOf > 0) {
+            $allow  = AgentService::teamIds($teamOf);
+            $agents = array_values(array_filter($agents, static fn(array $a): bool => in_array((int) $a['id'], $allow, true)));
+        }
 
         $sumRegs = 0;
         $sumAmount = 0.0;
@@ -62,8 +80,13 @@ final class AgentReport extends Backend
                 : '<span class="chip off">停用</span>';
 
             $rows .= '<tr>'
-                . '<td><div class="agent-name">' . $this->e((string) $a['name']) . '</div>'
-                . '<div class="agent-no">' . $this->e((string) $a['agent_no']) . '</div></td>'
+                . '<td><div class="agent-name">' . str_repeat('　', max(0, AgentService::depth((int) $a['id']) - 1))
+                . $this->e((string) $a['name']) . '</div>'
+                . '<div class="agent-no">' . $this->e((string) $a['agent_no']) . ' · '
+                . $this->e((int) ($a['parent_id'] ?? 0) > 0
+                    ? '上级：' . (AgentService::agentName((int) $a['parent_id']) ?: ('代理#' . (int) $a['parent_id']))
+                    : '总部直属')
+                . '</div></td>'
                 . '<td>' . $this->e((string) $a['username']) . '</td>'
                 . '<td>' . $status . '</td>'
                 . '<td class="num">' . number_format($regs) . '</td>'
@@ -78,6 +101,14 @@ final class AgentReport extends Backend
         }
         if ($rows === '') {
             $rows = '<tr><td colspan="10" class="empty">还没有代理，先到「代理管理」创建</td></tr>';
+        }
+
+        $teamOptions = '<option value="0">全部代理</option>';
+        foreach ($allAgents as $a) {
+            $tid   = (int) $a['id'];
+            $label = str_repeat('— ', max(0, AgentService::depth($tid) - 1)) . (string) $a['agent_no'] . ' · ' . (string) $a['name'];
+            $teamOptions .= '<option value="' . $tid . '"' . ($tid === $teamOf ? ' selected' : '') . '>'
+                . $this->e($label) . '</option>';
         }
 
         $fromEsc      = $this->e($from);
@@ -105,6 +136,8 @@ final class AgentReport extends Backend
     <input type="date" name="from" value="{$fromEsc}">
     <span class="muted">至</span>
     <input type="date" name="to" value="{$toEsc}">
+    <span class="muted">团队</span>
+    <select name="team_of">{$teamOptions}</select>
     <button class="btn-line" type="submit">筛选</button>
     <a class="btn-line" href="/admin/live.AgentReport/index{$keyUrl}">重置</a>
   </form>
@@ -151,6 +184,13 @@ HTML;
             $this->renderPage('<div class="card"><h2>代理不存在</h2><div class="actions">'
                 . '<a class="btn-line" href="/admin/live.AgentReport/index' . $this->keyQuery() . '">返回</a></div></div>',
                 '代理数据', '未找到对应代理');
+            return;
+        }
+
+        // 代理账号只能下钻自己团队
+        $scopeIds = AgentService::scopeTeamIds();
+        if ($scopeIds !== [] && !in_array($agentId, $scopeIds, true)) {
+            $this->renderPage('<div class="card"><h2>无权查看</h2><div class="tip">只能查看自己团队的会员。</div></div>', '代理数据', '数据范围受限', '', 403);
             return;
         }
 
@@ -221,9 +261,12 @@ HTML;
 
     private function renderPage(string $content, string $title = '代理数据', string $subtitle = '', string $actions = '', int $status = 200): void
     {
-        http_response_code($status);
-        $html = \app\live\service\AgentAdminView::page($title, $subtitle, $content, $actions);
-        response($html)->send();
+        $html     = \app\live\service\AgentAdminView::page($title, $subtitle, $content, $actions);
+        $response = response($html);
+        if ($status !== 200) {
+            $response->code($status);
+        }
+        $response->send();
         exit;
     }
 

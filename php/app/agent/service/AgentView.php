@@ -27,16 +27,26 @@ final class AgentView
             'overview' => '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>',
             'link'     => '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.07 0l1.42-1.42a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.51 12.42a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>',
             'member'   => '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+            'order'    => '<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>',
+            'withdraw' => '<svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>',
+            'cs'       => '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-8.4 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.38 8.38 0 0 1 8.4-8.5h.6a8.5 8.5 0 0 1 7 7z"/></svg>',
+            'sub_agent' => '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>',
             'domain'   => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg>',
             'account'  => '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+            'admin'    => '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M7 13h4"/><path d="M7 17h7"/></svg>',
         ];
 
         $items = [
             'overview' => ['/agent/index/index', '数据概览', AgentService::hasPerm($agent, 'overview')],
             'link'     => ['/agent/link/index', '推广链接', AgentService::hasPerm($agent, 'link')],
             'member'   => ['/agent/member/index', '会员明细', AgentService::hasPerm($agent, 'member')],
+            'order'    => ['/agent/order/index', '充值订单', AgentService::hasPerm($agent, 'order')],
+            'withdraw' => ['/agent/withdraw/index', '提现记录', AgentService::hasPerm($agent, 'withdraw')],
+            'cs'       => ['/agent/cs/index', '独立客服', AgentService::hasPerm($agent, 'cs')],
+            'sub_agent' => ['/agent/subagent/index', '子代理', AgentService::hasPerm($agent, 'sub_agent')],
             'domain'   => ['/agent/domain/index', '专属域名', AgentService::hasPerm($agent, 'domain')],
             'account'  => ['/agent/account/index', '账号设置', true],
+            'admin'    => ['/agent/auth/admin', '管理后台', true],
         ];
         $nav = '';
         foreach ($items as $key => [$url, $label, $visible]) {
@@ -117,6 +127,51 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .chip{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;white-space:nowrap}
 .chip.on{background:#e8f7ef;color:#00a870}
 .chip.off{background:#f2f3f5;color:#999}
+.chip.warn{background:#fff7e6;color:#d48806}
+.chip.danger{background:#fff1f4;color:#d61f4a}
+.mono{font-family:Consolas,Menlo,monospace;font-size:12px;color:#4a5069;word-break:break-all}
+td.nowrap,th.nowrap{white-space:nowrap}
+.mini-chip{display:inline-block;font-size:11px;line-height:20px;padding:0 6px;border-radius:6px;background:#f1f3f9;color:#5b6072;margin:0 3px 0 0;white-space:nowrap}
+.mini-chip.more{background:#eef0ff;color:#4f46e5}
+.who-cell .sub .sep{margin:0 6px;color:#c9ccd8}
+.chips{display:flex;flex-wrap:nowrap;max-width:230px}
+.perm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.perm{display:flex;gap:9px;align-items:flex-start;border:1px solid #eceef5;border-radius:11px;padding:11px 12px;background:#fcfcff;cursor:pointer}
+.perm input{margin-top:3px;accent-color:#6366f1;flex:0 0 auto}
+.perm.is-fixed{background:#f7f8fc;border-style:dashed;cursor:default}
+.perm.is-fixed input{opacity:.55}
+.perm b{display:block;font-size:13px;font-weight:600;color:#1f2430}
+.perm small{display:block;font-size:11.5px;color:#8a90a3;margin-top:3px;line-height:1.6}
+.switch{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#5b6072;cursor:pointer}
+.switch input{accent-color:#6366f1}
+.head .btn{display:inline-flex;align-items:center;height:36px;padding:0 16px;text-decoration:none;font-size:13px;flex:0 0 auto}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.card-head h2{margin-bottom:0}
+.card-head .hint{font-size:12px;color:#9aa0b0;margin-top:5px;line-height:1.6}
+.who-cell{display:flex;align-items:center;gap:10px}
+.avatar-sm{width:32px;height:32px;flex:0 0 32px;border-radius:9px;background:linear-gradient(135deg,#eef0ff,#f3edff);color:#4f46e5;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.who-cell .nm{font-size:13px;font-weight:600;color:#1f2430;line-height:1.3}
+.who-cell .sub{font-size:11px;color:#9aa0b0;margin-top:3px;font-family:Consolas,Menlo,monospace;white-space:nowrap}
+.tbl-subs td{padding:9px 12px}
+.tbl-subs .avatar-sm{width:28px;height:28px;flex:0 0 28px;border-radius:8px;font-size:12px}
+.tbl-subs .ops{white-space:nowrap}
+.lv{display:inline-block;margin:0 4px;padding:0 5px;height:16px;line-height:16px;border-radius:4px;background:#eef0ff;color:#6366f1;font-size:10px;font-family:inherit}
+.blank{padding:34px 16px;text-align:center}
+.blank-ico{width:46px;height:46px;margin:0 auto 12px;border-radius:14px;background:#f3f4fb;display:flex;align-items:center;justify-content:center;color:#a5aabc}
+.blank-ico svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.blank-t{font-size:14px;font-weight:600;color:#3a4051}
+.blank-d{font-size:12.5px;color:#9aa0b0;margin:6px 0 14px}
+.divider{height:1px;background:#f1f2f8;margin:20px 0}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.section-head h3{font-size:13.5px;font-weight:700;color:#1f2430}
+.section-head .hint{font-size:11.5px;color:#9aa0b0}
+.res-row{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px dashed #e3e6f1;border-radius:10px;background:#fafbff;margin-bottom:8px}
+.res-row .k{flex:0 0 64px;font-size:12px;color:#8a90a3;line-height:22px}
+.res-row .v{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;line-height:22px;padding:0 9px;border-radius:7px;background:#eef0ff;color:#4f46e5;white-space:nowrap}
+.tag.alt{background:#f3edff;color:#7c3aed}
+.form-actions{display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #f1f2f8}
+.form-actions .switch{margin-left:auto}
 .frm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .fld{display:flex;flex-direction:column;gap:6px}
 .fld label{font-size:12px;color:var(--muted)}
@@ -142,6 +197,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .tip{font-size:12px;color:#9aa0b0;line-height:1.8;margin-top:12px}
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .toolbar input{height:34px;padding:0 12px;border:1px solid #e2e5ee;border-radius:9px;outline:none;min-width:200px}
+.toolbar select{height:34px;padding:0 10px;border:1px solid #e2e5ee;border-radius:9px;outline:none;background:#fff;color:#3a4051;font-size:13px}
+.toolbar input[type=date]{min-width:0;width:150px;color:#3a4051}
 .toolbar input:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .alert{padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;line-height:1.6}
 .alert.err{background:#fff1f4;color:#d61f4a;border:1px solid #ffd6df}
@@ -158,6 +215,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   .content{padding:20px 18px 48px}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .frm{grid-template-columns:1fr}
+  .perm-grid{grid-template-columns:1fr}
 }
 @media(max-width:720px){
   .shell{display:block}
@@ -172,6 +230,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   .topbar{height:50px;padding:0 14px}
   .content{padding:16px 14px 44px}
   .head{flex-direction:column;align-items:flex-start}
+  .card-head{flex-direction:column}
+  .res-row{flex-direction:column;gap:6px}
   .stats{grid-template-columns:1fr}
   .card{padding:15px}
 }

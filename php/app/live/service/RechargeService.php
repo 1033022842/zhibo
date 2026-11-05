@@ -7,6 +7,7 @@ use app\common\exception\BusinessException;
 use app\common\web\ResultCode;
 use app\live\model\RechargeChannel;
 use app\common\util\StrHelper;
+use think\facade\Cache;
 use think\facade\Db;
 use think\facade\Log;
 
@@ -868,6 +869,7 @@ final class RechargeService
             'updated_at'      => $now,
         ];
         $db->table('lp_recharge_order')->insert($order);
+        $this->rememberReturnOrigin((string) $order['order_no']);
 
         $update = [];
         try {
@@ -885,6 +887,86 @@ final class RechargeService
         }
 
         return array_merge($order, $update, ['fiat' => $fx, 'fiat_channel' => $channel]);
+    }
+
+    /**
+     * 记住下单页面所在的站点（scheme://host[:port]）
+     *
+     * 站点跑在多个域名上（如 sugus.ai / sugus.live / sugus.chat / sugus.me），
+     * 登录态存在 localStorage 里、按域名隔离。网关回跳地址是固定域名的，
+     * 用户在 A 域下单、回跳到 B 域就会「回到站点但登录态丢了」。
+     * 下单这一刻把当前域名记下来，回跳时再 302 回同一个域名即可保持登录。
+     */
+    private function rememberReturnOrigin(string $orderNo): void
+    {
+        try {
+            if ($orderNo === '' || PHP_SAPI === 'cli') {
+                return;
+            }
+            $origin = $this->requestOrigin();
+            if ($origin !== '') {
+                // 有效期覆盖订单有效期（2 小时）即可
+                Cache::set('recharge_origin_' . $orderNo, $origin, 7200);
+            }
+        } catch (\Throwable $e) {
+            // 无请求上下文（命令行/任务）时忽略，回跳退化为配置里的地址
+        }
+    }
+
+    /**
+     * 取浏览器页面的真实域名
+     *
+     * 本站 API 走 CDN 回源 + 内层反代，PHP 拿到的 HTTP_HOST 会被改写成源站 IP，
+     * 直接用 request()->domain() 会把用户带回 https://源站IP。浏览器的 Origin /
+     * Referer 才是页面真实地址，优先用它们，取不到再退回 Host。
+     */
+    private function requestOrigin(): string
+    {
+        foreach (['origin', 'referer'] as $name) {
+            $raw = (string) request()->header($name, '');
+            if ($raw === '') {
+                continue;
+            }
+            $parts = parse_url($raw);
+            if (empty($parts['scheme']) || empty($parts['host'])) {
+                continue;
+            }
+            $scheme = strtolower((string) $parts['scheme']);
+            if ($scheme !== 'http' && $scheme !== 'https') {
+                continue;
+            }
+            $origin = $scheme . '://' . (string) $parts['host']
+                . (!empty($parts['port']) ? ':' . (int) $parts['port'] : '');
+            if ($this->isValidOrigin($origin)) {
+                return $origin;
+            }
+        }
+
+        return (string) request()->domain(true);
+    }
+
+    /**
+     * 只接受 http(s)://host[:port]，避免被拼出任意跳转地址
+     */
+    private function isValidOrigin(string $origin): bool
+    {
+        return (bool) preg_match('#^https?://[A-Za-z0-9.\-]+(:\d{1,5})?$#', $origin);
+    }
+
+    /**
+     * 取下单时记录的站点；取不到返回空串
+     */
+    public function returnOrigin(string $orderNo): string
+    {
+        if ($orderNo === '') {
+            return '';
+        }
+        try {
+            $origin = (string) Cache::get('recharge_origin_' . $orderNo, '');
+        } catch (\Throwable $e) {
+            return '';
+        }
+        return $this->isValidOrigin($origin) ? $origin : '';
     }
 
     /**
@@ -1233,6 +1315,7 @@ final class RechargeService
             'updated_at'     => $now,
         ];
         $db->table('lp_recharge_order')->insert($order);
+        $this->rememberReturnOrigin((string) $order['order_no']);
 
         try {
             $gw = $starPay->createDeposit($order['order_no'], $order['pay_amount'], $product, [], (string) ($opt['return_url'] ?? ''));
@@ -1299,6 +1382,7 @@ final class RechargeService
             'updated_at'     => $now,
         ];
         $db->table('lp_recharge_order')->insert($order);
+        $this->rememberReturnOrigin((string) $order['order_no']);
 
         try {
             $gw = $flowPay->createOrder($order['order_no'], $order['pay_amount'], $gcode);

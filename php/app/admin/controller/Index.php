@@ -65,11 +65,22 @@ class Index extends Backend
 
         $captchaSwitch = Config::get('buildadmin.admin_login_captcha');
 
+        // 代理账号在后台登录页登录：免图形验证码，登录后只看到被授权的菜单与自己团队的数据
+        if ($this->request->isPost() && $captchaSwitch) {
+            $loginName = (string) $this->request->post('username', '');
+            if (\app\live\service\AgentService::isAgentLoginName($loginName)) {
+                $captchaSwitch = false;
+            }
+        }
+
         // 检查提交
         if ($this->request->isPost()) {
             $username = $this->request->post('username');
             $password = $this->request->post('password');
             $keep     = $this->request->post('keep');
+
+            // 代理可以直接用「代理中心账号」登录，自动映射成对应的后台账号
+            $username = \app\live\service\AgentService::mapLoginName((string) $username);
 
             $rule = [
                 'username|' . __('Username') => 'require|length:3,30',
@@ -102,6 +113,19 @@ class Index extends Backend
 
             $res = $this->auth->login($username, $password, (bool)$keep, (string)$this->request->post('totp', ''));
             if ($res === true) {
+                // 记住本机上次登录的账号：下次打开登录页时，2FA 账号直接显示动态码栏
+                setcookie('admin_last_user', (string) $username, [
+                    'expires'  => time() + 86400 * 30,
+                    'path'     => '/admin',
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                    'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                ]);
+                // 代理账号：登录成功即写入团队数据范围 Cookie
+                $agentRow = \app\live\service\AgentService::agentByAdminId((int) $this->auth->id);
+                if ($agentRow) {
+                    \app\live\service\AgentService::primeScope((int) $agentRow['id']);
+                }
                 $this->success(__('Login succeeded!'), [
                     'userInfo' => $this->auth->getInfo()
                 ]);
@@ -125,25 +149,22 @@ class Index extends Backend
 
         $this->success('', [
             'captcha' => $captchaSwitch,
-            // 是否已有账号启用 2FA（前端据此决定是否显示「动态验证码」输入框）
-            'totp_required' => $this->anyTotpEnabled(),
+            // 开启 2FA 的账号：一进登录页就显示动态码栏（按本机上次登录的账号判断）；
+            // 未开启的账号不显示、也不要求填写；提交后仍由登录接口按账号强校验
+            'totp_required' => $this->totpHint((string) ($this->request->cookie('admin_last_user') ?? '')),
         ]);
     }
 
-    /**
-     * 是否有管理员启用了 2FA（且全局开关打开）
-     */
-    private function anyTotpEnabled(): bool
+    /** 本机上次登录的账号是否启用了 2FA（仅用于决定登录页是否显示动态码栏） */
+    private function totpHint(string $username): bool
     {
+        if (trim($username) === '') {
+            return false;
+        }
         try {
-            $on = trim((string) \think\facade\Db::connect('live_mysql')->table('lp_platform_config')
-                ->where('key', 'admin_totp_enabled')->value('value'));
-            if ($on !== '1') {
-                return false;
-            }
-            return (int) \app\admin\model\Admin::where('totp_enabled', 1)
-                ->where('totp_secret', '<>', '')->count() > 0;
-        } catch (\Throwable $e) {
+            $admin = \app\admin\model\Admin::where('username', $username)->find();
+            return $admin ? $this->auth->totpRequired($admin) : false;
+        } catch (\Throwable) {
             return false;
         }
     }

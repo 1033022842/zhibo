@@ -6,6 +6,7 @@ use Throwable;
 use think\facade\Db;
 use app\common\controller\Backend;
 use app\admin\model\live\LiveUser as LiveUserModel;
+use app\live\service\PromoService;
 use app\live\service\RegistrationSettingService;
 use app\live\service\UserService;
 use app\live\service\InviteService;
@@ -329,26 +330,17 @@ class LiveUser extends Backend
             $regPlatform = (string) ($row['reg_platform'] ?? '');
             $regDomain   = (string) ($row['reg_domain'] ?? '');
 
-            $pfShort = match ($regPlatform) {
-                'facebook' => 'FB',
-                'tiktok'   => 'TT',
-                'google'   => 'GG',
-                default    => '',
-            };
+            $pfShort = PromoService::platformShort($regPlatform);
             if ($pfShort === '') {
                 // 老数据 platform 为空时，按渠道 / 链接名兜底识别
-                $hint = $regChannel . ' ' . $regLink;
-                if (preg_match('/facebook|meta|instagram|fb/i', $hint)) {
-                    $pfShort = 'FB';
-                } elseif (preg_match('/tiktok|douyin/i', $hint)) {
-                    $pfShort = 'TT';
-                } elseif (preg_match('/google|adwords|gdn|youtube/i', $hint)) {
-                    $pfShort = 'GG';
-                }
+                $detected = PromoService::platformFromText($regChannel . ' ' . $regLink);
+                $pfShort  = PromoService::platformShort($detected);
             }
             $row['reg_source_label'] = $pfShort;
             $row['reg_source_type']  = match ($pfShort) {
-                'FB' => 'primary', 'TT' => 'danger', 'GG' => 'success', default => 'info',
+                'FB' => 'primary', 'TT' => 'danger', 'GG' => 'success',
+                'X' => 'info', 'INS' => 'danger', 'YT' => 'danger', 'REDDIT' => 'warning',
+                default => 'info',
             };
 
             // 注册渠道 = 渠道名称 + 推广域名
@@ -755,9 +747,7 @@ EDIT;
         if ($channelName === '') {
             $channelName = $regLinkRaw;
         }
-        $pfShort = match (strtolower($regPlatformRaw)) {
-            'facebook' => 'FB', 'tiktok' => 'TT', 'google' => 'GG', default => '',
-        };
+        $pfShort = PromoService::platformShort($regPlatformRaw);
         $chParts = [];
         if ($channelName !== '') { $chParts[] = htmlspecialchars($channelName); }
         if ($regDomainRaw !== '') { $chParts[] = htmlspecialchars($regDomainRaw); }

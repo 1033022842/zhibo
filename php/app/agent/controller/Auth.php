@@ -7,6 +7,7 @@ use app\agent\middleware\Auth as AuthMiddleware;
 use app\agent\service\AgentView;
 use app\BaseController;
 use app\common\facade\Token;
+use app\live\service\AgentService;
 use think\facade\Cache;
 use think\facade\Db;
 
@@ -132,6 +133,82 @@ final class Auth extends BaseController
 
         $this->setCookie($token);
         $this->redirect($redirect !== '' ? $redirect : '/agent');
+    }
+
+    /**
+     * 进入「总后台」：复用 BuildAdmin 界面，按代理角色组显示菜单
+     * 1) 同步后台管理员账号 + 专属角色组
+     * 2) 签发管理员 Token
+     * 3) 写入 localStorage 后跳转 /admin/
+     */
+    public function admin(): void
+    {
+        $ticket    = (string) ($this->request->param('ticket') ?? '');
+        $adminHost = AgentService::adminHost();
+        $host      = strtolower((string) $this->request->host());
+
+        // 1) 票据优先（跨域名进入总后台时使用），其次当前代理登录态
+        $agent = null;
+        $ticketAgentId = $ticket !== '' ? AgentService::verifyTicket($ticket) : 0;
+        if ($ticketAgentId > 0) {
+            try {
+                $agent = Db::connect('live_mysql')->table('lp_agent')->where('id', $ticketAgentId)->find();
+            } catch (\Throwable) {
+                $agent = null;
+            }
+        }
+        if (!$agent) {
+            $agent = $this->currentAgent();
+        }
+        if ($agent === null) {
+            $this->redirect('/agent/auth/login');
+        }
+
+        // 2) 总后台挂在另一个域名时，带票据跳过去（localStorage / Cookie 必须落在后台域名）
+        if ($adminHost !== '' && strcasecmp($adminHost, $host) !== 0) {
+            $t = AgentService::makeTicket((int) $agent['id']);
+            $this->redirect('https://' . $adminHost . '/agent/auth/admin?ticket=' . urlencode($t));
+        }
+
+        $menuNames = AgentService::adminMenuNames($agent['admin_rules'] ?? null);
+        $sync      = AgentService::syncAdminAccount($agent, $menuNames);
+        if (empty($sync['ok'])) {
+            $html = AgentView::login((string) ($sync['msg'] ?? '后台账号初始化失败'), '', '', '');
+            response($html)->code(500)->send();
+            exit;
+        }
+
+        $token = AgentService::issueAdminToken((int) $sync['admin_id']);
+        AgentService::setScopeCookie((int) $agent['id']);
+
+        $state = [
+            'id'            => (int) $sync['admin_id'],
+            'username'      => (string) ($sync['username'] ?? ''),
+            'nickname'      => (string) ($agent['name'] ?? '代理'),
+            'avatar'        => '',
+            'token'         => $token,
+            'refresh_token' => '',
+            'super'         => false,
+            'gender'        => 0,
+            'birthday'      => '',
+            'money'         => 0,
+            'score'         => 0,
+            'motto'         => '代理中心',
+            'email'         => '',
+            'mobile'        => '',
+        ];
+        $json = json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            . '<title>正在进入管理后台</title></head><body style="margin:0;font-family:-apple-system,\'PingFang SC\',sans-serif;background:#f5f6fa;color:#5b6072">'
+            . '<div style="padding:80px 20px;text-align:center;font-size:14px">正在进入管理后台…</div>'
+            . '<script>try{localStorage.setItem("adminInfo", ' . json_encode($json) . ');}catch(e){}'
+            . 'location.replace("/admin/");</script></body></html>';
+        response($html)->header([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'X-Robots-Tag'  => 'noindex, nofollow',
+        ])->send();
+        exit;
     }
 
     private function currentAgent(): ?array

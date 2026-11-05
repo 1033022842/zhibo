@@ -113,6 +113,7 @@ final class PromoSetting extends Backend
         $eTest        = htmlspecialchars((string) $edit['test_code'], ENT_QUOTES);
         $eSort        = (int) $edit['sort'];
         $eStatus      = (int) $edit['status'] === 1 ? ' checked' : '';
+        $noPixelJson  = json_encode(array_values(PromoService::NO_PIXEL_PLATFORMS));
         $customStyle  = $useCustom ? '' : ' style="display:none"';
         $formTitle    = $eId > 0 ? '编辑渠道' : '新增渠道';
         $formBtnText  = $eId > 0 ? '保存修改' : '保存';
@@ -539,7 +540,7 @@ final class PromoSetting extends Backend
                     <div class="form-item">
                         <label><span style="color:#f56c6c">*</span> 渠道类型</label>
                         <select name="platform" id="pxPlatform">{$platformOptions}</select>
-                        <div class="hint px-general-hint" style="display:none">「普通推广 / 其他」不接像素，只需填「渠道名称 + 推广域名」即可保存，之后可直接复制推广链接（适合短信、群发等渠道）。</div>
+                        <div class="hint px-general-hint" style="display:none">「普通推广」和社媒归因平台（X / Instagram / Reddit / Threads / YouTube 等）不接像素，只需填「渠道名称 + 推广域名」即可保存，之后复制推广链接直接投放。</div>
                     </div>
                     <div class="form-item px-only">
                         <label>像素(Pixel Id)</label>
@@ -744,12 +745,13 @@ document.addEventListener('click', function (e) {
     });
 })();
 
-/* 渠道类型 = 普通推广 / 其他 时，隐藏像素相关字段（不需要媒体像素也能保存并复制链接） */
+/* 渠道类型 = 普通推广 / 社媒归因平台 时，隐藏像素相关字段（不需要媒体像素也能保存并复制链接） */
 (function () {
     var sel = document.getElementById('pxPlatform');
     if (!sel) return;
+    var NO_PIXEL = {$noPixelJson};
     function sync() {
-        var noPixel = sel.value === 'general' || sel.value === 'other';
+        var noPixel = NO_PIXEL.indexOf(sel.value) >= 0;
         var list = document.querySelectorAll('.px-only');
         for (var i = 0; i < list.length; i++) {
             list[i].style.display = noPixel ? 'none' : '';
@@ -864,8 +866,8 @@ HTML;
             if ($name === '') {
                 throw new \InvalidArgumentException('渠道名称不能为空');
             }
-            // 普通推广（短信 / 群发）与「其他」不接像素，只要有名称 + 域名即可保存
-            if (!in_array($platform, ['general', 'other'], true) && $pixelId === '' && $code === '') {
+            // 普通推广 / 社媒归因平台（X、Instagram、Reddit 等）不接像素，只要有名称 + 域名即可保存
+            if (!in_array($platform, PromoService::NO_PIXEL_PLATFORMS, true) && $pixelId === '' && $code === '') {
                 throw new \InvalidArgumentException('像素ID 和 像素代码 至少要填一个');
             }
 
