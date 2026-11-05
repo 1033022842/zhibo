@@ -43,7 +43,7 @@ class LiveUser extends Backend
     /** 代理账号只能查看自己团队的会员 */
     private function assertAgentUser(int $userId): void
     {
-        if (!$this->agentAccount || $userId <= 0) {
+        if (!($this->agentAccount ?? null) || $userId <= 0) {
             return;
         }
         $team  = \app\live\service\AgentService::teamIds((int) $this->agentAccount['id']);
@@ -682,7 +682,9 @@ class LiveUser extends Backend
         $rateCustomPct = ($rateCustomRaw === null || $rateCustomRaw === '')
             ? ''
             : rtrim(rtrim(number_format((float) $rateCustomRaw * 100, 2, '.', ''), '0'), '.');
-        $globalRatePct = rtrim(rtrim(number_format(InviteService::globalRechargeRate() * 100, 2, '.', ''), '0'), '.');
+        // 兼容尚未升级邀请返佣的站点（旧版 InviteService 没有全局比例方法）
+        $globalRate = method_exists(InviteService::class, 'globalRechargeRate') ? InviteService::globalRechargeRate() : 0.0;
+        $globalRatePct = rtrim(rtrim(number_format($globalRate * 100, 2, '.', ''), '0'), '.');
         $globalRatePct = $globalRatePct !== '' ? $globalRatePct : '0';
         $rateHint = '留空 = 跟随全局 ' . $globalRatePct . '% ；填 0 = 该用户不返佣';
         $editCard = '';
