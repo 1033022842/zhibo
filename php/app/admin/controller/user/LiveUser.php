@@ -29,7 +29,7 @@ class LiveUser extends Backend
 
     protected string|array $preExcludeFields = [];
 
-    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'email', 'reg_domain', 'reg_channel', 'reg_link_name', 'reg_platform'];
+    protected string|array $quickSearchField = ['nickname', 'id', 'user_no', 'email', 'invite_code', 'reg_domain', 'reg_channel', 'reg_link_name', 'reg_platform'];
 
     protected string|array $defaultSortField = ['id' => 'desc'];
 
@@ -211,6 +211,8 @@ class LiveUser extends Backend
                 IFNULL((SELECT COUNT(*) FROM lp_invite_record ir3 WHERE ir3.inviter_id = live_user.id AND ir3.premium_at IS NOT NULL), 0) as invite_premium_count,
                 IFNULL((SELECT SUM(ir4.reward_tokens) FROM lp_invite_record ir4 WHERE ir4.inviter_id = live_user.id), 0) as invite_reward_tokens,
                 IFNULL((SELECT SUM(ic.tokens) FROM lp_invite_commission ic WHERE ic.inviter_id = live_user.id), 0) as invite_commission_tokens,
+                IFNULL((SELECT COUNT(DISTINCT o.user_id) FROM lp_recharge_order o JOIN lp_invite_record ir5 ON ir5.invitee_id = o.user_id WHERE ir5.inviter_id = live_user.id AND o.status = 1), 0) as invite_buyers,
+                IFNULL((SELECT SUM(o.pay_amount) FROM lp_recharge_order o JOIN lp_invite_record ir6 ON ir6.invitee_id = o.user_id WHERE ir6.inviter_id = live_user.id AND o.status = 1), 0) as invite_pay_amount,
                 IFNULL(wallet.diamond_balance, 0) as diamond_balance,
                 IFNULL((SELECT au.auth_key FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_account,
                 IFNULL((SELECT au.auth_type FROM lp_user_auth au WHERE au.user_id = live_user.id ORDER BY au.id ASC LIMIT 1), \'\') as auth_type,
@@ -387,8 +389,24 @@ class LiveUser extends Backend
             $row['invite_premium_count'] = (int) ($row['invite_premium_count'] ?? 0);
             $row['invite_reward_tokens'] = (float) ($row['invite_reward_tokens'] ?? 0);
             $row['invite_commission_tokens'] = (float) ($row['invite_commission_tokens'] ?? 0);
-            $row['invite_code']          = trim((string) ($row['invite_code'] ?? ''));
+            $row['invite_buyers']        = (int) ($row['invite_buyers'] ?? 0);
+            $row['invite_pay_amount']    = (float) ($row['invite_pay_amount'] ?? 0);
+
+            // 邀请码 + 邀请链接：老会员还没生成邀请码时按需补一个，保证列表里能直接复制推广链接
+            $inviteCode = trim((string) ($row['invite_code'] ?? ''));
+            if ($inviteCode === '') {
+                try {
+                    $inviteCode = (new InviteService())->ensureCode((int) $row['id']);
+                } catch (Throwable) {
+                    $inviteCode = '';
+                }
+            }
+            $row['invite_code'] = $inviteCode;
+            $row['invite_url']  = $this->inviteUrl($inviteCode);
+
             $it = ['下级总数：' . $inviteCount . ' 人', '其中已升级会员：' . $row['invite_premium_count'] . ' 人'];
+            if ($row['invite_buyers'] > 0) { $it[] = '已付费下级：' . $row['invite_buyers'] . ' 人'; }
+            if ($row['invite_pay_amount'] > 0) { $it[] = '下级累计付费：$' . number_format($row['invite_pay_amount'], 2); }
             if ($row['invite_reward_tokens'] > 0) { $it[] = '累计邀请奖励：' . $row['invite_reward_tokens'] . ' 代币'; }
             if ($row['invite_commission_tokens'] > 0) { $it[] = '累计充值佣金：' . $row['invite_commission_tokens'] . ' 代币'; }
             if ($row['invite_code'] !== '') { $it[] = '我的邀请码：' . $row['invite_code']; }
@@ -403,9 +421,146 @@ class LiveUser extends Backend
         ]);
     }
 
+    /**
+     * 后台手动添加会员（员工账号）
+     *
+     * 创建后该账号可直接在前台登录，并自带专属邀请码：
+     *   邀请链接 = https://<站点>/?code=<邀请码>
+     * 用这个链接注册进来的用户会绑定为他的下级，业绩按邀请关系归属。
+     *
+     * POST /admin/user.LiveUser/add
+     * @param string $username    登录账号（必填，3-64 位字母/数字/点/下划线/短横线）
+     * @param string $password    登录密码（必填，6-20 位）
+     * @param string $nickname    昵称（选填，默认同登录账号）
+     * @param string $email       邮箱（选填）
+     * @param string $invite_code 邀请码（选填，3-25 位小写字母/数字/短横线，留空自动生成）
+     * @param string $status      状态：1 正常（默认）/ 0 禁用
+     */
     public function add(): void
     {
-        $this->error('直播平台用户不支持手动添加，请通过注册流程创建');
+        if (!$this->request->isPost()) {
+            $this->error('请使用 POST 请求');
+        }
+
+        $username   = trim((string) $this->request->post('username', ''));
+        $password   = (string) $this->request->post('password', '');
+        $nickname   = trim((string) $this->request->post('nickname', ''));
+        $email      = trim((string) $this->request->post('email', ''));
+        $inviteCode = strtolower(trim((string) $this->request->post('invite_code', '')));
+        $status     = (string) $this->request->post('status', '1');
+
+        if (!preg_match('/^[A-Za-z0-9._-]{3,64}$/', $username)) {
+            $this->error('登录账号需为 3-64 位字母、数字、点、下划线或短横线');
+        }
+        if (strlen($password) < 6 || strlen($password) > 20) {
+            $this->error('密码长度为 6-20 个字符');
+        }
+        if ($nickname === '') {
+            $nickname = $username;
+        }
+        if (mb_strlen($nickname) > 64) {
+            $this->error('昵称最多 64 个字符');
+        }
+        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 128)) {
+            $this->error('邮箱格式错误');
+        }
+        if (!in_array($status, ['0', '1'], true)) {
+            $this->error('状态参数错误');
+        }
+        if ($inviteCode !== '' && !preg_match('/^[a-z0-9-]{3,25}$/', $inviteCode)) {
+            $this->error('邀请码只能由 3-25 位小写字母、数字、短横线组成');
+        }
+
+        $db = Db::connect('live_mysql');
+
+        if ($db->table('lp_user_auth')->where('auth_type', 'username')->where('auth_key', $username)->find()) {
+            $this->error('登录账号「' . $username . '」已被使用');
+        }
+        if ($email !== '' && $db->table('lp_user_auth')->where('auth_type', 'email')->where('auth_key', $email)->find()) {
+            $this->error('邮箱「' . $email . '」已被其他账号使用');
+        }
+        if ($inviteCode !== '' && $db->table('lp_user')->where('invite_code', $inviteCode)->find()) {
+            $this->error('邀请码「' . $inviteCode . '」已被占用');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        try {
+            $userId = (int) $db->transaction(function () use ($db, $username, $password, $nickname, $email, $inviteCode, $status, $now): int {
+                $userId = (int) $db->table('lp_user')->insertGetId([
+                    'user_no'    => \app\common\util\StrHelper::orderNo('U'),
+                    'nickname'   => $nickname,
+                    'email'      => $email,
+                    'status'     => (int) $status,
+                    'level'      => 1,
+                    'invite_code' => $inviteCode !== '' ? $inviteCode : null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+                $db->table('lp_user_auth')->insert([
+                    'user_id'       => $userId,
+                    'auth_type'     => 'username',
+                    'auth_key'      => $username,
+                    'password_hash' => hash_password($password),
+                    'created_at'    => $now,
+                ]);
+
+                $db->table('lp_user_profile')->insert([
+                    'user_id'       => $userId,
+                    'last_login_ip' => '',
+                ]);
+
+                return $userId;
+            });
+        } catch (Throwable $e) {
+            $this->error('创建失败：' . $e->getMessage());
+            return;
+        }
+
+        // 邀请码：没填就自动生成一个，保证每个会员都能立刻拿到推广链接
+        if ($inviteCode === '') {
+            try {
+                $inviteCode = (new InviteService())->ensureCode($userId);
+            } catch (Throwable) {
+                $inviteCode = '';
+            }
+        }
+
+        $this->success('会员已创建', [
+            'id'          => $userId,
+            'username'    => $username,
+            'invite_code' => $inviteCode,
+            'invite_url'  => $this->inviteUrl($inviteCode),
+        ]);
+    }
+
+    /**
+     * 会员邀请链接：优先用后台配置的前台域名，未配置时退回当前访问域名
+     * 链接格式与前台邀请页一致：https://<域名>/?code=<邀请码>
+     */
+    private function inviteUrl(string $code): string
+    {
+        if ($code === '') {
+            return '';
+        }
+
+        $domain = '';
+        try {
+            $domains = (new PromoService())->siteDomains();
+            if ($domains !== []) {
+                $domain = (string) $domains[0];
+            }
+        } catch (Throwable) {
+            // 读取域名配置失败时走当前域名兜底
+        }
+
+        if ($domain !== '') {
+            return 'https://' . $domain . '/?code=' . rawurlencode($code);
+        }
+
+        $scheme = strtolower((string) $this->request->scheme());
+        $scheme = in_array($scheme, ['http', 'https'], true) ? $scheme : 'http';
+        return $scheme . '://' . $this->request->host() . '/?code=' . rawurlencode($code);
     }
 
     /**

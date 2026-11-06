@@ -28,8 +28,19 @@
 
         <TableHeader
             :buttons="['refresh', 'delete', 'comSearch', 'quickSearch', 'columnDisplay']"
-            :quick-search-placeholder="'搜索 昵称/ID/编号/邮箱/推广链接/渠道'"
-        />
+            :quick-search-placeholder="'搜索 昵称/ID/编号/邮箱/邀请码/推广链接/渠道'"
+        >
+            <el-tooltip
+                v-if="adminInfo.super || baTable.auth('add')"
+                content="手动创建会员账号，创建后可用该账号的邀请链接去推广"
+                placement="top"
+            >
+                <el-button type="primary" style="margin-left: 12px" @click="openCreate">
+                    <Icon name="fa fa-plus" />
+                    <span style="margin-left: 6px">添加会员</span>
+                </el-button>
+            </el-tooltip>
+        </TableHeader>
 
         <div
             style="
@@ -155,6 +166,66 @@
             </el-table>
             <template #footer>
                 <el-button @click="inviteState.visible = false">{{ t('Close') }}</el-button>
+            </template>
+        </el-dialog>
+
+        <el-dialog v-model="createState.visible" title="添加会员" width="540px" :close-on-click-modal="false" destroy-on-close>
+            <el-form :model="createState.form" label-width="96px">
+                <el-form-item label="登录账号" required>
+                    <el-input
+                        v-model="createState.form.username"
+                        placeholder="员工登录账号，3-64 位字母/数字/点/下划线/短横线"
+                        maxlength="64"
+                        clearable
+                    />
+                </el-form-item>
+                <el-form-item label="登录密码" required>
+                    <el-input
+                        v-model="createState.form.password"
+                        type="password"
+                        show-password
+                        placeholder="6-20 位"
+                        maxlength="20"
+                        autocomplete="new-password"
+                    />
+                </el-form-item>
+                <el-form-item label="昵称">
+                    <el-input v-model="createState.form.nickname" placeholder="列表展示名称，不填默认用登录账号" maxlength="64" clearable />
+                </el-form-item>
+                <el-form-item label="邮箱">
+                    <el-input v-model="createState.form.email" placeholder="选填，用于找回密码/通知" maxlength="128" clearable />
+                </el-form-item>
+                <el-form-item label="邀请码">
+                    <el-input
+                        v-model="createState.form.invite_code"
+                        placeholder="选填，3-25 位小写字母/数字/短横线；不填自动生成"
+                        maxlength="25"
+                        clearable
+                    />
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-radio-group v-model="createState.form.status">
+                        <el-radio value="1">正常</el-radio>
+                        <el-radio value="0">禁用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item v-if="createState.createdUrl" label="邀请链接">
+                    <div style="word-break: break-all; line-height: 1.7">
+                        <div>{{ createState.createdUrl }}</div>
+                        <el-button link type="primary" @click="copyText(createState.createdUrl)">复制邀请链接</el-button>
+                    </div>
+                </el-form-item>
+                <el-form-item v-if="createState.createdUrl">
+                    <span style="color: #909399; font-size: 12px">
+                        把这条链接发给员工去推广，通过链接注册的用户会记在该会员名下，推广业绩可在列表中查看。
+                    </span>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="createState.visible = false">{{ createState.createdUrl ? t('Close') : t('Cancel') }}</el-button>
+                <el-button v-if="!createState.createdUrl" type="primary" :loading="createState.loading" @click="submitCreate">
+                    创建会员
+                </el-button>
             </template>
         </el-dialog>
     </div>
@@ -343,6 +414,111 @@ const openInvitees = (row: TableRow) => {
         })
         .catch(() => {
             inviteState.loading = false
+        })
+}
+
+// ---------------- 添加会员（员工账号）：创建后直接拿到专属邀请链接 ----------------
+const createState = reactive({
+    visible: false,
+    loading: false,
+    createdUrl: '',
+    form: {
+        username: '',
+        password: '',
+        nickname: '',
+        email: '',
+        invite_code: '',
+        status: '1',
+    },
+})
+
+const resetCreateForm = () => {
+    createState.loading = false
+    createState.createdUrl = ''
+    createState.form.username = ''
+    createState.form.password = ''
+    createState.form.nickname = ''
+    createState.form.email = ''
+    createState.form.invite_code = ''
+    createState.form.status = '1'
+}
+
+const openCreate = () => {
+    resetCreateForm()
+    createState.visible = true
+}
+
+const copyText = async (text: string) => {
+    if (!text) return
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text)
+        } else {
+            const textarea = document.createElement('textarea')
+            textarea.value = text
+            textarea.style.position = 'fixed'
+            textarea.style.opacity = '0'
+            document.body.appendChild(textarea)
+            textarea.select()
+            document.execCommand('copy')
+            document.body.removeChild(textarea)
+        }
+        ElMessage.success('已复制')
+    } catch {
+        ElMessage.error('复制失败，请手动复制')
+    }
+}
+
+const submitCreate = () => {
+    const form = createState.form
+    const username = form.username.trim()
+    const password = form.password
+    const nickname = form.nickname.trim()
+    const email = form.email.trim()
+    const inviteCode = form.invite_code.trim().toLowerCase()
+
+    if (!/^[A-Za-z0-9._-]{3,64}$/.test(username)) {
+        ElMessage.warning('登录账号需为 3-64 位字母、数字、点、下划线或短横线')
+        return
+    }
+    if (password.length < 6 || password.length > 20) {
+        ElMessage.warning('密码长度为 6-20 个字符')
+        return
+    }
+    if (nickname.length > 64) {
+        ElMessage.warning('昵称最多 64 个字符')
+        return
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        ElMessage.warning('邮箱格式不正确')
+        return
+    }
+    if (inviteCode && !/^[a-z0-9-]{3,25}$/.test(inviteCode)) {
+        ElMessage.warning('邀请码只能由 3-25 位小写字母、数字、短横线组成')
+        return
+    }
+
+    createState.loading = true
+    baTable.api
+        .postData('add', {
+            username,
+            password,
+            nickname,
+            email,
+            invite_code: inviteCode,
+            status: form.status,
+        })
+        .then((res: any) => {
+            createState.loading = false
+            createState.createdUrl = String(res?.data?.invite_url || '')
+            if (!createState.createdUrl) {
+                ElMessage.success('会员已创建')
+                createState.visible = false
+            }
+            baTable.getData()
+        })
+        .catch(() => {
+            createState.loading = false
         })
 }
 
@@ -617,6 +793,92 @@ const baTable = new baTableClass(
                                                 },
                                             },
                                             () => n + ' 人'
+                                        ),
+                                    content: () =>
+                                        h('div', { style: 'white-space:pre-line;line-height:1.8' }, row?.invite_detail || ''),
+                                }
+                            )
+                        }
+                    },
+                }) as any,
+            },
+            {
+                // 邀请链接：每个会员（员工）专属推广链接，复制后去投放；通过链接注册的用户记在他名下
+                label: '邀请链接',
+                prop: 'invite_url',
+                align: 'center',
+                operator: false,
+                width: 210,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const code = String(row?.invite_code || '')
+                            const url = String(row?.invite_url || '')
+                            if (!code || !url) {
+                                return h('span', { style: 'color:#c0c4cc' }, '—')
+                            }
+                            return h('div', { style: 'display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.6' }, [
+                                h('span', { style: 'font-family:monospace;color:#606266' }, code),
+                                h('div', {}, [
+                                    h(
+                                        'a',
+                                        {
+                                            href: 'javascript:void(0)',
+                                            style: 'color:#409eff;font-size:12px;margin-right:10px;text-decoration:none',
+                                            onClick: (e: any) => {
+                                                e.stopPropagation()
+                                                copyText(url)
+                                            },
+                                        },
+                                        '复制链接'
+                                    ),
+                                    h(
+                                        'a',
+                                        {
+                                            href: url,
+                                            target: '_blank',
+                                            rel: 'noopener',
+                                            style: 'color:#909399;font-size:12px;text-decoration:none',
+                                            onClick: (e: any) => e.stopPropagation(),
+                                        },
+                                        '打开'
+                                    ),
+                                ]),
+                            ])
+                        }
+                    },
+                }) as any,
+            },
+            {
+                // 推广业绩：该会员名下下级带来的充值（不含 VIP 订单），用于区分员工/推广员业绩
+                label: '推广业绩',
+                prop: 'invite_pay_amount',
+                align: 'center',
+                operator: false,
+                width: 150,
+                render: 'customRender',
+                customRender: defineComponent({
+                    props: { renderRow: Object },
+                    setup(props) {
+                        return () => {
+                            const row: any = props.renderRow
+                            const amount = Number(row?.invite_pay_amount || 0)
+                            const buyers = Number(row?.invite_buyers || 0)
+                            if (!amount && !buyers) {
+                                return h('span', { style: 'color:#c0c4cc' }, '—')
+                            }
+                            return h(
+                                ElTooltip,
+                                { effect: 'dark', placement: 'top', disabled: !row?.invite_detail },
+                                {
+                                    default: () =>
+                                        h(
+                                            ElTag,
+                                            { size: 'small', effect: 'light', type: amount > 0 ? 'success' : 'info' },
+                                            () => '$' + amount.toFixed(2) + (buyers > 0 ? ` / ${buyers}人` : '')
                                         ),
                                     content: () =>
                                         h('div', { style: 'white-space:pre-line;line-height:1.8' }, row?.invite_detail || ''),
