@@ -226,6 +226,39 @@
     return './assets/flags/' + (LANG_META[code] || LANG_META.en)[2] + '.svg'
   }
 
+  /* ---------- 首次访问：语言按浏览器语言自适应 ----------
+     用户手动切过语言时 googtrans cookie 已存在 → 以用户选择为准，不再自动改；
+     否则取浏览器首选语言（navigator.languages 顺序）匹配语言弹窗里可见的语种，
+     写入 googtrans 后由 run() 里的 ensureTranslate() 套用翻译。
+     匹配不到或落在 LANG_HIDDEN 的语种保持英文（站点默认语言）。 */
+  function matchBrowserLang(tag) {
+    var t = String(tag || '').toLowerCase()
+    if (!t) return ''
+    if (t.indexOf('zh') === 0) return /-(tw|hk|mo)\b/.test(t) ? 'zh-TW' : 'zh-CN'
+    if (t.indexOf('pt') === 0) return 'pt-BR'
+    if (/^n(b|n|o)\b/.test(t)) return 'no'
+    var base = t.split('-')[0]
+    for (var code in LANG_META) {
+      if (!LANG_META.hasOwnProperty(code)) continue
+      var c = code.toLowerCase()
+      if (c === t || c.split('-')[0] === base) return code
+    }
+    return ''
+  }
+
+  function autoApplyBrowserLang() {
+    try {
+      if (/(?:^|;\s*)googtrans=/.test(document.cookie)) return   // 用户手动选过语言
+      var langs = (navigator.languages && navigator.languages.length)
+        ? navigator.languages : [navigator.language || '']
+      var code = ''
+      for (var i = 0; i < langs.length && !code; i++) code = matchBrowserLang(langs[i])
+      if (!code || code === 'en' || LANG_HIDDEN.indexOf(code) !== -1) return
+      writeGoogtrans('/en/' + code)
+    } catch (e) { /* 隐私模式等异常时按默认英文 */ }
+  }
+  autoApplyBrowserLang()
+
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]

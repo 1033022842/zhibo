@@ -10,12 +10,6 @@
 
 ## 一、这套体系是什么
 
-
-> **协作冲突检查钩子（2026-11-06 新增）**：仓库内 `tools/hooks/pre-push` 会在 push main 时
-> 检测"本次推送是否变更了 gitee main 近 7 天由他人修改过的文件"，命中则列出清单要求确认，
-> 防止"回填线上旧基线"覆盖同事进行中工作（11-04 入口直达被回填覆盖事故的防复发）。
-> 安装：`git config core.hooksPath tools/hooks`（每个 clone 一次）；应急跳过：`GIT_SKIP_COLLAB_CHECK=1`。
-
 ```
                     ┌──────────────────────────────────────────────┐
                     │  douyin 仓库（D:\ever\douyin\douyin）          │
@@ -800,3 +794,40 @@ curl -sk -X POST 'https://<域名>/api/v1/site/visit' \
 - `lp_promo_visit` 未建表时，面板不会 500，会提示「访问表尚未创建」，但访问接口写入会静默失败（不影响前台）。
 - 访问按访问时间、注册按注册时间、订单按会员注册时间；跨阶段转化率不要用「今天访问 ÷ 今天注册」硬算。
 - 新加平台后，`PromoSetting` 的渠道统计 Tab 仍按原来的广告平台列统计（X/Reddit 等不进那几列），以「流量来源」面板为准。
+
+## 十三、前台语言按浏览器语言自适应（2026-11-07 全站）
+
+需求：首次访问按浏览器语言自动展示对应语种；用户手动切过语言后，以用户选择为准，不再自动改。
+
+### 13.1 实现
+
+| 位置 | 说明 |
+|---|---|
+| `js/shell-new.js` `matchBrowserLang()` | 把 `navigator.languages` 逐个映射到 `LANG_META` 的语种代码（`zh-*` 按地区分简繁、`pt-*`→`pt-BR`、`nb/nn/no`→`no`） |
+| `js/shell-new.js` `autoApplyBrowserLang()` | 页面解析时执行：已有 `googtrans` cookie（用户手动选过）直接跳过；否则命中非英文语种就写 `googtrans=/en/<code>` |
+| `ensureTranslate()`（原有） | `run()` 里按 `currentLang() !== 'en'` 加载 Google 翻译组件并套用，自动检测复用这条链路 |
+| 全部前台 html | `shell-new.js` 版本号统一升到 `v=20261107lang`（51 个页面），避免浏览器命中旧缓存 |
+
+规则：
+
+- 浏览器语言按 `navigator.languages` 顺序取第一个能匹配的语种；匹配不到 → 默认英文。
+- `LANG_HIDDEN`（当前只有 `zh-CN`）里的语种不参与自动切换：中文浏览器默认英文。要开放简体自动切换，把 `'zh-CN'` 从 `LANG_HIDDEN` 删掉即可。
+- 手动选择优先：语言弹窗/设置页切换都会写 `googtrans`，自动检测见到 cookie 即让位；会话内不再被浏览器语言覆盖。
+
+### 13.2 同步与验证
+
+```bash
+python .zcode/sync_clients.py --client heygirl --dry-run
+python .zcode/sync_clients.py --client heygirl     # sugus / kelymi / kiss 同理
+```
+
+验证（每个客户站抽 1 台）：
+
+1. 浏览器首选语言设为日语 / 马来语，清掉 `googtrans` cookie，打开 `/ai/Home.html`：页面应自动翻译，侧栏语言项显示日本语 / Bahasa Melayu。
+2. 手动切到 English 后再刷新：保持英文（cookie 生效，不再被自动改回）。
+3. 浏览器语言为中文（`zh-CN`）：保持英文（`LANG_HIDDEN`）。
+
+坑：
+
+- 这是**客户端 Google 翻译**，不是独立语言包：首屏会先出现英文再被翻译，且依赖 `translate.google.com` 可达（大陆出口已被 403 封锁，不受影响）。
+- 只改 `shell-new.js` 内容不升版本号会命中旧缓存，表现为「改了没效果」；版本号在 51 个页面里统一替换。
