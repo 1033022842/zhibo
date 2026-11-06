@@ -61,17 +61,17 @@ do
     conflicts=""
     echo "$FILES" | while IFS= read -r f
     do
-        hit=$(echo "$OTHER_TOUCHED" | grep -F "$f" | head -1)
-        [ -n "$hit" ] && echo "$f|$hit"
+        hit=$(echo "$OTHER_TOUCHED" | awk -F'\t' -v f="$f" '$1 == f { print $2 "\t" $3 "\t" $4; exit }')
+        [ -n "$hit" ] && printf '%s\t%s\n' "$f" "$hit"
     done > /tmp/prepush_conflicts.$$
 
     if [ -s /tmp/prepush_conflicts.$$ ]; then
         echo ""
         echo "⚠⚠  pre-push 协作冲突检查：本次推送将变更以下【近 7 天他人修改过】的文件："
         echo "----------------------------------------------------------------"
-        while IFS='|' read -r f an ad ah
+        while IFS="$(printf '\t')" read -r f an ad ah
         do
-            printf '  %-55s 最后修改: %s @ %s (%s)\n' "$f" "$an" "${ad%% *}" "${ah%% *}"
+            printf '  %-55s 最后修改: %s @ %s (%s)\n' "$f" "$an" "${ad%% *}" "$ah"
         done < /tmp/prepush_conflicts.$$
         echo "----------------------------------------------------------------"
         echo "  SOP：共享文件（导航/侧栏/shell）改动请先在群里同步；确认同事不在做"
