@@ -34,7 +34,6 @@ final class AgentView
             'sub_agent' => '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>',
             'domain'   => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg>',
             'account'  => '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
-            'admin'    => '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M7 13h4"/><path d="M7 17h7"/></svg>',
         ];
 
         $items = [
@@ -46,7 +45,6 @@ final class AgentView
             'cs'       => ['/agent/cs/index', '独立客服', AgentService::hasPerm($agent, 'cs')],
             'sub_agent' => ['/agent/subagent/index', '子代理', AgentService::hasPerm($agent, 'sub_agent')],
             'account'  => ['/agent/account/index', '账号设置', true],
-            'admin'    => ['/agent/auth/admin', '管理后台', true],
         ];
         $nav = '';
         foreach ($items as $key => [$url, $label, $visible]) {
