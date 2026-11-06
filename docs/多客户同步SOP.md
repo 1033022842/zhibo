@@ -549,6 +549,7 @@ python .zcode/sync_clients.py --client kiss                                    #
 - 线上验证地址：`https://heygirl.live/ai/Home.html` ｜ `http://172.81.98.55/ai/Home.html` ｜ `https://kelymi.autos/ai/Home.html` ｜ **`https://kisss.ai/ai/Home.html`**（kiss 的 IP:80 是 404，别用）
 - kiss 的 JS/CSS/图片已改走 `https://kisss-live.b-cdn.net/ai/...`（HTML 与 /api/ /ws/ 仍同源）；关掉整个 CDN 只需删服务器上 `/opt/brand-kit/brand/kiss/cdn_assets.env` 再跑一次 apply_brand
 - heygirl 的 kit（`/opt/brand-kit`）除资产外还含 `brand/heygirl/assets/brand.js`：apply_brand 会**整文件覆盖** `js/brand.js` 并把引用版本刷成 `?v=$STAMP`。注意 `Home.html` 不引 brand.js，首页标题/字标只能靠静态替换 → **页面被覆盖后必须重跑 apply_brand**
+- 后台 SPA（`/www/wwwroot/douyin/admin/dist`，与站点目录同级）同样由 apply_brand 打品牌：`<title>` → `<客户> Admin`、`login-logo.png`/`logo.png`/`favicon.png` 换客户资产、打包进 JS 的 `sugus-logo-*.png` 内容换客户词标。**后台 dist 重新部署后必须重跑 apply_brand**，否则标签页标题/登录页图标又变回 Sugus（2026-11-06 heygirl 复现，客户反馈「又变 sugus 了」）
 - kelymi 备份：同步前全量在 `/root/kelymi_pre_sync_20261018/`（7.1M）；apply_brand 每日回滚备份在 `/tmp/brand_bak_<客户>_<日期>/`
 - kiss 服务器上站点目录本身就是 gitee `zhibo.git` 的克隆（HEAD 停在部署点），可用于逐文件核对与回滚
 

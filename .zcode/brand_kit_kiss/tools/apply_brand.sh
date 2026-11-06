@@ -80,6 +80,31 @@ if [ -f "$BRAND/cdn_assets.env" ]; then
   fi
 fi
 
+# ── 3.6) 后台 SPA（admin/dist）品牌：标题 / 登录词标 / 标签图标 ──
+# 后台 SPA 由 php/web 构建后整包部署，构建产物里写死 Sugus 标题与词标；
+# 部署后不重打，客户后台会「又变回 Sugus」（2026-11-06 heygirl 复现）。本段幂等。
+ADMIN_DIST="$(dirname "$SITE")/admin/dist"
+if [ -d "$ADMIN_DIST" ]; then
+  echo "== 后台 SPA 品牌: $ADMIN_DIST =="
+  if [ -f "$ADMIN_DIST/index.html" ]; then
+    sed -i -E '0,/<title>[^<]*<\/title>/s//<title>Kisss Admin<\/title>/' "$ADMIN_DIST/index.html"
+  fi
+  # 登录页词标：优先 kit 的 login-logo.png，缺省用客户 logo
+  LOGIN_LOGO="$BRAND/assets/login-logo.png"
+  if [ ! -f "$LOGIN_LOGO" ]; then LOGIN_LOGO="$BRAND/assets/kisss-logo.png"; fi
+  if [ -f "$LOGIN_LOGO" ]; then cp -f "$LOGIN_LOGO" "$ADMIN_DIST/login-logo.png"; fi
+  # 浏览器标签图标 / 侧栏图标
+  if [ -f "$BRAND/assets/kisss-favicon-v4.png" ]; then
+    cp -f "$BRAND/assets/kisss-favicon-v4.png" "$ADMIN_DIST/logo.png"
+    cp -f "$BRAND/assets/kisss-favicon-v4.png" "$ADMIN_DIST/favicon.png"
+  fi
+  # 打包进 JS 的旧 Sugus 词标（登录兜底/侧栏）：文件名不变，内容换客户词标
+  if [ -f "$BRAND/assets/kisss-wordmark.png" ]; then
+    find "$ADMIN_DIST/assets" -maxdepth 1 -name '*sugus*.png' -exec cp -f "$BRAND/assets/kisss-wordmark.png" {} \; 2>/dev/null || true
+  fi
+  echo "   标题: $(grep -o '<title>[^<]*' "$ADMIN_DIST/index.html" 2>/dev/null | head -1)"
+fi
+
 # ── 4) 自检 ──
 LEFT=$(grep -lE 'Sugus|sugusmail' "${FILES[@]}" 2>/dev/null | grep -vE 'js/' || true)
 if [ -n "$LEFT" ]; then
