@@ -33,7 +33,7 @@
     ['explore', './Girls.html', 'Explore', 'explore', ''],
     ['chat', './Chat.html', 'Chat', 'chat', ''],
     ['generate', './Image.html', 'Generate Image', 'generate', ' target="_top"'],
-    ['create', './characters.html', 'Create Character', 'create', ''],
+    ['create', './createCharacter.html', 'Create Character', 'create', ''],
     ['myai', './charactersIndex.html', 'My AI', 'myai', ''],
     ['upload', './upload_media.html', 'Upload Media', 'upload', ''],
     ['faceswap', './face_swap.html', 'Face Swap', 'faceswap', ''],
@@ -179,7 +179,7 @@
     return '<div><div class="flex px-5 py-2 justify-between w-full h-[70px] fixed bottom-0 z-50 border-t border-white border-opacity-20 bg-black-default lg:hidden">' +
       tab('./Girls.html', './Image_files/explore-active-ca279297c446de8d9227ffbadf9fef01e001cd35d665ec3620b02c9c35cab08c.svg', 'Explore') +
       tab('./Image.html', './Girls_files/generate-e0a4445659c35cbc82e7046cf089cf881179d55eaa82d4bf32dae229a06666c1.svg', 'Generate') +
-      tab('./characters.html', './Girls_files/mobile-magic-wand-d445265367be8ddfbfe1c22810893d0ea4dbdaf1eadd7c4496861113d5388d78.svg', 'Create') +
+      tab('./createCharacter.html', './Girls_files/mobile-magic-wand-d445265367be8ddfbfe1c22810893d0ea4dbdaf1eadd7c4496861113d5388d78.svg', 'Create') +
       tab('./Subscriptions.html', './Girls_files/premium-bef4c0d01b6b99b6f2764cf40b75597debc307331857ca26f97628c6a38eec.svg', 'Premium') +
       '</div></div>';
   }

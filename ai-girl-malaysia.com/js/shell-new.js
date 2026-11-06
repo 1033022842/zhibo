@@ -142,7 +142,7 @@
     { href: './Chat.html', label: 'Chat', icon: 'chat' },
     { href: './achievements.html', label: 'Achievements', icon: 'achv' },
     { href: './Image.html', label: 'AI Video Studio', icon: 'generate', top: true },
-    { href: './characters.html', label: 'Create Character', icon: 'wand' },
+    { href: './createCharacter.html', label: 'Create Character', icon: 'wand' },
     { href: './charactersIndex.html', label: 'My AI', icon: 'lady' },
     { href: './upload_media.html', label: 'Upload Media', icon: 'upload' },
     { href: './shop.html', label: 'Shop', icon: 'shop' },
@@ -164,9 +164,12 @@
      两侧各自命中自己域名，行为一致。 */
   var STUDIO_HREF = './Image.html'
   var STUDIO_GATE_HOST = /((^|\.)sugus\.ai|(^|\.)heygirl\.live)$/i
+  /* 解锁条件：充值过才可见。window.__userRecharged 由 js/welcome-bonus.js 在
+     userInfo 返回后写入（has_recharged，任一充值入账流水即算），并发 live:userstate
+     事件触发 syncStudioEntry 原地刷新；guest / 未充值用户一律隐藏。 */
   function studioEntryVisible() {
     if (!STUDIO_GATE_HOST.test(location.hostname)) return true
-    try { return !!localStorage.getItem('live_access_token') } catch (e) { return true }
+    return window.__userRecharged === true
   }
   var MAIN_NAV_RAW = ['Home', 'Discover', 'Chat', 'Shorts', 'Private Content', 'AI Video Studio', 'Create Character', 'Tokens'].map(function (label) {
     return NAV.filter(function (n) { return n.label === label })[0]
@@ -1166,12 +1169,12 @@
     { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
     { href: './Girls.html', label: 'Explore', icon: 'bExplore', activeIcon: 'bExploreActive', key: 'explore' },
     { href: './Image.html', label: 'Generate', icon: 'bGenerate', key: 'generate' },
-    { href: './characters.html', label: 'Create', icon: 'bWand', key: 'create' },
+    { href: './createCharacter.html', label: 'Create', icon: 'bWand', key: 'create' },
     { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium', key: 'premium', premium: true }
   ].filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
 
   var CREATE_MENU = [
-    { href: './characters.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
+    { href: './createCharacter.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
     { href: './Image.html', icon: 'bDirector', title: 'Generate spicy videos', sub: 'Build your own spicy movie', badge: 'NEW' },
     { href: './Chat.html', icon: 'bGroup', title: 'Group chat', sub: 'Start a chat with up to 3 characters' }
   ].filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
@@ -1187,7 +1190,7 @@
     if (/\/subscriptions\.html$/.test(p)) return signedIn ? 'tokens' : 'premium'
     if (/\/girls\.html$/.test(p)) return 'explore'
     if (/\/image\.html$/.test(p)) return 'generate'
-    if (/\/characters\.html$/.test(p)) return 'create'
+    if (/\/(characters|createCharacter)\.html$/.test(p)) return 'create'
     return ''
   }
 
@@ -1931,6 +1934,8 @@
     syncStudioEntry()
     // 原地登录成功（弹窗登录不发页面跳转）
     document.addEventListener('live:login', syncStudioEntry)
+    // welcome-bonus.js 拿到 userInfo（has_recharged）后广播：充值用户在此刻解锁入口
+    document.addEventListener('live:userstate', syncStudioEntry)
     // 其它标签页登出/登录
     window.addEventListener('storage', function (e) {
       if (e && e.key === 'live_access_token') syncStudioEntry()
