@@ -16,6 +16,9 @@ use think\facade\Log;
 
 final class UserService
 {
+    /** 新人注册礼：注册成功即送代币（走 WalletService 双录流水，biz_type=welcome_bonus） */
+    public const WELCOME_BONUS_TOKENS = 50.00;
+
     /** 在线判定窗口（秒）：这个时间内有过带 token 的接口请求就算在线 */
     public const ONLINE_WINDOW = 300;
 
@@ -209,6 +212,19 @@ final class UserService
             $profile->save();
 
             $db->commit();
+
+            // 新人注册礼：事务提交后发放，失败不阻断注册（ledger 里 biz_type=welcome_bonus 供前端弹窗判定）
+            try {
+                (new WalletService())->credit(
+                    (int) $user->id,
+                    self::WELCOME_BONUS_TOKENS,
+                    'welcome_bonus',
+                    0,
+                    'Welcome bonus: ' . self::WELCOME_BONUS_TOKENS . ' free tokens'
+                );
+            } catch (\Throwable $e) {
+                Log::warning('[register] 新人注册礼发放失败 uid=' . $user->id . ' err=' . $e->getMessage());
+            }
 
             return $user->toArray();
         } catch (BusinessException $e) {

@@ -357,6 +357,9 @@ final class Live extends BaseController
             ->find();
         $diamondBalance = $wallet ? (float)$wallet['diamond_balance'] : 0.00;
 
+        // 钱包状态标记：是否充值过（AI Video Studio 入口解锁用）、是否领过新人注册礼（弹窗判定用）
+        $walletService = new WalletService();
+
         return $this->jsonSuccess([
             'id'       => $profile['id'],
             'username' => $profile['nickname'],
@@ -364,6 +367,8 @@ final class Live extends BaseController
             'avatar'   => $profile['avatar'],
             'token'    => $this->request->header('Authorization'),
             'money'    => $diamondBalance,
+            'has_recharged'  => $walletService->hasRecharged($userId),
+            'welcome_bonus'  => $walletService->hasWelcomeBonus($userId),
         ]);
     }
 

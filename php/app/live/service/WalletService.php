@@ -47,6 +47,24 @@ final class WalletService
     }
 
     /**
+     * 是否发过新人注册礼（biz_type=welcome_bonus 的入账记录）
+     * 前端据此弹「50 免费代币」引导窗：只弹给真正拿到礼的用户
+     */
+    public function hasWelcomeBonus(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        $row = Db::connect('live_mysql')->table('lp_wallet_ledger')
+            ->where('user_id', $userId)
+            ->where('biz_type', 'welcome_bonus')
+            ->where('direction', 1)
+            ->order('id', 'asc')
+            ->find();
+        return !empty($row);
+    }
+
+    /**
      * 扣减代币（支出）
      * @param string $bizType recharge/gift/crowdfunding_pledge/vip_buy/withdraw/adjust
      * @param string $remark 流水备注
