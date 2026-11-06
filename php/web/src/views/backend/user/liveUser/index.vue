@@ -27,20 +27,9 @@
         </div>
 
         <TableHeader
-            :buttons="['refresh', 'delete', 'comSearch', 'quickSearch', 'columnDisplay']"
+            :buttons="['refresh', 'add', 'delete', 'comSearch', 'quickSearch', 'columnDisplay']"
             :quick-search-placeholder="'搜索 昵称/ID/编号/邮箱/邀请码/推广链接/渠道'"
-        >
-            <el-tooltip
-                v-if="adminInfo.super || baTable.auth('add')"
-                content="手动创建会员账号，创建后可用该账号的邀请链接去推广"
-                placement="top"
-            >
-                <el-button type="primary" style="margin-left: 12px" @click="openCreate">
-                    <Icon name="fa fa-plus" />
-                    <span style="margin-left: 6px">添加会员</span>
-                </el-button>
-            </el-tooltip>
-        </TableHeader>
+        />
 
         <div
             style="
@@ -234,7 +223,8 @@
 <script setup lang="ts">
 import { provide, reactive, ref, h, defineComponent, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElTag, ElTooltip } from 'element-plus'
+import { ElButton, ElIcon, ElMessage, ElTag, ElTooltip } from 'element-plus'
+import { CopyDocument, TopRight } from '@element-plus/icons-vue'
 import baTableClass from '/@/utils/baTable'
 import Table from '/@/components/table/index.vue'
 import TableHeader from '/@/components/table/header/index.vue'
@@ -820,33 +810,59 @@ const baTable = new baTableClass(
                             if (!code || !url) {
                                 return h('span', { style: 'color:#c0c4cc' }, '—')
                             }
-                            return h('div', { style: 'display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.6' }, [
-                                h('span', { style: 'font-family:monospace;color:#606266' }, code),
-                                h('div', {}, [
-                                    h(
-                                        'a',
-                                        {
-                                            href: 'javascript:void(0)',
-                                            style: 'color:#409eff;font-size:12px;margin-right:10px;text-decoration:none',
-                                            onClick: (e: any) => {
-                                                e.stopPropagation()
-                                                copyText(url)
-                                            },
-                                        },
-                                        '复制链接'
-                                    ),
-                                    h(
-                                        'a',
-                                        {
-                                            href: url,
-                                            target: '_blank',
-                                            rel: 'noopener',
-                                            style: 'color:#909399;font-size:12px;text-decoration:none',
-                                            onClick: (e: any) => e.stopPropagation(),
-                                        },
-                                        '打开'
-                                    ),
-                                ]),
+                            return h('div', { style: 'display:flex;align-items:center;justify-content:center;gap:6px' }, [
+                                h(
+                                    'code',
+                                    {
+                                        title: code,
+                                        style:
+                                            'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:18px;' +
+                                            'color:#4b5563;background:var(--el-fill-color-light);border:1px solid var(--el-border-color-lighter);' +
+                                            'border-radius:4px;padding:2px 7px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
+                                    },
+                                    code
+                                ),
+                                h(
+                                    ElTooltip,
+                                    { content: '复制邀请链接', placement: 'top' },
+                                    {
+                                        default: () =>
+                                            h(
+                                                ElButton,
+                                                {
+                                                    size: 'small',
+                                                    circle: true,
+                                                    plain: true,
+                                                    type: 'primary',
+                                                    onClick: (e: any) => {
+                                                        e.stopPropagation()
+                                                        copyText(url)
+                                                    },
+                                                },
+                                                () => h(ElIcon, null, () => h(CopyDocument))
+                                            ),
+                                    }
+                                ),
+                                h(
+                                    ElTooltip,
+                                    { content: '打开邀请页', placement: 'top' },
+                                    {
+                                        default: () =>
+                                            h(
+                                                ElButton,
+                                                {
+                                                    size: 'small',
+                                                    circle: true,
+                                                    plain: true,
+                                                    onClick: (e: any) => {
+                                                        e.stopPropagation()
+                                                        window.open(url, '_blank', 'noopener')
+                                                    },
+                                                },
+                                                () => h(ElIcon, null, () => h(TopRight))
+                                            ),
+                                    }
+                                ),
                             ])
                         }
                     },
@@ -875,11 +891,22 @@ const baTable = new baTableClass(
                                 { effect: 'dark', placement: 'top', disabled: !row?.invite_detail },
                                 {
                                     default: () =>
-                                        h(
-                                            ElTag,
-                                            { size: 'small', effect: 'light', type: amount > 0 ? 'success' : 'info' },
-                                            () => '$' + amount.toFixed(2) + (buyers > 0 ? ` / ${buyers}人` : '')
-                                        ),
+                                        h('div', { style: 'line-height:1.45' }, [
+                                            h(
+                                                'div',
+                                                {
+                                                    style:
+                                                        'font-weight:600;font-size:13px;' +
+                                                        (amount > 0 ? 'color:var(--el-color-success)' : 'color:#909399'),
+                                                },
+                                                '$' + amount.toFixed(2)
+                                            ),
+                                            h(
+                                                'div',
+                                                { style: 'font-size:11.5px;color:#909399;margin-top:1px' },
+                                                buyers > 0 ? `${buyers} 人付费` : '暂无付费'
+                                            ),
+                                        ]),
                                     content: () =>
                                         h('div', { style: 'white-space:pre-line;line-height:1.8' }, row?.invite_detail || ''),
                                 }
@@ -1029,6 +1056,16 @@ const baTable = new baTableClass(
                 operator: false,
             },
         ],
+    },
+    {},
+    {
+        // 顶栏「添加」按钮走自定义弹窗（默认表单弹窗字段不够用）
+        onTableHeaderAction: ({ event }: { event: string }) => {
+            if (event === 'add') {
+                openCreate()
+                return false
+            }
+        },
     }
 )
 
