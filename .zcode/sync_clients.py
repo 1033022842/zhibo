@@ -436,6 +436,19 @@ if __name__ == "__main__":
     ap.add_argument("--seed-snapshot-from", metavar="REV",
                     help="服务器已部署该提交时，用它（而非 HEAD）初始化快照基线，首次只推之后的变更")
     a = ap.parse_args()
+
+    # 部署前强制同步 Gitee：同事改动先 rebase 合并，自己的先推送（防覆盖）
+    sh('git fetch origin', cwd=REPO)
+    _behind = sh('git log main..origin/main --oneline', cwd=REPO)[1].strip()
+    if _behind:
+        sys.exit('!! origin/main 有同事的新提交，请先 git pull --rebase origin main 解决冲突后再部署：\n' + _behind)
+    _ahead = sh('git log origin/main..main --oneline', cwd=REPO)[1].strip()
+    if _ahead:
+        print('  本地领先 %d 个提交，先推送 Gitee…' % len(_ahead.splitlines()))
+        _prc, _pout, _perr = sh('git push origin main', cwd=REPO)
+        if _prc != 0:
+            sys.exit('!! git push 失败，请手动处理后再部署：\n' + (_perr or _pout))
+
     names = list(CLIENTS) if a.client == "all" else [a.client]
     for n in names:
         if a.check:
