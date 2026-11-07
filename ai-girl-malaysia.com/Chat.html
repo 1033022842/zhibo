@@ -3,6 +3,9 @@
 <html lang="en"><head>
     <link rel="preconnect" href="https://media.sugus.ai" crossorigin>
     <link rel="dns-prefetch" href="https://media.sugus.ai">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 	<script>/* reCAPTCHA stub：镜像残留已移除，占位避免内联 grecaptcha 调用报错 */window.grecaptcha = window.grecaptcha || {ready:function(cb){if(typeof cb==="function"){cb();}},execute:function(){return Promise.resolve("");},render:function(){return "";},reset:function(){},getResponse:function(){return "";}};</script>
 		<link rel="icon" type="image/png" href="./sugus-favicon-v3.png"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style type="text/css">.turbo-progress-bar {
 		<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon-v3.png">
@@ -43,8 +46,8 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./_shared/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261104brand"></script>
-	<script src="./js/chat-gift.js?v=20261014f"></script>
+    <script src="./js/chat.js?v=20261107chat1"></script>
+	<script src="./js/chat-gift.js?v=20261107chat1"></script>
     
 
 
@@ -58,179 +61,268 @@
 
     
   <link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1">
-		<script src="./js/shell-new.js?v=20261107lang"></script>
+		<script src="./js/shell-new.js?v=20261107bnav1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 	
 
 	<style>
-	/* 手机端：去掉为桌面左侧会话列表预留的 440px 内边距，聊天区铺满全屏 */
-	@media (max-width:1023px){
-		#conversation-container{padding-left:0 !important;padding-right:0 !important;border-radius:0}
-	}
-	/* 滚动条美化：暗色细圆条，替代 Windows 原生灰色大滚动条 */
-	#messages::-webkit-scrollbar,
-	.list-container::-webkit-scrollbar,
-	#conversation-container::-webkit-scrollbar{width:6px;height:6px}
-	#messages::-webkit-scrollbar-track,
-	.list-container::-webkit-scrollbar-track,
-	#conversation-container::-webkit-scrollbar-track{background:transparent}
-	#messages::-webkit-scrollbar-thumb,
-	.list-container::-webkit-scrollbar-thumb,
-	#conversation-container::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:8px}
-	#messages::-webkit-scrollbar-thumb:hover,
-	.list-container::-webkit-scrollbar-thumb:hover,
-	#conversation-container::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
-	#messages,.list-container,#conversation-container{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
-/* Chat 页隐藏右下角客服悬浮球（挡住发送/Ask 按钮）；其它页面不受影响 */
+/* ============================================================
+   Chat 页样式 —— 完全复刻 candy.ai 聊天页（fy-candy-20261107）
+   设计变量取自 candy.ai 线上站 computed style：
+   页面底 #0d0a0f / 聊天区 #131313 / AI 气泡 #252525 / 列表面板 #1a1a1a
+   正文 #d1d1d1 / 次要 #616162 / 描边 #363636 / 强调 #e75275
+   用户气泡 linear-gradient(90deg,#6143E6,#4346E6)，发送键 #4346E6→#6143E6
+   UI 字体 Poppins，消息字体 Roboto（参考站一致）
+   ============================================================ */
+
+/* 手机端：去掉为桌面左侧会话列表预留的 440px 内边距，聊天区铺满全屏 */
+@media (max-width:1023px){
+	#conversation-container{padding-left:0 !important;padding-right:0 !important;border-radius:0}
+}
+
+/* 滚动条美化：暗色细圆条，替代 Windows 原生灰色大滚动条 */
+#messages::-webkit-scrollbar,
+.list-container::-webkit-scrollbar,
+#conversation-container::-webkit-scrollbar,
+.profile-container::-webkit-scrollbar{width:6px;height:6px}
+#messages::-webkit-scrollbar-track,
+.list-container::-webkit-scrollbar-track,
+#conversation-container::-webkit-scrollbar-track,
+.profile-container::-webkit-scrollbar-track{background:transparent}
+#messages::-webkit-scrollbar-thumb,
+.list-container::-webkit-scrollbar-thumb,
+#conversation-container::-webkit-scrollbar-thumb,
+.profile-container::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:8px}
+#messages::-webkit-scrollbar-thumb:hover,
+.list-container::-webkit-scrollbar-thumb:hover,
+#conversation-container::-webkit-scrollbar-thumb:hover,
+.profile-container::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
+#messages,.list-container,#conversation-container,.profile-container{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+
+/* Chat 页隐藏右下角客服悬浮球；聊天页无底部导航（参考站一致） */
 #fyCsFab,.fy-cs-fab{display:none!important}
-/* 底部按钮对齐参考版：透明玻璃质感（半透明渐变 + 细灰圈 + 背景模糊，若隐若现） */
-.scene-pill{position:relative;height:32px;padding:0 10px;border-radius:9999px;background:linear-gradient(rgba(77,77,77,.3) 0%,rgba(55,55,55,.3) 100%);border:1px solid rgba(82,82,82,.9);color:#d4d4d4;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .3s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.fy-bnav{display:none!important}
+
+/* ---- 主题底色（candy：整体近黑，聊天区 #131313） ---- */
+body{background:#0d0a0f!important;font-family:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+#app{background:#0d0a0f}
+div.bg-main.fixed.top-0{background:#131313!important;border-color:#242424!important}
+#conversation-container{background:#131313!important;background-image:none!important}
+/* 桌面端：聊天列整体下移，避开 64px 顶部导航（参考站 banner lg:mt-16 同款效果） */
+@media (min-width:1024px){
+	#conversation-container{padding-top:64px}
+}
+
+/* ---- 聊天主列：去掉旧 70% 圆角卡片，改为参考站全宽列 ---- */
+.messages-container{margin-top:0!important;width:100%!important;max-width:none!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
+#messages{height:auto!important;flex:1 1 auto;min-height:0;overflow-y:auto;padding-top:0!important;padding-bottom:16px!important}
+/* 消息内容列：桌面居中 774px，与输入卡片同宽（参考站一致） */
+#messages>turbo-frame{display:block;width:100%;max-width:774px;margin:0 auto;padding:0 8px}
+
+/* ---- 顶部聊天头 ---- */
+#pfp-banner-container>div{background:#131313!important;border-color:#363636!important}
+#chat-name{font-family:'Poppins',sans-serif;font-size:20px;font-weight:600;line-height:30px;color:#fff}
+/* 电话图标改为参考站的白色线性样式 */
+#phone-btn img{filter:brightness(0) invert(1);opacity:.92}
+
+/* ---- Safe Chat Disclaimer（参考站消息区顶部同款提示行） ---- */
+.fy-disclaimer{margin-top:8px;font-family:'Roboto',sans-serif}
+.fy-disclaimer-row{display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:4px;cursor:pointer;user-select:none}
+.fy-disclaimer-row>svg{flex:0 0 auto;color:#facc15}
+.fy-disclaimer-text{color:rgba(209,209,209,.79);font-size:12px;line-height:1.2}
+.fy-disclaimer-chev{margin-left:2px;color:#8a8a8a;transition:transform .2s ease}
+.fy-disclaimer-chev.up{transform:rotate(180deg)}
+.fy-disclaimer-body{padding:2px 4px 8px;color:rgba(209,209,209,.6);font-size:12px;line-height:1.5}
+
+/* ---- 消息气泡（candy 同款：24px 圆角 + 单侧 4px 燕尾角） ---- */
+.fy-msg{display:flex;padding:0}
+.fy-msg-ai{justify-content:flex-start}
+.fy-msg-user{justify-content:flex-end}
+.fy-msg-col{display:flex;flex-direction:column;gap:9px;max-width:75%;min-width:0}
+.fy-msg-user .fy-msg-col{align-items:flex-end}
+.fy-bubble{font-family:'Roboto',sans-serif;font-size:15px;line-height:21px;font-weight:400;color:#d1d1d1;word-break:break-word;white-space:pre-wrap;text-align:left}
+.fy-bubble-ai{background:#252525;border-radius:24px 24px 24px 4px;padding:8px 16px;margin:16px 0 10px}
+.fy-bubble-user{background:linear-gradient(90deg,#6143E6 0%,#4346E6 100%);border-radius:24px 24px 4px 24px;padding:8px 16px;margin:12px 0 0;color:#e8e8e8}
+.fy-bubble em{color:#988DFC;font-style:italic}
+.fy-bubble-user em{color:rgba(255,255,255,.78)}
+/* 气泡下元信息行：角色头像 + 时间（AI）/ 右对齐时间（用户） */
+.fy-msg-meta{display:flex;align-items:center;gap:8px;height:28px;margin:2px 0 12px}
+.fy-meta-avatar{width:26px;height:26px;border-radius:50%;overflow:hidden;flex:0 0 auto;background:#2e2e2e}
+.fy-meta-avatar img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.fy-meta-time{font-family:'Roboto',sans-serif;font-size:12px;font-weight:400;color:#616162;white-space:nowrap}
+.fy-meta-user{justify-content:flex-end;margin:0 0 10px}
+.fy-meta-user .fy-meta-time{font-size:13px}
+.fy-voice-tag{display:inline-flex;align-items:center;height:18px;padding:0 7px;margin-right:7px;border-radius:99px;background:rgba(255,255,255,.14);font-size:11px;font-weight:600;line-height:1;color:rgba(255,255,255,.92);vertical-align:middle;white-space:nowrap}
+/* 媒体消息气泡（语音 / 场景图 / 礼物视频）与文字气泡同款 */
+.fy-media .fy-media-bubble{overflow:hidden}
+/* 输入中动画兜底（application.css 缺失时也有弹性三点） */
+.snippet .stage{display:block}
+.dot-elastic,.dot-elastic::before,.dot-elastic::after{width:8px;height:8px;border-radius:50%;background:#8f8f8f}
+.dot-elastic{position:relative;display:inline-block;animation:fyDotElastic .9s infinite ease}
+.dot-elastic::before,.dot-elastic::after{content:"";position:absolute;top:0;left:11px;opacity:.85}
+.dot-elastic::before{animation:fyDotElastic .9s .15s infinite ease}
+.dot-elastic::after{left:22px;animation:fyDotElastic .9s .3s infinite ease}
+@keyframes fyDotElastic{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* ---- 底部输入区（candy 玻璃圆角卡片，774px 居中） ---- */
+.fy-composer{width:100%;max-width:774px;margin:0 auto;padding:0 8px 16px}
+.fy-composer-card{border-top:1px solid rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(38,38,38,.9) 0%,rgba(46,46,46,.9) 100%);border-radius:26px;box-shadow:0 4px 24px rgba(0,0,0,.15);padding:16px;-webkit-backdrop-filter:blur(12.5px) saturate(1.2);backdrop-filter:blur(12.5px) saturate(1.2)}
+.fy-composer-row1{display:flex;align-items:center;gap:8px}
+.fy-composer-inputwrap{flex:1 1 auto;min-width:0;position:relative}
+#message_body{width:100%;background:transparent;border:0;outline:none;box-shadow:none;color:#e1e1e1;font-family:'Roboto',sans-serif;font-size:15px;line-height:18px;min-height:21px;padding:0;flex:1 1 auto;min-width:0}
+#message_body::placeholder{color:#616162}
+/* 发送按钮：参考站紫色渐变圆形 */
+#send-question,#send-question-with-token{width:40px;height:40px;padding:0!important;border-radius:9999px;background:linear-gradient(90deg,#4346E6 0%,#6143E6 100%);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;transition:all .3s ease;flex-shrink:0}
+/* 修复双发送按钮：ID 选择器优先级盖过 Tailwind 的 .hidden，补回隐藏规则 */
+#send-question.hidden,#send-question-with-token.hidden{display:none!important}
+#send-question:hover,#send-question-with-token:hover{background:linear-gradient(90deg,#3A3DD9 0%,#5239D9 100%)}
+#send-question[disabled],#send-question-with-token[disabled]{opacity:.3;cursor:not-allowed}
+#send-question img,#send-question-with-token img{width:20px;height:20px;padding-left:0!important}
+/* 第二行：Show me the scene + Image / Video / Ask（参考站同款玻璃胶囊） */
+.fy-composer-row2{display:flex;align-items:center;gap:6px;min-height:32px;flex-wrap:wrap;row-gap:6px}
+.fy-scene-label{display:none;font-family:'Roboto',sans-serif;font-size:11px;line-height:1;color:rgba(232,232,232,.6);padding-left:4px;margin-right:2px}
+#form.fy-scene-on .fy-scene-label{display:inline}
+.scene-pill{position:relative;height:32px;padding:0 10px;border-radius:9999px;background:linear-gradient(rgba(77,77,77,.3) 0%,rgba(55,55,55,.3) 100%);border:1px solid rgba(82,82,82,.9);color:#d4d4d4;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .3s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);font-family:'Roboto',sans-serif}
 .scene-pill:hover{background:linear-gradient(rgba(99,99,99,.4) 0%,rgba(72,72,72,.4) 100%)}
 .scene-pill svg{color:#d4d4d4;flex:0 0 auto}
 .scene-pill[disabled]{opacity:.35;cursor:not-allowed;pointer-events:none}
 .scene-pill.loading{opacity:.6;pointer-events:none}
-/* 发送按钮：参考版同款紫色渐变圆形 */
-#send-question,#send-question-with-token{width:40px;height:40px;padding:0!important;border-radius:9999px;background:linear-gradient(90deg,#4346e6 0%,#6143e6 100%);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;transition:all .3s ease;flex-shrink:0}
-/* 修复双发送按钮：ID 选择器优先级盖过了 Tailwind 的 .hidden，这里必须补回隐藏规则 */
-#send-question.hidden,#send-question-with-token.hidden{display:none!important}
-#send-question:hover,#send-question-with-token:hover{background:linear-gradient(90deg,#3a3dd9 0%,#5239d9 100%)}
-#send-question[disabled],#send-question-with-token[disabled]{opacity:.3}
-#send-question img,#send-question-with-token img{width:20px;height:20px;padding-left:0!important}
 /* Ask 按钮同款玻璃质感，与 Image/Video 一致 */
-#ask-button{height:30px;padding:0 10px!important;background:linear-gradient(rgba(77,77,77,.3) 0%,rgba(55,55,55,.3) 100%)!important;border:1px solid rgba(82,82,82,.9);border-radius:9999px!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:all .3s ease}
+#ask-button{height:32px;padding:0 10px!important;background:linear-gradient(rgba(77,77,77,.3) 0%,rgba(55,55,55,.3) 100%)!important;border:1px solid rgba(82,82,82,.9)!important;border-radius:9999px!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:all .3s ease;color:#d4d4d4;display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto!important;width:auto!important;cursor:pointer}
 #ask-button:hover{background:linear-gradient(rgba(99,99,99,.4) 0%,rgba(72,72,72,.4) 100%)!important}
-/* Chat 页不显示底部导航（参考站 聊天页无底栏，输入区悬浮即可）；其它页面不受影响 */
-.fy-bnav{display:none!important}
-/* 手机端输入区照参考版：悬浮圆角玻璃面板（左右 12px、距底 16px、圆角 26px、12.5px 模糊）
-   注意：不能靠 Tailwind 的 bottom-[Npx] 任意值——这页的编译版 CSS 里没有这些类，会失效落回静态位置 */
-@media (max-width:1023px){
-  /* 顶部固定聊天头 68px（md 88px），原来 pt-61/80 会把首条消息压住 7~8px；
-     底部输入面板实际只占 86px（面板 70 + 距底 16），原来预留 132 会多出 46px 空白 */
-  #messages{height:auto!important;flex:1 1 auto;min-height:0;padding-top:84px!important;padding-bottom:96px!important}
-  .messages-container{height:calc(100% - 64px)!important}
-  #form,#edit-message-form{
-    position:fixed!important;left:12px!important;right:12px!important;width:auto!important;
-    bottom:calc(16px + env(safe-area-inset-bottom,0px))!important;padding:0!important;
-  }
-  #form>div,#edit-message-form>div{
-    border-radius:26px;border:1px solid rgba(255,255,255,.14);
-    background:linear-gradient(180deg,rgba(38,38,38,.92) 0%,rgba(46,46,46,.86) 100%);
-    -webkit-backdrop-filter:blur(12.5px) saturate(1.2);backdrop-filter:blur(12.5px) saturate(1.2);
-    box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.10);
-    padding:6px;
-  }
-  #form>div>.flex.flex-row,#edit-message-form>div>.flex.flex-row{padding-left:12px;padding-right:4px}
-  /* 输入框占满剩余宽度、发送钮不参与收缩：否则发送钮会被挤出面板右侧 */
-  #form>div>.flex.flex-row>.flex.w-full.relative{flex:1 1 auto!important;width:auto!important;min-width:0!important}
-  #form #message-button{flex:0 0 auto!important}
-  #form>div>.flex.flex-row{align-items:center!important;height:auto!important;overflow:visible;column-gap:8px}
-  #form .bg-\[\#252525\]{background:transparent!important}
-  /* 输入框加高（原来 21px 的输入行太扁，手指出不来字） */
-  #form #message_body{height:44px!important;font-size:16px;min-width:0!important}
-  #form .bg-\[\#252525\]{height:auto!important;min-height:56px;padding:0!important;flex-wrap:nowrap!important}
-  /* ---- 有场景素材（Image/Video）时折成两行，输入框独占第一行 ----
-     参考版手机端也是把场景胶囊放在输入框下方，避免三个胶囊把输入框挤成一条缝 */
-  #form.fy-scene-on .bg-\[\#252525\]{flex-wrap:wrap!important;row-gap:6px;align-content:center}
-  #form.fy-scene-on #message_body{flex:1 1 100%!important}
-  #form.fy-scene-on #message-button{align-self:flex-start;margin-top:8px}
-  #form.fy-scene-on .scene-pill{height:30px;padding:0 9px;gap:4px;font-size:11px}
-  #form.fy-scene-on #ask-button{height:30px;padding:0 9px!important;margin-top:0}
-  #form.fy-scene-on #ask-button .text-sm{font-size:12px}
-  /* fy-chat-mobile-20261025：Ask 按钮不允许被压缩，压缩后尾部箭头会溢出压到发送按钮上 */
-  #form #ask-button{flex:0 0 auto!important;width:auto!important}
-  #form #ask-button>img{flex:0 0 auto}
-  /* 有场景素材时输入区折成两行（面板约 112px），底部预留同步放大 */
-  body:has(#form.fy-scene-on) #messages{padding-bottom:124px!important}
-}
+#ask-button>img{flex:0 0 auto;width:16px;height:16px}
+#ask-button .text-sm{font-size:12px;color:#d4d4d4}
+/* Ask 下拉菜单压成 candy 暗色 */
+.fy-composer .bg-zinc-900{background:#252525!important}
+.fy-composer .bg-zinc-900:hover{background:#2e2e2e!important}
+.fy-composer .border-neutral-700{border-color:#3a3a3a!important}
 
-/* 小屏顶部导航：Register / Login 原本固定 90px，320 / 375 视口下 Login 会被挤出屏幕
-   （导航内容实测 385px 宽），改为按文案自适应 */
-@media (max-width:420px){
-  #user-login .w-\[90px\]{width:auto!important;padding-left:12px!important;padding-right:12px!important}
-  #user-login .text-sm{font-size:13px}
-}
-@media (max-width:360px){
-  #user-login .w-\[90px\]{padding-left:6px!important;padding-right:6px!important}
-  #user-login .text-sm{font-size:12px}
-  /* 320 段品牌标收一档，给右侧按钮留出边距 */
-  #nav-hamburger + a img{height:26px!important}
-  /* 320 段 Ask 只留图标 + 文案，尾部下拉箭头隐藏，把宽度让给输入框 */
-  #form #ask-button{padding:0 4px!important}
-  #form #ask-button>img:last-child{display:none}
-  #form #ask-button .text-sm{font-size:12px}
-  /* fy-chat-navright-20261025：登录态右侧是成就徽章 + 代币胶囊，320 下总宽超出视口，
-     隐藏徽章并收窄胶囊，避免余额和展开箭头被裁掉 */
-  .fy-navright{gap:6px}
-  .fy-achv{display:none}
-  .fy-chip{padding:6px 10px;font-size:13px;gap:5px}
-  .fy-chip-coin{width:16px;height:16px}
-  .fy-chip-arrow{width:14px;height:14px}
+/* ---- 右侧资料栏（Profile / Gallery 页签，参考站同款） ---- */
+.profile-container{background:#131313!important;width:360px;flex:0 0 360px;max-width:360px;padding-top:88px!important;border-left:1px solid #232323}
+.fy-tabs{display:flex}
+.fy-tab{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 10px;font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;color:#a4a4a4;background:none;border:0;border-bottom:1px solid #232323;cursor:pointer}
+.fy-tab.active{color:#fff;border-bottom:2px solid #fff}
+.profile-container.fy-gallery-on #profile-partial-turbo{display:none}
+.fy-gallery{display:none;padding:12px;grid-template-columns:1fr 1fr;gap:8px}
+.profile-container.fy-gallery-on .fy-gallery{display:grid}
+.fy-gallery-item{border-radius:12px;overflow:hidden;background:#1c1c1c;aspect-ratio:3/4}
+.fy-gallery-item img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+/* 资料栏内容压暗（原 neutral-900 底改透明融入聊天区底色） */
+.profile-container .relative.bg-neutral-900{background:transparent!important}
+
+/* ---- 左侧会话列表（candy 同款） ---- */
+aside.list-container{background:#1a1a1a!important;left:100px;padding-top:24px!important;padding-bottom:24px!important}
+.fy-list-title{font-family:'Poppins',sans-serif;font-size:24px;font-weight:600;line-height:34px;color:#fff}
+.fy-create-btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:9999px;background:#282828;color:#fff;font-family:'Poppins',sans-serif;font-size:14px;font-weight:500;text-decoration:none;transition:background .3s ease;white-space:nowrap}
+.fy-create-btn:hover{background:rgba(255,255,255,.12)}
+.fy-create-btn svg{width:16px;height:16px;color:#e75275;flex:0 0 auto}
+.fy-filters{display:flex;gap:10px;margin:6px 0 10px;flex-wrap:wrap}
+.fy-filter{height:34px;padding:0 15px;border-radius:9999px;border:1.6px solid transparent;background:#252525;color:#fff;font-family:'Poppins',sans-serif;font-size:13px;font-weight:500;display:inline-flex;align-items:center;cursor:pointer;transition:all .2s ease}
+.fy-filter.active{border-color:#e75275;background:rgba(231,82,117,.1)}
+/* 会话条目 */
+.fy-conv{display:flex;align-items:center;gap:12px;padding:8px;border-radius:14px;margin-top:2px;text-decoration:none}
+.fy-conv:hover{background:#232323}
+a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!important}
+.fy-conv-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:top;flex:0 0 auto}
+.fy-conv-main{flex:1 1 auto;min-width:0}
+.fy-conv-top{display:flex;align-items:center;gap:8px}
+.fy-conv-name{flex:1 1 auto;min-width:0;color:#fff;font-family:'Poppins',sans-serif;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fy-conv-side{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto}
+.fy-conv-time{color:#a4a4a4;font-size:11px;white-space:nowrap}
+.fy-conv-act{display:inline-flex;align-items:center;opacity:0;transition:opacity .2s ease}
+.fy-conv:hover .fy-conv-act,.fy-conv.active .fy-conv-act{opacity:1}
+.fy-conv-act button{background:none;border:0;padding:2px;color:#a4a4a4;cursor:pointer;display:inline-flex}
+.fy-conv-act svg{width:14px;height:14px}
+.fy-conv-preview{color:#a4a4a4;font-family:'Roboto',sans-serif;font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- 手机端：悬浮玻璃输入卡 + 预留固定头高度 ---- */
+@media (max-width:1023px){
+	#messages{padding-top:calc(132px + env(safe-area-inset-top,0px))!important;padding-bottom:120px!important}
+	/* 固定聊天头让开 64px 顶部导航（参考站手机端无顶栏，本站顶栏为共享外壳，需让位） */
+	#pfp-banner-container{top:64px}
+	.fy-composer{position:fixed!important;left:12px!important;right:12px!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important;width:auto!important;max-width:none!important;padding:0!important;z-index:30}
+	.fy-composer-card{padding:12px}
+	/* 有场景素材（Image/Video）时第二行换行展示，底部预留同步放大 */
+	body:has(#form.fy-scene-on) #messages{padding-bottom:150px!important}
+	.fy-composer-row2{row-gap:6px}
 }
 /* 平板段固定聊天头是 88px，顶部预留同步放大 */
 @media (min-width:768px) and (max-width:1023px){
-  #messages{padding-top:104px!important}
+	#messages{padding-top:calc(152px + env(safe-area-inset-top,0px))!important}
 }
-/* fy-call-fullscreen-20261025：手机端通话界面改为全屏
-   人像铺满整屏，上下加暗色渐变保证文字可读；挂断按钮不再绝对定位，
-   底部按「挂断 / 低余额提示 / 实时字幕」纵向排布，避免互相遮挡。
-   桌面（>=1024px）仍沿用原来的 480x620 卡片 */
+
+/* 小屏顶部导航：Register / Login 按文案自适应（保留原修复） */
+@media (max-width:420px){
+	#user-login .w-\[90px\]{width:auto!important;padding-left:12px!important;padding-right:12px!important}
+	#user-login .text-sm{font-size:13px}
+}
+@media (max-width:360px){
+	#user-login .w-\[90px\]{padding-left:6px!important;padding-right:6px!important}
+	#user-login .text-sm{font-size:12px}
+	#nav-hamburger + a img{height:26px!important}
+	/* 320 段 Ask 只留文案，把宽度让给输入框 */
+	#form #ask-button{padding:0 8px!important}
+	#form #ask-button>img{display:none}
+	.fy-filters{gap:6px}
+	.fy-filter{padding:0 10px}
+	.fy-create-btn{padding:0 10px}
+}
+
+/* fy-call-fullscreen：手机端通话界面全屏（保留原规则） */
 @media (max-width:1023px){
-  #phoneCallModal{height:100vh;height:100dvh;align-items:stretch}
-  #phoneCallModal>div{
-    width:100%!important;height:100%!important;max-width:none!important;
-    border:0!important;border-radius:0!important;
-    background-size:cover!important;background-position:center top!important;
-  }
-  #phoneCallModal>div::before,#phoneCallModal>div::after{
-    content:"";position:absolute;left:0;right:0;pointer-events:none;z-index:0;
-  }
-  #phoneCallModal>div::before{
-    top:0;height:30vh;
-    background:linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.34) 55%,rgba(0,0,0,0) 100%);
-  }
-  #phoneCallModal>div::after{
-    bottom:0;height:42vh;
-    background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.52) 45%,rgba(0,0,0,0) 100%);
-  }
-  #phoneCallModal .top-div{
-    position:relative;z-index:1;width:100%;margin-top:0!important;
-    padding:calc(env(safe-area-inset-top,0px) + 44px) 20px 0;text-align:center;
-  }
-  #phoneCallModal .top-div>span:first-child{
-    display:block;max-width:86vw;margin:0 auto;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    text-shadow:0 2px 12px rgba(0,0,0,.55);
-  }
-  #phoneCallModal .top-div [data-phone-call-target="ringingText"],
-  #phoneCallModal .top-div [data-phone-call-target="timer"],
-  #phoneCallModal .top-div [data-phone-call-target="listeningText"]{
-    text-shadow:0 1px 8px rgba(0,0,0,.6);
-  }
-  #phoneCallModal .bottom-div{
-    position:absolute!important;left:0;right:0;bottom:0;width:100%!important;
-    margin-bottom:0!important;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 26px);
-    display:flex;flex-direction:column;align-items:center;gap:12px;z-index:1;
-  }
-  #phoneCallModal .bottom-div>a[data-action*="endPhoneCall"]{position:static!important;order:3;margin-top:4px}
-  #phoneCallModal .bottom-div>a[data-action*="endPhoneCall"] img{filter:drop-shadow(0 8px 22px rgba(0,0,0,.55))}
-  #phoneCallModal [data-phone-call-target="lowBalanceWarning"]{
-    order:2;width:100%!important;max-width:460px;
-    background:rgba(18,18,18,.42)!important;border:1px solid rgba(255,255,255,.12);
-  }
-  /* fy-call-scroll-20261025：字幕框原本是 flex + items-center，长文本被垂直居中后
-     开头会被裁到框顶上方且滚不回来；改成块级，从第一行开始正常滚动 */
-  /* fy-call-scrollbar-20261025：字幕框滚动条改暗色细条 */
-  #phoneCallModal [data-phone-call-target="transcribedText"]{
-    order:1;width:100%!important;max-width:460px;margin:0!important;
-    height:auto!important;min-height:56px;max-height:26vh;
-    display:block!important;line-height:1.5;
-    scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent;
-    background:rgba(18,18,18,.42)!important;border:1px solid rgba(255,255,255,.12);
-    text-shadow:0 1px 6px rgba(0,0,0,.5);
-  }
-  #phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar{width:4px}
-  #phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar-track{background:transparent}
-  #phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:4px}
+	#phoneCallModal{height:100vh;height:100dvh;align-items:stretch}
+	#phoneCallModal>div{
+		width:100%!important;height:100%!important;max-width:none!important;
+		border:0!important;border-radius:0!important;
+		background-size:cover!important;background-position:center top!important;
+	}
+	#phoneCallModal>div::before,#phoneCallModal>div::after{
+		content:"";position:absolute;left:0;right:0;pointer-events:none;z-index:0;
+	}
+	#phoneCallModal>div::before{
+		top:0;height:30vh;
+		background:linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.34) 55%,rgba(0,0,0,0) 100%);
+	}
+	#phoneCallModal>div::after{
+		bottom:0;height:42vh;
+		background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.52) 45%,rgba(0,0,0,0) 100%);
+	}
+	#phoneCallModal .top-div{
+		position:relative;z-index:1;width:100%;margin-top:0!important;
+		padding:calc(env(safe-area-inset-top,0px) + 44px) 20px 0;text-align:center;
+	}
+	#phoneCallModal .top-div>span:first-child{
+		display:block;max-width:86vw;margin:0 auto;
+		white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+		text-shadow:0 2px 12px rgba(0,0,0,.55);
+	}
+	#phoneCallModal .top-div [data-phone-call-target="ringingText"],
+	#phoneCallModal .top-div [data-phone-call-target="timer"],
+	#phoneCallModal .top-div [data-phone-call-target="listeningText"]{
+		text-shadow:0 1px 8px rgba(0,0,0,.6);
+	}
+	#phoneCallModal .bottom-div{
+		position:absolute!important;left:0;right:0;bottom:0;width:100%!important;
+		margin-bottom:0!important;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 26px);
+		display:flex;flex-direction:column;align-items:center;gap:12px;z-index:1;
+	}
+	#phoneCallModal .bottom-div>a[data-action*="endPhoneCall"]{position:static!important;order:3;margin-top:4px}
+	#phoneCallModal .bottom-div>a[data-action*="endPhoneCall"] img{filter:drop-shadow(0 8px 22px rgba(0,0,0,.55))}
+	#phoneCallModal [data-phone-call-target="lowBalanceWarning"]{
+		order:2;width:100%!important;max-width:460px;
+		background:rgba(18,18,18,.42)!important;border:1px solid rgba(255,255,255,.12);
+	}
+	#phoneCallModal [data-phone-call-target="transcribedText"]{
+		order:1;width:100%!important;max-width:460px;margin:0!important;
+		height:auto!important;min-height:56px;max-height:26vh;
+		display:block!important;line-height:1.5;
+		scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent;
+		background:rgba(18,18,18,.42)!important;border:1px solid rgba(255,255,255,.12);
+		text-shadow:0 1px 6px rgba(0,0,0,.5);
+	}
+	#phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar{width:4px}
+	#phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar-track{background:transparent}
+	#phoneCallModal [data-phone-call-target="transcribedText"]::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:4px}
 }
 	</style>
 <script src="./js/tracking.js?v=20261105a"></script>
@@ -662,41 +754,15 @@
       </div>
 
       <div id="messages" class="p-4 pt-[61px] md:pt-[80px] lg:pt-0 scrollbar lg:h-full h-[calc(100vh-16rem)] overflow-auto">
-        <turbo-frame class="relative" id="messages_turbo_frame">
-            <div class="user-response px-4 py-2 rounded-md no-user-greeting" style="visibility: visible;">
-              <div class="justify-start items-start gap-2.5 inline-flex lg:w-[50%]">
-                <div class="justify-start items-start gap-3 flex">
-                  <div class="w-full flex-col justify-start items-start gap-[9px] inline-flex">
-                    <div class="p-3 bg-[#D98491] rounded-[10px] justify-start items-start gap-2.5 inline-flex">
-                      <div class=" text-white text-sm font-normal">
-                        
-                      </div>
-                      <div class="">
-  <div data-audio-target="wrapper" class="button-transform cursor-pointer w-[32px] h-[32px] p-1 justify-center items-center inline-flex rounded-full bg-white" data-controller="audio" data-redirect-url="/ai-girlfriend/priya-mehta" data-action="click-&gt;main#openRegistrationModal">
-    <div class="w-5 h-5 relative">
-      <div data-audio-target="playIcon">
-        <svg id="play-icon" class="text-[#C14DA0]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"></path>
-        </svg>
-      </div>
-      <div data-audio-target="pauseIcon" class="hidden">
-        <svg id="pause-icon" class="text-[#C14DA0]" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5"></path>
-        </svg>
-      </div>
-    </div>
-    <audio controlslist="nodownload" id="song" data-audio-target="song">
-      <source src="" type="audio/ogg">
-    </audio>
-  </div>
-</div>
-
-                    </div>
-                    <div class="text-neutral-500 text-[13px] font-normal">11:44 AM</div>
-                  </div>
-                </div>
+            <div class="fy-disclaimer" id="fy-disclaimer">
+              <div class="fy-disclaimer-row" onclick="var b=document.getElementById('fy-disclaimer-body');b.hidden=!b.hidden;document.getElementById('fy-disclaimer-chev').classList.toggle('up')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span class="fy-disclaimer-text">Safe Chat Disclaimer</span>
+                <svg id="fy-disclaimer-chev" class="fy-disclaimer-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
+              <div class="fy-disclaimer-body" id="fy-disclaimer-body" hidden>All characters in this conversation are AI-generated and fully fictional. Any resemblance to real persons is purely coincidental. Please keep chats respectful — and enjoy responsibly. 18+ only.</div>
             </div>
+        <turbo-frame class="relative" id="messages_turbo_frame">
             <div class="no-user-loader absolute top-0" style="visibility: hidden;">
               <div id="loader" class="px-4 py-2" data-controller="message-scroll">
   <div class="justify-start items-start gap-2.5 inline-flex slow-fade">
@@ -719,32 +785,48 @@
         <turbo-frame id="new_message_form">
           
 
-<div id="form" class="z-10 fixed w-full bottom-[24px] lg:relative lg:bottom-[17px] pb-1">
-    <div data-controller="message-form">
-<div class="flex flex-row items-center h-12 w-full px-4">
-    <div class="flex w-full relative" data-controller="message-ask">
-      <div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-full">
-        <div class="bg-[#252525] justify-start gap-1.5 rounded-xl border-none placeholder-[#E0E0E0] text-white no-focus-border flex items-center h-12 w-full px-3 text-[16px]">
-          <input data-action="keydown.enter-&gt;main#openRegistrationModal" data-redirect-url="/ai-girlfriend/priya-mehta" data-message-ask-target="inputField" data-message-form-target="messageInput" placeholder="Type a message" autocomplete="off" class="px-1 bg-[#252525] border-none placeholder-[#E0E0E0] text-white flex-1 min-w-0 no-focus-border flex items-center text-[16px]" required="required" type="text" id="message_body">
+<div id="form" class="z-10 fixed w-full bottom-0 lg:relative lg:bottom-0">
+  <div data-controller="message-form" class="fy-composer">
+    <div class="fy-composer-card">
+      <div class="fy-composer-inputwrap" data-controller="message-ask">
+        <div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-full">
+          <div class="fy-composer-row1">
+            <input data-action="keydown.enter-&gt;main#openRegistrationModal" data-redirect-url="/ai-girlfriend/priya-mehta" data-message-ask-target="inputField" data-message-form-target="messageInput" placeholder="Write a message..." autocomplete="off" class="fy-composer-input" required="required" type="text" id="message_body">
+            <div id="message-button">
+                <button data-message-form-target="" id="send-question" class="flex items-center justify-center flex-shrink-0" data-action="click-&gt;main#openRegistrationModal" data-redirect-url="/ai-girlfriend/priya-mehta">
+    <img src="./Chat_files/send-message-49cd17c8857cb47efe8d97a06ce2d29f451e9b5dcda6f10a76f2cc135aa93e18.svg" alt="">
+  </button>
+  <button data-message-form-target="submitButtonWithToken" id="send-question-with-token" class="hidden flex items-center justify-center flex-shrink-0">
+    <div class="flex flex-col items-center">
+      <div class="w-10 h-[20px] bg-[#AD314E] rounded-t-lg justify-center items-center inline-flex">
+        <img class="w-3 h-3" src="./Chat_files/bottom_bar_tokens_default-273d841343a05f1ba983a3ee4f6ef88b7180effec130b26b7cbb8442c6fc6040.svg">
+        <div class="text-white ml-1 text-xs leading-none">2</div>
+      </div>
+      <div class="w-10 h-7 py-1 justify-center items-center inline-flex">
+        <img class="w-5 h-5" src="./Chat_files/send-message-49cd17c8857cb47efe8d97a06ce2d29f451e9b5dcda6f10a76f2cc135aa93e18.svg">
+      </div>
+    </div>
+  </button>
 
-          <!-- Show me the scene：Image/Video 与输入框同一行（参考站新版交互；无图片隐藏 Image，无视频 Video 置灰） -->
-          <button type="button" id="scene-image-btn" class="scene-pill" style="display:none" title="Send a photo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            <span>Image</span>
-          </button>
-          <button type="button" id="scene-video-btn" class="scene-pill" style="display:none" title="Send a video">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
-            <span>Video</span>
-          </button>
-
-<button type="button" data-action="click-&gt;message-ask#hideWalk" class="w-[95px] md:w-fit h-7 p-1 bg-neutral-700 rounded-md items-center gap-1 inline-flex cursor-pointer" id="ask-button" @click="open = !open" aria-expanded="false" :aria-expanded="open.toString()">
-            <img class="w-5 h-5 relative" src="./Chat_files/ask-pic-5a389368eeb83c8ee483a399f6fdd37c9831bae007c745fbd9971638744a737f.svg">
-            <div class="text-white text-sm font-medium leading-tight">Ask</div>
-            <img class="w-5 h-5 relative" src="./Chat_files/ask-arrow-5e9e3d502459a09cc6f7a6face21c887f7e5ff747265bdf33f1cc5eb16098469.svg">
-          </button>
-        </div>
-
-        <div x-show="open" @keydown.arrow-up.prevent="" @keydown.arrow-down.prevent="" @keydown.tab="open = false" @keydown.enter.prevent="open = false" class="absolute right-0 top-[-200px] z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none" style="display: none;">
+            </div>
+          </div>
+          <div class="fy-composer-row2">
+            <span class="fy-scene-label">Show me the scene:</span>
+            <button type="button" id="scene-image-btn" class="scene-pill" style="display:none" title="Send a photo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              <span>Image</span>
+            </button>
+            <button type="button" id="scene-video-btn" class="scene-pill" style="display:none" title="Send a video">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+              <span>Video</span>
+            </button>
+            <button type="button" data-action="click-&gt;message-ask#hideWalk" id="ask-button" @click="open = !open" aria-expanded="false" :aria-expanded="open.toString()">
+              <img src="./Chat_files/ask-pic-5a389368eeb83c8ee483a399f6fdd37c9831bae007c745fbd9971638744a737f.svg" alt="">
+              <div class="text-white text-sm font-medium leading-tight">Ask</div>
+              <img src="./Chat_files/ask-arrow-5e9e3d502459a09cc6f7a6face21c887f7e5ff747265bdf33f1cc5eb16098469.svg" alt="">
+            </button>
+          </div>
+<div x-show="open" @keydown.arrow-up.prevent="" @keydown.arrow-down.prevent="" @keydown.tab="open = false" @keydown.enter.prevent="open = false" class="absolute right-0 top-[-200px] z-10 mt-2.5 origin-top-right rounded-lg shadow-lg focus:outline-none" style="display: none;">
   <div class="w-40 h-44 rounded-lg flex-col justify-start items-start inline-flex">
     <div data-action="click-&gt;message-ask#appendText" class="cursor-pointer px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 rounded-tl-lg rounded-tr-lg justify-start items-center gap-2 inline-flex">
       <div class="w-32 text-white text-xs font-medium leading-none">Show me...</div>
@@ -841,35 +923,11 @@
     </div>
   </div>
 </div>
-
+          <div id="image-tips"></div>
+        </div>
       </div>
-
-      <div id="image-tips"></div>
-    </div>
-
-    <div id="message-button">
-        <button data-message-form-target="" id="send-question" class="flex items-center justify-center pl-4 py-1 flex-shrink-0" data-action="click-&gt;main#openRegistrationModal" data-redirect-url="/ai-girlfriend/priya-mehta">
-    <div class="w-11 h-11 p-3 rounded-lg justify-center items-center inline-flex bg-primary">
-      <img src="./Chat_files/send-message-49cd17c8857cb47efe8d97a06ce2d29f451e9b5dcda6f10a76f2cc135aa93e18.svg">
-    </div>
-  </button>
-  <button data-message-form-target="submitButtonWithToken" id="send-question-with-token" class="hidden flex items-center justify-center pl-4 py-2 flex-shrink-0">
-    <div class="flex flex-col items-center">
-      <div class="w-11 h-[20px] bg-[#AD314E] rounded-t-lg justify-center items-center inline-flex">
-        <img class="w-3 h-3" src="./Chat_files/bottom_bar_tokens_default-273d841343a05f1ba983a3ee4f6ef88b7180effec130b26b7cbb8442c6fc6040.svg">
-        <div class="text-white ml-1">2</div>
-      </div>
-      <div class="w-11 h-7 py-1 bg-primary rounded-b-lg justify-center items-center inline-flex">
-        <img class="w-5 h-5" src="./Chat_files/send-message-49cd17c8857cb47efe8d97a06ce2d29f451e9b5dcda6f10a76f2cc135aa93e18.svg">
-      </div>
-    </div>
-  </button>
-
     </div>
   </div>
-
-</div>
-
 </div>
 
 </turbo-frame>        <turbo-frame id="edit_message_form">
@@ -878,6 +936,33 @@
 
 </turbo-frame>    </div>
     <div class="pt-16 lg:w-[30%] lg:max-w-[400px] overflow-auto h-full profile-container hidden lg:block" data-profile-toggle-target="profileContainer">
+      <div class="fy-tabs">
+        <button type="button" class="fy-tab active" id="fy-tab-profile" onclick="fySwitchTab('profile')">Profile</button>
+        <button type="button" class="fy-tab" id="fy-tab-gallery" onclick="fySwitchTab('gallery')">Gallery</button>
+      </div>
+      <div class="fy-gallery" id="fy-gallery"></div>
+      <script>
+        function fySwitchTab(tab) {
+          var pc = document.querySelector('.profile-container')
+          if (!pc) return
+          var on = tab === 'gallery'
+          pc.classList.toggle('fy-gallery-on', on)
+          var tp = document.getElementById('fy-tab-profile')
+          var tg = document.getElementById('fy-tab-gallery')
+          if (tp) tp.classList.toggle('active', !on)
+          if (tg) tg.classList.toggle('active', on)
+          if (on) {
+            var g = document.getElementById('fy-gallery')
+            if (g && !g.dataset.built) {
+              var imgs = document.querySelectorAll('#pfp-carousel .carousel img')
+              var h = ''
+              imgs.forEach(function (im) { h += '<div class="fy-gallery-item"><img src="' + im.getAttribute('src') + '" loading="lazy" alt=""></div>' })
+              g.innerHTML = h
+              g.dataset.built = '1'
+            }
+          }
+        }
+      </script>
       <div id="profile-partial-turbo">
         <div class="relative bg-neutral-900">
   <div class="w-full h-auto relative" id="pfp-carousel">
@@ -1364,14 +1449,21 @@
   </div>
 </div>
 
-        <aside class="scrollbar fixed bg-[#1A1A1A] bottom-0 left-0 lg:left-[100px] top-12 w-full lg:w-[340px] overflow-y-auto px-6 pt-6 pb-[100px] lg:pb-6 xl:block lg:block z-10 list-container hidden" data-main-target="chatListContainer" style="left: 100px;">
-  <div class="flex justify-between items-center w-full">
-    <div class="text-white flex text-md font-bold leading-[34px] my-3 relative">
-      Chat
+        <aside class="scrollbar fixed bg-[#1A1A1A] bottom-0 left-0 lg:left-[100px] top-12 w-full lg:w-[340px] overflow-y-auto px-3 pt-3 lg:pt-6 pb-[100px] lg:pb-6 xl:block lg:block z-10 list-container hidden" data-main-target="chatListContainer" style="left: 100px;">
+  <div class="flex justify-between items-center w-full gap-3">
+    <div class="fy-list-title">Chat</div>
+    <div class="flex items-center gap-2">
+      <a class="fy-create-btn" href="./createCharacter.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Create new</span></a>
+      <a class="flex" href="./Girls.html">
+        <img src="./Chat_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="block lg:hidden cursor-pointer">
+      </a>
     </div>
-    <a class="flex" href="./Girls.html">
-      <img src="./Chat_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="block lg:hidden cursor-pointer">
-</a>  </div>
+  </div>
+  <div class="fy-filters">
+    <button type="button" class="fy-filter active">All</button>
+    <button type="button" class="fy-filter">Unread</button>
+    <button type="button" class="fy-filter">Favorites</button>
+  </div>
   <form class="relative flex flex-1" action="/ai-girlfriend/priya-mehta#" method="GET">
     <label for="search-field" class="sr-only">Search</label>
     <svg class="ml-2 pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -1386,40 +1478,25 @@
   </form>
   <div id="message-list">
     <script type="text/template" id="user-template">
-      <a data-turbo-stream="false" class="w-full mt-2 rounded-[10px] justify-start items-start gap-4 inline-flex conversation-open chat-obj" data-id="{{id}}" data-method="get" style="cursor: pointer;">
-        <div class="w-full relative h-[59px] rounded-[10px] justify-start items-center gap-3 inline-flex">
-          <div id="conversation-pfp-12762644" class="w-1/5 h-10 justify-start items-center flex">
-              <img src="{{imgUrl}}" class="object-cover object-top rounded-full h-12 w-12">
-      
+      <a data-turbo-stream="false" class="fy-conv chat-obj" data-id="{{id}}" data-method="get" style="cursor: pointer;">
+        <img class="fy-conv-avatar" src="{{imgUrl}}" alt="">
+        <div class="fy-conv-main">
+          <div class="fy-conv-top">
+            <span class="fy-conv-name chat-name">{{name}}</span>
+            <span class="fy-conv-side">
+              <span class="fy-conv-time">{{time}}</span>
+              <form class="fy-conv-act" method="post" action=""><input type="hidden" name="_method" value="delete" autocomplete="off"><button data-turbo="true" type="button" data-reboot-conv title="Reboot conversation">
+                <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M2.42742 7.17755C2.88001 4.10191 5.7402 1.97552 8.81583 2.42811C9.86518 2.58252 10.8495 3.03026 11.6555 3.71977L10.93 4.44532C10.6868 4.68857 10.6868 5.08292 10.9301 5.3261C11.0469 5.44282 11.2052 5.50842 11.3703 5.50845H14.2265C14.5704 5.50845 14.8493 5.22962 14.8493 4.88565V2.02947C14.8492 1.68551 14.5703 1.40673 14.2263 1.40679C14.0612 1.40682 13.9029 1.47242 13.7862 1.58914L12.9765 2.39877C9.88891 -0.353483 5.1548 -0.0816883 2.40255 3.00586C1.4275 4.09967 0.794753 5.45549 0.582688 6.90538C0.499077 7.41939 0.847973 7.90386 1.36196 7.98748C1.40826 7.99501 1.45503 7.99907 1.50195 7.99965C1.9722 7.99457 2.36693 7.64392 2.42742 7.17755Z"/><path d="M14.4957 7.99965C14.0255 8.00473 13.6307 8.35538 13.5702 8.82175C13.1176 11.8974 10.2575 14.0238 7.18182 13.5712C6.13248 13.4168 5.14812 12.9691 4.34213 12.2796L5.06769 11.554C5.31087 11.3108 5.31082 10.9164 5.06754 10.6732C4.9508 10.5565 4.79245 10.4909 4.62736 10.4909H1.77123C1.42727 10.4909 1.14844 10.7697 1.14844 11.1137V13.9699C1.14853 14.3138 1.42741 14.5926 1.77138 14.5925C1.93647 14.5925 2.09482 14.5269 2.21156 14.4102L3.0212 13.6006C6.10801 16.3531 10.8418 16.0822 13.5943 12.9953C14.5699 11.9013 15.203 10.545 15.415 9.09457C15.4989 8.58061 15.1504 8.0959 14.6364 8.01194C14.5899 8.00432 14.5429 8.0002 14.4957 7.99965Z"/></svg>
+              </button></form>
+              <form class="fy-conv-act" method="post" action=""><input type="hidden" name="_method" value="delete" autocomplete="off"><button data-turbo="true" type="button" data-reboot-conv title="Delete conversation">
+                <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M14.0002 3.83301H2.00016C1.82335 3.83301 1.65378 3.90325 1.52876 4.02827C1.40373 4.15329 1.3335 4.32286 1.3335 4.49967C1.3335 4.67649 1.40373 4.84605 1.52876 4.97108C1.65378 5.0961 1.82335 5.16634 2.00016 5.16634H3.3335V13.1663C3.33366 13.6967 3.54442 14.2053 3.91946 14.5804C4.2945 14.9554 4.80311 15.1662 5.3335 15.1663H10.6668C11.1972 15.1662 11.7058 14.9554 12.0809 14.5804C12.4559 14.2054 12.6667 13.6967 12.6668 13.1663V5.16634H14.0002C14.177 5.16634 14.3465 5.0961 14.4716 4.97108C14.5966 4.84605 14.6668 4.67649 14.6668 4.49967C14.6668 4.32286 14.5966 4.15329 14.4716 4.02827C14.3465 3.90325 14.177 3.83301 14.0002 3.83301ZM7.3335 11.1663C7.3335 11.3432 7.26326 11.5127 7.13823 11.6377C7.01321 11.7628 6.84364 11.833 6.66683 11.833C6.49002 11.833 6.32045 11.7628 6.19543 11.6377C6.0704 11.5127 6.00016 11.3432 6.00016 11.1663V7.83301C6.00016 7.6562 6.0704 7.48663 6.19543 7.3616C6.32045 7.23658 6.49002 7.16634 6.66683 7.16634C6.84364 7.16634 7.01321 7.23658 7.13823 7.3616C7.26326 7.48663 7.3335 7.6562 7.3335 7.83301V11.1663ZM10.0002 11.1663C10.0002 11.3432 9.92993 11.5127 9.8049 11.6377C9.67988 11.7628 9.51031 11.833 9.3335 11.833C9.15669 11.833 8.98712 11.7628 8.86209 11.6377C8.73707 11.5127 8.66683 11.3432 8.66683 11.1663V7.83301C8.66683 7.6562 8.73707 7.48663 8.86209 7.3616C8.98712 7.23658 9.15669 7.16634 9.3335 7.16634C9.51031 7.16634 9.67988 7.23658 9.8049 7.3616C9.92993 7.48663 10.0002 7.6562 10.0002 7.83301V11.1663Z" fill="currentColor"/><path d="M6.66667 3.16634H9.33333C9.51014 3.16634 9.67971 3.0961 9.80474 2.97108C9.92976 2.84605 10 2.67649 10 2.49967C10 2.32286 9.92976 2.15329 9.80474 2.02827C9.67971 1.90325 9.51014 1.83301 9.33333 1.83301H6.66667C6.48986 1.83301 6.32029 1.90325 6.19526 2.02827C6.07024 2.15329 6 2.32286 6 2.49967C6 2.67649 6.07024 2.84605 6.19526 2.97108C6.32029 3.0961 6.48986 3.16634 6.66667 3.16634Z" fill="currentColor"/></svg>
+              </button></form>
+            </span>
           </div>
-          <div class="flex-col w-3/5 justify-start items-start gap-0.5 inline-flex">
-            <div class="justify-between w-[100%] items-center gap-1 inline-flex">
-              <div class="text-white text-sm font-medium leading-normal">{{name}}</div>
-            </div>
-              <div class="w-full opacity-75 text-white text-xs break-words truncate font-normal">{{message}}</div>
-          </div>
-          <div class="flex-col w-1/5 justify-end gap-2 flex" >
-            <div class="opacity-75 text-white text-xs font-light flex justify-end">{{time}}</div>
-              <div class="flex justify-end">
-                <form class="flex justify-end items-center" method="post" action=""><input type="hidden" name="_method" value="delete" autocomplete="off"><button data-turbo="true" class="flex-col gap-0.5 text-right" type="button" data-reboot-conv>
-                  <svg class="hover:text-white text-[#A4A4A4] w-4 h-4 mr-1" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                    <g id="Group">
-                      <path id="Vector" d="M2.42742 7.17755C2.88001 4.10191 5.7402 1.97552 8.81583 2.42811C9.86518 2.58252 10.8495 3.03026 11.6555 3.71977L10.93 4.44532C10.6868 4.68857 10.6868 5.08292 10.9301 5.3261C11.0469 5.44282 11.2052 5.50842 11.3703 5.50845H14.2265C14.5704 5.50845 14.8493 5.22962 14.8493 4.88565V2.02947C14.8492 1.68551 14.5703 1.40673 14.2263 1.40679C14.0612 1.40682 13.9029 1.47242 13.7862 1.58914L12.9765 2.39877C9.88891 -0.353483 5.1548 -0.0816883 2.40255 3.00586C1.4275 4.09967 0.794753 5.45549 0.582688 6.90538C0.499077 7.41939 0.847973 7.90386 1.36196 7.98748C1.40826 7.99501 1.45503 7.99907 1.50195 7.99965C1.9722 7.99457 2.36693 7.64392 2.42742 7.17755Z" fill="currentColor"></path>
-                      <path id="Vector_2" d="M14.4957 7.99965C14.0255 8.00473 13.6307 8.35538 13.5702 8.82175C13.1176 11.8974 10.2575 14.0238 7.18182 13.5712C6.13248 13.4168 5.14812 12.9691 4.34213 12.2796L5.06769 11.554C5.31087 11.3108 5.31082 10.9164 5.06754 10.6732C4.9508 10.5565 4.79245 10.4909 4.62736 10.4909H1.77123C1.42727 10.4909 1.14844 10.7697 1.14844 11.1137V13.9699C1.14853 14.3138 1.42741 14.5926 1.77138 14.5925C1.93647 14.5925 2.09482 14.5269 2.21156 14.4102L3.0212 13.6006C6.10801 16.3531 10.8418 16.0822 13.5943 12.9953C14.5699 11.9013 15.203 10.545 15.415 9.09457C15.4989 8.58061 15.1504 8.0959 14.6364 8.01194C14.5899 8.00432 14.5429 8.0002 14.4957 7.99965Z" fill="currentColor"></path>
-                    </g>
-                  </svg>
-      </button><input type="hidden" name="authenticity_token" value="4y5WUxK8N4H26bP0cbDSbboGh44QTORroCVTRdOk-j8gFgOyheLRVGlZlghBb839zqpYJw0eEeI_cYj1cm_bew" autocomplete="off"></form>          <form class="flex justify-end items-center" method="post" action=""><input type="hidden" name="_method" value="delete" autocomplete="off"><button data-turbo="true" class="flex-col gap-0.5 text-right" type="button" data-reboot-conv>
-                  <svg class="hover:text-white text-[#A4A4A4] w-4 h-4" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <g>
-                      <path d="M14.0002 3.83301H2.00016C1.82335 3.83301 1.65378 3.90325 1.52876 4.02827C1.40373 4.15329 1.3335 4.32286 1.3335 4.49967C1.3335 4.67649 1.40373 4.84605 1.52876 4.97108C1.65378 5.0961 1.82335 5.16634 2.00016 5.16634H3.3335V13.1663C3.33366 13.6967 3.54442 14.2053 3.91946 14.5804C4.2945 14.9554 4.80311 15.1662 5.3335 15.1663H10.6668C11.1972 15.1662 11.7058 14.9554 12.0809 14.5804C12.4559 14.2054 12.6667 13.6967 12.6668 13.1663V5.16634H14.0002C14.177 5.16634 14.3465 5.0961 14.4716 4.97108C14.5966 4.84605 14.6668 4.67649 14.6668 4.49967C14.6668 4.32286 14.5966 4.15329 14.4716 4.02827C14.3465 3.90325 14.177 3.83301 14.0002 3.83301ZM7.3335 11.1663C7.3335 11.3432 7.26326 11.5127 7.13823 11.6377C7.01321 11.7628 6.84364 11.833 6.66683 11.833C6.49002 11.833 6.32045 11.7628 6.19543 11.6377C6.0704 11.5127 6.00016 11.3432 6.00016 11.1663V7.83301C6.00016 7.6562 6.0704 7.48663 6.19543 7.3616C6.32045 7.23658 6.49002 7.16634 6.66683 7.16634C6.84364 7.16634 7.01321 7.23658 7.13823 7.3616C7.26326 7.48663 7.3335 7.6562 7.3335 7.83301V11.1663ZM10.0002 11.1663C10.0002 11.3432 9.92993 11.5127 9.8049 11.6377C9.67988 11.7628 9.51031 11.833 9.3335 11.833C9.15669 11.833 8.98712 11.7628 8.86209 11.6377C8.73707 11.5127 8.66683 11.3432 8.66683 11.1663V7.83301C8.66683 7.6562 8.73707 7.48663 8.86209 7.3616C8.98712 7.23658 9.15669 7.16634 9.3335 7.16634C9.51031 7.16634 9.67988 7.23658 9.8049 7.3616C9.92993 7.48663 10.0002 7.6562 10.0002 7.83301V11.1663Z" fill="currentColor"></path>
-                      <path d="M6.66667 3.16634H9.33333C9.51014 3.16634 9.67971 3.0961 9.80474 2.97108C9.92976 2.84605 10 2.67649 10 2.49967C10 2.32286 9.92976 2.15329 9.80474 2.02827C9.67971 1.90325 9.51014 1.83301 9.33333 1.83301H6.66667C6.48986 1.83301 6.32029 1.90325 6.19526 2.02827C6.07024 2.15329 6 2.32286 6 2.49967C6 2.67649 6.07024 2.84605 6.19526 2.97108C6.32029 3.0961 6.48986 3.16634 6.66667 3.16634Z" fill="currentColor"></path>
-                    </g>
-                  </svg>
-      </button><input type="hidden" name="authenticity_token" value="9WIVcvR4vv6-2uhC9_5Yss3cblCMuApPqhS_GehttNI2WkCTYyZYKyFqzb7HIUciuXCx-ZHq_8Y1QGSpSaaVlg" autocomplete="off"></form>        </div>
-          </div>
+          <div class="fy-conv-preview">{{message}}</div>
         </div>
-        </a>
-  </script>
+      </a>
+</script>
     </div>
   
 </aside>

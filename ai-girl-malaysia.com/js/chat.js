@@ -410,12 +410,24 @@
     }
 
     function nowTime() {
+        // candy 同款时间格式：3:16AM（无空格）
         var d = new Date()
         var h = d.getHours()
         var ampm = h >= 12 ? 'PM' : 'AM'
         h = h % 12
         if (h === 0) h = 12
-        return h + ':' + ('0' + d.getMinutes()).slice(-2) + ' ' + ampm
+        return h + ':' + ('0' + d.getMinutes()).slice(-2) + ampm
+    }
+
+    // candy 同款富文本：*动作* 渲染成斜体紫（#988DFC），先转义再替换，安全
+    function richText(text) {
+        return esc(text).replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+    }
+
+    // 消息元信息行的小头像（candy 同款：时间前带 26px 圆头像）
+    function chatAvatarSrc() {
+        var im = document.getElementById('chat-img') || document.getElementById('chat-img-mobile')
+        return im ? (im.getAttribute('src') || '') : ''
     }
 
     function scrollMessagesToBottom() {
@@ -431,22 +443,25 @@
         var box = messagesBox()
         if (!box) return null
         var row = document.createElement('div')
-        row.className = 'user-response px-4 py-2'
-        var tag = voice
-            ? '<span style="display:inline-flex;align-items:center;height:18px;padding:0 7px;margin-right:7px;border-radius:99px;' +
-              'background:' + (mine ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.18)') + ';font-size:11px;font-weight:600;' +
-              'line-height:1;color:rgba(255,255,255,.92);vertical-align:middle;white-space:nowrap">VOICE</span>'
-            : ''
-        row.innerHTML = '<div class="flex ' + (mine ? 'justify-end' : 'justify-start') + '">' +
-            '<div class="flex-col gap-[9px] inline-flex ' + (mine ? 'ml-auto items-end' : '') + '">' +
-            '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;' +
-            (mine ? 'background:#303030;padding:10px 12px;border-radius:10px;max-width:80%'
-                  : 'background:#D98491;padding:12px;border-radius:10px') + '"></div>' +
-            '<div class="text-neutral-500 text-[13px] font-normal">' + nowTime() + '</div>' +
-            '</div></div>'
-        var bubble = row.querySelector('.js-bubble')
-        if (tag) bubble.innerHTML = tag
-        bubble.appendChild(document.createTextNode(text))
+        // candy 同款气泡：AI 深灰 #252525（左下直角），用户紫渐变（右下直角），气泡下方元信息行
+        row.className = 'fy-msg ' + (mine ? 'fy-msg-user' : 'fy-msg-ai')
+        var body = richText(text)
+        if (voice) body = '<span class="fy-voice-tag">VOICE</span>' + body
+        if (mine) {
+            row.innerHTML =
+                '<div class="fy-msg-col">' +
+                '<div class="fy-bubble fy-bubble-user">' + body + '</div>' +
+                '<div class="fy-msg-meta fy-meta-user"><span class="fy-meta-time">' + nowTime() + '</span></div>' +
+                '</div>'
+        } else {
+            row.innerHTML =
+                '<div class="fy-msg-col">' +
+                '<div class="fy-bubble fy-bubble-ai">' + body + '</div>' +
+                '<div class="fy-msg-meta">' +
+                '<span class="fy-meta-avatar"><img src="' + esc(chatAvatarSrc()) + '" alt=""></span>' +
+                '<span class="fy-meta-time">' + nowTime() + '</span>' +
+                '</div></div>'
+        }
         box.appendChild(row)
         scrollMessagesToBottom()
         if (callActive) callScreenCaption(text, mine)
@@ -457,9 +472,10 @@
         var box = messagesBox()
         if (!box) return null
         var row = document.createElement('div')
-        row.className = 'user-response px-4 py-2'
-        row.innerHTML = '<div class="flex justify-start"><div class="px-8 py-3 inline-flex" ' +
-            'style="background:#D98491;border-radius:10px">' +
+        // candy 同款：AI 深灰气泡内的弹性三点
+        row.className = 'fy-msg fy-msg-ai'
+        row.innerHTML = '<div class="fy-msg-col">' +
+            '<div class="fy-bubble fy-bubble-ai">' +
             '<div class="snippet" data-title="dot-elastic"><div class="stage"><div class="dot-elastic"></div></div></div>' +
             '</div></div>'
         box.appendChild(row)
@@ -617,7 +633,7 @@
     }
 
     function timeHtml() {
-        return '<div class="text-neutral-500 text-[13px] font-normal">' + nowTime() + '</div>'
+        return '<span class="fy-meta-time">' + nowTime() + '</span>'
     }
 
     function voiceBarsHtml(color) {
@@ -633,10 +649,17 @@
         var box = messagesBox()
         if (!box) return null
         var row = document.createElement('div')
-        row.className = 'user-response px-4 py-2'
-        row.innerHTML = '<div class="flex ' + (mine ? 'justify-end' : 'justify-start') + '">' +
-            '<div class="flex-col gap-[9px] inline-flex ' + (mine ? 'ml-auto items-end' : '') + '">' +
-            '<div class="js-media"></div>' + timeHtml() + '</div></div>'
+        // candy 同款结构：气泡（媒体）+ 下方元信息行
+        row.className = 'fy-msg ' + (mine ? 'fy-msg-user' : 'fy-msg-ai')
+        if (mine) {
+            row.innerHTML = '<div class="fy-msg-col"><div class="js-media fy-media"></div>' +
+                '<div class="fy-msg-meta fy-meta-user">' + timeHtml() + '</div></div>'
+        } else {
+            row.innerHTML = '<div class="fy-msg-col"><div class="js-media fy-media"></div>' +
+                '<div class="fy-msg-meta">' +
+                '<span class="fy-meta-avatar"><img src="' + esc(chatAvatarSrc()) + '" alt=""></span>' +
+                timeHtml() + '</div></div>'
+        }
         box.appendChild(row)
         scrollMessagesToBottom()
         return row.querySelector('.js-media')
@@ -646,12 +669,14 @@
         if (!node) return
         if (!media) { node.innerHTML = ''; return }
         var price = Number(media.unlock_price || 0)
-        var bg = mine ? '#303030' : '#D98491'
-        var barColor = mine ? '#A1A1A1' : 'rgba(255,255,255,.9)'
+        // candy 同款配色：AI 深灰 #252525 / 用户紫渐变，24px 圆角 + 单侧 4px 燕尾角
+        var bg = mine ? 'linear-gradient(90deg,#6143E6 0%,#4346E6 100%)' : '#252525'
+        var radius = mine ? '24px 24px 4px 24px' : '24px 24px 24px 4px'
+        var barColor = mine ? 'rgba(255,255,255,.92)' : '#d1d1d1'
         var label = media.kind === 'voice' ? 'Voice message' : 'Video message'
 
         if (media.unlocked === false) {
-            node.innerHTML = '<div style="background:#262626;border:1px solid #434343;border-radius:10px;padding:12px 14px;min-width:200px">' +
+            node.innerHTML = '<div style="background:#262626;border:1px solid #434343;border-radius:16px;padding:12px 14px;min-width:200px">' +
                 '<div style="display:flex;align-items:center;gap:10px;color:#A1A1A1;font-size:13px">' +
                 '<svg viewBox="0 0 24 24" width="18" height="18" fill="#A1A1A1"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3H9z"/></svg>' +
                 esc(label) + '</div>' +
@@ -663,7 +688,7 @@
         }
 
         if (media.kind === 'voice') {
-            node.innerHTML = '<div class="js-voice" style="display:flex;align-items:center;gap:10px;background:' + bg + ';border-radius:10px;padding:10px 14px;min-width:180px">' +
+            node.innerHTML = '<div class="js-voice" style="display:flex;align-items:center;gap:10px;background:' + bg + ';border-radius:' + radius + ';padding:10px 16px;min-width:180px">' +
                 '<button class="js-voice-play" style="background:none;border:0;padding:0;cursor:pointer;display:flex;align-items:center">' +
                 '<svg class="js-ic-play" viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M8 5v14l11-7z"/></svg>' +
                 '<svg class="js-ic-pause" viewBox="0 0 24 24" width="22" height="22" fill="#fff" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14H6z" xmlns="http://www.w3.org/2000/svg"/></svg>' +
@@ -672,16 +697,16 @@
                 '<span class="js-voice-dur" style="color:' + barColor + ';font-size:12px">0:00</span></div>'
             bindVoicePlayer(node, media.url)
         } else if (media.kind === 'chat_scene_image') {
-            // 场景图片（点 Image 按钮发来的）：粉色气泡里一张图，点击放大
-            node.innerHTML = '<div style="background:' + bg + ';border-radius:10px;padding:6px;max-width:280px">' +
-                '<a href="' + esc(media.url) + '" target="_blank" rel="noopener"><img src="' + esc(media.url) + '" loading="lazy" alt="" style="display:block;width:260px;border-radius:8px;object-fit:cover"></a></div>'
+            // 场景图片（点 Image 按钮发来的）：candy 同款气泡包一张图，点击放大
+            node.innerHTML = '<div style="background:' + bg + ';border-radius:' + radius + ';padding:6px;max-width:280px">' +
+                '<a href="' + esc(media.url) + '" target="_blank" rel="noopener"><img src="' + esc(media.url) + '" loading="lazy" alt="" style="display:block;width:260px;border-radius:18px;object-fit:cover"></a></div>'
         } else {
             // 聊天礼物：视频上方加礼物标签（历史与送礼后的实时渲染一致）
             var giftTag = media.kind === 'chat_gift'
-                ? '<div style="color:' + (mine ? '#fbbf24' : '#fff') + ';font-size:12.5px;font-weight:700;margin-bottom:6px">🎁 Gift · ' + esc(media.title || '') + '</div>'
+                ? '<div style="color:' + (mine ? '#fbbf24' : '#d1d1d1') + ';font-size:12.5px;font-weight:700;margin-bottom:6px">🎁 Gift · ' + esc(media.title || '') + '</div>'
                 : ''
             node.innerHTML = '<div style="max-width:260px">' + giftTag + '<video controls playsinline preload="metadata" src="' +
-                esc(media.url) + '" style="display:block;width:260px;border-radius:10px"></video></div>'
+                esc(media.url) + '" style="display:block;width:260px;border-radius:18px"></video></div>'
         }
     }
 
@@ -2528,6 +2553,22 @@
         }
     }
 
+    // 首屏即时人设：页面静态 HTML 里写死的是默认角色（Priya），以前要等人设/会话接口回来才
+    // paintPersona 换成用户选的角色——首屏必闪默认角色。这里在 boot 阶段就用本地缓存
+    // （Home 页点角色卡时写入的 pageList / 内存目录）同步补一次人设，把闪现期压到 0；
+    // 之后接口数据到位仍会走 paintPersona/getDetail 精修（occupation 等字段更全时自然覆盖）。
+    function paintPersonaFast(id) {
+        id = String(id || '')
+        if (id === '' || /^my-/.test(id)) return
+        var quick = null
+        try { quick = chatItemById(id) } catch (e) { return }
+        if (!quick || !quick.title || quick.title === 'AI Chat' || quick.title === id) return
+        var cur = document.getElementById('chat-name')
+        if (cur && String(cur.textContent || '').trim() === String(quick.title).trim()) return
+        try { (window.__chatTrace = window.__chatTrace || []).push('paintPersonaFast id=' + id + ' title=' + quick.title) } catch (e) {}
+        paintPersona(quick)
+    }
+
     function getDetail(info) {
         if(!info) return
         try { (window.__chatTrace = window.__chatTrace || []).push('getDetail id=' + String(info.id) + ' title=' + String(info.title)) } catch (e) {}
@@ -2546,6 +2587,8 @@
     function channelDetail(id){
         try { (window.__chatTrace = window.__chatTrace || []).push('channelDetail id=' + String(id) + ' param=' + String(getParam('id'))) } catch (e) {}
         if (String(id).indexOf('my-') === 0) { loadMyPersona(id); return }
+        // 首屏即时人设：不等接口，用本地缓存先把用户选的角色画上去（消除默认角色闪现）
+        paintPersonaFast(String(id || '') || String(getParam('id') || ''))
         // var headers = {}
         // if(token) {
         //   headers = {
@@ -2667,6 +2710,8 @@
     }
 
     function continueChannelDetail(local) {
+        // 目录数据此刻可能刚就绪（waitForRoleList / waitForHomeRoles 回调重入）：再补一次即时人设
+        paintPersonaFast(activeConvId)
         // 未登录：左侧保持空（没有历史会话可显示），右侧展示当前角色资料 + 开场白（清掉页面自带的空音频占位）
         if (!token) {
             getInfo([])

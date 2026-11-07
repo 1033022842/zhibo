@@ -173,26 +173,32 @@
     });
   }
 
-  /* 送礼成功：消息气泡 + 好感进度 + 轮播追加 */
+    // 送礼消息的小头像（candy 同款元信息行）
+    function giftAvatarSrc() {
+      var im = document.getElementById('chat-img') || document.getElementById('chat-img-mobile')
+      return im ? (im.getAttribute('src') || '') : ''
+    }
+
+    /* 送礼成功：消息气泡 + 好感进度 + 轮播追加 */
   function onGiftSent(data, name) {
     var media = (data && data.media) || {};
 
     // 1) 消息区：右侧 = 送礼文字标签；左侧 = 角色侧展示收礼视频（她展示收到的礼物瞬间）
+    // candy 同款气泡：用户紫渐变 / AI 深灰 #252525，气泡下方元信息行
     var box = document.getElementById('messages_turbo_frame') || document.getElementById('messages');
     if (box && media.url) {
       var row = document.createElement('div');
-      row.className = 'user-response px-4 py-2';
       row.innerHTML =
-        '<div class="flex justify-end"><div class="flex-col gap-[9px] inline-flex ml-auto items-end">' +
-        '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;background:#303030;padding:10px 12px;border-radius:10px;max-width:80%">🎁 You sent a <b style="color:#fbbf24">' + esc(media.title || name) + '</b>' +
+        '<div class="fy-msg fy-msg-user"><div class="fy-msg-col">' +
+        '<div class="fy-bubble fy-bubble-user">🎁 You sent a <b style="color:#fbbf24">' + esc(media.title || name) + '</b>' +
         (data.affection && data.affection.gain ? ' <span style="color:#F97187">+' + esc(data.affection.gain) + ' ❤</span>' : '') +
         '</div>' +
-        '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
+        '<div class="fy-msg-meta fy-meta-user"><span class="fy-meta-time">now</span></div>' +
         '</div></div>' +
-        '<div class="flex justify-start mt-2"><div class="flex-col gap-[9px] inline-flex">' +
-        '<div style="background:#D98491;border-radius:10px;overflow:hidden;max-width:100%;padding:4px">' +
-        '<video src="' + esc(media.url) + '" controls playsinline preload="metadata" style="display:block;width:260px;max-width:100%;height:auto;border-radius:8px;background:#000"></video></div>' +
-        '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
+        '<div class="fy-msg fy-msg-ai"><div class="fy-msg-col">' +
+        '<div style="background:#252525;border-radius:24px 24px 24px 4px;overflow:hidden;max-width:100%;padding:6px">' +
+        '<video src="' + esc(media.url) + '" controls playsinline preload="metadata" style="display:block;width:260px;max-width:100%;height:auto;border-radius:18px;background:#000"></video></div>' +
+        '<div class="fy-msg-meta"><span class="fy-meta-avatar"><img src="' + esc(giftAvatarSrc()) + '" alt=""></span><span class="fy-meta-time">now</span></div>' +
         '</div></div>';
       box.appendChild(row);
       box.scrollTop = box.scrollHeight;
@@ -201,12 +207,12 @@
     // 1.5) 角色的收礼回应（按人设 + 好感度生成的 LLM 回复，assistant 风格气泡）
     if (data.reply) {
       var replyRow = document.createElement('div');
-      replyRow.className = 'user-response px-4 py-2';
+      replyRow.className = 'fy-msg fy-msg-ai';
       replyRow.innerHTML =
-        '<div class="flex justify-start"><div class="flex-col gap-[9px] inline-flex">' +
-        '<div class="js-bubble text-white text-sm font-normal" style="white-space:pre-wrap;background:#D98491;padding:12px;border-radius:10px;max-width:80%"></div>' +
-        '<div class="text-neutral-500 text-[13px] font-normal">now</div>' +
-        '</div></div>';
+        '<div class="fy-msg-col">' +
+        '<div class="js-bubble fy-bubble fy-bubble-ai"></div>' +
+        '<div class="fy-msg-meta"><span class="fy-meta-avatar"><img src="' + esc(giftAvatarSrc()) + '" alt=""></span><span class="fy-meta-time">now</span></div>' +
+        '</div>';
       replyRow.querySelector('.js-bubble').textContent = data.reply;
       box.appendChild(replyRow);
       box.scrollTop = box.scrollHeight;

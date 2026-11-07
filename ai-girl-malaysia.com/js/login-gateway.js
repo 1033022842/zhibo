@@ -8,8 +8,11 @@
   var cooldownUntil = 0
   var API = '/api/live'
   // 品牌图标与短标签：官方标志，深色按钮下保持原色可辨识。
-  var LABELS = { google: 'Google', discord: 'Discord', twitter: 'X' }
+  var LABELS = { google: 'Google', discord: 'Discord', twitter: 'X', telegram: 'Telegram' }
   var ICONS = {
+    telegram: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+      '<path fill="#229ED9" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.701 8.018l-1.998 9.418c-.15.664-.544.828-1.103.516l-3.047-2.247-1.47 1.415c-.163.163-.3.3-.612.3l.216-3.093 5.648-5.102c.245-.217-.053-.338-.378-.121l-6.985 4.397-3.008-.94c-.654-.204-.667-.654.136-.968l11.744-4.527c.544-.198 1.02.121.857.952z"/>' +
+      '</svg>',
     google: '<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">' +
       '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
       '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
@@ -111,6 +114,8 @@
       '.live-login-methods button:hover:not(:disabled){background:#383036}' +
       '.live-login-methods button:disabled{opacity:.45;cursor:not-allowed}' +
       '.live-login-methods small{display:block;font-size:10px;font-weight:400;margin-top:4px;color:#bcbcbc}' +
+      '.live-telegram-row{display:flex;justify-content:center;margin-top:12px;min-height:40px}' +
+      '.live-telegram-row iframe{max-width:100%}' +
       '#email-signin-dialog{box-sizing:border-box;width:min(420px,92vw);max-height:90dvh;padding:0;margin:auto;' +
       'border:1px solid #3d3d3d;border-radius:16px;background:#191919;color:#eee;font-family:inherit;overflow:hidden}' +
       '#email-signin-dialog::backdrop{background:rgba(0,0,0,.72)}' +
@@ -199,6 +204,44 @@
     return dialog
   }
 
+  /* ---------- Telegram Login Widget（整行渲染，官方 iframe 按钮不进等宽网格） ---------- */
+  var telegramBusy = false
+  // widget iframe 的 data-onauth 只认全局函数名，这里桥接到登录网关的提交流程
+  window.__liveTelegramAuth = function (user) {
+    if (!user || !user.id || !user.hash || telegramBusy) return
+    telegramBusy = true
+    var data = context()
+    // widget 载荷字段最后覆盖，防止 localStorage 归因键意外碰撞签名字段
+    Object.keys(user).forEach(function (key) { data[key] = user[key] })
+    post('/telegramLogin', data).then(function (result) {
+      telegramBusy = false
+      afterLogin(result)
+    }).catch(function (error) {
+      telegramBusy = false
+      message(error.message)
+    })
+  }
+
+  function mountTelegram(box) {
+    var provider = (options.providers || []).filter(function (item) {
+      return item.enabled && item.id === 'telegram'
+    })[0]
+    if (!provider || !provider.bot) return
+    var row = document.createElement('div')
+    row.className = 'live-telegram-row'
+    // widget 脚本由 telegram.org 加载，域名未在 bot 的 Allowed URLs 里时静默不渲染
+    var script = document.createElement('script')
+    script.src = 'https://telegram.org/js/telegram-widget.js?22'
+    script.async = true
+    script.setAttribute('data-telegram-login', provider.bot)
+    script.setAttribute('data-size', 'large')
+    script.setAttribute('data-radius', '10')
+    script.setAttribute('data-onauth', '__liveTelegramAuth')
+    script.setAttribute('data-userpic-single', 'true')
+    row.appendChild(script)
+    box.appendChild(row)
+  }
+
   function mount() {
     if (!options) return
     installStyle()
@@ -227,7 +270,10 @@
       }
       box.appendChild(email)
       // 只渲染已配置的提供商：未接入社交登录的站点不出现按钮，也不留占位。
-      var providers = (options.providers || []).filter(function (provider) { return provider.enabled })
+      // telegram 是 widget 整行（见 mountTelegram），不进等宽按钮网格。
+      var providers = (options.providers || []).filter(function (provider) {
+        return provider.enabled && provider.id !== 'telegram'
+      })
       if (providers.length) {
         var row = document.createElement('div')
         row.className = 'live-social-row'
@@ -252,6 +298,7 @@
         })
         box.appendChild(row)
       }
+      mountTelegram(box)
       button.insertAdjacentElement('afterend', box)
     })
   }
