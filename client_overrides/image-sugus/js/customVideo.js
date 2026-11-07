@@ -134,7 +134,7 @@
     var gsLoading = false
     var gsObserver = null
     var gsWaitLayout = null
-    var GS_BASE = './media/gs/'
+    var GS_BASE = (window.MEDIA_CDN ? window.MEDIA_CDN + 'gs/' : './media/gs/')
     // 每页 = 列数 × 行数。固定 36 时，5 列会分成 7/7/7/7/8，
     // 最后一排只剩单张卡片孤零零挂着；按列数取整就不可能出现。
     // 参考站也是这个思路（5 列 × 6 行 = 30 条一页）。
@@ -351,6 +351,26 @@
 
     // 只让视口内的卡片播放，滚出即暂停（几十个视频同时解码会卡）
     // 视频真正出画才淡入；加载失败则一直显示封面，不会留黑框
+    /* 跳转瞬间掐断网格视频流 */
+    function killAllGridVideos() {
+        document.querySelectorAll('#gsGrid video').forEach(function (v) {
+            try {
+                v.pause()
+                v.removeAttribute('src')
+                if (v.load) v.load()
+                v.classList.remove('is-on')
+            } catch (err) {}
+        })
+    }
+    document.addEventListener('click', function (e) {
+        var a = e.target && e.target.closest && e.target.closest('a[href]')
+        if (!a) return
+        var href = a.getAttribute('href') || ''
+        if (href.indexOf('javascript') === 0) return
+        killAllGridVideos()
+    }, true)
+    window.addEventListener('pagehide', killAllGridVideos)
+
     function initAutoplay() {
         var vids = document.querySelectorAll('#gsGrid video')
         if (!vids.length) return
@@ -378,14 +398,23 @@
                     v.pause()
                 }
             })
-        }, { root: null, rootMargin: '200px 0px', threshold: 0.1 })
+        }, { root: null, rootMargin: '100px 0px', threshold: 0.1 })
         vids.forEach(function (v) { gsObserver.observe(v) })
         // 兜底：内嵌 webview / 分屏下 IntersectionObserver 可能完全不回调
         // （实测 IAB 里手动 new IO 也不触发），用 scroll/rAF 主动判可视区。
         bindScrollFallback()
     }
 
+    function playingVideos() {
+        var n = 0
+        document.querySelectorAll('#gsGrid video').forEach(function (v) {
+            if (!v.paused && !v.ended && v.getAttribute('src')) n++
+        })
+        return n
+    }
     function loadAndPlay(v) {
+        // 同时最多 4 路预览
+        if (playingVideos() >= 4) return
         if (!v.getAttribute('src')) {
             var s = v.getAttribute('data-src')
             if (s) v.src = s
@@ -854,6 +883,7 @@
         syncGenLike()
         openModal('gsCardModal')
         loadQuota()
+        fillQuotaHint()
         loadPresets().then(function () {
             // 预设元信息到齐后刷新标题、标签与时长选项（首次打开时可能还没加载完）
             if (gen.current !== c) return
@@ -1381,6 +1411,32 @@
        选已购 → 上传照片 → /customVideo/submit(type=image+item_id)；
        成品在 My Works 里以 kind=image 展示（loadWorks 已合并两通道）。 */
     var CV_API2 = '/api/customVideo'
+
+    /* AI 工作室卡片额度说明：会员每天 N 次免费、每天恢复 1 次 */
+    var cvOptionsCache = null
+    function loadCvOptions() {
+        if (cvOptionsCache) return Promise.resolve(cvOptionsCache)
+        return authJson(CV_API2 + '/options').then(function (d) {
+            if (d && d.code === '00000' && d.data) cvOptionsCache = d.data
+            return cvOptionsCache
+        }).catch(function () { return null })
+    }
+    function fillQuotaHint() {
+        var el = $('gsQuotaHint')
+        if (!el) return
+        if (!token) { el.hidden = true; return }
+        loadCvOptions().then(function (od) {
+            if (!od || !od.quota) { el.hidden = true; return }
+            var q = od.quota
+            var limit = q.daily_limit, refill = q.refill_daily || 1, rem = q.remaining
+            if (limit === '∞' || q.unlimited) {
+                el.textContent = 'Your plan includes unlimited free generations.'
+            } else {
+                el.textContent = 'Free credits: ' + (rem >= 0 ? rem : limit) + ' left today · ' + limit + '/day, +' + refill + ' restored daily'
+            }
+            el.hidden = false
+        })
+    }
     var shop = { items: [], sel: null, file: null, confirmPaid: false, price: 0, balance: 0, remain: null, loaded: false }
 
     function openShop() {

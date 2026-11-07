@@ -42,9 +42,9 @@
     '  </button>',
     '  <div class="c-promo-media"><img src="./assets/login-bg-full.jpg" alt=""></div>',
     '  <div class="c-promo-body">',
-    '    <h2 class="c-promo-title" id="cPromoTitle">Upload Any Photo of her and Get a <em>hot 18+ Video</em></h2>',
-    '    <p class="c-promo-sub">Fully uncensored &middot; 160+ hot poses &middot; Free to try</p>',
-    '    <a class="c-promo-cta" href="./face_swap.html">Try Free Now</a>',
+    '    <h2 class="c-promo-title" id="cPromoTitle">Recharged! Your <em>AI Studio</em> credits are ready</h2>',
+    '    <p class="c-promo-sub">Generate photos, videos &amp; outfits with your new tokens &middot; She is waiting</p>',
+    '    <a class="c-promo-cta" href="./Image.html">Open AI Studio</a>',
     '  </div>',
     '</div>',
   ].join('\n')
@@ -135,7 +135,7 @@
     else if (freq === 'once') writeL(ONCE_KEY, '1')
   }
 
-  /* 已登录 → 读后台配置，按延迟与频率弹出 */
+  /* 已登录 → 读后台配置；充值后（has_recharged 0→1）弹一次，每用户终生一次 */
   function maybeShow() {
     if (closedThisPage) return
     if (!build()) return
@@ -143,17 +143,40 @@
 
     loadConfig().then(function (cfg) {
       if (!cfg || !cfg.enabled) return
-      if (!freqAllows(cfg.frequency, cfg.interval_hours)) return
-      var delay = Math.max(0, Math.min(60, parseInt(cfg.delay, 10) || 0)) * 1000
-      setTimeout(function () {
-        if (closedThisPage) return
-        if (!freqAllows(cfg.frequency, cfg.interval_hours)) return
-        var el = document.getElementById('cPromo')
-        if (!el) return
-        el.classList.add('open')
-        markShown(cfg.frequency)
-      }, delay)
+      checkRechargePromo(cfg)
     })
+  }
+
+  function checkRechargePromo(cfg) {
+    fetch('/api/live/userInfo', { method: 'POST', headers: { token: token() }, cache: 'no-store' })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        if (!res || (res.code !== 1 && res.code !== '00000') || !res.data) return
+        var d = res.data
+        var uid = d.id
+        if (!uid) return
+        var prevK = 'cPromo_prev_recharged_' + uid
+        var shownK = 'cPromo_recharge_shown_' + uid
+        var recharged = d.has_recharged === true
+        var prev = readL(prevK)
+        if (prev === '') {
+          /* 首次观察只记录基线：老用户（早已充值）不补弹 */
+          writeL(prevK, recharged ? '1' : '0')
+          return
+        }
+        if (recharged && prev !== '1' && readL(shownK) !== '1') {
+          var delay = Math.max(0, Math.min(60, parseInt(cfg.delay, 10) || 0)) * 1000
+          setTimeout(function () {
+            if (closedThisPage) return
+            var el = document.getElementById('cPromo')
+            if (!el) return
+            el.classList.add('open')
+            writeL(shownK, '1')
+          }, delay)
+        }
+        writeL(prevK, recharged ? '1' : '0')
+      })
+      .catch(function () {})
   }
 
   /* 登录成功：清掉会话级标记，跳转后的新页面可以重新弹 */

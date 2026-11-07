@@ -35,8 +35,6 @@
     ['generate', './Image.html', 'Generate Image', 'generate', ' target="_top"'],
     ['create', './createCharacter.html', 'Create Character', 'create', ''],
     ['myai', './charactersIndex.html', 'My AI', 'myai', ''],
-    ['upload', './upload_media.html', 'Upload Media', 'upload', ''],
-    ['faceswap', './face_swap.html', 'Face Swap', 'faceswap', ''],
     ['shop', './shop.html', 'Shop', 'shop', ''],
     ['shorts', './shorts.html', 'Shorts', 'shorts', ''],
     ['posts', './posts.html', 'Posts', 'posts', ''],
@@ -165,7 +163,6 @@
       '<div id="user-setting" style="display:none;" class="flex flex-1 self-stretch lg:gap-x-6 bg-main">' +
       '<div class="flex items-center gap-x-4 lg:gap-x-6 ml-auto">' +
       '<a href="./charactersIndex.html" class="justify-center items-center flex gap-2 px-3 py-1.5 rounded-xl bg-[#1f1f1f] border border-white border-opacity-10 no-underline"><img src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg" class="w-5 h-5"><div class="text-white text-sm font-semibold">My AI</div></a>' +
-      '<a href="./upload_media.html" class="hidden md:inline-flex justify-center items-center gap-2 px-3 py-1.5 rounded-xl bg-[#1f1f1f] border border-white border-opacity-10 no-underline"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg><div class="text-white text-sm font-semibold">Upload Media</div></a>' +
       '<button id="shell-logout" type="button" class="justify-center items-center flex gap-2 px-3 py-1.5 rounded-xl bg-[#1f1f1f] border border-white border-opacity-10"><div class="text-white text-sm font-semibold">Logout</div></button>' +
       '</div></div>' +
       '</div>';

@@ -144,7 +144,6 @@
     { href: './Image.html', label: 'AI Video Studio', icon: 'generate', top: true },
     { href: './createCharacter.html', label: 'Create Character', icon: 'wand' },
     { href: './charactersIndex.html', label: 'My AI', icon: 'lady' },
-    { href: './upload_media.html', label: 'Upload Media', icon: 'upload' },
     { href: './shop.html', label: 'Shop', icon: 'shop' },
     { href: './shorts.html', label: 'Shorts', icon: 'shorts' },
     { href: './private_content.html', label: 'Private Content', icon: 'private' },
@@ -183,6 +182,7 @@
   var MORE_NAV = NAV.filter(function (n) { return MAIN_NAV.indexOf(n) === -1 })
     .concat(NAV_BOTTOM.filter(function (n) { return n.icon !== 'contact' }))
     .concat([{ href: './Home.html#install-app', label: 'Get App', icon: 'appdl' }])
+    .filter(function (n) { return !(n.label === 'AI Video Studio') || studioEntryVisible() })
 
   /* 支持的语言：原站“Select your language”大弹窗（13 种）基础上扩展常用语种
      （新增 zh-CN / zh-TW / ko / ru / hi / th / vi / ms / id / ar / tr / km / lo，
@@ -1213,8 +1213,7 @@
 
   var CREATE_MENU = [
     { href: './createCharacter.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
-    { href: './Image.html', icon: 'bDirector', title: 'Generate spicy videos', sub: 'Build your own spicy movie', badge: 'NEW' },
-    { href: './Chat.html', icon: 'bGroup', title: 'Group chat', sub: 'Start a chat with up to 3 characters' }
+    { href: './Image.html', icon: 'bDirector', title: 'AI Video Studio', sub: 'Generate photos, videos & outfits' }
   ].filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
 
   /* 当前页面对应的底栏高亮项（参考站：当前页那一格用激活版图标） */
