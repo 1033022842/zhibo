@@ -1082,10 +1082,19 @@
                     if (m.media && (m.media.url || m.media.unlocked === false)) rows.push({ media: m.media, mine: mine })
                     else if (m.content) rows.push({ text: m.content, mine: mine, role: m.role, voice: !!m.voice })
                 }
-                // 没有历史：清掉页面自带的空问候占位（无音频 play 按钮），换成按人设生成的火热开场白
+                // 没有历史：清掉页面自带的空问候占位，换成按人设生成的开场白。
+                // 同一会话的重复 loadHistory 不再清空——否则会把已显示的开场问候抹掉（闪现后消失）。
                 if (!rows.length) {
                     var emptyBox = messagesBox()
-                    if (emptyBox) emptyBox.innerHTML = ''
+                    var curConv = String(activeConvId || '')
+                    if (emptyBox && emptyBox.getAttribute('data-ice-conv') === curConv && !emptyBox.querySelector('.fy-msg-col')) {
+                        historyLoadedOnce = true
+                        return
+                    }
+                    if (emptyBox) {
+                        emptyBox.innerHTML = ''
+                        emptyBox.setAttribute('data-ice-conv', curConv)
+                    }
                     historyLoadedOnce = true
                     showIceBreaker()
                     return
@@ -1133,8 +1142,8 @@
         // Turbo 导航换新 body 后容器是全新元素，天然放行（旧容器上的异步回调落到已丢弃的 DOM，无害）
         var dupBox = messagesBox()
         if (!dupBox) return
-        if (window.__iceBox === dupBox) return
-        window.__iceBox = dupBox
+        if (window.__iceConv === String(activeConvId || '')) return
+        window.__iceConv = String(activeConvId || '')
         // 后端按人设生成（角色维度缓存，同一角色固定一条）；超时/失败用本地模板兜底
         var typing = appendTyping()
         var done = false
