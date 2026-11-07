@@ -77,6 +77,59 @@
             esc(emptyText || 'This content has no media yet. Please add it in the admin panel.') + '</p>'
     }
 
+    /* ---------- 播放兜底 ----------
+     * 后台允许上传任意 mp4，历史上混进过 HEVC(H.265) 素材（如 203459_00001__slp_aion1_rxl1）。
+     * 浏览器「容器能解、编码解不了」时不会触发 error，而是静默只播音轨：
+     * 用户看到的是黑屏 + 有声音 + 进度条在走。这种状态用 videoWidth 判定最可靠
+     * （只有视频轨成功解出，videoWidth 才会非 0）。
+     */
+    function fallbackHtml(videoUrl, reason) {
+        var body = reason === 'codec'
+            ? 'This video’s picture track can’t be displayed by your browser (it may be encoded as HEVC/H.265). Try opening it in a new window, where your device player may decode it.'
+            : 'This video could not be loaded. Please check your connection and try again.'
+        return '<div style="padding:44px 22px;text-align:center;">' +
+            '<p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#fff;">This video can’t be played here</p>' +
+            '<p style="margin:0 0 18px;font-size:12px;line-height:1.6;color:#9aa0a6;">' + esc(body) + '</p>' +
+            '<a href="' + esc(videoUrl) + '" target="_blank" rel="noopener noreferrer" ' +
+              'style="display:inline-block;padding:9px 20px;border-radius:10px;text-decoration:none;' +
+              'background:linear-gradient(90deg,#E75275 0%,#FF6B9A 100%);color:#fff;font-size:13px;font-weight:600;">' +
+              'Open in new window</a>' +
+            '</div>'
+    }
+
+    function attachVideoGuards(media, videoUrl) {
+        var v = media.querySelector('video')
+        if (!v) return
+
+        var dead = false
+        function fail(reason) {
+            if (dead) return
+            dead = true
+            try { v.pause() } catch (e) { /* 忽略 */ }
+            media.innerHTML = fallbackHtml(videoUrl, reason)
+        }
+
+        // error：整条流取不到，或浏览器完全不认识这个容器/编码
+        // 1=中断 2=网络 3=解码 4=不支持该媒体类型
+        v.addEventListener('error', function () {
+            var code = v.error && v.error.code
+            fail(code === 3 || code === 4 ? 'codec' : 'network')
+        })
+
+        // 画面轨是否解出来，要等首帧真的解码完才准（部分浏览器 metadata 阶段 videoWidth 仍是 0），
+        // 所以统一延后判定，避免误伤正常视频。
+        var checked = false
+        function checkPicture(delay) {
+            setTimeout(function () {
+                if (dead || checked) return
+                checked = true
+                if (!v.videoWidth) fail('codec')
+            }, delay)
+        }
+        v.addEventListener('loadedmetadata', function () { checkPicture(2500) })
+        v.addEventListener('playing', function () { checkPicture(1500) })
+    }
+
     function thumbHtml(images) {
         if (!images || images.length < 2) return ''
         var html = ''
@@ -98,6 +151,7 @@
         var thumbs = d.querySelector('[data-watch-thumbs]')
 
         media.innerHTML = mediaHtml(opt.videoUrl, opt.images, opt.emptyText)
+        if (opt.videoUrl) attachVideoGuards(media, opt.videoUrl)
         d.querySelector('[data-watch-title]').textContent = opt.title || ''
         d.querySelector('[data-watch-sub]').textContent = opt.subtitle || ''
 
