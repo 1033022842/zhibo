@@ -114,7 +114,9 @@
       '.live-login-methods button:hover:not(:disabled){background:#383036}' +
       '.live-login-methods button:disabled{opacity:.45;cursor:not-allowed}' +
       '.live-login-methods small{display:block;font-size:10px;font-weight:400;margin-top:4px;color:#bcbcbc}' +
-      '.live-social-row .live-telegram-btn{position:relative}' +
+      '.live-social-row .live-telegram-btn{position:relative;width:44px;flex:0 0 44px;padding:0;justify-content:center;background:transparent;border:none;box-shadow:none}' +
+      '.live-social-row .live-telegram-btn:hover{background:transparent}' +
+      '.live-social-row .live-telegram-btn svg{width:24px;height:24px;flex:0 0 24px}' +
       '.live-social-row .live-telegram-btn svg{width:20px;height:20px;flex:0 0 20px}' +
       '.live-telegram-overlay{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;overflow:hidden;z-index:2;cursor:pointer}' +
       '.live-telegram-overlay iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(2.6)}' +
