@@ -1198,13 +1198,18 @@
     { href: './purchasePoints.html', label: 'Tokens', icon: 'bTokens', activeIcon: 'bTokensActive', key: 'tokens' }
   ]
 
-  var BOTTOM_GUEST = [
+  var BOTTOM_GUEST_ALL = [
     { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
     { href: './Girls.html', label: 'Explore', icon: 'bExplore', activeIcon: 'bExploreActive', key: 'explore' },
     { href: './Image.html', label: 'Generate', icon: 'bGenerate', key: 'generate' },
     { href: './createCharacter.html', label: 'Create', icon: 'bWand', key: 'create' },
     { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium', key: 'premium', premium: true }
-  ].filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
+  ]
+  /* 渲染时再按门控过滤（不能在脚本加载时过滤一次定死：__userRecharged 是
+     welcome-bonus.js 异步回填的，充值解锁后要原地多出 Generate 格） */
+  function bottomGuestItems() {
+    return BOTTOM_GUEST_ALL.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
+  }
 
   var CREATE_MENU = [
     { href: './createCharacter.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
@@ -1303,9 +1308,12 @@
     }
 
     var key = activeBottomKey(signedIn)
-    var items = signedIn ? BOTTOM_AUTH : BOTTOM_GUEST
+    var items = signedIn ? BOTTOM_AUTH : bottomGuestItems()
     bar.className = 'fy-bnav'
     bar.setAttribute('data-variant', signedIn ? 'auth' : 'guest')
+    /* 列数随实际格数走：门控隐藏 Generate 格时若仍按 CSS 的 5 列排，
+       末尾会空出一节（sugus/heygirl 未登录态即此症状） */
+    bar.style.gridTemplateColumns = 'repeat(' + items.length + ',minmax(0,1fr))'
     bar.innerHTML = items.map(function (it) { return bottomItemHtml(it, key) }).join('')
     /* 挂到 body 最外层：个别页（Girls）老底栏在 <turbo-frame> 里，留在原位会被 frame 拦截/换掉 */
     if (bar.parentElement !== document.body) document.body.appendChild(bar)
@@ -1988,6 +1996,8 @@
     if (!changed) return
     MAIN_NAV = next
     try { render() } catch (e) {}
+    /* 底栏未登录格里的 Generate 也受同一门控：充值解锁后原地补回那一格 */
+    try { renderBottomBar() } catch (e) {}
   }
 
   function render() {
