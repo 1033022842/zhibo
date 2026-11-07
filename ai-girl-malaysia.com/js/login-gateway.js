@@ -234,13 +234,14 @@
     })
     var row = document.createElement('div')
     row.className = 'live-social-row'
-    row.style.gridTemplateColumns = 'repeat(' + (providers.length + 1) + ',minmax(0,1fr))'
+    row.style.display = 'flex'
+    row.style.justifyContent = 'center'
+    row.style.gap = '8px'
     var tg = document.createElement('button')
     tg.type = 'button'
     tg.className = 'live-telegram-btn'
     tg.title = 'Authorize your Telegram account'
-    tg.innerHTML = (ICONS.telegram || '') + '<span></span>'
-    tg.querySelector('span').textContent = 'Telegram'
+    tg.innerHTML = ICONS.telegram || ''
     var overlay = document.createElement('div')
     overlay.className = 'live-telegram-overlay'
     // widget 脚本由 telegram.org 加载，域名未在 bot 的 Allowed URLs 里时静默不渲染

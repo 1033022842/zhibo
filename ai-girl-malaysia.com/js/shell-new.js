@@ -1276,16 +1276,7 @@
   }
 
   function createMenuHtml() {
-    var items = CREATE_MENU.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() }).map(function (m) {
-      return '<a class="fy-createmenu-item" data-turbo="false" href="' + m.href + '">' +
-        '<span class="fy-createmenu-tile"><img alt="" src="' + I[m.icon].src + '"></span>' +
-        '<span class="fy-createmenu-text">' +
-        '<span class="fy-createmenu-title">' + esc(m.title) +
-        (m.badge ? '<span class="fy-createmenu-badge">' + esc(m.badge) + '</span>' : '') +
-        '</span>' +
-        '<span class="fy-createmenu-sub">' + esc(m.sub) + '</span>' +
-        '</span></a>'
-    }).join('')
+    var items = createMenuItems()
 
     return '<div class="fy-createmenu" data-fy-createmenu>' +
       '<div class="fy-createmenu-veil" data-fy-createmenu-close></div>' +
@@ -1297,7 +1288,11 @@
 
   function openCreateMenu() {
     var el = document.querySelector('[data-fy-createmenu]')
-    if (el) el.classList.add('is-open')
+    if (!el) return
+    /* 充值状态异步就绪，菜单打开时按当前状态重画（否则首次构建时 __userRecharged 未就绪会永久过滤）*/
+    var card = el.querySelector('.fy-createmenu-card')
+    if (card) card.innerHTML = createMenuItems()
+    el.classList.add('is-open')
   }
 
   function closeCreateMenu() {
