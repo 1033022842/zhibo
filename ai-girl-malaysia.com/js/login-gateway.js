@@ -234,11 +234,14 @@
     })
   }
 
+  /* Telegram 登录：点击开新标签走深链，前台轮询确认；限流 + 页面隐藏时暂停，绝不阻塞 UI */
   function mountTelegram(box) {
     var provider = (options.providers || []).filter(function (item) {
       return item.enabled && item.id === 'telegram'
     })[0]
     if (!provider || !provider.bot) return
+    if (box.querySelector('.live-telegram-row')) return
+
     var row = document.createElement('div')
     row.className = 'live-telegram-row'
     var tg = document.createElement('button')
@@ -247,43 +250,57 @@
     tg.title = 'Continue with Telegram'
     tg.setAttribute('aria-label', 'Continue with Telegram')
     tg.innerHTML = ICONS.telegram || ''
-    var busy = false
-    var pollTimer = null
 
-    function stopPoll() {
-      if (pollTimer) { clearTimeout(pollTimer); pollTimer = null }
+    var busy = false
+    var timer = null
+    var tries = 0
+
+    function stop() {
+      if (timer) { clearTimeout(timer); timer = null }
       busy = false
+      tries = 0
       tg.disabled = false
+      tg.classList.remove('is-busy')
     }
 
-    function poll(code, browser, tries) {
-      if (tries <= 0) { stopPoll(); message('Telegram sign-in timed out. Please try again.'); return }
+    function poll(code, browser) {
+      if (!busy) return
+      if (tries-- <= 0) { stop(); message('Telegram sign-in timed out.'); return }
+      // 用户切走去看 Telegram 时暂停轮询，回来再继续
+      if (document.hidden) {
+        timer = setTimeout(function () { poll(code, browser) }, 1000)
+        return
+      }
       post('/telegramPoll', { code: code, browser: browser }).then(function (d) {
-        d = d || {}
+        if (!busy) return
         if (d && d.pending) {
-          pollTimer = setTimeout(function () { poll(code, browser, tries - 1) }, 2000)
+          timer = setTimeout(function () { poll(code, browser) }, 2500)
           return
         }
-        stopPoll()
-        afterLogin(result)
+        stop()
+        afterLogin(d)
       }).catch(function () {
-        pollTimer = setTimeout(function () { poll(code, browser, tries - 1) }, 2500)
+        if (!busy) return
+        timer = setTimeout(function () { poll(code, browser) }, 3000)
       })
     }
 
     tg.onclick = function () {
       if (busy) return
       busy = true
+      tries = 24
       tg.disabled = true
+      tg.classList.add('is-busy')
       post('/telegramStart', context()).then(function (d) {
-        d = d || {}
-        if (!d.deep_link) throw new Error('Telegram sign-in is unavailable right now.')
-        try { window.open(d.deep_link, '_blank', 'noopener') } catch (e) { location.href = d.deep_link }
-        message('Approve the sign-in in Telegram, then come back here.')
-        poll(d.code, d.browser, 90)
-      }).catch(function (error) {
-        stopPoll()
-        message(error.message)
+        if (!d || !d.deep_link) { stop(); message('Telegram sign-in is unavailable right now.'); return }
+        var win = null
+        try { win = window.open(d.deep_link, '_blank', 'noopener,noreferrer') } catch (e) { win = null }
+        if (!win) { stop(); message('Please allow pop-ups, or open t.me/' + provider.bot + ' in a new tab.'); return }
+        message('Approve the sign-in in Telegram, then return to this tab.')
+        poll(d.code, d.browser)
+      }).catch(function (err) {
+        stop()
+        message((err && err.message) || 'Telegram sign-in failed.')
       })
     }
 
@@ -377,10 +394,12 @@
   function ready() {
     initialize()
     callback()
-    new MutationObserver(function () {
-      if (mountTimer) return
-      mountTimer = setTimeout(function () { mountTimer = null; initialize() }, 60)
-    }).observe(document.body, { childList: true, subtree: true })
+    // 有界重试：仅在前几次 DOM 未就绪时补挂按钮，不做无限 MutationObserver 监听
+    var retries = 8
+    (function retryMount() {
+      if (document.querySelector('.live-login-methods') || retries-- <= 0) return
+      setTimeout(retryMount, 250)
+    })()
     document.addEventListener('turbo:load', initialize)
     document.addEventListener('turbo:render', initialize)
   }
