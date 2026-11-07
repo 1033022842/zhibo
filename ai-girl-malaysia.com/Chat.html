@@ -46,8 +46,8 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./_shared/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261107chat1"></script>
-	<script src="./js/chat-gift.js?v=20261107chat1"></script>
+    <script src="./js/chat.js?v=20261107chat2"></script>
+	<script src="./js/chat-gift.js?v=20261107chat2"></script>
     
 
 
@@ -113,6 +113,22 @@ div.bg-main.fixed.top-0{background:#131313!important;border-color:#242424!import
 	#conversation-container{padding-top:64px}
 }
 
+/* ---- 聊天头横跨整个内容区（聊天列 + 右侧资料栏，参考站同款） ---- */
+.fy-main-row{flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:stretch}
+@media (min-width:1024px){
+	#conversation-container{flex-direction:column}
+	.profile-container{padding-top:0!important}
+}
+/* ---- 左侧菜单：默认收起；点汉堡时 侧栏容器/会话列表/聊天区 同步平移（body 属性驱动，不依赖旧 Stimulus） ---- */
+@media (min-width:1024px){
+	body[data-main-is-sidebar-opened-value="false"] [data-main-target="mainSidebarOpenedContainer"]{display:none!important}
+	body[data-main-is-sidebar-opened-value="true"] [data-main-target="mainSidebarClosedContainer"]{display:none!important}
+	body[data-main-is-sidebar-opened-value="false"] aside.list-container{left:100px!important}
+	body[data-main-is-sidebar-opened-value="true"] aside.list-container{left:220px!important}
+	body[data-main-is-sidebar-opened-value="false"] #conversation-container{padding-left:440px!important}
+	body[data-main-is-sidebar-opened-value="true"] #conversation-container{padding-left:560px!important}
+	/* 不加过渡：后台标签页会冻结在过渡起点（表现为 left/padding 不更新） */
+}
 /* ---- 聊天主列：去掉旧 70% 圆角卡片，改为参考站全宽列 ---- */
 .messages-container{margin-top:0!important;width:100%!important;max-width:none!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
 #messages{height:auto!important;flex:1 1 auto;min-height:0;overflow-y:auto;padding-top:0!important;padding-bottom:16px!important}
@@ -198,7 +214,7 @@ div.bg-main.fixed.top-0{background:#131313!important;border-color:#242424!import
 .fy-composer .border-neutral-700{border-color:#3a3a3a!important}
 
 /* ---- 右侧资料栏（Profile / Gallery 页签，参考站同款） ---- */
-.profile-container{background:#131313!important;width:360px;flex:0 0 360px;max-width:360px;padding-top:88px!important;border-left:1px solid #232323}
+.profile-container{background:#131313!important;width:360px;flex:0 0 360px;max-width:360px;border-left:1px solid #232323}
 .fy-tabs{display:flex}
 .fy-tab{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 10px;font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;color:#a4a4a4;background:none;border:0;border-bottom:1px solid #232323;cursor:pointer}
 .fy-tab.active{color:#fff;border-bottom:2px solid #fff}
@@ -330,7 +346,7 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 		<style>[data-main-target="registrationModal"],[data-main-target="signInModal"]{display:none!important}</style>
 		<script src="./js/welcome-bonus.js?v=20261106wb2"></script>
 	</head>
-  <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="true" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
+  <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
     
           
 
@@ -724,8 +740,7 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 </turbo-frame>    <div class="main-content-container" data-main-target="contentContainer">
       <div data-controller="profile-toggle message-edit-form feedback-dislike-modal" data-paid-user="" x-data="{ isPhoneCallModalOpen: false, isPremiumSubscriptionModalOpen: false, isGuestModalOpen: false, isRatingModalOpen: false, isInsufficientTokenModalOpen: false, isPhoneCallConfirmationModalOpen: false, isAllowPermissionModal: false, isBlockPermissionModal: false }" data-phone-call-is-guest-user="true" data-phone-call-is-free-user="false" data-phone-call-conversation-id="" data-phone-call-default-user-phone-number="" data-phone-call-paid-user="" data-phone-call-start-time="" data-phone-call-moderation-message="Hey wait, I cannot talk about this" data-phone-call-is-free-user-value="false" data-phone-call-is-guest-user-value="true" data-phone-call-conversation-id-value="" data-phone-call-has-user-checked-dont-show-again-value="false">
   <div id="conversation-container" class="fixed bottom-0 top-0 text-xs lg:flex lg:flex-grow fill-available w-full rounded-lg lg:pl-[440px] pr-0" style="background-size: cover; background-image: url(&quot;/assets/pattern-73e01b5144fed554ae9bf7baf0280ee22448f1dfc05ef616e85bef1e486c37cc.png&quot;); padding-left: 440px;" data-main-target="conversationContainer">
-    <div class="relative mt-16 lg:w-[70%] text-xs flex flex-col flex-grow rounded-lg shadow-xl overflow-hidden messages-container" data-profile-toggle-target="messagesContainer">
-      <div id="pfp-banner-container" class="lg:relative fixed w-full z-10">
+    <div id="pfp-banner-container" class="lg:relative fixed w-full z-10">
         <div class="relative h-[68px] bg-main md:h-[88px] border-[#363636] border-b flex lg:justify-between">
   <div class="flex-1 justify-start items-center gap-3.5 inline-flex relative py-2 ml-[6px] lg:ml-[20px]">
     <div class="md:w-[58px] md:h-[58px] w-[44px] h-[44px] relative" id="change-pfp-banner">
@@ -752,6 +767,9 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 </div>
 
       </div>
+    <div class="fy-main-row">
+    <div class="relative mt-16 lg:w-[70%] text-xs flex flex-col flex-grow rounded-lg shadow-xl overflow-hidden messages-container" data-profile-toggle-target="messagesContainer">
+      
 
       <div id="messages" class="p-4 pt-[61px] md:pt-[80px] lg:pt-0 scrollbar lg:h-full h-[calc(100vh-16rem)] overflow-auto">
             <div class="fy-disclaimer" id="fy-disclaimer">
@@ -1126,7 +1144,8 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 
       </div>
     </div>
-  </div>
+  
+    </div><!-- /fy-main-row --></div>
     
     
   
@@ -1488,7 +1507,7 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
               <form class="fy-conv-act" method="post" action=""><input type="hidden" name="_method" value="delete" autocomplete="off"><button data-turbo="true" type="button" data-reboot-conv title="Reboot conversation">
                 <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M2.42742 7.17755C2.88001 4.10191 5.7402 1.97552 8.81583 2.42811C9.86518 2.58252 10.8495 3.03026 11.6555 3.71977L10.93 4.44532C10.6868 4.68857 10.6868 5.08292 10.9301 5.3261C11.0469 5.44282 11.2052 5.50842 11.3703 5.50845H14.2265C14.5704 5.50845 14.8493 5.22962 14.8493 4.88565V2.02947C14.8492 1.68551 14.5703 1.40673 14.2263 1.40679C14.0612 1.40682 13.9029 1.47242 13.7862 1.58914L12.9765 2.39877C9.88891 -0.353483 5.1548 -0.0816883 2.40255 3.00586C1.4275 4.09967 0.794753 5.45549 0.582688 6.90538C0.499077 7.41939 0.847973 7.90386 1.36196 7.98748C1.40826 7.99501 1.45503 7.99907 1.50195 7.99965C1.9722 7.99457 2.36693 7.64392 2.42742 7.17755Z"/><path d="M14.4957 7.99965C14.0255 8.00473 13.6307 8.35538 13.5702 8.82175C13.1176 11.8974 10.2575 14.0238 7.18182 13.5712C6.13248 13.4168 5.14812 12.9691 4.34213 12.2796L5.06769 11.554C5.31087 11.3108 5.31082 10.9164 5.06754 10.6732C4.9508 10.5565 4.79245 10.4909 4.62736 10.4909H1.77123C1.42727 10.4909 1.14844 10.7697 1.14844 11.1137V13.9699C1.14853 14.3138 1.42741 14.5926 1.77138 14.5925C1.93647 14.5925 2.09482 14.5269 2.21156 14.4102L3.0212 13.6006C6.10801 16.3531 10.8418 16.0822 13.5943 12.9953C14.5699 11.9013 15.203 10.545 15.415 9.09457C15.4989 8.58061 15.1504 8.0959 14.6364 8.01194C14.5899 8.00432 14.5429 8.0002 14.4957 7.99965Z"/></svg>
               </button></form>
-              <form class="fy-conv-act" method="post" action=""><input type="hidden" name="_method" value="delete" autocomplete="off"><button data-turbo="true" type="button" data-reboot-conv title="Delete conversation">
+              <form class="fy-conv-act" method="post" action=""><input type="hidden" name="_method" value="delete" autocomplete="off"><button data-turbo="true" type="button" data-delete-conv title="Delete conversation">
                 <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M14.0002 3.83301H2.00016C1.82335 3.83301 1.65378 3.90325 1.52876 4.02827C1.40373 4.15329 1.3335 4.32286 1.3335 4.49967C1.3335 4.67649 1.40373 4.84605 1.52876 4.97108C1.65378 5.0961 1.82335 5.16634 2.00016 5.16634H3.3335V13.1663C3.33366 13.6967 3.54442 14.2053 3.91946 14.5804C4.2945 14.9554 4.80311 15.1662 5.3335 15.1663H10.6668C11.1972 15.1662 11.7058 14.9554 12.0809 14.5804C12.4559 14.2054 12.6667 13.6967 12.6668 13.1663V5.16634H14.0002C14.177 5.16634 14.3465 5.0961 14.4716 4.97108C14.5966 4.84605 14.6668 4.67649 14.6668 4.49967C14.6668 4.32286 14.5966 4.15329 14.4716 4.02827C14.3465 3.90325 14.177 3.83301 14.0002 3.83301ZM7.3335 11.1663C7.3335 11.3432 7.26326 11.5127 7.13823 11.6377C7.01321 11.7628 6.84364 11.833 6.66683 11.833C6.49002 11.833 6.32045 11.7628 6.19543 11.6377C6.0704 11.5127 6.00016 11.3432 6.00016 11.1663V7.83301C6.00016 7.6562 6.0704 7.48663 6.19543 7.3616C6.32045 7.23658 6.49002 7.16634 6.66683 7.16634C6.84364 7.16634 7.01321 7.23658 7.13823 7.3616C7.26326 7.48663 7.3335 7.6562 7.3335 7.83301V11.1663ZM10.0002 11.1663C10.0002 11.3432 9.92993 11.5127 9.8049 11.6377C9.67988 11.7628 9.51031 11.833 9.3335 11.833C9.15669 11.833 8.98712 11.7628 8.86209 11.6377C8.73707 11.5127 8.66683 11.3432 8.66683 11.1663V7.83301C8.66683 7.6562 8.73707 7.48663 8.86209 7.3616C8.98712 7.23658 9.15669 7.16634 9.3335 7.16634C9.51031 7.16634 9.67988 7.23658 9.8049 7.3616C9.92993 7.48663 10.0002 7.6562 10.0002 7.83301V11.1663Z" fill="currentColor"/><path d="M6.66667 3.16634H9.33333C9.51014 3.16634 9.67971 3.0961 9.80474 2.97108C9.92976 2.84605 10 2.67649 10 2.49967C10 2.32286 9.92976 2.15329 9.80474 2.02827C9.67971 1.90325 9.51014 1.83301 9.33333 1.83301H6.66667C6.48986 1.83301 6.32029 1.90325 6.19526 2.02827C6.07024 2.15329 6 2.32286 6 2.49967C6 2.67649 6.07024 2.84605 6.19526 2.97108C6.32029 3.0961 6.48986 3.16634 6.66667 3.16634Z" fill="currentColor"/></svg>
               </button></form>
             </span>

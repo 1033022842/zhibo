@@ -179,6 +179,22 @@
       return im ? (im.getAttribute('src') || '') : ''
     }
 
+    // 元信息小头像裂图兜底：换成「渐变 + 首字母」占位（顶部头像可能引用失效的缓存地址）
+    function bindGiftAvatarFallback(root) {
+      var name = String((document.getElementById('chat-name') || {}).textContent || 'AI');
+      var letter = (name.trim()[0] || 'A').toUpperCase();
+      var ph = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52">' +
+        '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#6143E6"/><stop offset="1" stop-color="#4346E6"/></linearGradient></defs>' +
+        '<rect width="52" height="52" fill="url(#g)"/>' +
+        '<text x="26" y="34" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#fff" text-anchor="middle">' + letter + '</text></svg>');
+      var imgs = root.querySelectorAll('.fy-meta-avatar img');
+      for (var i = 0; i < imgs.length; i++) {
+        imgs[i].addEventListener('error', function () { this.onerror = null; this.src = ph; });
+      }
+    }
+
     /* 送礼成功：消息气泡 + 好感进度 + 轮播追加 */
   function onGiftSent(data, name) {
     var media = (data && data.media) || {};
@@ -200,6 +216,7 @@
         '<video src="' + esc(media.url) + '" controls playsinline preload="metadata" style="display:block;width:260px;max-width:100%;height:auto;border-radius:18px;background:#000"></video></div>' +
         '<div class="fy-msg-meta"><span class="fy-meta-avatar"><img src="' + esc(giftAvatarSrc()) + '" alt=""></span><span class="fy-meta-time">now</span></div>' +
         '</div></div>';
+      bindGiftAvatarFallback(row);
       box.appendChild(row);
       box.scrollTop = box.scrollHeight;
     }
@@ -214,6 +231,7 @@
         '<div class="fy-msg-meta"><span class="fy-meta-avatar"><img src="' + esc(giftAvatarSrc()) + '" alt=""></span><span class="fy-meta-time">now</span></div>' +
         '</div>';
       replyRow.querySelector('.js-bubble').textContent = data.reply;
+      bindGiftAvatarFallback(replyRow);
       box.appendChild(replyRow);
       box.scrollTop = box.scrollHeight;
     }

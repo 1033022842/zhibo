@@ -74,6 +74,10 @@
             })
             // 重启会话按钮（原模板内联 confirm 已摘除，走美化确认框）
             setupRebootDialog()
+            // 会话列表垃圾桶：独立删除会话（不再复用 reboot 弹窗）
+            setupDeleteConv()
+            // 汉堡：收起/展开左侧菜单，会话列表+聊天区同步平移（不依赖旧 Stimulus 控制器）
+            setupSidebarToggle()
             avatarFallback()
         }
         // 场景按钮（参考站新版 Show me the scene）每次进入重绑（Turbo 快照恢复丢监听）
@@ -85,12 +89,20 @@
                 convItems[activeConvId] = info
                 // 只补人设，不动消息区（否则会把已显示的开场问候清掉）
                 var cur = document.getElementById('chat-name')
-                if (!cur || cur.textContent !== info.title) paintPersona(info)
+                // 头像地址变化也要重画：pageList 缓存里的旧地址可能已 404（media 素材迁移/签名过期），
+                // 服务端首页角色目录给的是新地址，重画一次即恢复
+                var curImg = document.getElementById('chat-img')
+                var freshImg = String(info.image || '').split(',')[0]
+                var imgChanged = !!(curImg && freshImg && String(curImg.getAttribute('src') || '').split('?')[0] !== freshImg.split('?')[0])
+                if (!cur || cur.textContent !== info.title || imgChanged) paintPersona(info)
             }
         })
         // PC 端资料面板：默认展开（右侧人设区），并按用户上次的手动折叠选择恢复
         // （之前不持久化 + Turbo 快照恢复，会把折叠态带进下一次进入，表现为「右侧那块区域没了」）
         initProfilePanel()
+        // 侧栏默认收起（Stimulus main 控制器初始化会按它自己的持久化把属性改回 true，
+        // 所以必须在它之后再置回 false；展开/收起由汉堡切换，CSS 按 body 属性同步平移各区域）
+        document.body.setAttribute('data-main-is-sidebar-opened-value', 'false')
         // 会话/历史/开场白每次进入都要重建（Turbo 恢复的快照是旧 DOM）
         channelDetail(id)
     }
@@ -129,6 +141,62 @@
                 doReload()
             }
         })
+    }
+
+    /* ---------- 删除会话：列表垃圾桶按钮（后端暂无删除接口，先做本地移除） ---------- */
+    function setupDeleteConv() {
+        $('#message-list').off('click', '[data-delete-conv]').on('click', '[data-delete-conv]', function (e) {
+            e.preventDefault()
+            e.stopPropagation()
+            var $a = $(this).closest('a.chat-obj')
+            var id = String($a.data('id') || '')
+            var name = ($a.find('.chat-name').first().text() || '').trim()
+            var msg = name
+                ? 'Delete the conversation with ' + name + '? It will be removed from your list.'
+                : 'Delete this conversation? It will be removed from your list.'
+            function doDelete() {
+                try {
+                    var list = JSON.parse(localStorage.getItem('pageList') || '[]')
+                    if (Array.isArray(list)) {
+                        list = list.filter(function (t) { return String(t && t.id) !== id })
+                        localStorage.setItem('pageList', JSON.stringify(list))
+                    }
+                } catch (err) {}
+                if (/^my-/.test(id)) {
+                    try { localStorage.removeItem('myPersona:' + id); localStorage.removeItem('myVoice:' + id) } catch (err) {}
+                }
+                if (convItems[id]) delete convItems[id]
+                $a.remove()
+                // 删的是当前会话：回到聊天页随机会话（登录用户的服务端记录仍在，下次列表刷新按最近聊天返回）
+                if (id !== '' && id === String(activeConvId || '')) location.href = './Chat.html'
+            }
+            if (window.SugusDialog) {
+                SugusDialog.confirm({
+                    title: 'Delete conversation',
+                    message: msg,
+                    confirmText: 'Delete',
+                    cancelText: 'Cancel',
+                    icon: 'warn'
+                }).then(function (ok) { if (ok) doDelete() })
+            } else if (window.confirm(msg)) {
+                doDelete()
+            }
+        })
+    }
+
+    /* ---------- 左侧菜单收起/展开：汉堡切换 body 属性，侧栏容器/会话列表/聊天区由 CSS 同步平移 ---------- */
+    function setupSidebarToggle() {
+        // 捕获阶段拦截：旧 Stimulus 的 main#handleMenuClick 不可靠（本地直接失效、线上各页行为不一），
+        // 这里统一接管；<1024px 保持原手机抽屉逻辑不动
+        document.addEventListener('click', function (e) {
+            var el = e.target && e.target.closest ? e.target.closest('#nav-hamburger') : null
+            if (!el) return
+            if (window.innerWidth < 1024) return
+            e.preventDefault()
+            e.stopPropagation()
+            var cur = document.body.getAttribute('data-main-is-sidebar-opened-value')
+            document.body.setAttribute('data-main-is-sidebar-opened-value', cur === 'true' ? 'false' : 'true')
+        }, true)
     }
 
     // 会话列表(id -> 角色对象)，点击时用它取右侧资料
@@ -462,6 +530,12 @@
                 '<span class="fy-meta-time">' + nowTime() + '</span>' +
                 '</div></div>'
         }
+        // 元信息小头像裂图兜底（顶部头像可能引用失效的缓存地址）
+        var mav = row.querySelector('.fy-meta-avatar img')
+        if (mav) mav.addEventListener('error', function () {
+            mav.onerror = null
+            try { mav.src = avatarPlaceholder(($('#chat-name').text() || 'AI')) } catch (e) {}
+        })
         box.appendChild(row)
         scrollMessagesToBottom()
         if (callActive) callScreenCaption(text, mine)
@@ -660,6 +734,11 @@
                 '<span class="fy-meta-avatar"><img src="' + esc(chatAvatarSrc()) + '" alt=""></span>' +
                 timeHtml() + '</div></div>'
         }
+        var mav = row.querySelector('.fy-meta-avatar img')
+        if (mav) mav.addEventListener('error', function () {
+            mav.onerror = null
+            try { mav.src = avatarPlaceholder(($('#chat-name').text() || 'AI')) } catch (e) {}
+        })
         box.appendChild(row)
         scrollMessagesToBottom()
         return row.querySelector('.js-media')
@@ -2547,10 +2626,18 @@
         if (pictures[0]) {
             var html = ''
             pictures.forEach(function (t, index) {
-                html += "<div class='carousel-item" + (index === 0 ? ' active' : '') + "'><img src='" + t + "' class='w-full object-top object-cover h-[483px]'></div>"
+                html += "<div class='carousel-item" + (index === 0 ? ' active' : '') + "'><img src='" + t + "' onerror=\"fyPersonaImgError(this)\" class='w-full object-top object-cover h-[483px]'></div>"
             })
             $('.carousel').html(html)
         }
+    }
+
+    // 人设图兜底：pageList 缓存里的旧地址可能已失效（media 素材迁移 / 签名过期，pub 旧路径已 404），
+    // 加载失败时换成「渐变 + 首字母」占位，等服务端目录/会话接口返回新地址后 paintPersona 会自动覆盖
+    window.fyPersonaImgError = function (img) {
+        img.onerror = null
+        var name = String((document.getElementById('chat-name') || {}).textContent || 'AI')
+        try { img.src = avatarPlaceholder(name) } catch (e) {}
     }
 
     // 首屏即时人设：页面静态 HTML 里写死的是默认角色（Priya），以前要等人设/会话接口回来才
