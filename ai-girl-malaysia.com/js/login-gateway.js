@@ -72,6 +72,14 @@
     } catch (e) { /* 本地存储不可用不阻断登录。 */ }
     data.event_id = window.crypto && crypto.randomUUID ? crypto.randomUUID() :
       (window.SugusTrack && SugusTrack.newId ? SugusTrack.newId() : '')
+    // 埋点会话ID：登录日志与行为分析关联（tracking.js 提供）
+    try {
+      if (window.SugusTrack && SugusTrack.ids) {
+        var tids = SugusTrack.ids()
+        data.vid = tids.vid || ''
+        data.sid = tids.sid || ''
+      }
+    } catch (e2) { /* 埋点ID缺失不影响登录。 */ }
     data.redirect = returnPath()
     return data
   }
