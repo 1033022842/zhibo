@@ -1318,6 +1318,18 @@
         refreshSceneRow()
     }
 
+    /* 图片黑底渐显：加载完成后淡入（含顶部头像与消息媒体） */
+    if (!window.__chatImgFadeBound) {
+        window.__chatImgFadeBound = true
+        document.addEventListener('load', function (e) {
+            var t = e.target
+            if (!t || t.tagName !== 'IMG') return
+            if (t.id === 'chat-img' || t.id === 'chat-img-mobile' || (t.closest && t.closest('.fy-media'))) {
+                t.classList.add('img-in')
+            }
+        }, true)
+    }
+
     /* ---------- 头像兜底：图片裂开时换成角色首字母渐变占位 ---------- */
     function avatarFallback() {
         // PC 与手机顶部头像是两个 <img>，都要挂兜底

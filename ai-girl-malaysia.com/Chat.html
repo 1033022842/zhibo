@@ -7,7 +7,8 @@
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 	<script>/* reCAPTCHA stub：镜像残留已移除，占位避免内联 grecaptcha 调用报错 */window.grecaptcha = window.grecaptcha || {ready:function(cb){if(typeof cb==="function"){cb();}},execute:function(){return Promise.resolve("");},render:function(){return "";},reset:function(){},getResponse:function(){return "";}};</script>
-		<link rel="icon" type="image/png" href="./sugus-favicon-v3.png"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style type="text/css">.turbo-progress-bar {
+		<link rel="icon" type="image/png" href="./sugus-favicon-v3.png"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="turbo-cache-control" content="no-cache"><style type="text/css">.turbo-progress-bar {
 		<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon-v3.png">
 		<meta name="apple-mobile-web-app-title" content="Sugus.ai">
   position: fixed;
@@ -154,8 +155,8 @@ div.bg-main.fixed.top-0{background:#131313!important;border-color:#242424!import
 .fy-msg{display:flex;padding:0}
 .fy-msg-ai{justify-content:flex-start}
 .fy-msg-user{justify-content:flex-end}
-.fy-msg-col{display:flex;flex-direction:column;gap:9px;max-width:75%;min-width:0}
-.fy-msg-user .fy-msg-col{align-items:flex-end}
+/* ?? candy ?????? ????????img ???? */\n\t\t#chat-img, #chat-img-mobile { background: #000; opacity: 0; transition: opacity .28s ease; }\n\t\t#chat-img.img-in, #chat-img-mobile.img-in { opacity: 1; }\n\t\t.fy-media img { background: #000; opacity: 0; transition: opacity .28s ease; }\n\t\t.fy-media img.img-in { opacity: 1; }\n.fy-msg-col{display:flex;flex-direction:column;gap:9px;max-width:75%;min-width:0}
+.fy-msg-user /* ?? candy ?????? ????????img ???? */\n\t\t#chat-img, #chat-img-mobile { background: #000; opacity: 0; transition: opacity .28s ease; }\n\t\t#chat-img.img-in, #chat-img-mobile.img-in { opacity: 1; }\n\t\t.fy-media img { background: #000; opacity: 0; transition: opacity .28s ease; }\n\t\t.fy-media img.img-in { opacity: 1; }\n.fy-msg-col{align-items:flex-end}
 .fy-bubble{font-family:'Roboto',sans-serif;font-size:15px;line-height:21px;font-weight:400;color:#d1d1d1;word-break:break-word;white-space:pre-wrap;text-align:left}
 .fy-bubble-ai{background:#252525;border-radius:24px 24px 24px 4px;padding:8px 16px;margin:16px 0 10px}
 .fy-bubble-user{background:linear-gradient(90deg,#6143E6 0%,#4346E6 100%);border-radius:24px 24px 4px 24px;padding:8px 16px;margin:12px 0 0;color:#e8e8e8}
