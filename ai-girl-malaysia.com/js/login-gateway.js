@@ -117,17 +117,17 @@
       '.live-social-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}' +
       '.live-social-row button{display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;' +
       'background:#292929;border:1px solid #444;color:#eee;font-size:13px;padding:10px 6px}' +
+      '.live-telegram-row{display:flex;justify-content:center;margin-top:10px}' +
+      '.live-telegram-btn{display:flex;align-items:center;justify-content:center;width:56px;height:56px;padding:0;border:none;background:transparent;cursor:pointer;transition:transform .15s ease}' +
+      '.live-telegram-btn:hover{transform:scale(1.08)}' +
+      '.live-telegram-btn:active{transform:scale(.96)}' +
+      '.live-telegram-btn:disabled{opacity:.5;cursor:wait}' +
+      '.live-telegram-btn svg{width:44px;height:44px;display:block;pointer-events:none}' +
       '.live-social-row button svg{width:18px;height:18px;flex:0 0 18px;display:block;pointer-events:none}' +
       '.live-social-row button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
       '.live-login-methods button:hover:not(:disabled){background:#383036}' +
       '.live-login-methods button:disabled{opacity:.45;cursor:not-allowed}' +
       '.live-login-methods small{display:block;font-size:10px;font-weight:400;margin-top:4px;color:#bcbcbc}' +
-      '.live-social-row .live-telegram-btn{position:relative;width:44px;flex:0 0 44px;padding:0;justify-content:center;background:transparent;border:none;box-shadow:none}' +
-      '.live-social-row .live-telegram-btn:hover{background:transparent}' +
-      '.live-social-row .live-telegram-btn svg{width:24px;height:24px;flex:0 0 24px}' +
-      '.live-social-row .live-telegram-btn svg{width:20px;height:20px;flex:0 0 20px}' +
-      '.live-telegram-overlay{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;overflow:hidden;z-index:2;cursor:pointer}' +
-      '.live-telegram-overlay iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(2.6)}' +
       '#email-signin-dialog{box-sizing:border-box;width:min(420px,92vw);max-height:90dvh;padding:0;margin:auto;' +
       'border:1px solid #3d3d3d;border-radius:16px;background:#191919;color:#eee;font-family:inherit;overflow:hidden}' +
       '#email-signin-dialog::backdrop{background:rgba(0,0,0,.72)}' +
@@ -239,51 +239,55 @@
       return item.enabled && item.id === 'telegram'
     })[0]
     if (!provider || !provider.bot) return
-    var providers = (options.providers || []).filter(function (item) {
-      return item.enabled && item.id !== 'telegram'
-    })
     var row = document.createElement('div')
-    row.className = 'live-social-row'
-    row.style.display = 'flex'
-    row.style.justifyContent = 'center'
-    row.style.gap = '8px'
+    row.className = 'live-telegram-row'
     var tg = document.createElement('button')
     tg.type = 'button'
     tg.className = 'live-telegram-btn'
-    tg.title = 'Authorize your Telegram account'
+    tg.title = 'Continue with Telegram'
+    tg.setAttribute('aria-label', 'Continue with Telegram')
     tg.innerHTML = ICONS.telegram || ''
-    var overlay = document.createElement('div')
-    overlay.className = 'live-telegram-overlay'
-    // widget 脚本由 telegram.org 加载，域名未在 bot 的 Allowed URLs 里时静默不渲染
-    var script = document.createElement('script')
-    script.src = 'https://telegram.org/js/telegram-widget.js?22'
-    script.async = true
-    script.setAttribute('data-telegram-login', provider.bot)
-    script.setAttribute('data-size', 'large')
-    script.setAttribute('data-radius', '10')
-    script.setAttribute('data-onauth', '__liveTelegramAuth')
-    script.setAttribute('data-userpic-single', 'true')
-    overlay.appendChild(script)
-    tg.appendChild(overlay)
+    var busy = false
+    var pollTimer = null
+
+    function stopPoll() {
+      if (pollTimer) { clearTimeout(pollTimer); pollTimer = null }
+      busy = false
+      tg.disabled = false
+    }
+
+    function poll(code, browser, tries) {
+      if (tries <= 0) { stopPoll(); message('Telegram sign-in timed out. Please try again.'); return }
+      post('/telegramPoll', { code: code, browser: browser }).then(function (result) {
+        var d = (result && result.data) || {}
+        if (d && d.pending) {
+          pollTimer = setTimeout(function () { poll(code, browser, tries - 1) }, 2000)
+          return
+        }
+        stopPoll()
+        afterLogin(result)
+      }).catch(function () {
+        pollTimer = setTimeout(function () { poll(code, browser, tries - 1) }, 2500)
+      })
+    }
+
+    tg.onclick = function () {
+      if (busy) return
+      busy = true
+      tg.disabled = true
+      post('/telegramStart', context()).then(function (result) {
+        var d = (result && result.data) || {}
+        if (!d.deep_link) throw new Error('Telegram sign-in is unavailable right now.')
+        try { window.open(d.deep_link, '_blank', 'noopener') } catch (e) { location.href = d.deep_link }
+        message('Approve the sign-in in Telegram, then come back here.')
+        poll(d.code, d.browser, 90)
+      }).catch(function (error) {
+        stopPoll()
+        message(error.message)
+      })
+    }
+
     row.appendChild(tg)
-    providers.forEach(function (provider) {
-      var social = document.createElement('button')
-      var label = LABELS[provider.id] || provider.label
-      social.type = 'button'
-      social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
-      social.querySelector('span').textContent = label
-      social.title = 'Authorize your ' + provider.label + ' account'
-      social.onclick = function () {
-        social.disabled = true
-        post('/socialStart/' + provider.id, context()).then(function (data) {
-          location.assign(data.authorize_url)
-        }).catch(function (error) {
-          social.disabled = false
-          message(error.message)
-        })
-      }
-      row.appendChild(social)
-    })
     box.appendChild(row)
   }
 
