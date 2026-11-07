@@ -114,8 +114,10 @@
       '.live-login-methods button:hover:not(:disabled){background:#383036}' +
       '.live-login-methods button:disabled{opacity:.45;cursor:not-allowed}' +
       '.live-login-methods small{display:block;font-size:10px;font-weight:400;margin-top:4px;color:#bcbcbc}' +
-      '.live-telegram-row{display:flex;justify-content:center;margin-top:12px;min-height:40px}' +
-      '.live-telegram-row iframe{max-width:100%}' +
+      '.live-social-row .live-telegram-btn{position:relative}' +
+      '.live-social-row .live-telegram-btn svg{width:20px;height:20px;flex:0 0 20px}' +
+      '.live-telegram-overlay{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;overflow:hidden;z-index:2;cursor:pointer}' +
+      '.live-telegram-overlay iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(2.6)}' +
       '#email-signin-dialog{box-sizing:border-box;width:min(420px,92vw);max-height:90dvh;padding:0;margin:auto;' +
       'border:1px solid #3d3d3d;border-radius:16px;background:#191919;color:#eee;font-family:inherit;overflow:hidden}' +
       '#email-signin-dialog::backdrop{background:rgba(0,0,0,.72)}' +
@@ -227,8 +229,20 @@
       return item.enabled && item.id === 'telegram'
     })[0]
     if (!provider || !provider.bot) return
+    var providers = (options.providers || []).filter(function (item) {
+      return item.enabled && item.id !== 'telegram'
+    })
     var row = document.createElement('div')
-    row.className = 'live-telegram-row'
+    row.className = 'live-social-row'
+    row.style.gridTemplateColumns = 'repeat(' + (providers.length + 1) + ',minmax(0,1fr))'
+    var tg = document.createElement('button')
+    tg.type = 'button'
+    tg.className = 'live-telegram-btn'
+    tg.title = 'Authorize your Telegram account'
+    tg.innerHTML = (ICONS.telegram || '') + '<span></span>'
+    tg.querySelector('span').textContent = 'Telegram'
+    var overlay = document.createElement('div')
+    overlay.className = 'live-telegram-overlay'
     // widget 脚本由 telegram.org 加载，域名未在 bot 的 Allowed URLs 里时静默不渲染
     var script = document.createElement('script')
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
@@ -238,7 +252,27 @@
     script.setAttribute('data-radius', '10')
     script.setAttribute('data-onauth', '__liveTelegramAuth')
     script.setAttribute('data-userpic-single', 'true')
-    row.appendChild(script)
+    overlay.appendChild(script)
+    tg.appendChild(overlay)
+    row.appendChild(tg)
+    providers.forEach(function (provider) {
+      var social = document.createElement('button')
+      var label = LABELS[provider.id] || provider.label
+      social.type = 'button'
+      social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
+      social.querySelector('span').textContent = label
+      social.title = 'Authorize your ' + provider.label + ' account'
+      social.onclick = function () {
+        social.disabled = true
+        post('/socialStart/' + provider.id, context()).then(function (data) {
+          location.assign(data.authorize_url)
+        }).catch(function (error) {
+          social.disabled = false
+          message(error.message)
+        })
+      }
+      row.appendChild(social)
+    })
     box.appendChild(row)
   }
 
