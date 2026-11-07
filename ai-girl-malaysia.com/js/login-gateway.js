@@ -234,7 +234,26 @@
     })
   }
 
-  /* Telegram 登录：点击开新标签走深链，前台轮询确认；限流 + 页面隐藏时暂停，绝不阻塞 UI */
+  /* Telegram 深链登录：点击开 TG 授权 -> 前台轮询确认 -> 自动关 TG 标签并落登录态。
+     设计要点：
+       - 拿不到 window 引用（noopener / 弹窗拦截）也继续轮询，用户可手动回到本站
+       - 回到本页(visibilitychange)立即复查一次，不用等下一个定时器
+       - 模块级锁，防止重复点击叠加多条轮询链
+       - 成功后校验 token 是否真的写入，失败给出可操作提示 */
+  var tgBusy = false
+  var tgTimer = null
+  var tgWin = null
+
+  function tgStop() {
+    if (tgTimer) { clearTimeout(tgTimer); tgTimer = null }
+    tgBusy = false
+    var btn = document.querySelector('.live-telegram-btn')
+    if (btn) { btn.disabled = false; btn.classList.remove('is-busy') }
+    var w = tgWin
+    tgWin = null
+    if (w) { try { if (!w.closed) w.close() } catch (e) { /* 跨域窗口可能拒绝关闭 */ } }
+  }
+
   function mountTelegram(box) {
     var provider = (options.providers || []).filter(function (item) {
       return item.enabled && item.id === 'telegram'
@@ -251,55 +270,75 @@
     tg.setAttribute('aria-label', 'Continue with Telegram')
     tg.innerHTML = ICONS.telegram || ''
 
-    var busy = false
-    var timer = null
+    var code = ''
+    var browser = ''
     var tries = 0
+    var polling = false
 
-    function stop() {
-      if (timer) { clearTimeout(timer); timer = null }
-      busy = false
-      tries = 0
-      tg.disabled = false
-      tg.classList.remove('is-busy')
-    }
-
-    function poll(code, browser) {
-      if (!busy) return
-      if (tries-- <= 0) { stop(); message('Telegram sign-in timed out.'); return }
-      // 用户切走去看 Telegram 时暂停轮询，回来再继续
-      if (document.hidden) {
-        timer = setTimeout(function () { poll(code, browser) }, 1000)
-        return
-      }
+    function pollOnce() {
+      if (!tgBusy || polling || !code) return
+      polling = true
       post('/telegramPoll', { code: code, browser: browser }).then(function (d) {
-        if (!busy) return
-        if (d && d.pending) {
-          timer = setTimeout(function () { poll(code, browser) }, 2500)
-          return
+        polling = false
+        if (!tgBusy) return
+        if (d && d.pending) { schedule(1500); return }
+        /* 登录成功 */
+        var ok = false
+        try {
+          afterLogin(d)
+          ok = true
+        } catch (err) {
+          if (window.console) console.error('[telegram] afterLogin failed', err)
+          message('Signed in on Telegram, but this browser blocked storage. Please allow site data and retry.')
         }
-        stop()
-        afterLogin(d)
-      }).catch(function () {
-        if (!busy) return
-        timer = setTimeout(function () { poll(code, browser) }, 3000)
+        tgStop()
+        if (!ok) return
+      }).catch(function (err) {
+        polling = false
+        if (!tgBusy) return
+        if (window.console) console.error('[telegram] poll error', err)
+        schedule(2000)
       })
     }
 
+    function schedule(ms) {
+      if (!tgBusy) return
+      if (tries-- <= 0) { tgStop(); message('Telegram sign-in timed out. Please try again.'); return }
+      if (tgTimer) clearTimeout(tgTimer)
+      tgTimer = setTimeout(pollOnce, ms)
+    }
+
+    /* 用户切回本页时立刻复查，避免“已经授权但还在等定时器” */
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && tgBusy) {
+        if (tgTimer) { clearTimeout(tgTimer); tgTimer = null }
+        pollOnce()
+      }
+    })
+
     tg.onclick = function () {
-      if (busy) return
-      busy = true
-      tries = 24
+      if (tgBusy) return
+      tgBusy = true
+      tries = 40
       tg.disabled = true
       tg.classList.add('is-busy')
       post('/telegramStart', context()).then(function (d) {
-        if (!d || !d.deep_link) { stop(); message('Telegram sign-in is unavailable right now.'); return }
-        var win = null
-        try { win = window.open(d.deep_link, '_blank', 'noopener,noreferrer') } catch (e) { win = null }
-        if (!win) { stop(); message('Please allow pop-ups, or open t.me/' + provider.bot + ' in a new tab.'); return }
-        message('Approve the sign-in in Telegram, then return to this tab.')
-        poll(d.code, d.browser)
+        if (!d || !d.deep_link) {
+          tgStop()
+          message('Telegram sign-in is unavailable right now.')
+          return
+        }
+        code = d.code
+        browser = d.browser
+        /* 不加 noopener：需要窗口引用才能在成功后自动关闭 TG 标签。
+           即使被拦截/返回 null，也不中断轮询。 */
+        try { tgWin = window.open(d.deep_link, 'telegram_login') } catch (e) { tgWin = null }
+        if (!tgWin) {
+          message('Open t.me/' + provider.bot + ' and press START to finish signing in.')
+        }
+        schedule(1200)
       }).catch(function (err) {
-        stop()
+        tgStop()
         message((err && err.message) || 'Telegram sign-in failed.')
       })
     }
