@@ -258,8 +258,8 @@
 
     function poll(code, browser, tries) {
       if (tries <= 0) { stopPoll(); message('Telegram sign-in timed out. Please try again.'); return }
-      post('/telegramPoll', { code: code, browser: browser }).then(function (result) {
-        var d = (result && result.data) || {}
+      post('/telegramPoll', { code: code, browser: browser }).then(function (d) {
+        d = d || {}
         if (d && d.pending) {
           pollTimer = setTimeout(function () { poll(code, browser, tries - 1) }, 2000)
           return
@@ -275,8 +275,8 @@
       if (busy) return
       busy = true
       tg.disabled = true
-      post('/telegramStart', context()).then(function (result) {
-        var d = (result && result.data) || {}
+      post('/telegramStart', context()).then(function (d) {
+        d = d || {}
         if (!d.deep_link) throw new Error('Telegram sign-in is unavailable right now.')
         try { window.open(d.deep_link, '_blank', 'noopener') } catch (e) { location.href = d.deep_link }
         message('Approve the sign-in in Telegram, then come back here.')
