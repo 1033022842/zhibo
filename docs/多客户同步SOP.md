@@ -8,6 +8,26 @@
 
 ---
 
+
+## 部署前必须先同步 Gitee（强制）
+
+任何部署到服务器的操作，**之前**必须按顺序执行：
+
+```bash
+cd /root/deploy/zhibo
+git fetch origin
+git log main..origin/main --oneline   # 有输出 = 同事有新改动，先 rebase 合并
+git pull --rebase origin main
+git push origin main
+```
+
+- 本地领先 origin：说明自己/上次改动还没推送 → 推送后再部署。
+- origin 领先本地：说明同事有新改动 → `git pull --rebase` 合并并解决冲突后再推送。
+- **不先推送就部署** = 下一次同步/checkout 会用仓库当前状态覆盖线上，
+  会把同事的改动直接抹掉（2026-11-07 已发生一次：More 菜单门控、Create 菜单、
+  入口清理、注册发放补丁被旧文件覆盖）。
+- 部署完成后也必须再 `git push`，保持 Gitee 与线上一致。
+
 ## 一、这套体系是什么
 
 ```
