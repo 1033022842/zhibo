@@ -182,7 +182,6 @@
   var MORE_NAV = NAV.filter(function (n) { return MAIN_NAV.indexOf(n) === -1 })
     .concat(NAV_BOTTOM.filter(function (n) { return n.icon !== 'contact' }))
     .concat([{ href: './Home.html#install-app', label: 'Get App', icon: 'appdl' }])
-    .filter(function (n) { return !(n.label === 'AI Video Studio') || studioEntryVisible() })
 
   /* 支持的语言：原站“Select your language”大弹窗（13 种）基础上扩展常用语种
      （新增 zh-CN / zh-TW / ko / ru / hi / th / vi / ms / id / ar / tr / km / lo，
@@ -418,6 +417,21 @@
     }
   }
 
+  /* More 菜单内容：渲染期按充值状态过滤（AI Video Studio 仅充值用户可见） */
+  function moreHtml() {
+    var items = MORE_NAV.filter(function (n) { return !(n && n.label === 'AI Video Studio') || studioEntryVisible() })
+      .map(function (n) {
+        return '<a role="menuitem" tabindex="-1"' + linkAttr(n) + '>' +
+          iconHtml(n.icon, '') + '<span>' + esc(n.label) + '</span></a>'
+      }).join('')
+    var cats = CATEGORIES.map(function (c) {
+      return '<a role="menuitem" tabindex="-1" href="' + c.href + '">' +
+        iconHtml(c.icon, '') + '<span>' + c.label + '</span></a>'
+    }).join('')
+    return '<div class="fy-more-title">More</div>' + items +
+      '<div class="fy-more-divider"></div>' + cats
+  }
+
   function openMore(button) {
     var menu = document.getElementById('fy-more-menu')
     if (!menu) {
@@ -426,13 +440,7 @@
       menu.className = 'fy-more-menu'
       menu.setAttribute('role', 'menu')
       menu.setAttribute('aria-label', 'More')
-      menu.innerHTML = '<div class="fy-more-title">More</div>' + MORE_NAV.map(function (n) {
-        return '<a role="menuitem" tabindex="-1"' + linkAttr(n) + '>' +
-          iconHtml(n.icon, '') + '<span>' + esc(n.label) + '</span></a>'
-      }).join('') + '<div class="fy-more-divider"></div>' + CATEGORIES.map(function (c) {
-        return '<a role="menuitem" tabindex="-1" href="' + c.href + '">' +
-          iconHtml(c.icon, '') + '<span>' + c.label + '</span></a>'
-      }).join('')
+      menu.innerHTML = moreHtml()
       document.body.appendChild(menu)
     }
     var opening = menu.hidden || moreTrigger !== button
@@ -440,6 +448,7 @@
     if (!opening) return
     moreTrigger = button
     hideTip()
+    menu.innerHTML = moreHtml()
     menu.hidden = false
     button.setAttribute('aria-expanded', 'true')
     // Portal to body: the sidebar's overflow and transforms must not clip the menu.
@@ -1214,7 +1223,7 @@
   var CREATE_MENU = [
     { href: './createCharacter.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
     { href: './Image.html', icon: 'bDirector', title: 'AI Video Studio', sub: 'Generate photos, videos & outfits' }
-  ].filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
+  ]
 
   /* 当前页面对应的底栏高亮项（参考站：当前页那一格用激活版图标） */
   function activeBottomKey(signedIn) {
@@ -1267,7 +1276,7 @@
   }
 
   function createMenuHtml() {
-    var items = CREATE_MENU.map(function (m) {
+    var items = CREATE_MENU.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() }).map(function (m) {
       return '<a class="fy-createmenu-item" data-turbo="false" href="' + m.href + '">' +
         '<span class="fy-createmenu-tile"><img alt="" src="' + I[m.icon].src + '"></span>' +
         '<span class="fy-createmenu-text">' +

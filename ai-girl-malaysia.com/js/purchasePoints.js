@@ -226,7 +226,7 @@
         var slider = document.getElementById('tk-custom-slider')
         if (!el || !slider) return
         el.textContent = tokens
-        var thumb = 26
+        var thumb = 30
         var pct = progressPct(tokens, parseFloat(slider.min), parseFloat(slider.max)) / 100
         el.style.left = (thumb / 2 + pct * Math.max(0, slider.clientWidth - thumb)) + 'px'
     }
