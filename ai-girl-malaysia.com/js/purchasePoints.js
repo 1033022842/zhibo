@@ -700,6 +700,18 @@
                 submitOrder('', 'flowpay', PM.gcode)
                 return
             }
+            /* 行为埋点：加密货币/法币通道点击（不走 submitOrder，单独埋）*/
+            try {
+                if (window.SugusTrackEvt) {
+                    window.SugusTrackEvt('pay_click', {
+                        entry: selected.packageId ? 'package' : (typeof selected.amount === 'number' ? 'custom' : 'tokens'),
+                        amount: selected.amount || selected.price || 0,
+                        package_id: selected.packageId || 0,
+                        gateway: method === 'crypto' ? 'crypto' : 'fiat',
+                        product: ''
+                    })
+                }
+            } catch (e) {}
             var base = './CryptoPay.html?kind=coin' +
                 '&tokens=' + encodeURIComponent(selected.tokens) +
                 '&price=' + encodeURIComponent(selected.price) +

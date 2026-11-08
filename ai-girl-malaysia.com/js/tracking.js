@@ -966,7 +966,16 @@
     if (!tkTimer) tkTimer = setTimeout(tkFlush, 2500)
   }
 
+  var tkLastPv = ''
+  var tkLastPvAt = 0
+
   function tkPageview() {
+    var pageKey = location.pathname + location.search
+    var now = Date.now()
+    // 同一页面 1.5 秒内不重复上报（初始化 + turbo:load 会各触发一次）
+    if (pageKey === tkLastPv && now - tkLastPvAt < 1500) return
+    tkLastPv = pageKey
+    tkLastPvAt = now
     var b = tkBase()
     tkPush({
       type: 'pv', vid: b.vid, sid: b.sid, user_id: b.user_id, domain: b.domain,
