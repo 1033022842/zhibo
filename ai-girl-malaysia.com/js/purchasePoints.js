@@ -168,11 +168,15 @@
     }
 
     function syncInputWidth() {
-        var sizer = document.getElementById('tk-custom-sizer')
         var input = document.getElementById('tk-custom-input')
-        if (!sizer || !input) return
-        sizer.textContent = input.value || '0'
-        input.style.width = (sizer.offsetWidth + 4) + 'px'
+        if (!input) return
+        var text = input.value || '0'
+        var cs = getComputedStyle(input)
+        var fs = parseFloat(cs.fontSize) || 24
+        // 数字字形宽度约为字号的 0.62（tabular-nums 等宽），
+        // 再留 1.6 字余量给光标和「小数点后第二位的视觉空间」
+        var need = (text.length + 1.6) * fs * 0.62
+        input.style.width = Math.ceil(need) + 'px'
     }
 
     function replay(el, cls) {
