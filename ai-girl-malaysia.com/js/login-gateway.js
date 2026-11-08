@@ -46,13 +46,31 @@
   function returnPath() {
     try {
       var requested = new URL(location.href).searchParams.get('redirect')
-      if (!requested && location.pathname.indexOf('Login.html') >= 0) requested = document.referrer
+      // 兜底顺序：URL 的 redirect -> 站内 referrer -> sessionStorage 记录的来路
+      if (!requested && location.pathname.indexOf('Login.html') >= 0) {
+        requested = document.referrer || ''
+        if (!requested) {
+          try { requested = sessionStorage.getItem('sugus_login_from') || '' } catch (e) {}
+        }
+        // 登录页首次进入时，把来路存下来（部分浏览器/隐私模式 referrer 为空）
+        if (!requested) {
+          try { requested = sessionStorage.getItem('sugus_last_page') || '' } catch (e) {}
+        }
+      }
       var url = new URL(requested || location.href, location.href)
       if (url.origin === location.origin && url.pathname.indexOf('/ai/') === 0 &&
           url.pathname.toLowerCase().indexOf('login.html') < 0) return url.pathname + url.search
     } catch (e) { /* 非同源或非法返回地址采用首页。 */ }
     return '/ai/Home.html'
   }
+
+  /* 记住站内上一个页面，供 referrer 丢失时兜底 */
+  try {
+    if (location.pathname.indexOf('Login.html') < 0 &&
+        location.pathname.indexOf('/ai/') === 0) {
+      sessionStorage.setItem('sugus_last_page', location.pathname + location.search)
+    }
+  } catch (e) {}
 
   function context() {
     var data = { redirect: returnPath(), source_url: location.origin + location.pathname + location.search }

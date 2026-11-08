@@ -38,7 +38,7 @@
     $(function() {
         if (!token) {
             layer.msg('Please log in first')
-            setTimeout(function(){ location.href = './Login.html' }, 900)
+            setTimeout(function(){ location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 900)
             return
         }
         bindEvents()
@@ -322,7 +322,7 @@
 
     function relogin() {
         layer.msg('Your session has expired. Please log in again.')
-        setTimeout(function(){ location.href = './Login.html' }, 900)
+        setTimeout(function(){ location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 900)
     }
 
     function setBalance(v) {

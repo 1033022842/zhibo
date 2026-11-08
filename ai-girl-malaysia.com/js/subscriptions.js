@@ -683,7 +683,7 @@
     function payLevel(level, gateway, gcode) {
         if (!token) {
             toast('Please log in first')
-            setTimeout(function () { location.href = './Login.html' }, 900)
+            setTimeout(function () { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 900)
             return
         }
 
@@ -749,7 +749,7 @@
     function backToLogin(msg) {
         try { localStorage.removeItem('live_access_token') } catch (e) {}
         toast(msg || 'Please log in again')
-        setTimeout(function () { location.href = './Login.html' }, 900)
+        setTimeout(function () { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 900)
     }
 
     // ===== 支付回跳 =====

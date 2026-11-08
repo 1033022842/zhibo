@@ -811,7 +811,7 @@
               localStorage.removeItem('live_access_token')
               localStorage.removeItem('live_user_info')
               setTimeout(() => {
-                location.href = './Login.html'
+                location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
               }, 800);
               return
             }
@@ -850,7 +850,7 @@
                 localStorage.removeItem('live_access_token')
                 localStorage.removeItem('live_user_info')
                 setTimeout(() => {
-                  location.href = './Login.html'
+                  location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
                 }, 800);
               } else {
                 layer.msg("Failed to create character, please try again later")

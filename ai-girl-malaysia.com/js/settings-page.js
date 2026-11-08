@@ -358,7 +358,7 @@
         if (!r.ok) { toast(r.msg, false); return }
         toast('Account deleted', true)
         if (window.LiveAuth && LiveAuth.clear) LiveAuth.clear()
-        setTimeout(function () { location.href = './Login.html' }, 900)
+        setTimeout(function () { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 900)
       })
     })
   }
@@ -379,7 +379,7 @@
           localStorage.removeItem('live_user')
         } catch (err) { /* 忽略 */ }
       }
-      location.href = './Login.html'
+      location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
     })
   }
 

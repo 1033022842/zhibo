@@ -68,7 +68,7 @@
     <script src="./js/site-shell.js?v=20261023a"></script>
 		<script src="./js/shell-new.js?v=20261108bn8"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
-<script src="./js/tracking.js?v=20261108trk2"></script>
+<script src="./js/tracking.js?v=20261108trk3"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
     <meta name="description" content="Create your own AI girlfriend or chat instantly with realistic AI characters. Enjoy uncensored chats, voice calls, custom image generation, live streams and private short dramas — all in a safe, private and secure space with discreet billing.">
@@ -102,7 +102,7 @@
 (function() {
     var base = '/api/v1'
     var token = localStorage.getItem('live_access_token')
-    if (!token) { location.href = './Login.html'; return }
+    if (!token) { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search); return }
 
     var stMap = { 0: 'Active', 1: 'Funded', 2: 'Failed · Refunded' }
 

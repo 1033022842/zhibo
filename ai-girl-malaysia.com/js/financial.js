@@ -34,7 +34,7 @@
     function init() {
         if (!token) {
             layer.msg('Please sign in first')
-            setTimeout(function () { location.href = './Login.html' }, 900)
+            setTimeout(function () { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 900)
             return
         }
         bind()
@@ -257,7 +257,7 @@
         if (code === 'A0100' || code === 'A0101') {
             try { localStorage.removeItem('live_access_token') } catch (e) {}
             layer.msg('Session expired, please sign in again')
-            setTimeout(function () { location.href = './Login.html' }, 900)
+            setTimeout(function () { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 900)
         } else {
             layer.msg((r && r.msg) || 'Request failed')
         }

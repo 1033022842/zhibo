@@ -46,7 +46,7 @@
 		<script src="./_shared/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/event.js"></script>
-		<script src="./js/main.js?v=20261108tg7"></script>
+		<script src="./js/main.js?v=20261108rt1"></script>
 		<script src="./js/shell-new.js?v=20261108bn8"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 		<script src="./js/shop.js?v=20261104brand"></script>
@@ -55,7 +55,7 @@
 			@keyframes loader-spin-counter-clockwise { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
 			.loader-spin-counter-clockwise { animation: loader-spin-counter-clockwise 1s linear infinite; }
 		</style>
-	<script src="./js/tracking.js?v=20261108trk2"></script>
+	<script src="./js/tracking.js?v=20261108trk3"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
     <meta property="og:description" content="Create your own AI girlfriend or chat instantly with realistic AI characters. Enjoy uncensored chats, voice calls, custom image generation, live streams and private short dramas — all in a safe, private and secure space with discreet billing.">
@@ -172,12 +172,12 @@
 				<div class="headerfy"></div>
 				<div class="gap-x-2 flex pc-rg-login">
 					<div class="flex items-center gap-x-4 lg:gap-x-6 ">
-						<div data-main-target="registerButton" onclick="location.href='./Login.html'" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+						<div data-main-target="registerButton" onclick="location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)" class="w-[90px] h-8 px-2 md:px-4 py-1.5 bg-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
 							<div class="text-white text-sm font-semibold leading-tight">Register</div>
 						</div>
 					</div>
 					<div class="flex items-center gap-x-4 lg:gap-x-6">
-						<div onclick="location.href='./Login.html'" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
+						<div onclick="location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)" class="w-[90px] h-8 px-2 md:px-4 py-1.5 border-[#E75275] border text-[#E75275] rounded-lg justify-center items-center gap-2 inline-flex cursor-pointer">
 							<div class="text-sm font-semibold leading-tight">Login</div>
 						</div>
 					</div>

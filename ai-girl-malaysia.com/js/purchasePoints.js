@@ -511,7 +511,7 @@
         if (loading || !selected) return
         if (!token()) {
             toast('Please log in first')
-            location.href = './Login.html'
+            location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
             return
         }
         loading = true
@@ -684,7 +684,7 @@
             if (!pkg) return
             if (!token()) {
                 toast('Please log in first')
-                location.href = './Login.html'
+                location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
                 return
             }
             requireMember(function () {
@@ -760,7 +760,7 @@
             if (!packages.length) return
             if (!token()) {
                 toast('Please log in first')
-                location.href = './Login.html'
+                location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
                 return
             }
             requireMember(function () {

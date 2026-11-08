@@ -16,7 +16,7 @@
         if (!token) {
             e.preventDefault()
             layer.msg('Please log in first')
-            setTimeout(function(){ location.href = './Login.html' }, 800)
+            setTimeout(function(){ location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 800)
         }
     })
     setTimeout(() => {
@@ -32,7 +32,7 @@
           }
         } else {
           layer.msg('Please log in first')
-          setTimeout(() => { location.href = './Login.html' }, 800)
+          setTimeout(() => { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 800)
           return
         }
         const settings = {
@@ -110,7 +110,7 @@
               layer.msg('Session expired, please log in again')
               localStorage.removeItem('live_access_token')
               localStorage.removeItem('live_user_info')
-              setTimeout(() => { location.href = './Login.html' }, 800)
+              setTimeout(() => { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 800)
             } else {
               layer.msg(res.msg || 'Failed to load characters')
             }

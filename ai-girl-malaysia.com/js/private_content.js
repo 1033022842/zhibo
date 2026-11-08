@@ -61,7 +61,7 @@
     function needLogin() {
         if (token()) return false
         if (window.layer) layer.msg('Please sign in first')
-        setTimeout(function () { location.href = './Login.html' }, 1000)
+        setTimeout(function () { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search) }, 1000)
         return true
     }
 

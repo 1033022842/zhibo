@@ -236,7 +236,7 @@
       logout.addEventListener('click', function () {
         localStorage.removeItem('live_access_token');
         localStorage.removeItem('live_user');
-        location.href = './Login.html';
+        location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search);
       });
     }
 

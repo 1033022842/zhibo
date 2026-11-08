@@ -366,7 +366,7 @@
             function goLogin() {
                 if (jumped) return
                 jumped = true
-                location.href = './Login.html'
+                location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
             }
             // 先等接口吊销服务端 token（用 keepalive 避免跳转把请求打断），失败或超时也照样退出
             if (t) {
