@@ -597,12 +597,13 @@
 							<h2 class="tk-sr">Choose your amount</h2>
 
 							<div class="tk-custom-head">
+								<div class="tk-custom-tag">(custom amount)</div>
 								<div class="tk-custom-row">
-									<img class="tk-custom-coin" id="tk-custom-coin" alt="" src="./tokens_files/coin_1-20c5ab8c96a9268b33d18c0b6a2f00cc9aae9cf93484db35890df062588ce9ef.webp">
-									<span class="tk-custom-sizer" id="tk-custom-sizer" aria-hidden="true">100</span>
-									<input type="text" inputmode="numeric" autocomplete="off" value="100" aria-label="Choose token amount" class="tk-custom-input" id="tk-custom-input">
+									<span class="tk-custom-cur">$</span>
+									<span class="tk-custom-sizer" id="tk-custom-sizer" aria-hidden="true">3.99</span>
+									<input type="text" inputmode="decimal" autocomplete="off" value="3.99" aria-label="Enter custom amount in USD" class="tk-custom-input" id="tk-custom-input">
 								</div>
-								<div class="tk-custom-premium-row" id="tk-custom-premium-row">incl. +0 Premium Plus bonus tokens</div>
+								<div class="tk-custom-premium-row" id="tk-custom-premium-row"><span id="tk-custom-tokens">0</span> tokens</div>
 							</div>
 
 							<div class="tk-custom-slider-wrap">
@@ -794,14 +795,16 @@
 				#token-container .tk-custom-chip-text { white-space: nowrap; font-size: 13px; font-weight: 700; line-height: 12px; font-variant-numeric: tabular-nums; }
 				#token-container .tk-custom-head { display: flex; flex-direction: column; align-items: center; text-align: center; }
 				#token-container .tk-custom-row { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; }
+				#token-container .tk-custom-cur { flex-shrink: 0; color: #fff; font-size: 22px; font-weight: 700; line-height: 1; }
+				#token-container .tk-custom-tag { display: block; text-align: center; margin-bottom: 8px; color: #8b8b8b; font-size: 13px; font-weight: 500; white-space: nowrap; }
 				#token-container .tk-custom-coin { flex-shrink: 0; width: 28px; height: 28px; object-fit: contain; user-select: none; }
-				#token-container .tk-custom-sizer { position: absolute; visibility: hidden; white-space: pre; box-sizing: border-box; padding: 10px 16px; border: 1.5px solid transparent; font-size: 26px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-				#token-container .tk-custom-input { box-sizing: border-box; width: auto; min-width: 0; padding: 10px 16px; border: 1.5px solid rgba(255, 255, 255, .22); border-radius: 12px; background: #1f1f1f; color: #fff; font-size: 26px; font-weight: 700; line-height: 1; text-align: center; caret-color: #6143E6; font-variant-numeric: tabular-nums; outline: none; transition: border-color .15s ease, background .15s ease; }
+				#token-container .tk-custom-sizer { position: absolute; visibility: hidden; white-space: pre; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+				#token-container .tk-custom-input { width: 100%; min-width: 0; padding: 10px 14px; border: 1.5px solid rgba(255, 255, 255, .22); border-radius: 12px; background: #1f1f1f; color: #fff; font-size: 24px; font-weight: 700; line-height: 1.2; text-align: center; caret-color: #6143E6; font-variant-numeric: tabular-nums; outline: none; transition: border-color .15s ease, background .15s ease; }
 				#token-container .tk-custom-input:focus { border-color: #6143E6; background: #241a30; }
 				#token-container .tk-custom-premium-row { display: none; margin-top: 6px; color: #a4a4a4; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 				#token-container .tk-custom-slider-wrap { position: relative; margin-top: 24px; }
-				#token-container .tk-custom-bubble { position: absolute; top: 13px; left: 0; width: 38px; height: 38px; border-radius: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, #ff5f8f, #c44cff); border: 2px solid #ffffff26; box-shadow: 0 2px 10px #ff5f8f66, 0 0 14px #6143e659; color: #fff; font-size: 12px; font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; pointer-events: none; z-index: 3; }
-				#token-container .tk-custom-bubble::after { display: none; }
+				#token-container .tk-custom-bubble { position: absolute; bottom: 26px; left: 0; padding: 4px 10px; transform: translateX(-50%); border-radius: 8px; background: #6143E6; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; opacity: 0; pointer-events: none; transition: opacity .18s ease-out; }
+				#token-container .tk-custom-bubble::after { content: ""; position: absolute; left: 50%; bottom: -3px; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg); background: #6143E6; }
 				#token-container .tk-custom-bubble.is-visible { opacity: 1; }
 				@keyframes tk-chip-pulse { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.18); } }
 				#token-container .tk-custom-chip-text.is-pulse { animation: tk-chip-pulse .36s ease-out; }
@@ -813,10 +816,10 @@
 				}
 				#token-container .tk-custom-slider { --token-custom-amount-accent: #6143e6; --token-custom-amount-track: #2b2b2e; --token-custom-amount-dot: #ffffff59; --token-slider-progress: 0%; --token-slider-dots: radial-gradient(circle 2px at 6% 50%, var(--token-custom-amount-dot) 98%, transparent), radial-gradient(circle 2px at 28% 50%, var(--token-custom-amount-dot) 98%, transparent), radial-gradient(circle 2px at 50% 50%, var(--token-custom-amount-dot) 98%, transparent), radial-gradient(circle 2px at 72% 50%, var(--token-custom-amount-dot) 98%, transparent), radial-gradient(circle 2px at 94% 50%, var(--token-custom-amount-dot) 98%, transparent); width: 100%; height: 26px; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; }
 				#token-container .tk-custom-slider::-webkit-slider-runnable-track { height: 16px; border-radius: 9999px; background: var(--token-slider-dots), linear-gradient(to right, var(--token-custom-amount-accent) var(--token-slider-progress), var(--token-custom-amount-track) var(--token-slider-progress)); }
-				#token-container .tk-custom-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; margin-top: -7px; border-radius: 9999px; background: transparent; opacity: 0; }
+				#token-container .tk-custom-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; margin-top: -7px; border-radius: 9999px; background: linear-gradient(135deg, #ff5f8f, #c44cff); box-shadow: 0 2px 10px #ff5f8f66, 0 0 14px #6143e659; border: 2px solid #ffffff26; }
 				#token-container .tk-custom-slider::-moz-range-track { height: 16px; border-radius: 9999px; background: var(--token-slider-dots), var(--token-custom-amount-track); }
 				#token-container .tk-custom-slider::-moz-range-progress { height: 16px; border-radius: 9999px; background: var(--token-custom-amount-accent); }
-				#token-container .tk-custom-slider::-moz-range-thumb { box-sizing: border-box; width: 30px; height: 30px; border: 0; border-radius: 9999px; background: transparent; opacity: 0; }
+				#token-container .tk-custom-slider::-moz-range-thumb { box-sizing: border-box; width: 30px; height: 30px; border: 2px solid #ffffff26; border-radius: 9999px; background: linear-gradient(135deg, #ff5f8f, #c44cff); box-shadow: 0 2px 10px #ff5f8f66, 0 0 14px #6143e659; }
 				#token-container .tk-custom-range { display: flex; justify-content: space-between; margin-top: 6px; color: #a4a4a4; font-size: 11px; font-variant-numeric: tabular-nums; }
 				#token-container .tk-custom-buy { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; gap: 8px; margin-top: 20px; padding: 0 16px; border: 0; border-radius: 12px; background: #6143E6; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: filter .2s; }
 				#token-container .tk-custom-buy:hover { filter: brightness(1.1); }

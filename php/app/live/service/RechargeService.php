@@ -677,6 +677,106 @@ final class RechargeService
         return $this->createStarPayOrder($userId, (int) $quote['tokens'], $quote['price'], $product, null);
     }
 
+    /** 自选金额（按 USD 输入）的最低金额：自定义金额商品门槛 */
+    public const CUSTOM_MIN_USD = 3.99;
+
+    /**
+     * 自选金额区间（前端滑条用）
+     *
+     * @return array{min:string,max:string,step:string}
+     */
+    public function customAmountRange(): array
+    {
+        $list = $this->packages();
+        $max  = '299.99';
+        if ($list) {
+            usort($list, static fn($a, $b) => (float) $a['price'] <=> (float) $b['price']);
+            $max = number_format((float) $list[count($list) - 1]['price'], 2, '.', '');
+        }
+        return [
+            'min'  => number_format(self::CUSTOM_MIN_USD, 2, '.', ''),
+            'max'  => $max,
+            'step' => '0.01',
+        ];
+    }
+
+    /**
+     * 按 USD 金额报价：金额 → 代币（相邻档位线性插值反算）
+     *
+     * 与 quoteByTokens 是同一映射的两个方向；金额低于最低档时按第一档单价折算。
+     */
+    public function quoteByAmount(float $amount): array
+    {
+        $list = $this->packages();
+        if (!$list) {
+            throw new BusinessException(ResultCode::RECORD_NOT_FOUND, '充值套餐未配置');
+        }
+        usort($list, static fn($a, $b) => (float) $a['price'] <=> (float) $b['price']);
+
+        $minUsd = self::CUSTOM_MIN_USD;
+        $maxUsd = (float) $list[count($list) - 1]['price'];
+        $amount = round($amount, 2);
+        if ($amount < $minUsd || $amount > $maxUsd) {
+            throw new BusinessException(
+                ResultCode::PARAM_ERROR,
+                '金额需在 $' . number_format($minUsd, 2) . '~$' . number_format($maxUsd, 2) . ' 之间'
+            );
+        }
+
+        // 找金额所在区间（低于第一档时用第一档单价外推）
+        $low  = $list[0];
+        $high = count($list) > 1 ? $list[1] : $list[0];
+        foreach ($list as $i => $row) {
+            if ((float) $row['price'] <= $amount && ($i + 1) < count($list)) {
+                $low  = $row;
+                $high = $list[$i + 1];
+            }
+        }
+
+        $lowPrice   = (float) $low['price'];
+        $highPrice  = (float) $high['price'];
+        $lowTokens  = (int) $low['tokens'];
+        $highTokens = (int) $high['tokens'];
+
+        if ($amount < $lowPrice) {
+            // 低于最低档：按第一档单价线性折算
+            $perUsd = ($lowTokens > 0 && $lowPrice > 0) ? $lowTokens / $lowPrice : 0.0;
+            $tokens = (int) max(1, round($amount * $perUsd));
+            $bonus  = (int) ($low['bonus_percent'] ?? 0);
+        } else {
+            $ratio  = $highPrice > $lowPrice ? ($amount - $lowPrice) / ($highPrice - $lowPrice) : 0.0;
+            $tokens = (int) round($lowTokens + $ratio * ($highTokens - $lowTokens));
+            $bonus  = (int) round((int) ($low['bonus_percent'] ?? 0)
+                + $ratio * ((int) ($high['bonus_percent'] ?? 0) - (int) ($low['bonus_percent'] ?? 0)));
+        }
+
+        return [
+            'tokens'        => max(1, $tokens),
+            'price'         => number_format($amount, 2, '.', ''),
+            'bonus_percent' => $bonus,
+            'min'           => number_format($minUsd, 2, '.', ''),
+            'max'           => number_format($maxUsd, 2, '.', ''),
+        ];
+    }
+
+    /**
+     * 网关下单（自选金额，按 USD 输入）
+     *
+     * 订单 pay_amount 就是用户输入的金额本身，与第三方自定义金额商品的
+     * amount 参数严格一致，回调 amountTotal 比对不会因折算出现分差。
+     */
+    public function submitCustomAmountOrder(int $userId, float $amount, string $product = '', string $gateway = 'starpay', string $gcode = ''): array
+    {
+        $this->assertMemberForTokens($userId);
+        $quote = $this->quoteByAmount($amount);
+
+        if ($gateway === 'flowpay') {
+            return $this->createFlowPayOrder($userId, (int) $quote['tokens'], $quote['price'], null, [], $gcode);
+        }
+
+        return $this->createStarPayOrder($userId, (int) $quote['tokens'], $quote['price'], $product, null);
+    }
+
     /**
      * 网关下单（会员订阅）
      *

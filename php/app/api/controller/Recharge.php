@@ -79,6 +79,25 @@ final class Recharge extends BaseController
     }
 
     /**
+     * 自选金额报价（按 USD 输入；免登录，前端滑条用）
+     *
+     * GET /api/v1/recharge/quote-amount              → 只返回区间 {min,max,step}
+     * GET /api/v1/recharge/quote-amount?amount=3.99  → 金额对应代币数 + 区间
+     */
+    public function quoteAmount()
+    {
+        $range = $this->service->customAmountRange();
+        $raw   = $this->request->param('amount', null);
+        if ($raw === null || $raw === '') {
+            return $this->jsonSuccess(['range' => $range]);
+        }
+        return $this->jsonSuccess(array_merge(
+            $this->service->quoteByAmount((float) $raw),
+            ['range' => $range]
+        ));
+    }
+
+    /**
      * AI 女友端：网关下单（固定套餐或自选点数），返回收银台地址
      */
     public function createOrder()
@@ -86,6 +105,7 @@ final class Recharge extends BaseController
         $userId    = $this->getAuthUserId();
         $packageId = $this->request->post('package_id/d', 0);
         $tokens    = $this->request->post('tokens/d', 0);
+        $amount    = $this->request->post('amount/f', 0);
         $product   = trim((string) $this->request->post('product', ''));
         $gateway   = strtolower(trim((string) $this->request->post('gateway', 'starpay')));
         // FlowPay 收单通道（前台用户自选，仅 gateway=flowpay 时有意义）
@@ -93,10 +113,14 @@ final class Recharge extends BaseController
 
         if ($packageId > 0) {
             $order = $this->service->submitPackageOrder($userId, $packageId, $product, $gateway, $gcode);
+        } elseif ($amount > 0) {
+            // 自选金额：订单 pay_amount 就是用户输入的金额本身，
+            // 与第三方自定义金额商品的 amount 参数严格一致
+            $order = $this->service->submitCustomAmountOrder($userId, (float) $amount, $product, $gateway, $gcode);
         } elseif ($tokens > 0) {
             $order = $this->service->submitCustomOrder($userId, $tokens, $product, $gateway, $gcode);
         } else {
-            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择充值套餐或点数');
+            return $this->jsonFail(ResultCode::PARAM_ERROR, '请选择充值套餐或输入金额');
         }
 
         return $this->jsonSuccess([

@@ -144,74 +144,35 @@
     }
 
     // ---------- 自选数量卡（连续点数，价格按相邻档位线性插值）----------
-    function sortedPackages() {
-        return packages.slice().sort(function (a, b) {
-            return parseInt(a.tokens, 10) - parseInt(b.tokens, 10)
-        })
+    // ---------- 自选金额卡（按 USD 输入，最低 $3.99）----------
+    // 金额 → 代币由后端 /quote-amount 按相邻套餐档位线性插值算，
+    // 保证「显示价 = 实际下单价」，与 globalsky 自定义金额商品的 amount 严格一致。
+    var CUSTOM_MIN = 3.99
+    var CUSTOM_MAX = 299.99
+    var customAmount = CUSTOM_MIN
+    var customTokensPreview = 0
+
+    function progressPct(value, min, max) {
+        return max > min ? ((value - min) / (max - min)) * 100 : 100
     }
 
-    function sliderStep(min, max) {
-        return (min % SLIDER_STEP === 0 && max % SLIDER_STEP === 0) ? SLIDER_STEP : 1
+    function clampAmount(v) {
+        v = parseFloat(v)
+        if (isNaN(v)) return CUSTOM_MIN
+        v = Math.round(v * 100) / 100
+        return Math.max(CUSTOM_MIN, Math.min(CUSTOM_MAX, v))
     }
 
-    function progressPct(tokens, min, max) {
-        return max > min ? ((tokens - min) / (max - min)) * 100 : 100
-    }
-
-    // 与后端 RechargeService::quoteByTokens 完全一致的线性插值
-    function quoteTokens(tokens) {
-        var list = sortedPackages()
-        if (!list.length) return null
-        var min = parseInt(list[0].tokens, 10)
-        var max = parseInt(list[list.length - 1].tokens, 10)
-        tokens = Math.max(min, Math.min(max, tokens))
-
-        var low = list[0], high = list[list.length - 1]
-        for (var i = 0; i < list.length; i++) {
-            if (parseInt(list[i].tokens, 10) <= tokens && i + 1 < list.length) {
-                low = list[i]
-                high = list[i + 1]
-            }
-        }
-        var lt = parseInt(low.tokens, 10)
-        var ht = parseInt(high.tokens, 10)
-        var lowBonus = parseInt(low.bonus_percent || 0, 10)
-        var highBonus = parseInt(high.bonus_percent || 0, 10)
-        var ratio = ht > lt ? (tokens - lt) / (ht - lt) : 0
-        var price = parseFloat(low.price) + ratio * (parseFloat(high.price) - parseFloat(low.price))
-
-        return {
-            tokens: tokens,
-            min: min,
-            max: max,
-            price: Math.round(price * 100) / 100,
-            bonus_percent: Math.round(lowBonus + ratio * (highBonus - lowBonus))
-        }
-    }
-
-    function normalizeTokens(tokens) {
-        var q = quoteTokens(tokens)
-        if (!q) return 0
-        var step = sliderStep(q.min, q.max)
-        var snapped = q.min + Math.round((q.tokens - q.min) / step) * step
-        return Math.max(q.min, Math.min(q.max, snapped))
-    }
-
-    function coinSrcFor(tokens) {
-        var best = 0, bestDiff = -1
-        packages.forEach(function (p, i) {
-            var d = Math.abs(parseInt(p.tokens, 10) - tokens)
-            if (bestDiff < 0 || d < bestDiff) { bestDiff = d; best = i }
-        })
-        return COIN_ICONS[best] || CUSTOM_COIN
+    function amountText(v) {
+        return (Math.round(Number(v) * 100) / 100).toFixed(2)
     }
 
     function syncInputWidth() {
         var sizer = document.getElementById('tk-custom-sizer')
         var input = document.getElementById('tk-custom-input')
         if (!sizer || !input) return
-        sizer.textContent = input.value
-        input.style.width = sizer.offsetWidth + 'px'
+        sizer.textContent = input.value || '0'
+        input.style.width = (sizer.offsetWidth + 4) + 'px'
     }
 
     function replay(el, cls) {
@@ -221,13 +182,13 @@
         el.classList.add(cls)
     }
 
-    function updateBubble(tokens) {
+    function updateBubble(val) {
         var el = document.getElementById('tk-custom-bubble')
         var slider = document.getElementById('tk-custom-slider')
         if (!el || !slider) return
-        el.textContent = tokens
-        var thumb = 30
-        var pct = progressPct(tokens, parseFloat(slider.min), parseFloat(slider.max)) / 100
+        el.textContent = '$' + amountText(val)
+        var thumb = 26
+        var pct = progressPct(val, parseFloat(slider.min), parseFloat(slider.max)) / 100
         el.style.left = (thumb / 2 + pct * Math.max(0, slider.clientWidth - thumb)) + 'px'
     }
 
@@ -241,63 +202,58 @@
         if (el) el.classList.remove('is-visible')
     }
 
-    // 拖动停止后向服务端确认价格，保证「显示价 = 实际下单价」
-    function scheduleQuoteCheck(tokens) {
+    // 金额变化后向服务端确认代币数，保证预览与实际到账一致
+    function scheduleQuoteCheck(amount) {
         clearTimeout(customTimer)
         customTimer = setTimeout(function () {
-            api(RECHARGE_BASE + '/quote', { data: { tokens: tokens } }).done(function (res) {
+            api(RECHARGE_BASE + '/quote-amount', { data: { amount: amount } }).done(function (res) {
                 if (typeof res === 'string') res = JSON.parse(res)
                 if (res.code !== '00000' || !res.data) return
-                if (parseInt(res.data.tokens, 10) !== customTokens) return
-                var shown = parseFloat(String($('#tk-custom-price').text()).replace(/[^0-9.]/g, ''))
-                var server = parseFloat(res.data.price)
-                if (!isNaN(shown) && Math.abs(shown - server) < 0.005) return
-                $('#tk-custom-price').text(money(server))
-                replay(document.getElementById('tk-custom-price'), 'tk-custom-price-pop')
+                if (Math.abs(parseFloat(res.data.price) - customAmount) > 0.001) return
+                customTokensPreview = parseInt(res.data.tokens, 10) || 0
+                var row = document.getElementById('tk-custom-premium-row')
+                if (row) {
+                    var bonus = parseInt(res.data.bonus_percent, 10) || 0
+                    row.innerHTML = '<span id="tk-custom-tokens">' + customTokensPreview + '</span> tokens'
+                        + (bonus > 0 ? ' · incl. +' + bonus + '% Premium Plus bonus' : '')
+                }
+                if (res.data.range) {
+                    CUSTOM_MIN = parseFloat(res.data.range.min) || CUSTOM_MIN
+                    CUSTOM_MAX = parseFloat(res.data.range.max) || CUSTOM_MAX
+                }
             })
         }, 250)
     }
 
-    // opt.syncInput：是否把点数写回输入框（拖动/失焦时写，边打字时不写）
-    // opt.serverCheck：是否向服务端确认价格
-    function renderCustom(tokens, opt) {
+    // opt.syncInput：是否把金额写回输入框（拖动/失焦时写，边打字时不写）
+    // opt.serverCheck：是否向服务端确认代币数
+    function renderCustom(amount, opt) {
         opt = opt || {}
-        var q = quoteTokens(tokens)
-        if (!q) return
-        customTokens = q.tokens
+        var val = clampAmount(amount)
+        customAmount = val
 
         var slider = document.getElementById('tk-custom-slider')
         if (slider) {
-            slider.min = String(q.min)
-            slider.max = String(q.max)
-            slider.step = String(sliderStep(q.min, q.max))
-            slider.value = String(q.tokens)
-            slider.style.setProperty('--token-slider-progress', progressPct(q.tokens, q.min, q.max) + '%')
+            slider.min = String(CUSTOM_MIN)
+            slider.max = String(CUSTOM_MAX)
+            slider.step = '0.01'
+            slider.value = String(val)
+            slider.style.setProperty('--token-slider-progress', progressPct(val, CUSTOM_MIN, CUSTOM_MAX) + '%')
         }
 
-        if (opt.syncInput !== false) $('#tk-custom-input').val(q.tokens)
-        $('#tk-custom-min').text(q.min)
-        $('#tk-custom-max').text(q.max)
-        $('#tk-custom-coin').attr('src', coinSrcFor(q.tokens))
+        if (opt.syncInput !== false) $('#tk-custom-input').val(amountText(val))
+        $('#tk-custom-min').text('$' + amountText(CUSTOM_MIN))
+        $('#tk-custom-max').text('$' + amountText(CUSTOM_MAX))
 
-        var priceText = money(q.price)
+        var priceText = money(val)
         if ($('#tk-custom-price').text() !== priceText) {
             $('#tk-custom-price').text(priceText)
             replay(document.getElementById('tk-custom-price'), 'tk-custom-price-pop')
         }
 
-        var bonusText = '+' + q.bonus_percent + '% bonus'
-        var chipText = document.getElementById('tk-custom-chip-text')
-        var chip = document.getElementById('tk-custom-chip')
-        if (chipText && chipText.textContent !== bonusText) {
-            chipText.textContent = bonusText
-            replay(chipText, 'is-pulse')
-        }
-        if (chip) chip.setAttribute('aria-hidden', q.bonus_percent > 0 ? 'false' : 'true')
-
-        updateBubble(q.tokens)
+        updateBubble(val)
         syncInputWidth()
-        if (opt.serverCheck) scheduleQuoteCheck(q.tokens)
+        if (opt.serverCheck) scheduleQuoteCheck(val)
     }
 
     function loadPackages() {
@@ -310,7 +266,7 @@
             // 法币通道（后台 lp_fiat_channel）
             fiatChannels = res.data.fiat || []
             renderPlans()
-            renderCustom(normalizeTokens(DEFAULT_TOKENS))
+            renderCustom(CUSTOM_MIN, { serverCheck: true })
             if ($('#tk-payment-modal').css('display') === 'flex') renderMethods()
         })
         loadChannels()
@@ -529,7 +485,12 @@
     function openModal(sel) {
         if (!sel) return
         selected = sel
-        $('#pm-plan-title').text(sel.tokens + ' tokens')
+        if (typeof sel.amount === 'number') {
+            $('#pm-plan-title').text('Custom amount · ' + money(sel.amount)
+                + (sel.tokens ? ' (~' + sel.tokens + ' tokens)' : ''))
+        } else {
+            $('#pm-plan-title').text(sel.tokens + ' tokens')
+        }
         $('#pm-plan-price').text(money(sel.price))
         $('#pm-summary').text('One-time payment billed as ' + money(sel.price))
         renderMethods()
@@ -551,9 +512,15 @@
         }
         loading = true
         $('#tk-payment-modal .pm-row, #tk-payment-modal .pm-chip').attr('disabled', true).css('opacity', .6)
-        var payload = selected.packageId
-            ? { package_id: selected.packageId, product: code }
-            : { tokens: selected.tokens, product: code }
+        var payload
+        if (selected.packageId) {
+            payload = { package_id: selected.packageId, product: code }
+        } else if (typeof selected.amount === 'number') {
+            // 自选金额：直接把 USD 金额传后端（订单金额 = 用户输入的金额）
+            payload = { amount: selected.amount, product: code }
+        } else {
+            payload = { tokens: selected.tokens, product: code }
+        }
         if (gateway) payload.gateway = gateway
         // FlowPay 收单通道（用户点了哪个按钮就走哪条）
         if (gcode) payload.gcode = gcode
@@ -710,6 +677,7 @@
             var base = './CryptoPay.html?kind=coin' +
                 '&tokens=' + encodeURIComponent(selected.tokens) +
                 '&price=' + encodeURIComponent(selected.price) +
+                (typeof selected.amount === 'number' ? '&amount=' + encodeURIComponent(selected.amount) : '') +
                 (selected.packageId ? '&package_id=' + encodeURIComponent(selected.packageId) : '')
             if (method === 'crypto') {
                 location.href = base
@@ -729,7 +697,7 @@
         })
         $(document).on('input', '#tk-custom-slider', function () {
             showBubble()
-            renderCustom(parseInt(this.value, 10), { serverCheck: true })
+            renderCustom(parseFloat(this.value), { serverCheck: true })
         })
         $(document).on('change', '#tk-custom-slider', hideBubble)
         $(document).on('pointerup mouseup touchend', '#tk-custom-slider', function () {
@@ -738,14 +706,14 @@
         })
         // 边输入边联动（不写回输入框，避免光标跳动）
         $(document).on('input', '#tk-custom-input', function () {
-            var v = parseInt(String($(this).val()).replace(/[^0-9]/g, ''), 10)
+            var v = parseFloat(String($(this).val()).replace(/[^0-9.]/g, ''))
             if (isNaN(v)) return
             renderCustom(v, { syncInput: false, serverCheck: true })
         })
         // 失焦/回车后吸附到 50 步进并写回
         $(document).on('change blur', '#tk-custom-input', function () {
-            var v = parseInt(String($(this).val()).replace(/[^0-9]/g, ''), 10)
-            renderCustom(normalizeTokens(isNaN(v) ? customTokens : v), { serverCheck: true })
+            var v = parseFloat(String($(this).val()).replace(/[^0-9.]/g, ''))
+            renderCustom(isNaN(v) ? customAmount : v, { serverCheck: true })
         })
         $(document).on('keydown', '#tk-custom-input', function (e) {
             if (e.key === 'Enter') $(this).trigger('change')
@@ -757,10 +725,13 @@
                 location.href = './Login.html'
                 return
             }
-            var q = quoteTokens(customTokens)
-            if (!q) return
             requireMember(function () {
-                openModal({ tokens: q.tokens, price: q.price, packageId: null })
+                openModal({
+                    amount: customAmount,
+                    tokens: customTokensPreview || 0,
+                    price: customAmount,
+                    packageId: null
+                })
             })
         })
         $(document).on('keydown', function (e) {

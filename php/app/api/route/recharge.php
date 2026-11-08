@@ -53,6 +53,9 @@ Route::get('v1/recharge/fiat-channels', '\app\api\controller\Recharge@fiatChanne
 // 自选点数报价（免登录，与下单同算法）
 Route::get('v1/recharge/quote', '\app\api\controller\Recharge@quote');
 
+// 自选金额报价（按 USD 输入；免登录，前端滑条用）
+Route::get('v1/recharge/quote-amount', '\app\api\controller\Recharge@quoteAmount');
+
 Route::group('v1/recharge', function () {
     Route::get('channels', '\app\api\controller\Recharge@channels');
     Route::post('submit', '\app\api\controller\Recharge@submit');

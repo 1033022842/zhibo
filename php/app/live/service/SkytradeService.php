@@ -45,21 +45,30 @@ final class SkytradeService
         $url    = (string) ($this->cfg['links'][$group][$amount] ?? '');
 
         if ($url === '') {
-            // 自选点数等「金额不固定」的订单走自定义金额商品页（第三方按 amount 参数收款），
-            // 只有站点在 config('skytrade.custom_url') 里配了该链接才启用。
-            $custom = (string) ($this->cfg['custom_url'] ?? '');
-            if ($custom === '') {
-                throw new BusinessException(
-                    ResultCode::PARAM_ERROR,
-                    '该金额暂不支持当前支付方式（$' . $amount . '），请选择其他套餐或联系客服'
-                );
-            }
-            $sep = str_contains($custom, '?') ? '&' : '?';
-            return $custom . $sep . 'amount=' . $amount . '&order_no=' . urlencode($orderNo);
+            return $this->customAmountUrl($amount, $orderNo);
         }
 
         $sep = str_contains($url, '?') ? '&' : '?';
         return $url . $sep . 'order_no=' . urlencode($orderNo);
+    }
+
+    /**
+     * 自定义金额付款地址（金额由用户输入，第三方按 amount 参数收款）
+     *
+     * 用于「自选金额」：金额大概率不在固定商品映射表里，必须走这个入口。
+     * amount 是两位小数的 USD（不是分），传错第三方会退回商品页。
+     */
+    public function customAmountUrl(string $usd, string $orderNo): string
+    {
+        $custom = (string) ($this->cfg['custom_url'] ?? '');
+        if ($custom === '') {
+            throw new BusinessException(
+                ResultCode::PARAM_ERROR,
+                '该金额暂不支持当前支付方式（$' . self::money($usd) . '），请选择其他套餐或联系客服'
+            );
+        }
+        $sep = str_contains($custom, '?') ? '&' : '?';
+        return $custom . $sep . 'amount=' . self::money($usd) . '&order_no=' . urlencode($orderNo);
     }
 
     /**

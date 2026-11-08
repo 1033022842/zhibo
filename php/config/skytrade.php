@@ -29,6 +29,9 @@ return [
     // 付款完成后的浏览器回跳页（第三方配置的回跳地址指向 returnSkytrade，由它按订单类型再 302）
     'return_url'     => (string) env('skytrade.return_url', '/ai/purchasePoints.html'),
     'return_url_vip' => (string) env('skytrade.return_url_vip', '/ai/Subscriptions.html'),
+    // 自定义金额商品页：金额不在 links 映射表里时（自选金额/自选点数）按 amount 参数收款。
+    // 各站商户不同，值一律走 .env（[SKYTRADE] CUSTOM_URL），留空 = 未开通。
+    'custom_url'     => (string) env('skytrade.custom_url', ''),
 
     'links' => [
         // 代币充值套餐（lp_recharge_package.price）
