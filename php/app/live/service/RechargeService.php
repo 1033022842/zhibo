@@ -678,7 +678,7 @@ final class RechargeService
     }
 
     /** 自选金额（按 USD 输入）的最低金额：自定义金额商品门槛 */
-    public const CUSTOM_MIN_USD = 3.99;
+    public const CUSTOM_MIN_USD = 10.99;
 
     /**
      * 自选金额区间（前端滑条用）

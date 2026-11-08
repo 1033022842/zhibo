@@ -144,10 +144,10 @@
     }
 
     // ---------- 自选数量卡（连续点数，价格按相邻档位线性插值）----------
-    // ---------- 自选金额卡（按 USD 输入，最低 $3.99）----------
+    // ---------- 自选金额卡（按 USD 输入，最低 $10.99）----------
     // 金额 → 代币由后端 /quote-amount 按相邻套餐档位线性插值算，
     // 保证「显示价 = 实际下单价」，与 globalsky 自定义金额商品的 amount 严格一致。
-    var CUSTOM_MIN = 3.99
+    var CUSTOM_MIN = 10.99
     var CUSTOM_MAX = 299.99
     var customAmount = CUSTOM_MIN
     var customTokensPreview = 0
