@@ -881,5 +881,139 @@
     })
   }
 
+  /* ---------------- 行为埋点（自有库 lp_track_event） ----------------
+   * PV / 停留时长 / 自定义事件（充值按钮点击等）→ POST /api/v1/track/collect
+   * vid = 浏览器维度（localStorage），sid = 标签页维度（sessionStorage）
+   * 全部失败静默，绝不阻塞页面。
+   */
+  var TK_KEY_VID = 'sugus_vid'
+  var TK_KEY_SID = 'sugus_sid'
+  var TK_SID_MEM = ''
+
+  function tkGet(store, key) {
+    try { return store.getItem(key) || '' } catch (e) { return '' }
+  }
+  function tkSet(store, key, val) {
+    try { store.setItem(key, val) } catch (e) {}
+  }
+  function tkRand(prefix) {
+    var s = ''
+    try {
+      if (window.crypto && window.crypto.randomUUID) s = window.crypto.randomUUID()
+    } catch (e) {}
+    if (!s) s = Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
+    return prefix + s
+  }
+
+  function tkVid() {
+    var v = tkGet(window.localStorage, TK_KEY_VID)
+    if (!v) { v = tkRand('v_'); tkSet(window.localStorage, TK_KEY_VID, v) }
+    return v
+  }
+
+  function tkSid() {
+    if (TK_SID_MEM) return TK_SID_MEM
+    var s = tkGet(window.sessionStorage, TK_KEY_SID)
+    if (!s) { s = tkRand('s_'); tkSet(window.sessionStorage, TK_KEY_SID, s) }
+    TK_SID_MEM = s
+    return s
+  }
+
+  function tkUserId() {
+    try {
+      var raw = tkGet(window.localStorage, 'live_user_info')
+      if (!raw) return 0
+      var o = JSON.parse(raw)
+      return parseInt(o && o.id, 10) || 0
+    } catch (e) { return 0 }
+  }
+
+  var tkQueue = []
+  var tkTimer = null
+  var tkEnterAt = Date.now()
+  var tkEnterPage = location.pathname + location.search
+  var tkLastPage = tkEnterPage
+
+  function tkBase() {
+    return { vid: tkVid(), sid: tkSid(), user_id: tkUserId(), domain: location.hostname }
+  }
+
+  function tkSend(events, useBeacon) {
+    if (!events || !events.length) return
+    var body = JSON.stringify({ events: events, vid: tkVid(), sid: tkSid(), domain: location.hostname })
+    var url = '/api/v1/track/collect'
+    try {
+      if (useBeacon && navigator.sendBeacon) {
+        navigator.sendBeacon(url, new Blob([body], { type: 'text/plain;charset=UTF-8' }))
+        return
+      }
+    } catch (e) {}
+    try {
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true, credentials: 'same-origin' }).catch(function () {})
+    } catch (e) {}
+  }
+
+  function tkFlush() {
+    if (tkTimer) { clearTimeout(tkTimer); tkTimer = null }
+    if (!tkQueue.length) return
+    var batch = tkQueue.splice(0, 20)
+    tkSend(batch, false)
+  }
+
+  function tkPush(ev) {
+    tkQueue.push(ev)
+    if (tkQueue.length >= 10) { tkFlush(); return }
+    if (!tkTimer) tkTimer = setTimeout(tkFlush, 2500)
+  }
+
+  function tkPageview() {
+    var b = tkBase()
+    tkPush({
+      type: 'pv', vid: b.vid, sid: b.sid, user_id: b.user_id, domain: b.domain,
+      page: location.pathname + location.search, title: (document.title || '').slice(0, 120),
+      props: JSON.stringify({ ref: document.referrer || '' })
+    })
+  }
+
+  function tkLeave() {
+    var secs = Math.max(0, Math.round((Date.now() - tkEnterAt) / 1000))
+    if (secs < 1) return
+    var b = tkBase()
+    var ev = {
+      type: 'leave', vid: b.vid, sid: b.sid, user_id: b.user_id, domain: b.domain,
+      page: tkEnterPage, title: (document.title || '').slice(0, 120), duration: secs
+    }
+    // 离开页面优先 beacon，避免请求被取消
+    tkSend([ev], true)
+  }
+
+  /** 对外：记录自定义事件，例如 SugusTrackEvt('pay_click', {amount: 25}) */
+  function tkEvent(name, props) {
+    if (!name) return
+    var b = tkBase()
+    tkPush({
+      type: 'event', event: String(name).slice(0, 64),
+      vid: b.vid, sid: b.sid, user_id: b.user_id, domain: b.domain,
+      page: location.pathname + location.search, title: (document.title || '').slice(0, 120),
+      props: props ? JSON.stringify(props).slice(0, 1900) : ''
+    })
+  }
+
+  window.SugusTrackEvt = tkEvent
+
+  // SPA/Turbo 切换页面时重置停留计时并补一条 PV
+  document.addEventListener('turbo:load', function () {
+    var now = location.pathname + location.search
+    if (now !== tkLastPage) { tkLastPage = now; tkEnterPage = now }
+    tkEnterAt = Date.now()
+    tkPageview()
+  })
+  window.addEventListener('pagehide', tkLeave)
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') tkFlush()
+  })
+
+  tkPageview()
+
   start()
 })()

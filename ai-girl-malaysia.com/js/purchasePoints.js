@@ -144,10 +144,10 @@
     }
 
     // ---------- 自选数量卡（连续点数，价格按相邻档位线性插值）----------
-    // ---------- 自选金额卡（按 USD 输入，最低 $10.99）----------
+    // ---------- 自选金额卡（按 USD 输入，最低 $3.99）----------
     // 金额 → 代币由后端 /quote-amount 按相邻套餐档位线性插值算，
     // 保证「显示价 = 实际下单价」，与 globalsky 自定义金额商品的 amount 严格一致。
-    var CUSTOM_MIN = 10.99
+    var CUSTOM_MIN = 3.99
     var CUSTOM_MAX = 299.99
     var customAmount = CUSTOM_MIN
     var customTokensPreview = 0
@@ -515,6 +515,18 @@
             return
         }
         loading = true
+        /* 行为埋点：充值按钮点击（含入口类型/金额/渠道）*/
+        try {
+            if (window.SugusTrackEvt) {
+                window.SugusTrackEvt('pay_click', {
+                    entry: selected.packageId ? 'package' : (typeof selected.amount === 'number' ? 'custom' : 'tokens'),
+                    amount: selected.amount || 0,
+                    package_id: selected.packageId || 0,
+                    gateway: gateway || 'default',
+                    product: code || ''
+                })
+            }
+        } catch (e) {}
         $('#tk-payment-modal .pm-row, #tk-payment-modal .pm-chip').attr('disabled', true).css('opacity', .6)
         var payload
         if (selected.packageId) {
@@ -542,6 +554,16 @@
                 toast('Payment url unavailable')
                 return
             }
+            /* 行为埋点：订单创建成功 */
+            try {
+                if (window.SugusTrackEvt) {
+                    window.SugusTrackEvt('pay_order', {
+                        order_no: res.data.order_no,
+                        amount: res.data.pay_amount,
+                        gateway: gateway || 'default'
+                    })
+                }
+            } catch (e) {}
             savePending(res.data.order_no, payUrl)
             location.href = payUrl
         }).fail(function () {
