@@ -72,48 +72,6 @@
         }, options || {}))
     }
 
-    /* ---------- 会员门槛：先订阅会员，才能购买代币 ---------- */
-    var isMember = null          // null=还没取到，true/false=已确认
-    var memberPending = null
-
-    function loadMember() {
-        var tk = token()
-        if (!tk) { isMember = false; return Promise.resolve(false) }
-        memberPending = $.ajax({
-            url: '/api/vip/status',
-            method: 'GET',
-            headers: { Authorization: 'Bearer ' + tk },
-            dataType: 'json'
-        }).then(function (d) {
-            isMember = !!(d && d.code === '00000' && d.data && (d.data.is_vip == 1 || d.data.is_vip === true))
-            return isMember
-        }).catch(function () {
-            isMember = false
-            return false
-        })
-        return memberPending
-    }
-
-    // 会员才继续；非会员：小弹窗提示 → 关掉后跳到订阅页
-    function requireMember(next) {
-        var go = function (ok) {
-            if (ok) { next(); return }
-            var msg = 'Membership required. Please subscribe first, then you can buy tokens.'
-            if (window.SugusDialog && SugusDialog.alert) {
-                SugusDialog.alert(msg, { title: 'Members only', okText: 'View plans', icon: 'info' })
-                    .then(function () { location.href = './Subscriptions.html' })
-            } else {
-                toast(msg)
-                setTimeout(function () { location.href = './Subscriptions.html' }, 900)
-            }
-        }
-        if (isMember === null) {
-            (memberPending || loadMember()).then(go)
-            return
-        }
-        go(isMember)
-    }
-
     // ---------- 套餐渲染 ----------
     function renderPlans() {
         var $grid = $('#tk-plan-grid')
@@ -673,7 +631,6 @@
     function init() {
         loadPackages()
         loadBalance()
-        loadMember()
         pollOrder(orderNoFromReturn())
     }
 
@@ -687,9 +644,7 @@
                 location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
                 return
             }
-            requireMember(function () {
-                openModal({ tokens: parseInt(pkg.tokens, 10), price: parseFloat(pkg.price), packageId: pkg.id })
-            })
+            openModal({ tokens: parseInt(pkg.tokens, 10), price: parseFloat(pkg.price), packageId: pkg.id })
         })
         $(document).on('click', '#tk-payment-modal [data-tk-close]', closeModal)
         // 支付方式格子：点哪个就按哪种方式发起支付
@@ -763,13 +718,11 @@
                 location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
                 return
             }
-            requireMember(function () {
-                openModal({
-                    amount: customAmount,
-                    tokens: customTokensPreview || 0,
-                    price: customAmount,
-                    packageId: null
-                })
+            openModal({
+                amount: customAmount,
+                tokens: customTokensPreview || 0,
+                price: customAmount,
+                packageId: null
             })
         })
         $(document).on('keydown', function (e) {

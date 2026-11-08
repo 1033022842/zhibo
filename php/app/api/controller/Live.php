@@ -110,8 +110,8 @@ final class Live extends BaseController
                 'source_url' => (string) ($params['source_url'] ?? ''),
             ]);
         } catch (\Throwable $e) { /* 回传失败不影响注册 */ }
-        // 注册成功后自动登录
-        $result = $this->userService->login($params['email'], $params['password'], $ip);
+        // 注册成功后自动登录（登录日志标 is_register）
+        $result = $this->userService->login($params['email'], $params['password'], $ip, '', true);
         return $this->jsonSuccess($result);
     }
 

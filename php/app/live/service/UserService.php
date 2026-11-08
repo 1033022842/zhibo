@@ -284,7 +284,7 @@ final class UserService
         return $result;
     }
 
-    public function login(string $account, string $password, string $ip = '', string $deviceId = ''): array
+    public function login(string $account, string $password, string $ip = '', string $deviceId = '', bool $isRegister = false): array
     {
         $isEmail = str_contains($account, '@');
         $authType = $isEmail ? 'email' : 'username';
@@ -295,15 +295,17 @@ final class UserService
 
         if (!$auth || !verify_password($password, $auth->password_hash)) {
             $label = $isEmail ? '邮箱' : '用户名';
+            TrackService::logLogin($auth ? (int) $auth->user_id : 0, $account, false, $label . '或密码错误');
             throw new BusinessException(ResultCode::AUTH_FAILED, $label . '或密码错误');
         }
 
         $user = User::find($auth->user_id);
         if (!$user || $user->status !== 1) {
+            TrackService::logLogin((int) $auth->user_id, $account, false, '账号已禁用');
             throw new BusinessException(ResultCode::USER_DISABLED);
         }
 
-        return $this->issueTokens($user, $ip, $deviceId);
+        return $this->issueTokens($user, $ip, $deviceId, isRegister: $isRegister, account: $account);
     }
 
     /**
@@ -434,10 +436,13 @@ final class UserService
     }
 
     /**
-     * 登录成功后的统一收尾：更新最近登录、记录设备、签发双 token
+     * 登录成功后的统一收尾：更新最近登录、记录设备、写登录日志、签发双 token
      */
-    private function issueTokens(User $user, string $ip = '', string $deviceId = ''): array
+    private function issueTokens(User $user, string $ip = '', string $deviceId = '', bool $isRegister = false, string $account = ''): array
     {
+        // 登录日志：所有登录路径（密码 / Google / 社交 / 注册自动登录）都在这里收口
+        TrackService::logLogin((int) $user->id, $account, true, '', $isRegister);
+
         $profile = UserProfile::find($user->id);
         if ($profile) {
             $profile->last_login_ip  = $ip;

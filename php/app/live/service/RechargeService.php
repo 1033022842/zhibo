@@ -590,24 +590,12 @@ final class RechargeService
     }
 
     /**
-     * 购买代币前必须是会员（业务要求：先订阅会员，再买代币）
-     */
-    private function assertMemberForTokens(int $userId): void
-    {
-        $ent = (new VipService())->entitlements($userId);
-        if (empty($ent['is_vip'])) {
-            throw new BusinessException(ResultCode::NO_PERMISSION, 'Membership required. Please subscribe before buying tokens.');
-        }
-    }
-
-    /**
      * 网关下单（固定套餐）
      *
      * @param string $gcode FlowPay 收单通道（用户在前台自选），非 FlowPay 忽略
      */
     public function submitPackageOrder(int $userId, int $packageId, string $product = '', string $gateway = 'starpay', string $gcode = ''): array
     {
-        $this->assertMemberForTokens($userId);
         $pkg = Db::connect('live_mysql')->table('lp_recharge_package')
             ->where('id', $packageId)->where('status', 1)->find();
         if (!$pkg) {
@@ -667,7 +655,6 @@ final class RechargeService
      */
     public function submitCustomOrder(int $userId, int $tokens, string $product = '', string $gateway = 'starpay', string $gcode = ''): array
     {
-        $this->assertMemberForTokens($userId);
         $quote = $this->quoteByTokens($tokens);
 
         if ($gateway === 'flowpay') {
@@ -767,7 +754,6 @@ final class RechargeService
      */
     public function submitCustomAmountOrder(int $userId, float $amount, string $product = '', string $gateway = 'starpay', string $gcode = ''): array
     {
-        $this->assertMemberForTokens($userId);
         $quote = $this->quoteByAmount($amount);
 
         if ($gateway === 'flowpay') {
@@ -1075,7 +1061,6 @@ final class RechargeService
      */
     public function submitFiatCoinOrder(int $userId, int $fiatChannelId, float $usd, ?int $packageId = null, int $tokens = 0, array $payer = []): array
     {
-        $this->assertMemberForTokens($userId);
         $channel = FiatChannelService::find($fiatChannelId);
 
         // 到账代币与网关同口径：固定套餐 = 套餐 tokens（含赠送）；自选点数 = 报价 tokens；
