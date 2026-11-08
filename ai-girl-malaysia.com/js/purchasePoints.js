@@ -191,7 +191,7 @@
         var slider = document.getElementById('tk-custom-slider')
         if (!el || !slider) return
         el.textContent = '$' + amountText(val)
-        var thumb = 26
+        var thumb = 30
         var pct = progressPct(val, parseFloat(slider.min), parseFloat(slider.max)) / 100
         el.style.left = (thumb / 2 + pct * Math.max(0, slider.clientWidth - thumb)) + 'px'
     }
