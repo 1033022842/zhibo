@@ -355,6 +355,13 @@ body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
 .fy-drawer-userbtn{display:flex;width:100%;align-items:center;gap:10px;border:0;background:transparent;background-image:none;padding:0;color:#d1d1d1;font-size:13px;cursor:pointer;}
 .fy-drawer-userlabel{display:flex;flex:1 1 auto;align-items:center;justify-content:space-between;}
 .fy-drawer-userlabel>span{color:#d1d1d1;font-size:13px;font-weight:600;}
+/* 抽屉首栏两块互斥，默认先隐藏已登录块：JS 的 syncAuth()/applyDrawerAuthState()
+   会按登录态改写 display。没这条兜底时，抽屉重建后会闪出「Register / Login」
+   （已登录用户）或首栏一整块空白（两块默认值都不对）。
+   user-login 也要显式兜底：它是 <li>，浏览器默认 display 是 list-item（可见），
+   不写这条就一定会闪出未登录块。 */
+.fy-drawer .login-pf{display:none;}
+.fy-drawer .user-login{display:none;}
 .fy-drawer-dot{position:absolute;right:-4px;bottom:-4px;width:12px;height:12px;border-radius:9999px;background:#ef4444;border:2px solid #131313;}
 .fy-drawer-foot{display:flex;flex:0 0 auto;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:10px 20px;border-top:1px solid #2F2F32;background:#1E1E1E;}
 /* 底栏内容：一个大按钮 Category + 四个小按钮两行两列（照参考站 footer 的排布与描边） */

@@ -1879,6 +1879,21 @@
     if (us) us.style.display = (token || !hasLoginBox) ? 'flex' : 'none'
     var login = document.getElementById('user-login')
     if (login) login.style.display = token ? 'none' : 'flex'
+    applyDrawerAuthState()
+  }
+
+  /* 只处理抽屉首栏的两块：已登录的个人信息（.login-pf）与未登录的 Register/Login。
+     单独抽出来是因为抽屉会被 render() 整块重建（如 syncStudioEntry 触发），
+     重建后必须原地补一次，否则登录用户会看到 Register/Login 或两块都空。 */
+  function applyDrawerAuthState() {
+    var drawer = document.querySelector('.fy-drawer')
+    if (!drawer) return
+    var token = LiveAuth.token()
+    if (token && LiveAuth.expired() && !LiveAuth.hasRefresh()) token = ''
+    var pf = drawer.querySelectorAll('.login-pf')
+    for (var i = 0; i < pf.length; i++) pf[i].style.display = token ? 'block' : 'none'
+    var lg = drawer.querySelectorAll('.user-login')
+    for (var j = 0; j < lg.length; j++) lg[j].style.display = token ? 'none' : 'flex'
   }
   syncStudioEntry()
   function each(sel, display) {
@@ -2052,12 +2067,12 @@
   function syncStudioEntryWatch() {
     syncStudioEntry()
     // 原地登录成功（弹窗登录不发页面跳转）
-    document.addEventListener('live:login', function () { refreshDrawerUser(); syncStudioEntry() })
+    document.addEventListener('live:login', function () { refreshDrawerUser(); applyDrawerAuthState(); syncStudioEntry() })
     // welcome-bonus.js 拿到 userInfo（has_recharged）后广播：充值用户在此刻解锁入口
-    document.addEventListener('live:userstate', function () { refreshDrawerUser(); syncStudioEntry() })
+    document.addEventListener('live:userstate', function () { refreshDrawerUser(); applyDrawerAuthState(); syncStudioEntry() })
     // 其它标签页登出/登录
     window.addEventListener('storage', function (e) {
-      if (e && e.key === 'live_access_token') { refreshDrawerUser(); syncStudioEntry() }
+      if (e && e.key === 'live_access_token') { refreshDrawerUser(); applyDrawerAuthState(); syncStudioEntry() }
     })
   }
 
@@ -2093,6 +2108,10 @@
       // 首栏用户信息：先按 localStorage 渲染，接口返回后再原地补一次
       refreshDrawerUser()
       fetchDrawerUser()
+      /* 抽屉刚被整块重建，里面 .login-pf / .user-login 的显隐回到 CSS 默认值：
+         不在这里补一次 syncAuth()，登录用户会看到「Register / Login」，
+         或者两块都不显示（首栏空白）。这是 syncStudioEntry() 二次 render() 后的漏点。 */
+      applyDrawerAuthState()
     }
 
     // 自带新版外壳的页面（Subscriptions.html）：右上角也换成同一套，并摘掉它原本的成就徽章/胶囊/头像块
