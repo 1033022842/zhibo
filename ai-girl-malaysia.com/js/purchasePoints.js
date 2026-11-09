@@ -111,6 +111,11 @@
     var firstBuyBonus = 0
     var customAmount = CUSTOM_MIN
     var customTokensPreview = 0
+    /* 首屏预估值用的基准（与后端最低套餐一致：$10.99 = 199 tokens）：
+       只用于接口返回前的占位，接口一到就以服务端数据为准。 */
+    var ENTRY_PRICE = 10.99
+    var ENTRY_TOKENS = 199
+    var FIRST_BUY_PERCENT = 80
 
     function progressPct(value, min, max) {
         return max > min ? ((value - min) / (max - min)) * 100 : 100
@@ -178,22 +183,43 @@
                 if (res.code !== '00000' || !res.data) {
                     // 报价失败（金额越界等）：清掉过期的代币预览，避免显示错误数字
                     customTokensPreview = 0
-                    var stale = document.getElementById('tk-custom-premium-row')
-                    if (stale) stale.innerHTML = ''
+                    renderYield(0, 0)
                     return
                 }
                 if (Math.abs(parseFloat(res.data.price) - customAmount) > 0.001) return
                 customTokensPreview = parseInt(res.data.tokens, 10) || 0
                 var bonus = parseInt(res.data.bonus_percent, 10) || 0
-                var row = document.getElementById('tk-custom-premium-row')
-                if (row) {
-                    row.innerHTML = '<span id="tk-custom-tokens">' + customTokensPreview + '</span> tokens'
-                        + (bonus > 0 ? ' · incl. +' + bonus + '% first-purchase bonus' : '')
-                }
-                // 卡顶角标：与套餐卡「+20% bonus」同款样式，只在首充入门档时露出
-                renderFirstBuyChip(bonus)
+                // 入门档首充优惠：未登录时服务端也按「可能享」返回，用于展示促销
+                var eligible = res.data.first_buy_eligible === true || bonus > 0
+                renderYield(customTokensPreview, eligible ? bonus : 0)
+                // 卡顶角标：与套餐卡「+20% bonus」同款样式
+                renderFirstBuyChip(eligible ? bonus : 0)
             })
         }, 250)
+    }
+
+    /**
+     * 当前金额能获得多少代币（tk-custom-head 的核心展示）
+     *
+     * @param {number} total  加赠后的总代币数
+     * @param {number} bonus  首充加赠百分比（0=无优惠）
+     */
+    function renderYield(total, bonus) {
+        var num = document.getElementById('tk-custom-yield-num')
+        if (num) num.textContent = (total > 0 ? total.toLocaleString('en-US') : '—')
+        var sub = document.getElementById('tk-custom-yield-sub')
+        if (!sub) return
+        if (total > 0 && bonus > 0) {
+            // 反推基础数（加赠前），让用户看清「72 + 58 bonus」的构成
+            var base = Math.round(total / (1 + bonus / 100))
+            var extra = total - base
+            sub.innerHTML = base + ' + <span class="tk-custom-bonus">' + extra
+                + ' bonus (' + bonus + '%)</span>'
+            sub.hidden = false
+        } else {
+            sub.textContent = ''
+            sub.hidden = true
+        }
     }
 
     /** 首充角标：有加赠就亮起并写比例，否则隐藏（不改动 DOM 结构） */
@@ -202,7 +228,7 @@
         var text = document.getElementById('tk-custom-chip-text')
         if (!chip || !text) return
         if (bonus > 0) {
-            text.textContent = '+' + bonus + '% first purchase'
+            text.textContent = '首次充值优惠 +' + bonus + '%'
             chip.setAttribute('aria-hidden', 'false')
             text.classList.remove('is-pulse')
             void text.offsetWidth
@@ -232,9 +258,10 @@
         }
         $('#tk-custom-min').text('$' + amountText(CUSTOM_MIN))
         $('#tk-custom-max').text('$' + amountText(CUSTOM_MAX))
-        firstBuyBonus = res.data.first_buy ? (parseInt(res.data.bonus_percent, 10) || 0) : 0
-        // 首充角标跟着报价走：换金额/换用户（登录态）都即时刷新
-        if (!res.data.first_buy) renderFirstBuyChip(0)
+        // 首充比例以服务端为准；未登录时服务端按「可能享」返回，eligible 为 true
+        firstBuyBonus = (res.data.first_buy_eligible === true)
+            ? (parseInt(res.data.bonus_percent, 10) || 0)
+            : 0
     }
 
     // opt.syncInput：是否把金额写回输入框（拖动/失焦时写，边打字时不写）
@@ -263,9 +290,30 @@
             replay(document.getElementById('tk-custom-price'), 'tk-custom-price-pop')
         }
 
+        /* 首屏先给本地估算，别让用户对着「—」等接口：
+           入门档按首充 80% 预估（与后端同一公式），其它金额用「每美元代币数」粗算。
+           接口回来后 scheduleQuoteCheck → renderYield 会以服务端数值覆盖。 */
+        if (!opt.skipYield) prefillYield(val)
+
         updateBubble(val)
         syncInputWidth()
         if (opt.serverCheck) scheduleQuoteCheck(val)
+    }
+
+    /* 本地预估值：仅用于首屏，服务端报价到达后被替换 */
+    function prefillYield(amount) {
+        var isEntry = Math.abs(amount - CUSTOM_MIN) < 0.005
+        if (isEntry) {
+            var base = Math.max(1, Math.round(amount * (ENTRY_TOKENS / ENTRY_PRICE)))
+            var total = Math.round(base * (1 + FIRST_BUY_PERCENT / 100))
+            renderYield(total, FIRST_BUY_PERCENT)
+            renderFirstBuyChip(FIRST_BUY_PERCENT)
+            return
+        }
+        // 非入门档：用套餐最低档单价粗算，不带首充优惠
+        var perUsd = ENTRY_TOKENS / ENTRY_PRICE
+        renderYield(Math.max(1, Math.round(amount * perUsd)), 0)
+        renderFirstBuyChip(0)
     }
 
     function loadPackages() {
@@ -691,6 +739,8 @@
     }
 
     function init() {
+        // 自选金额卡先渲染首屏（不依赖 /packages，接口慢或失败也能看到促销与代币数）
+        renderCustom(customAmount, { skipYield: false })
         loadPackages()
         loadBalance()
         pollOrder(orderNoFromReturn())

@@ -750,14 +750,26 @@ final class RechargeService
                 + $ratio * ((int) ($high['bonus_percent'] ?? 0) - (int) ($low['bonus_percent'] ?? 0)));
         }
 
-        // 入门档首充加赠：只对从未充值过的用户、且正好买最低档时生效
+        // 入门档首充加赠：只对最低档生效
+        //   $userId > 0 且未充值过  → 确定能享，first_buy=true，tokens 含加赠
+        //   $userId = null（未登录）→ 按「可能首充」给预览价，first_buy=false 但 eligible=true
+        //   $userId > 0 但已充值过  → 不享，tokens 为基础值
+        // 这样未登录用户也能看到促销标签和 130 这个数，登录后接口会再校准。
         $isEntryTier = abs($amount - $minUsd) < 0.005;
         $firstBuy    = false;
-        if ($isEntryTier && $userId !== null && $userId > 0
-            && !(new WalletService())->hasRecharged($userId)) {
+        $eligible    = false;
+        if ($isEntryTier) {
+            if ($userId === null || $userId <= 0) {
+                $eligible = true;                 // 未知，按可能享处理（仅影响前端展示）
+            } elseif (!(new WalletService())->hasRecharged($userId)) {
+                $eligible = true;
+                $firstBuy = true;
+            }
+        }
+        // 有资格时（含未登录预览）一律按加赠后的数字展示，保证前后端口径一致
+        if ($eligible) {
             $tokens = (int) round($tokens * (1 + self::FIRST_BUY_BONUS_PERCENT / 100));
             $bonus  = self::FIRST_BUY_BONUS_PERCENT;
-            $firstBuy = true;
         }
 
         return [
@@ -765,6 +777,7 @@ final class RechargeService
             'price'         => number_format($amount, 2, '.', ''),
             'bonus_percent' => $bonus,
             'first_buy'     => $firstBuy,
+            'first_buy_eligible' => $eligible,
             'min'           => number_format($minUsd, 2, '.', ''),
             'max'           => number_format($maxUsd, 2, '.', ''),
         ];

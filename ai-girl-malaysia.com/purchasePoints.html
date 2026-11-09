@@ -63,7 +63,7 @@
 		<script src="./js/pending-order.js?v=20261018b"></script>
 		<!--<script src="./js/event.js"></script>-->
 		<script src="./js/ui-dialog.js?v=20260927a"></script>
-		<script src="./js/purchasePoints.js?v=20261109tier399"></script>
+		<script src="./js/purchasePoints.js?v=20261109promo1"></script>
 
 
 
@@ -585,22 +585,27 @@
 						</div>
 
 						<!-- 自选数量购买卡（滑块按后台套餐档位） -->
-						<div class="tk-custom">
-							<div class="tk-custom-chip" id="tk-custom-chip" aria-hidden="true">
-								<div class="tk-custom-chip-text" id="tk-custom-chip-text">+10% bonus</div>
-							</div>
-
-							<h2 class="tk-sr">Choose your amount</h2>
-
-							<div class="tk-custom-head">
-								<div class="tk-custom-tag">(custom amount)</div>
-								<div class="tk-custom-row">
-									<span class="tk-custom-cur">$</span>
-									<span class="tk-custom-sizer" id="tk-custom-sizer" aria-hidden="true">3.99</span>
-									<input type="text" inputmode="decimal" autocomplete="off" value="3.99" aria-label="Enter custom amount in USD" class="tk-custom-input" id="tk-custom-input">
+							<div class="tk-custom">
+								<div class="tk-custom-chip" id="tk-custom-chip" aria-hidden="true">
+									<div class="tk-custom-chip-text" id="tk-custom-chip-text"></div>
 								</div>
-								<div class="tk-custom-premium-row" id="tk-custom-premium-row"><span id="tk-custom-tokens">0</span> tokens</div>
-							</div>
+
+								<h2 class="tk-sr">Choose your amount</h2>
+
+								<div class="tk-custom-head">
+									<div class="tk-custom-tag" id="tk-custom-tag">(custom amount)</div>
+									<div class="tk-custom-row">
+										<span class="tk-custom-cur">$</span>
+										<span class="tk-custom-sizer" id="tk-custom-sizer" aria-hidden="true">3.99</span>
+										<input type="text" inputmode="decimal" autocomplete="off" value="3.99" aria-label="Enter custom amount in USD" class="tk-custom-input" id="tk-custom-input">
+									</div>
+									<!-- 当前金额能获得多少代币：主数字 + 首充赠送拆解 -->
+									<div class="tk-custom-yield" id="tk-custom-yield">
+										<span class="tk-custom-yield-num" id="tk-custom-yield-num">—</span>
+										<span class="tk-custom-yield-unit">tokens</span>
+									</div>
+									<div class="tk-custom-yield-sub" id="tk-custom-yield-sub"></div>
+								</div>
 
 							<div class="tk-custom-slider-wrap">
 								<div class="tk-custom-bubble" id="tk-custom-bubble" aria-hidden="true">0</div>
@@ -798,7 +803,13 @@
 				#token-container .tk-custom-sizer { position: absolute; visibility: hidden; white-space: pre; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 				#token-container .tk-custom-input { width: 6.5ch; min-width: 0; box-sizing: content-box; padding: 10px 14px; border: 1.5px solid rgba(255, 255, 255, .22); border-radius: 12px; background: #1f1f1f; color: #fff; font-size: 24px; font-weight: 700; line-height: 1.2; text-align: center; caret-color: #6143E6; font-variant-numeric: tabular-nums; outline: none; transition: border-color .15s ease, background .15s ease; }
 				#token-container .tk-custom-input:focus { border-color: #6143E6; background: #241a30; }
-				#token-container .tk-custom-premium-row { display: none; margin-top: 6px; color: #a4a4a4; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+				/* 当前金额能获得多少代币：主数字醒目，下方小字拆解首充赠送 */
+				#token-container .tk-custom-yield { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin-top: 14px; line-height: 1; }
+				#token-container .tk-custom-yield-num { color: #fff; font-size: 30px; font-weight: 800; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+				#token-container .tk-custom-yield-unit { color: #a4a4a4; font-size: 13px; font-weight: 600; }
+				#token-container .tk-custom-yield-sub { margin-top: 6px; color: #8b8b8b; font-size: 12px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+				#token-container .tk-custom-yield-sub[hidden] { display: none; }
+				#token-container .tk-custom-yield-sub .tk-custom-bonus { color: #E2FF87; font-weight: 700; }
 				#token-container .tk-custom-slider-wrap { position: relative; margin-top: 24px; }
 				#token-container .tk-custom-bubble { position: absolute; top: 13px; left: 0; width: 38px; height: 38px; border-radius: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, #ff5f8f, #c44cff); border: 2px solid #ffffff26; box-shadow: 0 2px 10px #ff5f8f66, 0 0 14px #6143e659; color: #fff; font-size: 10px; font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; pointer-events: none; z-index: 3; transition: opacity .18s ease-out; }
 				#token-container .tk-custom-bubble::after { display: none; }
