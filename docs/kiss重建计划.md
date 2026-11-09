@@ -161,7 +161,52 @@ cd apps/ws-webman && composer install --no-dev && cd ../..
 
 ## 七、阶段 3：数据库重建
 
-### 7.1 方案 A：克隆 sugus 数据（推荐，若可共享）
+### 7.0 【最终确认方案】sugus 内容基线 + 清空用户数据
+
+> **这是已确认采用的方案。** 保留 sugus 的角色人设、素材、房间、播单、短剧、礼物、
+> VIP 套餐、充值档位等**内容配置**，清空全部**用户数据**（用户/钱包/订单/聊天/观看记录）。
+>
+> 执行脚本：**`docs/sql/kiss_建库清空用户.sql`**（含分类明细与安全校验）
+
+```bash
+# 1) sugus 导全量（结构 + 内容 + 用户数据）
+ssh -i /root/.ssh/n99_pull root@172.81.98.55   'mysqldump --single-transaction --routines --triggers --default-character-set=utf8mb4 live_platform'   > /tmp/live_platform_sugus.sql
+
+# 2) 传到新机
+scp /tmp/live_platform_sugus.sql root@<新IP>:/tmp/
+
+# 3) 建库并导入
+mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS live_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -uroot -p live_platform < /tmp/live_platform_sugus.sql
+
+# 4) 跑清空脚本（保留内容 / 清空用户）
+scp docs/sql/kiss_建库清空用户.sql root@<新IP>:/tmp/
+mysql -uroot -p live_platform < /tmp/kiss_建库清空用户.sql
+
+# 5) 看脚本末尾的两组校验输出：
+#    「清空后应为 0」全部 0、「保留项应 >0」全部 >0 才算成功
+```
+
+**清空 vs 保留的边界（摘要，详见 SQL 脚本附录）：**
+
+| 类别 | 代表表 | 处理 |
+|---|---|---|
+| **保留·内容** | `lp_persona`(191 角色)、`lp_media_asset`(1264 素材)、`lp_room`(13)、`lp_room_binding`(12)、`lp_playlist_template`(29)+item(381)、`lp_short_*`、`lp_gift*`、`lp_home_*` | 不动 |
+| **保留·配置（改值）** | `lp_platform_config`(60)、`lp_vip_plan`(24)、`lp_recharge_package`(6)、`lp_fiat_channel`(5)、`lp_recharge_channel`(7) | 保留行，**值改成 kiss 的** |
+| **清空·用户** | `lp_user`(350)、`lp_user_auth`(615)、`lp_wallet_*`、`lp_recharge_order`(266)、`lp_ai_chat_message`(2112)、`lp_room_online_minute`(154636) 等 ~24 万行 | TRUNCATE |
+
+**三个必须手动改的「钱相关」配置（清空脚本只清空不重建）：**
+
+| 表 | 为什么要改 | 不改的后果 |
+|---|---|---|
+| `lp_promo_pixel` | sugus 的 FB/TikTok 像素 ID | kiss 的访客数据发到 **sugus 的广告账户** |
+| `lp_recharge_channel` | sugus 的 USDT 收款地址 | 用户打款进 **sugus 的钱包**，钱要不回来 |
+| `lp_fiat_channel` | sugus 的网关商户配置 | 支付回调打到 sugus，kiss 订单永不确认 |
+
+> `lp_promo_pixel` 脚本里已 TRUNCATE；后两个脚本里注释掉了删除语句，
+> 建议**保留行、只改值**，避免前台付款方式列表变空。
+
+### 7.1 备选方案 A：克隆 sugus 全量（含用户，一般不采用）
 
 ```bash
 # 在 sugus（98.55）导出
