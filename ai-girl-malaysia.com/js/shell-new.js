@@ -2093,6 +2093,22 @@
     try { renderBottomBar() } catch (e) {}
   }
 
+  /* ---------- 抽屉后置初始化 ----------
+     mobileDrawer() 只是产出 HTML 字符串，任何调用 render() 的地方都会
+     drawer.innerHTML = mobileDrawer() 整块重建，重建后抽屉里所有「运行时状态」都会丢：
+       · bindMobileLang 的直接事件监听
+       · 首栏头像/昵称（来自 localStorage，重建后要重新填）
+       · .login-pf / .user-login 的显隐（syncAuth 写的是内联 display）
+     新增抽屉动态内容时，初始化一律加到这里，不要在 render() 里另起一行 —— 
+     2026-11-09 就因为漏了显隐同步，登录用户会看到 Register/Login 或首栏空白。 */
+  function hydrateDrawer(drawer) {
+    if (!drawer) return
+    bindMobileLang(drawer)
+    refreshDrawerUser()
+    fetchDrawerUser()
+    applyDrawerAuthState()
+  }
+
   function render() {
     var closed = document.querySelector('[data-main-target="mainSidebarClosedContainer"]')
     var opened = document.querySelector('[data-main-target="mainSidebarOpenedContainer"]')
@@ -2104,14 +2120,7 @@
     if (drawer) {
       drawer.classList.remove('mt-[64px]')
       drawer.innerHTML = mobileDrawer()
-      bindMobileLang(drawer)
-      // 首栏用户信息：先按 localStorage 渲染，接口返回后再原地补一次
-      refreshDrawerUser()
-      fetchDrawerUser()
-      /* 抽屉刚被整块重建，里面 .login-pf / .user-login 的显隐回到 CSS 默认值：
-         不在这里补一次 syncAuth()，登录用户会看到「Register / Login」，
-         或者两块都不显示（首栏空白）。这是 syncStudioEntry() 二次 render() 后的漏点。 */
-      applyDrawerAuthState()
+      hydrateDrawer(drawer)
     }
 
     // 自带新版外壳的页面（Subscriptions.html）：右上角也换成同一套，并摘掉它原本的成就徽章/胶囊/头像块
