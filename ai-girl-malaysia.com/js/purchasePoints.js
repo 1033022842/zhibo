@@ -247,7 +247,9 @@
         var text = document.getElementById('tk-custom-chip-text')
         if (!chip || !text) return
         if (bonus > 0) {
-            text.textContent = '首次充值优惠 +' + bonus + '%'
+            /* 文案必须写英文：整站靠 Google Translate 翻译（pageLanguage=en），
+               写中文的话翻译器认为已是外文、不会再翻成其它语言。 */
+            text.textContent = '+' + bonus + '% first purchase bonus'
             chip.setAttribute('aria-hidden', 'false')
             text.classList.remove('is-pulse')
             void text.offsetWidth
