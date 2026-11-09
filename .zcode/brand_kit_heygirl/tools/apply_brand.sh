@@ -19,7 +19,9 @@ BRAND="$ROOT/brand/$CLIENT"
 [ -d "$BRAND" ] || { echo "!! 未知客户 $CLIENT（$BRAND 不存在）"; exit 1; }
 
 cd "$SITE"
-mapfile -t FILES < <(ls *.html js/*.js 2>/dev/null | grep -vE '^(privacy|terms)\.html$')
+# brand.js 由第 2 步整文件覆盖，不参与下面的 sed：
+# 它是运行时域名切换器，DOMAINS/DEFAULT_BRAND/正则必须成套，逐条 sed 会改出语义错误的版本。
+mapfile -t FILES < <(ls *.html js/*.js 2>/dev/null | grep -vE '^(privacy|terms)\.html$' | grep -v '^js/brand\.js$')
 [ ${#FILES[@]} -gt 0 ] || { echo "!! 站点目录没有可处理文件: $SITE"; exit 1; }
 
 echo "== [$CLIENT] 应用品牌到 $SITE =="
@@ -34,7 +36,7 @@ cp -a --parents "${FILES[@]}" "$BAK/" 2>/dev/null || true
 sed -i -E \
   -e 's/cdn\.sugus\.ai/__BRAND_CDN__/g' \
   -e 's/sugus\.ai-[0-9a-f]{16,}/__BRAND_SVG__/g' \
-  -e 's#heygirl<em>\.Ai</em>#heygirl<em>.live</em>#g' \
+  -e 's#heygirl<em>\.(Ai|ai|live|chat|me)</em>#heygirl<em>.live</em>#g' \
   -e 's/heygirl\.Ai/heygirl.live/g' \
   -e 's#Sugus<em>\.ai</em>#heygirl<em>.live</em>#g' \
   -e "s/apple-touch-icon-v3\.png/apple-touch-icon-heygirl-v4.png?v=$STAMP/g" \
@@ -60,6 +62,16 @@ sed -i -E \
 cp -f "$BRAND"/assets/*.png "$SITE"/
 cp -f "$BRAND"/assets/share_card_heygirl.png "$SITE"/assets/brand/
 cp -f "$BRAND"/assets/site-manifest.json "$SITE"/site-manifest.json
+# heygirl 特有：brand.js 是运行时域名切换器，DOMAINS / DEFAULT_BRAND / 正则三者必须一致。
+# 靠 sed 逐条替换替换不齐（2026-11-09 事故：DEFAULT_BRAND 已是 heygirl.live，
+# 但 RE 还是 /heygirl\.ai/g，且默认分支提前 return 导致页脚 logo 停在 .ai）。
+# 与 kelymi / kiss 同做法：整文件用 kit 版覆盖。
+# 注意：上游 brand.js 逻辑更新时需同步重做 kit 版。
+if [ -f "$BRAND"/assets/brand.js ]; then
+  cp -f "$BRAND"/assets/brand.js "$SITE"/js/brand.js
+else
+  echo "!! 缺少 $BRAND/assets/brand.js —— brand.js 会保持上游 Sugus 版，页脚/标题品牌将不正确"
+fi
 # 矢量字标：文件名保持中性（sugus.ai-*.svg），内容替换为 heygirl 版
 if [ -f "$BRAND"/assets/wordmark.svg ]; then
   find "$SITE" -name 'sugus.ai-*.svg' -exec cp -f "$BRAND"/assets/wordmark.svg {} \;
