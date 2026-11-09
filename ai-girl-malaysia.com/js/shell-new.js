@@ -1053,20 +1053,44 @@
 
   /* 结构照参考站新版外壳的 mobile drawer（Subscriptions.html 里保存的原始 DOM）：
      nav > div.flex.flex-col.justify-between.h-full > [ ul 列表 , footer 底部固定栏 ] */
+  /* 抽屉首栏的登录用户信息：昵称/头像从 localStorage.live_user_info 读，
+     没有就退回 userInfo 接口。全站抽屉由 mobileDrawer() 统一渲染，改这里一处即全站生效。 */
+  function drawerUser() {
+    var u = {}
+    try { u = JSON.parse(localStorage.getItem('live_user_info') || '{}') || {} } catch (e) { u = {} }
+    return {
+      name: String(u.username || u.nickname || 'My Profile'),
+      avatar: String(u.avatar || '') || I.man.src
+    }
+  }
+
+  /* 用户信息可能比抽屉晚到（userInfo 异步返回 / 原地登录不刷新）：
+     拿到后原地把首栏的头像和昵称替换掉，不必重渲染整个抽屉。 */
+  function refreshDrawerUser() {
+    var info = drawerUser()
+    var btn = document.getElementById('fy-drawer-user-btn')
+    if (!btn) return
+    var img = btn.querySelector('img.user-dropdown')
+    var label = btn.querySelector('.fy-drawer-username')
+    if (img && info.avatar) img.src = info.avatar
+    if (label) label.textContent = info.name
+  }
+
   function mobileDrawer() {
     var menu = profileMenu()
+    var who = drawerUser()
 
     return '<nav class="flex flex-col justify-between h-full w-60">' +
       '<div class="flex flex-col justify-between h-full">' +
       '<ul role="list" class="fy-drawer flex flex-col items-center justify-start px-5 pb-5 gap-2.5 bg-zinc-900 h-screen overflow-auto">' +
 
-      // 我的资料（已登录）
+      // 我的资料（已登录）：头像 + 真实昵称，登录后所有页面都走这一份
       '<li class="fy-drawer-user login-pf user-dropdown relative w-full pt-2.5">' +
       '<button type="button" class="fy-drawer-userbtn user-dropdown w-full flex items-center gap-2.5 text-xs" id="fy-drawer-user-btn" aria-expanded="false">' +
-      '<span class="relative"><img class="w-6 h-6 rounded-full user-dropdown" src="' + I.man.src + '" alt="Man profile icon">' +
+      '<span class="relative"><img class="w-6 h-6 rounded-full user-dropdown" src="' + esc(who.avatar) + '" alt="Profile avatar">' +
       '<span class="fy-drawer-dot"></span></span>' +
       '<span class="fy-drawer-userlabel user-dropdown flex items-center justify-between flex-1">' +
-      '<span class="user-dropdown text-xs font-semibold text-grey-medium">My Profile</span>' +
+      '<span class="fy-drawer-username user-dropdown text-xs font-semibold text-grey-medium">' + esc(who.name) + '</span>' +
       '<svg class="user-dropdown w-6 h-6 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
       '<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"></path>' +
       '</svg></span></button>' +
@@ -1086,6 +1110,32 @@
       '</ul>' +
       drawerFooter() +
       '</div></nav>'
+  }
+
+  /* 抽屉首栏兜底：localStorage 里只有登录时写的快照，头像/昵称可能为空或过期。
+     已登录时拉一次 userInfo，把缺的字段补进 live_user_info 并刷新首栏。 */
+  var drawerUserFetched = false
+  function fetchDrawerUser() {
+    if (drawerUserFetched) return
+    var tk = null
+    try { tk = localStorage.getItem('live_access_token') } catch (e) { return }
+    if (!tk) return
+    drawerUserFetched = true
+    fetch('/api/live/userInfo', { method: 'POST', headers: { token: tk } })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        var d = (res && res.data) || {}
+        if (!d.username && !d.avatar) return
+        var u = {}
+        try { u = JSON.parse(localStorage.getItem('live_user_info') || '{}') || {} } catch (e) { u = {} }
+        if (d.username) u.username = d.username
+        if (d.avatar) u.avatar = d.avatar
+        if (d.id) u.id = d.id
+        if (d.email) u.email = d.email
+        try { localStorage.setItem('live_user_info', JSON.stringify(u)) } catch (e) { /* 忽略 */ }
+        refreshDrawerUser()
+      })
+      .catch(function () { drawerUserFetched = false })
   }
 
   /* ---------- 顶栏右上角：成就徽章 + tokens 胶囊 + 头像菜单 ---------- */
@@ -1196,16 +1246,21 @@
 
   /* ---------- 手机端底部导航（≤1023px）----------
      参考站：图片/home.html 的 mobile_bottom_bar
-     登录态 5 格 Home/Shorts/Create/Chat/Tokens；未登录 5 格 Home/Explore/Generate/Create/Premium。
+     登录态 Home/Shorts/Create/AI Video Studio/Tokens；未登录 Home/Explore/Generate/Create/Premium。
      两种状态都只在这里渲染，页面自带的老版底栏会被就地替换，保证全站底栏完全一致。
-     （Create 面板照参考站 create-menu） */
-  var BOTTOM_AUTH = [
+     （Create 面板照参考站 create-menu；Chat 已挪进 Create 面板，AI Video Studio 占底栏第 4 格） */
+  var BOTTOM_AUTH_ALL = [
     { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
     { href: './shorts.html', label: 'Shorts', icon: 'bShorts', activeIcon: 'bShortsActive', key: 'shorts' },
     { create: true, label: 'Create', icon: 'bCreate' },
-    { href: './Chat.html', label: 'Chat', icon: 'bChat', activeIcon: 'bChatActive', key: 'chat' },
+    { href: './Image.html', label: 'Studio', icon: 'bDirector', key: 'generate' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'bTokens', activeIcon: 'bTokensActive', key: 'tokens' }
   ]
+  /* AI Video Studio 只对「已登录且充值过」的用户可见：没充值时这里只剩 4 格，
+     列数在 render() 里按实际格数算，不会留空格子或被拉伸变形 */
+  function bottomAuthItems() {
+    return BOTTOM_AUTH_ALL.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
+  }
 
   var BOTTOM_GUEST_ALL = [
     { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
@@ -1220,9 +1275,10 @@
     return BOTTOM_GUEST_ALL.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
   }
 
+  /* Create 面板：AI Girlfriend / Chat（AI Video Studio 已挪到底栏，仍受充值门控） */
   var CREATE_MENU = [
     { href: './createCharacter.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
-    { href: './Image.html', icon: 'bDirector', title: 'AI Video Studio', sub: 'Generate photos, videos & outfits' }
+    { href: './Chat.html', icon: 'bChat', title: 'Chat', sub: 'Talk with your AI companions' }
   ]
 
   /* 当前页面对应的底栏高亮项（参考站：当前页那一格用激活版图标） */
@@ -1329,12 +1385,13 @@
     }
 
     var key = activeBottomKey(signedIn)
-    var items = signedIn ? BOTTOM_AUTH : bottomGuestItems()
+    var items = signedIn ? bottomAuthItems() : bottomGuestItems()
     bar.className = 'fy-bnav'
     bar.setAttribute('data-variant', signedIn ? 'auth' : 'guest')
-    /* 列数随实际格数走：门控隐藏 Generate 格时若仍按 CSS 的 5 列排，
-       末尾会空出一节（sugus/heygirl 未登录态即此症状） */
+    /* 列数随实际格数走：门控隐藏 Studio / Generate 格时若仍按 CSS 的 5 列排，
+       末尾会空出一节、按钮被压扁（sugus/heygirl 未登录态即此症状） */
     bar.style.gridTemplateColumns = 'repeat(' + items.length + ',minmax(0,1fr))'
+    bar.setAttribute('data-count', String(items.length))
     bar.innerHTML = items.map(function (it) { return bottomItemHtml(it, key) }).join('')
     /* 挂到 body 最外层：个别页（Girls）老底栏在 <turbo-frame> 里，留在原位会被 frame 拦截/换掉 */
     if (bar.parentElement !== document.body) document.body.appendChild(bar)
@@ -1995,12 +2052,12 @@
   function syncStudioEntryWatch() {
     syncStudioEntry()
     // 原地登录成功（弹窗登录不发页面跳转）
-    document.addEventListener('live:login', syncStudioEntry)
+    document.addEventListener('live:login', function () { refreshDrawerUser(); syncStudioEntry() })
     // welcome-bonus.js 拿到 userInfo（has_recharged）后广播：充值用户在此刻解锁入口
-    document.addEventListener('live:userstate', syncStudioEntry)
+    document.addEventListener('live:userstate', function () { refreshDrawerUser(); syncStudioEntry() })
     // 其它标签页登出/登录
     window.addEventListener('storage', function (e) {
-      if (e && e.key === 'live_access_token') syncStudioEntry()
+      if (e && e.key === 'live_access_token') { refreshDrawerUser(); syncStudioEntry() }
     })
   }
 
@@ -2033,6 +2090,9 @@
       drawer.classList.remove('mt-[64px]')
       drawer.innerHTML = mobileDrawer()
       bindMobileLang(drawer)
+      // 首栏用户信息：先按 localStorage 渲染，接口返回后再原地补一次
+      refreshDrawerUser()
+      fetchDrawerUser()
     }
 
     // 自带新版外壳的页面（Subscriptions.html）：右上角也换成同一套，并摘掉它原本的成就徽章/胶囊/头像块

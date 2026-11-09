@@ -79,10 +79,12 @@ final class Recharge extends BaseController
     }
 
     /**
-     * 自选金额报价（按 USD 输入；免登录，前端滑条用）
+     * 自选金额报价（按 USD 输入，前端滑条用）
      *
      * GET /api/v1/recharge/quote-amount              → 只返回区间 {min,max,step}
      * GET /api/v1/recharge/quote-amount?amount=3.99  → 金额对应代币数 + 区间
+     *
+     * 带 token 时会按该用户是否为首次充值，返回加赠后的代币数（不含 token 按普通价预览）。
      */
     public function quoteAmount()
     {
@@ -92,7 +94,7 @@ final class Recharge extends BaseController
             return $this->jsonSuccess(['range' => $range]);
         }
         return $this->jsonSuccess(array_merge(
-            $this->service->quoteByAmount((float) $raw),
+            $this->service->quoteByAmount((float) $raw, $this->optionalAuthUserId()),
             ['range' => $range]
         ));
     }

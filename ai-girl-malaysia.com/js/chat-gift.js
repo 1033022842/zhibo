@@ -77,6 +77,15 @@
   }
 
   /* ---------- 礼物卡片 ---------- */
+  /* 统一收起入口：不论成功/失败/取消都走这里，保证面板不会残留在屏幕上 */
+  function hidePanel(panel) {
+    var el = panel || document.getElementById('cg-panel');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  /* 对外：给聊天页其它交互调用（切会话、上滑看历史时收起礼物列表） */
+  window.hideChatGiftPanel = hidePanel;
+
   function openPanel() {
     var old = document.getElementById('cg-panel');
     if (old) { old.remove(); return }
@@ -133,7 +142,8 @@
     var name = item.getAttribute('data-name');
     var price = item.getAttribute('data-price');
     confirmSend(name, price).then(function (ok) {
-      if (!ok) return;
+      // 取消也收起礼物列表：面板留在原地会让再次点礼物按钮只是把它关掉，像「没反应」
+      if (!ok) { hidePanel(panel); return; }
       sending = true;
       item.style.opacity = .5;
       var fd = new FormData();
@@ -153,6 +163,7 @@
           sending = false;
           item.style.opacity = 1;
           if (!d || d.code !== '00000' || !d.data) {
+            hidePanel(panel);
             var failMsg = (d && d.msg) || 'Please try again later';
             if (window.SugusDialog) {
               SugusDialog.alert(failMsg, { title: 'Send failed' })
@@ -161,13 +172,15 @@
             }
             return;
           }
-          panel.remove();
+          // 送出成功：先收起礼物列表，再把气泡滚到可见位置
+          hidePanel(panel);
           onGiftSent(d.data, name);
           // 顶栏余额实时刷新
           try { if (window.refreshTokenBalance) window.refreshTokenBalance() } catch (e) {}
         })
         .catch(function () {
           sending = false; item.style.opacity = 1;
+          hidePanel(panel);
           alert('Network error, please try again');
         });
     });
@@ -196,6 +209,14 @@
     }
 
     /* 送礼成功：消息气泡 + 好感进度 + 轮播追加 */
+  /* 礼物气泡追加进 #messages_turbo_frame，但真正的滚动容器是外层 #messages：
+     以前对 turbo-frame 设 scrollTop 是无效操作，新气泡落在可视区外，看起来像「送礼没反应」。 */
+  function scrollChatToBottom() {
+    var scroller = document.getElementById('messages');
+    if (scroller) scroller.scrollTop = scroller.scrollHeight;
+    document.body.classList.remove('fy-composer-hidden');
+  }
+
   function onGiftSent(data, name) {
     var media = (data && data.media) || {};
 
@@ -218,7 +239,7 @@
         '</div></div>';
       bindGiftAvatarFallback(row);
       box.appendChild(row);
-      box.scrollTop = box.scrollHeight;
+      scrollChatToBottom();
     }
 
     // 1.5) 角色的收礼回应（按人设 + 好感度生成的 LLM 回复，assistant 风格气泡）
@@ -233,7 +254,7 @@
       replyRow.querySelector('.js-bubble').textContent = data.reply;
       bindGiftAvatarFallback(replyRow);
       box.appendChild(replyRow);
-      box.scrollTop = box.scrollHeight;
+      scrollChatToBottom();
     }
 
     // 2) 右侧好感进度条刷新（与 chat.js 的 spendBox 同一套 DOM）

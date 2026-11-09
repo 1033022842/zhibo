@@ -101,12 +101,14 @@
         $grid.prepend(html)
     }
 
-    // ---------- 自选数量卡（连续点数，价格按相邻档位线性插值）----------
-    // ---------- 自选金额卡（按 USD 输入，最低 $3.99）----------
+    // ---------- 自选金额卡（按 USD 输入，最低 $3.99 入门档）----------
     // 金额 → 代币由后端 /quote-amount 按相邻套餐档位线性插值算，
     // 保证「显示价 = 实际下单价」，与 globalsky 自定义金额商品的 amount 严格一致。
+    // 默认值只是首屏占位：真实区间以服务端 range 为准（见 syncRangeFromServer）。
     var CUSTOM_MIN = 3.99
     var CUSTOM_MAX = 299.99
+    // 首次购买入门档的加赠比例（服务端下发，仅用于文案）
+    var firstBuyBonus = 0
     var customAmount = CUSTOM_MIN
     var customTokensPreview = 0
 
@@ -170,21 +172,69 @@
         customTimer = setTimeout(function () {
             api(RECHARGE_BASE + '/quote-amount', { data: { amount: amount } }).done(function (res) {
                 if (typeof res === 'string') res = JSON.parse(res)
-                if (res.code !== '00000' || !res.data) return
+                // 区间（含最低档 3.99）与是否首充加赠都无条件同步：
+                // 以前失败分支直接 return，CUSTOM_MIN 会一直停留在前端兜底值
+                syncRangeFromServer(res)
+                if (res.code !== '00000' || !res.data) {
+                    // 报价失败（金额越界等）：清掉过期的代币预览，避免显示错误数字
+                    customTokensPreview = 0
+                    var stale = document.getElementById('tk-custom-premium-row')
+                    if (stale) stale.innerHTML = ''
+                    return
+                }
                 if (Math.abs(parseFloat(res.data.price) - customAmount) > 0.001) return
                 customTokensPreview = parseInt(res.data.tokens, 10) || 0
+                var bonus = parseInt(res.data.bonus_percent, 10) || 0
                 var row = document.getElementById('tk-custom-premium-row')
                 if (row) {
-                    var bonus = parseInt(res.data.bonus_percent, 10) || 0
                     row.innerHTML = '<span id="tk-custom-tokens">' + customTokensPreview + '</span> tokens'
-                        + (bonus > 0 ? ' · incl. +' + bonus + '% Premium Plus bonus' : '')
+                        + (bonus > 0 ? ' · incl. +' + bonus + '% first-purchase bonus' : '')
                 }
-                if (res.data.range) {
-                    CUSTOM_MIN = parseFloat(res.data.range.min) || CUSTOM_MIN
-                    CUSTOM_MAX = parseFloat(res.data.range.max) || CUSTOM_MAX
-                }
+                // 卡顶角标：与套餐卡「+20% bonus」同款样式，只在首充入门档时露出
+                renderFirstBuyChip(bonus)
             })
         }, 250)
+    }
+
+    /** 首充角标：有加赠就亮起并写比例，否则隐藏（不改动 DOM 结构） */
+    function renderFirstBuyChip(bonus) {
+        var chip = document.getElementById('tk-custom-chip')
+        var text = document.getElementById('tk-custom-chip-text')
+        if (!chip || !text) return
+        if (bonus > 0) {
+            text.textContent = '+' + bonus + '% first purchase'
+            chip.setAttribute('aria-hidden', 'false')
+            text.classList.remove('is-pulse')
+            void text.offsetWidth
+            text.classList.add('is-pulse')
+        } else {
+            chip.setAttribute('aria-hidden', 'true')
+        }
+    }
+
+    // 服务端区间 → 前端滑条上下限。最低档以服务端为准（3.99），
+    // 前端不再自己写死，避免两端不一致导致「标 3.99 却报 10.99」。
+    function syncRangeFromServer(res) {
+        if (!res || !res.data) return
+        var range = res.data.range
+        if (!range) return
+        var min = parseFloat(range.min)
+        var max = parseFloat(range.max)
+        if (min > 0 && min !== CUSTOM_MIN) {
+            CUSTOM_MIN = min
+            if (customAmount < CUSTOM_MIN) customAmount = CUSTOM_MIN
+        }
+        if (max > 0) CUSTOM_MAX = max
+        var slider = document.getElementById('tk-custom-slider')
+        if (slider) {
+            slider.min = String(CUSTOM_MIN)
+            slider.max = String(CUSTOM_MAX)
+        }
+        $('#tk-custom-min').text('$' + amountText(CUSTOM_MIN))
+        $('#tk-custom-max').text('$' + amountText(CUSTOM_MAX))
+        firstBuyBonus = res.data.first_buy ? (parseInt(res.data.bonus_percent, 10) || 0) : 0
+        // 首充角标跟着报价走：换金额/换用户（登录态）都即时刷新
+        if (!res.data.first_buy) renderFirstBuyChip(0)
     }
 
     // opt.syncInput：是否把金额写回输入框（拖动/失焦时写，边打字时不写）
@@ -362,6 +412,7 @@
         box.html(html)
 
         renderPmSub(avail)
+        updateFeeNote()
     }
 
     /** 信用卡有多条收单通道时，在方式下方给一排可切换的小胶囊（点了只切通道，不发起支付） */
@@ -456,8 +507,19 @@
         $('#pm-plan-price').text(money(sel.price))
         $('#pm-summary').text('One-time payment billed as ' + money(sel.price))
         renderMethods()
+        updateFeeNote()
         $('#tk-payment-modal').css('display', 'flex')
         hideBubble()
+    }
+
+    /* 卡支付走 Stripe/Link 收银台：收银台可能按访问者地区换成人民币等本币结算，
+       再由发卡行折算回卡币种，实际账单会比标价高几个百分点（$3.99 实扣约 $4.23）。
+       这条说明只对卡支付显示，避免给加密/法币通道的用户错误预期。 */
+    function updateFeeNote() {
+        var note = document.getElementById('pm-fee-note')
+        if (!note) return
+        var byCard = String(PM.method || '') === 'card'
+        note.style.display = byCard ? '' : 'none'
     }
 
     function closeModal() {

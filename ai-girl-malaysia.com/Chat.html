@@ -47,8 +47,8 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./_shared/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261107ice2"></script>
-	<script src="./js/chat-gift.js?v=20261107chat2"></script>
+    <script src="./js/chat.js?v=20261109scroll1"></script>
+	<script src="./js/chat-gift.js?v=20261109hide1"></script>
     
 
 
@@ -61,8 +61,8 @@
           
 
     
-  <link rel="stylesheet" href="./assets/fy.css?v=20261023sidebar1">
-		<script src="./js/shell-new.js?v=20261108bn8"></script>
+  <link rel="stylesheet" href="./assets/fy.css?v=20261109bnav1">
+		<script src="./js/shell-new.js?v=20261109nav9"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 	
 
@@ -131,8 +131,16 @@ div.bg-main.fixed.top-0{background:#131313!important;border-color:#242424!import
 	/* 不加过渡：后台标签页会冻结在过渡起点（表现为 left/padding 不更新） */
 }
 /* ---- 聊天主列：去掉旧 70% 圆角卡片，改为参考站全宽列 ---- */
-.messages-container{margin-top:0!important;width:100%!important;max-width:none!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
-#messages{height:auto!important;flex:1 1 auto;min-height:0;overflow-y:auto;padding-top:0!important;padding-bottom:16px!important}
+/* 高度链必须一路有确定高度，消息区才能内部滚动：
+   #conversation-container(fixed 上下贴边) → .fy-main-row → .messages-container → #messages */
+#conversation-container{display:flex;flex-direction:column;min-height:0}
+.messages-container{margin-top:0!important;width:100%!important;max-width:none!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;min-height:0;flex:1 1 auto}
+/* 原来这里是 height:auto!important：内容把容器撑满，scrollHeight==clientHeight，
+   历史消息永远滚不出来（上拉无效）。改成撑满剩余空间 + 容器内部滚动。 */
+#messages{flex:1 1 0%;height:auto;min-height:0;overflow-y:auto;padding-top:0!important;padding-bottom:16px!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* 上滑看历史时自动收起输入框，避免固定输入框盖住对话 */
+.fy-composer{transition:transform .24s cubic-bezier(.2,.7,.2,1),opacity .24s ease}
+body.fy-composer-hidden .fy-composer{transform:translateY(130%);opacity:0;pointer-events:none}
 /* 消息内容列：桌面居中 774px，与输入卡片同宽（参考站一致） */
 #messages>turbo-frame{display:block;width:100%;max-width:774px;margin:0 auto;padding:0 8px}
 
@@ -534,9 +542,7 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
     </button>
     <div class="hidden lg:flex h-full relative">
       <div id="user-signup-image">
-        <div class="flex justify-center absolute bottom-0 w-full mb-8">
-          <img class="" src="./Chat_files/sugus.ai-65df24cd0fbc2899bc9e90b5e1af77e05e951ea0d6c3aec1b76f811040e368f6.svg">
-        </div>
+        <div class="absolute bottom-0 w-full mb-8 flex justify-center items-center"><span style="font-family:Poppins,-apple-system,'Segoe UI',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.3px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.75),0 0 3px rgba(0,0,0,.5);pointer-events:none">Sugus.ai</span></div>
         <img src="./Chat_files/35470499-533d6000-9d7e-44a8-92e5-8693e7e71a97" class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top">
       </div>
     </div>
@@ -654,9 +660,7 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
   <div class="flex relative bg-black-dark rounded-[10px]">
     <div class="hidden lg:flex h-full relative">
       <div id="user-login-image">
-        <div class="flex justify-center absolute bottom-0 w-full mb-8">
-          <img class="" src="./Chat_files/sugus.ai-65df24cd0fbc2899bc9e90b5e1af77e05e951ea0d6c3aec1b76f811040e368f6.svg">
-        </div>
+        <div class="absolute bottom-0 w-full mb-8 flex justify-center items-center"><span style="font-family:Poppins,-apple-system,'Segoe UI',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.3px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.75),0 0 3px rgba(0,0,0,.5);pointer-events:none">Sugus.ai</span></div>
         <img src="./Chat_files/35470499-533d6000-9d7e-44a8-92e5-8693e7e71a97" class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top">
       </div>
     </div>

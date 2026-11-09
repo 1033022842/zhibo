@@ -664,8 +664,18 @@ final class RechargeService
         return $this->createStarPayOrder($userId, (int) $quote['tokens'], $quote['price'], $product, null);
     }
 
-    /** 自选金额（按 USD 输入）的最低金额：自定义金额商品门槛 */
-    public const CUSTOM_MIN_USD = 10.99;
+    /**
+     * 自选金额（按 USD 输入）的入门档位
+     *
+     * 3.99 是最低档：代币数不写死，按最低套餐单价（199 tokens / $10.99）折算
+     * 得到 72 tokens；首次购买再加赠 80% → 130 tokens，之后恢复 72。
+     * 原来这里写 10.99，前端兜底又写 3.99，导致报价接口拒绝 3.99、
+     * 而付款页仍按下单，最终走到 floor(3.99)×diamond_rate 的兜底公式白送代币。
+     */
+    public const CUSTOM_MIN_USD = 3.99;
+
+    /** 入门档首次购买加赠比例（%） */
+    public const FIRST_BUY_BONUS_PERCENT = 80;
 
     /**
      * 自选金额区间（前端滑条用）
@@ -690,9 +700,12 @@ final class RechargeService
     /**
      * 按 USD 金额报价：金额 → 代币（相邻档位线性插值反算）
      *
-     * 与 quoteByTokens 是同一映射的两个方向；金额低于最低档时按第一档单价折算。
+     * 与 quoteByTokens 是同一映射的两个方向；金额低于第一档时按第一档单价折算。
+     * 传入 $userId 时，若该用户从未充值过、且正好买入门档，则加赠首充比例。
+     *
+     * @param int|null $userId 有登录态时传用户 ID，用于判定首充加赠；免登录预览传 null
      */
-    public function quoteByAmount(float $amount): array
+    public function quoteByAmount(float $amount, ?int $userId = null): array
     {
         $list = $this->packages();
         if (!$list) {
@@ -737,10 +750,21 @@ final class RechargeService
                 + $ratio * ((int) ($high['bonus_percent'] ?? 0) - (int) ($low['bonus_percent'] ?? 0)));
         }
 
+        // 入门档首充加赠：只对从未充值过的用户、且正好买最低档时生效
+        $isEntryTier = abs($amount - $minUsd) < 0.005;
+        $firstBuy    = false;
+        if ($isEntryTier && $userId !== null && $userId > 0
+            && !(new WalletService())->hasRecharged($userId)) {
+            $tokens = (int) round($tokens * (1 + self::FIRST_BUY_BONUS_PERCENT / 100));
+            $bonus  = self::FIRST_BUY_BONUS_PERCENT;
+            $firstBuy = true;
+        }
+
         return [
             'tokens'        => max(1, $tokens),
             'price'         => number_format($amount, 2, '.', ''),
             'bonus_percent' => $bonus,
+            'first_buy'     => $firstBuy,
             'min'           => number_format($minUsd, 2, '.', ''),
             'max'           => number_format($maxUsd, 2, '.', ''),
         ];
@@ -754,7 +778,7 @@ final class RechargeService
      */
     public function submitCustomAmountOrder(int $userId, float $amount, string $product = '', string $gateway = 'starpay', string $gcode = ''): array
     {
-        $quote = $this->quoteByAmount($amount);
+        $quote = $this->quoteByAmount($amount, $userId);
 
         if ($gateway === 'flowpay') {
             return $this->createFlowPayOrder($userId, (int) $quote['tokens'], $quote['price'], null, [], $gcode);
@@ -1056,15 +1080,18 @@ final class RechargeService
     }
 
     /**
-     * 法币通道充值代币：到账代币按通道的 diamond_rate（每 1 USD）折算，
-     * 与链上渠道 submitOrder 同一口径（取 USD 整数部分 × 单价）
+     * 法币通道充值代币
+     *
+     * 到账代币一律以服务端报价为准，前端传来的 $tokens 不再作为结算依据：
+     * 固定套餐 = 套餐 tokens；其余金额走 quoteByAmount 的档位报价（含入门档首充加赠）。
+     * 原来兜底分支用 floor($usd) × diamond_rate，$3.99 会算成 3×100=300 代币，
+     * 比 $10.99 套餐的 199 还多，既白送零头又把最低档做成全场最划算。
      */
     public function submitFiatCoinOrder(int $userId, int $fiatChannelId, float $usd, ?int $packageId = null, int $tokens = 0, array $payer = []): array
     {
-        $channel = FiatChannelService::find($fiatChannelId);
+        // 校验通道可用（不存在 / 已下架直接抛错）
+        FiatChannelService::find($fiatChannelId);
 
-        // 到账代币与网关同口径：固定套餐 = 套餐 tokens（含赠送）；自选点数 = 报价 tokens；
-        // 两者都校验提交金额，防止改参数套利。都没有时才退回「整美元 × 每美元代币数」。
         if ($packageId) {
             $pkg = Db::connect('live_mysql')->table('lp_recharge_package')
                 ->where('id', $packageId)->where('status', 1)->find();
@@ -1075,14 +1102,10 @@ final class RechargeService
                 throw new BusinessException(ResultCode::PARAM_ERROR, '套餐金额不匹配，请刷新后重试');
             }
             $diamonds = (string) (int) $pkg['tokens'];
-        } elseif ($tokens > 0) {
-            $quote = $this->quoteByTokens($tokens);
-            if (abs((float) $quote['price'] - $usd) > 0.02) {
-                throw new BusinessException(ResultCode::PARAM_ERROR, '点数价格已变动，请刷新后重试');
-            }
-            $diamonds = (string) (int) $quote['tokens'];
         } else {
-            $diamonds = bcmul((string) floor($usd), (string) $channel['diamond_rate'], 2);
+            // 自选金额：金额区间校验 + 代币折算都在服务端完成，前端传错也改不了结果
+            $quote    = $this->quoteByAmount($usd, $userId);
+            $diamonds = (string) (int) $quote['tokens'];
         }
 
         return $this->submitFiatOrder($userId, $fiatChannelId, $usd, [

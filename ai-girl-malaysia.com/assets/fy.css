@@ -386,7 +386,10 @@ body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
    滚动自动隐藏（.is-hidden，逻辑在 shell-new.js，参数照 candy bottom-bar-autohide） */
 .fy-bnav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;width:auto;max-width:560px;margin:0 auto;height:66px;padding:6px 8px;border-radius:9999px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.03) 100%),rgba(14,12,18,.66);-webkit-backdrop-filter:blur(14px) saturate(1.4) brightness(.85);backdrop-filter:blur(14px) saturate(1.4) brightness(.85);box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(255,255,255,.06);transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .32s ease;will-change:transform,opacity;}
 .fy-bnav.is-hidden{transform:translateY(140%);opacity:0;pointer-events:none;}
-.fy-bnav[data-variant="guest"]{grid-template-columns:repeat(5,minmax(0,1fr));}
+/* 列数一律按实际格数走（data-count 由 shell-new.js 写入）：AI Video Studio 门控隐藏后
+   只剩 4 格，若还按 5 列排会空出一节并把按钮压扁；这里不写 data-variant 的固定列数 */
+.fy-bnav[data-count="4"]{grid-template-columns:repeat(4,minmax(0,1fr));}
+.fy-bnav[data-count="5"]{grid-template-columns:repeat(5,minmax(0,1fr));}
 .fy-bnav-item{display:flex;flex-direction:column;align-items:center;min-width:0;}
 .fy-bnav-item>img,.fy-bnav-item>svg{width:24px;height:24px;flex:0 0 auto;}
 .fy-bnav-label{margin-top:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:1;color:#A1A1A1;}

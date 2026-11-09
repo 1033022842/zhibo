@@ -80,6 +80,8 @@
             setupSidebarToggle()
             avatarFallback()
         }
+        // 上滑收起输入框（每次进入重绑：Turbo 快照恢复后 #messages 会被换掉）
+        bindComposerAutoHide()
         // 场景按钮（参考站新版 Show me the scene）每次进入重绑（Turbo 快照恢复丢监听）
         setupSceneButtons()
         // 首页角色目录预热：home-N 人设不再依赖 localStorage（被清/被替换会导致串号或空白）
@@ -501,6 +503,25 @@
     function scrollMessagesToBottom() {
         var box = document.getElementById('messages')
         if (box) box.scrollTop = box.scrollHeight
+    }
+
+    /* 上滑看历史时收起输入框（固定输入框会盖住对话），回到底部再放出来。
+       只响应用户滚动：#messages 现在有确定高度、可内部滚动（见 Chat.html 的样式修正）。 */
+    function bindComposerAutoHide() {
+        var box = document.getElementById('messages')
+        if (!box || box.__fyAutoHideBound) return
+        box.__fyAutoHideBound = true
+        var THRESHOLD = 60
+        box.addEventListener('scroll', function () {
+            var fromBottom = box.scrollHeight - box.scrollTop - box.clientHeight
+            if (fromBottom > THRESHOLD) {
+                document.body.classList.add('fy-composer-hidden')
+                // 上滑看历史时礼物列表若还开着，会挡住消息，也导致再点礼物按钮只是把它关掉
+                try { if (window.hideChatGiftPanel) window.hideChatGiftPanel() } catch (e) {}
+            } else {
+                document.body.classList.remove('fy-composer-hidden')
+            }
+        }, { passive: true })
     }
 
     function messagesBox() {
