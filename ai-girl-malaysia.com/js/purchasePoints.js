@@ -207,6 +207,7 @@
     function renderYield(total, bonus) {
         var num = document.getElementById('tk-custom-yield-num')
         if (num) num.textContent = (total > 0 ? total.toLocaleString('en-US') : '—')
+        renderCoinIcon(customAmount)
         var sub = document.getElementById('tk-custom-yield-sub')
         if (!sub) return
         if (total > 0 && bonus > 0) {
@@ -220,6 +221,24 @@
             sub.textContent = ''
             sub.hidden = true
         }
+    }
+
+    /**
+     * 金币图标随金额档位递增（1=少量金币 … 6=满袋）
+     *
+     * 按「当前金额在 [CUSTOM_MIN, CUSTOM_MAX] 区间里的位置」均分 6 段：
+     * 首屏 3.99 是最低档 → coin_1，拖到区间中部 → coin_3~4，拉满 → coin_6。
+     */
+    function renderCoinIcon(amount) {
+        var img = document.getElementById('tk-custom-coin')
+        if (!img || !COIN_ICONS.length) return
+        var span = CUSTOM_MAX - CUSTOM_MIN
+        var ratio = span > 0 ? (amount - CUSTOM_MIN) / span : 0
+        ratio = Math.max(0, Math.min(1, ratio))
+        // 6 个图标：0→coin_1，1→coin_6
+        var idx = Math.min(COIN_ICONS.length - 1, Math.floor(ratio * COIN_ICONS.length))
+        var src = COIN_ICONS[idx] || CUSTOM_COIN
+        if (img.getAttribute('src') !== src) img.setAttribute('src', src)
     }
 
     /** 首充角标：有加赠就亮起并写比例，否则隐藏（不改动 DOM 结构） */
