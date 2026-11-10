@@ -10,6 +10,9 @@ use think\facade\Cache;
 
 final class SocialLoginService
 {
+    /** Telegram 签名载荷有效期（官方建议 86400s），nonce 与时效共用该值 */
+    private const TELEGRAM_AUTH_TTL = 86400;
+
     private const PROVIDERS = [
         'google' => [
             'authorize' => 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -41,6 +44,75 @@ final class SocialLoginService
         return trim((string) ($cfg['client_id'] ?? '')) !== ''
             && trim((string) ($cfg['client_secret'] ?? '')) !== ''
             && self::validCallback($uri, $provider);
+    }
+
+    /**
+     * Telegram Login Widget 是否已配置（不走 OAuth2 跳转，无需回调地址）。
+     */
+    public static function telegramReady(): bool
+    {
+        $cfg = (array) config('social.telegram', []);
+        return trim((string) ($cfg['bot_username'] ?? '')) !== ''
+            && trim((string) ($cfg['bot_token'] ?? '')) !== '';
+    }
+
+    /**
+     * 校验 Telegram Login Widget 回传的签名载荷，返回登录身份。
+     * 官方字段按 key 排序拼 data_check_string，用 SHA256(bot_token) 作 HMAC-SHA256 密钥验签；
+     * auth_date 限 24h 内，Redis 一次性 nonce 防 24h 内重放。
+     */
+    public function verifyTelegram(array $fields): array
+    {
+        $cfg = (array) config('social.telegram', []);
+        $token = trim((string) ($cfg['bot_token'] ?? ''));
+        if ($token === '') {
+            throw new BusinessException(ResultCode::SERVER_ERROR, 'This sign-in provider is not configured yet.');
+        }
+
+        $hash = (string) ($fields['hash'] ?? '');
+        if (!preg_match('/^[a-f0-9]{64}$/D', $hash)) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Invalid Telegram authorization.');
+        }
+        $id = (string) ($fields['id'] ?? '');
+        if (!preg_match('/^[1-9][0-9]{0,19}$/D', $id)) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Invalid Telegram authorization.');
+        }
+        $authDate = (int) ($fields['auth_date'] ?? 0);
+        if ($authDate <= 0 || abs(time() - $authDate) > self::TELEGRAM_AUTH_TTL) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Telegram authorization expired. Please try again.');
+        }
+
+        // 只信任 widget 的官方字段，按 key 字典序拼签名串（与 Telegram 文档一致）
+        $allowed = ['auth_date', 'first_name', 'id', 'last_name', 'photo_url', 'username'];
+        $pairs = [];
+        foreach ($allowed as $key) {
+            if (!isset($fields[$key]) || !is_scalar($fields[$key])) {
+                continue;
+            }
+            $value = trim((string) $fields[$key]);
+            if ($key === 'id') {
+                $value = $id;
+            }
+            if ($value !== '' && strlen($value) <= 512) {
+                $pairs[] = $key . '=' . $value;
+            }
+        }
+        $checkString = implode("\n", $pairs);
+        $expected = hash_hmac('sha256', $checkString, hash('sha256', $token, true));
+        if (!hash_equals($expected, $hash)) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Invalid Telegram authorization.');
+        }
+
+        // 同一签名载荷只允许消费一次：拦住窗口期内被截获的重放
+        $redis = Cache::store('redis')->handler();
+        $nonceKey = 'tg_auth_hash:' . hash('sha256', $hash . ':' . $id . ':' . $authDate);
+        if (!$redis->set($nonceKey, 1, ['nx', 'ex' => self::TELEGRAM_AUTH_TTL])) {
+            throw new BusinessException(ResultCode::AUTH_FAILED, 'Telegram authorization expired. Please try again.');
+        }
+
+        $first = mb_substr(trim((string) ($fields['first_name'] ?? '')), 0, 64);
+        $last = mb_substr(trim((string) ($fields['last_name'] ?? '')), 0, 64);
+        return ['subject' => $id, 'email' => '', 'nickname' => trim($first . ' ' . $last) ?: 'Member'];
     }
 
     private static function validCallback(string $uri, string $provider): bool

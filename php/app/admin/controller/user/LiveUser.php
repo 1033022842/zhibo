@@ -812,7 +812,9 @@ class LiveUser extends Backend
         $accountRaw   = $emailRaw !== '' ? $emailRaw : $authKeyRaw;
         $accountText  = htmlspecialchars($accountRaw !== '' ? $accountRaw : '-');
         $authTypeText = match ($authTypeRaw) {
-            'email' => '邮箱', 'username' => '用户名', 'mobile' => '手机号', default => '',
+            'email' => '邮箱', 'username' => '用户名', 'mobile' => '手机号',
+            'telegram' => 'Telegram', 'google' => 'Google', 'discord' => 'Discord', 'twitter' => 'X',
+            default => '',
         };
         $authSuffix = $authTypeText !== '' ? ' <span style="color:#999">（' . $authTypeText . '）</span>' : '';
 

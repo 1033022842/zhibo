@@ -242,7 +242,7 @@ final class UserService
     public function loginWithIdentity(string $provider, string $subject, string $email, string $nickname,
         string $ip = '', string $deviceId = '', string $inviteCode = '', array $attr = []): array
     {
-        if (!in_array($provider, ['email', 'google', 'discord', 'twitter'], true)
+        if (!in_array($provider, ['email', 'google', 'discord', 'twitter', 'telegram'], true)
             || $subject === '' || strlen($subject) > 128 || strlen($email) > 128) {
             throw new BusinessException(ResultCode::AUTH_FAILED, 'Invalid sign-in identity.');
         }
@@ -279,7 +279,7 @@ final class UserService
         if ($newUser) {
             $this->bindInviter((int) $user->id, $inviteCode);
         }
-        $result = $this->issueTokens($user, $ip, $deviceId);
+        $result = $this->issueTokens($user, $ip, $deviceId, isRegister: $newUser);
         $result['is_new_user'] = $newUser;
         return $result;
     }
