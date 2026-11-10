@@ -557,6 +557,84 @@ python .zcode/sync_clients.py --client kiss                                    #
 | **Bunny zone 挂 `/api/` 能通，但 WebSocket 必须 HTTP/1.1**（10-21） | 用 `curl` 测 WebSocket 升级通常拿到 `000`，因为 curl 默认 HTTP/2，而 WS 升级要求 HTTP/1.1 | 加 `--http1.1` 或用 Python 原生 socket 握手；正确结果 `101 Switching Protocols`。Bunny Pull Zone 支持 WS 透传，无需额外开关 |
 | **客户站点页面被覆盖后品牌回退成 Sugus**（10-30 heygirl） | `heygirl.chat/ai/Home.html` 的 `<title>` 和侧栏字标又变回 `Sugus.ai`（10-15 / 10-17 之后第三次）。原因是上游中性基线被写回客户站点（单文件上传、回填、`git checkout`、手工 cp 都可能），但没有重跑品牌脚本；而 `Home.html` 本身不引 `js/brand.js`，前台无法自愈 | ① **任何**向客户服务器写 HTML/JS 的动作（`sync_clients.py`、宝塔/IDE 上传、手工 cp、`git checkout`）之后必须立即 `bash /opt/brand-kit/tools/apply_brand.sh <客户>`；② 验收不能只看主域，要覆盖全部别名域名：`for h in heygirl.live heygirl.chat heygirl.cam heygirl.fun heygirl.one heygirl.shop; do printf '%-15s ' $h; curl -s https://$h/ai/Home.html \| grep -o '<title>[^<]*'; done`，并同时核对 `img src=*wordmark*` 与 `class="logo">`；③ heygirl 的 kit 现已内置 `brand/heygirl/assets/brand.js`，`apply_brand.sh` 会**整文件覆盖** `js/brand.js`（不要 sed 它）并把引用刷成 `?v=$STAMP`，绕开 CDN 的 immutable 缓存，给引了 brand.js 的页面兜底；④ 前端还有 `Cache-Control: max-age=60`，修完让用户 `Ctrl+F5` 或等 1 分钟 |
 
+## 七之二、Telegram 深链登录（2026-11-10 四站上线）
+
+### 为什么不用官方 Login Widget
+
+官方 widget 要求 bot 在 BotFather 里登记 **Allowed URLs（域名白名单）**，漏配的域名显示
+`Bot domain invalid`；heygirl（5 个域名）、kelymi（4 个域名）维护成本高。改成 **Bot 深链 + 轮询**：
+
+```
+点图标 → POST /api/live/telegramStart → 返回 {code, deep_link, browser}
+       → 开 t.me/<bot>?start=<code>，用户按 START
+       → bot webhook 把 Telegram 身份写进 code
+       → 页面每 2.5s POST /api/live/telegramPoll {code, browser} → 拿到 token 自动登录
+```
+
+**任何域名天然可用**，不需要 BotFather 域名配置。
+
+### 四层依赖（缺一层就点不动/不跳转）
+
+| 层 | 文件 / 配置 | 说明 |
+|---|---|---|
+| PHP 控制器 | `app/api/controller/LoginGateway.php` | `telegramStart` / `telegramPoll` / `telegramWebhook` / `telegramLogin` + `throttle()` |
+| 验签服务 | `app/live/service/SocialLoginService.php` | `telegramReady()` / `verifyTelegram()`（HMAC-SHA256 + 24h 时效 + Redis nonce 防重放）+ `TELEGRAM_AUTH_TTL` |
+| 路由 | `app/api/route/social_login.php` | 4 条 `live/telegram*` |
+| 配置 | `php/config/social.php` + 各站 `.env [TELEGRAM]` | `BOT_USERNAME` / `BOT_TOKEN` |
+| 身份白名单 | `app/live/service/UserService.php` | `loginWithIdentity()` 的 provider 数组必须含 `'telegram'` |
+| bot 回调 | Telegram `setWebhook` | `url=https://<域名>/api/live/telegramWebhook`，`secret_token=sha256(bot_token)[:24]` |
+
+### 各站 bot 清单
+
+| 站点 | bot username | bot id |
+|---|---|---|
+| sugus | `Sugus_Login_Bot` | 9086006244 |
+| heygirl | `HeyGirl_Login_Bot` | 9230426910 |
+| kelymi | `Kelymi_Login_Bot` | 8833683498 |
+| kiss | `Kisss_Login_Bot` | 9274257832 |
+
+> Bot token 只写各站 `.env`，绝不进仓库。webhook 密钥由 token 派生，不用另存。
+
+### 部署要点（kiss 尤其注意）
+
+1. **上游必须先有代码**：这套 PHP 曾「只在服务器、没进仓库」，被一次
+   `chore(sync): 补齐未入库的登录网关` 的整文件覆盖抹掉。功能上线后立刻 commit + push 双 remote。
+2. **kiss 后端比上游旧，禁止整文件覆盖**（SOP 9.5）。正确的做法是最小补丁：
+   - `config/social.php` 末尾追加 `telegram` 段
+   - `route/social_login.php` 追加 4 条路由
+   - `UserService.php` 的白名单加 `'telegram'`（kiss 旧版 `issueTokens` 无 `$isRegister` 参数，**不要**跟着加）
+   - `SocialLoginService.php` 插 `TELEGRAM_AUTH_TTL` + `telegramReady/verifyTelegram`
+   - `LoginGateway.php` 插 `use GuzzleHttp\Client;` + `options()` 的 telegram 条目 + 5 个方法
+3. **线上改 git 文件**：kiss 的 `php/` 不在 sync_clients 范围，手工补丁后要
+   `git checkout douyin/main -- php/...` 交叉核对，或按 9.5 先追平上游。
+
+### 坑（新增）
+
+| 坑 | 现象 | 规避 |
+|---|---|---|
+| **Python 写 PHP heredoc 把 `\a` 吃掉**（11-10 kiss） | 用 `<<'PYEOF'`（带引号）仍可能被外层解释；路由里 `'\app\api\controller\...'` 变成 `^Gpp^Gpi\controller\...`（BEL 控制符），报 `ClassNotFoundException: 类不存在: pp pi\controller\LoginGateway` | 写 PHP 里的命名空间用 `chr(92)` 拼，或写成独立 `.py` 文件（不经 heredoc）；写完 **必须** `php -l` + `cat -A` 抽查控制符 |
+| **依赖 Set-Cookie 做浏览器绑定在 CDN 后失效**（11-07 sugus） | 用户点登录 → bot 收到 /start 且回复成功 → 网页轮询 47 次全是 `pending`。nginx 日志：`telegramStart` 200、webhook 200、`telegramPoll` 全 80 字节 | SSE 无 cookie 时 CDN/浏览器会丢 Set-Cookie。`telegramStart` 应把随机 `browser` 令牌**放在 JSON 里**返回，`telegramPoll` 用 POST body 回传比对；cookie 只作兜底 |
+| **后台「认证方式」列显示英文原文** | TG 注册用户显示 `telegram` 而非 `Telegram`，详情弹窗无「（Telegram）」后缀 | 两处都要改：`app/admin/controller/user/LiveUser.php` 的 `$authTypeText` match 加 `telegram/google/discord/twitter`；后台 SPA bundle（`admin/dist/assets/liveUser-*.js`，**不在 git**）的 `{email:邮箱,...}[auth_type]` 映射表同步加。**后台 dist 重建后补丁会丢，需重打** |
+| **测试账号会真实入库** | E2E 脚本用假 Telegram id 跑通后会真的建号（kiss 甚至拿到 user_id=1） | 验证后按 `lp_user_auth.auth_type='telegram' AND auth_key=<测试id>` 反查并清理 `lp_user_auth / lp_user_profile / lp_user`；线上客户库尤其不能留 |
+
+### 自测（每站三证据）
+
+```bash
+# ① 代码标记
+grep -c telegramStart php/app/api/controller/LoginGateway.php      # ≥1
+grep -c telegram php/app/api/route/social_login.php                # 4
+grep -c BOT_USERNAME php/.env                                      # ≥1
+
+# ② 运行时：loginOptions 应 enabled=true 且带 bot 名
+curl -s https://<域名>/api/live/loginOptions | grep -o '"telegram"[^}]*'
+
+# ③ 深链发码（应返回 code + deep_link + browser 三件套）
+curl -s -X POST https://<域名>/api/live/telegramStart
+
+# ④ webhook 防伪造（无/错 secret 头应 403）
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://<域名>/api/live/telegramWebhook -d '{}'
+```
+
 ## 八、四台服务器与仓库速查
 
 | 项目 | 网站服务器 | brand kit | 客户仓库（本地路径） |
