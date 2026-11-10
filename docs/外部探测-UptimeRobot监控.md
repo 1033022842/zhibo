@@ -31,7 +31,7 @@
 | kelymi-后台 | HTTP | `https://kelymi.autos/admin/` | 200 |
 | kelymi-SSH | Port | `172.81.99.42:22` | TCP 可达 |
 | kiss-主站 | Keyword | `https://kisss.ai/ai/Home.html` | 含 `Kiss` |
-| kiss-SSH | Port | `103.217.252.52:22` | TCP 可达 |
+| kiss-SSH | Port | `111.90.150.230:20203` | TCP 可达 |
 
 > 注意：kiss 主站 80 端口是 Certbot `default_server return 404`，必须用 https 域名（见 SOP 第五节）。
 
@@ -56,4 +56,4 @@
 | sugus | 172.81.98.55 | 东京 · JT Telecom (AS137535) | 稳定，今天全程在线 |
 | heygirl | 172.81.99.11 | 东京 · JT（同上，同段） | 机器稳；运维机跨海链路偶发抖动 |
 | kelymi | 172.81.99.42 | 东京 · JT（同上） | 同 heygirl |
-| kiss | 103.217.252.52 | **荷兰 Aalsmeer · Amarutu (AS206264)** | **廉价主机商，间歇性全端口宕机（今天实测两轮）**；建议迁东京 JT 与其他站统一 |
+| kiss | 111.90.150.230（SSH 20203） | 2026-11-10 已迁新机（旧机 103.217.252.52 宿主机故障、数据不可恢复） | 监控改用新 IP + 非标准 SSH 端口 |

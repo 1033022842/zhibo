@@ -34,7 +34,7 @@ MONITORS = [
     ("kelymi-后台",  1, "https://kelymi.autos/admin/",        None),
     ("kelymi-SSH",   4, "172.81.99.42:22",                    None),
     ("kiss-主站",    2, "https://kisss.ai/ai/Home.html",      "Kiss"),
-    ("kiss-SSH",     4, "103.217.252.52:22",                  None),
+    ("kiss-SSH",     4, "111.90.150.230:20203",                None),
 ]
 
 

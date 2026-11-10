@@ -76,9 +76,10 @@ CLIENTS = {
         "verify_expect": "Kelymi",
         "repo": r"D:\ever\kelymi",   # 2026-10-18 按 SOP 三.A 初始化（douyin 基线 + brand kit）
     },
-    # kiss（第四项目）：2026-10-19 初始化；kisss.ai 已解析+证书（10-20）；换脸只砍前台
+    # kiss（第四项目）：2026-10-19 初始化；2026-11-10 旧机（103.217.252.52）故障后
+    # 迁到新服务器 111.90.150.230，SSH 端口非标准 20203（配置里用 "port" 指定）
     "kiss": {
-        "host": "103.217.252.52", "user": "root", "password": "Aa1033022842",
+        "host": "111.90.150.230", "port": 20203, "user": "root", "password": "***REMOVED-SSH-PW***",
         "site": "/www/wwwroot/douyin/ai-girl-malaysia.com",
         "brand": "kiss",
         "brand_kit": "/opt/brand-kit",
@@ -239,8 +240,9 @@ def report_preflight(problems, client):
     return not fatal
 
 def connect(cfg):
+    """SSH 连接：端口默认 22，配置里给了 "port" 就用它（kiss 是 20203）"""
     cli = paramiko.SSHClient(); cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    cli.connect(cfg["host"], 22, cfg["user"], cfg.get("password", ""),
+    cli.connect(cfg["host"], int(cfg.get("port", 22)), cfg["user"], cfg.get("password", ""),
                  timeout=30, look_for_keys=False, allow_agent=False)
     return cli
 

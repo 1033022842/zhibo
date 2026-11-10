@@ -136,4 +136,4 @@ python .zcode/verify_client.py --client all
 | heygirl | 172.81.99.11 | heygirl | heygirl.live | 有 privacy/terms 专属页，同步后需补页脚合规链接；`Image.html` 走 `client_overrides/image-heygirl/` |
 | sugus | 172.81.98.55（经 99.11 跳板） | 无（即上游） | www.sugus.ai | CN 区域封锁；`Image.html` 走 `client_overrides/image-sugus/` |
 | kelymi | 172.81.99.42 | kelymi | kelymi.autos | |
-| kiss | 103.217.252.52 | kiss | kisss.ai | `exclude` 换脸页；80 端口 404 必须走 https |
+| kiss | 111.90.150.230（SSH:20203） | kiss | kisss.ai | `exclude` 换脸页；80 端口 404 必须走 https |

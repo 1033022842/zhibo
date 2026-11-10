@@ -17,7 +17,8 @@ CLIENTS = {
         "cron_mode": "add",
     },
     "kiss": {
-        "host": "103.217.252.52", "pw": "Aa1033022842",
+        # 2026-11-10 旧机（103.217.252.52）故障后迁到新服务器，SSH 端口 20203
+        "host": "111.90.150.230", "port": 20203, "pw": "***REMOVED-SSH-PW***",
         "site_confs": ["/etc/nginx/sites-enabled/kiss.conf", "/etc/nginx/sites-enabled/kiss-cdn-origin.conf"],
         "local_confs": ["kiss.conf", "kiss_cdn.conf"],
         "cron_mode": "replace",   # 已有 update_bunny_realip.sh 月度 cron → 换成统一脚本
@@ -39,7 +40,7 @@ name = sys.argv[1]
 cfg = CLIENTS[name]
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect(cfg["host"], 22, "root", cfg["pw"], timeout=30, look_for_keys=False, allow_agent=False)
+c.connect(cfg["host"], int(cfg.get("port", 22)), "root", cfg["pw"], timeout=30, look_for_keys=False, allow_agent=False)
 
 # 1) 备份
 _, o, e = c.exec_command(

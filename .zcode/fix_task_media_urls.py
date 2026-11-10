@@ -26,10 +26,11 @@ import paramiko
 SITES = {
     "sugus":   ("172.81.98.55", "***REMOVED-SSH-PW***", "zhibo", "zhibo", "12345678"),
     "heygirl": ("172.81.99.11", "***REMOVED-SSH-PW***", "live_platform", "root", "root"),
-    "kisss":   ("103.217.252.52", "Aa1033022842", "live_platform",
+    "kisss":   ("111.90.150.230", "***REMOVED-SSH-PW***", "live_platform",
                 "live_platform", "***REMOVED-DB-PW***"),
     "kelymi":  ("172.81.99.42", "***REMOVED-SSH-PW***", "live_platform", "root", "root"),
 }
+PORT = {"111.90.150.230": 20203}   # kiss 新机 SSH 端口非 22
 ORDER = ["sugus", "heygirl", "kisss", "kelymi"]
 
 # 统计：有多少行是「签名地址」形态
@@ -70,7 +71,7 @@ def clean_expr(col):
 def connect(host, pw, t=30):
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(host, 22, "root", pw, timeout=t, banner_timeout=t, auth_timeout=t,
+    c.connect(host, PORT.get(host, 22), "root", pw, timeout=t, banner_timeout=t, auth_timeout=t,
               look_for_keys=False, allow_agent=False)
     return c
 

@@ -34,9 +34,10 @@ import paramiko
 SITES = {
     "sugus":   ("172.81.98.55", "***REMOVED-SSH-PW***"),
     "heygirl": ("172.81.99.11", "***REMOVED-SSH-PW***"),
-    "kisss":   ("103.217.252.52", "Aa1033022842"),
+    "kisss":   ("111.90.150.230", "***REMOVED-SSH-PW***"),
     "kelymi":  ("172.81.99.42", "***REMOVED-SSH-PW***"),
 }
+PORT = {"111.90.150.230": 20203}   # kiss 新机 SSH 端口非 22
 ORDER = ["sugus", "heygirl", "kisss", "kelymi"]
 REMOTE = "/www/wwwroot/douyin/ai-girl-malaysia.com/js/shell-new.js"
 
@@ -81,7 +82,7 @@ NEW_REFRESH_TAIL = """      })
 def connect(host, pw, timeout=30):
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(host, 22, "root", pw, timeout=timeout, banner_timeout=timeout,
+    c.connect(host, PORT.get(host, 22), "root", pw, timeout=timeout, banner_timeout=timeout,
               auth_timeout=timeout, look_for_keys=False, allow_agent=False)
     return c
 

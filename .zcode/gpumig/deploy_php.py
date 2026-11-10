@@ -23,7 +23,7 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 SITES = [
     ("sugus", "172.81.98.55", "***REMOVED-SSH-PW***"),
     ("heygirl", "172.81.99.11", "***REMOVED-SSH-PW***"),
-    ("kisss", "103.217.252.52", "Aa1033022842"),
+    ("kisss", "111.90.150.230", "***REMOVED-SSH-PW***"),
     ("kelymi", "172.81.99.42", "***REMOVED-SSH-PW***"),
 ]
 FILES = [
@@ -36,10 +36,12 @@ CRON_LINE = ("* * * * * root cd /www/wwwroot/douyin/php && php think ai:task >> 
              "/root/cron_ai_task.log 2>&1\n")
 
 
+PORT = {"111.90.150.230": 20203}   # kiss 新机 SSH 端口非 22
+
 def connect(host, pw):
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(host, 22, "root", pw, timeout=30, look_for_keys=False, allow_agent=False)
+    c.connect(host, PORT.get(host, 22), "root", pw, timeout=30, look_for_keys=False, allow_agent=False)
     return c
 
 

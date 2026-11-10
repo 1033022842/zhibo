@@ -40,7 +40,7 @@ git push origin main
         ┌───────────────┬───────────┴───────────┬───────────────┐
         ▼               ▼                       ▼               ▼
 heygirl 服务器    sugus 服务器            kelymi 服务器     kiss 服务器
-172.81.99.11      172.81.98.55            172.81.99.42      103.217.252.52
+172.81.99.11      172.81.98.55            172.81.99.42      111.90.150.230
 heygirl.live      （上游自己就是 Sugus）    kelymi.autos      kisss.ai
         │               │                       │               │
         │ 推送后跑       │ 无需打品牌             │ 推送后跑       │ 推送后跑
@@ -164,7 +164,7 @@ curl -sk 'https://heygirl.live/ai/Home.html?v=1' | grep -oE '<title>[^<]{0,40}'
 ssh root@<客户服务器> "grep -riE 'sugus' /www/wwwroot/douyin/ai-girl-malaysia.com/*.html | grep -vE 'cdn\.sugus\.ai|sugus\.ai-[0-9a-f]|SugusDialog|SugusTrack|try_sugus_banner|SUGUS_BRAND' | head"
 ```
 
-> **kiss 必须用域名验证**：`http://103.217.252.52/...` 是 Certbot 写的 80 端口
+> **kiss 必须用域名验证**：`http://111.90.150.230/...` 是 Certbot 写的 80 端口
 > `default_server { return 404; }`，IP 直连永远 404，会被误判成「没同步」。
 > 一律用 `https://kisss.ai/ai/Home.html`（证书 2027-01-18 到期，Certbot 自动续）。
 
@@ -403,7 +403,7 @@ client_overrides/
 - 根因 ①：heygirl / sugus 服务器上的 `php/app/live/service/VipService.php` 仍是旧版，**没有 `vip_grant` 发放逻辑**（kelymi 已有）
 - 根因 ②：旧逻辑只在 `lp_vip_plan.daily_diamond = 0` 时发放，heygirl / sugus 老 18 档套餐的 `daily_diamond` 是 20/25/30/50/60/80，因此即使代码升级也会被跳过；前台又没有「每日领取」入口，这笔 Token 永远拿不到
 - 修复：`VipService::activate` 改为**外部订单（网关支付 / 后台人工开通）一律按 `tokens_month × months` 发放**，不再看 `daily_diamond`；发放移入开通事务（失败整体回滚，网关重试可补），流水备注带订单号。站内 Token 直购（`buy()` 传空订单号）仍不赠送，避免套利
-- 已部署：sugus `172.81.98.55`（库 `zhibo`）、heygirl `172.81.99.11`、kelymi `172.81.99.42`、kiss `103.217.252.52`；四台均 `php -l` 通过并 reload `php8.3-fpm`。备份：`VipService.php.bak.20261104_125925`（kiss 为 `bak.20261105_143742`）
+- 已部署：sugus `172.81.98.55`（库 `zhibo`）、heygirl `172.81.99.11`、kelymi `172.81.99.42`、kiss `111.90.150.230`；四台均 `php -l` 通过并 reload `php8.3-fpm`。备份：`VipService.php.bak.20261104_125925`（kiss 为 `bak.20261105_143742`）
 - 2026-11-05 kiss 主机恢复后已单独同步 `VipService.php`（md5 `62d20cca...`）；kiss 老套餐同样是 `daily_diamond>0`，不同步会继续漏发
 - 历史漏发补发（`WalletService::credit`，`biz_type=vip_grant`，备注带订单号）：
   - sugus 用户 25 / `RC202610071254261048` / 3960（Premium Plus 12 月 330/mo，余额 2246 → 6206）
@@ -429,7 +429,7 @@ client_overrides/
 
 **域名与仓库收尾（10-20）**
 
-- `kisss.ai` / `www.kisss.ai` 已解析到 103.217.252.52，Certbot 证书生效（2026-10-20 → 2027-01-18，自动续）
+- `kisss.ai` / `www.kisss.ai` 已解析到 111.90.150.230，Certbot 证书生效（2026-10-20 → 2027-01-18，自动续）
 - 80 端口被 Certbot 改成 `default_server { return 404; }`，所以**只能走 https 域名**验证
 - **服务器上的 git 状态：HEAD 停在 `7a38a72`，工作区却已被手工更新到接近上游 HEAD**——两者不一致，
   且工作区里还混着品牌替换（~70 个 html/js）、`face_swap` 已删、以及 `admin/`（未跟踪）。因此：
@@ -470,7 +470,7 @@ client_overrides/
 
 ```bash
 # 服务器上确认站点来自哪个提交，再看它之后上游改了什么
-ssh root@103.217.252.52 'cd /www/wwwroot/douyin && git rev-parse --short HEAD'
+ssh -p 20203 root@111.90.150.230 'cd /www/wwwroot/douyin && git rev-parse --short HEAD'
 
 cd D:\ever\douyin\douyin
 python .zcode/sync_clients.py --client kiss --seed-snapshot-from <服务器HEAD>   # ② 记基线，不推送
@@ -520,7 +520,7 @@ python .zcode/sync_clients.py --client kiss                                    #
 | **kiss 所有 `.php` 都被硬指到 index.php**（10-22） | kiss 的 php location 写死 `fastcgi_param SCRIPT_FILENAME .../index.php`（ThinkPHP 单入口），往 `public/` 放临时探针 PHP 不执行，被 TP 接走跳 `/install/` | 该站 PHP 行为验证走真实 API；别用探针文件判断配置是否生效 |
 | **`--init-snapshot` 用在「服务器落后上游」= 灾难**（10-20 kiss） | 新客户服务器 HEAD 常比上游旧（kiss 停在 `7a38a72`，上游已到 `8363173`）。`--init-snapshot` 记的是上游 HEAD，把没推过的变更全标成已同步，之后增量永远推不动 | 用 `--seed-snapshot-from <服务器实际HEAD>` 记基线，`--dry-run` 确认清单 = 服务器 HEAD..上游 HEAD 的变更后再真跑 |
 | **「客户仓库已提交推送」可能什么都没提交**（10-20 kiss 首同步） | 脚本无条件打印这行；客户仓库已与上游内容一致时 `git commit` 为空（`git add` 无改动），实际只有一次空 push | 别把它当提交凭证，去客户仓库 `git log --oneline -1` 核实；内容一致时没有新提交是正确结果 |
-| **kiss 的 80 端口被 Certbot 改成 `default_server { return 404; }`**（10-20） | `curl http://103.217.252.52/ai/Home.html` 永远 404，容易误判成「同步没生效/站点挂了」；IP + `Host: kisss.ai` 只会 301 到 https | 一律用 `https://kisss.ai/ai/...` 验证；`sync_clients.py` 里 kiss 的 `verify_url` 也必须是域名 |
+| **kiss 的 80 端口被 Certbot 改成 `default_server { return 404; }`**（10-20） | `curl http://111.90.150.230/ai/Home.html` 永远 404，容易误判成「同步没生效/站点挂了」；IP + `Host: kisss.ai` 只会 301 到 https | 一律用 `https://kisss.ai/ai/...` 验证；`sync_clients.py` 里 kiss 的 `verify_url` 也必须是域名 |
 | **`open_file_cache` 让直播 m3u8 冻住 60 秒**（10-21 全量修复） | 10-20 加的「性能调优」`/etc/nginx/conf.d/zz-perf.conf` 里有 `open_file_cache max=20000 inactive=30s; open_file_cache_valid 60s;`。nginx 缓存的是**打开的文件描述符**，而 SRS 写 m3u8 是「写临时文件 + rename」换 inode → nginx 手里的 fd 仍指向旧 inode，**m3u8 最长 60 秒不更新**。播放器拿旧播放列表去请求已被 `hls_cleanup` 删掉的 ts 段 → 404 → 画面卡住反复重试。实测修复前 disk 落后 https 10 段（40 秒） | 每台机器所有 `/hls/` location 加 `open_file_cache off;`（只关 HLS，静态资源照旧）。**kiss / heygirl / kelymi / sugus 已全部修完**；新客户初始化必须一并加 |
 | **直播没接 CDN（`HLS_CDN_DOMAIN` 指向自己）**（10-21 kiss） | `.env` 里 `HLS_CDN_DOMAIN = https://kisss.ai` = 源站直连（荷兰机房），大陆拉单段 ts 实测 21 KB/s，而当时 3.5 Mbps 需要 437 KB/s，差 20 倍 → 完全播不动。参考：sugus=`ever-candy.b-cdn.net`、heygirl=`hey-girl.b-cdn.net` | 建 Bunny Pull Zone（Origin 指向 CDN 专用回源口）→ `.env` 改 `HLS_CDN_DOMAIN` → 重启 php-fpm。核对 `curl -s https://<域名>/api/v1/feed/live \| grep hls_url` 应为 CDN 域 |
 | **CDN 回源后真实 IP 丢失 → 全站共用一个限流额度**（10-21 kiss） | `php/config/throttle.php` 按 IP 限流 `120/m`（`'key' => true` → `$request->ip()`）。挂 CDN 后 `$remote_addr` 全是边缘 IP，所有用户共用配额；后台 IP 白名单与日志同样失真 | nginx 加 `real_ip_header X-Forwarded-For; real_ip_recursive on;` + Bunny 边缘 IP 段 `set_real_ip_from`（`/etc/nginx/bunny_realip.conf`，584 条，每月 1 号刷新）。**必须先装 realip 再切 CDN**。sugus 的 `00-cn-block.conf` 里已有这套（CN 封锁依赖它） |
@@ -555,8 +555,8 @@ python .zcode/sync_clients.py --client kiss                                    #
 | heygirl | 172.81.99.11（heygirl.live） | /opt/brand-kit（heygirl） | gitee `heygirl.git`（D:\ever\heygirl，master） |
 | sugus | 172.81.98.55（上游生产） | 无需（自己就是 Sugus） | gitee `zhibo.git`（= 上游 douyin 仓库） |
 | kelymi | 172.81.99.42（kelymi.autos，nginx 单站点 zhibo.conf） | /opt/brand-kit（kelymi，源码 `.zcode/brand_kit_kelymi/`） | gitee `kelymi.git`（D:\ever\kelymi，master） |
-| kiss | 103.217.252.52（kisss.ai，nginx 单站点 kiss.conf，Certbot https） | /opt/brand-kit（kiss，源码 `.zcode/brand_kit_kiss/`，含 `tools/apply_brand.sh`） | gitee `kisss.git`（D:\ever\kiss，master） |
-| kiss 回源口 | 103.217.252.52**:8080**（`kiss-cdn-origin.conf`，只放 /ai/ /hls/ /api/ /ws/，/admin/ 与 /storage/ 404） | — | Bunny zone `kisss-live`（含 HLS + /ai/ 静态资源） |
+| kiss | 111.90.150.230（kisss.ai，nginx 单站点 kiss.conf，Certbot https；SSH 端口 **20203**） | /opt/brand-kit（kiss，源码 `.zcode/brand_kit_kiss/`，含 `tools/apply_brand.sh`） | gitee `kisss.git`（D:\ever\kiss，master） |
+| kiss 回源口 | 111.90.150.230**:8080**（`kiss-cdn-origin.conf`，只放 /ai/ /hls/ /api/ /ws/，/admin/ 与 /storage/ 404） | — | Bunny zone `kisss-live`（含 HLS + /ai/ 静态资源） |
 
 - 四台站点路径均为 `/www/wwwroot/douyin/ai-girl-malaysia.com`，URL 前缀均为 `/ai/`
 - sugus 链路走 99.11 跳板（跳板上有 `n99_pull` key 直连 98.55），无需额外凭据

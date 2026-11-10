@@ -6,6 +6,27 @@
 > 目标：在新服务器上重建 kiss 全栈（静态站 + PHP 后端 + 直播推流 + CDN + 支付），
 > 并保证四站同步体系（`sync_clients.py` / `apply_brand.sh`）继续可用。
 
+## 新服务器信息（2026-11-10 已确认）
+
+| 项 | 值 |
+|---|---|
+| **主 IP** | `111.90.150.230` |
+| **SSH 端口** | `20203`（**非标准**，脚本里须显式指定，默认 22 连不上） |
+| **用户名** | `root` |
+| **密码** | `***REMOVED-SSH-PW***` |
+| 系统 | Ubuntu 22.04（内核 5.15） |
+| 站点根 | `/www/wwwroot/douyin`（已存在） |
+
+```bash
+ssh -p 20203 root@111.90.150.230
+```
+
+> **凭据同步位置**（改机器时这些地方都要一起改）：
+> `.zcode/sync_clients.py`（kiss 配置含 `"port": 20203`）、`.zcode/add_userinfo_ratelimit.py`、
+> `.zcode/tune_userinfo_burst.py`、`.zcode/fix_userinfo_loop.py`、`.zcode/fix_task_media_urls.py`、
+> `.zcode/php_security_patch.py`、`.zcode/gpumig/deploy_php.py`、`.zcode/_cnblock/apply_clients.py`、
+> `.zcode/uptimerobot_setup.py`
+
 ---
 
 ## 一、损失清单与可复用资产
@@ -333,8 +354,8 @@ STORAGE_ENABLED = 1
 ENDPOINT = https://media.kisss.ai
 PROJECT = kiss
 SIGN_SECRET = c241ca0743ae79aa688abc9bf58a39ee465e37f299c1f81438c384a80e22d65e
-SIGN_TTL = 21600
-SIGN_BUCKET_SEC = 3600
+SIGN_TTL = 691200
+SIGN_BUCKET_SEC = 604800
 BUCKET = sugus-media
 REGION = us-east-1
 ACCESS_KEY = minioadmin
