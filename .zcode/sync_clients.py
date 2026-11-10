@@ -23,7 +23,7 @@
 首次给新客户使用前：先按 SOP 完成服务器 brand kit 初始化 + 客户仓库中性基线，
 并在下面 CLIENTS 里补齐该客户配置。
 """
-import argparse, json, os, posixpath, re, shutil, subprocess, sys, time
+import argparse, hashlib, json, os, posixpath, re, shlex, shutil, subprocess, sys, time
 import paramiko
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -133,7 +133,35 @@ def in_scope(path, include_files):
         return True
     if include_files and rel.split("/", 1)[0].endswith("_files"):
         return True
+    # ── 后端 PHP（2026-11-10 纳入）──
+    # 以前 sync 只管静态站，PHP 改动只能手工 SFTP，于是「改完服务器没进仓库」反复发生
+    # （SOP 踩坑表第 504 行）。现在一并同步 PHP，推完自动 reload php-fpm。
+    # 只推代码与 sql 迁移脚本；.env 等敏感/运行时文件永不推。
+    if rel.startswith("php/"):
+        return in_scope_php(rel)
     return False
+
+
+# PHP 同步规则：仓库内路径都以 "php/" 开头
+PHP_DENY_PREFIX = (
+    "php/vendor/", "php/runtime/", "php/public/storage/", "php/storage/",
+)
+PHP_DENY_NAME = (".env", ".env-example", ".gitignore", "composer.lock")
+PHP_DENY_PREFIX_NAME = (".env.",)
+PHP_KEEP_SUFFIX = (".php", ".json", ".phtml")
+
+
+def in_scope_php(rel):
+    """php/ 目录下哪些文件要同步"""
+    if any(rel.startswith(p) for p in PHP_DENY_PREFIX):
+        return False
+    name = posixpath.basename(rel)
+    if name in PHP_DENY_NAME or any(name.startswith(p) for p in PHP_DENY_PREFIX_NAME):
+        return False
+    # 迁移 SQL 只同步 sql/ 目录下的
+    if rel.startswith("php/sql/"):
+        return rel.endswith(".sql")
+    return rel.endswith(PHP_KEEP_SUFFIX)
 
 # ── 客户差异化页面（overrides）─────────────────────────────────
 # 覆盖目录 = 站点根镜像：client_overrides/image-sugus/Image.html → 站点 /Image.html
@@ -246,19 +274,59 @@ def connect(cfg):
                  timeout=30, look_for_keys=False, allow_agent=False)
     return cli
 
-def upload(cli, local_root, files, site):
+def _md5_local(path):
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _md5_remote(sftp, path):
+    """远端文件 md5：优先跑 md5sum（快），跑不了再走 sftp 流式读（慢但通用）"""
+    try:
+        chan = sftp.get_channel()
+        cmd = f"md5sum {shlex.quote(path)} 2>/dev/null | cut -d' ' -f1"
+        stdin, stdout, stderr = chan.get_transport().open_session()
+        stdin.exec_command(cmd)
+        out = stdout.read().decode("ascii", "replace").strip()
+        stdout.channel.recv_exit_status()
+        if len(out) == 32:
+            return out
+    except Exception:
+        pass
+    try:
+        h = hashlib.md5()
+        with sftp.open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except IOError:
+        return ""
+
+
+def upload(cli, local_root, files, site, php_root=None):
+    # 后端 PHP 与站点同级的 php/ 目录（site = /www/wwwroot/douyin/ai-girl-malaysia.com）
+    if php_root is None:
+        php_root = posixpath.join(posixpath.dirname(site.rstrip("/")), "php")
     sftp = cli.open_sftp()
     # 长连接静默挂死时，写阻塞会在超时后抛异常，交给外层重连续传
     sftp.get_channel().settimeout(120)
     n = 0
+    skipped = 0
     for rel in files:
         lp = os.path.join(local_root, rel.replace("/", os.sep))
         if not os.path.isfile(lp):
             continue
-        # rel 带仓库内前缀（ai-girl-malaysia.com/...），远程要剥掉拼到 site 根——
-        # 不剥会推进 site/ai-girl-malaysia.com/ 嵌套目录，真实站点一个文件都不动
-        rel_site = rel[len(SITE_DIR) + 1:] if rel.startswith(SITE_DIR + "/") else rel
-        rp = posixpath.join(site, rel_site)
+        # 远程路径解析：
+        #   ai-girl-malaysia.com/xxx  → {site}/xxx      （站点根）
+        #   php/xxx                   → {php_root}/xxx  （后端根，site 的上一级 + /php）
+        # 不剥前缀会推进 site/ai-girl-malaysia.com/ 嵌套目录，真实站点一个文件都不动
+        if rel.startswith("php/"):
+            rp = posixpath.join(php_root, rel[len("php/"):])
+        else:
+            rel_site = rel[len(SITE_DIR) + 1:] if rel.startswith(SITE_DIR + "/") else rel
+            rp = posixpath.join(site, rel_site)
         d = posixpath.dirname(rp)
         parts = d.split("/")[1:]
         acc = ""
@@ -268,15 +336,20 @@ def upload(cli, local_root, files, site):
             except IOError:
                 try: sftp.mkdir(acc)
                 except IOError: pass
-        # 断点续传：远端同尺寸视为已就位（大目录全量推送被断连后，重跑不必从头再来）
+        # 已就位判定必须比内容，不能只看尺寸：
+        # 2026-11-10 给 chat.js 补一个分号（大小恰好不变 160134），同尺寸判定直接跳过，
+        # 线上一直跑着没修复的版本，排查了半天。
         try:
-            if sftp.stat(rp).st_size == os.path.getsize(lp):
-                continue
+            remote_size = sftp.stat(rp).st_size
         except IOError:
-            pass
+            remote_size = -1
+        if remote_size == os.path.getsize(lp):
+            if _md5_remote(sftp, rp) == _md5_local(lp):
+                skipped += 1
+                continue
         sftp.put(lp, rp); n += 1
     sftp.close()
-    return n
+    return n, skipped
 
 def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, seed_from=None, strict=False):
     print(f"\n===== [{name}] =====")
@@ -323,23 +396,35 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
 
     if not changed:
         print("  无变更，仅刷新验证。")
+    # 站点静态文件与后端 PHP 分开推：前者落 {site}，后者落 {site 上一级}/php
+    php_files = [p for p in changed if p.startswith("php/")]
+    site_files = [p for p in changed if not p.startswith("php/")]
+    if php_files:
+        print(f"  其中后端 PHP {len(php_files)} 个（推完会 reload php-fpm）")
     if dry:
-        for p in changed[:20]: print("   dry:", p)
+        for p in site_files[:20]: print("   dry:", p)
+        for p in php_files[:20]: print("   dry: [php]", p)
         for _, rel in ov_files[:20]: print("   dry: [覆盖]", rel)
         return
 
     if cfg.get("jump"):  # 两跳：先到跳板，再一次 tar 流过去（逐文件 scp = 几百次建连，必被限流）
         tmp = f"/tmp/sync_{name}"
+        tmp_php = f"/tmp/sync_{name}_php"
         j = connect(cfg["jump"])
-        _, out, err = j.exec_command(f"rm -rf {tmp} && mkdir -p {tmp}", timeout=30); err.channel.recv_exit_status()
+        _, out, err = j.exec_command(f"rm -rf {tmp} {tmp_php} && mkdir -p {tmp} {tmp_php}", timeout=30)
+        err.channel.recv_exit_status()
         j.close()
         n = 0
-        for attempt in range(1, 4):  # 断连后重连续传（同尺寸文件跳过）
+        skipped = 0
+        for attempt in range(1, 4):  # 断连后重连续传（内容一致才跳过）
             j = connect(cfg["jump"])
             try:
-                n += upload(j, REPO, changed, tmp)
+                sent, sk = upload(j, REPO, site_files, tmp); n += sent; skipped += sk
                 if ov_files:
-                    n += upload(j, ov_root, [rel for _, rel in ov_files], tmp)
+                    sent, sk = upload(j, ov_root, [rel for _, rel in ov_files], tmp); n += sent; skipped += sk
+                if php_files:
+                    # php 文件在跳板上按仓库相对路径存放，tar 到目标机后再剥掉 php/ 前缀
+                    sent, sk = upload(j, REPO, php_files, tmp_php); n += sent; skipped += sk
                 break
             except Exception as e:
                 print(f"  跳板上传中断（第 {attempt}/3 次）: {e}")
@@ -350,12 +435,21 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
                 try: j.close()
                 except Exception: pass
         key = cfg["key_on_jump"]
+        php_root = posixpath.join(posixpath.dirname(cfg["site"].rstrip("/")), "php")
         j = connect(cfg["jump"])
         _, out, err = j.exec_command(
             f'cd {tmp} && tar -cf - . | ssh -i {key} -o StrictHostKeyChecking=no -o BatchMode=yes '
             f'{cfg["user"]}@{cfg["host"]} "tar -xf - -C {cfg["site"]}"', timeout=1800)
         rc = out.channel.recv_exit_status()
-        print(f"  经跳板推送 {n} 个文件 -> {cfg['host']}（tar rc={rc}）")
+        if php_files:
+            # 跳板上 php/xxx 的相对路径是 php/xxx，目标 php 根下只需 xxx
+            _, out2, _ = j.exec_command(
+                f'cd {tmp_php}/php 2>/dev/null && tar -cf - . | '
+                f'ssh -i {key} -o StrictHostKeyChecking=no -o BatchMode=yes '
+                f'{cfg["user"]}@{cfg["host"]} "tar -xf - -C {php_root}"', timeout=1800)
+            rc2 = out2.channel.recv_exit_status()
+            print(f"  经跳板推送 PHP -> {php_root}（tar rc={rc2}）")
+        print(f"  经跳板推送 {n} 个文件 -> {cfg['host']}（跳过 {skipped} 个内容一致；tar rc={rc}）")
         j.close()
     else:
         n = 0
@@ -363,9 +457,14 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
             cli = None
             try:
                 cli = connect(cfg)
-                n += upload(cli, REPO, changed, cfg["site"])
+                # 站点根：只推 site_files；后端 PHP 推到 {site 上一级}/php
+                sent, sk = upload(cli, REPO, site_files, cfg["site"]); n += sent; skipped += sk
+                if php_files:
+                    php_root = posixpath.join(posixpath.dirname(cfg["site"].rstrip("/")), "php")
+                    sent, sk = upload(cli, REPO, php_files, cfg["site"], php_root=php_root)
+                    n += sent; skipped += sk
                 if ov_files:
-                    n += upload(cli, ov_root, [rel for _, rel in ov_files], cfg["site"])
+                    sent, sk = upload(cli, ov_root, [rel for _, rel in ov_files], cfg["site"]); n += sent; skipped += sk
                 break
             except Exception as e:
                 print(f"  上传中断（第 {attempt}/3 次）: {e}")
@@ -376,7 +475,7 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
                 if cli:
                     try: cli.close()
                     except Exception: pass
-        print(f"  推送 {n} 个文件 -> {cfg['host']}")
+        print(f"  推送 {n} 个文件 -> {cfg['host']}（跳过 {skipped} 个内容一致）")
         # 打品牌
         if cfg.get("brand"):
             cli = connect(cfg)
@@ -385,6 +484,26 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
                 timeout=180)
             print("  apply_brand:", out.read().decode().strip())
             cli.close()
+
+    # PHP 有变更：reload php-fpm（opcache 会缓存文件，不 reload 等于没生效）
+    if php_files:
+        try:
+            if cfg.get("jump"):
+                j = connect(cfg["jump"])
+                _, out, err = j.exec_command(
+                    f'ssh -i {cfg["key_on_jump"]} -o StrictHostKeyChecking=no -o BatchMode=yes '
+                    f'{cfg["user"]}@{cfg["host"]} "systemctl reload php*-fpm 2>/dev/null '
+                    f'|| systemctl reload php8.3-fpm" 2>&1', timeout=120)
+                print(f"  php-fpm reload（经跳板）: {(out.read().decode() or err.read().decode()).strip()[:80]}")
+                j.close()
+            else:
+                cli = connect(cfg)
+                _, out, err = cli.exec_command(
+                    "systemctl reload php*-fpm 2>/dev/null || systemctl reload php8.3-fpm 2>&1", timeout=120)
+                print(f"  php-fpm reload: {(out.read().decode() or err.read().decode()).strip()[:80]}")
+                cli.close()
+        except Exception as e:
+            print(f"  !! php-fpm reload 失败（请手动 reload）: {e}")
 
     # 记录快照（推送成功后才落）
     json.dump(cur, open(STATE_FILE(name), "w", encoding="utf-8"))
