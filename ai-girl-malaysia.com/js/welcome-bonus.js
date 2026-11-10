@@ -58,13 +58,23 @@
     }
     if (window.__wbInflight) return
     window.__wbInflight = true
-    fetch(API_USER_INFO, { method: 'POST', headers: { token: tk } })
-      .then(function (r) { return r.json() })
-      .then(function (res) {
-        if (!res || (res.code !== 1 && res.code !== '00000')) return
-        applyUserState(res.data || {})
+    /* 走全站单飞（window.FyUserInfo）：本页 shell-new / main / promo-popup 也都要 userInfo，
+       各自发一次会打满 nginx 对该接口的 30r/m 限流，429 时各脚本静默失败 →
+       顶栏余额 0 / 底栏 Studio 格消失 / 抽屉头像为空。 */
+    var req = (window.FyUserInfo && window.FyUserInfo.get)
+      ? window.FyUserInfo.get()
+      : fetch(API_USER_INFO, { method: 'POST', headers: { token: tk } })
+          .then(function (r) { return r.json() })
+          .then(function (res) {
+            return (res && (res.code === 1 || res.code === '00000')) ? (res.data || {}) : null
+          })
+    req
+      .then(function (d) {
+        window.__wbInflight = false
+        if (!d) return
+        applyUserState(d)
       })
-      .catch(function () {})
+      .catch(function () { window.__wbInflight = false })
   }
 
   /* 跨标签页登录/登出跟随 */

@@ -31,20 +31,25 @@ SITES = {
 }
 ORDER = ["sugus", "heygirl", "kisss", "kelymi"]
 
-ZONE = """# userInfo 限流：单 IP 30 r/m（0.5 次/秒）+ burst 15。
+ZONE = """# userInfo 限流：单 IP 30 r/m（0.5 次/秒）+ burst 40。
 # ⚠️ 参数必须按真实故障速率校准：第一版设 5r/s，对 1 次/秒的循环完全无效
-#    （浏览器后台标签限流后正好 1 次/秒）。30r/m 实测能拦住 300ms 间隔的循环。
+#    （浏览器后台标签限流后正好 1 次/秒）。
 # 2026-10-22 事故：前端 fetch 钩子自触发导致每标签页约 3.3 r/s 的 userInfo 死循环，
 # 数个标签页即吃满 PHP-FPM 40 个 worker，customVideo/submit 排队到无响应。
 # 前端已修（shell-new.js 排除 userInfo + 单飞），这里是服务端兜底：
 # 即便将来再出现客户端 bug 或恶意刷，也不会打垮整个 FPM 池。
+#
+# 2026-11-10 调整 burst 15 → 40：用户多开 4~5 个标签页时，每页首次加载各发 1 次
+# userInfo，开页瞬间的并发就可能超过 15 的 burst 而返回 429（表现为点 logo 回首页后
+# token 显示 0 / 底栏 Studio 消失 / 抽屉头像空）。rate 不变：死循环 1 r/s 仍会在
+# 30 秒内被限住，PHP-FPM 池安全；burst 40 只放宽瞬时突发，不放松持续速率。
 limit_req_zone $binary_remote_addr zone=userinfo:10m rate=30r/m;
 
 """
 
 LOCATION = """    # userInfo 精确匹配 + 限流（见文件顶部 limit_req_zone 注释）
     location = /api/live/userInfo {
-        limit_req zone=userinfo burst=15 nodelay;
+        limit_req zone=userinfo burst=40 nodelay;
         limit_req_status 429;
 %s
     }

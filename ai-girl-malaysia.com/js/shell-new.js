@@ -61,6 +61,76 @@
     window.addEventListener('scroll', onScroll, { passive: true })
   })()
 
+  /* ---------- 全站 userInfo 单飞 + 缓存（治 429） ----------
+   * 页面加载时 shell-new / main / welcome-bonus / promo-popup / chat 各自都要 userInfo，
+   * 一页就是 4~5 个 POST /api/live/userInfo。nginx 对该接口有 30r/m（burst 15）限流兜底，
+   * 多标签页 / 快速点 logo 重开首页就会打满返回 429（HTML，不是 JSON）。
+   * 429 时各脚本 r.json() 抛异常走 catch 静默失败，表现为：
+   *   · 顶栏 token 显示 0
+   *   · 底栏 Studio 格消失（__userRecharged 拿不到）
+   *   · 抽屉头像昵称回退成默认值
+   * 这里统一收口：同一页面生命周期内只发一次，所有调用方共享同一个 Promise；
+   * 失败后 5s 内不再重试，避免限流窗口内反复撞击。 */
+  window.FyUserInfo = (function () {
+    if (window.FyUserInfo && window.FyUserInfo.get) return window.FyUserInfo
+    var pending = null
+    var cached = null
+    var lastFail = 0
+    var FAIL_GAP = 5000
+
+    function token() {
+      try {
+        if (window.LiveAuth && window.LiveAuth.token) return window.LiveAuth.token()
+        return localStorage.getItem('live_access_token') || ''
+      } catch (e) { return '' }
+    }
+
+    function get() {
+      if (cached) return Promise.resolve(cached)
+      if (pending) return pending
+      if (lastFail && Date.now() - lastFail < FAIL_GAP) return Promise.resolve(null)
+      var tk = token()
+      if (!tk) return Promise.resolve(null)
+
+      pending = fetch('/api/live/userInfo', {
+        method: 'POST',
+        headers: { token: tk },
+        cache: 'no-store'
+      })
+        .then(function (r) {
+          // 429/5xx 是 nginx 的 HTML 错误页，直接 r.json() 会抛；先看状态码再解析
+          if (!r.ok) throw new Error('HTTP ' + r.status)
+          return r.json()
+        })
+        .then(function (res) {
+          if (res && (res.code === 1 || res.code === '00000')) {
+            cached = res.data || {}
+            return cached
+          }
+          return null
+        })
+        .catch(function () {
+          lastFail = Date.now()
+          return null
+        })
+        .then(function (v) {
+          pending = null
+          return v
+        })
+      return pending
+    }
+
+    /** 强制取新值（充值/扣费后调用）：丢掉缓存，但复用已在进行中的请求 */
+    function refresh() {
+      cached = null
+      lastFail = 0
+      if (pending) return pending
+      return get()
+    }
+
+    return { get: get, refresh: refresh, peek: function () { return cached } }
+  })()
+
   var T = './taocan_files/'
   // 参考页没有的菜单项：形状沿用站点旧侧边栏，描边统一成新版侧栏的浅灰
   var S = 'fill="none" stroke="#D1D1D1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"'
@@ -1121,10 +1191,9 @@
     try { tk = localStorage.getItem('live_access_token') } catch (e) { return }
     if (!tk) return
     drawerUserFetched = true
-    fetch('/api/live/userInfo', { method: 'POST', headers: { token: tk } })
-      .then(function (r) { return r.json() })
-      .then(function (res) {
-        var d = (res && res.data) || {}
+    window.FyUserInfo.get()
+      .then(function (d) {
+        if (!d) { drawerUserFetched = false; return }
         if (!d.username && !d.avatar) return
         var u = {}
         try { u = JSON.parse(localStorage.getItem('live_user_info') || '{}') || {} } catch (e) { u = {} }
@@ -1148,11 +1217,10 @@
     if (window.__tokenBalanceInflight) return
     window.__tokenBalanceInflight = true
     var done = function () { window.__tokenBalanceInflight = false }
-    fetch('/api/live/userInfo', { method: 'POST', headers: { token: tk } })
-      .then(function (r) { return r.json() })
+    window.FyUserInfo.refresh()
       .then(function (d) {
-        if (!d || (d.code !== 1 && d.code !== '00000')) return
-        var money = (d.data && (d.data.money != null ? d.data.money : d.data.diamond_balance)) || 0
+        if (!d) return
+        var money = (d.money != null ? d.money : d.diamond_balance) || 0
         document.querySelectorAll('[data-target="user-token-balance"]').forEach(function (el) {
           el.textContent = money
         })
@@ -1262,11 +1330,15 @@
     return BOTTOM_AUTH_ALL.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
   }
 
+  /* 未登录底栏：Create 与登录态一致，统一成「+ 号小图标按钮」，
+     点了弹出 Create 面板（AI Girlfriend / Chat），不再直达 createCharacter。
+     原来未登录用的是 bWand 魔杖图标 + 直接跳 createCharacter.html，
+     和登录态的 + 号按钮不一致（用户要求统一成 + 号）。 */
   var BOTTOM_GUEST_ALL = [
     { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
     { href: './Girls.html', label: 'Explore', icon: 'bExplore', activeIcon: 'bExploreActive', key: 'explore' },
     { href: './Image.html', label: 'Generate', icon: 'bGenerate', key: 'generate' },
-    { href: './createCharacter.html', label: 'Create', icon: 'bWand', key: 'create' },
+    { create: true, label: 'Create', icon: 'bCreate' },
     { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium', key: 'premium', premium: true }
   ]
   /* 渲染时再按门控过滤（不能在脚本加载时过滤一次定死：__userRecharged 是

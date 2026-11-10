@@ -159,14 +159,23 @@
     }
 
     // 顶栏 tokens 余额胶囊：右上角新版导航形态，余额取用户真实代币数
+    // 走全站单飞（window.FyUserInfo），避免和 shell-new / welcome-bonus 重复打同一接口触发 429
     function loadTokenBalance(token){
         if(!token) return
+        var done = function(d){
+            if(!d) return
+            var money = (d.money != null ? d.money : d.diamond_balance) || 0
+            $('[data-target="user-token-balance"]').text(money)
+        }
+        if (window.FyUserInfo && window.FyUserInfo.get) {
+            window.FyUserInfo.get().then(done).catch(function(){ /* 拉取失败保持 0，不影响页面 */ })
+            return
+        }
         fetch('/api/live/userInfo', { method: 'POST', headers: { token: token } })
             .then(function(r){ return r.json() })
             .then(function(d){
                 if(!d || (d.code !== 1 && d.code !== '00000')) return
-                var money = (d.data && (d.data.money != null ? d.data.money : d.data.diamond_balance)) || 0
-                $('[data-target="user-token-balance"]').text(money)
+                done(d.data)
             })
             .catch(function(){ /* 拉取失败保持 0，不影响页面 */ })
     }

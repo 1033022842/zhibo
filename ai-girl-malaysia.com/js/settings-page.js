@@ -214,11 +214,19 @@
       })
       .catch(function () { /* 拉取失败保持原样 */ })
 
-    fetch(API.userInfo, { method: 'POST', headers: { token: token() } })
-      .then(function (r) { return r.json() })
-      .then(function (res) {
-        if (!res || res.code !== '00000' || !res.data) return
-        fillProfile({ nickname: res.data.username, email: res.data.email || cachedEmail(), avatar: res.data.avatar })
+    /* 走全站单飞（window.FyUserInfo）：设置页同时还有 shell-new 的余额/抽屉请求，
+       各自发一次会叠加到 nginx 对 userInfo 的 30r/m 限流上 */
+    var req = (window.FyUserInfo && window.FyUserInfo.get)
+      ? window.FyUserInfo.get()
+      : fetch(API.userInfo, { method: 'POST', headers: { token: token() } })
+          .then(function (r) { return r.json() })
+          .then(function (res) {
+            return (res && res.code === '00000' && res.data) ? res.data : null
+          })
+    req
+      .then(function (d) {
+        if (!d) return
+        fillProfile({ nickname: d.username, email: d.email || cachedEmail(), avatar: d.avatar })
       })
       .catch(function () { /* 同上 */ })
   }

@@ -1073,6 +1073,13 @@
     // 代币余额（消费入口展示）
     function loadTokens() {
         if (!token) return
+        // 走全站单飞（window.FyUserInfo）：本页多个脚本都要 userInfo，各发一次会触发 nginx 429
+        if (window.FyUserInfo && window.FyUserInfo.get) {
+            window.FyUserInfo.get()
+                .then(function (d) { if (d) renderTokens(d.money) })
+                .catch(function () {})
+            return
+        }
         fetch('/api/live/userInfo', { headers: authHeaders(false), cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) { if (d && d.code === '00000' && d.data) renderTokens(d.data.money) })

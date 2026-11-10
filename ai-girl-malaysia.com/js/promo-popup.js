@@ -148,11 +148,17 @@
   }
 
   function checkRechargePromo(cfg) {
-    fetch('/api/live/userInfo', { method: 'POST', headers: { token: token() }, cache: 'no-store' })
-      .then(function (r) { return r.json() })
-      .then(function (res) {
-        if (!res || (res.code !== 1 && res.code !== '00000') || !res.data) return
-        var d = res.data
+    /* 走全站单飞（window.FyUserInfo），避免与本页其它脚本重复请求 userInfo 触发 429 */
+    var req = (window.FyUserInfo && window.FyUserInfo.get)
+      ? window.FyUserInfo.get()
+      : fetch('/api/live/userInfo', { method: 'POST', headers: { token: token() }, cache: 'no-store' })
+          .then(function (r) { return r.json() })
+          .then(function (res) {
+            return (res && (res.code === 1 || res.code === '00000') && res.data) ? res.data : null
+          })
+    req
+      .then(function (d) {
+        if (!d) return
         var uid = d.id
         if (!uid) return
         var prevK = 'cPromo_prev_recharged_' + uid
