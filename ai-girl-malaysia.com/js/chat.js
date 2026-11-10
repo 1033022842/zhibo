@@ -3041,7 +3041,7 @@
         loadAffection()
     }
 
-})()
+})();
 
 /* 顶栏分类（Girls / Anime / Guys）：Chat 页没有分类列表，点了统一回首页并选中对应类型 */
 (function () {
