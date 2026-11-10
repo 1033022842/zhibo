@@ -232,13 +232,14 @@
      注意 heygirl 部署时 apply_brand 会把 sugus\.ai 改写成 heygirl\.live，
      两侧各自命中自己域名，行为一致。 */
   var STUDIO_HREF = './Image.html'
-  var STUDIO_GATE_HOST = /((^|\.)sugus\.ai|(^|\.)heygirl\.live)$/i
-  /* 解锁条件：充值过才可见。window.__userRecharged 由 js/welcome-bonus.js 在
-     userInfo 返回后写入（has_recharged，任一充值入账流水即算），并发 live:userstate
-     事件触发 syncStudioEntry 原地刷新；guest / 未充值用户一律隐藏。 */
+  /* AI 工作室入口：登录即可见，不再要求「充值过」。
+     旧逻辑按 has_recharged 门控（welcome-bonus.js 异步写 __userRecharged），
+     PC 端首屏常已回填、移动端常晚到，导致同一账号「电脑有入口、手机没有」
+     （2026-11-10 报障）。现在只看登录态，不看充值。
+     直接读 localStorage 而不是 LiveAuth.token()：本函数在模块初始化时就会
+     被 mainNav() 调用，那时 LiveAuth 还没赋值。 */
   function studioEntryVisible() {
-    if (!STUDIO_GATE_HOST.test(location.hostname)) return true
-    return window.__userRecharged === true
+    try { return !!localStorage.getItem('live_access_token') } catch (e) { return false }
   }
   var MAIN_NAV_RAW = ['Home', 'Discover', 'Chat', 'Shorts', 'Private Content', 'AI Video Studio', 'Create Character', 'Tokens'].map(function (label) {
     return NAV.filter(function (n) { return n.label === label })[0]
@@ -1324,8 +1325,8 @@
     { href: './Image.html', label: 'Studio', icon: 'bDirector', key: 'generate' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'bTokens', activeIcon: 'bTokensActive', key: 'tokens' }
   ]
-  /* AI Video Studio 只对「已登录且充值过」的用户可见：没充值时这里只剩 4 格，
-     列数在 render() 里按实际格数算，不会留空格子或被拉伸变形 */
+  /* AI Video Studio 入口对所有用户可见（2026-11-10 去掉充值门控）：
+     列数始终按实际格数算，不会留空格子或被拉伸变形 */
   function bottomAuthItems() {
     return BOTTOM_AUTH_ALL.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
   }
@@ -1341,13 +1342,12 @@
     { create: true, label: 'Create', icon: 'bCreate' },
     { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium', key: 'premium', premium: true }
   ]
-  /* 渲染时再按门控过滤（不能在脚本加载时过滤一次定死：__userRecharged 是
-     welcome-bonus.js 异步回填的，充值解锁后要原地多出 Generate 格） */
+  /* 渲染时按门控过滤（门控已恒真，保留结构便于将来加回条件） */
   function bottomGuestItems() {
     return BOTTOM_GUEST_ALL.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
   }
 
-  /* Create 面板：AI Girlfriend / Chat（AI Video Studio 已挪到底栏，仍受充值门控） */
+  /* Create 面板：AI Girlfriend / Chat（AI Video Studio 在底栏，不再受充值门控） */
   var CREATE_MENU = [
     { href: './createCharacter.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
     { href: './Chat.html', icon: 'bChat', title: 'Chat', sub: 'Talk with your AI companions' }
@@ -2140,7 +2140,7 @@
     syncStudioEntry()
     // 原地登录成功（弹窗登录不发页面跳转）
     document.addEventListener('live:login', function () { refreshDrawerUser(); applyDrawerAuthState(); syncStudioEntry() })
-    // welcome-bonus.js 拿到 userInfo（has_recharged）后广播：充值用户在此刻解锁入口
+    // welcome-bonus.js 拿到 userInfo 后广播（入口现已不受充值门控，保留监听用于刷新用户信息）
     document.addEventListener('live:userstate', function () { refreshDrawerUser(); applyDrawerAuthState(); syncStudioEntry() })
     // 其它标签页登出/登录
     window.addEventListener('storage', function (e) {
@@ -2161,7 +2161,7 @@
     if (!changed) return
     MAIN_NAV = next
     try { render() } catch (e) {}
-    /* 底栏未登录格里的 Generate 也受同一门控：充值解锁后原地补回那一格 */
+    /* 底栏 Generate 格同受此门控（现恒真，保留以便将来恢复条件） */
     try { renderBottomBar() } catch (e) {}
   }
 
