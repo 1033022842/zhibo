@@ -453,6 +453,7 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
         j.close()
     else:
         n = 0
+        skipped = 0
         for attempt in range(1, 4):
             cli = None
             try:
