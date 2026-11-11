@@ -92,6 +92,20 @@ SELECT @track_pid, 'button', '行为明细', 'track/analysis/detail', '', '', NU
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `ba_admin_rule` WHERE `name` = 'track/analysis/detail');
 
 -- --------------------------------------------
+-- 付费用户 / 用户流水（2026-11-11 新增）
+-- 有真实充值后需要看「谁付了钱、钱花在哪」，挂在同一个「行为分析」菜单下
+-- --------------------------------------------
+INSERT INTO `ba_admin_rule`
+    (`pid`, `type`, `title`, `name`, `path`, `icon`, `menu_type`, `url`, `component`, `keepalive`, `extend`, `remark`, `weigh`, `status`)
+SELECT @track_pid, 'button', '付费用户', 'track/analysis/paid', '', '', NULL, '', '', 0, 'none', '付费用户画像 + 消费去向', 0, 1
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `ba_admin_rule` WHERE `name` = 'track/analysis/paid');
+
+INSERT INTO `ba_admin_rule`
+    (`pid`, `type`, `title`, `name`, `path`, `icon`, `menu_type`, `url`, `component`, `keepalive`, `extend`, `remark`, `weigh`, `status`)
+SELECT @track_pid, 'button', '用户流水', 'track/analysis/wallet', '', '', NULL, '', '', 0, 'none', '单用户充值 + 每一笔消费明细', 0, 1
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `ba_admin_rule` WHERE `name` = 'track/analysis/wallet');
+
+-- --------------------------------------------
 -- 校验
 -- --------------------------------------------
 SHOW TABLES LIKE 'lp_track_event';

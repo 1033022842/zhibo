@@ -210,6 +210,81 @@
                 </el-card>
             </el-tab-pane>
 
+            <!-- ============ 付费用户 ============ -->
+            <el-tab-pane label="付费用户" name="paid">
+                <el-row :gutter="12">
+                    <el-col v-for="c in paidCards" :key="c.label" :xs="12" :sm="6">
+                        <el-card shadow="never" class="ta-card">
+                            <div class="ta-card-label">{{ c.label }}</div>
+                            <div class="ta-card-value">{{ c.value }}</div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+
+                <el-card shadow="never" header="消费去向（付费用户的代币花在哪）" class="ta-spend-card">
+                    <el-table :data="spendList" size="small" border stripe>
+                        <el-table-column prop="biz_type" label="消费类型" width="180">
+                            <template #default="{ row }">
+                                <el-tag effect="plain">{{ row.biz_type }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="cnt" label="次数" width="100" align="center" />
+                        <el-table-column prop="total" label="消耗代币" width="140" align="center">
+                            <template #default="{ row }">
+                                <span class="ta-coin">{{ Number(row.total).toFixed(2) }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="users" label="涉及用户" width="110" align="center" />
+                        <template #empty>暂无付费用户消费记录</template>
+                    </el-table>
+                </el-card>
+
+                <el-card shadow="never" header="付费用户列表" class="ta-paid-card">
+                    <div class="ta-toolbar">
+                        <el-input
+                            v-model="paidKeyword"
+                            placeholder="搜索用户编号 / 昵称 / 邮箱"
+                            clearable
+                            class="ta-keyword"
+                            @keyup.enter="loadPaid()"
+                        />
+                        <el-button @click="loadPaid()">搜索</el-button>
+                    </div>
+                    <el-table v-loading="paidLoading" :data="paidList" border stripe>
+                        <el-table-column prop="user_no" label="用户编号" width="150" />
+                        <el-table-column prop="nickname" label="昵称" min-width="110" show-overflow-tooltip />
+                        <el-table-column prop="paid" label="累计付费" width="110" align="center" sortable>
+                            <template #default="{ row }">
+                                <span class="ta-money">${{ Number(row.paid).toFixed(2) }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="orders" label="订单数" width="80" align="center" />
+                        <el-table-column prop="balance" label="当前余额" width="100" align="center" />
+                        <el-table-column prop="spent" label="累计消耗" width="100" align="center" />
+                        <el-table-column prop="logins" label="登录次数" width="90" align="center" />
+                        <el-table-column prop="reg_platform" label="来源" width="100" align="center">
+                            <template #default="{ row }">{{ row.reg_platform || '-' }}</template>
+                        </el-table-column>
+                        <el-table-column prop="last_paid" label="最近付费" width="160" align="center" />
+                        <el-table-column label="操作" width="100" align="center" fixed="right">
+                            <template #default="{ row }">
+                                <el-button size="small" type="primary" link @click="openWallet(row)">流水明细</el-button>
+                            </template>
+                        </el-table-column>
+                        <template #empty>暂无付费用户</template>
+                    </el-table>
+                    <div class="ta-pager">
+                        <el-pagination
+                            v-model:current-page="paidPage"
+                            :page-size="pageSize"
+                            :total="paidTotal"
+                            layout="total, prev, pager, next"
+                            @current-change="loadPaid()"
+                        />
+                    </div>
+                </el-card>
+            </el-tab-pane>
+
             <!-- ============ 行为明细 ============ -->
             <el-tab-pane label="行为明细" name="detail">
                 <div class="ta-toolbar">
@@ -270,13 +345,86 @@
                 </el-card>
             </el-tab-pane>
         </el-tabs>
+
+        <!-- 用户流水明细抽屉 -->
+        <el-drawer v-model="walletVisible" :title="walletTitle" size="900px" direction="rtl">
+            <div v-loading="walletLoading" class="ta-wallet">
+                <el-row v-if="walletSummary" :gutter="12">
+                    <el-col v-for="c in walletCards" :key="c.label" :span="6">
+                        <el-card shadow="never" class="ta-card">
+                            <div class="ta-card-label">{{ c.label }}</div>
+                            <div class="ta-card-value">{{ c.value }}</div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+
+                <el-card v-if="walletByType.length" shadow="never" header="按类型汇总" class="ta-spend-card">
+                    <el-table :data="walletByType" size="small" border>
+                        <el-table-column label="方向" width="80" align="center">
+                            <template #default="{ row }">
+                                <el-tag :type="row.direction == 1 ? 'success' : 'warning'" effect="plain">
+                                    {{ row.direction == 1 ? '收入' : '支出' }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="biz_type" label="类型" width="160" />
+                        <el-table-column prop="cnt" label="次数" width="90" align="center" />
+                        <el-table-column prop="total" label="合计" width="120" align="center" />
+                    </el-table>
+                </el-card>
+
+                <el-card v-if="walletOrders.length" shadow="never" header="充值订单" class="ta-spend-card">
+                    <el-table :data="walletOrders" size="small" border>
+                        <el-table-column prop="order_no" label="订单号" width="200" show-overflow-tooltip />
+                        <el-table-column prop="pay_amount" label="金额" width="100" align="center" />
+                        <el-table-column prop="diamond_amount" label="到账代币" width="100" align="center" />
+                        <el-table-column prop="pay_channel" label="通道" width="110" align="center" />
+                        <el-table-column label="状态" width="80" align="center">
+                            <template #default="{ row }">
+                                <el-tag :type="row.status == 1 ? 'success' : 'info'" effect="plain">
+                                    {{ row.status == 1 ? '已支付' : row.status }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="paid_at" label="支付时间" width="160" align="center" />
+                    </el-table>
+                </el-card>
+
+                <el-card shadow="never" header="代币流水（全部变动）" class="ta-spend-card">
+                    <el-table :data="walletLedger" size="small" border stripe max-height="420">
+                        <el-table-column prop="created_at" label="时间" width="160" align="center" />
+                        <el-table-column label="方向" width="70" align="center">
+                            <template #default="{ row }">
+                                <el-tag :type="row.direction == 1 ? 'success' : 'warning'" effect="plain">
+                                    {{ row.direction == 1 ? '+' : '-' }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="biz_type" label="类型" width="150" />
+                        <el-table-column prop="amount" label="金额" width="100" align="center" />
+                        <el-table-column prop="balance_after" label="变动后余额" width="110" align="center" />
+                        <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
+                        <template #empty>暂无流水</template>
+                    </el-table>
+                    <div class="ta-pager">
+                        <el-pagination
+                            v-model:current-page="walletPage"
+                            :page-size="20"
+                            :total="walletTotal"
+                            layout="total, prev, pager, next"
+                            @current-change="loadWallet(walletUserId)"
+                        />
+                    </div>
+                </el-card>
+            </div>
+        </el-drawer>
     </div>
 </template>
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import * as echarts from 'echarts'
-import { behaviorDetail, featureStats, loginStats, overview, pageStats } from '/@/api/backend/track'
+import { behaviorDetail, featureStats, loginStats, overview, pageStats, paidUsers, userWallet } from '/@/api/backend/track'
 
 defineOptions({
     name: 'track/analysis',
@@ -493,15 +641,98 @@ const onTabChange = (name: string | number) => {
     if (name === 'page' && !pageLoaded.value) loadPage()
     if (name === 'feature' && !featureLoaded.value) loadFeature()
     if (name === 'login' && !loginLoaded.value) loadLogin()
+    if (name === 'paid' && !paidLoaded.value) loadPaid()
+}
+
+/* ---------------- 付费用户 ---------------- */
+const paidList = ref<any[]>([])
+const paidTotal = ref(0)
+const paidPage = ref(1)
+const paidLoading = ref(false)
+const paidKeyword = ref('')
+const paidLoaded = ref(false)
+const spendList = ref<any[]>([])
+const paidCards = ref<any[]>([])
+
+const loadPaid = async () => {
+    paidLoading.value = true
+    try {
+        const res = await paidUsers({
+            ...queryBase(),
+            keyword: paidKeyword.value || undefined,
+            page: paidPage.value,
+            limit: pageSize,
+        })
+        const d = res.data
+        const c = d.cards || {}
+        paidCards.value = [
+            { label: '付费用户数', value: c.payers ?? 0 },
+            { label: '充值总额', value: '$' + Number(c.revenue || 0).toFixed(2) },
+            { label: '订单数', value: c.orders ?? 0 },
+            { label: '客单价', value: '$' + Number(c.avg_order || 0).toFixed(2) },
+        ]
+        spendList.value = d.spend || []
+        paidList.value = d.list || []
+        paidTotal.value = d.total || 0
+        paidLoaded.value = true
+    } finally {
+        paidLoading.value = false
+    }
+}
+
+/* ---------------- 单用户流水明细 ---------------- */
+const walletVisible = ref(false)
+const walletLoading = ref(false)
+const walletTitle = ref('用户流水明细')
+const walletUserId = ref(0)
+const walletSummary = ref<any>(null)
+const walletByType = ref<any[]>([])
+const walletLedger = ref<any[]>([])
+const walletOrders = ref<any[]>([])
+const walletTotal = ref(0)
+const walletPage = ref(1)
+const walletCards = ref<any[]>([])
+
+const loadWallet = async (userId: number) => {
+    if (!userId) return
+    walletUserId.value = userId
+    walletLoading.value = true
+    try {
+        const res = await userWallet({ user_id: userId, page: walletPage.value, limit: 20 })
+        const d = res.data
+        walletSummary.value = d.summary || {}
+        walletByType.value = d.by_type || []
+        walletLedger.value = d.ledger || []
+        walletOrders.value = d.orders || []
+        walletTotal.value = d.ledger_total || 0
+        const s = d.summary || {}
+        walletCards.value = [
+            { label: '当前余额', value: s.balance ?? 0 },
+            { label: '累计充值金额', value: '$' + Number(s.paid || 0).toFixed(2) },
+            { label: '累计入账代币', value: s.total_in ?? 0 },
+            { label: '累计消耗代币', value: s.total_out ?? 0 },
+        ]
+    } finally {
+        walletLoading.value = false
+    }
+}
+
+const openWallet = (row: any) => {
+    walletVisible.value = true
+    walletPage.value = 1
+    walletTitle.value = `用户流水：${row.user_no || ''} ${row.nickname || ''}`
+    loadWallet(Number(row.id))
 }
 
 const onSearch = () => {
     pageNo.page = 1
     multiPage.value = 1
     loginDetailPage.value = 1
+    paidPage.value = 1
     pageLoaded.value = false
     featureLoaded.value = false
     loginLoaded.value = false
+    paidLoaded.value = false
     loadOverview()
     onTabChange(tab.value)
 }
@@ -596,6 +827,23 @@ onBeforeUnmount(() => {
             color: var(--el-text-color-secondary);
             font-size: 12px;
             word-break: break-all;
+        }
+    }
+    .ta-spend-card,
+    .ta-paid-card {
+        margin-top: 12px;
+    }
+    .ta-money {
+        color: var(--el-color-success);
+        font-weight: 600;
+    }
+    .ta-coin {
+        color: var(--el-color-warning);
+        font-weight: 600;
+    }
+    .ta-wallet {
+        .ta-card {
+            margin-bottom: 12px;
         }
     }
 }

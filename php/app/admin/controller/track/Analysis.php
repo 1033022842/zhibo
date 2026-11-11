@@ -420,6 +420,194 @@ final class Analysis extends Backend
     }
 
     /* ============================================================
+     * 付费用户画像：谁付了钱、付了多少、钱花在哪
+     * ============================================================ */
+    public function paid(): void
+    {
+        [$start, $end] = $this->range();
+        [$page, $limit] = $this->pager();
+        $offset = ($page - 1) * $limit;
+
+        $keyword = trim((string) $this->request->get('keyword', ''));
+        $kwSql   = '';
+        $kwBind  = [];
+        if ($keyword !== '') {
+            $kwSql  = ' AND (u.user_no LIKE ? OR u.nickname LIKE ? OR u.email LIKE ?)';
+            $kw     = '%' . $keyword . '%';
+            $kwBind = [$kw, $kw, $kw];
+        }
+
+        // ---- 汇总卡片 ----
+        $sum = Db::connect($this->connection)->query(
+            "SELECT COUNT(DISTINCT o.user_id) AS payers, IFNULL(SUM(o.pay_amount),0) AS revenue,"
+            . " COUNT(*) AS orders, IFNULL(AVG(o.pay_amount),0) AS avg_order"
+            . " FROM lp_recharge_order o WHERE o.status = 1"
+            . " AND o.created_at BETWEEN ? AND ?",
+            [$start . ' 00:00:00', $end . ' 23:59:59']
+        )[0] ?? [];
+
+        // ---- 消费去向（按 biz_type，只统计付过费的用户）----
+        $spend = Db::connect($this->connection)->query(
+            "SELECT l.biz_type, COUNT(*) AS cnt, IFNULL(SUM(l.amount),0) AS total,"
+            . " COUNT(DISTINCT l.user_id) AS users"
+            . " FROM lp_wallet_ledger l"
+            . " WHERE l.direction = 2 AND l.user_id IN"
+            . " (SELECT DISTINCT user_id FROM lp_recharge_order WHERE status = 1)"
+            . " AND l.created_at BETWEEN ? AND ?"
+            . " GROUP BY l.biz_type ORDER BY total DESC",
+            [$start . ' 00:00:00', $end . ' 23:59:59']
+        );
+
+        // ---- 付费用户列表 ----
+        $total = (int) (Db::connect($this->connection)->query(
+            "SELECT COUNT(DISTINCT u.id) AS c FROM lp_user u"
+            . " WHERE EXISTS (SELECT 1 FROM lp_recharge_order o WHERE o.user_id = u.id AND o.status = 1"
+            . " AND o.created_at BETWEEN ? AND ?) {$kwSql}",
+            array_merge([$start . ' 00:00:00', $end . ' 23:59:59'], $kwBind)
+        )[0]['c'] ?? 0);
+
+        $list = Db::connect($this->connection)->query(
+            "SELECT u.id, u.user_no, u.nickname, u.email, u.reg_domain, u.reg_platform, u.created_at,"
+            . " pay.paid, pay.orders, pay.first_paid, pay.last_paid,"
+            . " IFNULL(acc.diamond_balance, 0) AS balance,"
+            . " IFNULL(sp.spent, 0) AS spent,"
+            . " (SELECT COUNT(*) FROM lp_user_login_log lg WHERE lg.user_id = u.id AND lg.success = 1) AS logins"
+            . " FROM lp_user u"
+            . " JOIN (SELECT user_id, SUM(pay_amount) AS paid, COUNT(*) AS orders,"
+            . "              MIN(COALESCE(paid_at, created_at)) AS first_paid,"
+            . "              MAX(COALESCE(paid_at, created_at)) AS last_paid"
+            . "        FROM lp_recharge_order WHERE status = 1"
+            . "        AND created_at BETWEEN ? AND ? GROUP BY user_id) pay ON pay.user_id = u.id"
+            . " LEFT JOIN lp_wallet_account acc ON acc.user_id = u.id"
+            . " LEFT JOIN (SELECT user_id, SUM(amount) AS spent FROM lp_wallet_ledger"
+            . "            WHERE direction = 2 GROUP BY user_id) sp ON sp.user_id = u.id"
+            . " WHERE 1=1 {$kwSql}"
+            . " ORDER BY pay.paid DESC LIMIT {$limit} OFFSET {$offset}",
+            array_merge([$start . ' 00:00:00', $end . ' 23:59:59'], $kwBind)
+        );
+
+        $this->success('', [
+            'cards' => [
+                'payers'    => (int) ($sum['payers'] ?? 0),
+                'revenue'   => round((float) ($sum['revenue'] ?? 0), 2),
+                'orders'    => (int) ($sum['orders'] ?? 0),
+                'avg_order' => round((float) ($sum['avg_order'] ?? 0), 2),
+            ],
+            'spend'  => $spend,
+            'list'   => $list,
+            'total'  => $total,
+            'range'  => ['start' => $start, 'end' => $end],
+        ]);
+    }
+
+    /* ============================================================
+     * 单用户流水明细：按用户查「充值 + 每一笔消费」
+     * ?keyword=<user_no|用户ID|昵称>   或 ?user_id=<数字>
+     * ============================================================ */
+    public function wallet(): void
+    {
+        $keyword = trim((string) $this->request->get('keyword', ''));
+        $userId  = (int) $this->request->get('user_id/d', 0);
+
+        $user = null;
+        if ($userId > 0) {
+            $user = Db::connect($this->connection)->table('lp_user')
+                ->field(['id', 'user_no', 'nickname', 'email', 'reg_domain', 'reg_platform', 'created_at'])
+                ->where('id', $userId)->find();
+        } elseif ($keyword !== '') {
+            $user = Db::connect($this->connection)->table('lp_user')
+                ->field(['id', 'user_no', 'nickname', 'email', 'reg_domain', 'reg_platform', 'created_at'])
+                ->where('user_no', $keyword)->find();
+            if (!$user) {
+                $user = Db::connect($this->connection)->table('lp_user')
+                    ->field(['id', 'user_no', 'nickname', 'email', 'reg_domain', 'reg_platform', 'created_at'])
+                    ->where('nickname', $keyword)->find();
+            }
+            if (!$user && ctype_digit($keyword)) {
+                $user = Db::connect($this->connection)->table('lp_user')
+                    ->field(['id', 'user_no', 'nickname', 'email', 'reg_domain', 'reg_platform', 'created_at'])
+                    ->where('id', (int) $keyword)->find();
+            }
+        }
+        if (!$user) {
+            $this->success('', ['user' => null, 'summary' => [], 'ledger' => [], 'orders' => []]);
+            return;
+        }
+        $uid = (int) $user['id'];
+
+        // 账户与汇总
+        $acc = Db::connect($this->connection)->table('lp_wallet_account')
+            ->where('user_id', $uid)->find() ?: [];
+        $agg = Db::connect($this->connection)->query(
+            "SELECT"
+            . " IFNULL(SUM(CASE WHEN direction = 1 THEN amount ELSE 0 END), 0) AS total_in,"
+            . " IFNULL(SUM(CASE WHEN direction = 2 THEN amount ELSE 0 END), 0) AS total_out,"
+            . " COUNT(*) AS records"
+            . " FROM lp_wallet_ledger WHERE user_id = ?",
+            [$uid]
+        )[0] ?? [];
+        $paid = (float) (Db::connect($this->connection)->query(
+            "SELECT IFNULL(SUM(pay_amount),0) AS p FROM lp_recharge_order WHERE user_id = ? AND status = 1",
+            [$uid]
+        )[0]['p'] ?? 0);
+
+        // 按类型汇总消费（一眼看出钱花在哪）
+        $byType = Db::connect($this->connection)->query(
+            "SELECT biz_type, direction, COUNT(*) AS cnt, IFNULL(SUM(amount),0) AS total"
+            . " FROM lp_wallet_ledger WHERE user_id = ?"
+            . " GROUP BY biz_type, direction ORDER BY direction DESC, total DESC",
+            [$uid]
+        );
+
+        // 完整流水（分页）
+        [$page, $limit] = $this->pager();
+        $offset = ($page - 1) * $limit;
+        $ledger = Db::connect($this->connection)->table('lp_wallet_ledger')
+            ->field(['id', 'biz_type', 'direction', 'amount', 'balance_before', 'balance_after', 'remark', 'created_at'])
+            ->where('user_id', $uid)
+            ->order('id', 'desc')
+            ->limit($offset, $limit)
+            ->select()->toArray();
+        $ledgerTotal = (int) Db::connect($this->connection)->table('lp_wallet_ledger')
+            ->where('user_id', $uid)->count();
+
+        // 充值订单
+        $orders = Db::connect($this->connection)->table('lp_recharge_order')
+            ->field(['id', 'order_no', 'pay_amount', 'diamond_amount', 'pay_channel', 'biz_type',
+                'status', 'created_at', 'paid_at'])
+            ->where('user_id', $uid)
+            ->order('id', 'desc')
+            ->limit(50)
+            ->select()->toArray();
+
+        // 行为：最近登录
+        $logins = Db::connect($this->connection)->table('lp_user_login_log')
+            ->field(['account', 'success', 'ip', 'created_at'])
+            ->where('user_id', $uid)
+            ->order('id', 'desc')
+            ->limit(20)
+            ->select()->toArray();
+
+        $this->success('', [
+            'user'    => $user,
+            'summary' => [
+                'balance'   => round((float) ($acc['diamond_balance'] ?? 0), 2),
+                'total_in'  => round((float) ($agg['total_in'] ?? 0), 2),
+                'total_out' => round((float) ($agg['total_out'] ?? 0), 2),
+                'paid'      => round($paid, 2),
+                'records'   => (int) ($agg['records'] ?? 0),
+            ],
+            'by_type'    => $byType,
+            'ledger'     => $ledger,
+            'ledger_total' => $ledgerTotal,
+            'orders'     => $orders,
+            'logins'     => $logins,
+            'page'       => $page,
+            'limit'      => $limit,
+        ]);
+    }
+
+    /* ============================================================
      * 私有：参数与过滤条件
      * ============================================================ */
 

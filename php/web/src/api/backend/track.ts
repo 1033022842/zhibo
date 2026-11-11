@@ -27,6 +27,16 @@ export function behaviorDetail(params: { keyword?: string; sid?: string } = {}) 
     return createAxios({ url: url + 'detail', method: 'get', params })
 }
 
+/** 付费用户画像：谁付了钱、付了多少、钱花在哪 */
+export function paidUsers(params: TTrackQuery & { keyword?: string } = {}) {
+    return createAxios({ url: url + 'paid', method: 'get', params })
+}
+
+/** 单用户流水明细：充值 + 每一笔消费 */
+export function userWallet(params: { keyword?: string; user_id?: number; page?: number; limit?: number } = {}) {
+    return createAxios({ url: url + 'wallet', method: 'get', params })
+}
+
 type TTrackQuery = {
     start?: string
     end?: string
