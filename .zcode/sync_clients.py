@@ -119,6 +119,14 @@ def changed_files(client, full):
     return cur, changed
 
 def in_scope(path, include_files):
+    # ── 后端 PHP（2026-11-10 纳入）──
+    # 以前 sync 只管静态站，PHP 改动只能手工 SFTP，于是「改完服务器没进仓库」反复发生
+    # （SOP 踩坑表第 504 行）。现在一并同步 PHP，推完自动 reload php-fpm。
+    # 只推代码与 sql 迁移脚本；.env 等敏感/运行时文件永不推。
+    # 注意：必须用原始 path 判断 —— 下面 rel 是按 SITE_DIR 前缀截取的，php/ 不匹配。
+    if path.startswith("php/"):
+        return in_scope_php(path)
+
     if path.endswith(".html") or path == f"{SITE_DIR}/site-manifest.json":
         return True
     rel = path[len(SITE_DIR) + 1:]
@@ -133,12 +141,6 @@ def in_scope(path, include_files):
         return True
     if include_files and rel.split("/", 1)[0].endswith("_files"):
         return True
-    # ── 后端 PHP（2026-11-10 纳入）──
-    # 以前 sync 只管静态站，PHP 改动只能手工 SFTP，于是「改完服务器没进仓库」反复发生
-    # （SOP 踩坑表第 504 行）。现在一并同步 PHP，推完自动 reload php-fpm。
-    # 只推代码与 sql 迁移脚本；.env 等敏感/运行时文件永不推。
-    if rel.startswith("php/"):
-        return in_scope_php(rel)
     return False
 
 
