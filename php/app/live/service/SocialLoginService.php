@@ -40,10 +40,42 @@ final class SocialLoginService
             return false;
         }
         $cfg = (array) config('social.' . $provider, []);
-        $uri = (string) ($cfg['redirect_uri'] ?? '');
         return trim((string) ($cfg['client_id'] ?? '')) !== ''
             && trim((string) ($cfg['client_secret'] ?? '')) !== ''
-            && self::validCallback($uri, $provider);
+            && self::redirectUris($provider) !== [];
+    }
+
+    /**
+     * 一个 provider 可用的全部回调地址。
+     * 主站常有裸域 / www / 品牌别名多个域名同时在用（如 heygirl.live 与 heygirl.cam），
+     * 单一 redirect_uri 会让从 www 进站的用户登录失败，故支持 REDIRECT_URIS 逗号分隔多值。
+     */
+    private static function redirectUris(string $provider): array
+    {
+        $cfg = (array) config('social.' . $provider, []);
+        $list = [];
+        $multi = trim((string) ($cfg['redirect_uris'] ?? ''));
+        if ($multi !== '') {
+            foreach (explode(',', $multi) as $uri) {
+                $uri = trim($uri);
+                if ($uri !== '' && self::validCallback($uri, $provider) && !in_array($uri, $list, true)) {
+                    $list[] = $uri;
+                }
+            }
+        }
+        $single = trim((string) ($cfg['redirect_uri'] ?? ''));
+        if ($single !== '' && self::validCallback($single, $provider) && !in_array($single, $list, true)) {
+            $list[] = $single;
+        }
+        return $list;
+    }
+
+    /** 取某个回调地址对应的站点 origin（https://host[:port]） */
+    private static function originOf(string $uri): string
+    {
+        $origin = 'https://' . parse_url($uri, PHP_URL_HOST);
+        $port = parse_url($uri, PHP_URL_PORT);
+        return $port ? $origin . ':' . $port : $origin;
     }
 
     /**
@@ -141,13 +173,17 @@ final class SocialLoginService
             throw new BusinessException(ResultCode::SERVER_ERROR, 'This sign-in provider is not configured yet.');
         }
         $cfg = (array) config('social.' . $provider);
-        // 回调必须与发起登录的站点同源，否则 cookie 无法用于核验。
-        $expectedOrigin = 'https://' . parse_url($cfg['redirect_uri'], PHP_URL_HOST);
-        $port = parse_url($cfg['redirect_uri'], PHP_URL_PORT);
-        if ($port) {
-            $expectedOrigin .= ':' . $port;
+        // 回调必须与发起登录的站点同源，否则浏览器绑定失效。
+        // 站点常同时开裸域 / www / 品牌别名，按当前 origin 挑对应的那个回调地址。
+        $originKey = rtrim(strtolower($origin), '/');
+        $redirectUri = '';
+        foreach (self::redirectUris($provider) as $candidate) {
+            if (strtolower(self::originOf($candidate)) === $originKey) {
+                $redirectUri = $candidate;
+                break;
+            }
         }
-        if (strtolower($origin) !== strtolower($expectedOrigin)) {
+        if ($redirectUri === '') {
             throw new BusinessException(ResultCode::AUTH_FAILED, 'Please sign in on the configured site domain.');
         }
         $redis = Cache::store('redis')->handler();
@@ -165,10 +201,12 @@ final class SocialLoginService
         $payload = [
             'browser' => hash('sha256', $browser), 'provider' => $provider,
             'verifier' => $verifier, 'context' => $context,
+            // 换 token 时必须用与授权请求完全一致的 redirect_uri，随 state 一起记住
+            'redirect_uri' => $redirectUri,
         ];
         $redis->setex('oauth_state:' . hash('sha256', $state), 300, json_encode($payload, JSON_THROW_ON_ERROR));
         $query = [
-            'client_id' => $cfg['client_id'], 'redirect_uri' => $cfg['redirect_uri'],
+            'client_id' => $cfg['client_id'], 'redirect_uri' => $redirectUri,
             'response_type' => 'code', 'scope' => self::PROVIDERS[$provider]['scope'],
             'state' => $state, 'code_challenge_method' => 'S256',
             'code_challenge' => rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '='),
@@ -192,7 +230,12 @@ final class SocialLoginService
             throw new BusinessException(ResultCode::AUTH_FAILED, 'Invalid or expired authorization.');
         }
         $payload = $this->consume('oauth_state:', $state, $browser, $provider, true);
-        $identity = $this->fetchIdentity($provider, $code, $payload['verifier']);
+        $redirectUri = (string) ($payload['redirect_uri'] ?? '');
+        if ($redirectUri === '' || !self::validCallback($redirectUri, $provider)) {
+            // 兼容改造前签发的 state（老 payload 只有 redirect_uri 配置单值）
+            $redirectUri = (string) config('social.' . $provider . '.redirect_uri', '');
+        }
+        $identity = $this->fetchIdentity($provider, $code, $payload['verifier'], $redirectUri);
         $ticket = bin2hex(random_bytes(32));
         Cache::store('redis')->handler()->setex(
             'oauth_ticket:' . hash('sha256', $ticket), 60,
@@ -236,14 +279,18 @@ final class SocialLoginService
         return json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
     }
 
-    private function fetchIdentity(string $provider, string $code, string $verifier): array
+    private function fetchIdentity(string $provider, string $code, string $verifier,
+        string $redirectUri = ''): array
     {
         $cfg = (array) config('social.' . $provider);
+        if ($redirectUri === '') {
+            $redirectUri = (string) ($cfg['redirect_uri'] ?? '');
+        }
         $client = new Client(['timeout' => 15, 'connect_timeout' => 8, 'http_errors' => false,
             'allow_redirects' => false]);
         $options = ['form_params' => [
             'grant_type' => 'authorization_code', 'code' => $code,
-            'redirect_uri' => $cfg['redirect_uri'], 'code_verifier' => $verifier,
+            'redirect_uri' => $redirectUri, 'code_verifier' => $verifier,
             'client_id' => $cfg['client_id'],
         ]];
         if ($provider === 'twitter') {
