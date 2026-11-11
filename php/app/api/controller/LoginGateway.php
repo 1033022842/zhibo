@@ -62,7 +62,13 @@ final class LoginGateway extends BaseController
         if (!preg_match('/^[a-f0-9]{64}$/D', $browser)) {
             $browser = bin2hex(random_bytes(32));
         }
-        $url = (new SocialLoginService())->start($provider, $browser, $this->request->domain(),
+        // 站点可能在 CDN 后面：Bunny 回源会把 Host 改写成源站 IP，服务端算不出用户真实域名。
+        // 前端上报 location.origin 优先，服务端仍按 redirect_uris 白名单校验（未登记一律拒绝）。
+        $origin = (string) $this->request->post('origin', '');
+        if (!preg_match('#^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?$#D', $origin)) {
+            $origin = $this->request->domain();
+        }
+        $url = (new SocialLoginService())->start($provider, $browser, $origin,
             $this->context(), $this->request->ip());
         $cookie = self::COOKIE . '=' . $browser . '; Path=/api/live/; Max-Age=600; HttpOnly; SameSite=Lax';
         if ($this->request->isSsl()) {

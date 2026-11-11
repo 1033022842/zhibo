@@ -70,12 +70,18 @@ final class SocialLoginService
         return $list;
     }
 
-    /** 取某个回调地址对应的站点 origin（https://host[:port]） */
-    private static function originOf(string $uri): string
+    /**
+     * 取地址里的 host[:port] 作为站点标识。
+     * 不比较协议：站点普遍挂 CDN（Bunny 等）回源是 HTTP，而 ThinkPHP 的 Request::domain()
+     * 只认 $_SERVER['HTTPS']、不读 X-Forwarded-Proto，算出来永远是 http://，
+     * 与登记在 .env 里的 https:// 回调对不上。协议差异无安全意义——
+     * 可用回调地址仍受 redirect_uris 白名单约束，且下发的永远是 https。
+     */
+    private static function hostKey(string $uri): string
     {
-        $origin = 'https://' . parse_url($uri, PHP_URL_HOST);
+        $host = strtolower((string) parse_url($uri, PHP_URL_HOST));
         $port = parse_url($uri, PHP_URL_PORT);
-        return $port ? $origin . ':' . $port : $origin;
+        return $port ? $host . ':' . $port : $host;
     }
 
     /**
@@ -174,11 +180,12 @@ final class SocialLoginService
         }
         $cfg = (array) config('social.' . $provider);
         // 回调必须与发起登录的站点同源，否则浏览器绑定失效。
-        // 站点常同时开裸域 / www / 品牌别名，按当前 origin 挑对应的那个回调地址。
-        $originKey = rtrim(strtolower($origin), '/');
+        // 站点常同时开裸域 / www / 品牌别名，按当前请求的 host 挑对应回调地址。
+        // 只比 host 不比协议：CDN 回源是 HTTP，框架算出的 origin 恒为 http://。
+        $originKey = self::hostKey($origin);
         $redirectUri = '';
         foreach (self::redirectUris($provider) as $candidate) {
-            if (strtolower(self::originOf($candidate)) === $originKey) {
+            if (self::hostKey($candidate) === $originKey) {
                 $redirectUri = $candidate;
                 break;
             }

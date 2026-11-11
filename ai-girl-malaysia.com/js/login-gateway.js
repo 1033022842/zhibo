@@ -74,6 +74,9 @@
 
   function context() {
     var data = { redirect: returnPath(), source_url: location.origin + location.pathname + location.search }
+    // 浏览器实际访问的 origin：CDN 回源会把 Host 改写成源站 IP，
+    // 服务端无法据此判断用户在哪个域名，必须由前端显式上报（服务端按白名单校验）。
+    data.origin = location.origin
     try {
       var attr = JSON.parse(localStorage.getItem('sugus.attr') || '{}')
       Object.keys(attr).forEach(function (key) {
