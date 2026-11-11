@@ -135,17 +135,20 @@
       '.live-login-divider:before,.live-login-divider:after{content:"";height:1px;flex:1;background:#3a3a3a}' +
       '.live-login-methods button{box-sizing:border-box;font:inherit;cursor:pointer;border-radius:10px;min-height:44px}' +
       '.live-email-entry{width:100%;background:transparent;border:1px solid #E75275;color:#f4a2b4;font-size:14px;padding:11px}' +
-      '.live-social-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}' +
-      '.live-social-row button{display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;' +
-      'background:#292929;border:1px solid #444;color:#eee;font-size:13px;padding:10px 6px}' +
-      '.live-telegram-row{display:flex;justify-content:center;margin-top:10px}' +
-      '.live-telegram-btn{display:flex;align-items:center;justify-content:center;width:56px;height:56px;padding:0;border:none;background:transparent;cursor:pointer;transition:transform .15s ease}' +
-      '.live-telegram-btn:hover{transform:scale(1.08)}' +
-      '.live-telegram-btn:active{transform:scale(.96)}' +
-      '.live-telegram-btn:disabled{opacity:.5;cursor:wait}' +
-      '.live-telegram-btn svg{width:44px;height:44px;display:block;pointer-events:none}' +
-      '.live-social-row button svg{width:18px;height:18px;flex:0 0 18px;display:block;pointer-events:none}' +
-      '.live-social-row button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      // 社交登录：整行按钮，风格对齐 candy.ai（白底 Google / 品牌色 Discord / 天蓝 Telegram）
+      '.live-social-row{display:flex;flex-direction:column;gap:10px;margin-top:10px}' +
+      '.live-social-row button{display:flex;align-items:center;justify-content:center;width:100%;' +
+      'gap:12px;padding:11px 16px;border:none;border-radius:10px;font-size:14px;font-weight:500;' +
+      'line-height:1.4;transition:filter .15s ease,transform .1s ease}' +
+      '.live-social-row button svg{width:22px;height:22px;flex:0 0 22px;display:block;pointer-events:none}' +
+      '.live-social-row button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      // 品牌配色（与 candy.ai 一致）
+      '.live-social-row .live-provider-google{background:#fff;color:#344054}' +
+      '.live-social-row .live-provider-discord{background:#5865F2;color:#fff}' +
+      '.live-social-row .live-provider-twitter{background:#fff;color:#0f1419}' +
+      '.live-social-row .live-provider-telegram{background:#229ED9;color:#fff}' +
+      '.live-social-row button:hover:not(:disabled){filter:brightness(1.08)}' +
+      '.live-social-row button:active:not(:disabled){transform:scale(.985)}' +
       '.live-login-methods button:hover:not(:disabled){background:#383036}' +
       '.live-login-methods button:disabled{opacity:.45;cursor:not-allowed}' +
       '.live-login-methods small{display:block;font-size:10px;font-weight:400;margin-top:4px;color:#bcbcbc}' +
@@ -268,28 +271,28 @@
   function tgStop() {
     if (tgTimer) { clearTimeout(tgTimer); tgTimer = null }
     tgBusy = false
-    var btn = document.querySelector('.live-telegram-btn')
+    var btn = document.querySelector('.live-provider-telegram')
     if (btn) { btn.disabled = false; btn.classList.remove('is-busy') }
     var w = tgWin
     tgWin = null
     if (w) { try { if (!w.closed) w.close() } catch (e) { /* 跨域窗口可能拒绝关闭 */ } }
   }
 
+  /* 把 Telegram 按钮追加到统一的社交按钮行（与 Discord/Google 同款整行按钮） */
   function mountTelegram(box) {
     var provider = (options.providers || []).filter(function (item) {
       return item.enabled && item.id === 'telegram'
     })[0]
     if (!provider || !provider.bot) return
-    if (box.querySelector('.live-telegram-row')) return
+    var row = box.querySelector('.live-social-row')
+    if (!row || row.querySelector('.live-provider-telegram')) return
 
-    var row = document.createElement('div')
-    row.className = 'live-telegram-row'
     var tg = document.createElement('button')
     tg.type = 'button'
-    tg.className = 'live-telegram-btn'
+    tg.className = 'live-provider-telegram'
     tg.title = 'Continue with Telegram'
-    tg.setAttribute('aria-label', 'Continue with Telegram')
-    tg.innerHTML = ICONS.telegram || ''
+    tg.innerHTML = (ICONS.telegram || '') + '<span></span>'
+    tg.querySelector('span').textContent = 'Continue with Telegram'
 
     var code = ''
     var browser = ''
@@ -365,7 +368,6 @@
     }
 
     row.appendChild(tg)
-    box.appendChild(row)
   }
 
   function mount() {
@@ -395,22 +397,26 @@
         dialog.showModal()
       }
       box.appendChild(email)
-      // 只渲染已配置的提供商：未接入社交登录的站点不出现按钮，也不留占位。
-      // telegram 是 widget 整行（见 mountTelegram），不进等宽按钮网格。
-      var providers = (options.providers || []).filter(function (provider) {
-        return provider.enabled && provider.id !== 'telegram'
-      })
+      // 社交登录整行按钮（对齐 candy.ai）：Google/Discord/X 走 OAuth 弹窗，
+      // Telegram 走深链轮询（mountTelegram 追加到同一行）。
+      // 顺序固定为 Google → Discord → X → Telegram，缺失的自动跳过。
+      var PROVIDER_ORDER = ['google', 'discord', 'twitter', 'telegram']
+      var byId = {}
+      ;(options.providers || []).forEach(function (p) { byId[p.id] = p })
+      var providers = PROVIDER_ORDER
+        .map(function (id) { return byId[id] })
+        .filter(function (p) { return p && p.enabled })
       if (providers.length) {
         var row = document.createElement('div')
         row.className = 'live-social-row'
-        row.style.gridTemplateColumns = 'repeat(' + providers.length + ',minmax(0,1fr))'
         providers.forEach(function (provider) {
+          if (provider.id === 'telegram') return // 由 mountTelegram 统一追加，复用其轮询逻辑
           var social = document.createElement('button')
           var label = LABELS[provider.id] || provider.label
           social.type = 'button'
+          social.className = 'live-provider-' + provider.id
           social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
-          social.querySelector('span').textContent = label
-          social.title = 'Authorize your ' + provider.label + ' account'
+          social.querySelector('span').textContent = 'Continue with ' + label
           social.onclick = function () {
             social.disabled = true
             post('/socialStart/' + provider.id, context()).then(function (data) {
