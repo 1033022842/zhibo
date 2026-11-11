@@ -181,19 +181,22 @@ final class SocialLoginService
 
     /**
      * 返回一次性登录票据，不把本站 access/refresh token 放进地址栏。
+     * Cookie 可能被 CDN 吞掉（Bunny 不回传 Set-Cookie），此时仅靠 state 校验——
+     * state 本身是 32 字节随机值、5 分钟、一次性，即标准 OAuth CSRF 令牌；
+     * 票据里的 browser 用发起登录时记录的哈希，保证后续兑换仍绑定原浏览器。
      */
     public function callback(string $provider, string $state, string $code, string $browser): string
     {
         if (!self::ready($provider) || !preg_match('/^[a-f0-9]{64}$/D', $state)
-            || $browser === '' || $code === '' || strlen($code) > 2048) {
+            || $code === '' || strlen($code) > 2048) {
             throw new BusinessException(ResultCode::AUTH_FAILED, 'Invalid or expired authorization.');
         }
-        $payload = $this->consume('oauth_state:', $state, $browser, $provider);
+        $payload = $this->consume('oauth_state:', $state, $browser, $provider, true);
         $identity = $this->fetchIdentity($provider, $code, $payload['verifier']);
         $ticket = bin2hex(random_bytes(32));
         Cache::store('redis')->handler()->setex(
             'oauth_ticket:' . hash('sha256', $ticket), 60,
-            json_encode(['browser' => hash('sha256', $browser), 'provider' => $provider,
+            json_encode(['browser' => (string) ($payload['browser'] ?? ''), 'provider' => $provider,
                 'identity' => $identity, 'context' => $payload['context']], JSON_THROW_ON_ERROR)
         );
         return $ticket;
@@ -207,17 +210,25 @@ final class SocialLoginService
         return $this->consume('oauth_ticket:', $ticket, $browser);
     }
 
-    private function consume(string $prefix, string $value, string $browser, string $provider = ''): array
+    /**
+     * @param bool $allowMissingBrowser Cookie 不可用时（CDN 吞 Set-Cookie）放行 state 校验，
+     *                                 但票据绑定关系不变——browser 哈希来自发起端，兑换时仍需一致。
+     */
+    private function consume(string $prefix, string $value, string $browser, string $provider = '',
+        bool $allowMissingBrowser = false): array
     {
+        $key = $prefix . hash('sha256', $value);
+        $browserHash = hash('sha256', $browser);
         // 错误浏览器不能消费票据；合法浏览器只能成功消费一次。
-        $raw = Cache::store('redis')->handler()->eval(
-            "local raw=redis.call('GET',KEYS[1])
+        $script = "local raw=redis.call('GET',KEYS[1])
              if not raw then return false end
              local data=cjson.decode(raw)
-             if data.browser~=ARGV[1] then return false end
+             if ARGV[1]~='' and data.browser~=ARGV[1] then return false end
              if ARGV[2]~='' and data.provider~=ARGV[2] then return false end
-             redis.call('DEL',KEYS[1]); return raw",
-            [$prefix . hash('sha256', $value), hash('sha256', $browser), $provider], 1
+             redis.call('DEL',KEYS[1]); return raw";
+        $raw = Cache::store('redis')->handler()->eval(
+            $script,
+            [$key, $allowMissingBrowser && $browser === '' ? '' : $browserHash, $provider], 1
         );
         if (!is_string($raw) || $raw === '') {
             throw new BusinessException(ResultCode::AUTH_FAILED, 'Invalid or expired authorization. Please try again.');

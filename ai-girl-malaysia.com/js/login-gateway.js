@@ -411,6 +411,8 @@
           social.onclick = function () {
             social.disabled = true
             post('/socialStart/' + provider.id, context()).then(function (data) {
+              // 浏览器绑定令牌存 sessionStorage：CDN 会吞 Set-Cookie，回调后兑换只能靠它
+              try { sessionStorage.setItem('oauth_browser', data.browser || '') } catch (e) {}
               location.assign(data.authorize_url)
             }).catch(function (error) {
               social.disabled = false
@@ -445,7 +447,14 @@
     if (!ticket && !error) return
     history.replaceState(null, '', location.pathname + location.search)
     if (error) { message('Authorization was cancelled or expired. Please try again.'); return }
-    post('/socialExchange', { ticket: ticket }).then(afterLogin).catch(function (failure) { message(failure.message) })
+    // 兑换票据时带上发起登录时存的 browser 令牌（CDN 吞 cookie 时的唯一绑定依据）
+    var data = { ticket: ticket }
+    try {
+      var b = sessionStorage.getItem('oauth_browser')
+      if (b) data.browser = b
+      sessionStorage.removeItem('oauth_browser')
+    } catch (e) {}
+    post('/socialExchange', data).then(afterLogin).catch(function (failure) { message(failure.message) })
   }
 
   function ready() {

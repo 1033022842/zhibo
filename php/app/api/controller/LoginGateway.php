@@ -68,7 +68,9 @@ final class LoginGateway extends BaseController
         if ($this->request->isSsl()) {
             $cookie .= '; Secure';
         }
-        return $this->jsonSuccess(['authorize_url' => $url])
+        // browser 令牌同时随 JSON 下发、前端存 sessionStorage：Bunny 等 CDN 不回传 Set-Cookie，
+        // 只靠 cookie 会让回调/兑换全部失败。
+        return $this->jsonSuccess(['authorize_url' => $url, 'browser' => $browser])
             ->header(['Set-Cookie' => $cookie, 'Cache-Control' => 'no-store']);
     }
 
@@ -90,8 +92,12 @@ final class LoginGateway extends BaseController
 
     public function socialExchange()
     {
-        $payload = (new SocialLoginService())->exchange((string) $this->request->post('ticket', ''),
-            (string) $this->request->cookie(self::COOKIE, ''));
+        // browser 令牌优先取前端 sessionStorage 回传值（CDN 会吞 Set-Cookie），cookie 作兜底
+        $browser = (string) $this->request->post('browser', '');
+        if (!preg_match('/^[a-f0-9]{64}$/D', $browser)) {
+            $browser = (string) $this->request->cookie(self::COOKIE, '');
+        }
+        $payload = (new SocialLoginService())->exchange((string) $this->request->post('ticket', ''), $browser);
         $identity = $payload['identity'];
         $context = $payload['context'];
         $result = (new UserService())->loginWithIdentity($payload['provider'], $identity['subject'],
