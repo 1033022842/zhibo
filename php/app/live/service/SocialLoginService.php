@@ -13,6 +13,9 @@ final class SocialLoginService
     /** Telegram 签名载荷有效期（官方建议 86400s），nonce 与时效共用该值 */
     private const TELEGRAM_AUTH_TTL = 86400;
 
+    /** OAuth state 有效期：用户在第三方登录页停留可能很久，给足 30 分钟 */
+    private const OAUTH_STATE_TTL = 1800;
+
     private const PROVIDERS = [
         'google' => [
             'authorize' => 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -211,7 +214,10 @@ final class SocialLoginService
             // 换 token 时必须用与授权请求完全一致的 redirect_uri，随 state 一起记住
             'redirect_uri' => $redirectUri,
         ];
-        $redis->setex('oauth_state:' . hash('sha256', $state), 300, json_encode($payload, JSON_THROW_ON_ERROR));
+        // state 有效期 30 分钟：用户在第三方登录页可能停留很久（找回密码/新建设备/2FA），
+        // 5 分钟窗口实测会在“开页面-输账号-收验证码”这种正常操作下过期。
+        $redis->setex('oauth_state:' . hash('sha256', $state), self::OAUTH_STATE_TTL,
+            json_encode($payload, JSON_THROW_ON_ERROR));
         $query = [
             'client_id' => $cfg['client_id'], 'redirect_uri' => $redirectUri,
             'response_type' => 'code', 'scope' => self::PROVIDERS[$provider]['scope'],

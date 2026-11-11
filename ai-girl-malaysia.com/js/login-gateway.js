@@ -414,9 +414,11 @@
           social.onclick = function () {
             social.disabled = true
             post('/socialStart/' + provider.id, context()).then(function (data) {
-              // 浏览器绑定令牌存 sessionStorage：CDN 会吞 Set-Cookie，回调后兑换只能靠它
-              try { sessionStorage.setItem('oauth_browser', data.browser || '') } catch (e) {}
-              location.assign(data.authorize_url)
+              // 浏览器绑定令牌：同时写 session/local —— 弹窗有自己的 sessionStorage，
+              // CDN 又会吞 Set-Cookie，localStorage 是同源共享的唯一可靠通道
+              try { sessionStorage.setItem(OAUTH_BROWSER_KEY, data.browser || '') } catch (e) {}
+              try { localStorage.setItem(OAUTH_BROWSER_KEY, data.browser || '') } catch (e) {}
+              openOAuthPopup(provider, data.authorize_url, social)
             }).catch(function (error) {
               social.disabled = false
               message(error.message)
@@ -442,6 +444,73 @@
       .finally(function () { pending = null })
   }
 
+  /* ---------- 跳转型 OAuth（Discord/Google/X）：弹窗登录，与 Telegram 体验一致 ----------
+     主页面不跳转；授权页在弹窗里完成，回调仍在弹窗内兑换票据拿到 token，
+     然后写 localStorage 通知主窗口（同源共享），主窗口取到即登录并关掉弹窗。 */
+  var OAUTH_RESULT_KEY = 'oauth_result'
+  var OAUTH_BROWSER_KEY = 'oauth_browser'
+  var oauthPopupTimer = null
+
+  /** 读浏览器绑定令牌：弹窗与主窗口的 sessionStorage 可能不共享，localStorage 兜底 */
+  function readOAuthBrowser() {
+    var v = ''
+    try { v = sessionStorage.getItem(OAUTH_BROWSER_KEY) || '' } catch (e) {}
+    if (!v) { try { v = localStorage.getItem(OAUTH_BROWSER_KEY) || '' } catch (e) {} }
+    return v
+  }
+  function clearOAuthBrowser() {
+    try { sessionStorage.removeItem(OAUTH_BROWSER_KEY) } catch (e) {}
+    try { localStorage.removeItem(OAUTH_BROWSER_KEY) } catch (e) {}
+  }
+
+  function openOAuthPopup(provider, url, button) {
+    var wname = 'oauth_' + provider.id
+    var w = window.open(url, wname, 'width=520,height=680,menubar=no,toolbar=no')
+    if (!w) {
+      // 弹窗被拦截：退回整页跳转（回调时由 callback() 处理）
+      button && (button.disabled = false)
+      message('Please allow pop-ups for this site, or the sign-in will open in this tab.')
+      location.assign(url)
+      return
+    }
+    var started = Date.now()
+    if (oauthPopupTimer) clearInterval(oauthPopupTimer)
+    oauthPopupTimer = setInterval(function () {
+      // 结果由弹窗内的 callback() 写入 localStorage（同源可读）
+      var raw = null
+      try { raw = localStorage.getItem(OAUTH_RESULT_KEY) } catch (e) {}
+      if (raw) {
+        try { localStorage.removeItem(OAUTH_RESULT_KEY) } catch (e) {}
+        clearInterval(oauthPopupTimer); oauthPopupTimer = null
+        try { w.close() } catch (e) {}
+        var res = null
+        try { res = JSON.parse(raw) } catch (e) {}
+        if (res && res.error) {
+          button && (button.disabled = false)
+          message(res.error === 'cancelled'
+            ? 'Authorization was cancelled. Please try again.'
+            : 'Authorization failed. Please try again.')
+          return
+        }
+        if (res && res.data) { afterLogin(res.data); return }
+        button && (button.disabled = false)
+        return
+      }
+      if (w.closed) {
+        // 用户手动关掉弹窗但没完成授权
+        clearInterval(oauthPopupTimer); oauthPopupTimer = null
+        button && (button.disabled = false)
+        return
+      }
+      if (Date.now() - started > 600000) { // 10 分钟兜底
+        clearInterval(oauthPopupTimer); oauthPopupTimer = null
+        try { w.close() } catch (e) {}
+        button && (button.disabled = false)
+        message('Sign-in timed out. Please try again.')
+      }
+    }, 700)
+  }
+
   function callback() {
     if (location.pathname.toLowerCase().indexOf('login.html') < 0) return
     var params = new URLSearchParams(location.hash.slice(1))
@@ -449,15 +518,33 @@
     var error = params.get('oauth_error')
     if (!ticket && !error) return
     history.replaceState(null, '', location.pathname + location.search)
-    if (error) { message('Authorization was cancelled or expired. Please try again.'); return }
+    // 弹窗模式判定：Discord/Google 的 COOP 头可能切断 opener，
+    // 故同时看 window.name（openOAuthPopup 里设的）与 opener 是否存在
+    var inPopup = (location.hash.indexOf('oauth_pw=1') >= 0) ||
+      (String(window.name || '').indexOf('oauth_') === 0) ||
+      (!!window.opener && !window.opener.closed)
+    function finish(payload) {
+      try { localStorage.setItem(OAUTH_RESULT_KEY, JSON.stringify(payload)) } catch (e) {}
+      if (inPopup) { setTimeout(function () { try { window.close() } catch (e) {} }, 120) }
+      return payload
+    }
+    if (error) {
+      finish({ error: 'cancelled' })
+      if (!inPopup) message('Authorization was cancelled or expired. Please try again.')
+      return
+    }
     // 兑换票据时带上发起登录时存的 browser 令牌（CDN 吞 cookie 时的唯一绑定依据）
     var data = { ticket: ticket }
-    try {
-      var b = sessionStorage.getItem('oauth_browser')
-      if (b) data.browser = b
-      sessionStorage.removeItem('oauth_browser')
-    } catch (e) {}
-    post('/socialExchange', data).then(afterLogin).catch(function (failure) { message(failure.message) })
+    var b = readOAuthBrowser()
+    if (b) data.browser = b
+    clearOAuthBrowser()
+    post('/socialExchange', data).then(function (result) {
+      finish({ data: result })
+      if (!inPopup) afterLogin(result)
+    }).catch(function (failure) {
+      finish({ error: 'failed', message: failure && failure.message })
+      if (!inPopup) message(failure.message)
+    })
   }
 
   function ready() {
