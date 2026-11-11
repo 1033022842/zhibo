@@ -78,7 +78,6 @@ final class UserService
         if (RegistrationSettingService::emailVerifyRequired()) {
             (new EmailVerifyService())->verify($email, $code);
         }
-
         $user = $this->createUser($email, $password, $nickname, $ip, 'email', $attr);
         $this->bindInviter((int) $user['id'], $inviteCode);
 
@@ -102,11 +101,94 @@ final class UserService
         if (RegistrationSettingService::emailVerifyRequired()) {
             (new EmailVerifyService())->verify($email, $code);
         }
-
         $user = $this->createUser($email, $password, $username, $ip, 'username', $attr);
         $this->bindInviter((int) $user['id'], $inviteCode);
 
         return $user;
+    }
+
+    /** 注册频率限制：同 IP 1 小时内最多 N 个（防脚本批量注册白嫖新人礼） */
+    private const REGISTER_RATE_MAX = 3;
+    private const REGISTER_RATE_WINDOW = 3600;  // 秒
+
+    /**
+     * 同 IP 注册速率校验，超限抛业务异常。
+     *
+     * 用 lp_user_profile.last_login_ip + lp_user.created_at 统计，不额外建表。
+     * 阈值给 3/小时：正常用户极少在同一小时注册 3 个以上账号，
+     * 而刷子（每 IP 每小时 1~2 个还不够，要持续刷）会被卡在 3 个/小时。
+     * 共享 IP（公司/学校）可能误伤，但只影响"同一小时注册第 4 个账号"，可接受。
+     */
+    private static function assertRegisterRate(string $ip): void
+    {
+        if ($ip === '') {
+            return;
+        }
+        try {
+            $since = date('Y-m-d H:i:s', time() - self::REGISTER_RATE_WINDOW);
+            $recent = (int) Db::connect('live_mysql')
+                ->table('lp_user')
+                ->alias('u')
+                ->join('lp_user_profile p', 'p.user_id = u.id')
+                ->where('p.last_login_ip', $ip)
+                ->where('u.created_at', '>=', $since)
+                ->count();
+            if ($recent >= self::REGISTER_RATE_MAX) {
+                throw new BusinessException(
+                    ResultCode::PARAM_ERROR,
+                    'Too many accounts created from your network recently. Please try again later.'
+                );
+            }
+        } catch (BusinessException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            // 统计失败不阻断注册（宁可漏拦，不能因为查库抖动挡住真实用户）
+            Log::warning('[register] rate check failed ip=' . $ip . ' err=' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 每个 IP 最多给前 N 个账号发新人礼（防批量注册白嫖）
+     *
+     * 背景（2026-11-11）：heygirl 发现同一 IP 连续注册 25 个号领走 1250 代币，
+     * 且节奏克制（每小时 1~2 个）、device_id 每次都换，绕过了设备维度。
+     * 关掉邮箱验证后，脚本注册成本趋近于零，所以按 IP 限额是唯一低成本的兜底。
+     *
+     * 策略：同一 IP 的前 N 个注册账号正常发；第 N+1 个起不发（但仍允许注册，
+     * 不影响真实转化）。用 lp_user_profile.last_login_ip 统计（注册时写入）。
+     * 注意共享 IP（公司/学校/运营商 CGNAT）会误伤，所以 N 给到 3 而不是 1。
+     */
+    private const WELCOME_BONUS_IP_LIMIT = 3;
+
+    private function grantWelcomeBonus(int $userId, string $ip): void
+    {
+        try {
+            // 同 IP 已有账号数（含本号）超过限额就不发
+            $sameIpCount = 0;
+            if ($ip !== '') {
+                $sameIpCount = (int) Db::connect('live_mysql')
+                    ->table('lp_user_profile')
+                    ->where('last_login_ip', $ip)
+                    ->count();
+            }
+            if ($ip !== '' && $sameIpCount > self::WELCOME_BONUS_IP_LIMIT) {
+                Log::warning(
+                    '[register] 跳过新人礼：同 IP 账号数已达上限 ip=' . $ip
+                    . ' count=' . $sameIpCount . ' uid=' . $userId
+                );
+                return;
+            }
+
+            (new WalletService())->credit(
+                $userId,
+                self::WELCOME_BONUS_TOKENS,
+                'welcome_bonus',
+                0,
+                'Welcome bonus: ' . self::WELCOME_BONUS_TOKENS . ' free tokens'
+            );
+        } catch (\Throwable $e) {
+            Log::warning('[register] 新人注册礼发放失败 uid=' . $userId . ' err=' . $e->getMessage());
+        }
     }
 
     /**
@@ -126,6 +208,10 @@ final class UserService
 
     private function createUser(string $email, string $password, string $nickname, string $ip, string $authType, array $attr = []): array
     {
+        // 同 IP 注册频率限制：放在这里而不是各个 public 入口，
+        // 是为了覆盖所有建号路径（邮箱注册 / 社媒注册 / Google 建号）。
+        self::assertRegisterRate($ip);
+
         $attr = $this->resolvePromoLinkAttr($attr);
         $attr = array_merge([
             'domain' => '', 'channel' => '', 'px' => '', 'link_name' => '', 'link_id' => '',
@@ -214,17 +300,8 @@ final class UserService
             $db->commit();
 
             // 新人注册礼：事务提交后发放，失败不阻断注册（ledger 里 biz_type=welcome_bonus 供前端弹窗判定）
-            try {
-                (new WalletService())->credit(
-                    (int) $user->id,
-                    self::WELCOME_BONUS_TOKENS,
-                    'welcome_bonus',
-                    0,
-                    'Welcome bonus: ' . self::WELCOME_BONUS_TOKENS . ' free tokens'
-                );
-            } catch (\Throwable $e) {
-                Log::warning('[register] 新人注册礼发放失败 uid=' . $user->id . ' err=' . $e->getMessage());
-            }
+            // 同 IP 只给前 N 个账号发（防批量注册白嫖，见 grantWelcomeBonus 注释）
+            $this->grantWelcomeBonus((int) $user->id, $ip);
 
             return $user->toArray();
         } catch (BusinessException $e) {
@@ -427,6 +504,9 @@ final class UserService
             $profile->save();
 
             Db::commit();
+
+            // 新人注册礼：Google 首次建号同样发放（同 IP 前 N 个，规则与 createUser 一致）
+            $this->grantWelcomeBonus((int) $user->id, $ip);
 
             return $user;
         } catch (\Throwable $e) {
