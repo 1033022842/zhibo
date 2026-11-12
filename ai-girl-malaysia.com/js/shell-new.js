@@ -1355,8 +1355,21 @@
   /* Create 面板：AI Girlfriend / Chat（AI Video Studio 在底栏，不再受充值门控） */
   var CREATE_MENU = [
     { href: './createCharacter.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
-    { href: './Chat.html', icon: 'bChat', title: 'Chat', sub: 'Talk with your AI companions' }
+    { href: './Chat.html', icon: 'bChat', title: 'Chat', sub: 'Talk with your AI companions' },
+    /* 推广入口：跳现有 Inviter.html（邀请链接 / 佣金 / 邀请记录）。
+       未登录时先带去登录页，登录后 redirect 回推广页，与 sweeu 的 affiliate 行为一致。 */
+    { href: './Inviter.html', icon: 'bPromo', title: 'Promote & Earn', sub: 'Share your link, earn tokens', requireAuth: true }
   ]
+
+  /* 推广图标：与 Create 面板其它插图同规格（24×24、单色填充、随主题色），
+     内联 SVG 免去新增素材文件（新增图还要同步 4 站 + 品牌脚本）。 */
+  var PROMO_ICON_SVG =
+    '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">' +
+    '<circle cx="17.5" cy="5.5" r="2.6" fill="currentColor"/>' +
+    '<circle cx="6.5" cy="12" r="2.6" fill="currentColor"/>' +
+    '<circle cx="17.5" cy="18.5" r="2.6" fill="currentColor"/>' +
+    '<path d="M9 10.8l6.1-3.6M9 13.2l6.1 3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+    '</svg>'
 
   /* 当前页面对应的底栏高亮项（参考站：当前页那一格用激活版图标） */
   function activeBottomKey(signedIn) {
@@ -1408,11 +1421,20 @@
     return null
   }
 
-  /* Create 菜单项：渲染期按充值状态过滤（充值后才显示 AI Video Studio） */
+  /* Create 菜单项：渲染期按状态过滤（AI Video Studio 需充值；推广项未登录带去登录页） */
   function createMenuItems() {
     return CREATE_MENU.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() }).map(function (m) {
-      return '<a class="fy-createmenu-item" data-turbo="false" href="' + m.href + '">' +
-        '<span class="fy-createmenu-tile"><img alt="" src="' + I[m.icon].src + '"></span>' +
+      // 图标：CREATE_MENU 里登记的本地插图走 <img>，内联 SVG 项（推广）直接用 currentColor 画
+      var tile = m.icon === 'bPromo'
+        ? '<span class="fy-createmenu-tile">' + PROMO_ICON_SVG + '</span>'
+        : '<span class="fy-createmenu-tile"><img alt="" src="' + I[m.icon].src + '"></span>'
+      var href = m.href
+      // 需登录才能用的入口：未登录直接带去登录页，登录成功后 redirect 回目标页
+      if (m.requireAuth && !LiveAuth.token()) {
+        href = './Login.html?redirect=' + encodeURIComponent(m.href.replace('./', '/ai/'))
+      }
+      return '<a class="fy-createmenu-item" data-turbo="false" href="' + href + '">' +
+        tile +
         '<span class="fy-createmenu-text">' +
         '<span class="fy-createmenu-title">' + esc(m.title) +
         (m.badge ? '<span class="fy-createmenu-badge">' + esc(m.badge) + '</span>' : '') +

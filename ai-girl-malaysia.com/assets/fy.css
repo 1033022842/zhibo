@@ -418,6 +418,8 @@ body.galleries [data-main-target="contentContainer"]{padding-left:0 !important;}
 .fy-createmenu-item{display:flex;align-items:center;gap:14px;text-decoration:none;}
 .fy-createmenu-tile{display:flex;flex:0 0 auto;align-items:center;justify-content:center;width:41px;height:41px;border-radius:10px;background:rgba(255,255,255,.07);}
 .fy-createmenu-tile>img{width:21px;height:21px;object-fit:contain;}
+/* 推广入口用内联 SVG（免新增素材文件，也免 4 站同步素材）：与 img 同尺寸，随标题色 */
+.fy-createmenu-tile>svg{width:21px;height:21px;display:block;color:#fff;}
 .fy-createmenu-text{flex:1 1 auto;min-width:0;}
 .fy-createmenu-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;line-height:19px;color:#fff;}
 .fy-createmenu-badge{flex:0 0 auto;padding:3px 8px;border-radius:9999px;background:#f51e1c;font-size:9.5px;font-weight:700;line-height:12px;letter-spacing:.03em;color:#fff;}
