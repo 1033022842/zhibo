@@ -34,7 +34,7 @@
 
 | 设置项 | 值 | 理由 |
 |---|---|---|
-| **Cache Expiration Time**（缓存过期） | `0` / 留空 = 遵循源站 `Cache-Control` | 源站已给对：图片 7 天、`/sec/` 1 小时、403/410 不带缓存头 |
+| **Cache Expiration Time**（缓存过期） | 建议 `604800`（7 天），与签名时间桶一致 | 源站 `/sec/` 给的是 1 小时，但若按时长命中就必须让 CDN 缓存 7 天 |
 | **Query String 处理** | **必须让 query 参与缓存键**（"Cache every variation" / "Include query string in cache key"） | ★★ 最关键一条，见下方说明 |
 | **Vary Header** | 关闭（源站已 `proxy_hide_header Vary`） | 避免缓存碎片 |
 | **Strip Response Cookies** | 开 | 素材响应无 Cookie，开了能提高命中 |
@@ -223,9 +223,9 @@ ufw --force enable
 |---|---|
 | 边缘 IP 变更导致 403 | 存储服务器执行 `/root/deploy/update_bunny_realip.sh && /root/deploy/lock_media_origin.sh`。每月 1 号 04:23 已自动跑 realip 刷新；**锁定清单建议在刷新后跟着重跑一次**（可把 lock 也加进 cron，但要先确认 CDN 稳定） |
 | 换 CDN 域名 | 改 `php/.env` 的 `ENDPOINT` → 清 runtime → reload php-fpm（签名不变） |
-| 预算/带宽吃紧 | Bunny 控制台看 Traffic 报表；`/pub/` 命中率应 >95%，`/sec/` 因 1 小时签名桶，命中率取决于用户重复访问 |
+| 预算/带宽吃紧 | Bunny 控制台看 Traffic 报表；`/pub/` 命中率应 >95%，`/sec/` 因 7 天签名桶，同一条素材一周内复用同一 URL，命中率取决于用户重复访问 |
 | 想限制单 IP 拉取 | Bunny 控制台 → Security → Rate Limiting，建议 200 req/10s（别太紧，视频拖动会连发 Range 请求） |
-| 回流盗链排查 | `/sec/` 的签名 6 小时有效（`SIGN_TTL=21600`），发现泄露就把 `SIGN_TTL` 调小 + 轮换 `SIGN_SECRET`（三处同步：存储 nginx、PHP `.env`、worker env） |
+| 回流盗链排查 | `/sec/` 的签名 8 天有效（`SIGN_TTL=691200`，URL 每周轮换一次），发现泄露就把 `SIGN_TTL` 调小 + 轮换 `SIGN_SECRET`（三处同步：存储 nginx、PHP `.env`、worker env）。**注意不要为了防盗缩短 `SIGN_BUCKET_SEC`**，桶小于 CDN max-age 会让视频每次都回源 |
 
 ---
 
@@ -241,4 +241,4 @@ ufw --force enable
 15TB 出口额度更弹性（超量不用担心被限速）。
 
 > 真正省钱的地方：**静态封面/头图命中率极高**（`/pub/` 缓存 7 天），
-> 这部分流量几乎不产生回源；`/sec/` 视频是主要成本项，靠 1 小时签名桶提高复用。
+> 这部分流量几乎不产生回源；`/sec/` 视频是主要成本项，靠 7 天签名桶 + CDN 7 天缓存提高复用。

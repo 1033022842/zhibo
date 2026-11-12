@@ -147,10 +147,11 @@ final class Media
             return $base . '/' . self::encodePath($key);
         }
 
-        $ttl    = (int) (self::config()['sign_ttl'] ?? 21600);
-        $bucket = max(60, (int) (self::config()['sign_bucket_sec'] ?? 3600));
+        // 桶必须 ≥ CDN 缓存 max-age，否则 URL 频繁变化会让缓存全部失效（见 config/media.php）
+        $ttl    = (int) (self::config()['sign_ttl'] ?? 691200);
+        $bucket = max(60, (int) (self::config()['sign_bucket_sec'] ?? 604800));
 
-        // 过期时间对齐到时间桶，同一小时内所有请求拿到同一个 URL（利于浏览器/CDN 缓存）
+        // 过期时间对齐到时间桶，同一桶内所有请求拿到同一个 URL（利于浏览器/CDN 缓存）
         $now  = time();
         $exp  = (int) (ceil(($now + 1) / $bucket) * $bucket) + $ttl;
         $sig  = self::sign('/' . $key, $exp);

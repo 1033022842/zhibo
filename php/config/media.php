@@ -23,9 +23,11 @@ return [
     'sign_secret'     => (string) env('media.sign_secret', ''),
 
     // 签名有效期（秒）与过期时间对齐粒度（秒）
-    // 对齐到时间桶是为了同一时间段内产出相同 URL，利于浏览器/CDN 缓存
-    'sign_ttl'        => (int) env('media.sign_ttl', 21600),
-    'sign_bucket_sec' => (int) env('media.sign_bucket_sec', 3600),
+    // 对齐到时间桶是为了同一时间段内产出相同 URL，利于浏览器/CDN 缓存。
+    // 桶必须 >= CDN 缓存 max-age：桶太短会让签名 URL 每小时变化，缓存键随之变化，
+    // 视频每次都回源（3600 桶就是这个问题）。现网统一 桶 7 天 + TTL 8 天。
+    'sign_ttl'        => (int) env('media.sign_ttl', 691200),
+    'sign_bucket_sec' => (int) env('media.sign_bucket_sec', 604800),
 
     // 目录列举（ListObjects）本地缓存秒数：0=不缓存。存储服务器在海外，单次往返 ~180ms
     'list_cache_ttl'  => (int) env('media.list_cache_ttl', 60),
