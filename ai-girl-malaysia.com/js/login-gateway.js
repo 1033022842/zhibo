@@ -113,9 +113,15 @@
       localStorage.setItem('live_access_token', data.access_token)
       localStorage.setItem('live_refresh_token', data.refresh_token)
     }
+    // 昵称兜底：第三方（Telegram/Discord/Google）可能不返回可用昵称，
+    // 直接把 undefined 塞进 JSON 会被 stringify 丢弃，导致侧栏回退成 "My Profile"
+    var nick = data.user.nickname
+    if (typeof nick !== 'string' || !nick.trim() || nick === 'undefined' || nick === 'null') {
+      nick = data.user.email ? String(data.user.email).split('@')[0] : 'Member'
+    }
     localStorage.setItem('live_user_info', JSON.stringify({
-      token: data.access_token, id: data.user.id, username: data.user.nickname,
-      avatar: data.user.avatar, email: data.user.email || ''
+      token: data.access_token, id: data.user.id, username: nick,
+      avatar: data.user.avatar || '', email: data.user.email || ''
     }))
     try {
       if (window.SugusTrack) SugusTrack.event(data.is_new_user ? 'register' : 'login', {}, data.event_id)

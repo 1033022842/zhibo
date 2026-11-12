@@ -1129,8 +1129,13 @@
   function drawerUser() {
     var u = {}
     try { u = JSON.parse(localStorage.getItem('live_user_info') || '{}') || {} } catch (e) { u = {} }
+    // 昵称兜底：第三方登录可能写进 undefined / null / 空串，或该字段被 stringify 丢弃
+    var name = String(u.username || u.nickname || '').trim()
+    if (!name || name === 'undefined' || name === 'null') {
+      name = u.email ? String(u.email).split('@')[0] : 'My Profile'
+    }
     return {
-      name: String(u.username || u.nickname || 'My Profile'),
+      name: name,
       avatar: String(u.avatar || '') || I.man.src
     }
   }
