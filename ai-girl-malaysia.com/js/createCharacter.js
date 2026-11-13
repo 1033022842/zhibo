@@ -16,12 +16,12 @@
             Realistic: './assets/create/entry-realistic.webp',
             Anime: './assets/create/entry-anime.webp',
         },
-        /* 入口卡片的动态素材（可选）：参考站是动图，扒站只拿到静态 webp。
-           把动图/视频放进 assets/create/ 后在这里登记，卡片会优先播它；
-           留空则回退到上面的静态图，不影响现有表现。 */
+        /* 入口卡片的动态素材：参考站 candy.ai/characters/new4 用的是 <video>
+           （H.264 / 540×720 / 约 7 秒 / 静音循环），已扒下来自托管。
+           有值时卡片优先播视频，静态 webp 作为 poster 兜底（视频没加载出来也不空白）。 */
         entryMotion: {
-            Realistic: '',   // 例：'./assets/create/entry-realistic.mp4'
-            Anime: '',       // 例：'./assets/create/entry-anime.mp4'
+            Realistic: './assets/create/entry-realistic.mp4',
+            Anime: './assets/create/entry-anime.mp4',
         },
         race: {
             Realistic: {
@@ -338,10 +338,12 @@
             var motion = (IMG.entryMotion && IMG.entryMotion[cat]) || ''
             var media
             if (motion) {
-                /* 有动态素材：静音循环自动播放，playsinline 保证 iOS 不弹全屏。
-                   加 poster 用静态图兜底，视频加载失败/被拦截时仍是静态图。 */
-                media = '<video src="' + motion + '" poster="' + IMG.entry[cat] + '"' +
-                    ' autoplay muted loop playsinline preload="metadata"></video>'
+                /* 有动态素材：静态图先显示（参考站同款体验），视频加载好后淡入覆盖。
+                   muted + playsinline 是 iOS/Chrome 自动播放的硬性前提。 */
+                media = '<img src="' + IMG.entry[cat] + '" alt="' + cat + '">' +
+                    '<video class="cc-card-motion" src="' + motion + '"' +
+                    ' autoplay muted loop playsinline preload="auto"' +
+                    ' data-fallback="' + IMG.entry[cat] + '"></video>'
             } else {
                 media = '<img src="' + IMG.entry[cat] + '" alt="' + cat + '">'
             }
@@ -353,10 +355,21 @@
         html += '</div></div>'
         $('ccMain').innerHTML = html
 
-        /* 老浏览器不支持静音自动播放时，尝试 play() 一次（失败静默忽略） */
+        /* 视频就绪后淡入（参考站体验）；加载失败则保持静态图不动 */
         $('ccMain').querySelectorAll('.cc-card-imgwrap video').forEach(function (v) {
+            function reveal() { v.classList.add('is-ready') }
+            if (v.readyState >= 2) reveal()
+            else {
+                v.addEventListener('loadeddata', reveal, { once: true })
+                v.addEventListener('canplay', reveal, { once: true })
+            }
+            v.addEventListener('error', function () {
+                v.classList.remove('is-ready')
+                v.style.display = 'none'
+            })
+            /* 老浏览器不支持静音自动播放时补一次 play()（失败静默，静态图仍在） */
             var p = v.play && v.play()
-            if (p && typeof p.catch === 'function') p.catch(function () { /* 交给 poster */ })
+            if (p && typeof p.catch === 'function') p.catch(function () { /* 交给静态图 */ })
         })
 
         $('ccMain').querySelectorAll('.cc-card').forEach(function (card) {

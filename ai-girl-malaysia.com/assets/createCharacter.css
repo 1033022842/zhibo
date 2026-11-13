@@ -119,6 +119,16 @@
   width: 100%; height: 100%;
   object-fit: cover; display: block; background: #262626;
 }
+/* 动态素材（参考站同款）：静态图常驻打底，视频加载好后淡入覆盖。
+   视频未就绪时 opacity:0，所以看到的始终是静态图，不会出现黑块。 */
+.cc-card-imgwrap video.cc-card-motion {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+}
+.cc-card-imgwrap video.cc-card-motion.is-ready { opacity: 1; }
 .cc-card.on { border-color: #E75275; }
 .cc-card.on .cc-card-imgwrap { box-shadow: inset 0 0 0 1px rgba(231, 82, 117, .35); }
 .cc-card-label { color: #fff; font-weight: 700; font-size: 15px; margin-top: 10px; }
