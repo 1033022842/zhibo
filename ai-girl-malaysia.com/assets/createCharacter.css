@@ -86,18 +86,30 @@
 }
 .cc-cat-tab.on { border-color: #E75275; color: #fff; background: rgba(231, 82, 117, .12); }
 
-/* 入口两张卡：始终左右并排（参考 candy.ai/characters/new4）
-   旧写法 repeat(auto-fit, minmax(220px, 1fr)) 在手机屏（~375px）放不下两张 220px，
-   会自动堆成上下两行，与参考站不一致（2026-11-13 报障）。 */
+/* 入口两张卡：左右并排，尺寸对齐参考站 candy.ai/characters/new4
+   参考站实测（Tailwind）：
+     入口步容器  w-full max-w-[420px] md:max-w-[560px] mx-auto
+     卡片网格    grid grid-cols-2 gap-2 md:gap-4
+     卡片图片    aspect-[9/16] md:aspect-[3/4]   ← 手机竖长条、桌面 3:4
+   之前我们用固定 560px 宽 + 3:4，手机上一张卡被撑到 ~270px 宽（参考站约 200px），
+   所以显得「卡片又宽又矮」，与参考站差异明显（2026-11-13 报障）。 */
+.cc-entry {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .cc-entry { max-width: 560px; }
+}
 .cc-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  max-width: 560px;
+  gap: 8px;
+  width: 100%;
   margin: 0 auto;
 }
-@media (max-width: 360px) {
-  .cc-cards { gap: 10px; }
+@media (min-width: 768px) {
+  .cc-cards { gap: 16px; }
 }
 .cc-card {
   position: relative;
@@ -109,14 +121,18 @@
   padding: 0 0 14px;
   text-align: center;
   transition: border-color .2s ease, transform .2s ease;
+  min-width: 0;   /* 关键：grid 子项默认 min-width:auto 会被内容撑破，导致两列不等宽 */
 }
 .cc-card:hover { border-color: #5a5a5a; transform: translateY(-2px); }
 .cc-card-imgwrap {
   position: relative;
-  /* 竖版比例（3:4），两张卡左右并排时视觉接近参考站 candy.ai/characters/new4 */
-  aspect-ratio: 3 / 4;
+  /* 手机 9:16（竖长条，参考站同款）；≥768px 改 3:4 */
+  aspect-ratio: 9 / 16;
   overflow: hidden;
   background: #262626;
+}
+@media (min-width: 768px) {
+  .cc-card-imgwrap { aspect-ratio: 3 / 4; }
 }
 .cc-card-imgwrap img,
 .cc-card-imgwrap video {

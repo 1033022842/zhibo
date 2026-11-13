@@ -329,7 +329,7 @@
     /* ── 渲染：入口步（Start 走悬浮胶囊，candy 同款）────────────── */
     function renderEntry() {
         var html = ''
-        html += '<div class="cc-step">'
+        html += '<div class="cc-step cc-entry">'
         html += '<div class="cc-dots">' + dotsHtml(0) + '</div>'
         html += '<div class="cc-entry-title">Create your Dream <span class="pink">AI Girl</span></div>'
         html += '<div class="cc-cards">'
