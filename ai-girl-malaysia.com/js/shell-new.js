@@ -1319,46 +1319,28 @@
   }
 
   /* ---------- 手机端底部导航（≤1023px）----------
-     参考站：图片/home.html 的 mobile_bottom_bar
-     登录态 Home/Shorts/Create/AI Video Studio/Tokens；未登录 Home/Explore/Generate/Create/Premium。
-     两种状态都只在这里渲染，页面自带的老版底栏会被就地替换，保证全站底栏完全一致。
-     （Create 面板照参考站 create-menu；Chat 已挪进 Create 面板，AI Video Studio 占底栏第 4 格） */
-  var BOTTOM_AUTH_ALL = [
+     统一 5 格（登录 / 未登录完全一致，不再分两套）：
+       Home / Explore(→createCharacter.html) / Create(面板) / Studio / Tokens
+     - Create 面板：Chat / Promote & Earn / Premium（已是会员时隐藏 Premium）
+     - 未登录点 Studio：先去登录，登录后 redirect 回 Image.html
+     - createCharacter.html 页面不渲染底栏（会遮住页面文字） */
+  var BOTTOM_ITEMS = [
     { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
-    { href: './shorts.html', label: 'Shorts', icon: 'bShorts', activeIcon: 'bShortsActive', key: 'shorts' },
+    { href: './createCharacter.html', label: 'Explore', icon: 'bExplore', activeIcon: 'bExploreActive', key: 'explore' },
     { create: true, label: 'Create', icon: 'bCreate' },
-    { href: './Image.html', label: 'Studio', icon: 'bDirector', key: 'generate' },
+    { href: './Image.html', label: 'Studio', icon: 'bDirector', key: 'generate', requireAuth: true },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'bTokens', activeIcon: 'bTokensActive', key: 'tokens' }
   ]
-  /* AI Video Studio 入口对所有用户可见（2026-11-10 去掉充值门控）：
-     列数始终按实际格数算，不会留空格子或被拉伸变形 */
-  function bottomAuthItems() {
-    return BOTTOM_AUTH_ALL.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
-  }
 
-  /* 未登录底栏：Create 与登录态一致，统一成「+ 号小图标按钮」，
-     点了弹出 Create 面板（AI Girlfriend / Chat），不再直达 createCharacter。
-     原来未登录用的是 bWand 魔杖图标 + 直接跳 createCharacter.html，
-     和登录态的 + 号按钮不一致（用户要求统一成 + 号）。 */
-  var BOTTOM_GUEST_ALL = [
-    { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
-    { href: './Girls.html', label: 'Explore', icon: 'bExplore', activeIcon: 'bExploreActive', key: 'explore' },
-    { href: './Image.html', label: 'Generate', icon: 'bGenerate', key: 'generate' },
-    { create: true, label: 'Create', icon: 'bCreate' },
-    { href: './Subscriptions.html', label: 'Premium', icon: 'bPremium', key: 'premium', premium: true }
-  ]
-  /* 渲染时按门控过滤（门控已恒真，保留结构便于将来加回条件） */
-  function bottomGuestItems() {
-    return BOTTOM_GUEST_ALL.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() })
-  }
-
-  /* Create 面板：AI Girlfriend / Chat（AI Video Studio 在底栏，不再受充值门控） */
+  /* Create 面板：Chat / Promote & Earn / Premium(会员隐藏)
+     AI Girlfriend 已挪到底栏 Explore 格，面板里不再重复 */
   var CREATE_MENU = [
-    { href: './createCharacter.html', icon: 'bGirlfriend', title: 'AI Girlfriend', sub: 'Create your own AI girlfriend' },
     { href: './Chat.html', icon: 'bChat', title: 'Chat', sub: 'Talk with your AI companions' },
     /* 推广入口：跳现有 Inviter.html（邀请链接 / 佣金 / 邀请记录）。
        未登录时先带去登录页，登录后 redirect 回推广页，与 sweeu 的 affiliate 行为一致。 */
-    { href: './Inviter.html', icon: 'bPromo', title: 'Promote & Earn', sub: 'Share your link, earn tokens', requireAuth: true }
+    { href: './Inviter.html', icon: 'bPromo', title: 'Promote & Earn', sub: 'Share your link, earn tokens', requireAuth: true },
+    /* 会员套餐：已是会员时不显示（vipState 由 /api/vip/status 异步回填） */
+    { href: './Subscriptions.html', icon: 'bPremium', title: 'Premium', sub: 'Unlock all characters & perks', hideIfVip: true }
   ]
 
   /* 推广图标：与 Create 面板其它插图同规格（24×24、单色填充、随主题色），
@@ -1375,14 +1357,11 @@
   function activeBottomKey(signedIn) {
     var p = (location.pathname || '').toLowerCase()
     if (/\/home\.html$/.test(p)) return 'home'
-    if (/shorts\.html$/.test(p)) return 'shorts'
-    if (/chat\.html$/.test(p)) return 'chat'
-    if (/purchasepoints\.html$|\/tokens\.html$/.test(p)) return 'tokens'
-    /* Subscriptions 是会员/代币充值页：登录态对应第 5 格 Tokens，未登录对应 Premium 格 */
-    if (/\/subscriptions\.html$/.test(p)) return signedIn ? 'tokens' : 'premium'
-    if (/\/girls\.html$/.test(p)) return 'explore'
+    if (/purchasepoints\.html$|\/tokens\.html$|\/subscriptions\.html$/.test(p)) return 'tokens'
     if (/\/image\.html$/.test(p)) return 'generate'
-    if (/\/(characters|createCharacter)\.html$/.test(p)) return 'create'
+    /* Explore 落点：createCharacter.html（该页本身不显示底栏，但 characters/Girls 列表页要高亮） */
+    if (/\/(girls|characters|charactersIndex)\.html$/.test(p)) return 'explore'
+    if (/\/chat\.html$/.test(p)) return 'create'
     return ''
   }
 
@@ -1406,7 +1385,8 @@
         '</span>' +
         '<span class="fy-bnav-label">' + esc(item.label) + '</span></a>'
     }
-    return '<a class="' + cls + '" data-turbo="false" href="' + item.href + '">' +
+    return '<a class="' + cls + '" data-turbo="false" href="' + item.href + '"' +
+      (item.requireAuth ? ' data-fy-need-auth="1"' : '') + '>' +
       '<img alt="' + esc(item.label) + '" src="' + I[icon].src + '">' +
       '<span class="fy-bnav-label">' + esc(item.label) + '</span></a>'
   }
@@ -1423,7 +1403,11 @@
 
   /* Create 菜单项：渲染期按状态过滤（AI Video Studio 需充值；推广项未登录带去登录页） */
   function createMenuItems() {
-    return CREATE_MENU.filter(function (m) { return m.href !== './Image.html' || studioEntryVisible() }).map(function (m) {
+    return CREATE_MENU.filter(function (m) {
+      // 已是会员：隐藏 Premium 入口（vipState 由 /api/vip/status 异步回填）
+      if (m.hideIfVip && window.LIVE_VIP && window.LIVE_VIP.is_vip) return false
+      return true
+    }).map(function (m) {
       // 图标：CREATE_MENU 里登记的本地插图走 <img>，内联 SVG 项（推广）直接用 currentColor 画
       var tile = m.icon === 'bPromo'
         ? '<span class="fy-createmenu-tile">' + PROMO_ICON_SVG + '</span>'
@@ -1475,16 +1459,29 @@
 
   function renderBottomBar() {
     var signedIn = !!LiveAuth.token()
+
+    /* createCharacter.html（Explore 落点）不显示底栏：页面底部有 CTA/文字会被遮
+       需求 2026-11-13：该页隐藏悬浮栏 */
+    if (/\/createCharacter\.html$/i.test(location.pathname || '')) {
+      var exist = document.querySelector('.fy-bnav')
+      if (exist) exist.remove()
+      var legacy = findBottomBar()
+      if (legacy) legacy.style.display = 'none'
+      return
+    }
+
     var bar = findBottomBar()
 
     // 页面自带的老版底栏就地改造成统一版；登录/未登录都走同一套，保证全站底栏一致
     if (!bar) {
       bar = document.createElement('div')
       document.body.appendChild(bar)
+    } else {
+      bar.style.display = ''   // 从 createCharacter 返回时恢复
     }
 
     var key = activeBottomKey(signedIn)
-    var items = signedIn ? bottomAuthItems() : bottomGuestItems()
+    var items = BOTTOM_ITEMS
     bar.className = 'fy-bnav'
     bar.setAttribute('data-variant', signedIn ? 'auth' : 'guest')
     /* 列数随实际格数走：门控隐藏 Studio / Generate 格时若仍按 CSS 的 5 列排，
@@ -1509,7 +1506,20 @@
       var t = e.target
       if (!t || !t.closest) return
       if (t.closest('[data-fy-createmenu-open]')) { e.preventDefault(); openCreateMenu(); return }
-      if (t.closest('[data-fy-createmenu-close]')) { e.preventDefault(); closeCreateMenu() }
+      if (t.closest('[data-fy-createmenu-close]')) { e.preventDefault(); closeCreateMenu(); return }
+      /* 底栏需登录的格子（Studio）：未登录先去登录，登录后 redirect 回目标页 */
+      var needAuth = t.closest('[data-fy-need-auth]')
+      if (needAuth) {
+        var tk = ''
+        try { tk = localStorage.getItem('live_access_token') || '' } catch (err) { tk = '' }
+        if (!tk) {
+          e.preventDefault()
+          var target = needAuth.getAttribute('href') || './Image.html'
+          location.href = './Login.html?redirect=' + encodeURIComponent(
+            (target.charAt(0) === '.' ? target.slice(1) : target) || '/Image.html'
+          )
+        }
+      }
     })
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closeCreateMenu()
