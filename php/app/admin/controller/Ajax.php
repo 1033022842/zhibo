@@ -31,14 +31,19 @@ class Ajax extends Backend
     public function upload(): void
     {
         AdminLog::instance()->setTitle(__('upload'));
-        $file   = $this->request->file('file');
-        $driver = $this->request->param('driver', 'local');
+        $file = $this->request->file('file');
+        // 已启用素材独立存储（Media::storageEnabled）时，Upload 构造函数会把驱动定成 S3；
+        // 这里不能再用请求参数覆盖回 local，否则文件写在本机磁盘，而 Media::url() 仍按
+        // 对象存储生成地址 → 前端 404。只有未启用对象存储时才允许前端指定驱动。
+        $driver = $this->request->param('driver', '');
         $topic  = $this->request->param('topic', 'default');
         try {
-            $upload     = new Upload();
+            $upload = new Upload();
+            if ($driver !== '' && !\app\common\library\media\Media::storageEnabled()) {
+                $upload->setDriver($driver);
+            }
             $attachment = $upload
                 ->setFile($file)
-                ->setDriver($driver)
                 ->setTopic($topic)
                 ->upload(null, $this->auth->id);
             unset($attachment['create_time'], $attachment['quote']);
