@@ -21,10 +21,9 @@ final class Domain extends Base
 
     public function index(): void
     {
-        $this->requirePerm('domain');
-
-        $agentId = $this->agentId();
-        $domains = AgentService::effectiveDomains($agentId, false);
+        $agentId  = $this->agentId();
+        $topLevel = $this->isTopLevel();
+        $domains  = AgentService::effectiveDomains($agentId, false);
         $ownCount = 0;
 
         $rows = '';
@@ -63,19 +62,13 @@ final class Domain extends Base
             $rows = '<tr><td colspan="6" class="empty">还没有推广域名，在下方添加一个</td></tr>';
         }
 
-        $tip = $ownCount >= self::MAX_OWN
+        $tip = $topLevel && $ownCount >= self::MAX_OWN
             ? '<div class="alert err">已达到上限（' . self::MAX_OWN . ' 个），请先删除不用的域名。</div>'
             : '';
         $csrf = $this->csrf();
 
-        $content = <<<HTML
-<div class="head">
-  <div>
-    <h1>专属域名</h1>
-    <div class="sub">在这里添加自己的推广域名。访客直接访问该域名时，注册与充值会自动归入你的代理数据，无需带任何参数。子代理会自动继承上级的域名。</div>
-  </div>
-</div>
-{$tip}
+        if ($topLevel) {
+            $formCard = <<<HTML
 <div class="card">
   <h2>添加推广域名</h2>
   <form class="frm" method="post" action="/agent/domain/save">
@@ -86,6 +79,20 @@ final class Domain extends Base
   </form>
   <div class="tip">添加前请先把域名解析到本站服务器并配置好 HTTPS 证书，否则访问会报错；平台主域名不能绑定到代理。</div>
 </div>
+HTML;
+        } else {
+            $formCard = '<div class="card"><h2>添加推广域名</h2><div class="tip">你是子代理，自动继承上级的推广域名，无需单独添加。</div></div>';
+        }
+
+        $content = <<<HTML
+<div class="head">
+  <div>
+    <h1>专属域名</h1>
+    <div class="sub">在这里添加自己的推广域名。访客直接访问该域名时，注册与充值会自动归入你的代理数据，无需带任何参数。子代理会自动继承上级的域名。</div>
+  </div>
+</div>
+{$tip}
+{$formCard}
 <div class="card">
   <h2>可用域名</h2>
   <div class="table-wrap"><table><thead><tr>
@@ -100,7 +107,7 @@ HTML;
     /** 添加自己的推广域名 */
     public function save(): void
     {
-        $this->requirePerm('domain');
+        $this->requireTopLevel();
         $this->verifyCsrf();
 
         $agentId = $this->agentId();
@@ -145,7 +152,7 @@ HTML;
     /** 启用 / 停用自己的域名 */
     public function toggle(): void
     {
-        $this->requirePerm('domain');
+        $this->requireTopLevel();
         $this->verifyCsrfParam();
 
         $id = (int) ($this->request->param('id') ?? 0);
@@ -165,7 +172,7 @@ HTML;
     /** 删除自己的域名（继承来的不能删） */
     public function del(): void
     {
-        $this->requirePerm('domain');
+        $this->requireTopLevel();
         $this->verifyCsrfParam();
 
         $id = (int) ($this->request->param('id') ?? 0);
@@ -174,6 +181,22 @@ HTML;
                 ->where('id', $id)->where('agent_id', $this->agentId())->delete();
         }
         $this->redirect('/agent/domain/index');
+    }
+
+    /**
+     * 顶级代理可自助添加域名，无需总部先分配
+     * （子代理不单独维护，直接继承上级的域名）
+     */
+    private function isTopLevel(): bool
+    {
+        return (int) ($this->agent()['parent_id'] ?? 0) === 0;
+    }
+
+    private function requireTopLevel(): void
+    {
+        if (!$this->isTopLevel()) {
+            $this->deny('子代理自动继承上级的推广域名，无需单独添加。', 403);
+        }
     }
 
     /** 域名类操作走 GET，CSRF 放在 query 里 */

@@ -1,7 +1,7 @@
 -- ============================================
 -- 代理体系（独立代理门户 /agent + 总后台代理管理/代理数据）
 -- 1) lp_agent            代理账号（独立于 ba_admin）
--- 2) lp_agent_domain     代理专属推广域名（总后台分配）
+-- 2) lp_agent_domain     代理专属推广域名（代理在 /agent 自助添加，总部只读）
 -- 3) lp_agent_login_log  代理登录日志
 -- 4) lp_user             增加 reg_agent_id / reg_agent_name（注册归因快照）
 -- 5) lp_promo_link       增加 agent_id（链接归属代理）

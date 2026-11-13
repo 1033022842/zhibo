@@ -39,6 +39,7 @@ final class AgentView
         $items = [
             'overview' => ['/agent/index/index', '数据概览', AgentService::hasPerm($agent, 'overview')],
             'pixel'    => ['/agent/pixel/index', '推广与像素', AgentService::hasPerm($agent, 'pixel')],
+            'domain'   => ['/agent/domain/index', '专属域名', true],
             'member'   => ['/agent/member/index', '会员明细', AgentService::hasPerm($agent, 'member')],
             'order'    => ['/agent/order/index', '充值订单', AgentService::hasPerm($agent, 'order')],
             'withdraw' => ['/agent/withdraw/index', '提现记录', AgentService::hasPerm($agent, 'withdraw')],

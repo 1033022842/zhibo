@@ -82,7 +82,10 @@ final class Index extends Base
 
         $domainTip = '';
         if ($doms === []) {
-            $domainTip = '<div class="alert err">总部或你的上级还没有分配推广域名，暂时无法创建推广链接。</div>';
+            $isTopLevel = (int) ($agent['parent_id'] ?? 0) === 0;
+            $domainTip = $isTopLevel
+                ? '<div class="alert err">你还没有配置推广域名，请先到 <a href="/agent/domain/index">专属域名</a> 添加一个，否则无法创建推广链接。</div>'
+                : '<div class="alert err">你的上级还没有配置推广域名，暂时无法创建推广链接，请联系上级处理。</div>';
         }
         $teamNote = $teamSize > 0 ? '（团队合计，含 ' . $teamSize . ' 个下级代理）' : '';
 
