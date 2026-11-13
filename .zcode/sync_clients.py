@@ -50,6 +50,13 @@ CLIENTS = {
             "ai-girl-malaysia.com/privacy.html": "keep",   # 上游没有、客户有 → checkout 不动它
             "ai-girl-malaysia.com/terms.html": "keep",
         },
+        # 法务页不推服务器：heygirl 有自己的品牌版（heygirl.live / support@heygirl.live）。
+        # 2026-11-13 上游新增 privacy/terms 后，同步把客户版覆盖成了 Sugus 品牌；
+        # keep_files 只保护客户仓库，不阻止服务器推送，故这里显式排除。
+        "exclude": [
+            "ai-girl-malaysia.com/privacy.html",
+            "ai-girl-malaysia.com/terms.html",
+        ],
         # 客户差异化页面：Image.html 与 sugus / kelymi / kiss 完全不同实现
         "overrides": "client_overrides/image-heygirl",
         # 品牌包会用客户版分享卡覆盖 share_card.png（预期行为）：
