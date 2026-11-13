@@ -87,6 +87,11 @@ CLIENTS = {
         "verify_url": "https://kelymi.autos/ai/Home.html",
         "verify_expect": "Kelymi",
         "repo": r"D:\ever\kelymi",   # 2026-10-18 按 SOP 三.A 初始化（douyin 基线 + brand kit）
+        # 法务页不推服务器：客户有品牌版（品牌脚本刻意跳过 privacy/terms），见 2026-11-13
+        "exclude": [
+            "ai-girl-malaysia.com/privacy.html",
+            "ai-girl-malaysia.com/terms.html",
+        ],
     },
     # kiss（第四项目）：2026-10-19 初始化；2026-11-10 旧机（103.217.252.52）故障后
     # 迁到新服务器 111.90.150.230，SSH 端口非标准 20203（配置里用 "port" 指定）
@@ -101,9 +106,12 @@ CLIENTS = {
         "verify_expect": "Kiss",
         "repo": r"D:\ever\kiss",   # 2026-10-20 按 SOP 三.A 初始化（douyin 基线 + brand kit）
         # 换脸前台文件不同步（apply_brand 也会兜底删除，这里避免白推）
+        # 法务页同理：客户有品牌版（品牌脚本刻意跳过 privacy/terms），见 2026-11-13
         "exclude": [
             "ai-girl-malaysia.com/face_swap.html",
             "ai-girl-malaysia.com/js/face_swap.js",
+            "ai-girl-malaysia.com/privacy.html",
+            "ai-girl-malaysia.com/terms.html",
         ],
     },
 }
