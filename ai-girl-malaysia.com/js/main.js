@@ -561,15 +561,19 @@
       // 关闭登录/注册页（点 ×）= 放弃登录：回到「来登录之前的那一页」，
       // **不走 ?redirect=**（redirect 表示「登录成功后去哪里」，未登录进去没意义，
       //   2026-11-13 报障：点 Studio 跳登录后关掉弹窗被送到 /ai/Image.html 但该页需登录）。
-      // 兜底顺序：来源页(referrer) → Home.html；来源页本身也是需登录的页面时也回落 Home，
-      // 否则会出现 Login → Image(守卫) → Login 的来回跳。
-      var LOGIN_REQUIRED_PAGES = [/^\/ai\/image\.html$/i]
+      //
+      // 「哪些页需要登录」统一读 window.FyAuthPolicy（定义在 shell-new.js，全站唯一配置源）。
+      // shell-new.js 在多数页面里晚于 main.js 加载，但 cancelLogin() 只在用户
+      // 点关闭按钮时才执行，那时两个脚本都已就绪；取不到配置时保守当成「需要登录」，
+      // 让用户回首页总比把未登录用户丢进受保护页安全。
+      function authPolicy() {
+        return window.FyAuthPolicy || null
+      }
 
       function isLoginRequired(path) {
-        for (var i = 0; i < LOGIN_REQUIRED_PAGES.length; i++) {
-          if (LOGIN_REQUIRED_PAGES[i].test(path)) return true
-        }
-        return false
+        var policy = authPolicy()
+        if (!policy) return true   // 配置缺失：保守处理，避免把用户送进受保护页
+        return policy.isProtected(path)
       }
 
       function cancelLogin() {
@@ -582,7 +586,8 @@
             }
           } catch (e) { /* 非法 referrer 走兜底 */ }
         }
-        return '/ai/Home.html'
+        var policy = authPolicy()
+        return (policy && policy.fallbackPage) ? policy.fallbackPage : '/ai/Home.html'
       }
       window.liveCancelLogin = cancelLogin
 

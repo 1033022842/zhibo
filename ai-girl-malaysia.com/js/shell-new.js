@@ -14,23 +14,52 @@
 (function () {
   'use strict'
 
-  /* ---------- 登录守卫：这些页面必须登录才能进 ----------
-     未登录直接访问（书签 / 手输 URL / 从别处跳来）→ 立即 replace 到登录页。
-     用户关掉登录弹窗时走 main.js 的 cancelLogin()，它不会把用户送回这里，
-     所以不会出现 Login → Image → Login 的来回跳。
-     新增需要登录的页面：在 LOGIN_GUARD 里加一条路径正则。 */
-  var LOGIN_GUARD = [/^\/ai\/image\.html$/i]
-  ;(function authGuard() {
-    var p = location.pathname || ''
-    var need = false
-    for (var i = 0; i < LOGIN_GUARD.length; i++) {
-      if (LOGIN_GUARD[i].test(p)) { need = true; break }
+  /* ============================================================
+   * 登录策略：全站唯一配置源（window.FyAuthPolicy）
+   * ------------------------------------------------------------
+   * 需要「登录才能进」的页面只在这里登记一次，两处消费：
+   *   1) 本文件底部的 authGuard()：未登录直接访问 → 立即跳登录页
+   *   2) main.js 的 cancelLogin()：用户关掉登录弹窗时，
+   *      如果来源页本身也是需登录页，就回落首页（避免 Login↔X 来回跳）
+   *
+   * ⚠️ 新增需登录页面只改这里：往 protectedPages 加一条「路径正则」。
+   *    不要再往 main.js / shell-new.js 各写一份（2026-11-13 之前就是两份，
+   *    容易只改一处导致守卫和回退策略不一致）。
+   *
+   * 为什么放在 shell-new.js：它被全站 51 个页面引用（含 Login.html），
+   * 覆盖面最广；main.js 只有 41 个页面引用，不能当唯一入口。
+   * ============================================================ */
+  var AUTH_POLICY = {
+    /** 必须登录才能访问的站内页面（正则匹配 location.pathname） */
+    protectedPages: [
+      /^\/ai\/image\.html$/i,        // AI 工作室（Studio）：生成/解锁都要登录
+    ],
+    /** 放弃登录（关弹窗）时的兜底页面 */
+    fallbackPage: '/ai/Home.html',
+
+    /** 判断某个 path 是否必须登录 */
+    isProtected: function (path) {
+      var p = String(path || '')
+      for (var i = 0; i < this.protectedPages.length; i++) {
+        if (this.protectedPages[i].test(p)) return true
+      }
+      return false
+    },
+
+    /** 当前是否已登录（只读 localStorage，避免依赖各页面脚本的加载顺序） */
+    hasToken: function () {
+      try { return !!localStorage.getItem('live_access_token') } catch (e) { return false }
     }
-    if (!need) return
-    var tk = ''
-    try { tk = localStorage.getItem('live_access_token') || '' } catch (e) { tk = '' }
-    if (tk) return
-    location.replace('./Login.html?redirect=' + encodeURIComponent(p + location.search))
+  }
+  window.FyAuthPolicy = AUTH_POLICY
+
+  /* ---------- 登录守卫：受保护页面未登录 → 跳登录页 ----------
+     登录成功后回原页（?redirect=），关弹窗走 main.js 的 cancelLogin()。 */
+  ;(function authGuard() {
+    if (!AUTH_POLICY.isProtected(location.pathname)) return
+    if (AUTH_POLICY.hasToken()) return
+    location.replace('./Login.html?redirect=' +
+      encodeURIComponent(location.pathname + location.search))
   })()
 
   /* ---------- 关闭旧包遗留的 Turbo Drive（修「点导航后底栏变 4 格」的 bug） ----------
