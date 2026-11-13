@@ -26,12 +26,14 @@ import time
 
 import paramiko
 
+import deploy_creds as creds
+
 SITES = {
     # name: (host, password, expected_distro_kind)
-    "kisss":   ("111.90.150.230", "***REMOVED-SSH-PW***", "ondrej"),
-    "kelymi":  ("172.81.99.42", "***REMOVED-SSH-PW***", "noble"),
-    "heygirl": ("172.81.99.11", "***REMOVED-SSH-PW***", "noble"),
-    "sugus":   ("172.81.98.55", "***REMOVED-SSH-PW***", "noble"),
+    "kisss":   (creds.get("kiss")["host"], creds.get("kiss")["password"], "ondrej"),
+    "kelymi":  (creds.get("kelymi")["host"], creds.get("kelymi")["password"], "noble"),
+    "heygirl": (creds.get("heygirl")["host"], creds.get("heygirl")["password"], "noble"),
+    "sugus":   (creds.get("sugus")["host"], creds.get("sugus")["password"], "noble"),
 }
 # 执行顺序：流量小的先来，主力站放最后
 PORT = {"111.90.150.230": 20203}   # kiss 新机 SSH 端口非 22

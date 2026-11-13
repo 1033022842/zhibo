@@ -9,17 +9,16 @@ import tempfile
 
 import paramiko
 
+import deploy_creds as creds
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(REPO, "php", "web", "dist")
 REMOTE = "/www/wwwroot/douyin/admin/dist"
 
-SITES = {
-    "heygirl": dict(host="172.81.99.11", port=22, password="***REMOVED-SSH-PW***"),
-    "kelymi":  dict(host="172.81.99.42", port=22, password="***REMOVED-SSH-PW***"),
-    "kiss":    dict(host="111.90.150.230", port=20203, password="***REMOVED-SSH-PW***"),
-}
-SUGUS = dict(jump=("172.81.99.11", 22, "***REMOVED-SSH-PW***"),
-             host="172.81.98.55", key="/root/.ssh/n99_pull")
+SITES = creds.site_dicts("heygirl", "kelymi", "kiss")
+SUGUS = dict(jump=(creds.get("heygirl")["host"], creds.get("heygirl")["port"],
+                  creds.get("heygirl")["password"]),
+             host=creds.get("sugus")["host"], key=creds.get("sugus")["key"])
 
 
 def run(cli, cmd, t=600):

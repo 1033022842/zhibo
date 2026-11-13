@@ -1,24 +1,29 @@
+import os
 import sys
+
 import paramiko
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import deploy_creds as creds  # noqa: E402  (.zcode 下的凭据入口)
 
 BAK = "/root/nginx_bak/cnblock_20261025"
 
 CLIENTS = {
     "heygirl": {
-        "host": "172.81.99.11", "pw": "***REMOVED-SSH-PW***",
+        "host": creds.get("heygirl")["host"], "pw": creds.get("heygirl")["password"],
         "site_confs": ["/etc/nginx/sites-enabled/zhibo.conf", "/etc/nginx/sites-enabled/heygirl-cdn-origin.conf"],
         "local_confs": ["heygirl_zhibo.conf", "heygirl_cdn.conf"],
         "cron_mode": "add",
     },
     "kelymi": {
-        "host": "172.81.99.42", "pw": "***REMOVED-SSH-PW***",
+        "host": creds.get("kelymi")["host"], "pw": creds.get("kelymi")["password"],
         "site_confs": ["/etc/nginx/sites-enabled/zhibo.conf", "/etc/nginx/sites-enabled/kelymi-cdn-origin.conf"],
         "local_confs": ["kelymi_zhibo.conf", "kelymi_cdn.conf"],
         "cron_mode": "add",
     },
     "kiss": {
         # 2026-11-10 旧机（103.217.252.52）故障后迁到新服务器，SSH 端口 20203
-        "host": "111.90.150.230", "port": 20203, "pw": "***REMOVED-SSH-PW***",
+        "host": creds.get("kiss")["host"], "port": creds.get("kiss")["port"], "pw": creds.get("kiss")["password"],
         "site_confs": ["/etc/nginx/sites-enabled/kiss.conf", "/etc/nginx/sites-enabled/kiss-cdn-origin.conf"],
         "local_confs": ["kiss.conf", "kiss_cdn.conf"],
         "cron_mode": "replace",   # 已有 update_bunny_realip.sh 月度 cron → 换成统一脚本

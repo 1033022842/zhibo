@@ -108,3 +108,14 @@ ai-girl-malaysia.com/.state/
 # sugus 图片页的本地 clip 素材（media/gs 约 205MB）：不入库、也不放覆盖目录，
 # 由服务器执行 client_overrides/image-sugus/media-src/fetch_media.py 自行拉取
 client_overrides/image-sugus/media/
+
+# 生产凭据（SSH/DB 口令）—— 只留本地，永不入库；由 deploy_creds.py 读取
+.zcode/secrets/
+
+# 仓库根目录的一次性调试脚本（含历史服务器口令，勿入库）
+/_debug_img.py
+/_fix_nginx_storage.py
+/_probe_build.py
+/_sync_php.py
+/_test_final.py
+/_test_img.py

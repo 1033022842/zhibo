@@ -19,11 +19,13 @@ import sys
 
 import paramiko
 
+import deploy_creds as creds
+
 SITES = {
-    "sugus":   ("172.81.98.55", "***REMOVED-SSH-PW***"),
-    "heygirl": ("172.81.99.11", "***REMOVED-SSH-PW***"),
-    "kelymi":  ("172.81.99.42", "***REMOVED-SSH-PW***"),
-    "kisss":   ("111.90.150.230", "***REMOVED-SSH-PW***"),
+    "sugus":   creds.pair("sugus"),
+    "heygirl": creds.pair("heygirl"),
+    "kelymi":  creds.pair("kelymi"),
+    "kisss":   creds.pair("kiss"),      # 本机沿用 kisss 别名
 }
 
 NEW_BURST = 40

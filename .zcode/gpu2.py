@@ -12,10 +12,10 @@ import shlex
 import sys
 import paramiko
 
-HOST = "38.247.166.124"
-PORT = 22
-USER = "administrator"
-PASSWORD = "***REMOVED-SSH-PW***"
+import deploy_creds as creds
+
+# gpu2 是 2026-11-01 前那台旧 GPU 机的操作脚本，凭据走 gpu166_legacy 这一套
+HOST, PORT, USER, PASSWORD = creds.conn("gpu166_legacy")
 
 
 def connect(timeout=30):

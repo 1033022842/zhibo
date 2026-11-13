@@ -10,10 +10,13 @@ import sys
 
 import paramiko
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import deploy_creds as creds  # noqa: E402  (.zcode 下的凭据入口)
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-JUMP = ("172.81.99.11", "root", "***REMOVED-SSH-PW***")
-TARGET = "172.81.98.55"
-KEY = "/root/.ssh/n99_pull"
+JUMP = creds.jump("heygirl")
+TARGET = creds.get("sugus")["host"]
+KEY = creds.get("sugus")["key"]
 SITE = "/www/wwwroot/douyin"
 
 FILES = [

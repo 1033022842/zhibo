@@ -30,11 +30,12 @@ import urllib.parse
 
 import paramiko
 
-JUMP_HOST, JUMP_PORT, JUMP_USER, JUMP_PASS = "172.81.99.11", 22, "root", "***REMOVED-SSH-PW***"
+import deploy_creds as creds
+
+JUMP_HOST, JUMP_PORT, JUMP_USER, JUMP_PASS = creds.conn("heygirl")
 # 2026-11-03：同 IP 换新机（原机 11-01 失联后供应商重开），全新系统，按附录 B 重装中。
 # 登录名沿用 administrator；失联史见 docs/单GPU四站部署.md 顶部事件记录。
-HOST, PORT, USER, PASSWORD = "38.247.166.124", 22, "administrator", "***REMOVED-SSH-PW***"
-# 历史密码留档：***REMOVED-SSH-PW***（2026-11-01 前的旧机）
+HOST, PORT, USER, PASSWORD = creds.conn("gpu166")
 
 # CDN 中继（sugus 网站服务器）
 SITE_HOST, SITE_USER = "172.81.98.55", "root"

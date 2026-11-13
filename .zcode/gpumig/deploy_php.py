@@ -19,12 +19,15 @@ import time
 
 import paramiko
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import deploy_creds as creds  # noqa: E402  (.zcode 下的凭据入口)
+
 REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 SITES = [
-    ("sugus", "172.81.98.55", "***REMOVED-SSH-PW***"),
-    ("heygirl", "172.81.99.11", "***REMOVED-SSH-PW***"),
-    ("kisss", "111.90.150.230", "***REMOVED-SSH-PW***"),
-    ("kelymi", "172.81.99.42", "***REMOVED-SSH-PW***"),
+    ("sugus", creds.get("sugus")["host"], creds.get("sugus")["password"]),
+    ("heygirl", creds.get("heygirl")["host"], creds.get("heygirl")["password"]),
+    ("kisss", creds.get("kiss")["host"], creds.get("kiss")["password"]),
+    ("kelymi", creds.get("kelymi")["host"], creds.get("kelymi")["password"]),
 ]
 FILES = [
     "app/api/controller/CustomVideo.php",

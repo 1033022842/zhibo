@@ -1,7 +1,13 @@
+import os
+import sys
+
 import paramiko
 
-JUMP = dict(host="172.81.99.11", pw="***REMOVED-SSH-PW***")
-KEY = "/root/.ssh/n99_pull"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import deploy_creds as creds  # noqa: E402  (.zcode 下的凭据入口)
+
+JUMP = dict(host=creds.get("heygirl")["host"], pw=creds.get("heygirl")["password"])
+KEY = creds.get("sugus")["key"]
 
 def ssh(j, cmd, timeout=180):
     _, o, e = j.exec_command(cmd, timeout=timeout)

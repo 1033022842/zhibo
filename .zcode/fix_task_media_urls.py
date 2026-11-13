@@ -23,12 +23,13 @@ import sys
 
 import paramiko
 
+import deploy_creds as creds
+
 SITES = {
-    "sugus":   ("172.81.98.55", "***REMOVED-SSH-PW***", "zhibo", "zhibo", "12345678"),
-    "heygirl": ("172.81.99.11", "***REMOVED-SSH-PW***", "live_platform", "root", "root"),
-    "kisss":   ("111.90.150.230", "***REMOVED-SSH-PW***", "live_platform",
-                "live_platform", "***REMOVED-DB-PW***"),
-    "kelymi":  ("172.81.99.42", "***REMOVED-SSH-PW***", "live_platform", "root", "root"),
+    "sugus":   creds.site5("sugus"),
+    "heygirl": creds.site5("heygirl"),
+    "kisss":   creds.site5("kiss"),     # 本机沿用 kisss 别名
+    "kelymi":  creds.site5("kelymi"),
 }
 PORT = {"111.90.150.230": 20203}   # kiss 新机 SSH 端口非 22
 ORDER = ["sugus", "heygirl", "kisss", "kelymi"]

@@ -12,11 +12,16 @@ import os
 import threading
 import time
 
+import os
+import threading
+import time
+
 import paramiko
 
-HOST = "155.103.194.69"
-PASSWORD = "***REMOVED-SSH-PW***"
-MEDIA_KEY = "***REMOVED-MEDIA-KEY***"
+import deploy_creds as creds
+
+HOST, _, _, PASSWORD = creds.conn("upload_host")
+MEDIA_KEY = creds.get("upload_host")["media_key"]
 
 
 def connect():

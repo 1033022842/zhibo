@@ -14,7 +14,10 @@ import time
 
 import paramiko
 
-HOST, PORT, USER, PASSWORD = "38.247.166.124", 22, "administrator", "***REMOVED-SSH-PW***"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import deploy_creds as creds  # noqa: E402  (.zcode 下的凭据入口)
+
+HOST, PORT, USER, PASSWORD = creds.conn("gpu166_legacy")
 
 
 def connect():

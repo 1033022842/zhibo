@@ -4,11 +4,17 @@
 
 DB 凭据从 php/.env 读，不在命令行嵌密码（避免被 ps 看到）。
 """
+import os
+import sys
+
 import paramiko
 
-JUMP = ("172.81.99.11", "root", "***REMOVED-SSH-PW***")
-TARGET = "172.81.98.55"
-KEY = "/root/.ssh/n99_pull"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import deploy_creds as creds  # noqa: E402  (.zcode 下的凭据入口)
+
+JUMP = creds.jump("heygirl")
+TARGET = creds.get("sugus")["host"]
+KEY = creds.get("sugus")["key"]
 SITE = "/www/wwwroot/douyin"
 
 j = paramiko.SSHClient()

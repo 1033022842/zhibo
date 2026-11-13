@@ -9,16 +9,14 @@ import sys
 
 import paramiko
 
+import deploy_creds as creds
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL = os.path.join(REPO, "php", "app", "live", "service", "UserService.php")
 REMOTE = "/www/wwwroot/douyin/php/app/live/service/UserService.php"
 
-SITES = {
-    "heygirl": dict(host="172.81.99.11", port=22, password="***REMOVED-SSH-PW***"),
-    "kelymi":  dict(host="172.81.99.42", port=22, password="***REMOVED-SSH-PW***"),
-    "kiss":    dict(host="111.90.150.230", port=20203, password="***REMOVED-SSH-PW***"),
-}
-SUGUS_JUMP = dict(host="172.81.99.11", password="***REMOVED-SSH-PW***")
+SITES = creds.site_dicts("heygirl", "kelymi", "kiss")
+SUGUS_JUMP = dict(host=creds.get("heygirl")["host"], password=creds.get("heygirl")["password"])
 
 
 def run(cli, cmd, t=180):

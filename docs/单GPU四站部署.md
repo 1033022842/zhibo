@@ -29,8 +29,8 @@
 | 项 | 值 |
 |---|---|
 | 公网 IP | `38.247.166.124`（2026-11-03 同 IP 重开的新机） |
-| 账号 | `administrator` / `***REMOVED-SSH-PW***`（sudo 同密码） |
-| 旧机账号 | `***REMOVED-SSH-PW***`（11-01 失联的那台，留档） |
+| 账号 | `administrator`（密码不在文档留存，见本地 `.zcode/secrets/sites.json` 的 `gpu166.password`；sudo 同密码） |
+| 旧机账号 | 11-01 失联的那台，口令见 `.zcode/secrets/sites.json` 的 `gpu166_legacy.password` |
 | 系统 | Ubuntu 24.04 / kernel 6.8 / 32 核 / 82G 内存 / 16G swap（新建） |
 | 磁盘 | `/` 398G、`/data` **2.0T**（模型与备份都放这里） |
 | GPU | NVIDIA RTX PRO 6000 Blackwell Server Edition，**97887 MiB**，驱动 595.58.03 |
