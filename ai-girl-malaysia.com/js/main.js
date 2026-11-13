@@ -566,7 +566,13 @@
           try {
             var to = new URL(redirect, window.location.href)
             if (to.origin === window.location.origin && to.pathname.indexOf('Login.html') < 0) {
-              return to.pathname + to.search
+              /* 站内页面都在 /ai/ 下：根路径（如 /Image.html）一定是拼错了，
+                 补上 /ai/ 前缀，避免跳到 404 空白页（2026-11-13 报障） */
+              var path = to.pathname
+              if (!/^\/(ai|admin)\//.test(path) && /\.html$/i.test(path)) {
+                path = '/ai' + path
+              }
+              return path + to.search
             }
           } catch (e) { /* 非法 redirect 忽略，走兜底 */ }
         }

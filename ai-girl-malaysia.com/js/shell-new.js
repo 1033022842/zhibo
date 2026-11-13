@@ -1514,10 +1514,17 @@
         try { tk = localStorage.getItem('live_access_token') || '' } catch (err) { tk = '' }
         if (!tk) {
           e.preventDefault()
-          var target = needAuth.getAttribute('href') || './Image.html'
-          location.href = './Login.html?redirect=' + encodeURIComponent(
-            (target.charAt(0) === '.' ? target.slice(1) : target) || '/Image.html'
-          )
+          /* 必须把 './Image.html' 按当前页面解析成绝对路径 '/ai/Image.html'。
+             曾用 target.slice(1) 直接截掉点号，得到根路径 '/Image.html'（丢 /ai/ 前缀），
+             登录页关掉弹窗跳过去就是 404 空白页（2026-11-13 报障）。 */
+          var href = needAuth.getAttribute('href') || './Image.html'
+          var absPath = href
+          try {
+            var u = new URL(href, location.href)
+            /* 只接受同源相对跳转，避免被外部链接利用 */
+            if (u.origin === location.origin) absPath = u.pathname + u.search
+          } catch (err2) { /* 解析失败退回原值 */ }
+          location.href = './Login.html?redirect=' + encodeURIComponent(absPath)
         }
       }
     })
