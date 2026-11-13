@@ -727,7 +727,16 @@
 
     style()
 
-    if (cs.float !== false) fab(cs)
+    /* 部分页面不显示悬浮客服球（会遮住页面内容）：
+       createCharacter（AI Girlfriend 创建向导）底部是选项卡片/CTA，
+       右下角客服球会盖住操作区（2026-11-13 报障）。
+       这些页面点 [data-contact-us] 仍能打开客服弹窗，只是没有常驻悬浮球。 */
+    var HIDE_FAB_PAGES = [/\/createCharacter\.html$/i]
+    var hideFab = false
+    for (var i = 0; i < HIDE_FAB_PAGES.length; i++) {
+      if (HIDE_FAB_PAGES[i].test(location.pathname || '')) { hideFab = true; break }
+    }
+    if (cs.float !== false && !hideFab) fab(cs)
     intercept()
   }
 

@@ -16,6 +16,13 @@
             Realistic: './assets/create/entry-realistic.webp',
             Anime: './assets/create/entry-anime.webp',
         },
+        /* 入口卡片的动态素材（可选）：参考站是动图，扒站只拿到静态 webp。
+           把动图/视频放进 assets/create/ 后在这里登记，卡片会优先播它；
+           留空则回退到上面的静态图，不影响现有表现。 */
+        entryMotion: {
+            Realistic: '',   // 例：'./assets/create/entry-realistic.mp4'
+            Anime: '',       // 例：'./assets/create/entry-anime.mp4'
+        },
         race: {
             Realistic: {
                 'Caucasian': './assets/create/eth-r-caucasian.webp',
@@ -328,13 +335,29 @@
         html += '<div class="cc-entry-sub">She looks, sounds and acts exactly how you want.</div>'
         html += '<div class="cc-cards">'
         ;['Realistic', 'Anime'].forEach(function (cat) {
+            var motion = (IMG.entryMotion && IMG.entryMotion[cat]) || ''
+            var media
+            if (motion) {
+                /* 有动态素材：静音循环自动播放，playsinline 保证 iOS 不弹全屏。
+                   加 poster 用静态图兜底，视频加载失败/被拦截时仍是静态图。 */
+                media = '<video src="' + motion + '" poster="' + IMG.entry[cat] + '"' +
+                    ' autoplay muted loop playsinline preload="metadata"></video>'
+            } else {
+                media = '<img src="' + IMG.entry[cat] + '" alt="' + cat + '">'
+            }
             html += '<div class="cc-card' + (profile.category === cat ? ' on' : '') + '" data-cat="' + cat + '" role="button">'
-            html += '<div class="cc-card-imgwrap"><img src="' + IMG.entry[cat] + '" alt="' + cat + '"><div class="cc-card-check">✓</div></div>'
+            html += '<div class="cc-card-imgwrap">' + media + '<div class="cc-card-check">✓</div></div>'
             html += '<div class="cc-card-label">' + cat + '</div>'
             html += '</div>'
         })
         html += '</div></div>'
         $('ccMain').innerHTML = html
+
+        /* 老浏览器不支持静音自动播放时，尝试 play() 一次（失败静默忽略） */
+        $('ccMain').querySelectorAll('.cc-card-imgwrap video').forEach(function (v) {
+            var p = v.play && v.play()
+            if (p && typeof p.catch === 'function') p.catch(function () { /* 交给 poster */ })
+        })
 
         $('ccMain').querySelectorAll('.cc-card').forEach(function (card) {
             card.addEventListener('click', function () {
