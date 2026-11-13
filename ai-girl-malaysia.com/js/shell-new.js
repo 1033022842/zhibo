@@ -14,6 +14,25 @@
 (function () {
   'use strict'
 
+  /* ---------- 登录守卫：这些页面必须登录才能进 ----------
+     未登录直接访问（书签 / 手输 URL / 从别处跳来）→ 立即 replace 到登录页。
+     用户关掉登录弹窗时走 main.js 的 cancelLogin()，它不会把用户送回这里，
+     所以不会出现 Login → Image → Login 的来回跳。
+     新增需要登录的页面：在 LOGIN_GUARD 里加一条路径正则。 */
+  var LOGIN_GUARD = [/^\/ai\/image\.html$/i]
+  ;(function authGuard() {
+    var p = location.pathname || ''
+    var need = false
+    for (var i = 0; i < LOGIN_GUARD.length; i++) {
+      if (LOGIN_GUARD[i].test(p)) { need = true; break }
+    }
+    if (!need) return
+    var tk = ''
+    try { tk = localStorage.getItem('live_access_token') || '' } catch (e) { tk = '' }
+    if (tk) return
+    location.replace('./Login.html?redirect=' + encodeURIComponent(p + location.search))
+  })()
+
   /* ---------- 关闭旧包遗留的 Turbo Drive（修「点导航后底栏变 4 格」的 bug） ----------
    * 镜像页带的旧 application.js 里 Turbo Drive 会拦截 <a> 点击做局部换页；
    * 换页后 head 里的 shell-new.js 不会重跑，页面就露出自带的老底栏（shorts 页只有 4 格，

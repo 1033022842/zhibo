@@ -14,8 +14,8 @@
 <script src="./_shared/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
 <script src="./_shared/jquery-3.6.0.min.js"></script>
 <script src="./assets/layer/3.1.1/layer.js"></script>
-  <script src="./js/main.js?v=20261113nav2"></script>
-		<script src="./js/shell-new.js?v=20261113nav2"></script>
+  <script src="./js/main.js?v=20261113guard1"></script>
+		<script src="./js/shell-new.js?v=20261113guard1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
   <script src="./js/event.js"></script>
   <style>
@@ -371,10 +371,17 @@
       btn.innerHTML = show ? PW_ICON_EYE_OFF : PW_ICON_EYE;
       btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
     }
-    // × ：退回进入登录页之前的那个页面（?redirect= 优先，其次来源页，兜底 Home.html）
+    // × ：放弃登录 → 退回进入登录页之前的那个页面（来源页，兜底 Home.html）
+    // 注意这里**不看 ?redirect=**：redirect 只在登录成功后使用，
+    // 未登录直接跳过去会进到需要登录的页面（2026-11-13 报障）
     function closeLoginPage() {
-      var target = (typeof window.liveBackFromLogin === 'function') ? window.liveBackFromLogin() : './Home.html';
-      window.location.replace(target);
+      var target = './Home.html'
+      if (typeof window.liveCancelLogin === 'function') {
+        target = window.liveCancelLogin()
+      } else if (typeof window.liveBackFromLogin === 'function') {
+        target = window.liveBackFromLogin()
+      }
+      window.location.replace(target)
     }
   </script>
 	<script src="./js/promo-popup.js?v=20261110uinfo1"></script>

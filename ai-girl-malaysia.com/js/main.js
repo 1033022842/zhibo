@@ -558,25 +558,37 @@
         return './Home.html'
       }
 
-      // 关闭登录/注册页（点 ×）：退回进入登录页之前的那个页面
-      // 去向与登录成功后一致：?redirect= 优先，其次来源页(referrer)，最后 Home.html
-      function backFromLogin() {
-        var redirect = getUrlParam(window.location.href, 'redirect')
-        if (redirect && redirect !== 'null') {
-          try {
-            var to = new URL(redirect, window.location.href)
-            if (to.origin === window.location.origin && to.pathname.indexOf('Login.html') < 0) {
-              /* 站内页面都在 /ai/ 下：根路径（如 /Image.html）一定是拼错了，
-                 补上 /ai/ 前缀，避免跳到 404 空白页（2026-11-13 报障） */
-              var path = to.pathname
-              if (!/^\/(ai|admin)\//.test(path) && /\.html$/i.test(path)) {
-                path = '/ai' + path
-              }
-              return path + to.search
-            }
-          } catch (e) { /* 非法 redirect 忽略，走兜底 */ }
+      // 关闭登录/注册页（点 ×）= 放弃登录：回到「来登录之前的那一页」，
+      // **不走 ?redirect=**（redirect 表示「登录成功后去哪里」，未登录进去没意义，
+      //   2026-11-13 报障：点 Studio 跳登录后关掉弹窗被送到 /ai/Image.html 但该页需登录）。
+      // 兜底顺序：来源页(referrer) → Home.html；来源页本身也是需登录的页面时也回落 Home，
+      // 否则会出现 Login → Image(守卫) → Login 的来回跳。
+      var LOGIN_REQUIRED_PAGES = [/^\/ai\/image\.html$/i]
+
+      function isLoginRequired(path) {
+        for (var i = 0; i < LOGIN_REQUIRED_PAGES.length; i++) {
+          if (LOGIN_REQUIRED_PAGES[i].test(path)) return true
         }
-        return backUrl()
+        return false
+      }
+
+      function cancelLogin() {
+        var referrer = document.referrer || ''
+        if (referrer) {
+          try {
+            var from = new URL(referrer)
+            if (from.origin === window.location.origin && from.pathname.indexOf('Login.html') < 0) {
+              if (!isLoginRequired(from.pathname)) return from.pathname + from.search
+            }
+          } catch (e) { /* 非法 referrer 走兜底 */ }
+        }
+        return '/ai/Home.html'
+      }
+      window.liveCancelLogin = cancelLogin
+
+      // 兼容旧调用：部分页面可能还在用 liveBackFromLogin
+      function backFromLogin() {
+        return cancelLogin()
       }
       window.liveBackFromLogin = backFromLogin
 
