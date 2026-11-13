@@ -108,7 +108,12 @@ final class Media
     {
         $path = str_replace('\\', '/', trim($path));
         $path = preg_replace('/[?#].*$/', '', $path) ?? $path;
-        $path = preg_replace('#^https?://[^/]+/#i', '', $path) ?? $path;
+        // 剥域名：带协议头的（https://host/x）和不带协议的（host/x 或 //host/x）都要处理。
+        // 上传链路（Upload → S3 驱动）有时会把站点域名或 X-Forwarded-Host 前缀拼进来，
+        // 只认 http(s):// 会让 "kisss.ai/storage/..." 原样落到 keyFor()，
+        // 生成 sec/kiss/kisss.ai/storage/... 这种双前缀 key（文件写进去但前端按单前缀取不到）。
+        $path = preg_replace('#^(?:https?:)?//[^/]+/#i', '', $path) ?? $path;
+        $path = preg_replace('#^[^/]+\.(?:[a-z]{2,}\.)?[a-z]{2,}/storage/#i', '', $path) ?? $path;
         $path = preg_replace('#^/?(?:public/)?storage/#i', '', $path) ?? $path;
         $project = preg_quote(trim((string) (self::config()['project'] ?? 'sugus'), '/'), '#');
         $path = preg_replace('#^/?(?:sec|pub)/' . $project . '/#i', '', $path) ?? $path;
