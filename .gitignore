@@ -119,3 +119,7 @@ client_overrides/image-sugus/media/
 /_sync_php.py
 /_test_final.py
 /_test_img.py
+
+# .zcode 下的临时执行脚本（含历史凭据）
+.zcode/tmp/
+.zcode/ssh_run.py

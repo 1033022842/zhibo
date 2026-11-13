@@ -48,7 +48,7 @@
 | **sugus.ai** | `38.247.190.236` | RTX 5090 32G | `https://sugus.ai/api` | 软件栈✓；等 node3 推送模型 |
 | **第三个项目** | `204.12.218.174` | RTX 5090 32G | **待确认** | 软件栈✓；拉模型中 |
 
-- 三台凭据：`administrator` + 各自密码（166.124=`***REMOVED-SSH-PW***`；190.236=`***REMOVED-SSH-PW***`；204.174=`***REMOVED-SSH-PW***`），sudo 同密码
+- 三台凭据：`administrator` + 各自密码（不在文档留存，见本地 `.zcode/secrets/sites.json`），sudo 同密码
 - 三台镜像一致：Ubuntu 24.04 / 32核 / 82G / 355G(`/`)+934G(`/data`) / 均有 `/opt/pytorch-env`
 
 ## 软件栈（三台均已就位并验证）
