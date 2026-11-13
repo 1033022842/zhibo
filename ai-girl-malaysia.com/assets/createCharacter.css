@@ -50,14 +50,18 @@
 .cc-dots i.on { background: #E75275; }
 
 /* ── 入口步 ─────────────────────────────────── */
+/* 标题下方原来有一行副标题（She looks, sounds and acts…），已按需求去掉；
+   原来由副标题提供的下间距（30px）移到这里，避免标题紧贴卡片
+   （2026-11-13：去副标题后卡片区高度才和参考站一致）。 */
 .cc-entry-title {
   color: #fff;
   font-size: 34px;
   font-weight: 800;
   text-align: center;
-  margin: 26px 0 6px;
+  margin: 26px 0 30px;
 }
 .cc-entry-title .pink { color: #E75275; }
+/* 保留样式定义：其它步骤或将来复用时不至于无样式（当前入口步已不使用） */
 .cc-entry-sub {
   color: #a1a1a1;
   text-align: center;

@@ -332,7 +332,6 @@
         html += '<div class="cc-step">'
         html += '<div class="cc-dots">' + dotsHtml(0) + '</div>'
         html += '<div class="cc-entry-title">Create your Dream <span class="pink">AI Girl</span></div>'
-        html += '<div class="cc-entry-sub">She looks, sounds and acts exactly how you want.</div>'
         html += '<div class="cc-cards">'
         ;['Realistic', 'Anime'].forEach(function (cat) {
             var motion = (IMG.entryMotion && IMG.entryMotion[cat]) || ''
