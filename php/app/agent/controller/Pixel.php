@@ -95,14 +95,23 @@ final class Pixel extends Base
             $pay = $payMap[(string) $id] ?? ['b' => 0, 'amt' => 0.0];
             $sub = $subMap[(string) $id] ?? ['b' => 0, 'amt' => 0.0];
 
-            // 推广链接：优先用像素限定的域名，其次代理主域名
-            $linkDomain = $domains[0] ?? $fallbackDomain;
-            $pxParam    = trim((string) $p['pixel_id']);
-            $url = ($pxParam !== '' && $linkDomain !== '')
+            // 推广链接：优先用像素限定的域名（需仍在可用列表里），其次代理主域名
+            // 归因靠 ?px=渠道ID，不依赖平台像素 ID，因此没填像素 ID 的无像素渠道也要能生成链接
+            $linkDomain = '';
+            foreach ($domains as $d) {
+                if (in_array($d, $linkDomains, true)) {
+                    $linkDomain = $d;
+                    break;
+                }
+            }
+            if ($linkDomain === '') {
+                $linkDomain = $fallbackDomain;
+            }
+            $url = $linkDomain !== ''
                 ? 'https://' . $linkDomain . '/?px=' . $id
                 : '';
             $linkCell = $url === ''
-                ? '<span class="muted">没有可用域名</span>'
+                ? '<span class="muted">暂无可用域名，请先在「专属域名」添加</span>'
                 : '<div class="lk"><code data-px="' . $id . '">' . AgentView::h($url) . '</code>'
                     . '<button type="button" class="btn-copy" data-link="' . AgentView::h($url) . '">复制</button></div>';
 
@@ -202,6 +211,12 @@ final class Pixel extends Base
         foreach ($linkDomains as $d) {
             $linkOptions .= '<option value="' . AgentView::h($d) . '">' . AgentView::h($d) . '</option>';
         }
+        if ($linkOptions === '') {
+            $linkOptions = '<option value="">（暂无可用域名）</option>';
+        }
+        $domainWarning = $linkDomains === []
+            ? '<div class="alert err">还没有可用的推广域名，推广链接无法生成。请先到 <a href="/agent/domain/index">专属域名</a> 添加一个域名（域名需先完成解析并配好 HTTPS）。</div>'
+            : '';
 
         $content = <<<HTML
 <div class="head">
@@ -210,6 +225,7 @@ final class Pixel extends Base
     <div class="sub">配置自己的像素渠道并复制推广链接投放。访客从 <b>?px=</b> 链接进来后，注册与充值会按该像素实时归因到下面的统计。</div>
   </div>
 </div>
+{$domainWarning}
 <div class="stats">
   <div class="stat"><div><div class="k">像素渠道</div><div class="v">{$pixelCount}</div><div class="d">启用中 {$enabledN} 个</div></div></div>
   <div class="stat"><div><div class="k">注册数</div><div class="v">{$totalReg}</div><div class="d">按像素归因</div></div></div>
@@ -290,7 +306,7 @@ document.addEventListener('keydown', function (e) {
     for (var i = 0; i < codes.length; i++) {
       var code = codes[i];
       var url = host ? ('https://' + host + '/?px=' + code.getAttribute('data-px')) : '';
-      code.textContent = url || '没有可用域名';
+      code.textContent = url || '暂无可用域名，请先在「专属域名」添加';
       var btn = code.parentNode.querySelector('.btn-copy');
       if (btn) { btn.setAttribute('data-link', url); }
     }
