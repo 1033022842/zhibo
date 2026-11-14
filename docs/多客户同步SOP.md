@@ -1033,13 +1033,15 @@ python .zcode/sync_clients.py --client heygirl     # sugus / kelymi / kiss 同�
 
 ## 十四、kiss 换机后支付恢复（2026-11-14）
 
-客户反馈：支付方式与换服务器前不一致。期望的三条（旧机截图）：
+客户反馈：支付方式与换服务器前不一致。旧机截图是三条：
 
 ```
 Crypto · USDT / BTC (Cregis)
 Card · Visa / Mastercard          (AIPowerPay)
 HissPay (Visa / Mastercard)
 ```
+
+最终落地：**Cregis + HissPay 两条已跑通；AIPowerPay 按客户要求先下架**（见 14.4）。
 
 ### 14.1 根因
 
@@ -1062,52 +1064,59 @@ UPDATE lp_recharge_package SET tokens=1150, price=99.99,  bonus_percent=15 WHERE
 UPDATE lp_recharge_package SET tokens=2400, price=199.99, bonus_percent=20 WHERE id=5;
 UPDATE lp_recharge_package SET tokens=3750, price=299.99, bonus_percent=25 WHERE id=6;
 
--- 支付方式：只保留截图里的三条，下架 sugus 的
-UPDATE lp_fiat_channel SET status=0 WHERE gateway IN ('mkpay','mkpay_vn','mkpay_mx','mkpay_in','skytrade');
+-- 支付方式：只保留 Cregis + HissPay，下架 sugus 的和 AIPowerPay
+UPDATE lp_fiat_channel SET status=0 WHERE gateway IN ('mkpay','mkpay_vn','mkpay_mx','mkpay_in','skytrade','aipowerpay');
 UPDATE lp_fiat_channel SET status=1, sort=10 WHERE gateway='cregis';
-UPDATE lp_fiat_channel SET status=1, sort=20 WHERE gateway='aipowerpay';
 UPDATE lp_fiat_channel SET status=1, sort=30, name='HissPay (Visa / Mastercard)' WHERE gateway='hisspay';
 ```
 
-`.env` 补两段（密钥取自旧机部署脚本，不入 git）：
-`[CREGIS]` 见 `.trae/_deploy_cregis_kiss.py`；`[AIPOWERPAY]` 生产段见 `.trae/_switch_aipowerpay_prod.py`
-（`BASE_URL=https://api.aipowerpay.com`，`SITE_DOMAIN=https://kisss.ai`）。改完 `systemctl reload php8.3-fpm`。
+`.env` 关键点：`[CREGIS]` 的 `BASE_URL / PID / API_KEY` 必须与控制台里**做了 IP 白名单的那个项目**一致。
+kiss 正确项目：`BASE_URL=https://t-izyufmoo.cregis.io`、`PID=1468494180279392`（API Key 见 Cregis 控制台，不入 git）。
+旧部署脚本 `.trae/_deploy_cregis_kiss.py` 里的 `t-qiwnyuds / 1468496399934560` 是**另一个项目**，直接照抄会一直报 E0001。
+`[AIPOWERPAY]` 生产段见 `.trae/_switch_aipowerpay_prod.py`（`BASE_URL=https://api.aipowerpay.com`，`SITE_DOMAIN=https://kisss.ai`），
+当前 `status=0` 保留配置待用。改完 `systemctl reload php8.3-fpm`。
 
 Cregis / AIPowerPay 的通道行字段与旧机脚本一致：
-`name/gateway/USD/$/usd_rate=1/auto_rate=0/decimals=2/min_amount=0/diamond_rate=100/status=1`。
+`name/gateway/USD/$/usd_rate=1/auto_rate=0/decimals=2/min_amount=0/diamond_rate=100`。
 
 ### 14.3 验证结果
 
 | 项 | 结果 |
 |---|---|
-| `GET /api/v1/recharge/fiat-channels` | 恰好三条：Cregis → AIPowerPay → HissPay |
+| `GET /api/v1/recharge/fiat-channels` | Cregis + HissPay 两条（AIPowerPay 下架后） |
 | `GET /api/v1/recharge/packages` | `100/10.00、350/34.99、550/49.99、1150/99.99、2400/199.99、3750/299.99` |
 | `GET /api/v1/recharge/quote?tokens=100` | `$10.00` |
 | HissPay 建单（CLI） | ✅ 返回 `payUrl` |
 | MKPay 巴西建单（CLI） | ✅ 返回收银台；但旧截图无此方式，已下架 |
-| Cregis 建单 | ❌ `E0001 The IP is not added to the whitelist list 111.90.150.230` |
-| AIPowerPay 建单 | ❌ `20001 No payment method available`（`https://kisss.ai` 与 `https://www.kisss.ai` 同结果，排除 `invalid site`） |
+| Cregis 建单（旧项目） | ❌ `E0001 The IP is not added to the whitelist list 111.90.150.230` |
+| Cregis 建单（换成 `t-izyufmoo` 项目后） | ✅ `CK2026…`，返回 `https://pay.cregis.io?cid=…` |
+| AIPowerPay 建单 | ❌ `20001 No payment method available`（站名 kisss.ai 已审核，非 `invalid site`）→ 已下架 |
 
-> 测试订单均已删除。备份：`/root/kiss_pay_restore_20261114/`（`tables.sql` / `env.bak` / `env.bak2_aipower`）。
+> 测试订单均已删除。备份：`/root/kiss_pay_restore_20261114/`（`tables.sql` / `env.bak` / `env.bak2_aipower` / `env.bak3_cregis_project`）。
 
-### 14.4 卡在商户后台的两步（服务器侧无开关）
+### 14.4 两个网关的最终结论
 
-1. **Cregis**：客户端 → 项目 → API → IP 白名单，加 `111.90.150.230`（要 2FA）。加完即可建单。
-2. **AIPowerPay**：生产账号无可用支付方式。站点域名已审核通过（换别的域名才报 `11000 invalid site`），
-   需在商户后台确认卡通道/账户状态，或联系 AIPowerPay。
+1. **Cregis**：E0001 不一定只是「白名单没加」，本次真因是 `.env` 指向了**另一个项目**（`t-qiwnyuds`），
+   而白名单加在控制台正确项目（`t-izyufmoo`）上。换 `BASE_URL/PID/API_KEY` 后立即建单成功。
+   以后核对口径：控制台项目页的 Base URL + PID + API Key 三者必须与 `.env [CREGIS]` 完全一致。
+2. **AIPowerPay**：生产账号返回 `20001 No payment method available`，服务器侧无开关；客户决定先关闭，
+   通道行保留 `status=0`。恢复前需在 AIPowerPay 商户后台确认卡通道/账户状态，再一条 SQL 打开。
 
 ### 14.5 还没动的遗留项
 
 | 项 | 现状 | 风险 |
 |---|---|---|
-| 网关回调白名单 | HissPay / AIPowerPay / Cregis 是否绑了旧 IP 未知 | 用户付款后订单不确认；需各商户后台确认新 IP |
+| 网关回调白名单 | HissPay / Cregis 是否绑了旧 IP 未知（AIPowerPay 已下架） | 用户付款后订单不确认；建单成功不代表回调能到，需各商户后台确认新 IP |
 | `lp_vip_plan` | 仍是 sugus 的 18 档在售；kiss 旧档 `24.99/49.99/139.99` 是 `status=0` | 会员页档位比换机前少，待客户确认再改 |
 | `lp_recharge_channel` | 7 条链上通道仍是 sugus 地址，全部 `status=0` | 直接启用会把钱打进 sugus 钱包；必须先换 kiss 自己的地址 |
 | `lp_cs_channel` | 仍是 `sugus-AI / t.me/P_V_sugusai` | 客服导流到 sugus |
+| AIPowerPay | 通道行在，`status=0` | 商户侧无可用支付方式，打开也会报 20001 |
 
 ### 14.6 教训
 
 - 「按 sugus 内容基线重建」时，**先逐表核对「保留·商业配置」清单再同步页面**：
   `lp_recharge_package` / `lp_vip_plan` / `lp_fiat_channel` / `lp_recharge_channel` / `lp_cs_channel` / `lp_promo_*`。
 - 支付方式是否显示只看 `lp_fiat_channel.status`；能付与否要**逐网关真实建单**验证，两者是独立的。
+- 同一商户在 Cregis 下可能有多个项目；`E0001 IP 白名单` 先核对 `.env` 的 `BASE_URL / PID / API_KEY`
+  是否就是控制台里加白名单的那个项目，别只盯着白名单。
 - 换 IP 后网关白名单（Cregis 的 IP、各家的回调 IP）是必查项，建单成功不代表回调能到。
