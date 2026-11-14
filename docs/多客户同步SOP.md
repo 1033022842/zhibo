@@ -641,6 +641,92 @@ curl -s -X POST https://<域名>/api/live/telegramStart
 curl -s -o /dev/null -w '%{http_code}\n' -X POST https://<域名>/api/live/telegramWebhook -d '{}'
 ```
 
+## 七之三、Google 登录四站接入（2026-11-13 完成）
+
+### 7.3.1 流程是「服务端授权码 + PKCE」，不是前端 GIS
+
+`SocialLoginService` 走 `https://accounts.google.com/o/oauth2/v2/auth` + `response_type=code`
++ `code_challenge(S256)`，token 交换在服务端完成。
+
+**所以 OAuth 客户端只需填 `Authorized redirect URIs`，`Authorized JavaScript origins` 留空。**
+（`main.js` 里那套 `initTokenClient` GIS 组件已被 `window.LiveLoginGateway = true` 短路，是死代码。）
+
+### 7.3.2 前置：Search Console 域名所有权（最容易卡住的一步）
+
+同意屏幕填「已获授权的网域」时，Google 会校验该域名是否在当前账号名下。没有就会报
+**"您的首页网址对应的网站未注册到您的名下"**。
+
+两个坑：
+
+| 坑 | 说明 |
+|---|---|
+| **账号绑错** | 验证文件是 Google 账号级的，Cloud Console 与 Search Console 必须同一账号。11-13 sugus 就因此卡了一轮 |
+| **根路径是 SPA fallback** | `https://域名/googleXXX.html` 返回 200 + Vue 后台 HTML（内容对不上 → 验证失败）。**验证文件必须放 `/ai/` 目录**，即用「网址前缀」`https://域名/ai/` 类型 |
+
+验证文件由 `sync_clients` 一起分发（放仓库根，同步后位于 `/ai/` 下）：
+`ai-girl-malaysia.com/googleXXXXXXXXXXXXXXXX.html`
+
+```bash
+# 自查（走海外出口）
+curl -sk https://<域名>/ai/googleXXXXXXXXXXXXXXXX.html   # 应返回 53 字节的 google-site-verification: ...
+```
+
+### 7.3.3 四站 Client ID 与回调
+
+| 站点 | GCP project | 回调域名 |
+|---|---|---|
+| sugus | propane-purpose-514609-i0 | sugus.ai / www.sugus.ai |
+| heygirl | heygirl-514610 | heygirl.live（别名已 301 跳主域） |
+| kelymi | kelymi | kelymi.autos（其余 3 域名 DNS 不通） |
+| kiss | kiss-514612 | kisss.ai / www.kisss.ai |
+
+`.env` 写法（多域名用 `REDIRECT_URIS` 逗号分隔，按请求 origin 自动匹配）：
+
+```ini
+[GOOGLE]
+CLIENT_ID = xxx.apps.googleusercontent.com
+CLIENT_SECRET = GOCSPX-xxx
+REDIRECT_URI = https://<主域>/api/live/socialCallback/google
+REDIRECT_URIS = https://<主域>/api/live/socialCallback/google,https://www.<主域>/api/live/socialCallback/google
+```
+
+**别名域名处理（heygirl 已做）**：nginx 加独立 443 块，别名 301 到主域，
+这样同意屏幕只需登记一个网域，免去逐个 Search Console 验证。注意该块必须定义在主 443 块**之前**。
+
+### 7.3.4 验证方法（不消耗真实账号）
+
+```bash
+# 1) loginOptions 应 google=enabled:true
+curl -s https://<域名>/api/live/loginOptions
+
+# 2) 生成授权 URL（origin 必须由前端上报，CDN 会改写 Host）
+curl -s -X POST 'https://<域名>/api/live/socialStart/google' --data-urlencode 'origin=https://<域名>'
+
+# 3) 拿 ② 返回的 authorize_url 直接请求 —— 返回 accounts.google.com 登录页 = 回调已登记
+#    redirect_uri_mismatch = 后台漏填该域名
+curl -sL -o /dev/null -w '%{http_code}' '<authorize_url>'
+```
+
+### 7.3.5 坑（新增）
+
+| 坑 | 现象 | 规避 |
+|---|---|---|
+| **kiss 缺 PromoService::platformFromUserAgent()**（11-14） | Google/Discord/Telegram 首次登录全部失败，回调 302 后 `socialExchange` 返回 **500**（6808 字节异常页），前端显示 "Authorization failed"。CLI 复现：`Call to undefined method PromoService::platformFromUserAgent()` | kiss 后端旧、`UserService` 是新的。最小补丁：把上游 `PromoService` 的该方法（约 30 行正则表）追加到 kiss 版末尾 |
+| **kiss 缺 AgentService 类**（11-14，上一条修完立刻暴露） | 同上 500，报 `Class "app\live\service\AgentService" not found` | `UserService::createUser()` 里 `if (AgentService::ready())` 改为 `if (class_exists(AgentService::class) && AgentService::ready())`。kiss 没接代理体系，跳过即可 |
+| **回调成功但前端报 failed** | 看 nginx 日志：`socialCallback` 302（正常）+ `socialExchange` **500/4xx**。真正失败在兑票，不在 Google | 别被 302 骗了，一定查 `socialExchange` 的状态码与 runtime 日志 |
+| **CDN 改写 Host 导致域名校验失败** | `socialStart` 报 "Please sign in on the configured site domain" | Bunny 回源把 Host 改成源站 IP。前端 `context()` 上报 `location.origin`，后端按白名单校验（2026-11-13 已实现） |
+| **Bunny 吞 Set-Cookie** | 回调拿不到浏览器绑定 cookie | browser 令牌随 JSON 下发，前端存 localStorage，兑换时 body 回传 |
+
+### 7.3.6 新客户接入清单
+
+1. Search Console 验证 `https://<域名>/ai/`（HTML 文件放 `/ai/` 下）
+2. 建 OAuth 客户端（Web 应用），只填 Authorized redirect URIs
+3. 同意屏幕填 4 项：首页 `/ai/Home.html`、隐私 `/ai/privacy.html`、条款 `/ai/terms.html`、网域 `<裸域>`
+4. **Publish App**（Testing 状态只有测试用户能登录）
+5. `.env` 写 `[GOOGLE]`，`systemctl reload php8.3-fpm`
+6. 按 7.3.4 三条验证
+7. **新客户站务必先验一遍建号路径**：`php -r` 跑 `UserService::loginWithIdentity('google','TEST_SUB','t@e.com','T')`，确认没抛异常再交付
+
 ## 八、四台服务器与仓库速查
 
 | 项目 | 网站服务器 | brand kit | 客户仓库（本地路径） |
