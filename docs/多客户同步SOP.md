@@ -1030,3 +1030,84 @@ python .zcode/sync_clients.py --client heygirl     # sugus / kelymi / kiss 同�
 
 - 这是**客户端 Google 翻译**，不是独立语言包：首屏会先出现英文再被翻译，且依赖 `translate.google.com` 可达（大陆出口已被 403 封锁，不受影响）。
 - 只改 `shell-new.js` 内容不升版本号会命中旧缓存，表现为「改了没效果」；版本号在 51 个页面里统一替换。
+
+## 十四、kiss 换机后支付恢复（2026-11-14）
+
+客户反馈：支付方式与换服务器前不一致。期望的三条（旧机截图）：
+
+```
+Crypto · USDT / BTC (Cregis)
+Card · Visa / Mastercard          (AIPowerPay)
+HissPay (Visa / Mastercard)
+```
+
+### 14.1 根因
+
+11-10 旧机（103.217.252.52）磁盘不可恢复，新机用 **sugus 库**做基线重建（`docs/sql/kiss_建库清空用户.sql`）。
+该脚本第 2 节写明 `lp_recharge_package` / `lp_vip_plan` / `lp_fiat_channel` / `lp_recharge_channel`
+要「保留行、改成 kiss 的值」，但实际只清了用户、加了 HissPay，其余仍是 sugus 的：
+
+- Token 套餐变成 sugus 的 `199/$10.99、350/$25.99、550/$39.99…`
+- sugus 的 MKPay 越南/墨西哥/印度被启用，kiss 原有的 Cregis、AIPowerPay 两条通道不存在
+- 证据：同库 `lp_cs_channel` 还是 `sugus-AI / t.me/P_V_sugusai`
+
+### 14.2 已恢复内容（kiss 111.90.150.230）
+
+```sql
+-- Token 套餐回到 kiss 原价（与 php/sql/upgrade_recharge_starpay.sql 一致）
+UPDATE lp_recharge_package SET tokens=100,  price=10.00,  bonus_percent=0  WHERE id=1;
+UPDATE lp_recharge_package SET tokens=350,  price=34.99,  bonus_percent=0  WHERE id=2;
+UPDATE lp_recharge_package SET tokens=550,  price=49.99,  bonus_percent=10 WHERE id=3;
+UPDATE lp_recharge_package SET tokens=1150, price=99.99,  bonus_percent=15 WHERE id=4;
+UPDATE lp_recharge_package SET tokens=2400, price=199.99, bonus_percent=20 WHERE id=5;
+UPDATE lp_recharge_package SET tokens=3750, price=299.99, bonus_percent=25 WHERE id=6;
+
+-- 支付方式：只保留截图里的三条，下架 sugus 的
+UPDATE lp_fiat_channel SET status=0 WHERE gateway IN ('mkpay','mkpay_vn','mkpay_mx','mkpay_in','skytrade');
+UPDATE lp_fiat_channel SET status=1, sort=10 WHERE gateway='cregis';
+UPDATE lp_fiat_channel SET status=1, sort=20 WHERE gateway='aipowerpay';
+UPDATE lp_fiat_channel SET status=1, sort=30, name='HissPay (Visa / Mastercard)' WHERE gateway='hisspay';
+```
+
+`.env` 补两段（密钥取自旧机部署脚本，不入 git）：
+`[CREGIS]` 见 `.trae/_deploy_cregis_kiss.py`；`[AIPOWERPAY]` 生产段见 `.trae/_switch_aipowerpay_prod.py`
+（`BASE_URL=https://api.aipowerpay.com`，`SITE_DOMAIN=https://kisss.ai`）。改完 `systemctl reload php8.3-fpm`。
+
+Cregis / AIPowerPay 的通道行字段与旧机脚本一致：
+`name/gateway/USD/$/usd_rate=1/auto_rate=0/decimals=2/min_amount=0/diamond_rate=100/status=1`。
+
+### 14.3 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `GET /api/v1/recharge/fiat-channels` | 恰好三条：Cregis → AIPowerPay → HissPay |
+| `GET /api/v1/recharge/packages` | `100/10.00、350/34.99、550/49.99、1150/99.99、2400/199.99、3750/299.99` |
+| `GET /api/v1/recharge/quote?tokens=100` | `$10.00` |
+| HissPay 建单（CLI） | ✅ 返回 `payUrl` |
+| MKPay 巴西建单（CLI） | ✅ 返回收银台；但旧截图无此方式，已下架 |
+| Cregis 建单 | ❌ `E0001 The IP is not added to the whitelist list 111.90.150.230` |
+| AIPowerPay 建单 | ❌ `20001 No payment method available`（`https://kisss.ai` 与 `https://www.kisss.ai` 同结果，排除 `invalid site`） |
+
+> 测试订单均已删除。备份：`/root/kiss_pay_restore_20261114/`（`tables.sql` / `env.bak` / `env.bak2_aipower`）。
+
+### 14.4 卡在商户后台的两步（服务器侧无开关）
+
+1. **Cregis**：客户端 → 项目 → API → IP 白名单，加 `111.90.150.230`（要 2FA）。加完即可建单。
+2. **AIPowerPay**：生产账号无可用支付方式。站点域名已审核通过（换别的域名才报 `11000 invalid site`），
+   需在商户后台确认卡通道/账户状态，或联系 AIPowerPay。
+
+### 14.5 还没动的遗留项
+
+| 项 | 现状 | 风险 |
+|---|---|---|
+| 网关回调白名单 | HissPay / AIPowerPay / Cregis 是否绑了旧 IP 未知 | 用户付款后订单不确认；需各商户后台确认新 IP |
+| `lp_vip_plan` | 仍是 sugus 的 18 档在售；kiss 旧档 `24.99/49.99/139.99` 是 `status=0` | 会员页档位比换机前少，待客户确认再改 |
+| `lp_recharge_channel` | 7 条链上通道仍是 sugus 地址，全部 `status=0` | 直接启用会把钱打进 sugus 钱包；必须先换 kiss 自己的地址 |
+| `lp_cs_channel` | 仍是 `sugus-AI / t.me/P_V_sugusai` | 客服导流到 sugus |
+
+### 14.6 教训
+
+- 「按 sugus 内容基线重建」时，**先逐表核对「保留·商业配置」清单再同步页面**：
+  `lp_recharge_package` / `lp_vip_plan` / `lp_fiat_channel` / `lp_recharge_channel` / `lp_cs_channel` / `lp_promo_*`。
+- 支付方式是否显示只看 `lp_fiat_channel.status`；能付与否要**逐网关真实建单**验证，两者是独立的。
+- 换 IP 后网关白名单（Cregis 的 IP、各家的回调 IP）是必查项，建单成功不代表回调能到。
