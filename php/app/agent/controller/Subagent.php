@@ -137,16 +137,19 @@ final class Subagent extends Base
                 . '<span><b>' . $label . '</b><small>' . $desc . '</small></span></label>';
         }
 
+        // 这里展示的是「该子代理将继承到的资源」：只读，且只能用于其推广链接，不能在创建时单独分配
         $domains = AgentService::effectiveDomains($this->agentId(), true);
         $pixels  = AgentService::effectivePixels($this->agentId(), true);
 
         $domTags = '';
         foreach ($domains as $d) {
-            $label = (string) $d['domain'] . (!empty($d['inherited']) ? '（继承）' : '');
+            $label = (string) $d['domain'] . (!empty($d['inherited']) ? '（继承自上级）' : '（本人）');
             $domTags .= '<span class="tag">' . AgentView::h($label) . '</span>';
         }
         if ($domTags === '') {
-            $domTags = '<span class="muted">暂无可用域名</span>';
+            $domTags = '<span class="muted">当前没有可用的推广域名；请先在「专属域名」添加，子代理才能生成推广链接。</span>';
+        } else {
+            $domTags .= '<span class="note">只读：子代理只能在推广链接里选用这些域名；访客直接访问域名时，业绩归域名所属代理，不归子代理。</span>';
         }
         $pxTags = '';
         foreach ($pixels as $p) {
@@ -154,7 +157,9 @@ final class Subagent extends Base
             $pxTags .= '<span class="tag alt">' . AgentView::h($label) . '</span>';
         }
         if ($pxTags === '') {
-            $pxTags = '<span class="muted">暂无可用渠道</span>';
+            $pxTags = '<span class="muted">当前没有可用的像素渠道；子代理仍可用推广链接做归因，只是无法绑定像素。</span>';
+        } else {
+            $pxTags .= '<span class="note">只读：子代理只能在推广链接里绑定这些渠道，不能查看或修改像素配置。</span>';
         }
 
         $formTitle = $eId > 0 ? '编辑子代理 · ' . $eName : '新建子代理';
@@ -220,9 +225,10 @@ final class Subagent extends Base
     </div>
     <div class="divider"></div>
     <div class="section">
-      <div class="section-head"><h3>继承的推广资源</h3><span class="hint">子代理无需单独配置，自动可用</span></div>
+      <div class="section-head"><h3>该子代理自动继承的推广资源</h3><span class="hint">只读展示，不能在创建时分配</span></div>
       <div class="res-row"><span class="k">推广域名</span><span class="v">{$domTags}</span></div>
-      <div class="res-row"><span class="k">推广渠道</span><span class="v">{$pxTags}</span></div>
+      <div class="res-row"><span class="k">像素渠道</span><span class="v">{$pxTags}</span></div>
+      <div class="tip" style="margin-top:8px">子代理不单独维护域名和像素，统一继承当前账号（含上级）的资源；一个域名只能归属一个代理，因此不提供单独分配。</div>
     </div>
     <div class="form-actions">
       <button class="btn" type="submit">保存</button>{$cancel}
