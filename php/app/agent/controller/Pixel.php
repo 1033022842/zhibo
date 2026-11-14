@@ -207,6 +207,10 @@ final class Pixel extends Base
         }
         $totalPayAmtFmt = number_format($totalPayAmt, 2);
 
+        $linkOptions = '<option value="">按各像素域名（默认）</option>';
+        foreach ($linkDomains as $d) {
+            $linkOptions .= '<option value="' . AgentView::h($d) . '">' . AgentView::h($d) . '</option>';
+        }
         $domainWarning = $linkDomains === []
             ? '<div class="alert err">还没有可用的推广域名，推广链接无法生成。请先到 <a href="/agent/domain/index">专属域名</a> 添加一个域名（域名需先完成解析并配好 HTTPS）。</div>'
             : '';
@@ -249,7 +253,11 @@ final class Pixel extends Base
 </div>
 <div class="card">
   <h2>像素列表<span class="muted" style="font-weight:400;font-size:12px"> · 统计按注册时的 ?px= 归因</span></h2>
-  <div class="tip" style="margin:0 0 12px">每条链接使用该像素在「像素生效域名」里勾选的第一个域名；未勾选时使用默认域名。修改域名请编辑对应像素。</div>
+  <div class="toolbar" style="margin-bottom:12px">
+    <span class="muted" style="font-size:12.5px">推广链接域名</span>
+    <select id="pxLinkDomain">{$linkOptions}</select>
+    <span class="muted" style="font-size:12px">选择后，下面所有链接会切换成该域名；选「按各像素域名」恢复各自配置</span>
+  </div>
   <div class="table-wrap"><table><thead><tr>
     <th>渠道</th><th>推广链接</th><th class="num">注册数</th>
     <th class="num">充值人数/金额</th><th class="num">订阅人数/金额</th><th>状态</th><th>操作</th>
@@ -286,6 +294,26 @@ function pxTest(id) {
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') { closePxTest(); }
 });
+(function () {
+  var sel = document.getElementById('pxLinkDomain');
+  if (!sel) return;
+  var codes = document.querySelectorAll('code[data-px]');
+  for (var i = 0; i < codes.length; i++) {
+    codes[i].setAttribute('data-orig', codes[i].textContent);
+  }
+  sel.addEventListener('change', function () {
+    var host = sel.value || '';
+    for (var j = 0; j < codes.length; j++) {
+      var code = codes[j];
+      var url = host
+        ? ('https://' + host + '/?px=' + code.getAttribute('data-px'))
+        : (code.getAttribute('data-orig') || '');
+      code.textContent = url;
+      var btn = code.parentNode.querySelector('.btn-copy');
+      if (btn) { btn.setAttribute('data-link', url); }
+    }
+  });
+})();
 </script>
 HTML;
 
