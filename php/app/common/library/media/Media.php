@@ -238,9 +238,23 @@ final class Media
         return false;
     }
 
+    /**
+     * URL 路径编码（逐段 rawurlencode，保留 "/" 分隔）。
+     *
+     * 关键：先 rawurldecode 再编码 —— 库里的路径可能已经是编码形态
+     * （例如上传时把 `(1).png` 存成了 `%281%29.png`），直接 rawurlencode
+     * 会把 `%` 再编码成 `%25`，得到 `%25281%2529.png` → 前端 404。
+     * 先解码让两种形态收敛到同一结果，保证幂等。
+     */
     public static function encodePath(string $key): string
     {
-        return implode('/', array_map('rawurlencode', explode('/', $key)));
+        return implode('/', array_map(static function (string $seg): string {
+            // 最多剥 3 层历史编码（库里有 %28 / %2528 / %252528 三种形态），再统一编码一次
+            for ($i = 0; $i < 3 && str_contains($seg, '%25'); $i++) {
+                $seg = rawurldecode($seg);
+            }
+            return rawurlencode(rawurldecode($seg));
+        }, explode('/', $key)));
     }
 
     // ────────────────────────── 写路径 ──────────────────────────
