@@ -32,6 +32,9 @@ final class PayoutSetting extends Backend
         'call_price_per_minute'       => ['float', '语音通话每分钟价格（代币）'],
         'video_gen_price'             => ['float', 'AI 视频生成：免费次数用尽后每次扣代币（0=关闭）'],
         'image_gen_price'             => ['float', 'AI 图片生成：免费次数用尽后每次扣代币（0=关闭）'],
+        // AI 工作室卡片价：按卡片 code 确定性随机（同一张卡恒定不变），留空=按站点默认区间
+        'short_card_price_min'        => ['float', 'AI 工作室卡片随机定价区间下限（留空=按站点默认；sugus/heygirl 30，其它站跟随全局单价）'],
+        'short_card_price_max'        => ['float', 'AI 工作室卡片随机定价区间上限（留空=按站点默认；sugus/heygirl 100）'],
         'withdraw_fee_rate'           => ['float', '提现手续费比例'],
         'min_withdraw_diamond'        => ['float', '最低提现代币数'],
         'payout_max_attempts'         => ['int', '单笔提现最多自动打款次数'],
@@ -115,6 +118,9 @@ final class PayoutSetting extends Backend
         $callPrice   = $f('call_price_per_minute', '5');
         $videoGenPrice = $f('video_gen_price', '50');
         $imageGenPrice = $f('image_gen_price', '10');
+        // 卡片随机定价：默认留空（API 侧按站点自动判定），运营要改才填
+        $cardMin = htmlspecialchars((string) $values['short_card_price_min'], ENT_QUOTES);
+        $cardMax = htmlspecialchars((string) $values['short_card_price_max'], ENT_QUOTES);
 
         echo <<<HTML
 <!DOCTYPE html>
@@ -180,8 +186,11 @@ final class PayoutSetting extends Backend
             <div class="field"><label>语音通话每分钟价格（代币）</label><input name="call_price_per_minute" value="{$callPrice}" placeholder="5"></div>
             <div class="field"><label>AI 图片生成（换装/图片编辑）：免费次数用尽后每次扣代币</label><input name="image_gen_price" value="{$imageGenPrice}" placeholder="10"></div>
             <div class="field"><label>AI 视频生成：免费次数用尽后每次扣代币</label><input name="video_gen_price" value="{$videoGenPrice}" placeholder="50"></div>
+            <div class="field"><label>AI 工作室卡片价：随机下限（留空=按站点默认）</label><input name="short_card_price_min" value="{$cardMin}" placeholder="30"></div>
+            <div class="field"><label>AI 工作室卡片价：随机上限（留空=按站点默认）</label><input name="short_card_price_max" value="{$cardMax}" placeholder="100"></div>
         </div>
-        <div class="tip">用户每日免费消息额度用完后，可选择用代币继续聊天（按条扣费）；语音通话按每分钟扣费，余额不足自动结束；AI 视频工作室的免费生成次数用尽后，图片与视频按各自单价扣代币继续生成。前端会在扣费前弹窗提示「本次将消耗多少代币」并让用户确认，取消则不扣费。填 0 表示关闭对应消费点，留空保存则恢复默认（续聊 1 / 通话 5 / 图片 10 / 视频 50）。</div>
+        <div class="tip">用户每日免费消息额度用完后，可选择用代币继续聊天（按条扣费）；语音通话按每分钟扣费，余额不足自动结束；AI 视频工作室的免费生成次数用尽后，图片与视频按各自单价扣代币继续生成。前端会在扣费前弹窗提示「本次将消耗多少代币」并让用户确认，取消则不扣费。填 0 表示关闭对应消费点，留空保存则恢复默认（续聊 1 / 通话 5 / 图片 10 / 视频 50）。<br>
+        <b>AI 工作室卡片价</b>：卡片默认走「按卡片代码确定性随机」，同一张卡永远是同一个价（不会每次刷新乱跳，报价与实扣一致），取值为下方区间的 10 的倍数。两个框都留空（或都填 0）= 按站点自动：sugus / heygirl 为 30~100，其它站跟随上方全局单价。上下限填相同数值 = 全站固定该价。某个卡片要固定价（或免费）时，仍到「AI 工作室 → 卡片管理」里单独填「代币价」覆盖。</div>
     </div>
 
     <div class="card">

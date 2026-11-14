@@ -94,6 +94,12 @@ final class AiShort extends BaseController
                     'duration_sec' => (int) $r['duration_sec'],
                     // 卡片代币价：-1=跟随站点全局单价（前端按 quota 展示），0=免费，>0=固定价
                     'price_tokens' => isset($r['price_tokens']) ? (float) $r['price_tokens'] : -1.0,
+                    // 该卡最终单价（固定价 / 确定性随机价 / 全局价 已合成），前端可直接展示
+                    'price'        => $this->priceForCard(
+                        (string) ($r['kind'] ?? 'video'),
+                        isset($r['price_tokens']) ? (float) $r['price_tokens'] : -1.0,
+                        (string) $r['code']
+                    ),
                     'cover_url'    => $this->absUrl((string) $r['cover_url']),
                     'preview_url'  => $this->absUrl((string) $r['preview_url']),
                     // 卡片左上角人设缩略图
@@ -187,10 +193,10 @@ final class AiShort extends BaseController
         $wallet = new WalletService();
         $paidTokens = 0.0;
 
-        // 卡片定价：price_tokens >= 0 用卡片价（0=免费卡），-1 跟随站点全局单价
+        // 卡片定价：卡片固定价 > 确定性随机价 > 站点全局单价
         $pt = isset($preset['price_tokens']) ? (float) $preset['price_tokens'] : -1.0;
         $useCardPrice = $pt >= 0;
-        $cardPrice = $useCardPrice ? $pt : $this->genPrice($kind);
+        $cardPrice = $this->priceForCard($kind, $pt, (string) $preset['code']);
 
         $credits->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
         if ($useCardPrice && $cardPrice <= 0) {
@@ -335,13 +341,11 @@ final class AiShort extends BaseController
         $remain = (new GenCreditService())->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
         $price  = $this->genPrice($kind);
         if ($code !== '') {
-            // 卡片定价优先：price_tokens >= 0 用卡片价，否则全局价
+            // 与 submit 同一套取值：卡片固定价 > 确定性随机价 > 全局价
             $p = $this->db()->table('lp_short_preset')
                 ->where('code', $code)->where('status', 1)
                 ->value('price_tokens');
-            if ($p !== null && (float) $p >= 0) {
-                $price = (float) $p;
-            }
+            $price = $this->priceForCard($kind, $p === null ? -1.0 : (float) $p, $code);
         }
 
         return $this->jsonSuccess([
@@ -804,6 +808,55 @@ final class AiShort extends BaseController
     {
         $key = $kind === 'image' ? 'image_gen_price' : 'video_gen_price';
         return max(0.0, (float) WalletService::config($key, $kind === 'image' ? '10' : '50'));
+    }
+
+    /**
+     * 卡片随机定价区间（后台「功能定价」可改；min/max 设为 0 = 关闭随机，回退全局单价）
+     *
+     * 运营不想逐卡设价，所以卡片价走「按 code 确定性随机」：
+     * 同一张卡永远得出同一个价（用 crc32(code) 做种子，不落库、不随机漂移），
+     * 保证 /quota 的报价与 submit 的实际扣费一致 —— 真随机会导致「报价 30 实扣 70」。
+     *
+     * 默认区间 30~100（10 的倍数）只对 sugus / heygirl 生效：这两个站是同一个客户。
+     * kelymi / kiss 是别的客户（kelymi 还走人民币定价），必须保持原全局单价。
+     * 站点身份取 .env 的 [MEDIA] PROJECT（sugus / hey / kelymi / kiss，四站各自独立）。
+     */
+    private function cardPriceRange(): array
+    {
+        $min = (float) WalletService::config('short_card_price_min', '');
+        $max = (float) WalletService::config('short_card_price_max', '');
+        if ($min > 0 && $max >= $min) return [$min, $max];   // 后台显式配置优先
+        if ($min > 0 || $max > 0) return [0.0, 0.0];         // 配了一半视为关闭，避免算出怪价
+
+        $mediaCfg = (array) config('media');
+        $project  = strtolower((string) ($mediaCfg['project'] ?? 'sugus'));
+        if (in_array($project, ['sugus', 'hey', 'heygirl'], true)) return [30.0, 100.0];
+        return [0.0, 0.0];
+    }
+
+    /** 按 code 确定性取价：区间内 10 的倍数，同一 code 恒定 */
+    private function randomCardPrice(string $code, float $min, float $max): float
+    {
+        $steps = (int) floor(($max - $min) / 10);
+        $seed  = crc32($code);                       // 稳定哈希，跨进程/跨机器一致
+        return $min + 10 * ($steps > 0 ? $seed % ($steps + 1) : 0);
+    }
+
+    /**
+     * 单卡最终单价（按优先级）：卡片固定价 > 确定性随机价 > 站点全局单价
+     * $cardPriceTokens 传 lp_short_preset.price_tokens：-1=未设，0=免费，>0=固定价
+     *
+     * 随机定价只作用于视频卡：需求是把「视频卡 vs 全局 50」改成 30~100 随机，
+     * 图片卡全局价是 10，套同一区间会莫名涨 3~10 倍，所以仍走全局图价。
+     */
+    private function priceForCard(string $kind, float $cardPriceTokens, string $code): float
+    {
+        if ($cardPriceTokens >= 0) return $cardPriceTokens;
+        if ($kind !== 'image') {
+            [$min, $max] = $this->cardPriceRange();
+            if ($min > 0 && $code !== '') return $this->randomCardPrice($code, $min, $max);
+        }
+        return $this->genPrice($kind);
     }
 
     private function fmtPrice(float $price): string

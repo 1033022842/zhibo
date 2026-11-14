@@ -72,6 +72,11 @@
 .gs-card__tags{display:flex;max-width:100%;margin-top:7px;flex-wrap:wrap;justify-content:center;gap:4px}
 /* 标签照参考站做细描边胶囊：大号粉色斜体块会把卡片下部压得很重，视觉上就是「挤」 */
 .gs-card__tag{display:inline-flex;align-items:center;height:24px;padding:0 12px;border:1px solid rgba(255,255,255,.5);border-radius:20px;background:rgba(0,0,0,.3);color:#fff;font-size:12px;line-height:16px;font-weight:600;text-transform:capitalize}
+/* 卡片价签：每张卡单价不同（后台按 code 确定性随机定价），左上角常显；有人设缩略图时右移避让 */
+.gs-card__price{position:absolute;z-index:4;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:20px;background:rgba(10,10,12,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;font-size:12px;line-height:16px;font-weight:700;pointer-events:none}
+.gs-card__price.has-mark{left:58px}
+.gs-card__price img{width:13px;height:13px;display:block}
+.gs-card__price.is-free{color:#7ee2a8}
 @media(max-width:719px){.gs-card__title{font-size:14px;line-height:18px}.gs-card__details{min-height:82px;padding:8px}}
 .gs-skel{border-radius:12px;aspect-ratio:0.5625;background:linear-gradient(100deg,#161616 20%,#1f1f1f 40%,#161616 60%);background-size:200% 100%;animation:gs-shimmer 1.2s linear infinite}
 @keyframes gs-shimmer{to{background-position:-200% 0}}
@@ -194,7 +199,7 @@
 
 	<script src="./js/ui-dialog.js?v=20260928d"></script>
 	<script>window.MEDIA_CDN="https://media.heygirl.live/pub/hey/"</script>
-	<script src="./js/customVideo.js?v=20261107hg1"></script>
+	<script src="./js/customVideo.js?v=20261114price1"></script>
 <script src="./js/tracking.js?v=20261108trk3"></script>
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
     <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">

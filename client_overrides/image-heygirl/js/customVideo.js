@@ -178,6 +178,9 @@
         if (!$('gsGrid') || gsLoaded || gsLoading) return
         gsLoading = true
         gsSkeleton()
+        // 预设元信息（含卡片价）与画廊数据并行拉取，等两边都到齐再渲染：
+        // 价签来自 /presets，先渲染后到会导致卡片上缺价、且不会自动补。
+        var presets = loadPresets()
         fetch(GS_BASE + 'clips.json', { cache: 'no-store' })
             .then(function (r) { return r.json() })
             .then(function (d) {
@@ -187,6 +190,7 @@
                 }))
             })
             .catch(function () { gsList = [] })
+            .then(function () { return presets })
             .then(function () {
                 gsLoading = false
                 gsLoaded = true
@@ -500,6 +504,16 @@
                 '" alt="' + title + '" loading="lazy" decoding="async">'
         }
 
+        // 左上角价签：每张卡单价不同（后台按 code 确定性随机），不显示的话运营和用户都无从判断
+        var priceNum = Number((gsPresetMap[c.id] || {}).price)
+        var priceHtml = ''
+        if (priceNum === 0) {
+            priceHtml = '<span class="gs-card__price is-free' + (mark ? ' has-mark' : '') + '">Free</span>'
+        } else if (priceNum > 0) {
+            priceHtml = '<span class="gs-card__price' + (mark ? ' has-mark' : '') + '">' + COIN_SVG +
+                '<span>' + esc(fmtAmount(priceNum)) + '</span></span>'
+        }
+
         // 右上角收藏爱心：点它不进详情（委托里拦掉）
         var like = '<span class="gs-card__like' + (favHas(c.id) ? ' on' : '') + '" data-gs-fav="' +
             esc(c.id) + '" role="button" aria-label="Favorite">' + HEART_SVG + '</span>'
@@ -508,7 +522,7 @@
             ' data-gs-id="' + esc(c.id) + '"' +
             ' style="--ar:' + ar.toFixed(4) + '">' +
             '<div class="gs-card__frame">' + media + like + '</div>' +
-            mark +
+            mark + priceHtml +
             '<span class="gs-card__details">' +
             '<span class="gs-card__title">' + title + '</span>' +
             '<span class="gs-card__creator-name">@' + esc(c.creator || 'genspicy') + '</span>' +
