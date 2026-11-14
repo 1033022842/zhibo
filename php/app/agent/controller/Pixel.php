@@ -286,7 +286,7 @@ function pxTest(id) {
     headers: { 'Accept': 'application/json' }
   }).then(function (r) { return r.json(); }).then(function (d) {
     title.textContent = '测试回调 · 像素 #' + id + (d.ok ? ' · 成功' : ' · 失败');
-    body.textContent = 'HTTP ' + (d.http || 0) + '\n\n' + (d.resp || '');
+    body.textContent = 'HTTP ' + (d.http || 0) + '\\n\\n' + (d.resp || '');
   }).catch(function (e) {
     body.textContent = '请求失败：' + e;
   });
