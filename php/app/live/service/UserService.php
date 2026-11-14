@@ -265,7 +265,9 @@ final class UserService
             $user->reg_ad       = mb_substr(trim((string) $attr['ad']), 0, 128);
             $user->reg_link_name = mb_substr(trim((string) $attr['link_name']), 0, 128);
             // 代理归因：推广链接名称 → ?px= 像素归属 → 代理独有域名（平台主域名不参与）
-            if (AgentService::ready()) {
+            // class_exists 兜底：未接代理体系的客户站（如 kiss）没有 AgentService.php，
+            // 裸调 AgentService::ready() 会抛类不存在，直接把注册/社交登录打成 500。
+            if (class_exists(AgentService::class) && AgentService::ready()) {
                 $agent = AgentService::resolve((string) $user->reg_domain, (string) $user->reg_link_name, (string) $user->reg_px);
                 $user->reg_agent_id   = (int) $agent['id'];
                 $user->reg_agent_name = mb_substr((string) $agent['name'], 0, 64);

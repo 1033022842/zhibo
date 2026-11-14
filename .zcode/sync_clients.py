@@ -44,6 +44,12 @@ CLIENTS = {
         "brand_kit": "/opt/brand-kit",
         "verify_url": "https://heygirl.live/ai/Home.html",
         "verify_expect": "heygirl",                # 验证页面应包含的品牌词
+        # 后端 PHP 一并同步（2026-11-14 起）：主线站点，PHP 漂移已逐文件核对完
+        "sync_php": True,
+        # 客户差异化的 PHP：整份商品/费率表按站点硬编码，绝不能拿上游版覆盖。
+        # config/skytrade.php 的 links 是各站自己的 Skytrade 商品链接表
+        # （sugus 卖服装、heygirl 卖首饰），覆盖后充值会全指向别家的商品页。
+        "exclude_php": ["php/config/skytrade.php"],
         # 客户仓库跟进（防「只改服务器不进仓库」的漂移事故）
         "repo": r"D:\ever\heygirl",
         "keep_files": {                             # 客户特有文件：仓库 checkout 后需恢复/保留
@@ -74,6 +80,8 @@ CLIENTS = {
         "verify_url": "http://172.81.98.55/ai/Home.html",
         "verify_expect": "Sugus",
         "repo": None,
+        # 后端 PHP 一并同步（2026-11-14 起）：与 heygirl 同为客户主线
+        "sync_php": True,
         # 客户差异化页面：Image.html 与 heygirl / kelymi / kiss 完全不同实现
         "overrides": "client_overrides/image-sugus",
     },
@@ -121,13 +129,23 @@ def sh(cmd, cwd=None):
     return r.returncode, r.stdout.decode("utf-8", "replace"), r.stderr.decode("utf-8", "replace")
 
 def tree_hashes(rev):
-    """返回 <rev> 下站点目录的 {路径: blob hash}"""
-    rc, out, err = sh(f'git ls-tree -r "{rev}" "{SITE_DIR}"', cwd=REPO)
-    if rc: sys.exit(f"git ls-tree {rev} 失败: {err}")
+    """返回 <rev> 下「站点目录 + 后端 php/」的 {路径: blob hash}
+
+    2026-11-14 修：以前只扫 SITE_DIR，php/ 永远进不了变更集，in_scope() 里的
+    PHP 分支从来不会命中 —— 文档写着「PHP 一并同步」，实际后端改动全靠人手 SFTP
+    （sugus 的 mp4 faststart 热修就这样漂在服务器上、kiss 的 class_exists 兜底
+    也没进仓库）。详见 docs/PHP漂移分析-20261114.md。
+
+    范围与首次放开的风险都在那份文档里；in_scope_php() 已收紧到只放行运行时代码。
+    """
     cur = {}
-    for line in out.splitlines():
-        meta, path = line.split("\t", 1)
-        cur[path.strip()] = meta.split()[2]
+    for scope in (SITE_DIR, "php"):
+        rc, out, err = sh(f'git ls-tree -r "{rev}" "{scope}"', cwd=REPO)
+        if rc:
+            sys.exit(f"git ls-tree {rev} {scope} 失败: {err}")
+        for line in out.splitlines():
+            meta, path = line.split("\t", 1)
+            cur[path.strip()] = meta.split()[2]
     return cur
 
 def changed_files(client, full):
@@ -166,24 +184,28 @@ def in_scope(path, include_files):
 
 
 # PHP 同步规则：仓库内路径都以 "php/" 开头
+# 只推「运行时会加载的代码」。以下一律不部署（2026-11-14 收紧，见 docs/PHP漂移分析-20261114.md）：
+#   database/migrations/ —— 迁移脚本，部署时应由 SQL 单独执行，不推文件
+#   sql/                —— 同上；此前 in_scope 放行 sql 是把它当代码推，其实服务器从不需要
+#   web/                —— 后台前端源码（构建产物 admin/dist 另行分发）
+#   tools/  _test_*.php  test_*.php  check_model.php —— 运维/测试脚本，不该进生产
 PHP_DENY_PREFIX = (
     "php/vendor/", "php/runtime/", "php/public/storage/", "php/storage/",
+    "php/database/", "php/sql/", "php/web/", "php/tools/",
 )
-PHP_DENY_NAME = (".env", ".env-example", ".gitignore", "composer.lock")
-PHP_DENY_PREFIX_NAME = (".env.",)
+PHP_DENY_NAME = (".env", ".env-example", ".gitignore", "composer.lock", "composer.json",
+                 "check_model.php")
+PHP_DENY_PREFIX_NAME = (".env.", "_test_", "test_")
 PHP_KEEP_SUFFIX = (".php", ".json", ".phtml")
 
 
 def in_scope_php(rel):
-    """php/ 目录下哪些文件要同步"""
+    """php/ 目录下哪些文件要同步（只放行运行时真正会 require 的代码）"""
     if any(rel.startswith(p) for p in PHP_DENY_PREFIX):
         return False
     name = posixpath.basename(rel)
     if name in PHP_DENY_NAME or any(name.startswith(p) for p in PHP_DENY_PREFIX_NAME):
         return False
-    # 迁移 SQL 只同步 sql/ 目录下的
-    if rel.startswith("php/sql/"):
-        return rel.endswith(".sql")
     return rel.endswith(PHP_KEEP_SUFFIX)
 
 # ── 客户差异化页面（overrides）─────────────────────────────────
@@ -396,6 +418,14 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
     excluded = set(cfg.get("exclude", []))
     if excluded:
         changed = [p for p in changed if p not in excluded]
+    # 客户差异化的 PHP（整份商品表/费率表按站点硬编码，覆盖会直接搞坏该站业务）
+    excluded_php = set(cfg.get("exclude_php", []))
+    if excluded_php:
+        kept = [p for p in changed if p not in excluded_php]
+        if len(kept) != len(changed):
+            print(f"  排除客户定制 PHP {len(changed) - len(kept)} 个: "
+                  + "、".join(p.replace('php/', '') for p in excluded_php))
+        changed = kept
     # 配了 overrides 的客户：同路径的上游文件不推（否则先推上游版再被覆盖，白传且易误判）
     ov_root, ov_files = override_plan(cfg)
     if ov_files:
@@ -420,8 +450,18 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
     if not changed:
         print("  无变更，仅刷新验证。")
     # 站点静态文件与后端 PHP 分开推：前者落 {site}，后者落 {site 上一级}/php
-    php_files = [p for p in changed if p.startswith("php/")]
+    # PHP 白名单：只有主线站点（sugus / heygirl）吃 PHP 同步。
+    # kelymi / kiss 的 PHP 与仓库有大量漂移，且仓库里有它们根本没部署的模块
+    # （kiss 缺 30 个文件含 Agent 代理体系 / AiShort 工作室 / ShortPreset 卡片管理；
+    #  kelymi 缺 AiShort）。放开等于给客户站装入未启用功能，需要客户确认后单独开，
+    # 故默认关闭。详见 docs/PHP漂移分析-20261114.md。
+    sync_php = cfg.get("sync_php", False)
+    php_files = [p for p in changed if p.startswith("php/")] if sync_php else []
     site_files = [p for p in changed if not p.startswith("php/")]
+    if not sync_php:
+        skipped_php = sum(1 for p in changed if p.startswith("php/"))
+        if skipped_php:
+            print(f"  ! 跳过后端 PHP {skipped_php} 个（该客户未开 sync_php）")
     if php_files:
         print(f"  其中后端 PHP {len(php_files)} 个（推完会 reload php-fpm）")
     if dry:
