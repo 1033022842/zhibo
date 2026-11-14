@@ -625,6 +625,14 @@ final class AiShort extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'task 不存在');
         }
 
+        // 20261107 faststart：ComfyUI 合成的 mp4 moov 原子在文件末尾（实测 ftyp→free→mdat→…→moov），
+        // 手机端起播前要拖完整个文件才能拿到元数据，2.9MB 的 10 秒片子要等数秒才出首帧，
+        // 用户感知就是「生成的视频播放不流畅」。入库前用 -c copy 无损 remux 把 moov 挪到头部，
+        // 秒级完成；失败时保留原文件，不影响任务完成。
+        if ($task->task_type === self::TASK_VIDEO) {
+            $this->remuxFaststart($file);
+        }
+
         $upload = new \app\common\library\Upload($file);
         $upload->setTopic('custom_video');
         $videoUrl = (string) $upload->upload(null, 0, 0)['url'];
@@ -643,6 +651,41 @@ final class AiShort extends BaseController
         $task->save();
 
         return $this->jsonSuccess(['video_url' => $videoUrl, 'cover_url' => $coverUrl]);
+    }
+
+    /**
+     * mp4 无损 faststart（moov 前置）：只 remux 不重编码，失败静默保留原文件。
+     * 识别条件：文件头 4..8 字节为 'ftyp'（mp4 魔数），其余格式直接跳过。
+     */
+    private function remuxFaststart($file): void
+    {
+        try {
+            $path = (string) $file->getPathname();
+            if (!is_file($path) || filesize($path) < 10240) {
+                return;
+            }
+            $head = (string) file_get_contents($path, false, null, 0, 12);
+            if (strlen($head) < 12 || substr($head, 4, 4) !== 'ftyp') {
+                return;
+            }
+            $tmp = $path . '.faststart.mp4';
+            $cmd = sprintf(
+                'ffmpeg -y -hide_banner -loglevel error -i %s -c copy -movflags +faststart %s',
+                escapeshellarg($path),
+                escapeshellarg($tmp)
+            );
+            exec($cmd, $out, $code);
+            if ($code === 0 && is_file($tmp) && filesize($tmp) > 0) {
+                rename($tmp, $path);
+            } else {
+                if (is_file($tmp)) {
+                    @unlink($tmp);
+                }
+                Log::warning('[aiShort] faststart remux failed, keep original: ' . basename($path));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[aiShort] faststart remux exception: ' . $e->getMessage());
+        }
     }
 
     /**
