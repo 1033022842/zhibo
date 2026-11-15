@@ -85,6 +85,10 @@
 			@media (min-width:769px){
 				.c-hero-wrap{margin-top:-24px;margin-bottom:-164px}
 				.c-hero{height:560px}
+				/* 登录用户有观看历史时，「Continue watching」货架顶到轮播图下沿：
+				   标题仍压在图上（沿用 Hero 底部暗色压图带），卡片整体落到图外，
+				   不再遮住轮播图。JS 在货架真正显示时给 .c-hero-wrap 加 .has-continue */
+				.c-hero-wrap.has-continue{margin-bottom:-62px}
 			}
 
 			/* ---------- Explore Featured Characters ---------- */
@@ -1749,6 +1753,9 @@
 						return '<li>' + window.WatchHistory.card(it, { width: 190, aspect: '7 / 10' }) + '</li>'
 					}).join('')
 					sec.style.display = ''
+					/* 有观看历史时 Hero 下沿让位（-164px → -62px），历史卡片不再压在轮播图上 */
+					var heroWrap = document.querySelector('.c-hero-wrap')
+					if (heroWrap) heroWrap.classList.add('has-continue')
 					initShelf(sec)
 					window.WatchHistory.bind()
 				})
