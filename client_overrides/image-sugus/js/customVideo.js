@@ -504,15 +504,8 @@
                 '" alt="' + title + '" loading="lazy" decoding="async">'
         }
 
-        // 左上角价签：每张卡单价不同（后台按 code 确定性随机），不显示的话运营和用户都无从判断
-        var priceNum = Number((gsPresetMap[c.id] || {}).price)
-        var priceHtml = ''
-        if (priceNum === 0) {
-            priceHtml = '<span class="gs-card__price is-free' + (mark ? ' has-mark' : '') + '">Free</span>'
-        } else if (priceNum > 0) {
-            priceHtml = '<span class="gs-card__price' + (mark ? ' has-mark' : '') + '">' + COIN_SVG +
-                '<span>' + esc(fmtAmount(priceNum)) + '</span></span>'
-        }
+        // 卡片上不显示价格：单价改到点击卡片后的弹窗里展示（见 renderCost）。
+        // 卡片网格只看内容，避免每张卡都挂个价签把封面压得很乱。
 
         // 右上角收藏爱心：点它不进详情（委托里拦掉）
         var like = '<span class="gs-card__like' + (favHas(c.id) ? ' on' : '') + '" data-gs-fav="' +
@@ -522,7 +515,7 @@
             ' data-gs-id="' + esc(c.id) + '"' +
             ' style="--ar:' + ar.toFixed(4) + '">' +
             '<div class="gs-card__frame">' + media + like + '</div>' +
-            mark + priceHtml +
+            mark +
             '<span class="gs-card__details">' +
             '<span class="gs-card__title">' + title + '</span>' +
             '<span class="gs-card__creator-name">@' + esc(c.creator || 'genspicy') + '</span>' +
@@ -650,6 +643,9 @@
                 var list = (d && d.code === '00000' && d.data && d.data.list) ? d.data.list : []
                 list.forEach(function (p) { if (p && p.code) gsPresetMap[p.code] = p })
                 gsPresetsLoaded = true
+                // 预设价是弹窗价格的首选数据源；若弹窗已经开着（/quota 先到了、
+                // 或用户在预设返回前就点了卡片），这里补刷一次，避免价格空着或停在兜底值。
+                try { if (gen.preset && $('gsCardModal')) renderCost() } catch (e) {}
                 return gsPresetMap
             })
             .catch(function () { return gsPresetMap })
@@ -716,56 +712,60 @@
         if (!gen.submitting) txt.textContent = gen.file ? 'Generate' : 'Upload image first'
     }
 
-    /* 按钮上的费用显示
-       ------------------
-       三种状态：
-         Free             有免费额度
-         50 tokens        免费额度用完，点一下会扣这么多
-         Not enough       余额不足，点了也发不出去
-       价格来自 /quota（弹窗打开时查），不再等服务端 C0102 才在原生弹窗里告诉用户。 */
+    /* 弹窗内的卡片单价显示
+       ----------------------
+       卡片网格上不显示价格（会把封面压乱），单价只在点开卡片的弹窗里给：
+       这张卡要花多少代币，永远按该卡自己的价展示 —— 不能显示 Free，
+       因为后台已改成每张卡按 code 确定性随机定价，用户看到的必须是真实单价。
+
+       状态优先级：
+         <coin> 60       正常：显示该卡单价（保留金币图标）
+         Not enough      余额不足（价照显，附提示）
+         Limit reached   后台把该卡定价关了（price<=0），不能生成
+       免费额度（remain>0）不再覆盖价格：额度是"前 N 次不扣费"，
+       与"这张卡标价多少"是两件事，混在一起就出现了「明明标价 60 却显示 Free」。 */
     function renderCost() {
         var el = $('gsGenCost')
         if (!el) return
         // 已提交态下不再显示价格：按钮已经是「Submitted ✓」，
-        // 旁边再挂个「50 tokens」或「Not enough」只会让人以为还要再付一次。
+        // 旁边再挂个价格只会让人以为还要再付一次。
         // loadQuota() 是异步的，回来后还会调本函数，所以必须在源头判断。
         var sb = $('gsGenSubmit')
         if (sb && sb.classList.contains('is-done')) {
             el.style.display = 'none'
             return
         }
-        // 确认态下按钮文案已经写了「Confirm · 50 tokens」，徽章再显示一次就重复了
+        // 确认态下按钮文案已经写了「Confirm · N tokens」，徽章再显示一次就重复了
         if (sb && sb.classList.contains('is-confirm')) {
             el.style.display = 'none'
             return
         }
-        var cost = gen.quota
-        if (!cost) { el.textContent = ''; el.style.display = 'none'; return }
+        var price = cardPrice()
+        if (!(price > 0)) {
+            // 该卡定价为 0 / 未配置：跟不到价格就不展示，避免误导成免费
+            el.textContent = ''
+            el.style.display = 'none'
+            return
+        }
         el.style.display = ''
-        var price = Number(cost.price) || 0
-
-        if (gen.remain === null) { el.textContent = ''; el.style.display = 'none'; return }
-
-        if (gen.remain > 0) {
-            el.textContent = 'Free'
-            el.className = 'gs-gen__cost'
-            return
-        }
-        if (price <= 0) {
-            // 后台把价格关了：额度用完就是不能再用
-            el.textContent = 'Limit reached'
+        if (Number(gen.quota && gen.quota.balance) < price) {
+            el.innerHTML = COIN_SVG + '<span>' + esc(fmtAmount(price)) + '</span>'
             el.className = 'gs-gen__cost gs-gen__cost--warn'
+            el.title = 'Not enough tokens'
             return
         }
-        if (Number(cost.balance) < price) {
-            el.innerHTML = COIN_SVG + '<span>Not enough</span>'
-            el.className = 'gs-gen__cost gs-gen__cost--warn'
-            return
-        }
-        // 价格前面挂金币图标：站内现成的 token 图标（img/coin.svg），
-        // 比纯文字「50 tokens」更直观，也和导航栏余额的视觉一致。
-        el.innerHTML = COIN_SVG + '<span>' + esc(cost.price_text) + '</span>'
+        el.innerHTML = COIN_SVG + '<span>' + esc(fmtAmount(price)) + '</span>'
         el.className = 'gs-gen__cost gs-gen__cost--paid'
+        el.title = ''
+    }
+
+    /** 当前卡片的单价：/presets 下发的 price 优先，回退到 /quota 的 price */
+    function cardPrice() {
+        var code = gen.preset && gen.preset.code
+        var p = Number((gsPresetMap[code] || {}).price)
+        if (p > 0) return p
+        var q = Number(gen.quota && gen.quota.price)
+        return q > 0 ? q : 0
     }
 
     /** 是否需要付费确认（额度耗尽但余额够） */
@@ -935,10 +935,11 @@
         if (needsPaidConfirm() && !gen.confirmPaid) {
             gen.confirmPaid = true
             var btn = $('gsGenSubmit'), txt = $('gsGenSubmitText')
-            txt.textContent = 'Confirm · ' + gen.quota.price_text + ' tokens'
+            var confirmPrice = fmtAmount(cardPrice())
+            txt.textContent = 'Confirm · ' + confirmPrice + ' tokens'
             btn.classList.add('is-confirm')
             renderCost()
-            showNote('This will use ' + gen.quota.price_text + ' tokens from your balance. '
+            showNote('This will use ' + confirmPrice + ' tokens from your balance. '
                 + 'Tap the button again to confirm.')
             // 不自动超时退回：用户可能正在读文案，这时把按钮重置回「Generate」
             // 会让人以为点过的那一步没生效。确认态一直保留到再点一次或关掉弹窗。
@@ -1526,11 +1527,16 @@
     function outfitCost() {
         var el = $('gsOutfitCost')
         if (!el) return
-        // 免费额度与 customVideo 通道一致（options.quota = 剩余免费次数）
-        if (shop.remain !== null && shop.remain > 0) {
-            el.textContent = 'Free'
+        // 与卡片弹窗同一口径：只显示真实单价，不再用「Free」覆盖。
+        // 免费额度（shop.remain）是「前 N 次不扣费」，与「换装标价多少」是两件事，
+        // 混在一起会让用户以为这项免费。额度信息在弹窗上方的配额提示里单独说。
+        var price = Number(shop.price) || 0
+        if (price > 0) {
+            el.textContent = '💰 ' + fmtAmount(price)
+            el.style.display = ''
         } else {
-            el.textContent = shop.price > 0 ? ('💰 ' + fmtAmount(shop.price)) : 'Free'
+            el.textContent = ''
+            el.style.display = 'none'
         }
     }
 
