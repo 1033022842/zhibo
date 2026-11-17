@@ -274,7 +274,7 @@
         var done = 0
         var map = homeRoleMap()
         cats.forEach(function (cat) {
-            fetch('/api/v1/home/characters?limit=50&category=' + cat)
+            fetch('/api/v1/home/characters?limit=200&category=' + cat)
                 .then(function (r) { return r.json() })
                 .then(function (d) {
                     var list = (d && d.code === '00000' && d.data && Array.isArray(d.data.list)) ? d.data.list : []
