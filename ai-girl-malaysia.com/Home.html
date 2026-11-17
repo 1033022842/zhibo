@@ -164,6 +164,9 @@
 				transition:transform .22s cubic-bezier(0,0,.2,1)}
 			.c-card:hover{transform:scale(1.05);z-index:6}
 			.c-card .cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+			/* 悬停预览视频：默认透明，桌面端加载就绪后淡入 */
+			.c-card .c-card-prev{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0;transition:opacity .3s ease;pointer-events:none;background:#131313}
+			.c-card.is-prev-on .c-card-prev{opacity:1}
 			.c-card-scrim{position:absolute;left:0;right:0;bottom:0;height:48%;
 				background:linear-gradient(to top,rgba(8,6,10,.78),rgba(8,6,10,.3) 55%,transparent)}
 			.c-card-badge{position:absolute;left:0;top:0;z-index:20;display:flex;align-items:center;gap:5px;
@@ -386,6 +389,7 @@
 				#continueGrid .wh-card{width:96px!important}
 				#continueGrid .wh-card>div{border-radius:10px!important}
 				.c-card{width:96px;height:158px;border-radius:10px}
+				.c-card .c-card-prev{display:none}
 				.c-skeleton{width:96px;height:158px;border-radius:10px}
 				.c-card-short{width:96px;height:137px;border-radius:10px}
 				.c-viewall{width:96px;height:158px;padding:8px;border-radius:10px;gap:6px}
@@ -1102,11 +1106,46 @@
 				if (Math.abs(dx) > 60) { if (dx < 0) heroNext(); else heroPrev() }
 			})
 
+			/* ---------- 卡片悬停预览：仅桌面端（可真正 hover 的设备）加载视频，手机端永不下载 ---------- */
+			var canHoverPrev = false
+			try { canHoverPrev = window.matchMedia('(hover:hover) and (pointer:fine)').matches } catch (e) { canHoverPrev = false }
+			var prevBroken = {}
+			document.addEventListener('mouseover', function (e) {
+				if (!canHoverPrev || !e.target || !e.target.closest) return
+				var a = e.target.closest('.c-card')
+				if (!a || a.classList.contains('is-prev-on')) return
+				var v = a.querySelector('.c-card-prev')
+				if (!v || prevBroken[a.getAttribute('data-cid')]) return
+				if (!v.getAttribute('src')) {
+					v.addEventListener('error', function () {
+						prevBroken[a.getAttribute('data-cid')] = 1
+						a.classList.remove('is-prev-on')
+					})
+					v.addEventListener('loadeddata', function () { a.classList.add('is-prev-on') })
+					v.src = v.getAttribute('data-src')
+				}
+				var pr = v.play()
+				if (pr && pr.catch) pr.catch(function () {})
+			})
+			document.addEventListener('mouseout', function (e) {
+				if (!e.target || !e.target.closest) return
+				var a = e.target.closest('.c-card')
+				if (!a) return
+				if (e.relatedTarget && a.contains(e.relatedTarget)) return
+				a.classList.remove('is-prev-on')
+				var v = a.querySelector('.c-card-prev')
+				if (v) v.pause()
+			})
+
 			/* ---------- 卡片 ---------- */
 			function cardHtml(c, cls) {
 				cls = cls ? ' ' + cls : ''
 				var cover = c.cover_url
 					? '<img class="cover" src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
+					: ''
+				// 悬停预览视频：只写 data-src，桌面端鼠标进入时才真正下载
+				var prev = c.preview_url
+					? '<video class="c-card-prev" muted loop playsinline preload="none" aria-hidden="true" data-src="' + esc(fixUrl(c.preview_url)) + '"></video>'
 					: ''
 				var badge = parseInt(c.is_adult) === 1
 					? '<span class="c-card-badge"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.2 6.2L21 10l-5.3 3.9L17 21l-5-3.4L7 21l1.3-7.1L3 10l6.8-1.8z"/></svg>18+</span>'
@@ -1117,6 +1156,7 @@
 					: ''
 				return '<li><a class="c-card' + cls + '" draggable="false" data-cid="' + esc(c.id) + '" href="./Chat.html?id=' + encodeURIComponent('home-' + c.id) + '">' +
 					cover +
+					prev +
 					'<div class="c-card-scrim"></div>' +
 					badge +
 					glyph +
@@ -1721,7 +1761,7 @@
 			})
 
 			Promise.all(CATS.map(function(cat) {
-				return loadJson(base + '/home/characters?limit=50&category=' + cat)
+				return loadJson(base + '/home/characters?limit=200&category=' + cat)
 			})).then(function(res) {
 				CATS.forEach(function(cat, i) {
 					var d = res[i]

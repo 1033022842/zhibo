@@ -74,8 +74,9 @@ final class Home extends BaseController
         if ($limit <= 0) {
             $limit = 12;
         }
-        if ($limit > 50) {
-            $limit = 50;
+        // 首页首屏一次性拉全量（新角色 48 个 + 老角色），上限 200
+        if ($limit > 200) {
+            $limit = 200;
         }
         $category = $this->categoryParam();
 
@@ -103,6 +104,8 @@ final class Home extends BaseController
                 'tagline'     => (string) $row->tagline,
                 'description' => (string) $row->description,
                 'cover_url'   => (string) $row->cover_url,
+                // 卡片悬停预览视频（桌面端才下载，前端按 hover 能力决定要不要加载）
+                'preview_url' => '/storage/chat_gifts/home-' . (int) $row->id . '/preview.mp4',
                 'tags'        => $tags,
                 'section'     => (string) $row->section,
                 'link_url'    => (string) $row->link_url,
