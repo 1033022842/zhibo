@@ -80,10 +80,11 @@
 				display:flex;align-items:center;justify-content:center}
 			.c-hero-dot i{display:block;width:15px;height:4px;border-radius:2px;background:rgba(255,255,255,.3)}
 			.c-hero-dot.active i{background:#fff}
-			/* 桌面端：Hero 560px，并把下方区块上提 144px（-164px margin + 20px flex gap），
-			   使标题/搜索/chips 压在轮播图上（与参考站一致） */
+			/* 桌面端：Hero 560px，下方区块上提（-102px margin + 20px flex gap = 82px），
+			   标题/搜索/chips 仍压在轮播图底部的暗色压图带上（与参考站一致），
+			   但卡片行整体落到图下 12px，不再盖住轮播图画面 */
 			@media (min-width:769px){
-				.c-hero-wrap{margin-top:-24px;margin-bottom:-164px}
+				.c-hero-wrap{margin-top:-24px;margin-bottom:-102px}
 				.c-hero{height:560px}
 				/* 登录用户有观看历史时，「Continue watching」货架顶到轮播图下沿：
 				   标题仍压在图上（沿用 Hero 底部暗色压图带），卡片整体落到图外，
