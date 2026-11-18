@@ -166,7 +166,7 @@
 			.c-card:hover{transform:scale(1.05);z-index:6}
 			.c-card .cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
 			/* 悬停预览视频：默认透明，桌面端加载就绪后淡入 */
-			.c-card .c-card-prev{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0;transition:opacity .3s ease;pointer-events:none;background:#131313}
+			.c-card .c-card-prev{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0;transition:opacity .3s ease;pointer-events:none;background:transparent}
 			.c-card.is-prev-on .c-card-prev{opacity:1}
 			.c-card-scrim{position:absolute;left:0;right:0;bottom:0;height:48%;
 				background:linear-gradient(to top,rgba(8,6,10,.78),rgba(8,6,10,.3) 55%,transparent)}
@@ -1107,36 +1107,73 @@
 				if (Math.abs(dx) > 60) { if (dx < 0) heroNext(); else heroPrev() }
 			})
 
-			/* ---------- 卡片悬停预览：仅桌面端（可真正 hover 的设备）加载视频，手机端永不下载 ---------- */
+			/* ---------- 卡片悬停预览：仅桌面端加载；同一时刻只允许一张卡在下载/播放 ---------- */
 			var canHoverPrev = false
 			try { canHoverPrev = window.matchMedia('(hover:hover) and (pointer:fine)').matches } catch (e) { canHoverPrev = false }
 			var prevBroken = {}
+			var prevActive = null
+			var prevHoverCard = null
+			var prevTimer = 0
+			function prevStop(release) {
+				if (prevTimer) { clearTimeout(prevTimer); prevTimer = 0 }
+				var cur = prevActive
+				prevActive = null
+				if (!cur) return
+				var v = cur.video
+				if (v) {
+					try { v.pause() } catch (e) {}
+					if (release) {
+						v.removeAttribute('src')
+						try { v.load() } catch (e) {}
+					}
+				}
+				cur.card.classList.remove('is-prev-on')
+			}
 			document.addEventListener('mouseover', function (e) {
 				if (!canHoverPrev || !e.target || !e.target.closest) return
 				var a = e.target.closest('.c-card')
-				if (!a || a.classList.contains('is-prev-on')) return
+				if (!a) return
+				if (prevActive && prevActive.card === a) return
+				prevHoverCard = a
 				var v = a.querySelector('.c-card-prev')
 				if (!v || prevBroken[a.getAttribute('data-cid')]) return
-				if (!v.getAttribute('src')) {
-					v.addEventListener('error', function () {
-						prevBroken[a.getAttribute('data-cid')] = 1
-						a.classList.remove('is-prev-on')
-					})
-					v.addEventListener('loadeddata', function () { a.classList.add('is-prev-on') })
-					v.src = v.getAttribute('data-src')
-				}
-				var pr = v.play()
-				if (pr && pr.catch) pr.catch(function () {})
+				/* 换卡：立刻停掉上一张并释放解码缓冲，避免多路视频同时下载造成卡顿 */
+				prevStop(true)
+				/* 悬停意图：停留 120ms 才真正发起请求，快速划过不触发 */
+				prevTimer = setTimeout(function () {
+					prevTimer = 0
+					if (!a.isConnected || prevHoverCard !== a) return
+					prevActive = { card: a, video: v }
+					if (!v.getAttribute('src')) {
+						v.addEventListener('error', function () {
+							prevBroken[a.getAttribute('data-cid')] = 1
+							if (prevActive && prevActive.card === a) prevStop(true)
+						})
+						v.setAttribute('src', v.getAttribute('data-src'))
+					}
+					v.muted = true
+					/* poster 就是封面图，先顶上再播，首帧到达即无缝换成动图（不黑屏、不空等） */
+					a.classList.add('is-prev-on')
+					var pr = v.play()
+					if (pr && pr.catch) pr.catch(function () {})
+					/* 弱网兜底：8 秒还出不来画面就放弃，别让一路卡住的请求拖着整页 */
+					prevTimer = setTimeout(function () {
+						prevTimer = 0
+						if (prevActive && prevActive.card === a && v.readyState < 2) prevStop(true)
+					}, 8000)
+				}, 120)
 			})
 			document.addEventListener('mouseout', function (e) {
 				if (!e.target || !e.target.closest) return
 				var a = e.target.closest('.c-card')
 				if (!a) return
 				if (e.relatedTarget && a.contains(e.relatedTarget)) return
-				a.classList.remove('is-prev-on')
-				var v = a.querySelector('.c-card-prev')
-				if (v) v.pause()
+				if (prevHoverCard === a) prevHoverCard = null
+				if (prevActive && prevActive.card === a) prevStop(true)
 			})
+			window.addEventListener('scroll', function () { if (prevActive) prevStop(true) }, { passive: true })
+			document.addEventListener('visibilitychange', function () { if (document.hidden) prevStop(true) })
+			document.addEventListener('pointerdown', function () { if (prevActive) prevStop(true) }, true)
 
 			/* ---------- 卡片 ---------- */
 			function cardHtml(c, cls) {
@@ -1146,7 +1183,7 @@
 					: ''
 				// 悬停预览视频：只写 data-src，桌面端鼠标进入时才真正下载
 				var prev = c.preview_url
-					? '<video class="c-card-prev" muted loop playsinline preload="none" aria-hidden="true" data-src="' + esc(fixUrl(c.preview_url)) + '"></video>'
+					? '<video class="c-card-prev" muted loop playsinline preload="none" aria-hidden="true" poster="' + esc(fixUrl(c.cover_url || '')) + '" data-src="' + esc(fixUrl(c.preview_url)) + '"></video>'
 					: ''
 				var badge = parseInt(c.is_adult) === 1
 					? '<span class="c-card-badge"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.2 6.2L21 10l-5.3 3.9L17 21l-5-3.4L7 21l1.3-7.1L3 10l6.8-1.8z"/></svg>18+</span>'
