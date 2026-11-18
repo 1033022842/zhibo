@@ -586,12 +586,13 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
     # 客户仓库跟进：内容对齐 + 保留客户特有文件 + 提交
     repo = cfg.get("repo")
     if repo and os.path.isdir(repo):
-        rc, _, err = sh(f'git checkout douyin/main -- {SITE_DIR}/ 2>&1', cwd=repo) if os.path.isdir(repo) else (1, "", "no remote")
         # 客户仓库没有 douyin remote 时先加
-        if rc:
+        if 'douyin' not in sh('git remote', cwd=repo)[1].split():
             sh('git remote add douyin git@gitee.com:autumn_birds_in_the_moon_sea/zhibo.git', cwd=repo)
-            sh('git fetch douyin', cwd=repo)
-            rc, _, err = sh(f'git checkout douyin/main -- {SITE_DIR}/', cwd=repo)
+        # 关键：每次都先 fetch。之前只在 checkout 失败时才 fetch，douyin/main 会停在旧提交，
+        # checkout 就把客户仓库静默回滚成上一版（2026-11-18 踩过：3 个客户仓被还原成旧 Home.html）
+        sh('git fetch -q douyin', cwd=repo)
+        rc, _, err = sh(f'git checkout douyin/main -- {SITE_DIR}/', cwd=repo)
         print(f"  客户仓库内容对齐: {'OK' if rc == 0 else err}")
         # 覆盖文件回写：checkout 会把覆盖页还原成上游版，必须把客户版写回仓库，
         # 否则「服务器 = 仓库」这条约束当场破掉（下次同步又得靠脚本兜）
