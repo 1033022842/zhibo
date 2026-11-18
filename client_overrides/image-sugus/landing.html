@@ -93,7 +93,7 @@ h1 em{font-style:normal; background:linear-gradient(92deg,#ff90a6,#f53b70 55%,#c
 .chat-top .nm{font-weight:600; font-size:15px; line-height:1.2}
 .chat-top .st{font-size:12px; color:#8ef0b8; display:flex; align-items:center; gap:6px; margin-top:3px}
 .chat-top .st i{width:7px;height:7px;border-radius:50%;background:#39d98a;display:inline-block}
-.chat-body{padding:18px 16px 8px; min-height:272px; display:flex; flex-direction:column; gap:10px}
+.chat-body{padding:18px 16px 8px; min-height:272px; display:flex; flex-direction:column; justify-content:flex-start; gap:10px}
 .b{max-width:78%; padding:11px 14px; border-radius:16px; font-size:14px; line-height:1.45; animation:pop .32s ease both}
 .b.her{align-self:flex-start; background:#241a2b; border:1px solid rgba(255,255,255,.07); border-bottom-left-radius:6px; color:#f3e7ee}
 .b.me{align-self:flex-end; background:linear-gradient(180deg,#ff6e8f,#ef3d6c); color:#fff; border-bottom-right-radius:6px}
@@ -536,7 +536,7 @@ footer .badge{display:inline-flex; align-items:center; padding:3px 9px; border-r
       k++;
       body.insertBefore(b, typing);
       var all = body.querySelectorAll(".b");
-      if (all.length > 6) all[0].remove();
+      if (all.length > 4) all[0].remove();
       var note = document.getElementById("noteMsg");
       if (note) note.textContent = lines[(k + 1) % lines.length];
     }, 6400);
