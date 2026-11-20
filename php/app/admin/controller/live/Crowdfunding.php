@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\CrowdfundingProject as ProjectModel;
 use app\live\service\CrowdfundingService;
 use think\facade\Db;
@@ -179,7 +180,7 @@ final class Crowdfunding extends Backend
         $title        = trim((string)$this->request->post('title', ''));
         $personaName  = trim((string)$this->request->post('persona_name', ''));
         $description  = trim((string)$this->request->post('description', ''));
-        $coverUrl     = trim((string)$this->request->post('cover_url', ''));
+        $coverUrl     = MediaUrl::file($this->request->post('cover_url'), (string) ($project->cover_url ?? ''));
         $targetAmount = (float)$this->request->post('target_amount', 0);
         $deadline     = trim((string)$this->request->post('deadline', ''));
 

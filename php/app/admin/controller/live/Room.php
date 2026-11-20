@@ -8,6 +8,7 @@ use Throwable;
 use think\Model;
 use think\facade\Db;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\Room as RoomModel;
 use app\admin\model\live\RoomTag;
 use app\admin\model\live\RoomBinding;
@@ -295,7 +296,12 @@ final class Room extends Backend
         $data['room_type'] = 'live';
         $data['status'] = (int) ($data['status'] ?? 1);
         $data['sort'] = (int) ($data['sort'] ?? 0);
-        $data['cover_url'] = trim((string) ($data['cover_url'] ?? ''));
+        // 编辑时表单可能没有重新提交封面（上传组件回写空串），此处回落到库里的历史封面
+        $existingCover = '';
+        if ($roomId) {
+            $existingCover = (string) Db::connect('live_mysql')->table('lp_room')->where('id', $roomId)->value('cover_url');
+        }
+        $data['cover_url'] = MediaUrl::file($data['cover_url'] ?? null, $existingCover);
 
         $assetIds = $this->normalizeAssetIds((array) ($payload['asset_ids'] ?? []));
         $tagNames = $this->normalizeTags((string) ($payload['tag_names'] ?? ''));

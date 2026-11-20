@@ -6,6 +6,7 @@ namespace app\admin\controller\ai;
 
 use Throwable;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\ai\Media as MediaModel;
 
 final class Media extends Backend
@@ -105,8 +106,8 @@ final class Media extends Backend
     {
         $data['content_id'] = (int) ($data['content_id'] ?? $existing['content_id'] ?? 0);
         $data['title']      = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
-        $data['video_url']  = trim((string) ($data['video_url'] ?? $existing['video_url'] ?? ''));
-        $data['cover_url']  = trim((string) ($data['cover_url'] ?? $existing['cover_url'] ?? ''));
+        $data['video_url']  = MediaUrl::file($data['video_url'] ?? null, $existing['video_url'] ?? '');
+        $data['cover_url']  = MediaUrl::file($data['cover_url'] ?? null, $existing['cover_url'] ?? '');
         $data['media_type'] = trim((string) ($data['media_type'] ?? $existing['media_type'] ?? 'normal'));
         $data['media_kind'] = trim((string) ($data['media_kind'] ?? $existing['media_kind'] ?? 'video'));
         if (!in_array($data['media_kind'], ['video', 'voice'], true)) {

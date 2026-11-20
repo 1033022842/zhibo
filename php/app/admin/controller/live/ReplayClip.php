@@ -6,6 +6,7 @@ namespace app\admin\controller\live;
 
 use Throwable;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\ReplayClip as ReplayClipModel;
 
 final class ReplayClip extends Backend
@@ -57,8 +58,8 @@ final class ReplayClip extends Backend
 
         $data = $this->excludeFields($payload);
         $data['title'] = trim((string) ($data['title'] ?? ''));
-        $data['video_url'] = trim((string) ($data['video_url'] ?? ''));
-        $data['cover_url'] = trim((string) ($data['cover_url'] ?? ''));
+        $data['video_url'] = MediaUrl::file($data['video_url'] ?? null);
+        $data['cover_url'] = MediaUrl::file($data['cover_url'] ?? null);
         $data['duration'] = (int) ($data['duration'] ?? 0);
         $data['live_date'] = trim((string) ($data['live_date'] ?? ''));
         $data['persona_id'] = (int) ($data['persona_id'] ?? 0);
@@ -90,8 +91,8 @@ final class ReplayClip extends Backend
 
             $data = $this->excludeFields($payload);
             $data['title'] = trim((string) ($data['title'] ?? ''));
-            $data['video_url'] = trim((string) ($data['video_url'] ?? ''));
-            $data['cover_url'] = trim((string) ($data['cover_url'] ?? ''));
+            $data['video_url'] = MediaUrl::file($data['video_url'] ?? null, $row['video_url'] ?? '');
+            $data['cover_url'] = MediaUrl::file($data['cover_url'] ?? null, $row['cover_url'] ?? '');
             $data['duration'] = (int) ($data['duration'] ?? 0);
             $data['live_date'] = trim((string) ($data['live_date'] ?? ''));
             $data['persona_id'] = (int) ($data['persona_id'] ?? 0);

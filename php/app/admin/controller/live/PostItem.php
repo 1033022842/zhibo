@@ -6,6 +6,7 @@ namespace app\admin\controller\live;
 
 use Throwable;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\PostItem as PostItemModel;
 
 /**
@@ -85,10 +86,10 @@ final class PostItem extends Backend
     {
         $data['post_id']          = trim((string) ($data['post_id'] ?? $existing['post_id'] ?? ''));
         $data['character_name']   = trim((string) ($data['character_name'] ?? $existing['character_name'] ?? ''));
-        $data['character_avatar'] = $this->normalizeFileUrl((string) ($data['character_avatar'] ?? $existing['character_avatar'] ?? ''));
+        $data['character_avatar'] = MediaUrl::file($data['character_avatar'] ?? null, $existing['character_avatar'] ?? '');
         $data['character_url']    = trim((string) ($data['character_url'] ?? $existing['character_url'] ?? ''));
-        $data['video_url']        = $this->normalizeFileUrl((string) ($data['video_url'] ?? $existing['video_url'] ?? ''));
-        $data['poster_url']       = $this->normalizeFileUrl((string) ($data['poster_url'] ?? $existing['poster_url'] ?? ''));
+        $data['video_url']        = MediaUrl::file($data['video_url'] ?? null, $existing['video_url'] ?? '');
+        $data['poster_url']       = MediaUrl::file($data['poster_url'] ?? null, $existing['poster_url'] ?? '');
         $data['description']      = trim((string) ($data['description'] ?? $existing['description'] ?? ''));
         $data['likes']            = max(0, (int) ($data['likes'] ?? $existing['likes'] ?? 0));
         $data['views']            = max(0, (int) ($data['views'] ?? $existing['views'] ?? 0));
@@ -113,16 +114,6 @@ final class PostItem extends Backend
      */
     private function normalizeFileUrl(string $url): string
     {
-        $url = trim(str_replace('\\', '/', $url));
-        if ($url === '' || !preg_match('/^https?:\/\//i', $url)) {
-            return $url;
-        }
-
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        if ($path !== '' && str_starts_with($path, '/storage/')) {
-            return $path;
-        }
-
-        return $url;
+        return MediaUrl::file($url);
     }
 }

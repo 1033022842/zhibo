@@ -6,6 +6,7 @@ namespace app\admin\controller\live;
 
 use Throwable;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\FaceSwapTemplate as FaceSwapTemplateModel;
 
 /**
@@ -84,8 +85,8 @@ final class FaceSwapTemplate extends Backend
     private function normalizePayload(array $data, array $existing = []): array
     {
         $data['title']        = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
-        $data['video_url']    = $this->normalizeFileUrl((string) ($data['video_url'] ?? $existing['video_url'] ?? ''));
-        $data['cover_url']    = $this->normalizeFileUrl((string) ($data['cover_url'] ?? $existing['cover_url'] ?? ''));
+        $data['video_url']    = MediaUrl::file($data['video_url'] ?? null, $existing['video_url'] ?? '');
+        $data['cover_url']    = MediaUrl::file($data['cover_url'] ?? null, $existing['cover_url'] ?? '');
         $data['duration_sec'] = max(0, (int) ($data['duration_sec'] ?? $existing['duration_sec'] ?? 0));
         $data['description']  = trim((string) ($data['description'] ?? $existing['description'] ?? ''));
         $data['weigh']        = (int) ($data['weigh'] ?? $existing['weigh'] ?? 0);
@@ -112,16 +113,6 @@ final class FaceSwapTemplate extends Backend
      */
     private function normalizeFileUrl(string $url): string
     {
-        $url = trim(str_replace('\\', '/', $url));
-        if ($url === '' || !preg_match('/^https?:\/\//i', $url)) {
-            return $url;
-        }
-
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        if ($path !== '' && str_starts_with($path, '/storage/')) {
-            return $path;
-        }
-
-        return $url;
+        return MediaUrl::file($url);
     }
 }

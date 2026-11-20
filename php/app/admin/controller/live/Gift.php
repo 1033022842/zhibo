@@ -7,6 +7,7 @@ namespace app\admin\controller\live;
 use Throwable;
 use think\facade\Db;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\Gift as GiftModel;
 
 final class Gift extends Backend
@@ -154,7 +155,7 @@ final class Gift extends Backend
 
         // remoteSelect 清空后提交 null，归一化为空串（icon_url 列为 NOT NULL）
         foreach (['effect_code', 'icon_url'] as $field) {
-            $payload[$field] = trim((string) ($payload[$field] ?? ''));
+            $payload[$field] = MediaUrl::file($payload[$field] ?? null);
         }
 
         // 保存礼物
@@ -185,7 +186,7 @@ final class Gift extends Backend
 
             $keyword = $payload['keyword'] ?? '';
             foreach (['effect_code', 'icon_url'] as $field) {
-                $payload[$field] = trim((string) ($payload[$field] ?? ''));
+                $payload[$field] = MediaUrl::file($payload[$field] ?? null, $row[$field] ?? '');
             }
             $data = $this->excludeFields($payload);
             $row->save($data);

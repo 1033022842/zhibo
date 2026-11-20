@@ -6,6 +6,7 @@ namespace app\admin\controller\live;
 
 use Throwable;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\MediaAsset as MediaAssetModel;
 
 final class MediaAsset extends Backend
@@ -198,7 +199,7 @@ final class MediaAsset extends Backend
     {
         $title = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
         $existingFileUrl = $this->normalizeFileUrl((string) ($existing['file_url'] ?? ''));
-        $fileUrl = $this->normalizeFileUrl((string) ($data['file_url'] ?? $existing['file_url'] ?? ''));
+        $fileUrl = MediaUrl::file($data['file_url'] ?? null, $existing['file_url'] ?? '');
         $assetCode = trim((string) ($data['asset_code'] ?? $existing['asset_code'] ?? ''));
 
         if ($fileUrl === '') {

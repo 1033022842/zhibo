@@ -6,6 +6,7 @@ namespace app\admin\controller\live;
 
 use Throwable;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\ShortItem as ShortItemModel;
 
 /**
@@ -126,7 +127,7 @@ final class ShortItem extends Backend
         $data['description']  = trim((string) ($data['description'] ?? $existing['description'] ?? ''));
         // 默认第 1、2 集免费，第 3 集起按「短剧剧集」里配置的单价收费
         $data['free_episodes'] = max(0, (int) ($data['free_episodes'] ?? $existing['free_episodes'] ?? 2));
-        $data['poster']       = $this->normalizeFileUrl((string) ($data['poster'] ?? $existing['poster'] ?? ''));
+        $data['poster']       = MediaUrl::file($data['poster'] ?? null, $existing['poster'] ?? '');
         $data['href']         = trim((string) ($data['href'] ?? $existing['href'] ?? ''));
         $data['section']      = (string) ($data['section'] ?? $existing['section'] ?? 'explore');
         $data['rank']         = max(0, (int) ($data['rank'] ?? $existing['rank'] ?? 0));
@@ -164,16 +165,6 @@ final class ShortItem extends Backend
      */
     private function normalizeFileUrl(string $url): string
     {
-        $url = trim(str_replace('\\', '/', $url));
-        if ($url === '' || !preg_match('/^https?:\/\//i', $url)) {
-            return $url;
-        }
-
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        if ($path !== '' && str_starts_with($path, '/storage/')) {
-            return $path;
-        }
-
-        return $url;
+        return MediaUrl::file($url);
     }
 }

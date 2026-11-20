@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\HomeCharacter as CharacterModel;
 
 final class HomeCharacter extends Backend
@@ -184,7 +185,7 @@ final class HomeCharacter extends Backend
         $desc    = trim((string)$this->request->post('description', ''));
         $tags    = $this->normalizeList((string)$this->request->post('tags', ''));
         $link    = trim((string)$this->request->post('link_url', ''));
-        $cover   = trim((string)$this->request->post('cover_url', $existingCover));
+        $cover   = MediaUrl::file($this->request->post('cover_url'), $existingCover);
 
         if ($name === '') {
             $this->error('角色名不能为空');

@@ -6,6 +6,7 @@ namespace app\admin\controller\live;
 
 use Throwable;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\PrivateItem as PrivateItemModel;
 
 /**
@@ -99,8 +100,8 @@ final class PrivateItem extends Backend
         }
 
         $data['title']       = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
-        $data['poster']      = $this->normalizeFileUrl((string) ($data['poster'] ?? $existing['poster'] ?? ''));
-        $data['avatar']      = $this->normalizeFileUrl((string) ($data['avatar'] ?? $existing['avatar'] ?? ''));
+        $data['poster']      = MediaUrl::file($data['poster'] ?? null, $existing['poster'] ?? '');
+        $data['avatar']      = MediaUrl::file($data['avatar'] ?? null, $existing['avatar'] ?? '');
         $data['creator']     = trim((string) ($data['creator'] ?? $existing['creator'] ?? ''));
         $data['price']       = max(0, (int) ($data['price'] ?? $existing['price'] ?? 0));
         $data['like_rate']   = max(0, min(100, (int) ($data['like_rate'] ?? $existing['like_rate'] ?? 0)));
@@ -165,7 +166,7 @@ final class PrivateItem extends Backend
             $this->error(__('Parameter error'));
         }
 
-        $avatar = $this->normalizeFileUrl((string) $this->request->param('avatar', ''));
+        $avatar = MediaUrl::file($this->request->param('avatar', ''));
         if ($avatar === '') {
             $this->error('请先上传头像图片');
         }
@@ -188,16 +189,6 @@ final class PrivateItem extends Backend
      */
     private function normalizeFileUrl(string $url): string
     {
-        $url = trim(str_replace('\\', '/', $url));
-        if ($url === '' || !preg_match('/^https?:\/\//i', $url)) {
-            return $url;
-        }
-
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        if ($path !== '' && str_starts_with($path, '/storage/')) {
-            return $path;
-        }
-
-        return $url;
+        return MediaUrl::file($url);
     }
 }

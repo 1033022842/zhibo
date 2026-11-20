@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\HomeBanner as BannerModel;
 
 final class HomeBanner extends Backend
@@ -168,7 +169,7 @@ final class HomeBanner extends Backend
     {
         $title = trim((string)$this->request->post('title', ''));
         $link  = trim((string)$this->request->post('link_url', ''));
-        $cover = trim((string)$this->request->post('cover_url', $existingCover));
+        $cover = MediaUrl::file($this->request->post('cover_url'), $existingCover);
 
         if ($link !== ''
             && !preg_match('/^(https?:)?\/\//i', $link)

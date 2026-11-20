@@ -6,6 +6,7 @@ namespace app\admin\controller\live;
 
 use Throwable;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\ShopItem as ShopItemModel;
 
 /**
@@ -85,9 +86,11 @@ final class ShopItem extends Backend
     {
         $data['title']       = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
         $data['description'] = trim((string) ($data['description'] ?? $existing['description'] ?? ''));
-        $data['images']      = $this->normalizeImages((string) ($data['images'] ?? $existing['images'] ?? ''));
-        $data['cover_url']   = $this->normalizeFileUrl((string) ($data['cover_url'] ?? $existing['cover_url'] ?? ''));
-        $data['video_url']   = $this->normalizeFileUrl((string) ($data['video_url'] ?? $existing['video_url'] ?? ''));
+        // 上传组件在「未重新上传 / 清空 / 字段以 undefined 挂载」时会回写空串或数组，
+        // 只改价格时不能把库里的图片覆盖掉，故统一走 MediaUrl 兜底。
+        $data['images']      = MediaUrl::files($data['images'] ?? null, $existing['images'] ?? '');
+        $data['cover_url']   = MediaUrl::file($data['cover_url'] ?? null, $existing['cover_url'] ?? '');
+        $data['video_url']   = MediaUrl::file($data['video_url'] ?? null, $existing['video_url'] ?? '');
         $data['price']       = max(0, (int) ($data['price'] ?? $existing['price'] ?? 0));
         $data['rating']      = round(min(5, max(0, (float) ($data['rating'] ?? $existing['rating'] ?? 0))), 1);
         $data['reviews']     = max(0, (int) ($data['reviews'] ?? $existing['reviews'] ?? 0));
@@ -105,34 +108,5 @@ final class ShopItem extends Backend
         }
 
         return $data;
-    }
-
-    /**
-     * 附加图片统一为英文逗号分隔，去掉中文逗号、多余空格与空项
-     */
-    private function normalizeImages(string $images): string
-    {
-        $images = str_replace(['，', '；', ';', "\r", "\n"], ',', $images);
-        $items = array_filter(array_map('trim', explode(',', $images)), static fn (string $v): bool => $v !== '');
-
-        return implode(',', $items);
-    }
-
-    /**
-     * 站内附件统一存相对路径，避免部署域名变化后失效
-     */
-    private function normalizeFileUrl(string $url): string
-    {
-        $url = trim(str_replace('\\', '/', $url));
-        if ($url === '' || !preg_match('/^https?:\/\//i', $url)) {
-            return $url;
-        }
-
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        if ($path !== '' && str_starts_with($path, '/storage/')) {
-            return $path;
-        }
-
-        return $url;
     }
 }

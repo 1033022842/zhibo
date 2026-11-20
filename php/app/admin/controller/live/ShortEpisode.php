@@ -7,6 +7,7 @@ namespace app\admin\controller\live;
 use Throwable;
 use think\facade\Db;
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\admin\model\live\ShortEpisode as ShortEpisodeModel;
 
 /**
@@ -142,8 +143,8 @@ final class ShortEpisode extends Backend
         $data['short_id']   = max(0, (int) ($data['short_id'] ?? $existing['short_id'] ?? 0));
         $data['episode_no'] = max(1, (int) ($data['episode_no'] ?? $existing['episode_no'] ?? 1));
         $data['title']      = trim((string) ($data['title'] ?? $existing['title'] ?? ''));
-        $data['poster']     = $this->normalizeFileUrl((string) ($data['poster'] ?? $existing['poster'] ?? ''));
-        $data['video_url']  = $this->normalizeFileUrl((string) ($data['video_url'] ?? $existing['video_url'] ?? ''));
+        $data['poster']     = MediaUrl::file($data['poster'] ?? null, $existing['poster'] ?? '');
+        $data['video_url']  = MediaUrl::file($data['video_url'] ?? null, $existing['video_url'] ?? '');
         $data['duration']   = trim((string) ($data['duration'] ?? $existing['duration'] ?? ''));
         $data['price']      = max(0, (int) ($data['price'] ?? $existing['price'] ?? 0));
         $data['weigh']      = (int) ($data['weigh'] ?? $existing['weigh'] ?? 0);
@@ -188,16 +189,6 @@ final class ShortEpisode extends Backend
      */
     private function normalizeFileUrl(string $url): string
     {
-        $url = trim(str_replace('\\', '/', $url));
-        if ($url === '' || !preg_match('/^https?:\/\//i', $url)) {
-            return $url;
-        }
-
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        if ($path !== '' && str_starts_with($path, '/storage/')) {
-            return $path;
-        }
-
-        return $url;
+        return MediaUrl::file($url);
     }
 }

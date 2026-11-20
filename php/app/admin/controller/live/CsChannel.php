@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace app\admin\controller\live;
 
 use app\common\controller\Backend;
+use app\common\library\MediaUrl;
 use app\live\service\PromoService;
 use think\facade\Db;
 
@@ -355,7 +356,10 @@ HTML;
             $type   = isset(PromoService::CHANNEL_TYPES[$type]) ? $type : 'link';
             $name   = trim((string) $this->request->post('name', ''));
             $url    = $this->normalizeUrl($type, (string) $this->request->post('url', ''));
-            $icon   = trim((string) $this->request->post('icon', ''));
+            $icon   = MediaUrl::file($this->request->post('icon'));
+            if ($icon === '' && $id > 0) {
+                $icon = MediaUrl::file((string) Db::connect('live_mysql')->table('lp_cs_channel')->where('id', $id)->value('icon'));
+            }
             $sort   = (int) $this->request->post('sort', 0);
             $status = (string) $this->request->post('status', '') === '1' ? 1 : 0;
 
