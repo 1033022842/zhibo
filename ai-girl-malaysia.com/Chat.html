@@ -47,8 +47,8 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./_shared/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261110asi1"></script>
-	<script src="./js/chat-gift.js?v=20261109hide1"></script>
+    <script src="./js/chat.js?v=20261120trial1"></script>
+	<script src="./js/chat-gift.js?v=20261120trial1"></script>
     
 
 
@@ -62,7 +62,7 @@
 
     
   <link rel="stylesheet" href="./assets/fy.css?v=20261112promo1">
-		<script src="./js/shell-new.js?v=20261113policy1"></script>
+		<script src="./js/shell-new.js?v=20261120modal1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 	
 
@@ -196,6 +196,9 @@ body.fy-composer-hidden .fy-composer{transform:translateY(130%);opacity:0;pointe
 .fy-composer-inputwrap{flex:1 1 auto;min-width:0;position:relative}
 #message_body{width:100%;background:transparent;border:0;outline:none;box-shadow:none;color:#e1e1e1;font-family:'Roboto',sans-serif;font-size:15px;line-height:18px;min-height:21px;padding:0;flex:1 1 auto;min-width:0}
 #message_body::placeholder{color:#616162}
+#guest-chat-quota{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 6px;padding:2px 6px;color:#c4bdf8;font-size:12px;line-height:1.4}
+#guest-chat-quota[hidden],#guest-chat-quota button[hidden]{display:none}
+#guest-chat-quota button{flex-shrink:0;padding:5px 10px;border-radius:8px;background:#493bb6;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
 /* 发送按钮：参考站紫色渐变圆形 */
 #send-question,#send-question-with-token{width:40px;height:40px;padding:0!important;border-radius:9999px;background:linear-gradient(90deg,#4346E6 0%,#6143E6 100%);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;transition:all .3s ease;flex-shrink:0}
 /* 修复双发送按钮：ID 选择器优先级盖过 Tailwind 的 .hidden，补回隐藏规则 */
@@ -807,13 +810,14 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 
 <div id="form" class="z-10 fixed w-full bottom-0 lg:relative lg:bottom-0">
   <div data-controller="message-form" class="fy-composer">
+    <div id="guest-chat-quota" hidden><span role="status"></span><button type="button" hidden>Sign in</button></div>
     <div class="fy-composer-card">
       <div class="fy-composer-inputwrap" data-controller="message-ask">
         <div x-data="{ open: false }" @keydown.escape="open = false" @click.away="open = false" class="w-full">
           <div class="fy-composer-row1">
-            <input data-action="keydown.enter-&gt;main#openRegistrationModal" data-redirect-url="/ai-girlfriend/priya-mehta" data-message-ask-target="inputField" data-message-form-target="messageInput" placeholder="Write a message..." autocomplete="off" class="fy-composer-input" required="required" type="text" id="message_body">
+            <input data-message-ask-target="inputField" data-message-form-target="messageInput" aria-label="Write a message" placeholder="Write a message..." autocomplete="off" class="fy-composer-input" required="required" type="text" id="message_body">
             <div id="message-button">
-                <button data-message-form-target="" id="send-question" class="flex items-center justify-center flex-shrink-0" data-action="click-&gt;main#openRegistrationModal" data-redirect-url="/ai-girlfriend/priya-mehta">
+                <button type="button" id="send-question" aria-label="Send message" class="flex items-center justify-center flex-shrink-0">
     <img src="./Chat_files/send-message-49cd17c8857cb47efe8d97a06ce2d29f451e9b5dcda6f10a76f2cc135aa93e18.svg" alt="">
   </button>
   <button data-message-form-target="submitButtonWithToken" id="send-question-with-token" class="hidden flex items-center justify-center flex-shrink-0">

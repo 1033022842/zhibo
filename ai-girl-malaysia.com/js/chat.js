@@ -3,6 +3,19 @@
        // 缓存对话模板
        var cacheTemplate = $('#messages-list').html()
        var token = localStorage.getItem('live_access_token')
+    var guestId = ''
+    var guestRemaining = null
+    var guestTurns = Object.create(null)
+    function guestChatId() {
+        if (guestId) return guestId
+        try { guestId = localStorage.getItem('live_guest_chat_id') || '' } catch (e) {}
+        if (/^[a-f0-9]{32}$/.test(guestId)) return guestId
+        var bytes = new Uint8Array(16)
+        window.crypto.getRandomValues(bytes)
+        guestId = Array.prototype.map.call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2) }).join('')
+        try { localStorage.setItem('live_guest_chat_id', guestId) } catch (e) {}
+        return guestId
+    }
     // 聊天/通话消费价格（后端平台可配），进页面时拉一次
     var consumeOptions = { chat_overage_price: 0, call_price_per_minute: 0 }
     // 好感度奖励清单缓存键（character:affection），避免每发一条消息都重复拉取
@@ -64,6 +77,7 @@
             // 登录态/跳登录页/通话的初始化必须最先做且只绑一次：下面会话初始化万一抛错也不会把它跳过
             chatBooted = true
             setupAuthFlow()
+            loadGuestQuota()
             setupCall()
             setupLogout()
             loadConsumeOptions()
@@ -368,7 +382,7 @@
             function goLogin() {
                 if (jumped) return
                 jumped = true
-                location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search)
+                location.reload()
             }
             // 先等接口吊销服务端 token（用 keepalive 避免跳转把请求打断），失败或超时也照样退出
             if (t) {
@@ -417,7 +431,7 @@
     function loadMyPersona(id) {
         var pid = String(id).slice(3)
         if (!token) {
-            location.href = './Login.html?redirect=' + encodeURIComponent('./Chat.html?id=' + id)
+            goLoginPage()
             return
         }
         fetch('/api/live/customOneList', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, cache: 'no-store' })
@@ -607,6 +621,46 @@
             return fallback
         }
         return s
+    }
+
+    function renderGuestQuota() {
+        var status = document.getElementById('guest-chat-quota')
+        if (!status) return
+        status.hidden = !!token
+        if (token) return
+        var label = status.querySelector('span')
+        var button = status.querySelector('button')
+        label.textContent = guestRemaining === null ? 'Try up to 5 messages without signing in' : guestRemaining > 0
+            ? guestRemaining + (guestRemaining === 1 ? ' free message left' : ' free messages left')
+            : 'Free trial complete. Sign in to keep chatting.'
+        button.hidden = guestRemaining !== 0
+    }
+
+    function loadGuestQuota() {
+        if (token) return
+        var id
+        try { id = guestChatId() } catch (e) { return }
+        fetch('/api/live/guestChatStatus', { method: 'POST', headers: authHeaders(true), cache: 'no-store', body: JSON.stringify({ guest_id: id }) })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                if (guestRemaining === null && d && d.code === '00000' && d.data) {
+                    guestRemaining = Number(d.data.remaining)
+                    renderGuestQuota()
+                }
+            }).catch(function () {})
+    }
+
+    function renderGuestConversation() {
+        var box = messagesBox()
+        if (!box) return
+        box.innerHTML = ''
+        var turns = guestTurns[activeConvId] || []
+        if (turns.length === 0) appendBubble('Hey! What’s something you’ve been enjoying lately?', false)
+        turns.forEach(function (turn) {
+            appendBubble(turn.user, true)
+            appendBubble(turn.reply, false)
+        })
+        renderGuestQuota()
     }
 
     /* 免费额度相关提示：用尽时给升级入口，快用完时给剩余条数 */
@@ -1385,32 +1439,41 @@
         var input = document.getElementById('message_body')
         var fromInput = (opts.text === undefined)
         if (!input && fromInput) return
-        // 未登录不允许聊天（也不会产生记录）
-        if (!token) { goLoginPage(); return }
         var text = fromInput ? (input.value || '').trim() : String(opts.text || '').trim()
         if (text === '' || sending) return
+        var isGuest = !token
+        if (isGuest && (guestRemaining === 0 || opts.payTokens)) { goLoginPage(); return }
+        var trialId = ''
+        if (isGuest) {
+            try { trialId = guestChatId() } catch (e) { appendError('This browser does not support guest chat. Please sign in.'); return }
+        }
+        var conversationAtSend = activeConvId
+        function isCurrent() { return !isGuest || conversationAtSend === activeConvId }
         sending = true
         if (fromInput) input.value = ''
 
-        if (!opts.skipBubble) appendBubble(text, true)
+        var userBubble = opts.skipBubble ? null : appendBubble(text, true)
         var typing = appendTyping()
+        function restoreGuestDraft() {
+            if (userBubble) userBubble.remove()
+            if (isCurrent() && fromInput && !input.value) input.value = text
+        }
 
         var cid = convContentId()
         var rkey = convRoleKey()
-        var persona = currentPersona()
-        var body = {
-            message: text,
-            content_id: cid,
-            device_id: deviceId(),
-            lang: uiLang(),
-            history: chatHis.slice(-12)
-        }
-        // 首页等非平台角色：带上归档标识与人设
+        var body = { message: text, content_id: cid, lang: uiLang() }
         if (rkey !== '') body.role_key = rkey
-        if (opts.payTokens) body.pay_tokens = 1
-        if (cid === '0') {
-            body.persona_name = persona.name || ''
-            body.persona_desc = persona.desc || ''
+        if (isGuest) {
+            body.guest_id = trialId
+        } else {
+            body.device_id = deviceId()
+            body.history = chatHis.slice(-12)
+            if (opts.payTokens) body.pay_tokens = 1
+            if (cid === '0') {
+                var persona = currentPersona()
+                body.persona_name = persona.name || ''
+                body.persona_desc = persona.desc || ''
+            }
         }
 
         fetch('/api/live/chat', { method: 'POST', headers: authHeaders(true), body: JSON.stringify(body) })
@@ -1418,6 +1481,20 @@
             .then(function (d) {
                 if (typing) typing.remove()
                 if (!d || d.code !== '00000' || !d.data) {
+                    if (isGuest) {
+                        restoreGuestDraft()
+                        if (d && d.code === 'G0103') {
+                            guestRemaining = 0
+                            renderGuestQuota()
+                            if (isCurrent()) goLoginPage()
+                        } else if (d && d.code === 'A0100') {
+                            if (isCurrent()) goLoginPage()
+                        } else if (isCurrent()) {
+                            appendError(d && d.code === 'G0100' ? 'Please wait for your current reply.' : friendlyChatError(d))
+                        }
+                        return
+                    }
+                    if (d && (d.code === 'A0100' || d.code === 'A0101')) { goLoginPage(); return }
                     // 免费用户每日消息额度用尽：给「代币续聊」+「升级会员」入口
                     if (d && d.code === 'G0100') {
                         appendOverageHint(text)
@@ -1427,6 +1504,22 @@
                     return
                 }
                 var data = d.data
+                if (isGuest) {
+                    if (!data.guest || !data.reply) {
+                        restoreGuestDraft()
+                        if (isCurrent()) appendError('Guest chat is temporarily unavailable.')
+                        return
+                    }
+                    guestRemaining = Number(data.guest.remaining)
+                    var turns = guestTurns[conversationAtSend] || (guestTurns[conversationAtSend] = [])
+                    turns.push({ user: text, reply: data.reply })
+                    renderGuestQuota()
+                    if (isCurrent()) {
+                        if (userBubble && userBubble.isConnected) appendBubble(data.reply, false)
+                        else renderGuestConversation()
+                    }
+                    return
+                }
                 chatHis.push({ role: 'user', content: text })
                 if (data.balance !== undefined) renderTokens(data.balance)
                 if (data.reply) {
@@ -1447,7 +1540,8 @@
             })
             .catch(function () {
                 if (typing) typing.remove()
-                appendError('Network error, please try again later')
+                if (isGuest) restoreGuestDraft()
+                if (isCurrent()) appendError('Network error, please try again later')
             })
             .then(function () { sending = false })
     }
@@ -2555,10 +2649,14 @@
         callHeaderUi()
     }
 
-    // 未登录：站内原本「弹注册/登录框」的地方，统一改成跳转登录页（带上回跳地址）
     function goLoginPage() {
-        hideAuthModals()
         var back = window.location.pathname + window.location.search
+        var gateway = window.FyLogin && typeof window.FyLogin.open === 'function' ? window.FyLogin : window.LiveLogin
+        if (gateway && typeof gateway.open === 'function') {
+            hideAuthModals()
+            gateway.open({ mode: 'signin', redirect: back })
+            return
+        }
         window.location.href = './Login.html?redirect=' + encodeURIComponent(back)
     }
 
@@ -2574,45 +2672,24 @@
             if (realBtn) realBtn.classList.remove('hidden')
         }
 
-        var inChat = function (node) {
-            var area1 = document.getElementById('messages')
-            var area2 = document.getElementById('form')
-            return (area1 && area1.contains(node)) || (area2 && area2.contains(node))
-        }
-
-        // 所有「打开注册/登录弹窗」的元素：不再弹窗
-        document.addEventListener('click', function (e) {
-            var el = e.target && e.target.closest
-                ? e.target.closest('[data-action*="openRegistrationModal"], [data-action*="openSignInModal"]')
-                : null
-            if (!el) return
-            e.preventDefault()
-            e.stopPropagation()
-            hideAuthModals()
-            if (!token) {
-                goLoginPage()
-                return
-            }
-            // 已登录时聊天区内的元素（发送、推荐语、语音等）直接发消息
-            if (inChat(el)) sendMessage()
-        }, true)
-
-        // 输入框回车：未登录跳登录页，已登录直接发送
-        document.addEventListener('keydown', function (e) {
-            if (e.key !== 'Enter' || !e.target || e.target.id !== 'message_body') return
-            e.preventDefault()
-            e.stopPropagation()
-            if (token) sendMessage()
-            else goLoginPage()
-        }, true)
-
-        if (token && realBtn) {
-            realBtn.addEventListener('click', function (e) {
+        ;[guestBtn, realBtn].forEach(function (btn) {
+            if (!btn) return
+            btn.addEventListener('click', function (e) {
                 e.preventDefault()
                 e.stopPropagation()
                 sendMessage()
             }, true)
-        }
+        })
+        var trialButton = document.querySelector('#guest-chat-quota button')
+        if (trialButton) trialButton.addEventListener('click', goLoginPage)
+        renderGuestQuota()
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229 || !e.target || e.target.id !== 'message_body') return
+            e.preventDefault()
+            e.stopPropagation()
+            sendMessage()
+        }, true)
     }
     // 会话头像兜底：没有封面图时生成「渐变 + 首字母」占位，避免左侧列表一排裂图
     function avatarPlaceholder(title) {
@@ -2854,11 +2931,10 @@
             ensureCurrentInList(local)
             var guestConv = chatItemById(activeConvId)
             if (guestConv && guestConv.title && guestConv.title !== activeConvId && guestConv.title !== 'AI Chat') getDetail(guestConv)
-            // 清掉页面自带的空音频占位气泡，直接展示开场白
-            var guestBox = messagesBox()
-            if (guestBox) guestBox.innerHTML = ''
-            showIceBreaker()
-            // 场景按钮（未登录也展示，点击跳登录——参考站同款门禁）
+            renderGuestConversation()
+            // 选择同一角色或登录后都保留当前角色与推广参数。
+            if (!getParam('id') && activeConvId && activeConvId !== 'chat-default') syncConversationUrl(activeConvId)
+            // 场景按钮可展示入口；发送媒体仍需登录。
             loadSceneMedia()
             return
         }
@@ -2889,7 +2965,7 @@
             ensureCurrentInList(local)
             // URL 不带 ?id= 时补上，刷新后仍停留在同一会话
             if (String(getParam('id') || '') === '' && activeConvId !== '') {
-                try { history.replaceState(null, '', './Chat.html?id=' + encodeURIComponent(activeConvId)) } catch (e) {}
+                syncConversationUrl(activeConvId)
             }
             startConversation()
           })
@@ -3012,6 +3088,14 @@
         loadSceneMedia()
     }
 
+    function syncConversationUrl(id) {
+        try {
+            var url = new URL(location.href)
+            url.searchParams.set('id', id)
+            history.replaceState(null, '', url.pathname + url.search + url.hash)
+        } catch (e) {}
+    }
+
     // 切换会话：高亮 + 右侧资料 + 历史消息 + URL 同步（skipHistory=初始化时历史已并行预拉，避免重复请求）
     function selectConversation(convId, skipHistory) {
         convId = String(convId || '')
@@ -3023,8 +3107,13 @@
         })
         var $cur = $('#message-list').find('a.chat-obj[data-id="' + convId + '"]').first()
         if ($cur.length) $cur.addClass('px-[6px] bg-[#303030] border border-zinc-600').addClass('active')
-        try { history.replaceState(null, '', './Chat.html?id=' + encodeURIComponent(convId)) } catch (e) {}
+        syncConversationUrl(convId)
         getDetail(chatItemById(convId))
+        if (!token) {
+            renderGuestConversation()
+            loadSceneMedia()
+            return
+        }
         // 立即清空消息区并显示加载动画：旧角色的消息不再滞留（历史接口回来自然替换），消除"卡住不切换"的观感
         if (!skipHistory || !sameConv) {
             var swBox = messagesBox()

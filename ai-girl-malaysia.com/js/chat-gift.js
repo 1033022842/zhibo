@@ -136,7 +136,13 @@
   function sendGift(item, panel) {
     if (sending) return;
     var tk = token();
-    if (!tk) { location.href = './Login.html?redirect=' + encodeURIComponent(location.pathname + location.search); return }
+    if (!tk) {
+      var back = location.pathname + location.search;
+      var gateway = window.FyLogin && typeof window.FyLogin.open === 'function' ? window.FyLogin : window.LiveLogin;
+      if (gateway && typeof gateway.open === 'function') gateway.open({ mode: 'signin', redirect: back });
+      else location.href = './Login.html?redirect=' + encodeURIComponent(back);
+      return;
+    }
     var rk = roleKey();
     var id = item.getAttribute('data-id');
     var name = item.getAttribute('data-name');

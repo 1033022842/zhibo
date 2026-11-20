@@ -4,9 +4,12 @@
   window.__liveLoginGatewayLoaded = true
   var options = null
   var pending = null
-  var mountTimer = null
   var cooldownUntil = 0
+  var activeReturn = ''
   var API = '/api/live'
+  var HOME = '/ai/Home.html'
+  var LOGIN = '/ai/Login.html'
+  var onLoginPage = /^\/ai\/login\.html$/i.test(location.pathname) || /\/login\.html$/i.test(location.pathname)
   // 品牌图标：Google 保留官方四色（白底按钮）；Discord/Telegram/X 用 currentColor，
   // 跟随按钮文字色（分别白/白/深），否则图标与品牌底色同色会完全隐形。
   var LABELS = { google: 'Google', discord: 'Discord', twitter: 'X', telegram: 'Telegram' }
@@ -40,29 +43,28 @@
   }
 
   function message(text) {
-    if (window.layer && window.layer.msg) window.layer.msg(text)
+    var dialogStatus = document.querySelector('#live-login-dialog[open] #live-login-status')
+    if (dialogStatus) dialogStatus.textContent = text
+    else if (window.layer && window.layer.msg) window.layer.msg(text)
     else window.alert(text)
   }
 
-  function returnPath() {
+  function safeReturn(path) {
+    if (!path) return ''
     try {
-      var requested = new URL(location.href).searchParams.get('redirect')
-      // 兜底顺序：URL 的 redirect -> 站内 referrer -> sessionStorage 记录的来路
-      if (!requested && location.pathname.indexOf('Login.html') >= 0) {
-        requested = document.referrer || ''
-        if (!requested) {
-          try { requested = sessionStorage.getItem('sugus_login_from') || '' } catch (e) {}
-        }
-        // 登录页首次进入时，把来路存下来（部分浏览器/隐私模式 referrer 为空）
-        if (!requested) {
-          try { requested = sessionStorage.getItem('sugus_last_page') || '' } catch (e) {}
-        }
-      }
-      var url = new URL(requested || location.href, location.href)
+      var url = new URL(path, location.href)
       if (url.origin === location.origin && url.pathname.indexOf('/ai/') === 0 &&
-          url.pathname.toLowerCase().indexOf('login.html') < 0) return url.pathname + url.search
-    } catch (e) { /* 非同源或非法返回地址采用首页。 */ }
-    return '/ai/Home.html'
+          !/\/login\.html$/i.test(url.pathname)) return url.pathname + url.search
+    } catch (e) { /* 非同源或非法返回地址忽略。 */ }
+    return ''
+  }
+
+  function returnPath() {
+    if (!onLoginPage) return activeReturn || safeReturn(location.href) || HOME
+    var requested = new URL(location.href).searchParams.get('redirect')
+    var stored = ''
+    try { stored = sessionStorage.getItem('sugus_login_from') || sessionStorage.getItem('sugus_last_page') } catch (e) {}
+    return safeReturn(requested) || safeReturn(document.referrer) || safeReturn(stored) || HOME
   }
 
   /* 记住站内上一个页面，供 referrer 丢失时兜底 */
@@ -89,7 +91,7 @@
       data.reg_px = localStorage.getItem('promo_px') || ''
       data.reg_link_name = localStorage.getItem('promo_name') || ''
       data.reg_link = localStorage.getItem('promo_l') || ''
-      var invite = document.getElementById('user_code_registration')
+      var invite = document.querySelector('#live-login-dialog[open] [name=invite]') || document.getElementById('user_code_registration')
       data.invite_code = (invite && invite.value) || localStorage.getItem('code') || ''
     } catch (e) { /* 本地存储不可用不阻断登录。 */ }
     data.event_id = window.crypto && crypto.randomUUID ? crypto.randomUUID() :
@@ -106,7 +108,7 @@
     return data
   }
 
-  function afterLogin(data) {
+  function afterLogin(data, target, eventName) {
     if (!data || !data.access_token || !data.user) throw new Error('Invalid sign-in response.')
     if (window.LiveAuth) window.LiveAuth.save(data, true)
     else {
@@ -124,12 +126,9 @@
       avatar: data.user.avatar || '', email: data.user.email || ''
     }))
     try {
-      if (window.SugusTrack) SugusTrack.event(data.is_new_user ? 'register' : 'login', {}, data.event_id)
+      if (window.SugusTrack) SugusTrack.event(eventName || (data.is_new_user ? 'register' : 'login'), {}, data.event_id)
     } catch (e) { /* 转化上报不影响登录。 */ }
-    var target = data.redirect || '/ai/Home.html'
-    var url = new URL(target, location.origin)
-    location.replace(url.origin === location.origin && url.pathname.indexOf('/ai/') === 0
-      ? url.pathname + url.search : '/ai/Home.html')
+    location.replace(safeReturn(target || data.redirect) || returnPath())
   }
 
   function installStyle() {
@@ -156,7 +155,7 @@
       '.live-social-row .live-provider-telegram{background:#229ED9;color:#fff}' +
       '.live-social-row button:hover:not(:disabled){filter:brightness(1.08)}' +
       '.live-social-row button:active:not(:disabled){transform:scale(.985)}' +
-      '.live-login-methods button:hover:not(:disabled){background:#383036}' +
+      '.live-email-entry:hover:not(:disabled){background:#383036}' +
       '.live-login-methods button:disabled{opacity:.45;cursor:not-allowed}' +
       '.live-login-methods small{display:block;font-size:10px;font-weight:400;margin-top:4px;color:#bcbcbc}' +
       '#email-signin-dialog{box-sizing:border-box;width:min(420px,92vw);max-height:90dvh;padding:0;margin:auto;' +
@@ -180,7 +179,31 @@
       '#email-signin-dialog .email-signin-actions button{border-radius:9px;padding:12px;min-height:44px}' +
       '#email-signin-dialog .email-signin-close{background:#292929;color:#ccc;border:1px solid #444}' +
       '#email-signin-dialog .email-signin-submit{flex:1;background:#E75275;color:white;border:0;font-weight:600}' +
-      '#email-signin-status{font-size:13px;line-height:1.5;min-height:20px;color:#f4a2b4}'
+      '#email-signin-status{font-size:13px;line-height:1.5;min-height:20px;color:#f4a2b4}' +
+      '#live-login-dialog{box-sizing:border-box;width:min(420px,calc(100% - 24px));max-height:calc(100dvh - 24px);' +
+        'margin:auto;padding:24px;border:1px solid #402f36;border-radius:18px;background:#1b171a;color:#fff;' +
+        'font-family:inherit;overflow:auto;overscroll-behavior:contain}' +
+      '#live-login-dialog::backdrop{background:rgba(0,0,0,.68);backdrop-filter:blur(5px)}' +
+      '#live-login-dialog [hidden]{display:none!important}' +
+      '#live-login-dialog h2{margin:0 32px 18px 0;font-size:25px;font-weight:750;line-height:1.2}' +
+      '#live-login-dialog form{display:grid;gap:12px;margin:0}' +
+      '#live-login-dialog label{display:grid;gap:5px;text-align:left;font-size:13px;color:#e2d4da}' +
+      '#live-login-dialog input{width:100%;min-width:0;box-sizing:border-box;background:#292329;color:#fff;' +
+        'border:1px solid #51424b;border-radius:9px;padding:10px;font:inherit;font-size:16px}' +
+      '#live-login-dialog input:focus-visible,#live-login-dialog button:focus-visible{outline:2px solid #f6a0b6;outline-offset:2px}' +
+      '#live-login-dialog button{font:inherit;cursor:pointer}' +
+      '#live-login-dialog button:disabled{opacity:.5;cursor:wait}' +
+      '#live-login-dialog .live-login-close{position:absolute;right:12px;top:10px;width:36px;height:36px;border:0;' +
+        'border-radius:50%;background:#332c32;color:#eee;font-size:24px;line-height:1}' +
+      '#live-login-dialog .live-login-submit{border:0;border-radius:9px;min-height:44px;color:#fff;' +
+        'background:#c93a64;font-size:15px;font-weight:700}' +
+      '#live-login-dialog .live-login-row{display:flex;align-items:center;gap:8px}' +
+      '#live-login-dialog .live-login-row button{padding:8px;border:1px solid #f6a0b6;border-radius:8px;color:#f6a0b6;' +
+        'background:none;white-space:nowrap}' +
+      '#live-login-dialog .live-login-link,#live-login-dialog a{border:0;padding:0;background:none;color:#f6a0b6;text-decoration:underline}' +
+      '#live-login-dialog .live-login-footer{text-align:center;font-size:13px;margin:14px 0 0;color:#dfd2d9}' +
+      '#live-login-status{margin:0;color:#f6a0b6;font-size:13px;line-height:1.45}' +
+      '#live-login-status:empty{display:none}'
     document.head.appendChild(style)
   }
 
@@ -247,6 +270,201 @@
     return dialog
   }
 
+  function submitPassword(mode, values, redirect) {
+    var signup = mode === 'signup'
+    var data = Object.assign(signup ? context() : {}, values)
+    var target = safeReturn(redirect) || returnPath()
+    return post(signup ? '/registerFromAi' : '/login', data).then(function (result) {
+      if (result && signup && !result.event_id) result.event_id = data.event_id
+      afterLogin(result, target, signup ? 'register' : 'login')
+    })
+  }
+
+  function loginPage(mode, redirect) {
+    return LOGIN + '?mode=' + encodeURIComponent(mode) + '&redirect=' + encodeURIComponent(redirect)
+  }
+
+  /* 共用弹窗：不依赖页面残留的镜像表单；所有页面沿用同一套登录 API、会话和社交流程。 */
+  function createLoginDialog() {
+    var dialog = document.getElementById('live-login-dialog')
+    if (dialog) return dialog
+    installStyle()
+    dialog = document.createElement('dialog')
+    dialog.id = 'live-login-dialog'
+    dialog.setAttribute('aria-labelledby', 'live-login-title')
+    dialog.innerHTML = '<button class="live-login-close" type="button" aria-label="Close">&times;</button>' +
+      '<h2 id="live-login-title"></h2><form data-turbo="false">' +
+      '<label data-signup-only hidden>Username<input name="username" autocomplete="username" maxlength="20"></label>' +
+      '<label>Email<input type="email" name="email" autocomplete="email" maxlength="128" required autofocus></label>' +
+      '<label data-signup-only data-verify-row hidden>Email code<span class="live-login-row">' +
+      '<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6">' +
+      '<button type="button" class="live-login-send">Send code</button></span></label>' +
+      '<label>Password<input type="password" name="password" required></label>' +
+      '<label data-signup-only hidden>Invitation code (optional)<input name="invite" autocomplete="off" maxlength="64"></label>' +
+      '<div class="live-forgot-wrap"><button type="button" class="live-login-link live-login-forgot">Forgot password?</button></div>' +
+      '<p id="live-login-status" role="status" aria-live="polite"></p>' +
+      '<button class="live-login-submit" type="submit"></button></form><div class="live-dialog-methods"></div>' +
+      '<p class="live-login-footer" data-signup-only hidden>By signing up, you agree to the <a href="/ai/terms.html">Terms of Service</a>.</p>' +
+      '<p class="live-login-footer"><span class="live-login-prompt"></span> <button class="live-login-link live-login-switch" type="button"></button></p>'
+    document.body.appendChild(dialog)
+    var form = dialog.querySelector('form')
+    var status = dialog.querySelector('#live-login-status')
+    var submit = dialog.querySelector('.live-login-submit')
+    var send = dialog.querySelector('.live-login-send')
+    var toggle = dialog.querySelector('.live-login-switch')
+    var verify = dialog.querySelector('[data-verify-row]')
+    var signup = false, needsCode = false, configRequest = null, sendPending = false, sendUntil = 0, busy = false
+    function loadRegistrationConfig() {
+      if (configRequest) return
+      configRequest = fetch(API + '/registerConfig', { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) { return r.json() })
+        .then(function (result) {
+          if (result && result.code === '00000' && result.data) {
+            needsCode = !!Number(result.data.email_verify)
+            syncVerification()
+          }
+        }).catch(function () { /* 服务端仍验证注册条件。 */ })
+        .finally(function () { configRequest = null })
+    }
+    function syncVerification() {
+      verify.hidden = !(signup && needsCode)
+      form.elements.code.required = signup && needsCode
+      form.elements.code.disabled = !(signup && needsCode)
+    }
+    function syncSend() {
+      var left = Math.max(0, Math.ceil((sendUntil - Date.now()) / 1000))
+      send.disabled = !!left || sendPending
+      send.textContent = sendPending ? 'Sending…' : left ? left + 's' : 'Send code'
+      return left
+    }
+    dialog.setLoginMode = function (mode) {
+      var next = mode === 'signup'
+      if (signup !== next) form.elements.password.value = ''
+      signup = next
+      dialog.dataset.mode = signup ? 'signup' : 'signin'
+      dialog.querySelector('#live-login-title').textContent = signup ? 'Create an account' : 'Sign in'
+      dialog.querySelectorAll('[data-signup-only]').forEach(function (el) { el.hidden = !signup })
+      dialog.querySelector('.live-forgot-wrap').hidden = signup
+      dialog.querySelector('.live-login-prompt').textContent = signup ? 'Already have an account?' : 'New here?'
+      toggle.textContent = signup ? 'Sign in' : 'Create account'
+      form.elements.username.required = signup
+      form.elements.password.autocomplete = signup ? 'new-password' : 'current-password'
+      if (signup) {
+        form.elements.password.minLength = 6
+        form.elements.password.maxLength = 20
+        if (!form.elements.invite.value) {
+          try { form.elements.invite.value = localStorage.getItem('code') || '' } catch (e) {}
+        }
+        loadRegistrationConfig()
+      } else {
+        form.elements.password.removeAttribute('minlength')
+        form.elements.password.removeAttribute('maxlength')
+      }
+      syncVerification()
+      syncSend()
+      status.textContent = ''
+      submit.textContent = signup ? 'Create account' : 'Sign in'
+    }
+    dialog.querySelector('.live-login-close').onclick = function () { dialog.close() }
+    dialog.querySelector('.live-login-forgot').onclick = function () {
+      if (window.liveOpenPasswordReset) window.liveOpenPasswordReset(form.elements.email.value)
+      else location.assign(loginPage('reset', returnPath()))
+    }
+    dialog.addEventListener('close', function () {
+      if (!dialog.open) {
+        activeReturn = ''
+        form.elements.password.value = ''
+        form.elements.code.value = ''
+        status.textContent = ''
+      }
+    })
+    toggle.onclick = function () { if (!busy) { dialog.setLoginMode(signup ? 'signin' : 'signup'); form.elements.email.focus() } }
+    send.onclick = function () {
+      if (send.disabled || !form.elements.email.reportValidity()) return
+      sendPending = true
+      syncSend()
+      post('/sendEmailCode', { email: form.elements.email.value.trim() }).then(function () {
+        status.textContent = 'Code sent. Check your inbox.'
+        sendUntil = Date.now() + 60000
+        var timer = setInterval(function () { if (!syncSend() || !dialog.isConnected) clearInterval(timer) }, 1000)
+      }).catch(function (error) { status.textContent = error.message })
+        .finally(function () { sendPending = false; syncSend() })
+    }
+    form.addEventListener('submit', function (event) {
+      event.preventDefault()
+      if (busy || !form.reportValidity()) return
+      var email = form.elements.email.value.trim()
+      var values = signup ? { username: form.elements.username.value.trim(), email: email,
+        invite_code: form.elements.invite.value.trim(), code: form.elements.code.value } : { account: email }
+      values.password = form.elements.password.value
+      busy = submit.disabled = toggle.disabled = true
+      status.textContent = ''
+      submitPassword(signup ? 'signup' : 'signin', values, returnPath()).catch(function (error) {
+        status.textContent = error.message
+        busy = submit.disabled = toggle.disabled = false
+      })
+    })
+    return dialog
+  }
+
+  function openLogin(request) {
+    request = request || {}
+    var mode = request.mode === 'signup' ? 'signup' : 'signin'
+    var target = safeReturn(request.redirect) || safeReturn(location.href) || returnPath()
+    if (onLoginPage) {
+      var switchForm = mode === 'signup' ? window.showSignUp : window.showSignIn
+      if (typeof switchForm === 'function') switchForm()
+      return true
+    }
+    if (!window.HTMLDialogElement || !HTMLDialogElement.prototype.showModal) {
+      location.assign(loginPage(mode, target))
+      return true
+    }
+    // 已经显示的流程保留自己的回跳；切换登录 / 注册不必创建第二层弹窗。
+    var dialog = createLoginDialog()
+    activeReturn = target
+    dialog.setLoginMode(mode)
+    if (!dialog.open) dialog.showModal()
+    initialize()
+    return true
+  }
+
+  function bindLoginEntries() {
+    if (onLoginPage) return
+    function onEntry(event) {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+      if (event.type === 'click' && event.button !== 0) return
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return
+      var t = event.target
+      var entry = t && t.closest && t.closest('[data-live-login], [data-action*="openSignInModal"], [data-action*="openRegistrationModal"], a[href], [onclick*="Login.html"]')
+      if (!entry || entry.hasAttribute('data-live-login-page') || entry.getAttribute('target') === '_blank' || entry.hasAttribute('download')) return
+      if (event.type === 'keydown' && entry.matches('a,button')) return
+      var action = entry.getAttribute('data-action') || ''
+      var explicit = entry.getAttribute('data-live-login')
+      var mode = explicit || (/openRegistrationModal/.test(action) ? 'signup' : /openSignInModal/.test(action) ? 'signin' : '')
+      var redirect = entry.getAttribute('data-redirect-url') || ''
+      if (!mode) {
+        var href = entry.getAttribute('href')
+        if (href) {
+          var url = new URL(href, location.href)
+          if (url.origin !== location.origin || !/\/Login\.html$/i.test(url.pathname) || url.hash) return
+          redirect = url.searchParams.get('redirect') || redirect
+          mode = url.searchParams.get('mode') || ''
+          if (mode === 'reset') return
+        }
+        var text = (entry.getAttribute('aria-label') || entry.textContent || '').trim()
+        if (!mode && !/^(?:register|sign\s*up|join\s*free|create\s*(?:an?\s*)?account|log\s*in|sign\s*in)$/i.test(text)) return
+        if (!mode) mode = /^(register|sign\s*up|join|create)/i.test(text) ? 'signup' : 'signin'
+      }
+      if (redirect === '/') redirect = '' // 旧镜像控件的默认占位值
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      openLogin({ mode: mode, redirect: redirect })
+    }
+    document.addEventListener('click', onEntry, true)
+    document.addEventListener('keydown', onEntry, true)
+  }
+
   /* ---------- Telegram Login Widget（整行渲染，官方 iframe 按钮不进等宽网格） ---------- */
   var telegramBusy = false
   // widget iframe 的 data-onauth 只认全局函数名，这里桥接到登录网关的提交流程
@@ -274,12 +492,12 @@
   var tgBusy = false
   var tgTimer = null
   var tgWin = null
+  var tgButton = null
 
   function tgStop() {
     if (tgTimer) { clearTimeout(tgTimer); tgTimer = null }
     tgBusy = false
-    var btn = document.querySelector('.live-provider-telegram')
-    if (btn) { btn.disabled = false; btn.classList.remove('is-busy') }
+    if (tgButton) { tgButton.disabled = false; tgButton.classList.remove('is-busy'); tgButton = null }
     var w = tgWin
     tgWin = null
     if (w) { try { if (!w.closed) w.close() } catch (e) { /* 跨域窗口可能拒绝关闭 */ } }
@@ -303,13 +521,14 @@
 
     var code = ''
     var browser = ''
+    var loginContext = null
     var tries = 0
     var polling = false
 
     function pollOnce() {
-      if (!tgBusy || polling || !code) return
+      if (!tgBusy || tgButton !== tg || polling || !code) return
       polling = true
-      post('/telegramPoll', { code: code, browser: browser }).then(function (d) {
+      post('/telegramPoll', Object.assign({}, loginContext, { code: code, browser: browser })).then(function (d) {
         polling = false
         if (!tgBusy) return
         if (d && d.pending) { schedule(1500); return }
@@ -341,7 +560,7 @@
 
     /* 用户切回本页时立刻复查，避免“已经授权但还在等定时器” */
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden && tgBusy) {
+      if (!document.hidden && tgButton === tg) {
         if (tgTimer) { clearTimeout(tgTimer); tgTimer = null }
         pollOnce()
       }
@@ -350,10 +569,13 @@
     tg.onclick = function () {
       if (tgBusy) return
       tgBusy = true
+      tgButton = tg
+      code = ''
       tries = 40
+      loginContext = context()
       tg.disabled = true
       tg.classList.add('is-busy')
-      post('/telegramStart', context()).then(function (d) {
+      post('/telegramStart', loginContext).then(function (d) {
         if (!d || !d.deep_link) {
           tgStop()
           message('Telegram sign-in is unavailable right now.')
@@ -377,76 +599,73 @@
     row.appendChild(tg)
   }
 
+  function authMethods(getEmail) {
+    // Google/Discord/X 走 OAuth，Telegram 走深链轮询；新弹窗与独立登录页公用入口。
+    var providers = ['google', 'discord', 'twitter', 'telegram'].map(function (id) {
+      return (options.providers || []).find(function (item) { return item.id === id && item.enabled })
+    }).filter(Boolean)
+    if (!options.email_code && !providers.length) return null
+    var box = document.createElement('div')
+    box.className = 'live-login-methods'
+    var divider = document.createElement('div')
+    divider.className = 'live-login-divider'
+    divider.textContent = 'or continue with'
+    box.appendChild(divider)
+    if (options.email_code) {
+      var email = document.createElement('button')
+      email.type = 'button'
+      email.className = 'live-email-entry'
+      email.textContent = 'Email code - no password'
+      email.onclick = function () {
+        var dialog = emailDialog()
+        dialog.querySelector('[name=email]').value = getEmail() || ''
+        dialog.querySelector('#email-signin-status').textContent = ''
+        if (!dialog.open) dialog.showModal()
+      }
+      box.appendChild(email)
+    }
+    if (providers.length) {
+      var row = document.createElement('div')
+      row.className = 'live-social-row'
+      providers.forEach(function (provider) {
+        if (provider.id === 'telegram') return
+        var social = document.createElement('button')
+        social.type = 'button'
+        social.className = 'live-provider-' + provider.id
+        social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
+        social.querySelector('span').textContent = 'Continue with ' + (LABELS[provider.id] || provider.label)
+        social.onclick = function () { startOAuth(provider, social) }
+        row.appendChild(social)
+      })
+      box.appendChild(row)
+    }
+    mountTelegram(box)
+    if (row && !row.children.length) row.remove()
+    return options.email_code || (row && row.children.length) ? box : null
+  }
+
   function mount() {
     if (!options) return
     installStyle()
     document.querySelectorAll('.google-login-box').forEach(function (old) { old.remove() })
+    var shared = document.querySelector('.live-dialog-methods')
+    if (shared && !shared.firstChild) {
+      var methods = authMethods(function () { return shared.parentNode.querySelector('[name=email]').value })
+      if (methods) shared.appendChild(methods)
+    }
     ;['signin-btn', 'signup-btn'].forEach(function (id) {
-      var button = document.getElementById(id)
+      var button = document.querySelector('button#' + id)
       if (!button || button.parentNode.querySelector('.live-login-methods')) return
-      var box = document.createElement('div')
-      box.className = 'live-login-methods'
-      var divider = document.createElement('div')
-      divider.className = 'live-login-divider'
-      divider.textContent = 'or continue with'
-      box.appendChild(divider)
-      var email = document.createElement('button')
-      email.type = 'button'
-      email.className = 'live-email-entry'
-      email.disabled = !options.email_code
-      email.textContent = options.email_code ? 'Email code - no password' : 'Email code - coming soon'
-      email.title = options.email_code ? 'Receive a sign-in code by email' : 'Email sign-in is not configured yet'
-      email.onclick = function () {
-        var dialog = emailDialog()
+      var box = authMethods(function () {
         var input = document.getElementById(id === 'signup-btn' ? 'user_email_registration' : 'user_email')
-        dialog.querySelector('[name=email]').value = (input && input.value) || ''
-        dialog.querySelector('#email-signin-status').textContent = ''
-        dialog.showModal()
-      }
-      box.appendChild(email)
-      // 社交登录整行按钮（对齐 candy.ai）：Google/Discord/X 走 OAuth 弹窗，
-      // Telegram 走深链轮询（mountTelegram 追加到同一行）。
-      // 顺序固定为 Google → Discord → X → Telegram，缺失的自动跳过。
-      var PROVIDER_ORDER = ['google', 'discord', 'twitter', 'telegram']
-      var byId = {}
-      ;(options.providers || []).forEach(function (p) { byId[p.id] = p })
-      var providers = PROVIDER_ORDER
-        .map(function (id) { return byId[id] })
-        .filter(function (p) { return p && p.enabled })
-      if (providers.length) {
-        var row = document.createElement('div')
-        row.className = 'live-social-row'
-        providers.forEach(function (provider) {
-          if (provider.id === 'telegram') return // 由 mountTelegram 统一追加，复用其轮询逻辑
-          var social = document.createElement('button')
-          var label = LABELS[provider.id] || provider.label
-          social.type = 'button'
-          social.className = 'live-provider-' + provider.id
-          social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
-          social.querySelector('span').textContent = 'Continue with ' + label
-          social.onclick = function () {
-            social.disabled = true
-            post('/socialStart/' + provider.id, context()).then(function (data) {
-              // 浏览器绑定令牌：同时写 session/local —— 弹窗有自己的 sessionStorage，
-              // CDN 又会吞 Set-Cookie，localStorage 是同源共享的唯一可靠通道
-              try { sessionStorage.setItem(OAUTH_BROWSER_KEY, data.browser || '') } catch (e) {}
-              try { localStorage.setItem(OAUTH_BROWSER_KEY, data.browser || '') } catch (e) {}
-              openOAuthPopup(provider, data.authorize_url, social)
-            }).catch(function (error) {
-              social.disabled = false
-              message(error.message)
-            })
-          }
-          row.appendChild(social)
-        })
-        box.appendChild(row)
-      }
-      mountTelegram(box)
-      button.insertAdjacentElement('afterend', box)
+        return input && input.value
+      })
+      if (box) button.insertAdjacentElement('afterend', box)
     })
   }
 
   function initialize() {
+    if (!document.querySelector('button#signin-btn, button#signup-btn, #live-login-dialog[open]')) return
     if (options) { mount(); return }
     if (pending) return
     pending = fetch(API + '/loginOptions', { credentials: 'same-origin', cache: 'no-store' })
@@ -463,6 +682,7 @@
   var OAUTH_RESULT_KEY = 'oauth_result'
   var OAUTH_BROWSER_KEY = 'oauth_browser'
   var oauthPopupTimer = null
+  var oauthPending = false
 
   /** 读浏览器绑定令牌：弹窗与主窗口的 sessionStorage 可能不共享，localStorage 兜底 */
   function readOAuthBrowser() {
@@ -476,16 +696,35 @@
     try { localStorage.removeItem(OAUTH_BROWSER_KEY) } catch (e) {}
   }
 
-  function openOAuthPopup(provider, url, button) {
-    var wname = 'oauth_' + provider.id
-    var w = window.open(url, wname, 'width=520,height=680,menubar=no,toolbar=no')
-    if (!w) {
-      // 弹窗被拦截：退回整页跳转（回调时由 callback() 处理）
-      button && (button.disabled = false)
-      message('Please allow pop-ups for this site, or the sign-in will open in this tab.')
-      location.assign(url)
-      return
-    }
+  function startOAuth(provider, button) {
+    if (oauthPending || oauthPopupTimer) return
+    oauthPending = true
+    button.disabled = true
+    var w = null
+    // 必须在点击的用户手势内打开窗口；等网络请求结束才 open 会被手机端拦截。
+    try { w = window.open('about:blank', 'oauth_' + provider.id, 'width=520,height=680,menubar=no,toolbar=no') } catch (e) {}
+    try { localStorage.removeItem(OAUTH_RESULT_KEY) } catch (e) {}
+    post('/socialStart/' + provider.id, context()).then(function (data) {
+      if (!data || !data.authorize_url) throw new Error('This sign-in provider is unavailable right now.')
+      if (w && w.closed) { button.disabled = false; return }
+      // 浏览器绑定令牌：sessionStorage 兜底整页回调，localStorage 供同源弹窗兑换。
+      try { sessionStorage.setItem(OAUTH_BROWSER_KEY, data.browser || '') } catch (e) {}
+      try { localStorage.setItem(OAUTH_BROWSER_KEY, data.browser || '') } catch (e) {}
+      if (!w) {
+        button.disabled = false
+        location.assign(data.authorize_url)
+        return
+      }
+      w.location.replace(data.authorize_url)
+      waitForOAuthPopup(w, button)
+    }).catch(function (error) {
+      if (w) { try { w.close() } catch (e) {} }
+      button.disabled = false
+      message(error.message)
+    }).finally(function () { oauthPending = false })
+  }
+
+  function waitForOAuthPopup(w, button) {
     var started = Date.now()
     if (oauthPopupTimer) clearInterval(oauthPopupTimer)
     oauthPopupTimer = setInterval(function () {
@@ -505,7 +744,9 @@
             : 'Authorization failed. Please try again.')
           return
         }
-        if (res && res.data) { afterLogin(res.data); return }
+        if (res && res.data) {
+          try { afterLogin(res.data); return } catch (error) { message(error.message) }
+        }
         button && (button.disabled = false)
         return
       }
@@ -525,21 +766,19 @@
   }
 
   function callback() {
-    if (location.pathname.toLowerCase().indexOf('login.html') < 0) return
+    if (!onLoginPage) return
     var params = new URLSearchParams(location.hash.slice(1))
     var ticket = params.get('oauth_ticket')
     var error = params.get('oauth_error')
     if (!ticket && !error) return
-    history.replaceState(null, '', location.pathname + location.search)
-    // 弹窗模式判定：Discord/Google 的 COOP 头可能切断 opener，
-    // 故同时看 window.name（openOAuthPopup 里设的）与 opener 是否存在
-    var inPopup = (location.hash.indexOf('oauth_pw=1') >= 0) ||
-      (String(window.name || '').indexOf('oauth_') === 0) ||
+    // 在清除片段前读取弹窗标志；跨站导航的 COOP 可能切断 opener。
+    var inPopup = params.get('oauth_pw') === '1' || (String(window.name || '').indexOf('oauth_') === 0) ||
       (!!window.opener && !window.opener.closed)
+    history.replaceState(null, '', location.pathname + location.search)
     function finish(payload) {
+      if (!inPopup) return
       try { localStorage.setItem(OAUTH_RESULT_KEY, JSON.stringify(payload)) } catch (e) {}
-      if (inPopup) { setTimeout(function () { try { window.close() } catch (e) {} }, 120) }
-      return payload
+      setTimeout(function () { try { window.close() } catch (e) {} }, 120)
     }
     if (error) {
       finish({ error: 'cancelled' })
@@ -561,16 +800,22 @@
   }
 
   function ready() {
+    bindLoginEntries()
     initialize()
     callback()
-    // 有界重试：仅在前几次 DOM 未就绪时补挂按钮，不做无限 MutationObserver 监听
-    var retries = 8
-    (function retryMount() {
-      if (document.querySelector('.live-login-methods') || retries-- <= 0) return
-      setTimeout(retryMount, 250)
-    })()
+    var queued = window.__liveLoginRequest
+    delete window.__liveLoginRequest
+    if (queued) openLogin(queued)
     document.addEventListener('turbo:load', initialize)
     document.addEventListener('turbo:render', initialize)
+    document.addEventListener('turbo:frame-load', initialize)
+  }
+  window.LiveLogin = {
+    open: function (request) {
+      if (!document.body) { window.__liveLoginRequest = request || {}; return true }
+      return openLogin(request)
+    },
+    submitPassword: submitPassword
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready)
   else ready()

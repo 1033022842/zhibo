@@ -72,6 +72,7 @@ Route::get('live/googleClientId',    '\app\api\controller\Live@googleClientId');
 Route::post('live/refresh_token',    '\app\api\controller\Live@refreshToken');
 Route::get('live/channelType',       '\app\api\controller\Live@channelType');
 Route::get('live/customPrice',       '\app\api\controller\Live@customPrice');
+Route::post('live/guestChatStatus',  '\app\api\controller\Live@guestChatStatus');
 Route::get('live/chatHistory',       '\app\api\controller\Live@chatHistory');
 Route::get('live/chatConversations', '\app\api\controller\Live@chatConversations');
 

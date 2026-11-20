@@ -359,8 +359,8 @@ SIGN_BUCKET_SEC = 604800
 BUCKET = sugus-media
 REGION = us-east-1
 ACCESS_KEY = minioadmin
-SECRET_KEY = <向存储服务器要>
-GATEWAY_KEY = <向存储服务器要>
+SECRET_KEY = 2o2arrbb81ioVMxDLqkS82b4
+GATEWAY_KEY = 50ec0e642ccf97ce9c85b19c76b5360d561c4a461bbd1888
 [HISSPAY]
 APP_ID = PzRlHNO
 APP_SECRET = <你的>

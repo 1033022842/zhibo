@@ -53,14 +53,86 @@
   }
   window.FyAuthPolicy = AUTH_POLICY
 
-  /* ---------- 登录守卫：受保护页面未登录 → 跳登录页 ----------
-     登录成功后回原页（?redirect=），关弹窗走 main.js 的 cancelLogin()。 */
+  /* ---------- 登录守卫：受保护页面未登录 → 就地弹登录框 ----------
+     登录成功后回原页（?redirect=），关弹窗走 main.js 的 cancelLogin()。
+     2026-11-20：不再整页跳 Login.html，改为全站统一弹窗（FyLogin），
+     网关脚本按需懒加载；加载失败才回落到整页跳转。 */
   ;(function authGuard() {
     if (!AUTH_POLICY.isProtected(location.pathname)) return
     if (AUTH_POLICY.hasToken()) return
-    location.replace('./Login.html?redirect=' +
-      encodeURIComponent(location.pathname + location.search))
+    var back = location.pathname + location.search
+    function request() {
+      if (window.FyLogin && window.FyLogin.open) {
+        window.FyLogin.open({ mode: 'signin', redirect: back, protectedPage: true })
+      } else {
+        location.replace('./Login.html?redirect=' + encodeURIComponent(back))
+      }
+    }
+    if (document.body) request()
+    else document.addEventListener('DOMContentLoaded', request, { once: true })
   })()
+
+  /* ---------- 全站登录弹窗（FyLogin）----------
+   * 目标：任何“去登录”的入口都不再离开当前页，统一在页内弹窗完成，
+   * 保留 Google / Discord / Telegram 快捷登录（由 login-gateway.js 渲染）。
+   * 实现：网关脚本懒加载 + 请求排队；点击拦截所有指向 Login.html 的链接。 */
+  ;(function loginModal() {
+    if (window.__fyLoginModal) return
+    window.__fyLoginModal = true
+    var SRC = './js/login-gateway.js?v=20261120trial1'
+    var loading = null
+    function onLoginPage() {
+      return /\/login\.html$/i.test(location.pathname)
+    }
+    function load() {
+      if (window.LiveLogin) return Promise.resolve(window.LiveLogin)
+      if (!loading) {
+        loading = new Promise(function (resolve, reject) {
+          var script = document.createElement('script')
+          script.src = SRC
+          script.async = true
+          script.onload = function () { window.LiveLogin ? resolve(window.LiveLogin) : reject(new Error('login gateway missing')) }
+          script.onerror = function () { reject(new Error('login gateway failed')) }
+          document.head.appendChild(script)
+        })
+      }
+      return loading
+    }
+    function hardFallback(req) {
+      var url = './Login.html'
+      if (req && req.redirect) url += '?redirect=' + encodeURIComponent(req.redirect)
+      location.href = url
+    }
+    function open(request) {
+      var req = request || {}
+      if (onLoginPage()) { return true }
+      if (window.LiveLogin) {
+        try { window.LiveLogin.open(req); return true } catch (err) { hardFallback(req); return false }
+      }
+      load().then(function () { window.LiveLogin.open(req) }, function () {
+        if (req.protectedPage || req.redirect) hardFallback(req)
+      })
+      return true
+    }
+    window.FyLogin = { open: open, load: load }
+    document.addEventListener('click', function (event) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      var target = event.target
+      var anchor = target && target.closest ? target.closest('a[href]') : null
+      if (!anchor) return
+      var href = anchor.getAttribute('href') || ''
+      if (!/login\.html(\?|#|$)/i.test(href)) return
+      if (onLoginPage()) return
+      var url
+      try { url = new URL(href, location.href) } catch (err) { return }
+      var redirect = url.searchParams.get('redirect') || (location.pathname + location.search)
+      var signup = /(register|signup|type=1)/i.test(url.search)
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      open({ mode: signup ? 'signup' : 'signin', redirect: redirect })
+    }, true)
+  })()
+
 
   /* ---------- 关闭旧包遗留的 Turbo Drive（修「点导航后底栏变 4 格」的 bug） ----------
    * 镜像页带的旧 application.js 里 Turbo Drive 会拦截 <a> 点击做局部换页；

@@ -51,6 +51,9 @@ _BASE = {
     # sugus 走 heygirl 跳板 + 内网 key，直连密码仅个别脚本用
     "sugus": {"host": "172.81.98.55", "port": 22, "user": "root",
               "db": "zhibo", "db_user": "zhibo", "key": "/root/.ssh/n99_pull"},
+    # 2026-11-20 新客户 w16.com，SSH 端口 20203（与 kiss 同段机房）
+    "w16": {"host": "101.99.80.144", "port": 20203, "user": "root",
+            "db": "live_platform", "db_user": "root"},
     "gpu166": {"host": "38.247.166.124", "port": 22, "user": "administrator"},
     "upload_host": {"host": "155.103.194.69", "port": 22, "user": "root"},
 }

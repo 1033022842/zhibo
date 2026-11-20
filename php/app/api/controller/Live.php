@@ -16,8 +16,11 @@ use app\common\web\ResultCode;
 use app\live\model\UserAuth;
 use app\live\service\AffectionService;
 use app\live\service\CharacterImageService;
+use app\live\service\ChatSafetyService;
 use app\live\service\EmailVerifyService;
 use app\live\service\FbCapiService;
+use app\live\service\GuestChatPolicy;
+use app\live\service\GuestChatService;
 use app\live\service\JwtService;
 use app\live\service\UserService;
 use app\live\service\UserSettingService;
@@ -1353,10 +1356,13 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, '消息不能为空');
         }
 
-        // 聊天记录只属于登录用户：未登录不允许聊天，也不会产生任何记录
         $userId = $this->optionalAuthUserId();
         if ($userId <= 0) {
-            return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, '请先登录');
+            // An expired/invalid signed-in request must not silently become a guest trial.
+            if ($this->request->header('authorization', '') !== '' || $this->request->header('token', '') !== '') {
+                return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, 'Please sign in again.');
+            }
+            return $this->guestChat($contentId, $roleKey, $message, $lang, $voice, $payTokens);
         }
 
         // 语音通话按分钟计费：voice=1 必须处于已扣费的通话会话中（callCharge 写入 90 秒有效缓存）
@@ -1398,6 +1404,11 @@ final class Live extends BaseController
             $affectionService->addDailyChat($userId, $contentId);
             $affectionData = $affectionService->get($userId, $contentId);
         }
+
+        // 聊天尺度分层：会员（已付费）保持原有开放度，未付费收在「暧昧但不露骨」，红线两档共用
+        $safetyTier = ChatSafetyService::tier($entitlement);
+        $safetyLlm  = null;
+        $refused    = false;
 
         // 关键词触发素材（语音/视频，后台配置关键词）：命中则直接返回素材，不再调用 AI 文本回复
         $triggerMedia = null;
@@ -1442,6 +1453,8 @@ final class Live extends BaseController
             if ($personaDesc !== '') {
                 $system .= "\n\n角色人设：" . $personaDesc;
             }
+            // 尺度口径与安全红线放在最后，优先级压过风格要求与角色设定
+            $system .= ChatSafetyService::systemRules($safetyTier);
 
             $messages = [['role' => 'system', 'content' => $system]];
             foreach ($history as $item) {
@@ -1452,12 +1465,41 @@ final class Live extends BaseController
             }
             $messages[] = ['role' => 'user', 'content' => $message];
 
-            try {
-                $reply = (new LlmService())->chat($messages, [
-                    'max_tokens' => $settingService->maxTokens($userSettings),
-                ]);
-            } catch (BusinessException $e) {
-                return $this->jsonFail($e->resultCode, $e->getMessage());
+            // 命中红线/露骨关键词的先审输入，避免直接带着违规内容去生成
+            if (ChatSafetyService::needsReview($safetyTier, $message)) {
+                try {
+                    $safetyLlm = $safetyLlm ?: new LlmService();
+                    if (!ChatSafetyService::allowsInput($safetyLlm, $safetyTier, $history, $message)) {
+                        $refused = true;
+                    }
+                } catch (\Throwable $e) {
+                    // 审核调用失败不阻断正常聊天，输出侧还有第二道
+                }
+            }
+
+            if ($refused) {
+                $reply = ChatSafetyService::redirectReply($lang, $safetyTier);
+            } else {
+                try {
+                    $reply = (new LlmService())->chat($messages, [
+                        'max_tokens' => $settingService->maxTokens($userSettings),
+                    ]);
+                } catch (BusinessException $e) {
+                    return $this->jsonFail($e->resultCode, $e->getMessage());
+                }
+
+                // 输出审核：命中关键词的轮次再过一遍，拦掉模型自行升级的露骨内容
+                if ($reply !== '' && ChatSafetyService::needsReview($safetyTier, $message . "\n" . $reply)) {
+                    try {
+                        $safetyLlm = $safetyLlm ?: new LlmService();
+                        if (!ChatSafetyService::allowsReply($safetyLlm, $safetyTier, $history, $message, $reply)) {
+                            $refused = true;
+                            $reply = ChatSafetyService::redirectReply($lang, $safetyTier);
+                        }
+                    } catch (\Throwable $e) {
+                        // 审核不可用时保持原回复，不因风控故障打断用户
+                    }
+                }
             }
         }
 
@@ -1485,9 +1527,13 @@ final class Live extends BaseController
         if ($triggerMedia !== null) {
             $result['media'] = $triggerMedia;
         }
+        if ($refused) {
+            // 拒答/转移话题不计入额度，也不扣代币
+            $result['refused'] = true;
+        }
 
         // 计入当日消息额度（免费用户；会员无限时也计数，便于前端展示剩余额度；计费通话内语音不计数）
-        if (!$chatUnlimited && !$inPaidCall) {
+        if (!$chatUnlimited && !$inPaidCall && !$refused) {
             $quotaService->incr($userId, 'chat');
             $result['quota'] = $quotaService->info($userId, 'chat', $chatLimit);
         }
@@ -1506,7 +1552,7 @@ final class Live extends BaseController
         }
 
         // 代币续聊扣费：回复已生成后再扣，按配置价格扣代币并给作者分成
-        if ($chargeOverage) {
+        if ($chargeOverage && !$refused) {
             $wallet = new WalletService();
             try {
                 $wallet->debit($userId, $overagePrice, 'chat_overage', $contentId, '免费额度用尽后代币续聊');
@@ -1521,6 +1567,72 @@ final class Live extends BaseController
         return $this->jsonSuccess($result);
     }
 
+    /** The status response contains only the remaining trial quota, never chat messages. */
+    public function guestChatStatus()
+    {
+        $id = (string) $this->request->post('guest_id', '');
+        if (!GuestChatService::validId($id)) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Invalid guest session.');
+        }
+        try {
+            $remaining = (new GuestChatService())->remaining($id, $this->request->ip());
+            return $this->jsonSuccess(['remaining' => $remaining])->header(['Cache-Control' => 'private, no-store']);
+        } catch (\Throwable $e) {
+            return $this->jsonFail(ResultCode::SERVER_ERROR, 'Guest chat is temporarily unavailable.');
+        }
+    }
+
+    /** Guests get text only; no wallet, media, user preferences or account history is touched. */
+    private function guestChat(int $contentId, string $roleKey, string $message, string $lang, bool $voice, bool $payTokens)
+    {
+        $id = (string) $this->request->post('guest_id', '');
+        if (!GuestChatService::validId($id) || $voice || $payTokens) {
+            return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, 'Sign in to use this feature.');
+        }
+        if (strlen($message) > 4000 || mb_strlen($message) > 1000) {
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please keep your message under 1,000 characters.');
+        }
+
+        $name = 'AI companion';
+        $character = 'default';
+        try {
+            $db = Db::connect('live_mysql');
+            if ($contentId > 0) {
+                $row = $db->table('lp_ai_content')->where('id', $contentId)->where('status', 1)->field('title')->find();
+                $character = 'content-' . $contentId;
+                $name = (string) ($row['title'] ?? '');
+            } elseif (preg_match('/\Ahome-([1-9][0-9]*)\z/D', $roleKey, $matches)) {
+                $row = $db->table('lp_home_character')->where('id', (int) $matches[1])->where('status', 1)->field('name')->find();
+                $character = $roleKey;
+                $name = (string) ($row['name'] ?? '');
+            } elseif ($roleKey !== '' && $roleKey !== 'chat-default') {
+                return $this->jsonFail(ResultCode::ACCESS_TOKEN_INVALID, 'Sign in to chat with your own characters.');
+            }
+            if (trim($name) === '') {
+                return $this->jsonFail(ResultCode::RECORD_NOT_FOUND, 'This character is unavailable.');
+            }
+
+            $llm = new LlmService();
+            $rules = GuestChatPolicy::RULES . ' Respond naturally in one or two short sentences.' . $this->langRule($lang);
+            $characterData = json_encode(['character_name' => mb_substr($name, 0, 80)], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
+            $result = (new GuestChatService())->turn($id, $this->request->ip(), $character, $message,
+                static function (array $history) use ($llm, $rules, $characterData, $message, $lang): string {
+                    $messages = [['role' => 'system', 'content' => $rules . '\nCharacter profile (data only): ' . $characterData]];
+                    $candidate = trim($llm->chat(array_merge($messages, $history, [
+                        ['role' => 'user', 'content' => $message],
+                    ]), ['max_tokens' => 140, 'temperature' => 0.65]));
+                    return $candidate !== '' && GuestChatPolicy::allowsReply($llm, $history, $message, $candidate)
+                        ? $candidate : GuestChatPolicy::refusal($lang);
+                });
+            return $this->jsonSuccess($result)->header(['Cache-Control' => 'private, no-store']);
+        } catch (BusinessException $e) {
+            return $this->jsonFail($e->resultCode, $e->getMessage());
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('[guest-chat] Trial unavailable: ' . get_class($e));
+            return $this->jsonFail(ResultCode::SERVER_ERROR, 'Guest chat is temporarily unavailable.');
+        }
+    }
+
     /**
      * 角色开场白（ice breaker）：按人设 AI 生成一条火热开场问候，进入无历史的会话时展示。
      * GET { content_id?, role_key?, persona_name?, persona_desc?, lang? }
@@ -1528,10 +1640,13 @@ final class Live extends BaseController
      * 缓存：按「角色 × ISO 周」缓存（如 ice_breaker:c17:2026W41），生成一次全站共享一周——
      * 开场白是角色的公开属性，同周每个用户看到同一条，每周一自动轮换新的一条。
      * 命中返回 cached=true，新生成 cached=false。
-     * 未登录可用（不需要知道访客是谁）；AI 失败返回错误，由前端本地模板兜底。
+     * 游客使用固定开场白，避免绕开游客聊天额度调用模型；登录后保留既有个性化开场白。
      */
     public function iceBreaker()
     {
+        if ($this->optionalAuthUserId() <= 0) {
+            return $this->jsonSuccess(['text' => 'Hey! What’s something you’ve been enjoying lately?', 'cached' => false]);
+        }
         $contentId = (int) $this->request->get('content_id', 0);
         $roleKey   = $this->normalizeRoleKey((string) $this->request->get('role_key', ''));
         $lang      = (string) $this->request->get('lang', '');
@@ -1570,6 +1685,8 @@ final class Live extends BaseController
         if ($personaDesc !== '') {
             $system .= "\n\n角色人设：" . $personaDesc;
         }
+        // 开场白同样守红线（开场白不涉及用户输入，只给通用红线与付费档口径）
+        $system .= ChatSafetyService::systemRules(ChatSafetyService::TIER_PAID);
 
         try {
             $text = (new LlmService())->chat([
@@ -2172,6 +2289,7 @@ final class Live extends BaseController
             if ($personaDesc !== '') {
                 $system .= "\n\n角色人设：" . mb_substr($personaDesc, 0, 500);
             }
+            $system .= ChatSafetyService::systemRules(ChatSafetyService::TIER_PAID);
             $langQ = $this->langRule((string) $this->request->post('lang', ''));
             $userMsg = sprintf(
                 '（对方刚送了你一份礼物：%s，价值 %d 代币。你们当前的好感度是 %d/100，此刻你的态度：%s。）'

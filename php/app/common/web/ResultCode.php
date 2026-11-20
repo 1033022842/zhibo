@@ -34,6 +34,7 @@ enum ResultCode: string
     case RATE_LIMIT       = 'G0100';
     case EMAIL_SEND_TOO_FREQUENT = 'G0101';
     case EMAIL_SEND_DAILY_LIMIT  = 'G0102';
+    case GUEST_CHAT_LIMIT = 'G0103';
     case VERIFY_CODE_EXPIRED     = 'G0200';
     case VERIFY_CODE_ERROR       = 'G0201';
     case EMAIL_ALREADY_REGISTERED = 'G0300';
@@ -82,6 +83,7 @@ enum ResultCode: string
             self::RATE_LIMIT => '请求过于频繁',
             self::EMAIL_SEND_TOO_FREQUENT => '验证码发送过于频繁，请60秒后再试',
             self::EMAIL_SEND_DAILY_LIMIT => '今日验证码发送次数已达上限',
+            self::GUEST_CHAT_LIMIT => 'Your free trial is finished. Sign in to keep chatting.',
             self::VERIFY_CODE_EXPIRED => '验证码已过期',
             self::VERIFY_CODE_ERROR => '验证码错误',
             self::EMAIL_ALREADY_REGISTERED => '该邮箱已注册',

@@ -1,12 +1,27 @@
 (()=>{
     // 公共登录表单共用免密和社交入口，脚本路径跟随当前站点前缀。
     window.LiveLoginGateway = true
-    if (!document.getElementById('live-login-gateway-script')) {
+    if (!window.LiveLogin) window.LiveLogin = { open: function (request) {
+        window.__liveLoginRequest = request || {}
+        return true
+    } }
+    if (!document.getElementById('live-login-gateway-script') && !window.__liveLoginGatewayLoaded) {
         var gatewayScript = document.createElement('script')
         gatewayScript.id = 'live-login-gateway-script'
         var mainScriptUrl = document.currentScript && document.currentScript.src
             ? document.currentScript.src : new URL('./js/main.js', location.href).href
-        gatewayScript.src = new URL('./login-gateway.js?v=20261112nick1', mainScriptUrl).href
+        gatewayScript.src = new URL('./login-gateway.js?v=20261120modal1', mainScriptUrl).href
+        gatewayScript.onerror = function () {
+            var queued = window.__liveLoginRequest
+            delete window.__liveLoginRequest
+            window.LiveLogin = { open: function (request) {
+                var params = new URLSearchParams({ mode: request && request.mode === 'signup' ? 'signup' : 'signin',
+                    redirect: request && request.redirect || location.pathname + location.search })
+                location.assign('/ai/Login.html?' + params.toString())
+                return true
+            } }
+            if (queued && !/\/Login\.html$/i.test(location.pathname)) window.LiveLogin.open(queued)
+        }
         document.head.appendChild(gatewayScript)
     }
     var cacheTemplate = ''
@@ -25,7 +40,7 @@
                 color: '#E75275', fontSize: '13px', cursor: 'pointer' }).insertBefore($button)
     }
 
-    $(document).on('click', '#forgot-password-link', function () {
+    function openPasswordReset(email) {
         var dialog = document.getElementById('password-reset-dialog')
         if (!dialog) {
             var style = document.createElement('style')
@@ -73,8 +88,12 @@
                 dialog.querySelector('[name=code]').value = ''
             })
         }
-        dialog.querySelector('[name=email]').value = $('#user_email').val() || ''
-        dialog.showModal()
+        dialog.querySelector('[name=email]').value = email || ''
+        if (!dialog.open) dialog.showModal()
+    }
+    window.liveOpenPasswordReset = openPasswordReset
+    $(document).on('click', '#forgot-password-link', function () {
+        openPasswordReset($('#user_email').val())
     })
 
     function resetStatus(message) { $('#password-reset-status').text(message) }
