@@ -1292,9 +1292,11 @@
 						if (tags.indexOf(t) === -1) tags.push(t)
 					})
 				})
+				// 标签可能是长句（新角色的 tags 里有整段描述），chip 上做截断，避免把整条横排挤爆
 				var items = ['All'].concat(tags.slice(0, 8))
 				box.innerHTML = items.map(function(t) {
-					return '<button class="c-chip' + (t === activeChip ? ' active' : '') + '" type="button" data-chip="' + esc(t) + '">' + esc(t) + '</button>'
+					var label = t.length > 16 ? t.slice(0, 16).replace(/\s+\S*$/, '') + '…' : t
+					return '<button class="c-chip' + (t === activeChip ? ' active' : '') + '" type="button" title="' + esc(t) + '" data-chip="' + esc(t) + '">' + esc(label) + '</button>'
 				}).join('')
 				box.querySelectorAll('.c-chip').forEach(function(btn) {
 					btn.addEventListener('click', function() {
