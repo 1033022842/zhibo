@@ -487,7 +487,10 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
                     sent, sk = upload(j, ov_root, [rel for _, rel in ov_files], tmp); n += sent; skipped += sk
                 if php_files:
                     # php 文件在跳板上按仓库相对路径存放，tar 到目标机后再剥掉 php/ 前缀
-                    sent, sk = upload(j, REPO, php_files, tmp_php); n += sent; skipped += sk
+                    # 2026-11-20 修：php_root 必须显式传 tmp_php —— upload() 的默认 php_root 是
+                    # dirname(site)+"/php"，对跳板会算成 /tmp/php，文件落到那里，随后
+                    # `cd {tmp_php}/php` 必然失败（tar rc=1），PHP 静默一个都没推过去。
+                    sent, sk = upload(j, REPO, php_files, tmp_php, php_root=tmp_php); n += sent; skipped += sk
                 break
             except Exception as e:
                 print(f"  跳板上传中断（第 {attempt}/3 次）: {e}")
@@ -505,9 +508,10 @@ def sync_client(name, cfg, dry, full, init_snapshot=False, include_files=False, 
             f'{cfg["user"]}@{cfg["host"]} "tar -xf - -C {cfg["site"]}"', timeout=1800)
         rc = out.channel.recv_exit_status()
         if php_files:
-            # 跳板上 php/xxx 的相对路径是 php/xxx，目标 php 根下只需 xxx
+            # 跳板上 php/xxx 已按 php_root=tmp_php 摊平存放（tmp_php/app/...），
+            # 目标机 php 根下即是同样的相对结构
             _, out2, _ = j.exec_command(
-                f'cd {tmp_php}/php 2>/dev/null && tar -cf - . | '
+                f'cd {tmp_php} 2>/dev/null && tar -cf - . | '
                 f'ssh -i {key} -o StrictHostKeyChecking=no -o BatchMode=yes '
                 f'{cfg["user"]}@{cfg["host"]} "tar -xf - -C {php_root}"', timeout=1800)
             rc2 = out2.channel.recv_exit_status()
