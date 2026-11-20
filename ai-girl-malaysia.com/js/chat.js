@@ -623,17 +623,17 @@
         return s
     }
 
+    // 不显示剩余条数：只有额度用尽时才亮出「试用结束，去登录」这一条提示
     function renderGuestQuota() {
         var status = document.getElementById('guest-chat-quota')
         if (!status) return
-        status.hidden = !!token
-        if (token) return
+        if (token) { status.hidden = true; return }
+        status.hidden = guestRemaining !== 0
+        if (status.hidden) return
         var label = status.querySelector('span')
         var button = status.querySelector('button')
-        label.textContent = guestRemaining === null ? 'Try up to 5 messages without signing in' : guestRemaining > 0
-            ? guestRemaining + (guestRemaining === 1 ? ' free message left' : ' free messages left')
-            : 'Free trial complete. Sign in to keep chatting.'
-        button.hidden = guestRemaining !== 0
+        if (label) label.textContent = 'Free trial complete. Sign in to keep chatting.'
+        if (button) button.hidden = false
     }
 
     function loadGuestQuota() {
@@ -655,12 +655,17 @@
         if (!box) return
         box.innerHTML = ''
         var turns = guestTurns[activeConvId] || []
-        if (turns.length === 0) appendBubble('Hey! What’s something you’ve been enjoying lately?', false)
+        var iceKey = String(activeConvId || '')
+        var iceText = (window.__iceText || {})[iceKey]
+        // 开场白由 showIceBreaker() 按角色人设生成（后端按角色缓存，同一角色固定一条热辣文案），
+        // 这里只在已经拿到过时直接渲染，没拿到就交给 showIceBreaker 去拉，不再写死一句通用问候。
+        if (turns.length === 0 && iceText) appendBubble(iceText, false)
         turns.forEach(function (turn) {
             appendBubble(turn.user, true)
             appendBubble(turn.reply, false)
         })
         renderGuestQuota()
+        if (turns.length === 0 && !iceText) showIceBreaker()
     }
 
     /* 免费额度相关提示：用尽时给升级入口，快用完时给剩余条数 */
@@ -1241,6 +1246,8 @@
             if (done) return
             done = true
             if (typing) typing.remove()
+            window.__iceText = window.__iceText || {}
+            window.__iceText[String(activeConvId || '')] = text
             appendBubble(text, false)
         }
         var fallbackTimer = setTimeout(function () { finish(pickIceBreaker()) }, 8000)

@@ -117,12 +117,30 @@
     window.FyLogin = { open: open, load: load }
     document.addEventListener('click', function (event) {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      if (onLoginPage()) return
       var target = event.target
-      var anchor = target && target.closest ? target.closest('a[href]') : null
+      if (!target || !target.closest) return
+
+      // 站内原生入口（顶栏 Register / Login 是带 data-action 的 div，不是链接）：
+      // 这些按钮的 Stimulus 控制器在新版页面里不生效，点了没反应，统一改成弹窗。
+      var actionEl = target.closest('[data-action*="openSignInModal"],[data-action*="openRegistrationModal"]')
+      if (actionEl) {
+        var isSignup = /openRegistrationModal/i.test(actionEl.getAttribute('data-action') || '')
+        var actUrl
+        try { actUrl = new URL(actionEl.getAttribute('data-redirect-url') || location.href, location.href) } catch (err) { actUrl = null }
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        open({
+          mode: isSignup ? 'signup' : 'signin',
+          redirect: (actUrl && actUrl.searchParams.get('redirect')) || (location.pathname + location.search)
+        })
+        return
+      }
+
+      var anchor = target.closest('a[href]')
       if (!anchor) return
       var href = anchor.getAttribute('href') || ''
       if (!/login\.html(\?|#|$)/i.test(href)) return
-      if (onLoginPage()) return
       var url
       try { url = new URL(href, location.href) } catch (err) { return }
       var redirect = url.searchParams.get('redirect') || (location.pathname + location.search)

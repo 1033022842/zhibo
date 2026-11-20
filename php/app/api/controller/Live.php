@@ -1656,9 +1656,6 @@ final class Live extends BaseController
      */
     public function iceBreaker()
     {
-        if ($this->optionalAuthUserId() <= 0) {
-            return $this->jsonSuccess(['text' => 'Hey! What’s something you’ve been enjoying lately?', 'cached' => false]);
-        }
         $contentId = (int) $this->request->get('content_id', 0);
         $roleKey   = $this->normalizeRoleKey((string) $this->request->get('role_key', ''));
         $lang      = (string) $this->request->get('lang', '');
@@ -1668,10 +1665,12 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'content_id 无效');
         }
 
-        // 每周轮换：key 带上一 ISO 周号（如 2026W41），同周全站命中同一条，跨周自动生成新的开场白
-        $week = date('o') . 'W' . date('W');
-        $cacheKey = 'ice_breaker:' . ($contentId > 0 ? 'c' . $contentId : $roleKey) . ':' . $week;
-        $cached = (string) \think\facade\Cache::store('file')->get($cacheKey, '');
+        // 每个角色只生成一次，之后长期命中缓存（不再按周轮换），省掉重复的模型调用；
+        // 缓存键带上语言，切语言时各存一条。游客与登录用户共用同一份缓存。
+        $langKey = preg_replace('/[^a-z]/i', '', strtolower($lang)) ?: 'auto';
+        $cacheKey = 'ice_breaker:v2:' . ($contentId > 0 ? 'c' . $contentId : $roleKey) . ':' . $langKey;
+        $store = \think\facade\Cache::store('file');
+        $cached = (string) $store->get($cacheKey, '');
         if ($cached !== '') {
             return $this->jsonSuccess(['text' => $cached, 'cached' => true]);
         }
@@ -1703,7 +1702,11 @@ final class Live extends BaseController
         try {
             $text = (new LlmService())->chat([
                 ['role' => 'system', 'content' => $system],
-                ['role' => 'user', 'content' => '（对方刚进入聊天室，还没有说话）请以角色身份，主动写下你发给对方的第一条开场消息：火热、撩人、充满渴望但不过分露骨，一两句话（不超过 40 个词），可带 1-2 个 emoji。只输出消息本身，不要任何前缀或解释。'],
+                ['role' => 'user', 'content' => '（对方刚走进聊天室，还没开口）以角色身份写下你主动发的第一条消息：'
+                    . '必须热辣、带性张力、有画面感——用角色自己的口吻挑衅、撩拨、暗示今晚想对他做什么，'
+                    . '可以提到角色的身体、穿着、气味、声音和此刻的姿态，让他立刻想回你。'
+                    . '一到两句，不超过 35 个词，带 1-2 个 emoji，不要露骨的动作描写，不要自报姓名，'
+                    . '不要「你好」「很高兴认识你」这类客套开场，也不要任何前缀或解释，只输出消息本身。'],
             ], ['max_tokens' => 120]);
         } catch (BusinessException $e) {
             return $this->jsonFail($e->resultCode, $e->getMessage());
@@ -1716,8 +1719,8 @@ final class Live extends BaseController
             return $this->jsonFail(ResultCode::SERVER_ERROR, '生成失败，请重试');
         }
 
-        // 缓存 8 天：覆盖本周剩余时间，跨周后旧周 key 自然过期（每周一自动换新开场白）
-        \think\facade\Cache::store('file')->set($cacheKey, $text, 8 * 86400);
+        // 角色维度长期缓存：生成一次后一直复用（90 天），后续请求不再调用模型
+        $store->set($cacheKey, $text, 90 * 86400);
         return $this->jsonSuccess(['text' => $text, 'cached' => false]);
     }
 
