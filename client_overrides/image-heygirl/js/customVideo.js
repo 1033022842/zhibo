@@ -1451,6 +1451,8 @@
             var limit = q.daily_limit, refill = q.refill_daily || 1, rem = q.remaining
             if (limit === '∞' || q.unlimited) {
                 el.textContent = 'Your plan includes unlimited free generations.'
+            } else if (q.video_requires_payment) {
+                el.textContent = 'Free credits cover images only: ' + (rem >= 0 ? rem : limit) + ' left today · ' + limit + '/day. Video clips are paid per generation.'
             } else {
                 el.textContent = 'Free credits: ' + (rem >= 0 ? rem : limit) + ' left today · ' + limit + '/day, +' + refill + ' restored daily'
             }
