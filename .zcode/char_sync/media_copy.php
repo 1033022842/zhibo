@@ -133,12 +133,12 @@ final class CopyClient
 
 $env    = mediaEnv($ENV_FILE)['MEDIA'] ?? [];
 $target = $argv[1] ?? '';
-$from   = (int) ($argv[2] ?? 88);
+$from   = $argv[2] ?? '88';
 $to     = (int) ($argv[3] ?? 135);
 $dry    = in_array('--dry', $argv, true);
 
 if ($target === '' || $target === ($env['PROJECT'] ?? 'sugus')) {
-    fwrite(STDERR, "usage: php media_copy.php <targetProject> <idFrom> <idTo> [--dry]\n");
+    fwrite(STDERR, "usage: php media_copy.php <targetProject> (<idFrom> <idTo> | <pathListFile>) [--dry]\n");
     exit(2);
 }
 
@@ -155,31 +155,48 @@ $src  = $env['PROJECT'] ?? 'sugus';
 $stat = ['copied' => 0, 'failed' => 0, 'nofile' => 0];
 $fail = [];
 
-for ($id = $from; $id <= $to; $id++) {
-    $dir = $STORE . '/chat_gifts/home-' . $id;
-    if (!is_dir($dir)) {
-        continue;
+/** 真正执行一次复制；$rel 形如 chat_gifts/home-88/rose.mp4 */
+function copyOne(?CopyClient $cli, string $src, string $target, string $rel, bool $dry, array &$stat, array &$fail): void
+{
+    $rel = ltrim($rel, '/');
+    $rel = preg_replace('#^storage/#', '', $rel) ?? $rel;
+    $s   = 'sec/' . $src . '/' . $rel;
+    $d   = 'sec/' . $target . '/' . $rel;
+    if ($dry) {
+        echo $s, ' -> ', $d, "\n";
+        $stat['copied']++;
+        return;
     }
-    foreach (scandir($dir) ?: [] as $f) {
-        if (!preg_match('/\.(mp4|webm)$/i', $f)) {
-            continue;
-        }
-        $rel = 'chat_gifts/home-' . $id . '/' . $f;
-        $s   = 'sec/' . $src . '/' . $rel;
-        $d   = 'sec/' . $target . '/' . $rel;
-        if ($dry) {
-            echo $s, ' -> ', $d, "\n";
-            $stat['copied']++;
-            continue;
-        }
-        $r = $cli->copy($s, $d);
-        if ($r['code'] >= 200 && $r['code'] < 300) {
-            $stat['copied']++;
-        } else {
-            $stat['failed']++;
-            $fail[] = $d . ' code=' . $r['code'] . ' ' . ($r['err'] ?: $r['body']);
-        }
+    $r = $cli->copy($s, $d);
+    if ($r['code'] >= 200 && $r['code'] < 300) {
+        $stat['copied']++;
+    } else {
+        $stat['failed']++;
+        $fail[] = $d . ' code=' . $r['code'] . ' ' . ($r['err'] ?: $r['body']);
     }
 }
 
+if (is_file($from)) {
+    // 清单模式：文件里每行一个站内相对路径，如 chat_gifts/icons2/rose.jpg
+    foreach (file($from, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $rel) {
+        $rel = trim($rel);
+        if ($rel === '' || $rel[0] === '#') {
+            continue;
+        }
+        copyOne($cli, $src, $target, $rel, $dry, $stat, $fail);
+    }
+} else {
+    for ($id = (int) $from; $id <= $to; $id++) {
+        $dir = $STORE . '/chat_gifts/home-' . $id;
+        if (!is_dir($dir)) {
+            continue;
+        }
+        foreach (scandir($dir) ?: [] as $f) {
+            if (!preg_match('/\.(mp4|webm)$/i', $f)) {
+                continue;
+            }
+            copyOne($cli, $src, $target, 'chat_gifts/home-' . $id . '/' . $f, $dry, $stat, $fail);
+        }
+    }
+}
 echo json_encode(['target' => $target, 'stat' => $stat, 'fail' => array_slice($fail, 0, 5)], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), "\n";

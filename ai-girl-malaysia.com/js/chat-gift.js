@@ -59,7 +59,8 @@
     if (!btn) return;
     var tk = token();
     var rk = roleKey();
-    if (!tk || rk === '') { btn.style.display = 'none'; return }
+    // 游客也显示礼物按钮（点开后送礼时才引导登录），与 candy 一致：先看到能力，再要账号
+    if (rk === '') { btn.style.display = 'none'; return }
     if (giftsCache && checkedKey === rk) {
       btn.style.display = enabledCache && giftsCache.length ? 'flex' : 'none';
       return;

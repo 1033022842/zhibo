@@ -169,6 +169,11 @@
 				border-color:var(--feature-light);
 				background:radial-gradient(ellipse at 50% 25%,var(--feature-glow),transparent 66%),linear-gradient(160deg,var(--feature-ink),#120d16 78%)}
 			.c-feature-entry--unlock{--feature-light:#ff9db6;--feature-glow:rgba(245,59,112,.35);--feature-ink:#41192c}
+			/* 入口卡＝图片缩略图（与 candy 一致）：真实照片 + 暗角 + 图标/文字浮在上面 */
+			.c-feature-cover{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
+			.c-feature-scrim{position:absolute;inset:0;z-index:1;
+				background:linear-gradient(to top,rgba(9,6,12,.93) 0%,rgba(9,6,12,.72) 30%,rgba(9,6,12,.18) 58%,rgba(9,6,12,0) 82%)}
+			.c-feature-entry > *{position:relative;z-index:2}
 			.c-feature-entry:focus-visible{outline:2px solid #fff;outline-offset:-4px}
 			.c-feature-entry-icon{display:grid;place-items:center;width:62px;height:62px;margin:auto 0;border-radius:50%;
 				border:1px solid var(--feature-light);background:rgba(10,6,13,.32);color:var(--feature-light)}
@@ -1241,10 +1246,14 @@
 				var title = isUnlock ? 'Private Content' : 'Shorts'
 				var action = isUnlock ? 'Unlock' : 'Watch'
 				var href = isUnlock ? './private_content.html' : './shorts.html'
+				// 缩略图沿用站点自有角色图，避免外链；candy 风格＝照片打底 + 播放/锁图标
+				var coverImg = isUnlock ? './assets/welcome/art-09.jpg' : './assets/welcome/art-03.jpg'
 				var icon = isUnlock
 					? '<rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/>'
-					: '<rect x="3" y="4" width="18" height="16" rx="4"/><path d="M10 8.5v7l5.5-3.5z"/>'
+					: '<path d="M9 7.5v9l7.5-4.5z" fill="currentColor" stroke="none"/>'
 				return '<li><a class="c-feature-entry' + (isUnlock ? ' c-feature-entry--unlock' : '') + (compact ? ' c-card-short' : '') + '" href="' + href + '" data-turbo="false" draggable="false" aria-label="' + action + ' ' + title + '">' +
+					'<img class="c-feature-cover" src="' + coverImg + '" alt="" loading="lazy" decoding="async" draggable="false">' +
+					'<span class="c-feature-scrim" aria-hidden="true"></span>' +
 					'<span class="c-feature-entry-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + icon + '</svg></span>' +
 					'<span class="c-feature-entry-title">' + title + '</span><span class="c-feature-entry-cta">' + action + '</span>' +
 				'</a></li>'
