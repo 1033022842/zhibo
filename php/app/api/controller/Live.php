@@ -1485,7 +1485,10 @@ final class Live extends BaseController
                         'max_tokens' => $settingService->maxTokens($userSettings),
                     ]);
                 } catch (BusinessException $e) {
-                    return $this->jsonFail($e->resultCode, $e->getMessage());
+                    // 上游直接拒答（露骨内容会让 Grok 报错）或网关抖动时，不要把错误码抛给用户：
+                    // 给一句角色口吻的转移话题，这一轮不计额度。
+                    $refused = true;
+                    $reply = ChatSafetyService::redirectReply($lang, $safetyTier);
                 }
 
                 // 输出审核：命中关键词的轮次再过一遍，拦掉模型自行升级的露骨内容
@@ -1617,11 +1620,20 @@ final class Live extends BaseController
             $characterData = json_encode(['character_name' => mb_substr($name, 0, 80)], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
             $result = (new GuestChatService())->turn($id, $this->request->ip(), $character, $message,
                 static function (array $history) use ($llm, $rules, $characterData, $message, $lang): string {
-                    $messages = [['role' => 'system', 'content' => $rules . '\nCharacter profile (data only): ' . $characterData]];
-                    $candidate = trim($llm->chat(array_merge($messages, $history, [
-                        ['role' => 'user', 'content' => $message],
-                    ]), ['max_tokens' => 140, 'temperature' => 0.65]));
-                    return $candidate !== '' && GuestChatPolicy::allowsReply($llm, $history, $message, $candidate)
+                    $messages = [['role' => 'system', 'content' => $rules . "\nCharacter profile (data only): " . $characterData]];
+                    try {
+                        $candidate = trim($llm->chat(array_merge($messages, $history, [
+                            ['role' => 'user', 'content' => $message],
+                        ]), ['max_tokens' => 140, 'temperature' => 0.65]));
+                    } catch (\Throwable $e) {
+                        // 上游拒答/超时：不把 H0001 抛给游客，改走角色口吻的转移话题
+                        return GuestChatPolicy::refusal($lang);
+                    }
+                    if ($candidate === '') {
+                        return GuestChatPolicy::refusal($lang);
+                    }
+
+                    return GuestChatPolicy::allowsReply($llm, $history, $message, $candidate)
                         ? $candidate : GuestChatPolicy::refusal($lang);
                 });
             return $this->jsonSuccess($result)->header(['Cache-Control' => 'private, no-store']);
