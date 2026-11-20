@@ -132,6 +132,7 @@
             // 免费次数用尽后的代币单价 + 当前余额（后台「功能定价」可改）
             cvPrice = Number(d.data.video_price) || 0
             cvBalance = Number(d.data.balance) || 0
+            cvVideoNeedsPay = !!d.data.video_requires_payment
             renderPresets(mode === 'outfit' ? imagePresets : currentPresets)
             applyQuota(d.data.quota)
         }).catch(function () { toast('Network error', 'error') })
@@ -155,6 +156,7 @@
     var cvRefillDaily = 0
     var cvPrice = 0      // 免费次数用尽后每次生成扣的代币
     var cvBalance = 0    // 当前代币余额
+    var cvVideoNeedsPay = false // 非会员出视频必须付代币（免费额度只给图片）
     function applyQuota(q) {
         var el = $('cvRemain')
         if (!el) return
@@ -193,7 +195,11 @@
         }
         // 免费次数用完后可用代币继续生成：常驻说明 + 当前余额
         if (note) {
-            if (cvPrice > 0) {
+            if (cvVideoNeedsPay && cvPrice > 0) {
+                note.textContent = 'Video generation is Premium-only · or ' + cvPrice +
+                    ' tokens per video · Balance: ' + cvBalance + ' tokens'
+                note.style.display = ''
+            } else if (cvPrice > 0) {
                 note.textContent = 'Free generations used up? Keep creating for ' + cvPrice +
                     ' tokens per generation · Balance: ' + cvBalance + ' tokens'
                 note.style.display = ''

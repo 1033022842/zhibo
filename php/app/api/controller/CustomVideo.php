@@ -117,6 +117,8 @@ final class CustomVideo extends BaseController
             // 免费次数用尽后的续生成单价（代币）与当前代币余额
             'video_price' => $this->videoPrice(),
             'image_price' => $this->imagePrice(),
+            // 视频是否需要付费：非会员不能用免费额度出视频（免费额度只给图片换装）
+            'video_requires_payment' => empty($ent['is_vip']),
             'balance'     => (new WalletService())->balance($userId),
             'quota'   => [
                 'daily_limit'  => $unlimited ? '∞' : $limit,
@@ -287,19 +289,26 @@ final class CustomVideo extends BaseController
         $credits = new GenCreditService();
         $wallet = new WalletService();
         $paidTokens = 0.0;
+        // 视频不再走免费额度：非会员生成视频必须按 video_gen_price 付代币
+        // （免费额度只留给图片换装，避免新注册账号 0 付费就能出视频）
+        $videoNeedsPay = ($kind === 'video' && empty($ent['is_vip']));
         if (!$unlimited) {
             $credits->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
-            if (!$credits->consume($userId)) {
-                // 免费额度用尽：优先用代币续生成（图片/视频分开定价，0=关闭）
+            if ($videoNeedsPay || !$credits->consume($userId)) {
+                // 免费额度用尽（或非会员要在出视频）：按后台配置的单价用代币续生成
                 $price = $kind === 'image' ? $this->imagePrice() : $this->videoPrice();
                 if ($price <= 0) {
-                    $tip = $refillPerDay >= $dailyLimit
-                        ? 'Your free quota resets to ' . $dailyLimit . '/day. Top up tokens or upgrade for more.'
-                        : 'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . ').';
+                    $tip = $videoNeedsPay
+                        ? 'Video generation is a Premium feature — upgrade your plan to unlock it.'
+                        : ($refillPerDay >= $dailyLimit
+                            ? 'Your free quota resets to ' . $dailyLimit . '/day. Top up tokens or upgrade for more.'
+                            : 'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . ').');
                     return $this->jsonFail(ResultCode::PARAM_ERROR, $tip);
                 }
                 if ($wallet->balance($userId) < $price) {
-                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Your free generations are used up. Each extra ' . $kind . ' costs ' . $this->fmtPrice($price) . ' tokens — please top up to continue.');
+                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, $videoNeedsPay
+                        ? 'Video generation is a Premium feature, or ' . $this->fmtPrice($price) . ' tokens per video. Not enough tokens — please top up or upgrade.'
+                        : 'Your free generations are used up. Each extra ' . $kind . ' costs ' . $this->fmtPrice($price) . ' tokens — please top up to continue.');
                 }
                 if (!$confirmedPaid) {
                     // 让前端弹出「本次将消耗 X 代币，是否确认生成」确认框，确认后带 confirm_paid=1 重提

@@ -198,23 +198,32 @@ final class AiShort extends BaseController
         $useCardPrice = $pt >= 0;
         $cardPrice = $this->priceForCard($kind, $pt, (string) $preset['code']);
 
+        // 视频不走免费额度：非会员出视频必须付代币（后台把卡片 price_tokens 明确设成 0 的免费卡除外）；
+        // 免费额度只留给图片类预设，避免新账号 0 付费就出视频
+        $isVip = !empty($ent['is_vip']);
+        $videoNeedsPay = ($kind === 'video' && !$isVip && !($useCardPrice && $cardPrice <= 0));
+
         $credits->refillAndGet($userId, $dailyLimit, $refillPerDay, 0);
         if ($useCardPrice && $cardPrice <= 0) {
             // 免费卡：不消耗免费额度，直接放行
             $paidTokens = 0.0;
-        } elseif (!$credits->consume($userId)) {
+        } elseif ($videoNeedsPay || !$credits->consume($userId)) {
             $price = $cardPrice;
             if ($price <= 0) {
                 return $this->jsonFail(
                     ResultCode::PARAM_ERROR,
-                    'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . ').'
+                    $videoNeedsPay
+                        ? 'Video generation is a Premium feature — upgrade your plan to unlock it.'
+                        : 'Daily limit reached. Your balance refills +' . $refillPerDay . '/day (max ' . $dailyLimit . ').'
                 );
             }
             if ($wallet->balance($userId) < $price) {
                 return $this->jsonFail(
                     ResultCode::BALANCE_NOT_ENOUGH,
-                    'Your free generations are used up. Each extra ' . $kind . ' costs '
-                    . $this->fmtPrice($price) . ' tokens — please top up to continue.'
+                    $videoNeedsPay
+                        ? 'Video generation is a Premium feature, or ' . $this->fmtPrice($price) . ' tokens per video. Not enough tokens — please top up or upgrade.'
+                        : 'Your free generations are used up. Each extra ' . $kind . ' costs '
+                            . $this->fmtPrice($price) . ' tokens — please top up to continue.'
                 );
             }
             if (!$confirmedPaid) {
@@ -348,6 +357,18 @@ final class AiShort extends BaseController
             $price = $this->priceForCard($kind, $p === null ? -1.0 : (float) $p, $code);
         }
 
+        $isVip = !empty($ent['is_vip']);
+        $videoNeedsPay = ($kind === 'video' && !$isVip);
+        if ($videoNeedsPay && $code !== '') {
+            // 卡片明确标 0（免费卡）时仍然免费，其余按付代币
+            $pt = $this->db()->table('lp_short_preset')
+                ->where('code', $code)->where('status', 1)
+                ->value('price_tokens');
+            if ($pt !== null && (float) $pt == 0.0) {
+                $videoNeedsPay = false;
+            }
+        }
+
         return $this->jsonSuccess([
             'kind'        => $kind,
             'remain'      => $remain,
@@ -355,6 +376,9 @@ final class AiShort extends BaseController
             'price'       => $price,
             'price_text'  => $this->fmtPrice($price),
             'balance'     => (new WalletService())->balance($userId),
+            // 本单是否必须用代币（视频 + 非会员）：前端据此直接进入「确认扣费」
+            'video_requires_payment' => $videoNeedsPay,
+            'free_allowed'           => !$videoNeedsPay,
         ]);
     }
 

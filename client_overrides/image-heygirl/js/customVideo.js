@@ -771,8 +771,11 @@
     /** 是否需要付费确认（额度耗尽但余额够） */
     function needsPaidConfirm() {
         var cost = gen.quota
-        if (!cost || gen.remain === null || gen.remain > 0) return false
+        if (!cost) return false
         var price = Number(cost.price) || 0
+        // 视频 + 非会员：不消耗免费额度，直接走「确认扣代币」
+        if (cost.video_requires_payment) return price > 0 && Number(cost.balance) >= price
+        if (gen.remain === null || gen.remain > 0) return false
         return price > 0 && Number(cost.balance) >= price
     }
 
@@ -1096,7 +1099,9 @@
         if (n.style.display !== 'none' && n.textContent) { n.style.display = 'none'; return }
         if (!token) { showNote('Sign in to generate.'); return }
         var parts = []
-        if (gen.remain === null) parts.push('Free quota is checked on submit')
+        if (gen.quota && gen.quota.video_requires_payment) {
+            parts.push('Video cards are paid per clip — free credits cover images only')
+        } else if (gen.remain === null) parts.push('Free quota is checked on submit')
         else if (gen.remain < 0) parts.push('Unlimited free generations')
         else parts.push('Free left: ' + gen.remain)
         if (gen.balance) parts.push('balance ' + gen.balance + ' tokens')
