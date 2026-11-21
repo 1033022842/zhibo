@@ -23,7 +23,7 @@
   var GENDER_KEY = 'cc8_active_gender'
   var RESULT_KEY = 'cc8_result_v1'
   var MIGRATED_KEY = 'cc8_migrated_v2'
-  var ASSET_MANIFEST = './assets/create/manifest.json?v=20261121v8c'
+  var ASSET_MANIFEST = './assets/create/manifest.json?v=20261121v8d'
   var ASSET_ROOT = './assets/create/'
 
   var root = document.getElementById('cc8Root')
@@ -63,6 +63,8 @@
         { v: 'bun', l: 'Bun' }, { v: 'ponytail', l: 'Ponytail' },
         { v: 'bob', l: 'Bob' }, { v: 'bald', l: 'Bald' }
       ],
+      /* 参考站发色是一条不换行的色带：一行放下几块，其余滑动出来。
+         选项表保持完整（10 项），靠 .cc8-swatches 横向滚动承载溢出。 */
       color: [
         { v: 'brunette', l: 'Brunette' }, { v: 'blonde', l: 'Blonde' },
         { v: 'black', l: 'Black' }, { v: 'red', l: 'Red' },
@@ -609,14 +611,33 @@
     root.setAttribute('data-cc8-gender', state.gender)
     root.setAttribute('data-cc8-ready', '1')
     updateCtaState()
+    if (state.screen === 1) mountEntryVideo()
     if (state.screen === 4) {
+      /* 色带是横向滚动的：只有选中的块确实滚出可视区才滚过去。
+         不能无条件 scrollIntoView —— nearest 会把容器左右内边距一起滚掉。 */
       var on = $('.cc8-swatch.on')
-      if (on) try { on.scrollIntoView({ block: 'nearest', inline: 'center' }) } catch (e) { /* ignore */ }
+      var row = on && on.parentNode
+      if (row && row.scrollWidth > row.clientWidth + 1) {
+        var rb = row.getBoundingClientRect()
+        var ob = on.getBoundingClientRect()
+        if (ob.left < rb.left + 15 || ob.right > rb.right - 15) {
+          try { on.scrollIntoView({ block: 'nearest', inline: 'center' }) } catch (e) { /* ignore */ }
+        }
+      }
     }
   }
 
   function renderBottom() {
-    var label = state.screen === 1 ? 'Start' : state.screen === 8 ? (state.gender === 'male' ? 'Bring him to life' : 'Bring her to life') : 'Next'
+    if (state.screen === 1) {
+      /* 第 1 屏是双按钮：左侧 ghost 进自由描述，右侧主 CTA。 */
+      els.bottom.innerHTML = '<div class="cc8-entry-actions">' +
+        '<button class="cc8-ghostbtn" type="button" data-act="prompt">✦ Write prompt</button>' +
+        '<button class="cc8-cta" id="cc8Cta" type="button" data-act="cta">Begin</button>' +
+        '</div>'
+      updateCtaState()
+      return
+    }
+    var label = state.screen === 8 ? (state.gender === 'male' ? 'Bring him to life' : 'Bring her to life') : 'Next'
     var wide = state.screen === 8 ? ' w280' : ''
     els.bottom.innerHTML = '<button class="cc8-cta' + wide + '" id="cc8Cta" type="button" data-act="cta">' + esc(label) + '</button>'
     updateCtaState()
@@ -641,6 +662,33 @@
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M8.5 18h7"/></svg>'
   }
 
+  /* 入口视频只有女版（entry-realistic.mp4 / entry-anime.mp4）。
+     男版没有对应素材，复用女版会放出女性动图，所以 male 一律不加载 video。
+     视频失败时由 mountEntryVideo() 打 is-failed，图片照旧显示。 */
+  function entryVideo(style) {
+    if (state.gender !== 'female') return ''
+    var file = style === 'Anime' ? 'entry-anime.mp4' : 'entry-realistic.mp4'
+    return '<video class="cc8-entry-motion" muted loop playsinline autoplay preload="metadata" aria-hidden="true">' +
+      '<source src="' + ASSET_ROOT + file + '" type="video/mp4"></video>'
+  }
+
+  /* canplay → .is-ready（淡入）；error → .is-failed（退回静态图，不留黑块） */
+  function mountEntryVideo() {
+    var vids = els.inner.querySelectorAll('.cc8-entry-motion')
+    Array.prototype.forEach.call(vids, function (v) {
+      function ready() { v.classList.add('is-ready') }
+      if (v.readyState >= 2) ready()
+      v.addEventListener('canplay', ready)
+      v.addEventListener('error', function () { v.classList.add('is-failed') })
+      if (v.play) {
+        try {
+          var p = v.play()
+          if (p && p.catch) p.catch(function () { /* 自动播放被拦就停在静态图 */ })
+        } catch (err) { /* 静默 */ }
+      }
+    })
+  }
+
   function screenEntry() {
     var d = draft()
     var title = state.gender === 'male' ? 'Create your Dream <em>AI Boy</em>' : 'Create your Dream <em>AI Girl</em>'
@@ -650,7 +698,7 @@
         ? '<img src="' + esc(src) + '" alt="' + esc(style) + ' ' + esc(state.gender) + '" draggable="false">'
         : placeholderHtml(style + ' ' + (state.gender === 'male' ? 'male' : 'female'), 'entry')
       return '<button class="cc8-entry-card' + (d.style === style ? ' on' : '') + '" type="button" data-act="style" data-style="' + style + '" aria-pressed="' + (d.style === style) + '">' +
-        body + '<span class="cc8-entry-label">' + style + '</span></button>'
+        body + entryVideo(style) + '<span class="cc8-entry-label">' + style + '</span></button>'
     }).join('')
     return '<section class="cc8-step cc8-entry" data-cc8-screen-body data-screen="1">' +
       '<h2 class="cc8-hero">' + title + '</h2>' +
@@ -659,7 +707,6 @@
         '<button type="button" data-act="gender" data-gender="male" aria-pressed="' + (state.gender === 'male') + '">' + genderIcon('male') + 'Male</button>' +
       '</div>' +
       '<div class="cc8-entry-grid">' + cards + '</div>' +
-      '<button class="cc8-linkbtn" type="button" data-act="prompt">Write a prompt instead</button>' +
       '</section>'
   }
 
@@ -699,7 +746,7 @@
       : [{ k: 'body', t: 'Body type' }, { k: 'breast', t: 'Breast size' }, { k: 'butt', t: 'Butt size' }]).filter(function (g) { return groupAvailable(g.k) })
     var html = groups.map(function (g) {
       var cards = optList(g.k).map(function (o) { return optionCard(g.k, o) }).join('')
-      return '<div class="cc8-group"><h3 class="cc8-group-title">' + g.t + '<small>tap to choose</small></h3><div class="cc8-row">' + cards + '</div></div>'
+      return '<div class="cc8-group"><h3 class="cc8-group-title">' + g.t + '<small>tap to choose</small></h3><div class="cc8-grid5">' + cards + '</div></div>'
     }).join('')
     return '<section class="cc8-step" data-cc8-screen-body data-screen="3">' +
       '<h2 class="cc8-h2">Body &amp; figure</h2>' +
@@ -713,8 +760,8 @@
     var on = d.color === o.v
     var bg = COLORS[o.v] || '#333'
     var style = bg.indexOf('gradient') >= 0 ? 'background-image:' + bg : 'background:' + bg
-    return '<button class="cc8-swatch' + (on ? ' on' : '') + '" type="button" data-act="pick" data-group="color" data-value="' + esc(o.v) + '" aria-pressed="' + on + '">' +
-      '<i style="' + style + '"></i>' + esc(o.l) + '</button>'
+    return '<button class="cc8-swatch' + (on ? ' on' : '') + '" type="button" data-act="pick" data-group="color" data-value="' + esc(o.v) + '" aria-pressed="' + on + '" title="' + esc(o.l) + '">' +
+      '<i style="' + style + '"></i><span class="cc8-swatch-label">' + esc(o.l) + '</span></button>'
   }
 
   function screenHair() {
@@ -724,7 +771,7 @@
       '<h2 class="cc8-h2">Hair &amp; style</h2>' +
       '<p class="cc8-sub">Pick a color and a cut</p>' +
       '<div class="cc8-group"><h3 class="cc8-group-title">Hair color</h3><div class="cc8-swatches">' + colors + '</div></div>' +
-      '<div class="cc8-group"><h3 class="cc8-group-title">Hairstyle</h3><div class="cc8-grid3">' + styles + '</div></div>' +
+      '<div class="cc8-group"><h3 class="cc8-group-title">Hairstyle</h3><div class="cc8-hair-grid">' + styles + '</div></div>' +
       '</section>'
   }
 
@@ -773,16 +820,36 @@
 
   /* ── screen 7: preferences ────────────────────────────────────────── */
 
+  /* 20 项按参考站分两组展示；顺序固定，男女池子里缺的项（female 无 Praise、
+     male 无 Breeding）由 available 过滤掉，不补位、不重排。 */
+  var PREF_GROUPS = [
+    { t: 'Popular', v: ['Bondage', 'Spanking', 'Roleplay', 'Anal Play', 'Oral Play', 'Dirty Talk', 'Edging', 'Obedience', 'Control', 'Playful Teasing', 'Praise'] },
+    { t: 'Mild', v: ['Collar & Leash', 'Punishment', 'Humiliation', 'Public Play', 'Breeding', 'Cuddling', 'Slow & Sensual', 'Hair Pulling', 'Blindfold', 'Massage'] }
+  ]
+
   function screenPreferences() {
     var d = draft()
-    var chips = optList('preferences').map(function (o) {
+    var opts = optList('preferences')
+    var byV = {}
+    opts.forEach(function (o) { byV[o.v] = o })
+    function chipHtml(o) {
       var on = d.preferences.indexOf(o.v) >= 0
       return '<button class="cc8-kink' + (on ? ' on' : '') + '" type="button" data-act="toggle-pref" data-value="' + esc(o.v) + '" aria-pressed="' + on + '">' + esc(o.l) + '</button>'
+    }
+    var grouped = {}
+    var groups = PREF_GROUPS.map(function (g) {
+      var list = g.v.filter(function (v) { if (byV[v]) { grouped[v] = 1; return true } return false })
+      if (!list.length) return ''
+      return '<div class="cc8-kink-group"><span>' + g.t + '</span></div>' +
+        '<div class="cc8-kinks">' + list.map(function (v) { return chipHtml(byV[v]) }).join('') + '</div>'
     }).join('')
+    /* 分组表之外新增的项照样要能选，兜底追加在后面 */
+    var rest = opts.filter(function (o) { return !grouped[o.v] })
+    if (rest.length) groups += '<div class="cc8-kinks">' + rest.map(chipHtml).join('') + '</div>'
     return '<section class="cc8-step" data-cc8-screen-body data-screen="7">' +
-      '<h2 class="cc8-h2">Preferences</h2>' +
+      '<h2 class="cc8-h2">Choose ' + possessive() + ' preferences (' + d.preferences.length + '/5)</h2>' +
       '<p class="cc8-sub">Pick up to 5 — or let us surprise you</p>' +
-      '<div class="cc8-kinks">' + chips + '</div>' +
+      groups +
       '<button class="cc8-surprise" type="button" data-act="surprise-prefs">Surprise me</button>' +
       '</section>'
   }
@@ -1638,11 +1705,23 @@
 
   /* ── navigation / events ──────────────────────────────────────────── */
 
+  /* 参考站默认高亮 Latina。manifest 的外观 key 必须带 ethnicity 才能命中，
+     族裔为空时第 3/4 屏每张卡都查不到图，会整屏退化成 "Art pending"。
+     只在空值时补默认；不覆盖已存草稿、深链 e= 指定的族裔，也不污染 prompt 模式
+     （自由描述模式下外观只来自描述文本）。 */
+  function ensureDefaultEthnicity() {
+    var d = state.drafts.female
+    if (!d || d.ethnicity || d.promptMode) return false
+    d.ethnicity = 'latina'
+    return true
+  }
+
   function go(n) {
     n = Math.max(1, Math.min(8, parseInt(n, 10) || 1))
     if (state.prompt) closePrompt()
     state.screen = n
     draft().step = n
+    if (n >= 2) ensureDefaultEthnicity()
     saveDrafts()
     render()
   }
@@ -1964,6 +2043,7 @@
     loadState()
     applyQuery()
     if (hasQuery()) saveDrafts()
+    if (state.screen >= 2 && ensureDefaultEthnicity()) saveDrafts()
     var saved = loadResult()
     if (saved && saved.personaId && saved.signature === signature() && isLoggedIn()) {
       restoreGeneration(saved)

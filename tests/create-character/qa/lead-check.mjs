@@ -1,4 +1,4 @@
-// 验收者独立复核：按真实交互（先选风格→Start）走 8 屏，量溢出/CTA/破图/创建请求。
+// 验收者独立复核：按真实交互（先选风格→Begin）走 8 屏，量溢出/CTA/破图/创建请求。
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -82,7 +82,25 @@ for (const vp of [
   }
 
   await snap(0)
-  // 首屏选 Realistic，再点 Start
+  // v8d 首屏：底部必须是两个并排按钮（✦ Write prompt + Begin），旧的 linkbtn 已移除
+  const entry = await page.evaluate(() => {
+    const bar = document.querySelector('#cc8Root .cc8-bottom')
+    const btns = bar ? Array.from(bar.querySelectorAll('button')) : []
+    const rs = btns.map(b => b.getBoundingClientRect())
+    return {
+      n: btns.length,
+      acts: btns.map(b => b.getAttribute('data-act')),
+      texts: btns.map(b => (b.textContent || '').trim()),
+      ctaText: (document.getElementById('cc8Cta') || {}).textContent.trim(),
+      sideBySide: rs.length === 2 && Math.abs(rs[0].top - rs[1].top) <= 1 && rs[0].right <= rs[1].left && rs[1].bottom <= innerHeight + 1,
+      linkbtn: document.querySelectorAll('#cc8Root .cc8-linkbtn').length,
+    }
+  })
+  if (!(entry.n === 2 && entry.acts.join(',') === 'prompt,cta' && entry.ctaText === 'Begin' && entry.sideBySide && entry.linkbtn === 0)) {
+    fail++
+    console.log('FAIL entry-actions', vp.name, JSON.stringify(entry))
+  }
+  // 首屏选 Realistic，再点 Begin（data-act="cta"）
   await page.click('#cc8Root [data-act="style"][data-style="Realistic"]')
   await page.waitForTimeout(200)
   for (let i = 1; i <= 8; i++) {

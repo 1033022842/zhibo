@@ -38,7 +38,7 @@
 	<link rel="stylesheet" href="./assets/fy.css?v=20261112promo1" data-turbo-track="reload">
 		<link rel="stylesheet" href="./_shared/application-bbcb6fded782c5612ce9f0dcaa925c2d80f6d0340a2aa81d0ceb72c1c52c8d5e.css" data-turbo-track="reload">
 		<link rel="stylesheet" href="./assets/createCharacter.css?v=20261113size1" data-turbo-track="reload">
-		<link rel="stylesheet" href="./js/createCharacter-v8.css?v=20261121v8c" data-turbo-track="reload">
+		<link rel="stylesheet" href="./js/createCharacter-v8.css?v=20261121v8d" data-turbo-track="reload">
 		<script src="./_shared/application-347da9786350aca1e10ed8a86c72e8e5c2543b3b33ef23b6a298801855e0d811.js" data-turbo-track="reload" defer="defer"></script>
 		<script src="./_shared/alpine-ace55a5c3e128495b8997ce3059c8ff551594c2a047a2d2dc9d8bbf6df9d1139.js" data-turbo-track="reload" defer="defer"></script>
 
@@ -422,7 +422,7 @@ document.addEventListener('click', function (e) {
   var legacy = /(?:\?|&)legacy=1(?:&|$)/.test(location.search);
   document.documentElement.setAttribute('data-cc-mode', legacy ? 'legacy' : 'v8');
   var s = document.createElement('script');
-  s.src = legacy ? './js/createCharacter.js?v=20261113size1' : './js/create-character-v8.js?v=20261121v8c';
+  s.src = legacy ? './js/createCharacter.js?v=20261113size1' : './js/create-character-v8.js?v=20261121v8d';
   s.defer = true;
   document.body.appendChild(s);
   var root = document.getElementById('cc8Root');

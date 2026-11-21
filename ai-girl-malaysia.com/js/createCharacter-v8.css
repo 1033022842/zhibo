@@ -231,12 +231,98 @@ body.cc8-lock { overflow: hidden !important; }
   background: var(--cc8-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/15px no-repeat;
 }
 
+/* 入口卡动效层：静态 webp 先出，video canplay 后淡入；报错则整层隐藏，不留黑块 */
+.cc8-entry-card .cc8-entry-motion {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+}
+.cc8-entry-card .cc8-entry-motion.is-ready { opacity: 1; }
+.cc8-entry-card .cc8-entry-motion.is-failed { display: none; }
+
+/* 第 1 屏底部：ghost + cta 并排 */
+.cc8-entry-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 16px;
+  width: 100%;
+  max-width: 560px;
+}
+.cc8-entry-actions .cc8-ghostbtn {
+  height: 48px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .24);
+  background: transparent;
+  color: #fff;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cc8-entry-actions .cc8-cta {
+  height: 48px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  font-size: 15px;
+}
+
 /* ---------- option grids ---------- */
 .cc8-grid3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   padding: 0 12px;
+}
+/* 第 3 屏：3 组 × 5 张全塞进一屏，卡片压到 7/12、label 收到 11px */
+.cc8-grid5 {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 12px;
+}
+.cc8-grid5 .cc8-opt {
+  border-radius: 8px;
+  aspect-ratio: 7 / 12;
+}
+.cc8-grid5 .cc8-opt .cc8-opt-label {
+  padding: 14px 2px 5px;
+  font-size: 11px;
+  line-height: 1.15;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cc8-grid5 .cc8-opt.on::after {
+  top: 4px; right: 4px;
+  width: 16px; height: 16px;
+  background-size: 10px;
+}
+/* 第 4 屏 hairstyle：参考站 4 列 2/3 竖图 */
+.cc8-hair-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 12px;
+}
+.cc8-hair-grid .cc8-opt {
+  border-radius: 9px;
+  aspect-ratio: 2 / 3;
+}
+.cc8-hair-grid .cc8-opt .cc8-opt-label {
+  padding: 16px 3px 6px;
+  font-size: 11px;
+  line-height: 1.15;
 }
 .cc8-opt {
   position: relative;
@@ -338,34 +424,68 @@ body.cc8-lock { overflow: hidden !important; }
 }
 
 /* ---------- hair colors ---------- */
+/* 参考站是一条色带：单行不换行，放不下的颜色滑动出来；
+   选中的那块就地撑到 120 显示发色名。容器内横向滚动，页面本身不被撑宽。 */
 .cc8-swatches {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 2px 14px 6px;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 0 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  /* snap 默认以容器的滚动边界对齐，会把左右 16px 内边距一起吃掉；用 scroll-padding 补回来 */
+  scroll-padding: 0 16px;
 }
+.cc8-swatches::-webkit-scrollbar { display: none; }
 .cc8-swatch {
-  flex: 0 0 auto;
-  width: 52px;
+  position: relative;
+  flex: 0 0 40px;
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  background: transparent;
-  border: 0;
-  color: var(--cc8-muted);
-  font-size: 11px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
   cursor: pointer;
+  color: #fff;
+  font-size: 11px;
   text-align: center;
+  scroll-snap-align: start;
 }
 .cc8-swatch i {
-  display: block;
-  width: 40px; height: 40px;
-  margin: 0 auto 5px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, .18);
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
   background: #333;
 }
-.cc8-swatch.on { color: #fff; }
-.cc8-swatch.on i { border-color: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, .16); }
+.cc8-swatch .cc8-swatch-label {
+  display: none;
+  position: relative;
+  z-index: 1;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+}
+.cc8-swatch.on {
+  flex: 0 0 120px;
+  width: 120px;
+  min-width: 120px;
+  padding: 0 12px;
+  border-color: #fff;
+}
+.cc8-swatch.on .cc8-swatch-label { display: block; }
 .cc8-swatch:focus-visible { outline: 2px solid var(--cc8-accent); outline-offset: 2px; border-radius: 8px; }
 
 /* ---------- name / age ---------- */
@@ -447,6 +567,23 @@ body.cc8-lock { overflow: hidden !important; }
 .cc8-arow-btn svg { width: 18px; height: 18px; flex: 0 0 auto; opacity: .85; }
 
 /* ---------- preferences ---------- */
+/* 分组标题：文字两侧各一条细分割线 */
+.cc8-kink-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, .6);
+  font-size: 13px;
+  padding: 0 16px;
+  margin: 14px 0 10px;
+}
+.cc8-kink-group::before,
+.cc8-kink-group::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, .14);
+}
 .cc8-kinks {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -825,10 +962,12 @@ body.cc8-lock { overflow: hidden !important; }
   display: flex;
   flex-direction: column;
   align-items: center;
+  height: 100%;
+  min-height: 0;
   background: #0b0b0b;
   color: #fff;
   overflow-y: auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 12px);
 }
 .cc8-gen-top {
   width: 100%;
@@ -840,15 +979,17 @@ body.cc8-lock { overflow: hidden !important; }
   margin-bottom: 10px;
 }
 .cc8-gen-top h2 { margin: 0; font-size: 18px; font-weight: 600; }
+/* 卡片撑满剩余高度：原来 max-height:62vh 是底部大空白的根因。
+   宽度仍受 330px 约束，图片 object-fit:cover 会吃掉多出来的竖向空间。 */
 .cc8-gen-card {
   position: relative;
   width: min(330px, calc(100vw - 48px));
   aspect-ratio: 330 / 518;
-  max-height: 62vh;
   border-radius: 18px;
   overflow: hidden;
   background: #171717;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .cc8-gen-card > img {
   position: absolute;
@@ -964,18 +1105,13 @@ html[data-cc-mode="v8"] .cc-modal { display: none !important; }
   .cc8-step { max-width: 760px; margin: 0 auto; }
   .cc8-summary { max-width: 760px; margin: 0 auto; }
   .cc8-grid3 { max-width: 760px; margin: 0 auto; }
+  .cc8-hair-grid { max-width: 680px; margin: 0 auto; }
   .cc8-h2, .cc8-sub { max-width: 760px; margin-left: auto; margin-right: auto; }
   .cc8-step[data-screen="2"] .cc8-grid3 { max-width: 620px; }
-  .cc8-step[data-screen="3"] .cc8-row {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
-    padding: 0 12px;
-    overflow: visible;
-  }
-  .cc8-step[data-screen="3"] .cc8-row .cc8-opt { width: auto; height: auto; flex: none; aspect-ratio: 118 / 129; }
-  .cc8-step[data-screen="4"] .cc8-grid3 { max-width: 680px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .cc8-step[data-screen="4"] .cc8-grid3 .cc8-opt { aspect-ratio: 3 / 4; }
+  .cc8-step[data-screen="3"] .cc8-grid5 { max-width: 700px; margin: 0 auto; }
+  .cc8-row { overflow-x: visible; }
+  .cc8-step[data-screen="4"] .cc8-hair-grid { max-width: 680px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cc8-step[data-screen="4"] .cc8-hair-grid .cc8-opt { aspect-ratio: 3 / 4; }
 }
 .cc8-summary-prompt .cc8-card-bio,
 .cc8-summary-prompt .cc8-card-hair,

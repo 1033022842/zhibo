@@ -43,8 +43,8 @@ def check(name, cfg):
         st, body = get(page_url)
         html = body.decode("utf-8", "replace")
         add("页面可达", st == 200, f"HTTP {st} {len(body)}B")
-        add("引 v8 脚本", "create-character-v8.js?v=20261121v8c" in html,
-            "create-character-v8.js?v=20261121v8c" if "create-character-v8.js?v=20261121v8c" in html else "未找到")
+        add("引 v8 脚本", "create-character-v8.js?v=20261121v8d" in html,
+            "create-character-v8.js?v=20261121v8d" if "create-character-v8.js?v=20261121v8d" in html else "未找到")
         add("含 #cc8Root", 'id="cc8Root"' in html)
         add("旧脚本已移出静态标签", 'src="./js/createCharacter.js"' not in html)
         add("品牌词", cfg["brand"] in html, cfg["brand"])
@@ -68,8 +68,8 @@ def check(name, cfg):
     for path in (
         "/ai/assets/create/entry-male-realistic.webp",
         "/ai/assets/create/catalog-v1/female/anime/asian/body-slim.webp",
-        "/ai/js/create-character-v8.js?v=20261121v8c",
-        "/ai/js/createCharacter-v8.css?v=20261121v8c",
+        "/ai/js/create-character-v8.js?v=20261121v8d",
+        "/ai/js/createCharacter-v8.css?v=20261121v8d",
     ):
         try:
             st, body = get(base + path)

@@ -6,10 +6,10 @@
 ## 改动文件
 
 - `ai-girl-malaysia.com/createCharacter.html`
-  - head 加载 `./js/createCharacter-v8.css?v=20261121v8c`
+  - head 加载 `./js/createCharacter-v8.css?v=20261121v8d`
   - 删除旧 `js/createCharacter.js` 静态标签
   - 新增 `#cc8Root`
-  - 末尾唯一 bootstrap：默认加载 `js/create-character-v8.js?v=20261121v8c`；`?legacy=1` 只加载旧 `js/createCharacter.js`
+  - 末尾唯一 bootstrap：默认加载 `js/create-character-v8.js?v=20261121v8d`；`?legacy=1` 只加载旧 `js/createCharacter.js`
 - `ai-girl-malaysia.com/js/create-character-v8.js`（新增，约 1900 行）
 - `ai-girl-malaysia.com/js/createCharacter-v8.css`（新增，约 990 行；按 SOP 放白名单 `js/`，未改发布脚本）
 - `tests/create-character/frontend/`（测试、mock 服务、截图、coverage 数据）

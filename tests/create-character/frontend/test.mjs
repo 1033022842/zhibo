@@ -214,6 +214,146 @@ const browser = await chromium.launch({ executablePath: EXE, headless: true })
   await ctx.close()
 }
 
+/* ---------- v8d layout: entry actions+video, grid5, swatch row, pref groups ---------- */
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+  const page = await ctx.newPage()
+  const errs = []
+  page.on('pageerror', e => errs.push(e.message))
+  await page.route('**/api/**', route => json(route, { code: '00000', data: {} }))
+  await page.goto(BASE, { waitUntil: 'load' })
+  await page.waitForSelector('#cc8Root[data-cc8-ready="1"]')
+
+  const entry = await page.evaluate(() => {
+    const box = document.querySelector('#cc8Bottom .cc8-entry-actions')
+    const cta = document.getElementById('cc8Cta')
+    const ghost = box ? box.querySelector('[data-act="prompt"]') : null
+    const rw = b => (b ? Math.round(b.getBoundingClientRect().width * 10) / 10 : -1)
+    return {
+      has: !!box,
+      prompt: box ? box.querySelectorAll('[data-act="prompt"]').length : -1,
+      cta: box ? box.querySelectorAll('[data-act="cta"]').length : -1,
+      label: cta ? cta.textContent.trim() : '',
+      linkbtn: document.querySelectorAll('.cc8-linkbtn').length,
+      ctaInActions: !!(box && box.contains(cta)),
+      ghostW: rw(ghost),
+      ctaW: rw(cta),
+    }
+  })
+  check('screen 1 bottom = .cc8-entry-actions holding one prompt + one cta', entry.has && entry.prompt === 1 && entry.cta === 1 && entry.ctaInActions, JSON.stringify(entry))
+  check('screen 1 CTA reads Begin', entry.label === 'Begin', entry.label)
+  check('screen 1 no longer renders .cc8-linkbtn', entry.linkbtn === 0, 'linkbtn=' + entry.linkbtn)
+  check('screen 1 two buttons have equal width', entry.ghostW > 0 && entry.ghostW === entry.ctaW, `ghost=${entry.ghostW} cta=${entry.ctaW}`)
+
+  await page.waitForFunction(() => {
+    const v = document.querySelector('.cc8-entry-card .cc8-entry-motion')
+    return !!v && v.classList.contains('is-ready') && v.currentTime > 0 &&
+      getComputedStyle(v).opacity === '1'   // 等 .35s 淡入结束，避免采样到过渡中间态
+  }, null, { timeout: 20000 })
+  const vid = await page.evaluate(() => {
+    const v = document.querySelector('.cc8-entry-card .cc8-entry-motion')
+    const img = document.querySelector('.cc8-entry-card img')
+    return {
+      ready: v.classList.contains('is-ready'),
+      t: Math.round(v.currentTime * 100) / 100,
+      opacity: getComputedStyle(v).opacity,
+      src: v.querySelector('source').getAttribute('src'),
+      hasImg: !!img,
+    }
+  })
+  check('female entry plays motion over the static image', vid.ready && vid.t > 0 && vid.opacity === '1' && vid.hasImg, JSON.stringify(vid))
+  check('entry video points at the female realistic mp4', vid.src === './assets/create/entry-realistic.mp4', vid.src)
+
+  /* 真实路径：首屏必须选风格才有图（manifest key 带 style），随后直接跳第 3 屏 */
+  await page.click('[data-act="style"][data-style="Realistic"]')
+  await page.evaluate(() => window.CC8.go(3))
+  const s3 = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('.cc8-grid5 .cc8-opt')]
+    const imgs = cards.map(c => c.querySelector('img')).filter(Boolean)
+    const scroll = document.querySelector('.cc8-scroll')
+    return {
+      grids: document.querySelectorAll('.cc8-grid5').length,
+      rows: document.querySelectorAll('.cc8-row').length,
+      cards: cards.length,
+      imgs: imgs.length,
+      emptySrc: imgs.filter(i => !i.getAttribute('src')).length,
+      placeholders: document.querySelectorAll('.cc8-grid5 .cc8-ph').length,
+      broken: imgs.filter(i => i.complete && i.naturalWidth === 0).length,
+      belowFold: cards.filter(c => c.getBoundingClientRect().bottom > innerHeight + 1).length,
+      vScroll: scroll.scrollHeight - scroll.clientHeight,
+    }
+  })
+  check('screen 3 renders 3 × .cc8-grid5 with 15 cards', s3.grids === 3 && s3.cards === 15 && s3.rows === 0, JSON.stringify(s3))
+  check('screen 3 keeps all 15 cards above the fold', s3.belowFold === 0, 'belowFold=' + s3.belowFold)
+  check('screen 3 does not scroll vertically', s3.vScroll <= 1, 'vScroll=' + s3.vScroll)
+  check('screen 3 shows 15 real images, no empty src, no placeholder', s3.imgs === 15 && s3.emptySrc === 0 && s3.placeholders === 0 && s3.broken === 0, JSON.stringify(s3))
+
+  await page.evaluate(() => window.CC8.go(4))
+  await page.click('.cc8-swatches .cc8-swatch[data-value="brunette"]')
+  const s4 = await page.evaluate(() => {
+    const sw = [...document.querySelectorAll('.cc8-swatches .cc8-swatch')]
+    const on = document.querySelector('.cc8-swatch.on')
+    const hair = [...document.querySelectorAll('.cc8-hair-grid .cc8-opt')]
+    const hairImgs = hair.map(h => h.querySelector('img')).filter(Boolean)
+    const tops = hair.slice(0, 5).map(h => Math.round(h.getBoundingClientRect().top))
+    const row = document.querySelector('.cc8-swatches')
+    return {
+      n: sw.length,
+      labelled: sw.filter(s => s.querySelector('.cc8-swatch-label')).length,
+      rows: new Set(sw.map(s => Math.round(s.getBoundingClientRect().top))).size,
+      onW: on ? Math.round(on.getBoundingClientRect().width) : 0,
+      onLabel: on && on.querySelector('.cc8-swatch-label') ? on.querySelector('.cc8-swatch-label').textContent : '',
+      labelShown: on ? getComputedStyle(on.querySelector('.cc8-swatch-label')).display !== 'none' : false,
+      hairPerRow: tops.filter(t => t === tops[0]).length,
+      hairImgs: hairImgs.length,
+      hairEmptySrc: hairImgs.filter(i => !i.getAttribute('src')).length,
+      hairPlaceholders: document.querySelectorAll('.cc8-hair-grid .cc8-ph').length,
+      stripScrolls: row.scrollWidth > row.clientWidth,
+      pageStretched: document.documentElement.scrollWidth > innerWidth,
+    }
+  })
+  check('hair strip lists all 10 female colors, each with a label span', s4.n === 10 && s4.labelled === 10, JSON.stringify({ n: s4.n, l: s4.labelled }))
+  check('hair strip stays single-line and scrolls inside itself, page not stretched', s4.rows === 1 && s4.stripScrolls && !s4.pageStretched, JSON.stringify({ rows: s4.rows, strip: s4.stripScrolls, page: s4.pageStretched }))
+  check('selected swatch expands and shows its name', s4.onW >= 120 && s4.labelShown && s4.onLabel === 'Brunette', JSON.stringify({ w: s4.onW, label: s4.onLabel }))
+  check('hairstyle grid is 4 columns', s4.hairPerRow === 4, 'perRow=' + s4.hairPerRow)
+  check('hairstyle shows 8 real images with non-empty src', s4.hairImgs === 8 && s4.hairEmptySrc === 0 && s4.hairPlaceholders === 0, JSON.stringify({ imgs: s4.hairImgs, empty: s4.hairEmptySrc, ph: s4.hairPlaceholders }))
+
+  await page.evaluate(() => window.CC8.go(7))
+  const s7a = await page.evaluate(() => {
+    const h2 = document.querySelector('.cc8-step[data-screen="7"] .cc8-h2')
+    return {
+      groups: document.querySelectorAll('.cc8-kink-group').length,
+      titles: [...document.querySelectorAll('.cc8-kink-group')].map(g => g.textContent.trim()),
+      heading: h2 ? h2.textContent.trim() : '',
+      chips: document.querySelectorAll('.cc8-kinks .cc8-kink').length,
+    }
+  })
+  check('screen 7 renders 2 grouped sections', s7a.groups === 2 && s7a.titles.join(',') === 'Popular,Mild', JSON.stringify(s7a.titles))
+  check('screen 7 heading carries the (n/5) counter', /\(0\/5\)$/.test(s7a.heading), s7a.heading)
+  check('screen 7 keeps all 20 chips selectable', s7a.chips === 20, 'chips=' + s7a.chips)
+  await page.click('.cc8-kinks .cc8-kink[data-value="Cuddling"]')
+  const s7b = await page.evaluate(() => document.querySelector('.cc8-step[data-screen="7"] .cc8-h2').textContent.trim())
+  check('screen 7 counter updates immediately', /\(1\/5\)$/.test(s7b), s7b)
+
+  /* male: no motion layer, two body groups */
+  await page.evaluate(() => window.CC8.reset())
+  await page.click('#cc8Root [data-act="gender"][data-gender="male"]')
+  await page.waitForSelector('#cc8Root[data-cc8-gender="male"]')
+  const male = await page.evaluate(() => ({
+    videos: document.querySelectorAll('.cc8-entry-motion, .cc8-entry-card video').length,
+    imgs: document.querySelectorAll('.cc8-entry-card img').length,
+  }))
+  check('male entry loads no video layer', male.videos === 0 && male.imgs === 2, JSON.stringify(male))
+  await page.evaluate(() => window.CC8.go(3))
+  const m3 = await page.evaluate(() => document.querySelectorAll('.cc8-grid5').length)
+  check('male screen 3 has 2 body groups', m3 === 2, 'grid5=' + m3)
+  await page.evaluate(() => window.CC8.go(4))
+  const m4 = await page.evaluate(() => document.querySelectorAll('.cc8-swatches .cc8-swatch').length)
+  check('male hair strip lists all 9 male colors', m4 === 9, 'swatches=' + m4)
+  check('no page errors (v8d layout)', errs.length === 0, errs.join('|'))
+  await ctx.close()
+}
+
 /* ---------- legacy fallback loads only old wizard ---------- */
 {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
