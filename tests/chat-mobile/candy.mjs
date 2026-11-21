@@ -41,6 +41,7 @@ await page.route('**/*.{png,jpg,jpeg,webp,svg,gif}', (r) =>
 await page.addInitScript(() => localStorage.setItem('live_access_token', 'test-token'))
 await page.goto(`${BASE}/Chat.html?id=my-279`, { waitUntil: 'domcontentloaded', timeout: 60000 })
 await page.waitForTimeout(2500)
+await page.locator('#message-list a.chat-obj').first().waitFor({ timeout: 20000 }).catch(() => {})
 
 /* 1. 我的角色出现在会话列表里（即使没有聊天记录） */
 const card = page.locator('#message-list a.chat-obj[data-id="my-279"]')
