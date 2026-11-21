@@ -1120,3 +1120,51 @@ Cregis / AIPowerPay 的通道行字段与旧机脚本一致：
 - 同一商户在 Cregis 下可能有多个项目；`E0001 IP 白名单` 先核对 `.env` 的 `BASE_URL / PID / API_KEY`
   是否就是控制台里加白名单的那个项目，别只盯着白名单。
 - 换 IP 后网关白名单（Cregis 的 IP、各家的回调 IP）是必查项，建单成功不代表回调能到。
+
+## 15. Create Character v8（八屏向导）上线记录 · 2026-11-21
+
+### 15.1 同步范围总览
+
+| 站点 | 静态站 | PHP | 说明 |
+|---|---|---|---|
+| heygirl | 全量（527 文件 + overrides 4） | 走 `sync_php`（5 文件） | 标准路径 |
+| sugus | 全量（531 文件，tar） | 走 `sync_php` | 经 99.11 跳板 |
+| kelymi | 全量（607 文件，坑：132 个品牌补丁） | **手工补丁**（`sync_php=False`） | 后端原为 v7 |
+| kiss | 全量（607 文件） | **手工补丁**（`sync_php=False`） | 后端原为 v6 |
+
+验证脚本：`python tests/create-character/deploy/verify_deploy.py [--only <站>]`
+（页面引 v8 脚本 + `#cc8Root` + 旧静态标签移除 + 品牌词 + manifest 684 key/male 双入口/missing 空 + 入口图与 v8.js/css 均 200）。
+
+### 15.2 kelymi 后端补丁（v7 → v8）
+
+备份 `/root/php_bak_cc8_20261121_1230`。覆盖 3 个文件 + 新增 1 个：
+
+- `app/api/controller/Live.php`（123916B）——diff 仅 3 处，均在 customRoleCreate/pool/regen 段
+- `app/live/service/PersonaService.php`（6677B）——extractAiFields 扩展 + status=4 草稿语义
+- `app/live/service/CharacterImageService.php`（22750B）——buildPrompt 全量重写
+- `app/live/service/CharacterFields.php`（15494B，新增）——纯静态归一器
+
+`php -l` 全通过 → `systemctl reload php8.3-fpm`。验证：`CharacterFields` 可 autoload，`normalize(['gender'=>'male','butt_size'=>'Big'])` 返回 `{"gender":"male","butt_size":"Big"}`。
+
+### 15.3 kiss 后端补丁（v6 → v8，局部）
+
+备份 `/root/php_bak_cc8_20261121_2033`。kiss 的 Live.php 比 kelymi 还旧一版，**整文件覆盖会带进 v7/v8 全部支付相关改动**，故只做局部替换：
+
+- 新增 `CharacterFields.php`、`CharacterImageService.php`（kiss 原本没有这两个类）
+- 替换 `PersonaService.php`（差异全在 v8 草稿/NEW 字段，无客户定制）
+- `Live.php` 用脚本 splice：
+  1. `customRoleCreate` 单段替换为 v8 实现（池命中/入队/返回 `image_task_id`/`prices`/`balance`）
+  2. 追加 `customRoleSave` / `customRoleRegenerate` / `customRoleImageStatus` + `findOwnPersona`
+  3. 补 `use app\ai\model\AiTask; use app\common\enums\TaskStatus; use app\live\service\CharacterImageService;`
+  4. middleware `Auth::class => ['only' => ...]` 补 4 个方法名（**这是原漏洞的根因**）
+
+### 15.4 顺带修掉的鉴权漏洞（kiss）
+
+补丁前 `POST /api/live/customRoleCreate` **不带 token 也能创建角色**（`getAuthUserId()` 返回 0，且方法名未进 Auth 中间件 only 列表），库中 `lp_persona` 里 `user_id=0` 的垃圾角色 161 条（最早 2026-11-17）。补丁后四站该端点统一返回 `A0100 Token无效`。
+
+**遗留**：kiss 那 161 条 `user_id=0` 的 persona 待清理（`DELETE FROM lp_persona WHERE user_id=0 AND id<=262`），本次未动。
+
+### 15.5 未部署项
+
+- `CharacterPoolCron.php`（池需求回补）只随 `sync_php` 走，kelymi/kiss 仍跑旧 cron；新向导必带 `style`，故新流量本就不进池（`instant=false` 常态），旧库存仍可被旧口径请求领取。
+- kelymi/kiss 的 `lp_platform_config` 无 `character_regen_price` / `character_save_price`，走代码默认 1 / 10。
