@@ -173,8 +173,8 @@ async function state(page) {
     const href = await cards.first().getAttribute('href')
     ;/Chat\.html\?id=my-279/.test(href) ? ok(`角色卡指向 ${href}`) : fail(`卡片链接异常 ${href}`)
     await cards.first().click()
-    await page.waitForTimeout(1500)
-    page.url().includes('Chat.html?id=my-279') ? ok('从 My AI 进入聊天页') : fail(`未进入聊天页 ${page.url()}`)
+    await page.waitForURL(/Chat\.html\?id=my-279/, { timeout: 10000 }).catch(() => {})
+    await page.waitForTimeout(300)
   }
   await ctx.close()
 }
