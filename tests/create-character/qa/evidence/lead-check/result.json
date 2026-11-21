@@ -1,0 +1,461 @@
+[
+  {
+    "screen": 1,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Start",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 0,
+    "viewport": "320"
+  },
+  {
+    "screen": 2,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 1,
+    "viewport": "320"
+  },
+  {
+    "screen": 3,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 2,
+    "viewport": "320"
+  },
+  {
+    "screen": 4,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 3,
+    "viewport": "320"
+  },
+  {
+    "screen": 5,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 4,
+    "viewport": "320"
+  },
+  {
+    "screen": 6,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 5,
+    "viewport": "320"
+  },
+  {
+    "screen": 7,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 6,
+    "viewport": "320"
+  },
+  {
+    "screen": 8,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Bring him to life",
+      "w": 280,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 7,
+    "viewport": "320"
+  },
+  {
+    "screen": 8,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 320,
+    "cta": {
+      "text": "Bring him to life",
+      "w": 280,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 8,
+    "viewport": "320"
+  },
+  {
+    "screen": 1,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Start",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 0,
+    "viewport": "390"
+  },
+  {
+    "screen": 2,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 1,
+    "viewport": "390"
+  },
+  {
+    "screen": 3,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 2,
+    "viewport": "390"
+  },
+  {
+    "screen": 4,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 3,
+    "viewport": "390"
+  },
+  {
+    "screen": 5,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 4,
+    "viewport": "390"
+  },
+  {
+    "screen": 6,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 5,
+    "viewport": "390"
+  },
+  {
+    "screen": 7,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 6,
+    "viewport": "390"
+  },
+  {
+    "screen": 8,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Bring him to life",
+      "w": 280,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 7,
+    "viewport": "390"
+  },
+  {
+    "screen": 8,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 390,
+    "cta": {
+      "text": "Bring him to life",
+      "w": 280,
+      "h": 44,
+      "bottom": 828,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 8,
+    "viewport": "390"
+  },
+  {
+    "screen": 1,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Start",
+      "w": 180,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 0,
+    "viewport": "1440"
+  },
+  {
+    "screen": 2,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 1,
+    "viewport": "1440"
+  },
+  {
+    "screen": 3,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 2,
+    "viewport": "1440"
+  },
+  {
+    "screen": 4,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 3,
+    "viewport": "1440"
+  },
+  {
+    "screen": 5,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 4,
+    "viewport": "1440"
+  },
+  {
+    "screen": 6,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 5,
+    "viewport": "1440"
+  },
+  {
+    "screen": 7,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Next",
+      "w": 180,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 6,
+    "viewport": "1440"
+  },
+  {
+    "screen": 8,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Bring him to life",
+      "w": 280,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 7,
+    "viewport": "1440"
+  },
+  {
+    "screen": 8,
+    "title": "Create your AI boyfriend",
+    "overflow": false,
+    "scrollW": 1440,
+    "cta": {
+      "text": "Bring him to life",
+      "w": 280,
+      "h": 44,
+      "bottom": 884,
+      "visible": true
+    },
+    "broken": 0,
+    "screens": 0,
+    "i": 8,
+    "viewport": "1440"
+  }
+]

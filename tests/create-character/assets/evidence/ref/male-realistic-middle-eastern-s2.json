@@ -1,0 +1,691 @@
+{
+ "gender": "male",
+ "style": "realistic",
+ "eth": "middle-eastern",
+ "step": "2",
+ "captured_at": "2026-11-21T10:01:22.603Z",
+ "url": "https://joi.com/generate/character?g=male&s=realistic&e=middle-eastern&step=2",
+ "data": {
+  "url": "https://joi.com/generate/character?g=male&s=realistic&e=middle-eastern&step=2",
+  "scrollH": 844,
+  "images": [
+   {
+    "id": "a1ebc8a5-9f20-4b8e-7b16-01b29d36ae00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Slim",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 3,
+    "y": 159
+   },
+   {
+    "id": "bac7b1a7-a058-4de4-5bf4-bee28aebbe00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Average",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 81,
+    "y": 159
+   },
+   {
+    "id": "0d604508-743f-4306-21c6-81a704b1d800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Muscular",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 160,
+    "y": 159
+   },
+   {
+    "id": "cf61c1e5-888a-4850-b4b2-b9ec13ccf300",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Stout",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 238,
+    "y": 159
+   },
+   {
+    "id": "787b6a2b-7012-4550-4276-a19a2905ec00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Large",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 317,
+    "y": 159
+   },
+   {
+    "id": "19a2101b-7fd9-417d-af64-a58fa1bd8f00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Micro",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 3,
+    "y": 385
+   },
+   {
+    "id": "e4c84ead-fe9c-45e9-e391-a2dce659a700",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Small",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 81,
+    "y": 385
+   },
+   {
+    "id": "bae45776-d2e1-4a1a-4478-021f4bf61d00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Average",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 160,
+    "y": 385
+   },
+   {
+    "id": "f495a65a-22ae-48e8-fd2f-a1b1aa4a3500",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Big",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 238,
+    "y": 385
+   },
+   {
+    "id": "52c23f55-3d40-465b-e79f-dc2ba395ba00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Huge",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 317,
+    "y": 385
+   },
+   {
+    "id": "cfa6a84a-6fef-4ba6-fa2b-a5d2c44ff100",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Platinum",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -10168,
+    "y": 54
+   },
+   {
+    "id": "06412a08-a767-4f91-146a-65cfaaa06800",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Brunette",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     125,
+     32
+    ],
+    "x": -10129,
+    "y": 54
+   },
+   {
+    "id": "bea8b2f4-5117-4f8e-be92-4409aa7e8400",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Black",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -10000,
+    "y": 54
+   },
+   {
+    "id": "69a493ba-740e-494c-1bc4-c3242ab8a200",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Blond",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -9961,
+    "y": 54
+   },
+   {
+    "id": "be10fa39-7513-4b68-eb82-658e54e16200",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Ginger",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -9922,
+    "y": 54
+   },
+   {
+    "id": "51d7273b-f3e7-45a9-5451-506074076c00",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Pink",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -9883,
+    "y": 54
+   },
+   {
+    "id": "8e1cd717-2ab6-4be7-cb8f-d923daf47700",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Blue",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -9844,
+    "y": 54
+   },
+   {
+    "id": "d4000754-8a94-4175-06ac-134753b70f00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Bald",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9987,
+    "y": 155
+   },
+   {
+    "id": "6dc07348-a82b-41af-7c1e-af6800016400",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Shaggy",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9979,
+    "y": 155
+   },
+   {
+    "id": "99e08fad-d5a3-440d-8962-c8d057228700",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Bro flow",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9971,
+    "y": 155
+   },
+   {
+    "id": "af7b8208-fe20-4864-fd0e-06f343dc1600",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Buzz cut",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9963,
+    "y": 155
+   },
+   {
+    "id": "0c19bab1-e916-4dbb-cc2b-f4a3d8989500",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Fade",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9987,
+    "y": 165
+   },
+   {
+    "id": "75b6cd7e-1735-4ba9-c939-17ed5371b800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Long",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9979,
+    "y": 165
+   },
+   {
+    "id": "6c025965-2262-48a3-ce69-dad9b521a600",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Mullet",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9971,
+    "y": 165
+   },
+   {
+    "id": "ab5514db-ffc6-4ae5-9c60-0b10dc1cdb00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Undercut",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9963,
+    "y": 165
+   }
+  ],
+  "cards": [
+   {
+    "label": "Sign up",
+    "alt": "",
+    "box": [
+     73,
+     38
+    ],
+    "x": 255,
+    "y": 11
+   },
+   {
+    "label": "Log in",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "LanguageEnglish - EN",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "More",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "Slim Slim",
+    "alt": "Slim",
+    "box": [
+     74,
+     120
+    ],
+    "x": 1,
+    "y": 157
+   },
+   {
+    "label": "Average Average",
+    "alt": "Average",
+    "box": [
+     74,
+     120
+    ],
+    "x": 79,
+    "y": 157
+   },
+   {
+    "label": "Muscular Muscular",
+    "alt": "Muscular",
+    "box": [
+     74,
+     120
+    ],
+    "x": 158,
+    "y": 157
+   },
+   {
+    "label": "Stout Stout",
+    "alt": "Stout",
+    "box": [
+     74,
+     120
+    ],
+    "x": 236,
+    "y": 157
+   },
+   {
+    "label": "Large Large",
+    "alt": "Large",
+    "box": [
+     74,
+     120
+    ],
+    "x": 315,
+    "y": 157
+   },
+   {
+    "label": "Micro Micro",
+    "alt": "Micro",
+    "box": [
+     74,
+     120
+    ],
+    "x": 1,
+    "y": 383
+   },
+   {
+    "label": "Small Small",
+    "alt": "Small",
+    "box": [
+     74,
+     120
+    ],
+    "x": 79,
+    "y": 383
+   },
+   {
+    "label": "Average Average",
+    "alt": "Average",
+    "box": [
+     74,
+     120
+    ],
+    "x": 158,
+    "y": 383
+   },
+   {
+    "label": "Big Big",
+    "alt": "Big",
+    "box": [
+     74,
+     120
+    ],
+    "x": 236,
+    "y": 383
+   },
+   {
+    "label": "Huge Huge",
+    "alt": "Huge",
+    "box": [
+     74,
+     120
+    ],
+    "x": 315,
+    "y": 383
+   },
+   {
+    "label": "Platinum",
+    "alt": "Platinum",
+    "box": [
+     35,
+     32
+    ],
+    "x": -10168,
+    "y": 54
+   },
+   {
+    "label": "Brunette",
+    "alt": "Brunette",
+    "box": [
+     125,
+     32
+    ],
+    "x": -10129,
+    "y": 54
+   },
+   {
+    "label": "Black",
+    "alt": "Black",
+    "box": [
+     35,
+     32
+    ],
+    "x": -10000,
+    "y": 54
+   },
+   {
+    "label": "Blond",
+    "alt": "Blond",
+    "box": [
+     35,
+     32
+    ],
+    "x": -9961,
+    "y": 54
+   },
+   {
+    "label": "Ginger",
+    "alt": "Ginger",
+    "box": [
+     35,
+     32
+    ],
+    "x": -9922,
+    "y": 54
+   },
+   {
+    "label": "Pink",
+    "alt": "Pink",
+    "box": [
+     35,
+     32
+    ],
+    "x": -9883,
+    "y": 54
+   },
+   {
+    "label": "Blue",
+    "alt": "Blue",
+    "box": [
+     35,
+     32
+    ],
+    "x": -9844,
+    "y": 54
+   },
+   {
+    "label": "Bald Bald",
+    "alt": "Bald",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9989,
+    "y": 142
+   },
+   {
+    "label": "Shaggy Shaggy",
+    "alt": "Shaggy",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9981,
+    "y": 142
+   },
+   {
+    "label": "Bro flow Bro flow",
+    "alt": "Bro flow",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9973,
+    "y": 142
+   },
+   {
+    "label": "Buzz cut Buzz cut",
+    "alt": "Buzz cut",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9965,
+    "y": 142
+   },
+   {
+    "label": "Fade Fade",
+    "alt": "Fade",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9989,
+    "y": 152
+   },
+   {
+    "label": "Long Long",
+    "alt": "Long",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9981,
+    "y": 152
+   },
+   {
+    "label": "Mullet Mullet",
+    "alt": "Mullet",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9973,
+    "y": 152
+   },
+   {
+    "label": "Undercut Undercut",
+    "alt": "Undercut",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9965,
+    "y": 152
+   },
+   {
+    "label": "Next",
+    "alt": "",
+    "box": [
+     180,
+     44
+    ],
+    "x": 105,
+    "y": 784
+   }
+  ]
+ }
+}

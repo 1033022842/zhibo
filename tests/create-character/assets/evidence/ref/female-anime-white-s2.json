@@ -1,0 +1,816 @@
+{
+ "gender": "female",
+ "style": "anime",
+ "eth": "white",
+ "step": "2",
+ "captured_at": "2026-11-21T09:55:28.965Z",
+ "url": "https://joi.com/generate/character?g=female&s=anime&e=white&step=2",
+ "data": {
+  "url": "https://joi.com/generate/character?g=female&s=anime&e=white&step=2",
+  "scrollH": 844,
+  "images": [
+   {
+    "id": "9c452bf4-aa60-4b11-2ba8-8ebf2ab55800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Slim",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 3,
+    "y": 159
+   },
+   {
+    "id": "2d4762fb-15d3-4e8f-8e43-754fcd8dfc00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Athletic",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 81,
+    "y": 159
+   },
+   {
+    "id": "6328f850-e11f-4ab1-e2bc-b85dcd386d00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Average",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 160,
+    "y": 159
+   },
+   {
+    "id": "4f0ae847-d3d4-42e1-00ba-8de5a1e12000",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Curvy",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 238,
+    "y": 159
+   },
+   {
+    "id": "3159cb52-eee1-44ff-2ef9-9373cb814500",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "BBW",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 317,
+    "y": 159
+   },
+   {
+    "id": "6b839679-af06-4b3d-82a1-bb0d80cb4200",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Flat",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 3,
+    "y": 374
+   },
+   {
+    "id": "e0efe9c2-b6b4-41a4-a5b5-b8bac8da1000",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Small",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 81,
+    "y": 374
+   },
+   {
+    "id": "890b3ea8-61a4-410e-f97e-6b686bd46f00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Average",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 160,
+    "y": 374
+   },
+   {
+    "id": "e4808cf8-1dcd-4773-ab36-e578ecd04200",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Big",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 238,
+    "y": 374
+   },
+   {
+    "id": "b7115a8d-0f8c-4ddc-411b-fb3122b5c800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Huge",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 317,
+    "y": 374
+   },
+   {
+    "id": "2ddabb2f-c2fb-48bb-9b78-ca8b4481d300",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Small",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 3,
+    "y": 589
+   },
+   {
+    "id": "6494726f-a0e3-4edd-ec48-96c738525a00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Slim",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 81,
+    "y": 589
+   },
+   {
+    "id": "106673a4-1d50-492f-3b28-dfff40e11a00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Athletic",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 160,
+    "y": 589
+   },
+   {
+    "id": "dbbddee5-f75b-4153-c53f-9ca331756600",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Big",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 238,
+    "y": 589
+   },
+   {
+    "id": "46465efa-925e-44cf-ae34-a15cc2155f00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Huge",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     70,
+     116
+    ],
+    "x": 317,
+    "y": 589
+   },
+   {
+    "id": "cfa6a84a-6fef-4ba6-fa2b-a5d2c44ff100",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Platinum",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -10168,
+    "y": 54
+   },
+   {
+    "id": "06412a08-a767-4f91-146a-65cfaaa06800",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Brunette",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     125,
+     32
+    ],
+    "x": -10129,
+    "y": 54
+   },
+   {
+    "id": "bea8b2f4-5117-4f8e-be92-4409aa7e8400",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Black",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -10000,
+    "y": 54
+   },
+   {
+    "id": "69a493ba-740e-494c-1bc4-c3242ab8a200",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Blond",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -9961,
+    "y": 54
+   },
+   {
+    "id": "be10fa39-7513-4b68-eb82-658e54e16200",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Ginger",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -9922,
+    "y": 54
+   },
+   {
+    "id": "51d7273b-f3e7-45a9-5451-506074076c00",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Pink",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -9883,
+    "y": 54
+   },
+   {
+    "id": "8e1cd717-2ab6-4be7-cb8f-d923daf47700",
+    "variant": "width=256,quality=100,format=auto",
+    "alt": "Blue",
+    "nat": [
+     0,
+     0
+    ],
+    "box": [
+     35,
+     32
+    ],
+    "x": -9844,
+    "y": 54
+   },
+   {
+    "id": "59e77222-91e3-4cf7-351a-5aae6492c500",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Straight",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9987,
+    "y": 155
+   },
+   {
+    "id": "1e81d766-1502-4595-3935-02f44d951600",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Bangs",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9979,
+    "y": 155
+   },
+   {
+    "id": "d6142faa-d0fb-404a-25b7-066c7b368a00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Braids",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9971,
+    "y": 155
+   },
+   {
+    "id": "414745a9-7af7-4fc1-23b3-69ab70ba0200",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Curly",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9963,
+    "y": 155
+   },
+   {
+    "id": "18c877ab-368f-4cbb-c4fd-c1cc2a157e00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Bun",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9987,
+    "y": 165
+   },
+   {
+    "id": "ecce73ed-cafe-4f4f-b702-8542f8d1b100",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Ponytail",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9979,
+    "y": 165
+   },
+   {
+    "id": "65079137-e83b-4421-79c6-7ca1aa83b800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Bob",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9971,
+    "y": 165
+   },
+   {
+    "id": "7574ff8a-f045-4407-1f87-71153c0f3e00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Bald",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9963,
+    "y": 165
+   }
+  ],
+  "cards": [
+   {
+    "label": "Sign up",
+    "alt": "",
+    "box": [
+     73,
+     38
+    ],
+    "x": 255,
+    "y": 11
+   },
+   {
+    "label": "Log in",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "LanguageEnglish - EN",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "More",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "Slim Slim",
+    "alt": "Slim",
+    "box": [
+     74,
+     120
+    ],
+    "x": 1,
+    "y": 157
+   },
+   {
+    "label": "Athletic Athletic",
+    "alt": "Athletic",
+    "box": [
+     74,
+     120
+    ],
+    "x": 79,
+    "y": 157
+   },
+   {
+    "label": "Average Average",
+    "alt": "Average",
+    "box": [
+     74,
+     120
+    ],
+    "x": 158,
+    "y": 157
+   },
+   {
+    "label": "Curvy Curvy",
+    "alt": "Curvy",
+    "box": [
+     74,
+     120
+    ],
+    "x": 236,
+    "y": 157
+   },
+   {
+    "label": "BBW BBW",
+    "alt": "BBW",
+    "box": [
+     74,
+     120
+    ],
+    "x": 315,
+    "y": 157
+   },
+   {
+    "label": "Flat Flat",
+    "alt": "Flat",
+    "box": [
+     74,
+     120
+    ],
+    "x": 1,
+    "y": 372
+   },
+   {
+    "label": "Small Small",
+    "alt": "Small",
+    "box": [
+     74,
+     120
+    ],
+    "x": 79,
+    "y": 372
+   },
+   {
+    "label": "Average Average",
+    "alt": "Average",
+    "box": [
+     74,
+     120
+    ],
+    "x": 158,
+    "y": 372
+   },
+   {
+    "label": "Big Big",
+    "alt": "Big",
+    "box": [
+     74,
+     120
+    ],
+    "x": 236,
+    "y": 372
+   },
+   {
+    "label": "Huge Huge",
+    "alt": "Huge",
+    "box": [
+     74,
+     120
+    ],
+    "x": 315,
+    "y": 372
+   },
+   {
+    "label": "Small Small",
+    "alt": "Small",
+    "box": [
+     74,
+     120
+    ],
+    "x": 1,
+    "y": 587
+   },
+   {
+    "label": "Slim Slim",
+    "alt": "Slim",
+    "box": [
+     74,
+     120
+    ],
+    "x": 79,
+    "y": 587
+   },
+   {
+    "label": "Athletic Athletic",
+    "alt": "Athletic",
+    "box": [
+     74,
+     120
+    ],
+    "x": 158,
+    "y": 587
+   },
+   {
+    "label": "Big Big",
+    "alt": "Big",
+    "box": [
+     74,
+     120
+    ],
+    "x": 236,
+    "y": 587
+   },
+   {
+    "label": "Huge Huge",
+    "alt": "Huge",
+    "box": [
+     74,
+     120
+    ],
+    "x": 315,
+    "y": 587
+   },
+   {
+    "label": "Platinum",
+    "alt": "Platinum",
+    "box": [
+     35,
+     32
+    ],
+    "x": -10168,
+    "y": 54
+   },
+   {
+    "label": "Brunette",
+    "alt": "Brunette",
+    "box": [
+     125,
+     32
+    ],
+    "x": -10129,
+    "y": 54
+   },
+   {
+    "label": "Black",
+    "alt": "Black",
+    "box": [
+     35,
+     32
+    ],
+    "x": -10000,
+    "y": 54
+   },
+   {
+    "label": "Blond",
+    "alt": "Blond",
+    "box": [
+     35,
+     32
+    ],
+    "x": -9961,
+    "y": 54
+   },
+   {
+    "label": "Ginger",
+    "alt": "Ginger",
+    "box": [
+     35,
+     32
+    ],
+    "x": -9922,
+    "y": 54
+   },
+   {
+    "label": "Pink",
+    "alt": "Pink",
+    "box": [
+     35,
+     32
+    ],
+    "x": -9883,
+    "y": 54
+   },
+   {
+    "label": "Blue",
+    "alt": "Blue",
+    "box": [
+     35,
+     32
+    ],
+    "x": -9844,
+    "y": 54
+   },
+   {
+    "label": "Straight Straight",
+    "alt": "Straight",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9989,
+    "y": 142
+   },
+   {
+    "label": "Bangs Bangs",
+    "alt": "Bangs",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9981,
+    "y": 142
+   },
+   {
+    "label": "Braids Braids",
+    "alt": "Braids",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9973,
+    "y": 142
+   },
+   {
+    "label": "Curly Curly",
+    "alt": "Curly",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9965,
+    "y": 142
+   },
+   {
+    "label": "Bun Bun",
+    "alt": "Bun",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9989,
+    "y": 152
+   },
+   {
+    "label": "Ponytail Ponytail",
+    "alt": "Ponytail",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9981,
+    "y": 152
+   },
+   {
+    "label": "Bob Bob",
+    "alt": "Bob",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9973,
+    "y": 152
+   },
+   {
+    "label": "Bald Bald",
+    "alt": "Bald",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9965,
+    "y": 152
+   },
+   {
+    "label": "Next",
+    "alt": "",
+    "box": [
+     180,
+     44
+    ],
+    "x": 105,
+    "y": 784
+   }
+  ]
+ }
+}

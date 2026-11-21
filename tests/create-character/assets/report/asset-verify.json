@@ -1,0 +1,96 @@
+{
+ "manifest_version": "catalog-v1-20261121",
+ "manifest_keys": 684,
+ "manifest_missing": [],
+ "problems": [],
+ "duplicate_groups": 0,
+ "reference_shared": [
+  {
+   "key": "female|Realistic|body|athletic",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|body|average",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|body|bbw",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|body|curvy",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|body|slim",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|breast|average",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|breast|big",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|breast|flat",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|breast|huge",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|breast|small",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|butt|athletic",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|butt|big",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|butt|huge",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|butt|slim",
+   "distinct_images": 2
+  },
+  {
+   "key": "female|Realistic|butt|small",
+   "distinct_images": 2
+  }
+ ],
+ "distinct_sha": 456,
+ "cross_ethnicity_issues": [],
+ "cross_style_issue_count": 0,
+ "entry": {
+  "female|Realistic": {
+   "path": "entry-realistic.webp",
+   "exists": true,
+   "bytes": 26986
+  },
+  "female|Anime": {
+   "path": "entry-anime.webp",
+   "exists": true,
+   "bytes": 51444
+  },
+  "male|Realistic": {
+   "path": "entry-male-realistic.webp",
+   "exists": true,
+   "bytes": 30820
+  },
+  "male|Anime": {
+   "path": "entry-male-anime.webp",
+   "exists": true,
+   "bytes": 53788
+  }
+ },
+ "orphan_files": [],
+ "catalog_files": 516
+}

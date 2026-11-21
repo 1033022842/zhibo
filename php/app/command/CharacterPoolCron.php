@@ -82,15 +82,23 @@ final class CharacterPoolCron extends Command
             ->select()->toArray();
 
         $demand = [];   // hash => ['category','fields','count']
+        $skipped = 0;   // 不适用池的请求（Male / 自由外貌描述 / 新族裔 / butt_size）不进需求聚合
         foreach ($rows as $r) {
             $fields = json_decode((string) $r['source_fields'], true);
-            if (!is_array($fields) || empty($fields['type']) || empty($fields['race'])) {
+            if (!is_array($fields)) {
                 continue;
             }
-            $category = $fields['type'] === 'anime' || $fields['type'] === '2' ? 'anime' : 'realistic';
-            $hash = $svc->poolHashFor($fields);
+            // 池是旧口径共用库存：Male / 自由外貌描述 / 新族裔 / butt_size / age_range / chest
+            // 这类请求领图时就已跳过池（poolEligible），补池也不能按它们生成库存；
+            // 旧前置条件（type 与 race 必填）在 poolDemand 内保留。
+            $slot = $svc->poolDemand($fields);
+            if ($slot === null) {
+                $skipped++;
+                continue;
+            }
+            $hash = $slot['hash'];
             if (!isset($demand[$hash])) {
-                $demand[$hash] = ['category' => $category, 'fields' => $fields, 'count' => 0];
+                $demand[$hash] = ['category' => $slot['category'], 'fields' => $fields, 'count' => 0];
             }
             $demand[$hash]['count']++;
         }
@@ -114,7 +122,7 @@ final class CharacterPoolCron extends Command
             if ($stock >= CharacterImageService::POOL_DEPTH) {
                 continue;
             }
-            // 出图词条：age 替换为分箱代表年龄（与池 key 口径一致）
+            // 出图词条：age 替换为分箱代表年龄（与池 key 口径一致，恢复改动前的 ageBin(age) 口径）
             $bin = $svc->ageBin($d['fields']['age'] ?? 0);
             $binFields = $d['fields'];
             $binFields['age'] = $bin['rep'];
@@ -137,6 +145,6 @@ final class CharacterPoolCron extends Command
                 $enqueued++;
             }
         }
-        $output->writeln("filler: 补池 {$enqueued} 张（demand 组合 " . count($demand) . " 个）");
+        $output->writeln("filler: 补池 {$enqueued} 张（demand 组合 " . count($demand) . " 个，跳过不适用 " . $skipped . " 条）");
     }
 }

@@ -123,3 +123,11 @@ client_overrides/image-sugus/media/
 # .zcode 下的临时执行脚本（含历史凭据）
 .zcode/tmp/
 .zcode/ssh_run.py
+
+# Create Character 本地验收产物（截图/日志体积大，不入库；只保留 lead-check 复核图）
+tests/create-character/frontend/shots/
+tests/create-character/frontend/coverage.json
+tests/create-character/qa/logs/
+tests/create-character/qa/evidence/*/
+!tests/create-character/qa/evidence/lead-check/
+!tests/create-character/assets/tools/

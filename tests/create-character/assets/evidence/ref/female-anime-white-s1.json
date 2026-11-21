@@ -1,0 +1,591 @@
+{
+ "gender": "female",
+ "style": "anime",
+ "eth": "white",
+ "step": "1",
+ "captured_at": "2026-11-21T09:55:15.498Z",
+ "url": "https://joi.com/generate/character?g=female&s=anime&e=white&step=1",
+ "data": {
+  "url": "https://joi.com/generate/character?g=female&s=anime&e=white&step=1",
+  "scrollH": 844,
+  "images": [
+   {
+    "id": "942dd64b-9562-4a4b-718d-4cf089540600",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "White",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 12,
+    "y": 159
+   },
+   {
+    "id": "6070e367-7e8d-444a-7287-250133bcd600",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Asian",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 137,
+    "y": 159
+   },
+   {
+    "id": "73d6d582-21ad-45fa-fe56-9d3ad006df00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Black",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 261,
+    "y": 159
+   },
+   {
+    "id": "2d883e67-c9e2-4bcb-0fd5-a5370c11b600",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Latina",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 12,
+    "y": 342
+   },
+   {
+    "id": "d79f7da0-ceea-4834-b38c-07e336667100",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "South Asian",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 137,
+    "y": 342
+   },
+   {
+    "id": "6bb74ceb-cdf9-4b73-9919-b8ba78a08e00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Middle Eastern",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 261,
+    "y": 342
+   },
+   {
+    "id": "9c452bf4-aa60-4b11-2ba8-8ebf2ab55800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Slim",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9996,
+    "y": 67
+   },
+   {
+    "id": "2d4762fb-15d3-4e8f-8e43-754fcd8dfc00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Athletic",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9988,
+    "y": 67
+   },
+   {
+    "id": "6328f850-e11f-4ab1-e2bc-b85dcd386d00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Average",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9980,
+    "y": 67
+   },
+   {
+    "id": "4f0ae847-d3d4-42e1-00ba-8de5a1e12000",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Curvy",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9972,
+    "y": 67
+   },
+   {
+    "id": "3159cb52-eee1-44ff-2ef9-9373cb814500",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "BBW",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9964,
+    "y": 67
+   },
+   {
+    "id": "6b839679-af06-4b3d-82a1-bb0d80cb4200",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Flat",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9996,
+    "y": 123
+   },
+   {
+    "id": "e0efe9c2-b6b4-41a4-a5b5-b8bac8da1000",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Small",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9988,
+    "y": 123
+   },
+   {
+    "id": "890b3ea8-61a4-410e-f97e-6b686bd46f00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Average",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9980,
+    "y": 123
+   },
+   {
+    "id": "e4808cf8-1dcd-4773-ab36-e578ecd04200",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Big",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9972,
+    "y": 123
+   },
+   {
+    "id": "b7115a8d-0f8c-4ddc-411b-fb3122b5c800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Huge",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9964,
+    "y": 123
+   },
+   {
+    "id": "2ddabb2f-c2fb-48bb-9b78-ca8b4481d300",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Small",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9996,
+    "y": 179
+   },
+   {
+    "id": "6494726f-a0e3-4edd-ec48-96c738525a00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Slim",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9988,
+    "y": 179
+   },
+   {
+    "id": "106673a4-1d50-492f-3b28-dfff40e11a00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Athletic",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9980,
+    "y": 179
+   },
+   {
+    "id": "dbbddee5-f75b-4153-c53f-9ca331756600",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Big",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9972,
+    "y": 179
+   },
+   {
+    "id": "46465efa-925e-44cf-ae34-a15cc2155f00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Huge",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9964,
+    "y": 179
+   }
+  ],
+  "cards": [
+   {
+    "label": "Sign up",
+    "alt": "",
+    "box": [
+     73,
+     38
+    ],
+    "x": 255,
+    "y": 11
+   },
+   {
+    "label": "Log in",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "LanguageEnglish - EN",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "More",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "White White",
+    "alt": "White",
+    "box": [
+     121,
+     179
+    ],
+    "x": 10,
+    "y": 157
+   },
+   {
+    "label": "Asian Asian",
+    "alt": "Asian",
+    "box": [
+     121,
+     179
+    ],
+    "x": 135,
+    "y": 157
+   },
+   {
+    "label": "Black Black",
+    "alt": "Black",
+    "box": [
+     121,
+     179
+    ],
+    "x": 259,
+    "y": 157
+   },
+   {
+    "label": "Latina Latina",
+    "alt": "Latina",
+    "box": [
+     121,
+     179
+    ],
+    "x": 10,
+    "y": 340
+   },
+   {
+    "label": "South Asian South Asian",
+    "alt": "South Asian",
+    "box": [
+     121,
+     179
+    ],
+    "x": 135,
+    "y": 340
+   },
+   {
+    "label": "Middle Eastern Middle Eastern",
+    "alt": "Middle Eastern",
+    "box": [
+     121,
+     179
+    ],
+    "x": 259,
+    "y": 340
+   },
+   {
+    "label": "Slim Slim",
+    "alt": "Slim",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9998,
+    "y": 54
+   },
+   {
+    "label": "Athletic Athletic",
+    "alt": "Athletic",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9990,
+    "y": 54
+   },
+   {
+    "label": "Average Average",
+    "alt": "Average",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9982,
+    "y": 54
+   },
+   {
+    "label": "Curvy Curvy",
+    "alt": "Curvy",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9974,
+    "y": 54
+   },
+   {
+    "label": "BBW BBW",
+    "alt": "BBW",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9966,
+    "y": 54
+   },
+   {
+    "label": "Flat Flat",
+    "alt": "Flat",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9998,
+    "y": 110
+   },
+   {
+    "label": "Small Small",
+    "alt": "Small",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9990,
+    "y": 110
+   },
+   {
+    "label": "Average Average",
+    "alt": "Average",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9982,
+    "y": 110
+   },
+   {
+    "label": "Big Big",
+    "alt": "Big",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9974,
+    "y": 110
+   },
+   {
+    "label": "Huge Huge",
+    "alt": "Huge",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9966,
+    "y": 110
+   },
+   {
+    "label": "Small Small",
+    "alt": "Small",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9998,
+    "y": 166
+   },
+   {
+    "label": "Slim Slim",
+    "alt": "Slim",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9990,
+    "y": 166
+   },
+   {
+    "label": "Athletic Athletic",
+    "alt": "Athletic",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9982,
+    "y": 166
+   },
+   {
+    "label": "Big Big",
+    "alt": "Big",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9974,
+    "y": 166
+   },
+   {
+    "label": "Huge Huge",
+    "alt": "Huge",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9966,
+    "y": 166
+   },
+   {
+    "label": "Next",
+    "alt": "",
+    "box": [
+     180,
+     44
+    ],
+    "x": 105,
+    "y": 784
+   }
+  ]
+ }
+}

@@ -1,0 +1,5229 @@
+{
+ "version": "catalog-v1-20261121",
+ "root": "./assets/create",
+ "generated_at": "2026-11-21T11:15:00Z",
+ "notes": [
+  "path 相对本 manifest 所在目录（assets/create/）。",
+  "key 固定 5 段：gender|style|ethnicity|group|option；不存在无 ethnicity 的旧 key。",
+  "女生入口两步沿用站点既有 entry-realistic.webp / entry-anime.webp，固定首图不变。",
+  "所有组图逐族裔来自参考站公开页面实际渲染卡片（image id 与字节均不同），未用其他族裔/性别顶替。",
+  "颜色卡由前端 CSS 色块渲染，不出图；颜色值见 color_swatches。",
+  "missing 里的组合确认缺口，请显示中性 Art pending，不要回退旧 candy.ai 素材。",
+  "男性页面没有 butt 组；breast 在男性语义下是尺寸组（micro/small/average/big/huge）。",
+  "entry-male-*.webp 取自 joi.com 男版入口卡（Realistic/Anime），540×960 webp q82；此前 male|entry|* 缺失导致男首屏 Art pending。"
+ ],
+ "entry": {
+  "female": {
+   "Realistic": "entry-realistic.webp",
+   "Anime": "entry-anime.webp"
+  },
+  "male": {
+   "Realistic": "entry-male-realistic.webp",
+   "Anime": "entry-male-anime.webp"
+  }
+ },
+ "color_swatches": {
+  "platinum": "#e8e1d5",
+  "brunette": "#6b4a33",
+  "black": "#1b1b1b",
+  "blond": "#e3c07a",
+  "ginger": "#b5522c",
+  "pink": "#e58ab5",
+  "blue": "#5b86c9"
+ },
+ "not_in_reference": [
+  "male|butt"
+ ],
+ "alias_groups": {
+  "chest": {
+   "slim": "slim",
+   "toned": "average",
+   "muscular": "muscular",
+   "broad": "stout"
+  },
+  "ethnicity_selector": "ethnicity 段可用当前已选族裔，卡面取 option 自身"
+ },
+ "aliases": {
+  "breast": {
+   "medium": "average",
+   "large": "big",
+   "xl": "huge"
+  },
+  "butt": {
+   "medium": "average",
+   "large": "big",
+   "xl": "huge"
+  },
+  "hairstyle": {
+   "short": "bob"
+  },
+  "ethnicity": {
+   "latino": "latina",
+   "caucasian": "white",
+   "arab": "middle-eastern",
+   "blackafro": "black"
+  }
+ },
+ "options": {
+  "female|Realistic": {
+   "ethnicity": [
+    "white",
+    "asian",
+    "black",
+    "latina",
+    "south-asian",
+    "middle-eastern"
+   ],
+   "body": [
+    "slim",
+    "athletic",
+    "average",
+    "curvy",
+    "bbw"
+   ],
+   "breast": [
+    "flat",
+    "small",
+    "average",
+    "big",
+    "huge"
+   ],
+   "hairstyle": [
+    "straight",
+    "bangs",
+    "braids",
+    "curly",
+    "bun",
+    "ponytail",
+    "bob",
+    "bald"
+   ],
+   "butt": [
+    "small",
+    "slim",
+    "athletic",
+    "big",
+    "huge"
+   ]
+  },
+  "female|Anime": {
+   "ethnicity": [
+    "white",
+    "asian",
+    "black",
+    "latina",
+    "south-asian",
+    "middle-eastern"
+   ],
+   "body": [
+    "slim",
+    "athletic",
+    "average",
+    "curvy",
+    "bbw"
+   ],
+   "breast": [
+    "flat",
+    "small",
+    "average",
+    "big",
+    "huge"
+   ],
+   "hairstyle": [
+    "straight",
+    "bangs",
+    "braids",
+    "curly",
+    "bun",
+    "ponytail",
+    "bob",
+    "bald"
+   ],
+   "butt": [
+    "small",
+    "slim",
+    "athletic",
+    "big",
+    "huge"
+   ]
+  },
+  "male|Realistic": {
+   "ethnicity": [
+    "white",
+    "asian",
+    "black",
+    "latina",
+    "south-asian",
+    "middle-eastern"
+   ],
+   "body": [
+    "slim",
+    "average",
+    "muscular",
+    "stout",
+    "large"
+   ],
+   "breast": [
+    "micro",
+    "small",
+    "average",
+    "big",
+    "huge"
+   ],
+   "hairstyle": [
+    "bald",
+    "shaggy",
+    "bro-flow",
+    "buzz-cut",
+    "fade",
+    "long",
+    "mullet",
+    "undercut"
+   ],
+   "chest": [
+    "slim",
+    "toned",
+    "muscular",
+    "broad"
+   ],
+   "butt": []
+  },
+  "male|Anime": {
+   "ethnicity": [
+    "white",
+    "asian",
+    "black",
+    "latina",
+    "south-asian",
+    "middle-eastern"
+   ],
+   "body": [
+    "slim",
+    "average",
+    "muscular",
+    "stout",
+    "large"
+   ],
+   "breast": [
+    "micro",
+    "small",
+    "average",
+    "big",
+    "huge"
+   ],
+   "hairstyle": [
+    "bald",
+    "shaggy",
+    "bro-flow",
+    "buzz-cut",
+    "fade",
+    "long",
+    "mullet",
+    "undercut"
+   ],
+   "chest": [
+    "slim",
+    "toned",
+    "muscular",
+    "broad"
+   ],
+   "butt": []
+  }
+ },
+ "assets": {
+  "female|Anime|asian|body|athletic": {
+   "path": "catalog-v1/female/anime/asian/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22320,
+   "sha256": "8c7c98f79d2fd80056d5952469e24ce8de85154a58a7702df6ea6ba9fe203125"
+  },
+  "female|Anime|asian|body|average": {
+   "path": "catalog-v1/female/anime/asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15848,
+   "sha256": "30ab3dc96637cd0b59e95912913220f6c1a74b7a9627e4ab30d27825dd06f755"
+  },
+  "female|Anime|asian|body|bbw": {
+   "path": "catalog-v1/female/anime/asian/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21714,
+   "sha256": "a98d25f94e418a5efcb14942f4d52b54cbe596b9e31f4434a80f9f7010cb16c0"
+  },
+  "female|Anime|asian|body|curvy": {
+   "path": "catalog-v1/female/anime/asian/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16786,
+   "sha256": "f1114b656770deccfe7b41be644485d6898656f8bb4100d499e9a74861f6bc7d"
+  },
+  "female|Anime|asian|body|slim": {
+   "path": "catalog-v1/female/anime/asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14326,
+   "sha256": "9c12069626626fc1d9ef52ff73a30b90cc2c59d1f5051802bc6d19432d4ed963"
+  },
+  "female|Anime|asian|breast|average": {
+   "path": "catalog-v1/female/anime/asian/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16696,
+   "sha256": "6f9657abd1f80ffa24be1f5c1bc5c04eea6cc4d999ba1825d12330427d66111b"
+  },
+  "female|Anime|asian|breast|big": {
+   "path": "catalog-v1/female/anime/asian/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19876,
+   "sha256": "4d4a57240d313769b3221fed1ddada2f9a8ab9d9491c132252cae140eb71c975"
+  },
+  "female|Anime|asian|breast|flat": {
+   "path": "catalog-v1/female/anime/asian/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19720,
+   "sha256": "c938d6a4eaabdbd860b646320450675594f8237a79e1b4b04405f5e4fca1e4d2"
+  },
+  "female|Anime|asian|breast|huge": {
+   "path": "catalog-v1/female/anime/asian/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17378,
+   "sha256": "d66617fa10d28825bcb452c265e65e921ce2629b170cce57d3e705906c439773"
+  },
+  "female|Anime|asian|breast|small": {
+   "path": "catalog-v1/female/anime/asian/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18766,
+   "sha256": "d41b2892c070ea2527b2342f8c19536d6c7b406273df1fddd8129f573db760e3"
+  },
+  "female|Anime|asian|butt|athletic": {
+   "path": "catalog-v1/female/anime/asian/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17404,
+   "sha256": "d7b18359381569e5b5e21f9812185e1d5560e055415a1b27b1a3c461df0c9403"
+  },
+  "female|Anime|asian|butt|big": {
+   "path": "catalog-v1/female/anime/asian/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16108,
+   "sha256": "78e2d067142d0fe848502357cdedb423260ca6c20022d6b127ecaa6c94a9c012"
+  },
+  "female|Anime|asian|butt|huge": {
+   "path": "catalog-v1/female/anime/asian/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13236,
+   "sha256": "91203690e1afdd6e9106876d5839a7d193bc51941baea2d779836f14371d4581"
+  },
+  "female|Anime|asian|butt|slim": {
+   "path": "catalog-v1/female/anime/asian/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16880,
+   "sha256": "d221c173d25aa796d4633a39cd1460c7fbaedff17216a82ee14aa66bfa664f79"
+  },
+  "female|Anime|asian|butt|small": {
+   "path": "catalog-v1/female/anime/asian/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17586,
+   "sha256": "3206dbb327994a6042782eb8540492574d364fe0908595e4cdf8f65ba04c89fb"
+  },
+  "female|Anime|asian|ethnicity|asian": {
+   "path": "catalog-v1/female/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19840,
+   "sha256": "cfc3fc73b72c2b80c0a5c54b088816ff94e52ce0bd0cae4fb461460628e6c7d0"
+  },
+  "female|Anime|asian|hairstyle|bald": {
+   "path": "catalog-v1/female/anime/asian/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16744,
+   "sha256": "4a2e06f978268c7147f833ea8b954c3a1ec289ad09e693c9af3f494d965f3927"
+  },
+  "female|Anime|asian|hairstyle|bangs": {
+   "path": "catalog-v1/female/anime/asian/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22722,
+   "sha256": "173579069a37d90f2779683513e3bb16df8bc38d3f876b5b683a2f5dc87f601e"
+  },
+  "female|Anime|asian|hairstyle|bob": {
+   "path": "catalog-v1/female/anime/asian/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20834,
+   "sha256": "bc25394c8e3fb3ba811bb755d570a72e072197ba941b0709db73975af4ce881d"
+  },
+  "female|Anime|asian|hairstyle|braids": {
+   "path": "catalog-v1/female/anime/asian/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24282,
+   "sha256": "a3c0549f38797fb062b9fb2a57ec3067b18ff806b799f226794af846691ec517"
+  },
+  "female|Anime|asian|hairstyle|bun": {
+   "path": "catalog-v1/female/anime/asian/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20968,
+   "sha256": "4af1dc81146e668af7958025a22c5bcadae13399fdf8e536f925ce69df8146f1"
+  },
+  "female|Anime|asian|hairstyle|curly": {
+   "path": "catalog-v1/female/anime/asian/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 29398,
+   "sha256": "a88a0b35f2683586d07d171ae7189266571b12934fc1548183d6fb24bef6c79b"
+  },
+  "female|Anime|asian|hairstyle|ponytail": {
+   "path": "catalog-v1/female/anime/asian/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25412,
+   "sha256": "12fbb2fa6416f6c504ae28086f75e83b22e0e0c99b219d993021ffa3dfd061a9"
+  },
+  "female|Anime|asian|hairstyle|straight": {
+   "path": "catalog-v1/female/anime/asian/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19004,
+   "sha256": "bb23a450ea86e38ed6002567f63d0f37e6d58fd68dda0b3f8a7b7a30d2d38698"
+  },
+  "female|Anime|black|body|athletic": {
+   "path": "catalog-v1/female/anime/black/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18726,
+   "sha256": "baa64df99ea9a81431c4cf6bece01d7398e3153cee4f6d985387fdaa54bf180e"
+  },
+  "female|Anime|black|body|average": {
+   "path": "catalog-v1/female/anime/black/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19306,
+   "sha256": "5a66fa4c26fe14ca77bed9e25e6090a28b37ffa833e13512830bb6a96e5d0d01"
+  },
+  "female|Anime|black|body|bbw": {
+   "path": "catalog-v1/female/anime/black/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18594,
+   "sha256": "2fe22fb3f8461c153906cf042d2af35e800c5c1411783c967c38a3606cd47345"
+  },
+  "female|Anime|black|body|curvy": {
+   "path": "catalog-v1/female/anime/black/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18098,
+   "sha256": "d732bd9274bcbe5e9275d16d2845476dd0790ccced869f01471a9f4546b7fb53"
+  },
+  "female|Anime|black|body|slim": {
+   "path": "catalog-v1/female/anime/black/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13588,
+   "sha256": "ce923226943e842fd55db1f2a984408d0b85acd9e48f30ecea77a0888cbd059a"
+  },
+  "female|Anime|black|breast|average": {
+   "path": "catalog-v1/female/anime/black/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16202,
+   "sha256": "32ed1e824a2394cb26d5f8fe6618e6abd561fe1625730d2012482f4d3e1c745f"
+  },
+  "female|Anime|black|breast|big": {
+   "path": "catalog-v1/female/anime/black/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19566,
+   "sha256": "e9bcd2f3b8b0f3283accd2c25b986b52eb6e4fadb551db92ef8e14c4c5579d30"
+  },
+  "female|Anime|black|breast|flat": {
+   "path": "catalog-v1/female/anime/black/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17042,
+   "sha256": "2917f9585c92a8b6bed2bbbbfa79349fe45a829f02d14ef23b00a9064039a4f8"
+  },
+  "female|Anime|black|breast|huge": {
+   "path": "catalog-v1/female/anime/black/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19018,
+   "sha256": "a2f6f1d1eb1a63fa3841a667d5c7bfe6ceb05fa929e950968f49104ad27e01d9"
+  },
+  "female|Anime|black|breast|small": {
+   "path": "catalog-v1/female/anime/black/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16388,
+   "sha256": "ac0ef139eb3393b8052143f624ec14f18a15256b35cdbd38f838f99a3251ed84"
+  },
+  "female|Anime|black|butt|athletic": {
+   "path": "catalog-v1/female/anime/black/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16520,
+   "sha256": "13d995a121a89eb05a336e37bbc069f2737e883000da4b0e825fb8dad1e36287"
+  },
+  "female|Anime|black|butt|big": {
+   "path": "catalog-v1/female/anime/black/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13382,
+   "sha256": "1a90f4c734e247756bffe3e15a036e144c8020082067bc5b23e9ffdbe6ba9eab"
+  },
+  "female|Anime|black|butt|huge": {
+   "path": "catalog-v1/female/anime/black/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13886,
+   "sha256": "8114e9299e9e525275d9089051b95e332beda7c26254940040e7313d5e43bc8d"
+  },
+  "female|Anime|black|butt|slim": {
+   "path": "catalog-v1/female/anime/black/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16174,
+   "sha256": "5f91eb82b6159e0a9e78c4923f7a8aab8fb9b22ed0aa926c2e52c325fc782988"
+  },
+  "female|Anime|black|butt|small": {
+   "path": "catalog-v1/female/anime/black/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13182,
+   "sha256": "dbf3a5070108bac5835208c177d9efa26a9ff96ce1543bac79e5c5e4d9e14e70"
+  },
+  "female|Anime|black|ethnicity|black": {
+   "path": "catalog-v1/female/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18476,
+   "sha256": "088fd12e33fa79053fbc6b85567b2b0963eb34f53f0bf25a357520bb9e9cd729"
+  },
+  "female|Anime|black|hairstyle|bald": {
+   "path": "catalog-v1/female/anime/black/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14772,
+   "sha256": "138cb1e3d6e3b6bff3c9c336bf2f5e4414a22e6eb455d9cf08f7482b78131d54"
+  },
+  "female|Anime|black|hairstyle|bangs": {
+   "path": "catalog-v1/female/anime/black/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19246,
+   "sha256": "bba004dc53baa75a7210de827d174951943a1cd1d47d8e4aa1db325680dc308d"
+  },
+  "female|Anime|black|hairstyle|bob": {
+   "path": "catalog-v1/female/anime/black/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21314,
+   "sha256": "567199089e6f0d3da2c96c5b09b6d35cf27d206fa61dd8db7a14a1b46675fce2"
+  },
+  "female|Anime|black|hairstyle|braids": {
+   "path": "catalog-v1/female/anime/black/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26428,
+   "sha256": "9109fada1b685104b749e11e69006eef5c0f0921295dc5ad6a654c521c65ab2c"
+  },
+  "female|Anime|black|hairstyle|bun": {
+   "path": "catalog-v1/female/anime/black/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22278,
+   "sha256": "2b2161381d893a1cbd081d008381dfbbc9a716cf089aa5016e27184f5fa62ae4"
+  },
+  "female|Anime|black|hairstyle|curly": {
+   "path": "catalog-v1/female/anime/black/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 30714,
+   "sha256": "cb48aef38a6acfe7593ed51af6e0323fb6e6802be0cb74d141507bf41c803c54"
+  },
+  "female|Anime|black|hairstyle|ponytail": {
+   "path": "catalog-v1/female/anime/black/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25690,
+   "sha256": "415856392273c17184f99b7e9782ab8d4ed2046c85d18732f2c5d7942e9f19cb"
+  },
+  "female|Anime|black|hairstyle|straight": {
+   "path": "catalog-v1/female/anime/black/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22220,
+   "sha256": "01c5adf8f8eed1a30d90ce1676f406bad0af8ac3d63f18e51d3dafc04dd9aa57"
+  },
+  "female|Anime|latina|body|athletic": {
+   "path": "catalog-v1/female/anime/latina/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15662,
+   "sha256": "44b4684a682345c51d15d3f40ded0fb591e6805c50f3e8dc7b85e422cbbef3fd"
+  },
+  "female|Anime|latina|body|average": {
+   "path": "catalog-v1/female/anime/latina/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18928,
+   "sha256": "d0e95ce0083c8c11db1b8fbf528988fcd9e833a9f07dadc47fcac72220515e1e"
+  },
+  "female|Anime|latina|body|bbw": {
+   "path": "catalog-v1/female/anime/latina/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23852,
+   "sha256": "d478bd41a9a909757a574fd413b33ecb5f2c169cf3e12a55e75a31368ff21332"
+  },
+  "female|Anime|latina|body|curvy": {
+   "path": "catalog-v1/female/anime/latina/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15526,
+   "sha256": "577f328ed4fe02659585e2e73e58398f5fd2cd318838941e99089f063cb24a81"
+  },
+  "female|Anime|latina|body|slim": {
+   "path": "catalog-v1/female/anime/latina/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16270,
+   "sha256": "d5a1281e7f7411e35018555b5ecef4b665a1e45606e4b3866d1e417fdc1f441a"
+  },
+  "female|Anime|latina|breast|average": {
+   "path": "catalog-v1/female/anime/latina/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18816,
+   "sha256": "20c194076d74ab68e42b296a5eacd8472a8c08e303c2be42b87d236a1c0ce58b"
+  },
+  "female|Anime|latina|breast|big": {
+   "path": "catalog-v1/female/anime/latina/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20106,
+   "sha256": "1583fe20c8cc5ff7fcd28340cb67aecb85e4f25194d3784a21e6f219bb36ae0a"
+  },
+  "female|Anime|latina|breast|flat": {
+   "path": "catalog-v1/female/anime/latina/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20994,
+   "sha256": "ef14341c855cbe698153f6d1bcaeefdb87e548a007abecdea3f6126dca08441a"
+  },
+  "female|Anime|latina|breast|huge": {
+   "path": "catalog-v1/female/anime/latina/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18166,
+   "sha256": "7a4b3ae31eeb2cff290e201868121bd97bc2189cf62f37743a755275ed61b735"
+  },
+  "female|Anime|latina|breast|small": {
+   "path": "catalog-v1/female/anime/latina/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18206,
+   "sha256": "3300e7bd6f175128be2d1f6fa9ec1d46f692dfe900ce871404740d8a55750d57"
+  },
+  "female|Anime|latina|butt|athletic": {
+   "path": "catalog-v1/female/anime/latina/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17402,
+   "sha256": "4f97f47f2b9893ef6eb12925e4bf59ad4d1fdf7005d2eac25a69c54d0d663946"
+  },
+  "female|Anime|latina|butt|big": {
+   "path": "catalog-v1/female/anime/latina/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16860,
+   "sha256": "633a7a47ddffd6e38f0a841bc5beb5a1c782d27d2f6d204c18760094e8da7466"
+  },
+  "female|Anime|latina|butt|huge": {
+   "path": "catalog-v1/female/anime/latina/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12334,
+   "sha256": "6a4d5cc2a046e2441e6e8f2c4d31fb115aade40a93f7aad8225870be9f2051fe"
+  },
+  "female|Anime|latina|butt|slim": {
+   "path": "catalog-v1/female/anime/latina/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16146,
+   "sha256": "81b05e4caadf6ec1d9e0f0e01721bbef911d57c02a79954063fbaa62e69cd890"
+  },
+  "female|Anime|latina|butt|small": {
+   "path": "catalog-v1/female/anime/latina/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15160,
+   "sha256": "7b49289f7685975e4183a1eadb0ab9c07d1dee75e7aca7fd248b270f219b06a1"
+  },
+  "female|Anime|latina|ethnicity|latina": {
+   "path": "catalog-v1/female/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18364,
+   "sha256": "d0fb2c7c58a95fbd1217534604ac0c1eaa9be02636b5cb337768d92cb98abb49"
+  },
+  "female|Anime|latina|hairstyle|bald": {
+   "path": "catalog-v1/female/anime/latina/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13024,
+   "sha256": "6476060b0060592763970332903665cce6efd9d4c7f2bcea349323c72e7b20ae"
+  },
+  "female|Anime|latina|hairstyle|bangs": {
+   "path": "catalog-v1/female/anime/latina/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22212,
+   "sha256": "5252edac218d5882e098070f08fc6ea5b6c9d85bc0ea45c3f22c37bf0db93ed1"
+  },
+  "female|Anime|latina|hairstyle|bob": {
+   "path": "catalog-v1/female/anime/latina/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19830,
+   "sha256": "79c734e77adc3185e972176e3df2a2ca286bf3c3b65d8288bbb356020c99fdae"
+  },
+  "female|Anime|latina|hairstyle|braids": {
+   "path": "catalog-v1/female/anime/latina/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23496,
+   "sha256": "37d16da5b7e62cabd167c0522e956540d76bca9875dca483c6e6ed2116ad0397"
+  },
+  "female|Anime|latina|hairstyle|bun": {
+   "path": "catalog-v1/female/anime/latina/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19530,
+   "sha256": "c1a6dfbfa05bede6cc3dd9c681d8cf34d2a2e818ac93d4476f9a68a4c4d2576d"
+  },
+  "female|Anime|latina|hairstyle|curly": {
+   "path": "catalog-v1/female/anime/latina/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24128,
+   "sha256": "1a7ae7cc88c7fa7d5f3958ac9b1ed795170434a884810309e72f04f9fe345856"
+  },
+  "female|Anime|latina|hairstyle|ponytail": {
+   "path": "catalog-v1/female/anime/latina/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23392,
+   "sha256": "9961688eac3cecc792a0876eef552af72ccc67d1864a942b5cf7db427314d092"
+  },
+  "female|Anime|latina|hairstyle|straight": {
+   "path": "catalog-v1/female/anime/latina/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22492,
+   "sha256": "529cb72d85e594f8fd55b5fe754936621aac67e2714e5900c8ab2c86bcd74e97"
+  },
+  "female|Anime|middle-eastern|body|athletic": {
+   "path": "catalog-v1/female/anime/middle-eastern/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22750,
+   "sha256": "779f251e132b0bb9fc2a4bb5463ab949ec346a11b02619516df1212ef7d5f9f0"
+  },
+  "female|Anime|middle-eastern|body|average": {
+   "path": "catalog-v1/female/anime/middle-eastern/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18648,
+   "sha256": "53200eb5a231812818b3c5347b1349da0b098945d19421470e85fd029256c717"
+  },
+  "female|Anime|middle-eastern|body|bbw": {
+   "path": "catalog-v1/female/anime/middle-eastern/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17198,
+   "sha256": "39ccb8d2465bbefeb26ddc518218a4159387a1fe05bd5dc785d58ffa00824fd8"
+  },
+  "female|Anime|middle-eastern|body|curvy": {
+   "path": "catalog-v1/female/anime/middle-eastern/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14220,
+   "sha256": "ff093574e180b270900b6c552c4b988d332cb506878fc4929241fdd483b8c778"
+  },
+  "female|Anime|middle-eastern|body|slim": {
+   "path": "catalog-v1/female/anime/middle-eastern/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18460,
+   "sha256": "035ba924bbbf485cdf96324291e30032963fe85b83f00d4bc4970baea256f970"
+  },
+  "female|Anime|middle-eastern|breast|average": {
+   "path": "catalog-v1/female/anime/middle-eastern/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19728,
+   "sha256": "fee4ba9e6f1f1da43aded84162a6a2d980ccd8447eaea591cf50339eb3731793"
+  },
+  "female|Anime|middle-eastern|breast|big": {
+   "path": "catalog-v1/female/anime/middle-eastern/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19096,
+   "sha256": "fec27097c80933a13a52862cdaeb56142995f1b408b97c6d1d609e902d114943"
+  },
+  "female|Anime|middle-eastern|breast|flat": {
+   "path": "catalog-v1/female/anime/middle-eastern/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20284,
+   "sha256": "bae9afde28ee6c576f2ac89d8f58c25155de13d87b293635aac8aed17c4f6819"
+  },
+  "female|Anime|middle-eastern|breast|huge": {
+   "path": "catalog-v1/female/anime/middle-eastern/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15106,
+   "sha256": "d0092412a4f36217110c770f91731c5967393e1c18def7f9637cf20bc8d2dece"
+  },
+  "female|Anime|middle-eastern|breast|small": {
+   "path": "catalog-v1/female/anime/middle-eastern/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19716,
+   "sha256": "2822800172b235e1ec764c67254b01bac9f3c9fa89fe3895b1829e9f2831efa1"
+  },
+  "female|Anime|middle-eastern|butt|athletic": {
+   "path": "catalog-v1/female/anime/middle-eastern/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18288,
+   "sha256": "daf850dba7d48fa3672bea4995be728be97dcd26252ebca58346bc4ce1436406"
+  },
+  "female|Anime|middle-eastern|butt|big": {
+   "path": "catalog-v1/female/anime/middle-eastern/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18238,
+   "sha256": "60f41388e8c179cc04f4e3a2473553dc79df355789b55fb5f92dadaccce055b5"
+  },
+  "female|Anime|middle-eastern|butt|huge": {
+   "path": "catalog-v1/female/anime/middle-eastern/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15728,
+   "sha256": "ceb156cabc5577b6a643bec95d137e2d125c08afac089d35cf88d7f244c8fddc"
+  },
+  "female|Anime|middle-eastern|butt|slim": {
+   "path": "catalog-v1/female/anime/middle-eastern/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15834,
+   "sha256": "d73563ea92ad7cfed3e80402f2648ae6fe96a99ed5be9999c8dd4baedbabcb5b"
+  },
+  "female|Anime|middle-eastern|butt|small": {
+   "path": "catalog-v1/female/anime/middle-eastern/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14352,
+   "sha256": "5ed37b4c388920c94c74cd96aee6400e83a5d82caea7d68beb2bd10493670731"
+  },
+  "female|Anime|middle-eastern|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26552,
+   "sha256": "27baad027f65f7ccebd471bb088a53108d8ee7211e6373ed6ba246f962b051ca"
+  },
+  "female|Anime|middle-eastern|hairstyle|bald": {
+   "path": "catalog-v1/female/anime/middle-eastern/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18140,
+   "sha256": "e33b5439d62eddc089907467abdffd6b6749cb90fba2280795adcca902d6512e"
+  },
+  "female|Anime|middle-eastern|hairstyle|bangs": {
+   "path": "catalog-v1/female/anime/middle-eastern/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26738,
+   "sha256": "23ef4dc33bf7c74bfc7a57677b865161c7dfa6555ec84792cfd15dd1f7ed8773"
+  },
+  "female|Anime|middle-eastern|hairstyle|bob": {
+   "path": "catalog-v1/female/anime/middle-eastern/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 28184,
+   "sha256": "615fd3f7b97d6d7830cbf16ff17971a3a45c730350b28b6b4c12a2251b8dd3ab"
+  },
+  "female|Anime|middle-eastern|hairstyle|braids": {
+   "path": "catalog-v1/female/anime/middle-eastern/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 27956,
+   "sha256": "964acd9b727f2c97a0680ee7699e0626d1f8e4fbea8082ea80b06f6a891ced4f"
+  },
+  "female|Anime|middle-eastern|hairstyle|bun": {
+   "path": "catalog-v1/female/anime/middle-eastern/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23530,
+   "sha256": "fa4c0b8baaf4eec49b27cc6e08b51eb7b1c1ee23e1de012932f012239d74c4cc"
+  },
+  "female|Anime|middle-eastern|hairstyle|curly": {
+   "path": "catalog-v1/female/anime/middle-eastern/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 31392,
+   "sha256": "aac0b923ab757ba48bc1217808d02c82b9ce4683708c55c555cc6137de89664b"
+  },
+  "female|Anime|middle-eastern|hairstyle|ponytail": {
+   "path": "catalog-v1/female/anime/middle-eastern/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25876,
+   "sha256": "b02b8198f10cb15c9e41516ae3a531f77b1cbe2d8fa92014e9161b7dc05ac872"
+  },
+  "female|Anime|middle-eastern|hairstyle|straight": {
+   "path": "catalog-v1/female/anime/middle-eastern/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25890,
+   "sha256": "425daaa2dddf6d29a737be6f46c075995c0a81920637042a67742b99db14037f"
+  },
+  "female|Anime|south-asian|body|athletic": {
+   "path": "catalog-v1/female/anime/south-asian/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21212,
+   "sha256": "a0c49faf32450efa0a432f4ccb17b5cc776054a8040443cb46ae8b4dcf02311b"
+  },
+  "female|Anime|south-asian|body|average": {
+   "path": "catalog-v1/female/anime/south-asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18588,
+   "sha256": "96dfb7fe75ff50a05316c3aca56df815d16e614f5b04f646dd1e5a8e6fb6c619"
+  },
+  "female|Anime|south-asian|body|bbw": {
+   "path": "catalog-v1/female/anime/south-asian/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20804,
+   "sha256": "d35a8bc94469d4b90ae1f35efa54b111d75c8c240d37f22a909d81182ba19985"
+  },
+  "female|Anime|south-asian|body|curvy": {
+   "path": "catalog-v1/female/anime/south-asian/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20422,
+   "sha256": "ba19b67fea0f33714900c2bb2caf5fdbc10c2a7946a4a09d082b78980b06478a"
+  },
+  "female|Anime|south-asian|body|slim": {
+   "path": "catalog-v1/female/anime/south-asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16466,
+   "sha256": "57dc8132bdea89bc272f0c9d8693362fc1af462b8668cd1446b9df51dae46475"
+  },
+  "female|Anime|south-asian|breast|average": {
+   "path": "catalog-v1/female/anime/south-asian/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20272,
+   "sha256": "654e0d27d9826eec16731de2503c87b4443b3d57f64eadb1414637a1677f9226"
+  },
+  "female|Anime|south-asian|breast|big": {
+   "path": "catalog-v1/female/anime/south-asian/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16474,
+   "sha256": "a824d84379d1a996273ab32c2c5446bdbcad34ec2ff5b3814ef2aaf5d4503bf0"
+  },
+  "female|Anime|south-asian|breast|flat": {
+   "path": "catalog-v1/female/anime/south-asian/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17578,
+   "sha256": "f5283676b122d77a6c1b92c2d075d1fb14d18151b56150f5903a2974c898fbe4"
+  },
+  "female|Anime|south-asian|breast|huge": {
+   "path": "catalog-v1/female/anime/south-asian/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17260,
+   "sha256": "4dbfc3906b91fef5901ab813bf46b9c7893715ed9378d3ad371a13fa5e54180b"
+  },
+  "female|Anime|south-asian|breast|small": {
+   "path": "catalog-v1/female/anime/south-asian/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19924,
+   "sha256": "024021d9f52b03cf0531aaf836248114520641f3e5bfd3f55cf282006a6edffb"
+  },
+  "female|Anime|south-asian|butt|athletic": {
+   "path": "catalog-v1/female/anime/south-asian/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17068,
+   "sha256": "2f1734e51599b424f3acf177cd4c8164edae06e6a497ad3ab24b8dcd960dd960"
+  },
+  "female|Anime|south-asian|butt|big": {
+   "path": "catalog-v1/female/anime/south-asian/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16004,
+   "sha256": "00aa857e1fc752481274cd944aac7a0d3045a3adde8363aaae2e0c249049c7ab"
+  },
+  "female|Anime|south-asian|butt|huge": {
+   "path": "catalog-v1/female/anime/south-asian/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14072,
+   "sha256": "59cdbb8bcb8202137f4861c91bd5dc123954942abc1c0ff0bffe194e2f39b88b"
+  },
+  "female|Anime|south-asian|butt|slim": {
+   "path": "catalog-v1/female/anime/south-asian/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17656,
+   "sha256": "bb4624e020226b211a282fb6fa15490636b12a8fa70ad589fb65ca2f3f8deea8"
+  },
+  "female|Anime|south-asian|butt|small": {
+   "path": "catalog-v1/female/anime/south-asian/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17952,
+   "sha256": "f71a9b62cc331c045b4ae8f7fbb15f0473243f3e4c857a07c3ccc31ec4f71942"
+  },
+  "female|Anime|south-asian|ethnicity|south-asian": {
+   "path": "catalog-v1/female/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22972,
+   "sha256": "7a2112a2585c1a095641ccb5840eb2077fe74de3bcdde5ea3b6123dad91f67c0"
+  },
+  "female|Anime|south-asian|hairstyle|bald": {
+   "path": "catalog-v1/female/anime/south-asian/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20514,
+   "sha256": "39740e606df5662db5c0b540d77a6ed9b9c3d5a097f5c36bfb4332829868eaad"
+  },
+  "female|Anime|south-asian|hairstyle|bangs": {
+   "path": "catalog-v1/female/anime/south-asian/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24364,
+   "sha256": "9fb833a97d85576bb49ff0850531ecff12c01f37ef35dff27bea98cdb27eef88"
+  },
+  "female|Anime|south-asian|hairstyle|bob": {
+   "path": "catalog-v1/female/anime/south-asian/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24312,
+   "sha256": "9e59732df72dd01ca00138dd870b8ea61132eb44629bc6037a9f2c33b0771aab"
+  },
+  "female|Anime|south-asian|hairstyle|braids": {
+   "path": "catalog-v1/female/anime/south-asian/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26200,
+   "sha256": "81b40f40ac6c590ddaf02f9dab361fa35159b9046121288217d95d198a2c412a"
+  },
+  "female|Anime|south-asian|hairstyle|bun": {
+   "path": "catalog-v1/female/anime/south-asian/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24500,
+   "sha256": "818d2ec479be0ec4d39623111c549aedac21864151fffba341370bc49e144ebe"
+  },
+  "female|Anime|south-asian|hairstyle|curly": {
+   "path": "catalog-v1/female/anime/south-asian/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 31202,
+   "sha256": "e47bd55dc057753c653b75d4bbd6a0050aaad851f26e16ce004beb6eff615c8a"
+  },
+  "female|Anime|south-asian|hairstyle|ponytail": {
+   "path": "catalog-v1/female/anime/south-asian/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26606,
+   "sha256": "1ad1db4752fca686a7c7f86299d34d39d443de07eff2ffe0a1b4d51634fbf65f"
+  },
+  "female|Anime|south-asian|hairstyle|straight": {
+   "path": "catalog-v1/female/anime/south-asian/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 27038,
+   "sha256": "1820838b90d3b842f3ea201278e89de0d1798136004ee703a5201471120fd0d2"
+  },
+  "female|Anime|white|body|athletic": {
+   "path": "catalog-v1/female/anime/white/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19714,
+   "sha256": "318213fbf75c10281bbd797ae2e29cdd06d5d959b1699aef75c6ff5959889bc9"
+  },
+  "female|Anime|white|body|average": {
+   "path": "catalog-v1/female/anime/white/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18564,
+   "sha256": "3945dab2905d5d6bb91aeea790c41a737f4fe67e97b075f565a1c8666d19de96"
+  },
+  "female|Anime|white|body|bbw": {
+   "path": "catalog-v1/female/anime/white/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19184,
+   "sha256": "c14fdc0508db6914e10c63c9d048c3053a1348d0e79130d54495eef02bcce5fa"
+  },
+  "female|Anime|white|body|curvy": {
+   "path": "catalog-v1/female/anime/white/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17844,
+   "sha256": "e5b8567334d1b1155a36d78933e7e98fa4fe9da0f2b1ddf7f8f28a80bfca6edb"
+  },
+  "female|Anime|white|body|slim": {
+   "path": "catalog-v1/female/anime/white/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13974,
+   "sha256": "b574034a8aed453b38f9d4367c4721696a8fa1817f7498c3032e64d9f12a2411"
+  },
+  "female|Anime|white|breast|average": {
+   "path": "catalog-v1/female/anime/white/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17222,
+   "sha256": "85bcd44c00c2c449c4802cae8c52a683e36e2a0ea1b2525674f727198095fd80"
+  },
+  "female|Anime|white|breast|big": {
+   "path": "catalog-v1/female/anime/white/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21454,
+   "sha256": "0140ad0cdcd26c07ea94dcf82e7513fa552ab9dedb62cc1ff6a2f48abd7124e1"
+  },
+  "female|Anime|white|breast|flat": {
+   "path": "catalog-v1/female/anime/white/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16950,
+   "sha256": "3a0aef4ae5bb2f21417f7c33960468c6e7cd2b93687c32ae5b9e4d190bc563da"
+  },
+  "female|Anime|white|breast|huge": {
+   "path": "catalog-v1/female/anime/white/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19684,
+   "sha256": "4483f0069bf8ec6d88792fe866b3a2bc86b1bff3016747bd2abf4b97bd30a8b1"
+  },
+  "female|Anime|white|breast|small": {
+   "path": "catalog-v1/female/anime/white/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17072,
+   "sha256": "3b6ce39fac8e5e5bd14a087fa3a7ae0cce4c20c982072d36c7f5f87d59bf3b43"
+  },
+  "female|Anime|white|butt|athletic": {
+   "path": "catalog-v1/female/anime/white/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17868,
+   "sha256": "3f598a18cad1d519bf9f37040b9a41ed645fe2a2fe34cf9b685177c0d39e815d"
+  },
+  "female|Anime|white|butt|big": {
+   "path": "catalog-v1/female/anime/white/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16352,
+   "sha256": "04f82c4fa8e1866e2e5b1d37c2c4bdcbb63abcccce26a8a554a155164451aec0"
+  },
+  "female|Anime|white|butt|huge": {
+   "path": "catalog-v1/female/anime/white/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13398,
+   "sha256": "3e055ef61d30b0ed8f7c90df468b8a9bb41b708621b3a78ad9fd434fc32db022"
+  },
+  "female|Anime|white|butt|slim": {
+   "path": "catalog-v1/female/anime/white/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15324,
+   "sha256": "16cae25d4b222c1999d02c00bd459172376d7471c71d93568d2addf4e33b808e"
+  },
+  "female|Anime|white|butt|small": {
+   "path": "catalog-v1/female/anime/white/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15702,
+   "sha256": "ff35e5d544ea2fd5abb702be1f4536b72cff27d22ae113f9a2caf05821c9dcf9"
+  },
+  "female|Anime|white|ethnicity|white": {
+   "path": "catalog-v1/female/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25210,
+   "sha256": "cbb19a21f5e78c98f243f51e1e911469be212c9aa71609b2ada23b2ae3580053"
+  },
+  "female|Anime|white|hairstyle|bald": {
+   "path": "catalog-v1/female/anime/white/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15566,
+   "sha256": "54839e86cdf30f861e5ae39db333173793116a69ecb84dfbddd66ad28f43a1ce"
+  },
+  "female|Anime|white|hairstyle|bangs": {
+   "path": "catalog-v1/female/anime/white/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 27944,
+   "sha256": "6f96c6ea4655a1fd6d4ba847f83a9a4956f47c44e91b08ea2bde2afc012fc39d"
+  },
+  "female|Anime|white|hairstyle|bob": {
+   "path": "catalog-v1/female/anime/white/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23520,
+   "sha256": "ff048160f90e786e51ecda3d64a96217e3b4457a18d2e52d86cd1cbf208428f1"
+  },
+  "female|Anime|white|hairstyle|braids": {
+   "path": "catalog-v1/female/anime/white/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 29982,
+   "sha256": "34ae44fb4d52367f3bd37f785be51464a190f4c06800a88666ec9765b9228687"
+  },
+  "female|Anime|white|hairstyle|bun": {
+   "path": "catalog-v1/female/anime/white/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24406,
+   "sha256": "d5811fce011ce736824f3163947f30f737b2fb6fac8f6f37d298dcc012fa5e8c"
+  },
+  "female|Anime|white|hairstyle|curly": {
+   "path": "catalog-v1/female/anime/white/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 32154,
+   "sha256": "7c4c089fcdcb7b8f1f455760eabf4d1b819b750d9a759f8adadcee300fe95138"
+  },
+  "female|Anime|white|hairstyle|ponytail": {
+   "path": "catalog-v1/female/anime/white/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 27502,
+   "sha256": "5562e11e961d1f6d3fe16eafaead26c1d5e27fe9aaf45c9ed7bc65364f418ec3"
+  },
+  "female|Anime|white|hairstyle|straight": {
+   "path": "catalog-v1/female/anime/white/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24700,
+   "sha256": "3d5203963361b755695c146331d235e5af80e1f3f9ab8836dbc20a56ff343188"
+  },
+  "female|Realistic|asian|body|athletic": {
+   "path": "catalog-v1/female/realistic/asian/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12554,
+   "sha256": "5155ce70bc09db59464c156be81d26c44fdf04b44551cfed48e49fea35387a5d"
+  },
+  "female|Realistic|asian|body|average": {
+   "path": "catalog-v1/female/realistic/asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12892,
+   "sha256": "bc19ca56690ed7a0db464c366d0aa2a4a908809d3c07f584e9533f15d8ae867c"
+  },
+  "female|Realistic|asian|body|bbw": {
+   "path": "catalog-v1/female/realistic/asian/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13224,
+   "sha256": "714cc67ae8055ce4a37e557b08c04e472c7ac80eacabfbe15aa8cc2bd6504025"
+  },
+  "female|Realistic|asian|body|curvy": {
+   "path": "catalog-v1/female/realistic/asian/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11790,
+   "sha256": "504bacd987118597d59f514dcc32e602971282e389295122b12ac571a064c4d9"
+  },
+  "female|Realistic|asian|body|slim": {
+   "path": "catalog-v1/female/realistic/asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12376,
+   "sha256": "028002492296107dcf26a27c9f88b96936af885f50542e5516f16be38b0305b5"
+  },
+  "female|Realistic|asian|breast|average": {
+   "path": "catalog-v1/female/realistic/asian/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13688,
+   "sha256": "ceec772e382644fdb5d93efcc38ef13f61ef3368fb8ab882eb4b5b25a359fe72"
+  },
+  "female|Realistic|asian|breast|big": {
+   "path": "catalog-v1/female/realistic/asian/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "b7fab9548867fb526ef9158ad0fc655ca7b2742473cbdb88f388b9e9a58c133b"
+  },
+  "female|Realistic|asian|breast|flat": {
+   "path": "catalog-v1/female/realistic/asian/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10374,
+   "sha256": "a1801ce8a8e0f31d7fdafa14cbc6ac99818f9099191b0f6fd3ac8aa0ed93277b"
+  },
+  "female|Realistic|asian|breast|huge": {
+   "path": "catalog-v1/female/realistic/asian/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12868,
+   "sha256": "d22317195a65fcf0907cacb29d9ee9e7c23585b3cd70f1bd3e0bb9de8fe1bbdd"
+  },
+  "female|Realistic|asian|breast|small": {
+   "path": "catalog-v1/female/realistic/asian/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12596,
+   "sha256": "cb0dea48e6d52f67bb103302bde92fd359160c78a90bb506e3504df4db44abdc"
+  },
+  "female|Realistic|asian|butt|athletic": {
+   "path": "catalog-v1/female/realistic/asian/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12938,
+   "sha256": "846e61e266e7571e47e4a0b615eae20b196851daef2f72f8291ac29dd790df86"
+  },
+  "female|Realistic|asian|butt|big": {
+   "path": "catalog-v1/female/realistic/asian/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "2a59fb0cda19f1e7497bd78e5df2ae158ada8f6547265c8f95304479657dd80d"
+  },
+  "female|Realistic|asian|butt|huge": {
+   "path": "catalog-v1/female/realistic/asian/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10722,
+   "sha256": "92ff819b516a9d578ea4c49ea7b1def85f569508f3c1bf4aafdecc5301ed2860"
+  },
+  "female|Realistic|asian|butt|slim": {
+   "path": "catalog-v1/female/realistic/asian/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11364,
+   "sha256": "2485873123cb2a25fba019a37ec555571c0ba1e8361e3d52bd16d91bd9f43351"
+  },
+  "female|Realistic|asian|butt|small": {
+   "path": "catalog-v1/female/realistic/asian/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11178,
+   "sha256": "92b6f48b581e098aaffc450556d25e3253292790dc8086b50c3ba0e399a17b6d"
+  },
+  "female|Realistic|asian|ethnicity|asian": {
+   "path": "catalog-v1/female/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14626,
+   "sha256": "8002d860e710249cdd32fd1d4157536942fdd1993cc0d87e461c12a5f808f39d"
+  },
+  "female|Realistic|asian|hairstyle|bald": {
+   "path": "catalog-v1/female/realistic/asian/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8602,
+   "sha256": "fec8f824e109cb06717d6365561285e6483791b5b8ab8e4246e6554d7e7be876"
+  },
+  "female|Realistic|asian|hairstyle|bangs": {
+   "path": "catalog-v1/female/realistic/asian/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10130,
+   "sha256": "37a6b1cd011ead776537ded0d87d1b2ca827ed1d92e6323c6c7de071bfc1877d"
+  },
+  "female|Realistic|asian|hairstyle|bob": {
+   "path": "catalog-v1/female/realistic/asian/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9618,
+   "sha256": "8005c743202a9882dd93d53a94bb2b3637ecaf087bf29d643866848a8fc93193"
+  },
+  "female|Realistic|asian|hairstyle|braids": {
+   "path": "catalog-v1/female/realistic/asian/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12874,
+   "sha256": "1ed4c7f76d881290e6eaab705cdd5fa80dcf6a333979e8f8eb87041d6b5b31b8"
+  },
+  "female|Realistic|asian|hairstyle|bun": {
+   "path": "catalog-v1/female/realistic/asian/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9988,
+   "sha256": "4ced40afbf8a6d580fe09c02aaa1aa37b7607723ef3833dd75970a9dc1669453"
+  },
+  "female|Realistic|asian|hairstyle|curly": {
+   "path": "catalog-v1/female/realistic/asian/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14926,
+   "sha256": "ad2077856a7b2d6830c8650c797422288bcc76356c2b6aa82a6bccf4f68486b3"
+  },
+  "female|Realistic|asian|hairstyle|ponytail": {
+   "path": "catalog-v1/female/realistic/asian/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10136,
+   "sha256": "f96ae67af4a9fddba727591ffbece400ccf26cd099115683b3e4bb200f794dfa"
+  },
+  "female|Realistic|asian|hairstyle|straight": {
+   "path": "catalog-v1/female/realistic/asian/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11224,
+   "sha256": "fadc271a49b6b67ec8b257e14ce7ff039aafdadce0fb78a4697b1005bfc3b136"
+  },
+  "female|Realistic|black|body|athletic": {
+   "path": "catalog-v1/female/realistic/black/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11190,
+   "sha256": "e049e551842a909b3c97a3d636e9eefa7bc92d4e5c4bc8622114bcf6693120fc"
+  },
+  "female|Realistic|black|body|average": {
+   "path": "catalog-v1/female/realistic/black/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11696,
+   "sha256": "387aeeddf17fc6c3025309d045a9fe62ca8a2e6417ca38e5046b6427d0f43ffc"
+  },
+  "female|Realistic|black|body|bbw": {
+   "path": "catalog-v1/female/realistic/black/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11652,
+   "sha256": "0a10014a2583a65ab5671f98bc00ea785fbf693f816a085332ccc4b468235c2f"
+  },
+  "female|Realistic|black|body|curvy": {
+   "path": "catalog-v1/female/realistic/black/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12554,
+   "sha256": "883eee805cf5c853be6c227be14d1da9fb94e0dd5ca0d4eb0cd4fa6739c7404b"
+  },
+  "female|Realistic|black|body|slim": {
+   "path": "catalog-v1/female/realistic/black/body-slim.webp",
+   "w": 320,
+   "h": 428,
+   "bytes": 10102,
+   "sha256": "60e02e17e6545e7db291b8a85f9b74eeb0f00f2ff96c8f2f0fbb59fea4f0aaab"
+  },
+  "female|Realistic|black|breast|average": {
+   "path": "catalog-v1/female/realistic/black/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12028,
+   "sha256": "47c6648dc420479db4ab8557a71c1650140d0d65d9dce1668796e2ca25bac959"
+  },
+  "female|Realistic|black|breast|big": {
+   "path": "catalog-v1/female/realistic/black/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13086,
+   "sha256": "de17afcd1a27b9a8319518d5c74ddb8c312f65cb1f82b7ebd686f4a35a2bbb93"
+  },
+  "female|Realistic|black|breast|flat": {
+   "path": "catalog-v1/female/realistic/black/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8076,
+   "sha256": "6f9e09e18ccf28eb3883e9be3fcee20f7e6a317ddede3509446dbdd95dc2e84e"
+  },
+  "female|Realistic|black|breast|huge": {
+   "path": "catalog-v1/female/realistic/black/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10626,
+   "sha256": "20fcb72b303537afe7455fb4ec72d08631cb9f787b7292d10178ed8eb9964054"
+  },
+  "female|Realistic|black|breast|small": {
+   "path": "catalog-v1/female/realistic/black/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11378,
+   "sha256": "4dc17ed9b510dfc9a8fd638ebc91a0b293fe61538c76a4428eeb4aa1386cd32f"
+  },
+  "female|Realistic|black|butt|athletic": {
+   "path": "catalog-v1/female/realistic/black/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11624,
+   "sha256": "48292474b12829be5df37593ebcdd93074e990806d2e18bfb539c4b3f1fb4034"
+  },
+  "female|Realistic|black|butt|big": {
+   "path": "catalog-v1/female/realistic/black/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10196,
+   "sha256": "c60763adf97a2369063a84cdf224abb1400b0d4ee6f55917bbbd3d9f5f685ed9"
+  },
+  "female|Realistic|black|butt|huge": {
+   "path": "catalog-v1/female/realistic/black/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11298,
+   "sha256": "96278d4212e2a75e12fd38589fb9ec3c6d6ca439a5f6f226fe8cd9b59b3861e8"
+  },
+  "female|Realistic|black|butt|slim": {
+   "path": "catalog-v1/female/realistic/black/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12090,
+   "sha256": "6049ebfe3f53c8e438c44afdb2cae03556eac7fbd18ea1f0e9d67a94fe1a87ac"
+  },
+  "female|Realistic|black|butt|small": {
+   "path": "catalog-v1/female/realistic/black/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8758,
+   "sha256": "aee0bb1cca048e8faee1e913951ab79fce3960209d9f70b00f13dc9e466f98fe"
+  },
+  "female|Realistic|black|ethnicity|black": {
+   "path": "catalog-v1/female/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24134,
+   "sha256": "971ef631c6d390c7df979208d8e7cfe42500f65d560e190d73206d53556652c5"
+  },
+  "female|Realistic|black|hairstyle|bald": {
+   "path": "catalog-v1/female/realistic/black/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14160,
+   "sha256": "f2cde9c98a3ee0cf29fab500162d1924b76207e2618d6371bb87ce18fa57bd72"
+  },
+  "female|Realistic|black|hairstyle|bangs": {
+   "path": "catalog-v1/female/realistic/black/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15974,
+   "sha256": "c058b262798bea056b273d986e30c044e1e6d0f5a9f04e8e6e59c6f963dfcf3a"
+  },
+  "female|Realistic|black|hairstyle|bob": {
+   "path": "catalog-v1/female/realistic/black/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13902,
+   "sha256": "9559291a90e94212a861691804f9feda570d5ac05678952219888620f0835174"
+  },
+  "female|Realistic|black|hairstyle|braids": {
+   "path": "catalog-v1/female/realistic/black/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17070,
+   "sha256": "ade094d83bb5fe66deef3270a30f1b04438d61bc1d6c074b577a5820af2b4411"
+  },
+  "female|Realistic|black|hairstyle|bun": {
+   "path": "catalog-v1/female/realistic/black/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14546,
+   "sha256": "d2085a2a268d546a01aa9d38cd1ad45c2225ee9fdb79dba370b8b3e407f60e7e"
+  },
+  "female|Realistic|black|hairstyle|curly": {
+   "path": "catalog-v1/female/realistic/black/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21534,
+   "sha256": "47f363416438c2d8278b0454632ea290cbb1f7779262292ba6da8c5c304102e6"
+  },
+  "female|Realistic|black|hairstyle|ponytail": {
+   "path": "catalog-v1/female/realistic/black/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16098,
+   "sha256": "bc8eb6af9ad0650a13b6c5c2fe07f445ce180e5ee61cc6fd6fd919cbe283e5a5"
+  },
+  "female|Realistic|black|hairstyle|straight": {
+   "path": "catalog-v1/female/realistic/black/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14284,
+   "sha256": "051f82792743f71b60115ff52948f801fc240177e6f997c3907485c2e245a299"
+  },
+  "female|Realistic|latina|body|athletic": {
+   "path": "catalog-v1/female/realistic/latina/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12554,
+   "sha256": "5155ce70bc09db59464c156be81d26c44fdf04b44551cfed48e49fea35387a5d"
+  },
+  "female|Realistic|latina|body|average": {
+   "path": "catalog-v1/female/realistic/latina/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12892,
+   "sha256": "bc19ca56690ed7a0db464c366d0aa2a4a908809d3c07f584e9533f15d8ae867c"
+  },
+  "female|Realistic|latina|body|bbw": {
+   "path": "catalog-v1/female/realistic/latina/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13224,
+   "sha256": "714cc67ae8055ce4a37e557b08c04e472c7ac80eacabfbe15aa8cc2bd6504025"
+  },
+  "female|Realistic|latina|body|curvy": {
+   "path": "catalog-v1/female/realistic/latina/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11790,
+   "sha256": "504bacd987118597d59f514dcc32e602971282e389295122b12ac571a064c4d9"
+  },
+  "female|Realistic|latina|body|slim": {
+   "path": "catalog-v1/female/realistic/latina/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12376,
+   "sha256": "028002492296107dcf26a27c9f88b96936af885f50542e5516f16be38b0305b5"
+  },
+  "female|Realistic|latina|breast|average": {
+   "path": "catalog-v1/female/realistic/latina/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13688,
+   "sha256": "ceec772e382644fdb5d93efcc38ef13f61ef3368fb8ab882eb4b5b25a359fe72"
+  },
+  "female|Realistic|latina|breast|big": {
+   "path": "catalog-v1/female/realistic/latina/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "b7fab9548867fb526ef9158ad0fc655ca7b2742473cbdb88f388b9e9a58c133b"
+  },
+  "female|Realistic|latina|breast|flat": {
+   "path": "catalog-v1/female/realistic/latina/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10374,
+   "sha256": "a1801ce8a8e0f31d7fdafa14cbc6ac99818f9099191b0f6fd3ac8aa0ed93277b"
+  },
+  "female|Realistic|latina|breast|huge": {
+   "path": "catalog-v1/female/realistic/latina/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12868,
+   "sha256": "d22317195a65fcf0907cacb29d9ee9e7c23585b3cd70f1bd3e0bb9de8fe1bbdd"
+  },
+  "female|Realistic|latina|breast|small": {
+   "path": "catalog-v1/female/realistic/latina/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12596,
+   "sha256": "cb0dea48e6d52f67bb103302bde92fd359160c78a90bb506e3504df4db44abdc"
+  },
+  "female|Realistic|latina|butt|athletic": {
+   "path": "catalog-v1/female/realistic/latina/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12938,
+   "sha256": "846e61e266e7571e47e4a0b615eae20b196851daef2f72f8291ac29dd790df86"
+  },
+  "female|Realistic|latina|butt|big": {
+   "path": "catalog-v1/female/realistic/latina/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "2a59fb0cda19f1e7497bd78e5df2ae158ada8f6547265c8f95304479657dd80d"
+  },
+  "female|Realistic|latina|butt|huge": {
+   "path": "catalog-v1/female/realistic/latina/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10722,
+   "sha256": "92ff819b516a9d578ea4c49ea7b1def85f569508f3c1bf4aafdecc5301ed2860"
+  },
+  "female|Realistic|latina|butt|slim": {
+   "path": "catalog-v1/female/realistic/latina/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11364,
+   "sha256": "2485873123cb2a25fba019a37ec555571c0ba1e8361e3d52bd16d91bd9f43351"
+  },
+  "female|Realistic|latina|butt|small": {
+   "path": "catalog-v1/female/realistic/latina/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11178,
+   "sha256": "92b6f48b581e098aaffc450556d25e3253292790dc8086b50c3ba0e399a17b6d"
+  },
+  "female|Realistic|latina|ethnicity|latina": {
+   "path": "catalog-v1/female/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 28432,
+   "sha256": "5b3a42446799f7382aecc463ed2f69517b26aa18780bf45446fd5e822cfea988"
+  },
+  "female|Realistic|latina|hairstyle|bald": {
+   "path": "catalog-v1/female/realistic/latina/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12536,
+   "sha256": "9b5c470e5799a2604790dbceea6494e7b5e2f1163b4fa68797d4a64447c372d8"
+  },
+  "female|Realistic|latina|hairstyle|bangs": {
+   "path": "catalog-v1/female/realistic/latina/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19036,
+   "sha256": "f83c9d988c28d0a0834ec75658a179b1bc9143f93bb65de626fd9e4e946c8a39"
+  },
+  "female|Realistic|latina|hairstyle|bob": {
+   "path": "catalog-v1/female/realistic/latina/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17440,
+   "sha256": "046f28bec13eaee4d51bad5f4f0357d7bfbf42784f90564c6248b06dea5bb5f5"
+  },
+  "female|Realistic|latina|hairstyle|braids": {
+   "path": "catalog-v1/female/realistic/latina/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20686,
+   "sha256": "fa11126f52ed01d06990876cccf33b5e378391929c366735988f3f1e057c75ce"
+  },
+  "female|Realistic|latina|hairstyle|bun": {
+   "path": "catalog-v1/female/realistic/latina/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13546,
+   "sha256": "d80077edd8442daf154a22709f69f91252bb660be06c6c4e57a722f44621a861"
+  },
+  "female|Realistic|latina|hairstyle|curly": {
+   "path": "catalog-v1/female/realistic/latina/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25848,
+   "sha256": "b4504a902738d646bd8611f6e0416b4565350fe18645dc3883812788b8fd3ae9"
+  },
+  "female|Realistic|latina|hairstyle|ponytail": {
+   "path": "catalog-v1/female/realistic/latina/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16464,
+   "sha256": "d15464334bc8a66ce88c35aadb1f69928bf9323e12bbef5cf63107aee07e6ee2"
+  },
+  "female|Realistic|latina|hairstyle|straight": {
+   "path": "catalog-v1/female/realistic/latina/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19860,
+   "sha256": "158b994bd3981398aeb435f3b306917261317d6cae807de5665e6f3b3bbba0c9"
+  },
+  "female|Realistic|middle-eastern|body|athletic": {
+   "path": "catalog-v1/female/realistic/middle-eastern/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12554,
+   "sha256": "5155ce70bc09db59464c156be81d26c44fdf04b44551cfed48e49fea35387a5d"
+  },
+  "female|Realistic|middle-eastern|body|average": {
+   "path": "catalog-v1/female/realistic/middle-eastern/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12892,
+   "sha256": "bc19ca56690ed7a0db464c366d0aa2a4a908809d3c07f584e9533f15d8ae867c"
+  },
+  "female|Realistic|middle-eastern|body|bbw": {
+   "path": "catalog-v1/female/realistic/middle-eastern/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13224,
+   "sha256": "714cc67ae8055ce4a37e557b08c04e472c7ac80eacabfbe15aa8cc2bd6504025"
+  },
+  "female|Realistic|middle-eastern|body|curvy": {
+   "path": "catalog-v1/female/realistic/middle-eastern/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11790,
+   "sha256": "504bacd987118597d59f514dcc32e602971282e389295122b12ac571a064c4d9"
+  },
+  "female|Realistic|middle-eastern|body|slim": {
+   "path": "catalog-v1/female/realistic/middle-eastern/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12376,
+   "sha256": "028002492296107dcf26a27c9f88b96936af885f50542e5516f16be38b0305b5"
+  },
+  "female|Realistic|middle-eastern|breast|average": {
+   "path": "catalog-v1/female/realistic/middle-eastern/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13688,
+   "sha256": "ceec772e382644fdb5d93efcc38ef13f61ef3368fb8ab882eb4b5b25a359fe72"
+  },
+  "female|Realistic|middle-eastern|breast|big": {
+   "path": "catalog-v1/female/realistic/middle-eastern/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "b7fab9548867fb526ef9158ad0fc655ca7b2742473cbdb88f388b9e9a58c133b"
+  },
+  "female|Realistic|middle-eastern|breast|flat": {
+   "path": "catalog-v1/female/realistic/middle-eastern/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10374,
+   "sha256": "a1801ce8a8e0f31d7fdafa14cbc6ac99818f9099191b0f6fd3ac8aa0ed93277b"
+  },
+  "female|Realistic|middle-eastern|breast|huge": {
+   "path": "catalog-v1/female/realistic/middle-eastern/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12868,
+   "sha256": "d22317195a65fcf0907cacb29d9ee9e7c23585b3cd70f1bd3e0bb9de8fe1bbdd"
+  },
+  "female|Realistic|middle-eastern|breast|small": {
+   "path": "catalog-v1/female/realistic/middle-eastern/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12596,
+   "sha256": "cb0dea48e6d52f67bb103302bde92fd359160c78a90bb506e3504df4db44abdc"
+  },
+  "female|Realistic|middle-eastern|butt|athletic": {
+   "path": "catalog-v1/female/realistic/middle-eastern/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12938,
+   "sha256": "846e61e266e7571e47e4a0b615eae20b196851daef2f72f8291ac29dd790df86"
+  },
+  "female|Realistic|middle-eastern|butt|big": {
+   "path": "catalog-v1/female/realistic/middle-eastern/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "2a59fb0cda19f1e7497bd78e5df2ae158ada8f6547265c8f95304479657dd80d"
+  },
+  "female|Realistic|middle-eastern|butt|huge": {
+   "path": "catalog-v1/female/realistic/middle-eastern/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10722,
+   "sha256": "92ff819b516a9d578ea4c49ea7b1def85f569508f3c1bf4aafdecc5301ed2860"
+  },
+  "female|Realistic|middle-eastern|butt|slim": {
+   "path": "catalog-v1/female/realistic/middle-eastern/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11364,
+   "sha256": "2485873123cb2a25fba019a37ec555571c0ba1e8361e3d52bd16d91bd9f43351"
+  },
+  "female|Realistic|middle-eastern|butt|small": {
+   "path": "catalog-v1/female/realistic/middle-eastern/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11178,
+   "sha256": "92b6f48b581e098aaffc450556d25e3253292790dc8086b50c3ba0e399a17b6d"
+  },
+  "female|Realistic|middle-eastern|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15938,
+   "sha256": "ab5ef290abbe36ad5db850c92abf25d181d30f89b517440609a60d87dd57a70a"
+  },
+  "female|Realistic|middle-eastern|hairstyle|bald": {
+   "path": "catalog-v1/female/realistic/middle-eastern/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9392,
+   "sha256": "3aa508f6ba13158d67d74c533fe623b97f8e08951c5a292dbd90bdd0f2b09c62"
+  },
+  "female|Realistic|middle-eastern|hairstyle|bangs": {
+   "path": "catalog-v1/female/realistic/middle-eastern/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16454,
+   "sha256": "416c32b973602227c88dc03a8e7651cfaa9874f5de7718800bc1499d2ffec8f0"
+  },
+  "female|Realistic|middle-eastern|hairstyle|bob": {
+   "path": "catalog-v1/female/realistic/middle-eastern/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15808,
+   "sha256": "420ca5694dc3df9bce61cf9b6894857760585390c2d053c41b8cc43ef6f58353"
+  },
+  "female|Realistic|middle-eastern|hairstyle|braids": {
+   "path": "catalog-v1/female/realistic/middle-eastern/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13576,
+   "sha256": "1684486f476c0aae670bd3b0e466101e7448f57cfaa79308a59688b35e9e420f"
+  },
+  "female|Realistic|middle-eastern|hairstyle|bun": {
+   "path": "catalog-v1/female/realistic/middle-eastern/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12102,
+   "sha256": "3756f49f350f01a26daf906e40f8b155aa6b66ea6250ad12eac8d8722e9b724c"
+  },
+  "female|Realistic|middle-eastern|hairstyle|curly": {
+   "path": "catalog-v1/female/realistic/middle-eastern/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15996,
+   "sha256": "b7e1e9e6b63006d21ec10e4b5be376b13030791cbcf99c47921cc9556aaac048"
+  },
+  "female|Realistic|middle-eastern|hairstyle|ponytail": {
+   "path": "catalog-v1/female/realistic/middle-eastern/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15066,
+   "sha256": "e18731fdb1c5fd32a5840c2aa3afb494e49c6be9bc12e8927383793218a90680"
+  },
+  "female|Realistic|middle-eastern|hairstyle|straight": {
+   "path": "catalog-v1/female/realistic/middle-eastern/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14782,
+   "sha256": "3fbee00ba9849a7c77018540bf4cddcc358d595d3c4aa433bcd4c309956c87d0"
+  },
+  "female|Realistic|south-asian|body|athletic": {
+   "path": "catalog-v1/female/realistic/south-asian/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12554,
+   "sha256": "5155ce70bc09db59464c156be81d26c44fdf04b44551cfed48e49fea35387a5d"
+  },
+  "female|Realistic|south-asian|body|average": {
+   "path": "catalog-v1/female/realistic/south-asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12892,
+   "sha256": "bc19ca56690ed7a0db464c366d0aa2a4a908809d3c07f584e9533f15d8ae867c"
+  },
+  "female|Realistic|south-asian|body|bbw": {
+   "path": "catalog-v1/female/realistic/south-asian/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13224,
+   "sha256": "714cc67ae8055ce4a37e557b08c04e472c7ac80eacabfbe15aa8cc2bd6504025"
+  },
+  "female|Realistic|south-asian|body|curvy": {
+   "path": "catalog-v1/female/realistic/south-asian/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11790,
+   "sha256": "504bacd987118597d59f514dcc32e602971282e389295122b12ac571a064c4d9"
+  },
+  "female|Realistic|south-asian|body|slim": {
+   "path": "catalog-v1/female/realistic/south-asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12376,
+   "sha256": "028002492296107dcf26a27c9f88b96936af885f50542e5516f16be38b0305b5"
+  },
+  "female|Realistic|south-asian|breast|average": {
+   "path": "catalog-v1/female/realistic/south-asian/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13688,
+   "sha256": "ceec772e382644fdb5d93efcc38ef13f61ef3368fb8ab882eb4b5b25a359fe72"
+  },
+  "female|Realistic|south-asian|breast|big": {
+   "path": "catalog-v1/female/realistic/south-asian/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "b7fab9548867fb526ef9158ad0fc655ca7b2742473cbdb88f388b9e9a58c133b"
+  },
+  "female|Realistic|south-asian|breast|flat": {
+   "path": "catalog-v1/female/realistic/south-asian/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10374,
+   "sha256": "a1801ce8a8e0f31d7fdafa14cbc6ac99818f9099191b0f6fd3ac8aa0ed93277b"
+  },
+  "female|Realistic|south-asian|breast|huge": {
+   "path": "catalog-v1/female/realistic/south-asian/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12868,
+   "sha256": "d22317195a65fcf0907cacb29d9ee9e7c23585b3cd70f1bd3e0bb9de8fe1bbdd"
+  },
+  "female|Realistic|south-asian|breast|small": {
+   "path": "catalog-v1/female/realistic/south-asian/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12596,
+   "sha256": "cb0dea48e6d52f67bb103302bde92fd359160c78a90bb506e3504df4db44abdc"
+  },
+  "female|Realistic|south-asian|butt|athletic": {
+   "path": "catalog-v1/female/realistic/south-asian/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12938,
+   "sha256": "846e61e266e7571e47e4a0b615eae20b196851daef2f72f8291ac29dd790df86"
+  },
+  "female|Realistic|south-asian|butt|big": {
+   "path": "catalog-v1/female/realistic/south-asian/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "2a59fb0cda19f1e7497bd78e5df2ae158ada8f6547265c8f95304479657dd80d"
+  },
+  "female|Realistic|south-asian|butt|huge": {
+   "path": "catalog-v1/female/realistic/south-asian/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10722,
+   "sha256": "92ff819b516a9d578ea4c49ea7b1def85f569508f3c1bf4aafdecc5301ed2860"
+  },
+  "female|Realistic|south-asian|butt|slim": {
+   "path": "catalog-v1/female/realistic/south-asian/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11364,
+   "sha256": "2485873123cb2a25fba019a37ec555571c0ba1e8361e3d52bd16d91bd9f43351"
+  },
+  "female|Realistic|south-asian|butt|small": {
+   "path": "catalog-v1/female/realistic/south-asian/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11178,
+   "sha256": "92b6f48b581e098aaffc450556d25e3253292790dc8086b50c3ba0e399a17b6d"
+  },
+  "female|Realistic|south-asian|ethnicity|south-asian": {
+   "path": "catalog-v1/female/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16142,
+   "sha256": "efa9afd547f072b6277b8d15b8ad234ec05f8675162ca98b5e65ed3211d823c4"
+  },
+  "female|Realistic|south-asian|hairstyle|bald": {
+   "path": "catalog-v1/female/realistic/south-asian/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13396,
+   "sha256": "d0d9d1f3e2aab67ad334a027e241dc9a34538b583be9e242f98a244ece7822f0"
+  },
+  "female|Realistic|south-asian|hairstyle|bangs": {
+   "path": "catalog-v1/female/realistic/south-asian/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20316,
+   "sha256": "d6c9f14bd0955bf987315f925445e2d469612453ed3b3ba44dcb5880a2041ae3"
+  },
+  "female|Realistic|south-asian|hairstyle|bob": {
+   "path": "catalog-v1/female/realistic/south-asian/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15270,
+   "sha256": "93d440a33ee78561140bed642ee79b14fb82972431eb0bfa57fb52bce84ccbe9"
+  },
+  "female|Realistic|south-asian|hairstyle|braids": {
+   "path": "catalog-v1/female/realistic/south-asian/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18066,
+   "sha256": "23ec6e12350b02fd055a9d13983bf7b41a51f3a821571f7c40c168b4bdbb53f2"
+  },
+  "female|Realistic|south-asian|hairstyle|bun": {
+   "path": "catalog-v1/female/realistic/south-asian/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16004,
+   "sha256": "397f0fc33d6497250073b37b3f577b161aa099de8183cc0e7919e4835573c6bf"
+  },
+  "female|Realistic|south-asian|hairstyle|curly": {
+   "path": "catalog-v1/female/realistic/south-asian/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24794,
+   "sha256": "9f5731b4552d2b42f4e8c30f67fcf15236c6f86045078d2b321844e535d4713a"
+  },
+  "female|Realistic|south-asian|hairstyle|ponytail": {
+   "path": "catalog-v1/female/realistic/south-asian/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17068,
+   "sha256": "73e2ce6071b6766e5597ae6046f8e6ec7121ee65453e524f401d4dcb8ca97e02"
+  },
+  "female|Realistic|south-asian|hairstyle|straight": {
+   "path": "catalog-v1/female/realistic/south-asian/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18154,
+   "sha256": "d8a11c905702a5d6a3f29cf4f34cd51cef59e3144fbce54b84cabcfcf239276d"
+  },
+  "female|Realistic|white|body|athletic": {
+   "path": "catalog-v1/female/realistic/white/body-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12554,
+   "sha256": "5155ce70bc09db59464c156be81d26c44fdf04b44551cfed48e49fea35387a5d"
+  },
+  "female|Realistic|white|body|average": {
+   "path": "catalog-v1/female/realistic/white/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12892,
+   "sha256": "bc19ca56690ed7a0db464c366d0aa2a4a908809d3c07f584e9533f15d8ae867c"
+  },
+  "female|Realistic|white|body|bbw": {
+   "path": "catalog-v1/female/realistic/white/body-bbw.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13224,
+   "sha256": "714cc67ae8055ce4a37e557b08c04e472c7ac80eacabfbe15aa8cc2bd6504025"
+  },
+  "female|Realistic|white|body|curvy": {
+   "path": "catalog-v1/female/realistic/white/body-curvy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11790,
+   "sha256": "504bacd987118597d59f514dcc32e602971282e389295122b12ac571a064c4d9"
+  },
+  "female|Realistic|white|body|slim": {
+   "path": "catalog-v1/female/realistic/white/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12376,
+   "sha256": "028002492296107dcf26a27c9f88b96936af885f50542e5516f16be38b0305b5"
+  },
+  "female|Realistic|white|breast|average": {
+   "path": "catalog-v1/female/realistic/white/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13688,
+   "sha256": "ceec772e382644fdb5d93efcc38ef13f61ef3368fb8ab882eb4b5b25a359fe72"
+  },
+  "female|Realistic|white|breast|big": {
+   "path": "catalog-v1/female/realistic/white/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "b7fab9548867fb526ef9158ad0fc655ca7b2742473cbdb88f388b9e9a58c133b"
+  },
+  "female|Realistic|white|breast|flat": {
+   "path": "catalog-v1/female/realistic/white/breast-flat.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10374,
+   "sha256": "a1801ce8a8e0f31d7fdafa14cbc6ac99818f9099191b0f6fd3ac8aa0ed93277b"
+  },
+  "female|Realistic|white|breast|huge": {
+   "path": "catalog-v1/female/realistic/white/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12868,
+   "sha256": "d22317195a65fcf0907cacb29d9ee9e7c23585b3cd70f1bd3e0bb9de8fe1bbdd"
+  },
+  "female|Realistic|white|breast|small": {
+   "path": "catalog-v1/female/realistic/white/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12596,
+   "sha256": "cb0dea48e6d52f67bb103302bde92fd359160c78a90bb506e3504df4db44abdc"
+  },
+  "female|Realistic|white|butt|athletic": {
+   "path": "catalog-v1/female/realistic/white/butt-athletic.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12938,
+   "sha256": "846e61e266e7571e47e4a0b615eae20b196851daef2f72f8291ac29dd790df86"
+  },
+  "female|Realistic|white|butt|big": {
+   "path": "catalog-v1/female/realistic/white/butt-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10004,
+   "sha256": "2a59fb0cda19f1e7497bd78e5df2ae158ada8f6547265c8f95304479657dd80d"
+  },
+  "female|Realistic|white|butt|huge": {
+   "path": "catalog-v1/female/realistic/white/butt-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10722,
+   "sha256": "92ff819b516a9d578ea4c49ea7b1def85f569508f3c1bf4aafdecc5301ed2860"
+  },
+  "female|Realistic|white|butt|slim": {
+   "path": "catalog-v1/female/realistic/white/butt-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11364,
+   "sha256": "2485873123cb2a25fba019a37ec555571c0ba1e8361e3d52bd16d91bd9f43351"
+  },
+  "female|Realistic|white|butt|small": {
+   "path": "catalog-v1/female/realistic/white/butt-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11178,
+   "sha256": "92b6f48b581e098aaffc450556d25e3253292790dc8086b50c3ba0e399a17b6d"
+  },
+  "female|Realistic|white|ethnicity|white": {
+   "path": "catalog-v1/female/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19188,
+   "sha256": "b9b3cb2aab54894f6c891feb745eb8944815f47963691a5394c9e501d3055453"
+  },
+  "female|Realistic|white|hairstyle|bald": {
+   "path": "catalog-v1/female/realistic/white/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9048,
+   "sha256": "ad12a57223b9e043a6cebf75e07b03ef44cb9b97c02e5317a096df8e1c9259c5"
+  },
+  "female|Realistic|white|hairstyle|bangs": {
+   "path": "catalog-v1/female/realistic/white/hairstyle-bangs.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17314,
+   "sha256": "124bfe871affb3102ea8bb674c04f6cb74c41c854a4c2d98d729751d4a866e1c"
+  },
+  "female|Realistic|white|hairstyle|bob": {
+   "path": "catalog-v1/female/realistic/white/hairstyle-bob.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12064,
+   "sha256": "5e39c86890b45db03e5acfc892de4ff93af52bbb2243be583254802c2519efb8"
+  },
+  "female|Realistic|white|hairstyle|braids": {
+   "path": "catalog-v1/female/realistic/white/hairstyle-braids.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23116,
+   "sha256": "3e57c2f4065f4d8315e3130f22b88803fa134da01b6f3be18414ef1097193986"
+  },
+  "female|Realistic|white|hairstyle|bun": {
+   "path": "catalog-v1/female/realistic/white/hairstyle-bun.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15052,
+   "sha256": "84b5229f2adab457668a4d7a7f48bc256acdcc3469107acedb617258d815ac46"
+  },
+  "female|Realistic|white|hairstyle|curly": {
+   "path": "catalog-v1/female/realistic/white/hairstyle-curly.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21064,
+   "sha256": "4c9115ba9d518cc733e29a2bdbae72fd0830d0c37ec1e101167239a48b29c3d1"
+  },
+  "female|Realistic|white|hairstyle|ponytail": {
+   "path": "catalog-v1/female/realistic/white/hairstyle-ponytail.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16276,
+   "sha256": "a2adad9b20570962c31f7b0611fd915960c3b936d1a6b4c7672104911cbe4416"
+  },
+  "female|Realistic|white|hairstyle|straight": {
+   "path": "catalog-v1/female/realistic/white/hairstyle-straight.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15116,
+   "sha256": "a00fd9e35ad31e31d55f1a8b55c661e2371afc9ad5ad26bb4349a43daec7d30c"
+  },
+  "male|Anime|asian|body|average": {
+   "path": "catalog-v1/male/anime/asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11410,
+   "sha256": "562481b77db778100526af019aa8d77e9f906ac1a46daef72542e4ae95bf84fe"
+  },
+  "male|Anime|asian|body|large": {
+   "path": "catalog-v1/male/anime/asian/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19084,
+   "sha256": "d246ce8d20a0ce85ad1a746169bcbf13ed3ac0b9fc817b6ad7751979a95be679"
+  },
+  "male|Anime|asian|body|muscular": {
+   "path": "catalog-v1/male/anime/asian/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16752,
+   "sha256": "f27ba011e0dbad3d3bc3e5a61a299c4f699f991b33c9598d70a072efcd7426a5"
+  },
+  "male|Anime|asian|body|slim": {
+   "path": "catalog-v1/male/anime/asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13956,
+   "sha256": "3a28d9d2a90092e2e3402e9fc4afdccdf9261c35ba4d649de4083abbe5cbcc1f"
+  },
+  "male|Anime|asian|body|stout": {
+   "path": "catalog-v1/male/anime/asian/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12938,
+   "sha256": "8d3a0833c8f30567a9b7ae2cf6b717e01b3fb6fa3182904d7569b9270568d2f7"
+  },
+  "male|Anime|asian|breast|average": {
+   "path": "catalog-v1/male/anime/asian/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16498,
+   "sha256": "06f2b9b42010eda27ca6ffbc37e34eee80cab3736eb96437c280259529720df1"
+  },
+  "male|Anime|asian|breast|big": {
+   "path": "catalog-v1/male/anime/asian/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15786,
+   "sha256": "cecb977e48281b72c4ec1047501cb18d3d11bf9f45641c66d111ff18800ce4d9"
+  },
+  "male|Anime|asian|breast|huge": {
+   "path": "catalog-v1/male/anime/asian/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17130,
+   "sha256": "f3a705e5a593f0eef80d14bf4cf51e85a5de8adbc5969f974bdc4e14b1d17e44"
+  },
+  "male|Anime|asian|breast|micro": {
+   "path": "catalog-v1/male/anime/asian/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19200,
+   "sha256": "f06ecfc197ea9ad2b0a4e11500ac751444668f82179d9bb3314fbd8bd12478da"
+  },
+  "male|Anime|asian|breast|small": {
+   "path": "catalog-v1/male/anime/asian/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14854,
+   "sha256": "8ac3648d7bd350cd92a8f793723741283d9fb9748f9a9bec00ef382a3e52c4fb"
+  },
+  "male|Anime|asian|ethnicity|asian": {
+   "path": "catalog-v1/male/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17200,
+   "sha256": "41b256ba1e1e8b96128636c46a643821239bd8f1c96511ebd760906095e63b1f"
+  },
+  "male|Anime|asian|hairstyle|bald": {
+   "path": "catalog-v1/male/anime/asian/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14106,
+   "sha256": "1be0c2f88cb7c5309d13be8a754477fc75550e1691175870dd0e71f4dbf280e0"
+  },
+  "male|Anime|asian|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/anime/asian/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13606,
+   "sha256": "a6b7a51296a966fd7e8bc888a2800c1a492384bc372a7c5aa1a5718dda300fb9"
+  },
+  "male|Anime|asian|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/anime/asian/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14558,
+   "sha256": "ee0a38dd16cb86d41d27d60f8c27caa868c5169fe5f02718f25b80e6a82a971d"
+  },
+  "male|Anime|asian|hairstyle|fade": {
+   "path": "catalog-v1/male/anime/asian/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17388,
+   "sha256": "8b2905f25cb8cef4b09d7c435a059e116c5f3bb7204650240db8f72e24547c30"
+  },
+  "male|Anime|asian|hairstyle|long": {
+   "path": "catalog-v1/male/anime/asian/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23132,
+   "sha256": "76857fca68a82d9bec2a087344ef4d557870945a7000b098e5b264f70770464b"
+  },
+  "male|Anime|asian|hairstyle|mullet": {
+   "path": "catalog-v1/male/anime/asian/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17398,
+   "sha256": "0c2ead9539312a415f9369bcd1ecaf54d40c9e834dbf5390be446e2bf5fb8e7a"
+  },
+  "male|Anime|asian|hairstyle|shaggy": {
+   "path": "catalog-v1/male/anime/asian/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17180,
+   "sha256": "284fb2478b81e511072ce85820241f5905daf19618f5cc04ccb37fa48835c956"
+  },
+  "male|Anime|asian|hairstyle|undercut": {
+   "path": "catalog-v1/male/anime/asian/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16752,
+   "sha256": "d8fc16bea12225eca21143fb4e577829db75f96d01fc62eb2a60601ed429db65"
+  },
+  "male|Anime|black|body|average": {
+   "path": "catalog-v1/male/anime/black/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12522,
+   "sha256": "522ce6bd2d8fd9e48179de6b8194c3de2d77038771516693f2959a863df016f3"
+  },
+  "male|Anime|black|body|large": {
+   "path": "catalog-v1/male/anime/black/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12312,
+   "sha256": "a115465cb3ab2c0daf5b27aa458e4127c7f00b161d11ee8ae29ea7b520cd0980"
+  },
+  "male|Anime|black|body|muscular": {
+   "path": "catalog-v1/male/anime/black/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8642,
+   "sha256": "9d2eecb85b1bbdedb87d0b5bff7de3b3daa0571b5543312c9e147a672489a8a6"
+  },
+  "male|Anime|black|body|slim": {
+   "path": "catalog-v1/male/anime/black/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13092,
+   "sha256": "96afc79891811d60e7073f245a0e4134fd9238ca77077c64fe1a32b86a7ae00e"
+  },
+  "male|Anime|black|body|stout": {
+   "path": "catalog-v1/male/anime/black/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11900,
+   "sha256": "04e064450341adffde8357d6a4286121198c8d1659868ed038e732ab20e937a6"
+  },
+  "male|Anime|black|breast|average": {
+   "path": "catalog-v1/male/anime/black/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18894,
+   "sha256": "dd19976735980dc8d27b642a694edb1e271cba19b7b2fcefa67d49b1abc0f3cf"
+  },
+  "male|Anime|black|breast|big": {
+   "path": "catalog-v1/male/anime/black/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19608,
+   "sha256": "a133adca87f2b5bae774e523e2b866e45e6ce68cbf56e3581c5726baa6e500ce"
+  },
+  "male|Anime|black|breast|huge": {
+   "path": "catalog-v1/male/anime/black/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13632,
+   "sha256": "27f051faf40e924b57448a6a8c85fe332b8dd1f3eed092b55759e0011b52f8ab"
+  },
+  "male|Anime|black|breast|micro": {
+   "path": "catalog-v1/male/anime/black/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17804,
+   "sha256": "c7d5ee5154d3fa6b2e89185a1e665afedc959d0fa0cb05cfc05046b847d2eb00"
+  },
+  "male|Anime|black|breast|small": {
+   "path": "catalog-v1/male/anime/black/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13216,
+   "sha256": "92c170a8ffb061fbacf5056fc61a92c6ec3e8bd33c5326f1e8a1a85ef294516b"
+  },
+  "male|Anime|black|ethnicity|black": {
+   "path": "catalog-v1/male/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14820,
+   "sha256": "1ecb05a60e1cae41b42d295342b3bdec5e193c32129ed3cf96214db3d9ce21db"
+  },
+  "male|Anime|black|hairstyle|bald": {
+   "path": "catalog-v1/male/anime/black/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17014,
+   "sha256": "204d982d2cf014ec5bbced71393cd0075a108c412963b98d1f5b3b28eb71592e"
+  },
+  "male|Anime|black|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/anime/black/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21448,
+   "sha256": "b35123a28779598a0ed21df4faced506d7a959ab63f11497ec40af9bcc32fdcc"
+  },
+  "male|Anime|black|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/anime/black/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15948,
+   "sha256": "3c071f2ae96940f1d45e045e3092b754af65139c9cd319630c0a1d090dfe2fbe"
+  },
+  "male|Anime|black|hairstyle|fade": {
+   "path": "catalog-v1/male/anime/black/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19458,
+   "sha256": "60114091f4e5a6e6f648e48d6361b08f58028fbd1693ce08151eb6126e983c15"
+  },
+  "male|Anime|black|hairstyle|long": {
+   "path": "catalog-v1/male/anime/black/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25288,
+   "sha256": "dd44d2ad32f247bef567215c241a370697f96ab11a67567a88ab217328be58f3"
+  },
+  "male|Anime|black|hairstyle|mullet": {
+   "path": "catalog-v1/male/anime/black/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18338,
+   "sha256": "ec6e3f123451b466df176fa915a5eebae000ca6c93fa93e7d34dfacde7c59ddb"
+  },
+  "male|Anime|black|hairstyle|shaggy": {
+   "path": "catalog-v1/male/anime/black/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18720,
+   "sha256": "92ee2df1c671b1443e6a2836f4e957ecb4a85d39e08df882389ba80376a188e3"
+  },
+  "male|Anime|black|hairstyle|undercut": {
+   "path": "catalog-v1/male/anime/black/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17642,
+   "sha256": "6fcda3edf6aa8d372b42caa94fd3df2e3e93112215aa06791c894f9ad41db5c8"
+  },
+  "male|Anime|latina|body|average": {
+   "path": "catalog-v1/male/anime/latina/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15964,
+   "sha256": "e6bc2170e0b63b07dec7caddddf0bc88bbb0e6a2144a15c1082c9c37ebc668d6"
+  },
+  "male|Anime|latina|body|large": {
+   "path": "catalog-v1/male/anime/latina/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19072,
+   "sha256": "e9cb94e13c1a1640ec9d0fa4d495cca0f7a32946dcb39c4f5ae38a04c0537f86"
+  },
+  "male|Anime|latina|body|muscular": {
+   "path": "catalog-v1/male/anime/latina/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12510,
+   "sha256": "fee5de4614cd58835098580dc9a2ebd316a0aa401a6eaeb0746cfaf0e7ee53e5"
+  },
+  "male|Anime|latina|body|slim": {
+   "path": "catalog-v1/male/anime/latina/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13772,
+   "sha256": "e881bd9157acb050f30490a51576f32db75d79c882871fd8ce164c1b3040f954"
+  },
+  "male|Anime|latina|body|stout": {
+   "path": "catalog-v1/male/anime/latina/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15730,
+   "sha256": "68648bb60d936b6f201fb89c8405398fc4af58d051aefddd9a3fa4fbabb7ef94"
+  },
+  "male|Anime|latina|breast|average": {
+   "path": "catalog-v1/male/anime/latina/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13822,
+   "sha256": "117b17905a8f75ad2873fb8c3d0e9d1768eb9d2badfa78c8a8e134e90528912c"
+  },
+  "male|Anime|latina|breast|big": {
+   "path": "catalog-v1/male/anime/latina/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21550,
+   "sha256": "64d032766f26c41060dcf7a53288ce933f15b60b3faf2911ebd20d8dffddef1d"
+  },
+  "male|Anime|latina|breast|huge": {
+   "path": "catalog-v1/male/anime/latina/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19014,
+   "sha256": "68e8724af7e376e7646920c6d525d5c15b5eb346d62426b27c1b1a21d9aaebe6"
+  },
+  "male|Anime|latina|breast|micro": {
+   "path": "catalog-v1/male/anime/latina/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19298,
+   "sha256": "b52514e1aeab8c51a765596d932fa325088a86ab737d924db31a4e77c4627563"
+  },
+  "male|Anime|latina|breast|small": {
+   "path": "catalog-v1/male/anime/latina/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17104,
+   "sha256": "405ce4f65f561cd715d421614e1c50a30abfd5619b927ce28daffa91427bd8ce"
+  },
+  "male|Anime|latina|ethnicity|latina": {
+   "path": "catalog-v1/male/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20438,
+   "sha256": "a19a430132dca75fc97b76d3f4e7097be63a73dad5f4175c349da7e6ff104270"
+  },
+  "male|Anime|latina|hairstyle|bald": {
+   "path": "catalog-v1/male/anime/latina/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15868,
+   "sha256": "db8f4b1d9f71b2dff9374e664566a3aa839d722f27317d6d05efa01c40e7420e"
+  },
+  "male|Anime|latina|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/anime/latina/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20646,
+   "sha256": "de2be496be28d7a74f2415dd819c444a7d35fc5e2e1e494cf4b8f99ffb0b1088"
+  },
+  "male|Anime|latina|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/anime/latina/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17292,
+   "sha256": "9d7dc739569950ff69c23b475a4e075c16af977a7a374e130a6332aab6d74431"
+  },
+  "male|Anime|latina|hairstyle|fade": {
+   "path": "catalog-v1/male/anime/latina/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20938,
+   "sha256": "65c92dc0a39458a14bd39e50da9f906d2811aeed8ee102d4e575bf0f1c7c66e2"
+  },
+  "male|Anime|latina|hairstyle|long": {
+   "path": "catalog-v1/male/anime/latina/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 27056,
+   "sha256": "5554710a43c67a6417a5e4ec4e3df984ce4023e6be8049cf798665d14f51b158"
+  },
+  "male|Anime|latina|hairstyle|mullet": {
+   "path": "catalog-v1/male/anime/latina/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22074,
+   "sha256": "eb69ce098006f5a02b9e7fb4726a65af3cad2d5cfa9a7d03feb951b50888c79c"
+  },
+  "male|Anime|latina|hairstyle|shaggy": {
+   "path": "catalog-v1/male/anime/latina/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23910,
+   "sha256": "01e499f934a16a942ab66fb676954c5463aad5dfaa513bfdced3b3042847afe9"
+  },
+  "male|Anime|latina|hairstyle|undercut": {
+   "path": "catalog-v1/male/anime/latina/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24918,
+   "sha256": "c700668a3434d7afa70618ce03d3f059b1f6172988c343775f0dc67909b612a7"
+  },
+  "male|Anime|middle-eastern|body|average": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15640,
+   "sha256": "d35a38d6e5b7fdd2279a36d34d5bea8907ac19a8807316570e30f254e45dc3c3"
+  },
+  "male|Anime|middle-eastern|body|large": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16974,
+   "sha256": "50a74e8b6251bb55fee0b0f13a3718cbfb3d3f356a08ff59a60134caa6aafcdb"
+  },
+  "male|Anime|middle-eastern|body|muscular": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16422,
+   "sha256": "33c536011c6bb306ed54df995797e89d63fc9368b8bb7dc4e927e3cd07a752c2"
+  },
+  "male|Anime|middle-eastern|body|slim": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15224,
+   "sha256": "3298de51754718f1c4f5ed4de81b14f5414008e4571adebc524e1da000bc2a13"
+  },
+  "male|Anime|middle-eastern|body|stout": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18078,
+   "sha256": "bc7ce0038ce2f21496c73d0dd1a29649f30685c6503a909398925e677c257532"
+  },
+  "male|Anime|middle-eastern|breast|average": {
+   "path": "catalog-v1/male/anime/middle-eastern/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17830,
+   "sha256": "37cc03d11769e6ee4f7fd098d9d65e2d18170d85f1c06f25fb3dbdacf553bcd7"
+  },
+  "male|Anime|middle-eastern|breast|big": {
+   "path": "catalog-v1/male/anime/middle-eastern/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22498,
+   "sha256": "5fa74ad46b7ab5fa7da09396df0ba2e56868be9cdf2cac1eb3d5c05a8b017763"
+  },
+  "male|Anime|middle-eastern|breast|huge": {
+   "path": "catalog-v1/male/anime/middle-eastern/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20192,
+   "sha256": "eb1698e5c7255e071309be80e5be0b4d226e134ca28e31e908278bff5cea000e"
+  },
+  "male|Anime|middle-eastern|breast|micro": {
+   "path": "catalog-v1/male/anime/middle-eastern/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21834,
+   "sha256": "ec8de06bc53e5f6e80e92387f7f02817d7d7082bbfb10301bd50bb7464ae54e7"
+  },
+  "male|Anime|middle-eastern|breast|small": {
+   "path": "catalog-v1/male/anime/middle-eastern/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19934,
+   "sha256": "a4628d2637a618af76e03689c7202dd68dadca28200127e63eec0b0a95608ff8"
+  },
+  "male|Anime|middle-eastern|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18534,
+   "sha256": "0deb95fab0505470a8f6ee4062936e2c21d25908c19124588f0cf8819eed31fa"
+  },
+  "male|Anime|middle-eastern|hairstyle|bald": {
+   "path": "catalog-v1/male/anime/middle-eastern/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15186,
+   "sha256": "ec1b7868d220dd6563637b18a7dbf299732f80dc2a48d4063453eddcb749474e"
+  },
+  "male|Anime|middle-eastern|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/anime/middle-eastern/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21598,
+   "sha256": "eaf71a6091e496a74d4b618884d003053c90a6a53395d6896d36984c386c848e"
+  },
+  "male|Anime|middle-eastern|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/anime/middle-eastern/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16670,
+   "sha256": "9b8d745add7fc4e328d16bb7eec9c4c57037550664f25fb4f9a161319d780e2f"
+  },
+  "male|Anime|middle-eastern|hairstyle|fade": {
+   "path": "catalog-v1/male/anime/middle-eastern/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17702,
+   "sha256": "5c567f99076c247a523cdb7327bb03973f2603be202843adf980d97004ad4ae7"
+  },
+  "male|Anime|middle-eastern|hairstyle|long": {
+   "path": "catalog-v1/male/anime/middle-eastern/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 30244,
+   "sha256": "44ce2e3f693687b2ba85ef9c944a86d488a187e95923a017adf0bd07ac62034c"
+  },
+  "male|Anime|middle-eastern|hairstyle|mullet": {
+   "path": "catalog-v1/male/anime/middle-eastern/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17650,
+   "sha256": "4e9720dfd9fb034dcc39ddd3df67fef3a0a65bc9a496cfa5e699685774e7def6"
+  },
+  "male|Anime|middle-eastern|hairstyle|shaggy": {
+   "path": "catalog-v1/male/anime/middle-eastern/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19444,
+   "sha256": "54d0d744958187dbe3358e8983c10792be9da5dff983a9ec4f48080f76210848"
+  },
+  "male|Anime|middle-eastern|hairstyle|undercut": {
+   "path": "catalog-v1/male/anime/middle-eastern/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17344,
+   "sha256": "3cd7f09c5910067826ed33c0e7205ebe6b26fc3083c68dc41cfdedf81e8287bf"
+  },
+  "male|Anime|south-asian|body|average": {
+   "path": "catalog-v1/male/anime/south-asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18342,
+   "sha256": "6cc46b32d6b6529e98dc5998ccb9a24c1a79dd1fbc8306502fe1ad4f80449f85"
+  },
+  "male|Anime|south-asian|body|large": {
+   "path": "catalog-v1/male/anime/south-asian/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16714,
+   "sha256": "a2d28c349e58ae2aa331ed6f815724e03fc1f4eb8a35b7b25dd86975abae1c6c"
+  },
+  "male|Anime|south-asian|body|muscular": {
+   "path": "catalog-v1/male/anime/south-asian/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14348,
+   "sha256": "1024421fadfc287eeb403f0221863dda990c0b54acfecb8c65e5060426fd5591"
+  },
+  "male|Anime|south-asian|body|slim": {
+   "path": "catalog-v1/male/anime/south-asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14676,
+   "sha256": "0eb108cb587082758564fe27d4bf43d6b02478f665b87b0e94a90bc43f60293d"
+  },
+  "male|Anime|south-asian|body|stout": {
+   "path": "catalog-v1/male/anime/south-asian/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13714,
+   "sha256": "2a8ea5a6e653e9bba32e98b29e281229e0690ac08461836f0f685b7489636444"
+  },
+  "male|Anime|south-asian|breast|average": {
+   "path": "catalog-v1/male/anime/south-asian/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13744,
+   "sha256": "8c591e5daa2236003d1530fd447740cc099fe03814701f6217b0ad71c5dd74fd"
+  },
+  "male|Anime|south-asian|breast|big": {
+   "path": "catalog-v1/male/anime/south-asian/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16346,
+   "sha256": "f58a6c59d0a65800a84a91fa94186ce6d80455061177bced2ec078a3bab6ed27"
+  },
+  "male|Anime|south-asian|breast|huge": {
+   "path": "catalog-v1/male/anime/south-asian/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18588,
+   "sha256": "0d3747a83cc07af7d6643e0ed9bfe6612a1871acf7134d5017d60f93ed4df2b4"
+  },
+  "male|Anime|south-asian|breast|micro": {
+   "path": "catalog-v1/male/anime/south-asian/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19884,
+   "sha256": "ad8d43d983ec404bd38acf40746660f331221bce18d9e2847ce72c061472d28a"
+  },
+  "male|Anime|south-asian|breast|small": {
+   "path": "catalog-v1/male/anime/south-asian/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14706,
+   "sha256": "79d6a2428e619d620c74bfd5ced16742920712b36e64573a8c2a3322aeaf4b4b"
+  },
+  "male|Anime|south-asian|ethnicity|south-asian": {
+   "path": "catalog-v1/male/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17470,
+   "sha256": "bbcef78a2aa8d69ca14ba31c2834ad81f7b5ec73be949b1f5adb44de0cd91c64"
+  },
+  "male|Anime|south-asian|hairstyle|bald": {
+   "path": "catalog-v1/male/anime/south-asian/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16900,
+   "sha256": "ee37ebfa15bcf20acda1a270491fdc5df7b945caaed0b9ca750b240e2bc87b76"
+  },
+  "male|Anime|south-asian|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/anime/south-asian/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22616,
+   "sha256": "8e5d946dc8f33fc68560c7a80f2f1f877d44dc604ca7eaa898bdd25ac0a834c6"
+  },
+  "male|Anime|south-asian|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/anime/south-asian/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18472,
+   "sha256": "bf5472f7fbe478bf9638d7d70442ebc398577a493810169a392c7a1feeea01ad"
+  },
+  "male|Anime|south-asian|hairstyle|fade": {
+   "path": "catalog-v1/male/anime/south-asian/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19568,
+   "sha256": "7f76e9b54e8c2e54ee6b510c7e2f5a1bcfccc5492ae7758ef30cfd6f44768172"
+  },
+  "male|Anime|south-asian|hairstyle|long": {
+   "path": "catalog-v1/male/anime/south-asian/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25238,
+   "sha256": "cb4068b663127be4318aa7804e9d9f511ae8b682ea781de46343a18258a8ecc9"
+  },
+  "male|Anime|south-asian|hairstyle|mullet": {
+   "path": "catalog-v1/male/anime/south-asian/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20272,
+   "sha256": "64409b4d0ddc28fa18fbd653d3c7e93b9de2a39ca05f6141d993dd950dcb2a61"
+  },
+  "male|Anime|south-asian|hairstyle|shaggy": {
+   "path": "catalog-v1/male/anime/south-asian/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20704,
+   "sha256": "eb49b08e571146df884f0a460981f2d02ee09b1db9021a49887b9489d280e28c"
+  },
+  "male|Anime|south-asian|hairstyle|undercut": {
+   "path": "catalog-v1/male/anime/south-asian/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18946,
+   "sha256": "f4f05b02263a45072581a749cc1a5a47a5bb0feb6c30445f9cc8d7e1cca19f2d"
+  },
+  "male|Anime|white|body|average": {
+   "path": "catalog-v1/male/anime/white/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13968,
+   "sha256": "363d3e0afaac42937c4bd8602095b47b02c360558ac5ed611880f14af258650a"
+  },
+  "male|Anime|white|body|large": {
+   "path": "catalog-v1/male/anime/white/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16828,
+   "sha256": "735ef5d9afff5859c6424522c8f239c567655520f5a38f6cbdc7a21eeafab745"
+  },
+  "male|Anime|white|body|muscular": {
+   "path": "catalog-v1/male/anime/white/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13532,
+   "sha256": "f8af517f1e3ea28a7dc824b130188d4dfc6fa7131d0b94a05459184946cae5d6"
+  },
+  "male|Anime|white|body|slim": {
+   "path": "catalog-v1/male/anime/white/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12088,
+   "sha256": "c65e2b8f4de61ff1edac36564dae5e6858a52ef2a8ae0b0f78b126c33d476c1c"
+  },
+  "male|Anime|white|body|stout": {
+   "path": "catalog-v1/male/anime/white/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15150,
+   "sha256": "54a3b19d2d14e304078fb021c75f83096be62d3b41dd663dd26a5cacce738984"
+  },
+  "male|Anime|white|breast|average": {
+   "path": "catalog-v1/male/anime/white/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12850,
+   "sha256": "1601e5fe36c2e3e70f3b75acd1aa1a58d2f6b31e9bf3be1106d33e9e3f0a6910"
+  },
+  "male|Anime|white|breast|big": {
+   "path": "catalog-v1/male/anime/white/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20516,
+   "sha256": "cf6ac1dc9866aea75d53ab5351e168a76c174768212d664c1af1c967b47c56fc"
+  },
+  "male|Anime|white|breast|huge": {
+   "path": "catalog-v1/male/anime/white/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18252,
+   "sha256": "836a414ba241033cfb3b91a9a085da6ac41942fd613341fe68dcc8367b922c3d"
+  },
+  "male|Anime|white|breast|micro": {
+   "path": "catalog-v1/male/anime/white/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17088,
+   "sha256": "907ad0a46f031d207beea1eb1980669e061608538d9f5f4deaf7af7e146f2604"
+  },
+  "male|Anime|white|breast|small": {
+   "path": "catalog-v1/male/anime/white/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16210,
+   "sha256": "31a0f5373a679807301db62b3793fbd01702e90bb3e9c9a6b08e81664713f9d8"
+  },
+  "male|Anime|white|ethnicity|white": {
+   "path": "catalog-v1/male/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20294,
+   "sha256": "d99bece5fd72001e7216a2b8d9a7444e5c7ee8599060202108712c67f8d75f19"
+  },
+  "male|Anime|white|hairstyle|bald": {
+   "path": "catalog-v1/male/anime/white/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13918,
+   "sha256": "ed063ca000b1af050c155ce2fef6d2314a4c18bd87fcd59b88161e66d918b19a"
+  },
+  "male|Anime|white|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/anime/white/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22354,
+   "sha256": "b0a87f30ce8ae1f9fb599fad81cd27e0a150c6246f2ba0554f8261681aaa4337"
+  },
+  "male|Anime|white|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/anime/white/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18346,
+   "sha256": "efcfff00db999cac5eafa1addda1a07230084f573d61a6880f17437b3cc7ec3a"
+  },
+  "male|Anime|white|hairstyle|fade": {
+   "path": "catalog-v1/male/anime/white/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15492,
+   "sha256": "814f3ccfda15ca7956651524860f4692e28ea7e0cf4b510f040d35fd52875fb3"
+  },
+  "male|Anime|white|hairstyle|long": {
+   "path": "catalog-v1/male/anime/white/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 27758,
+   "sha256": "f2ab16d6e26040f952e3856bd78c24119377cd0b465eef668272955ed07f529c"
+  },
+  "male|Anime|white|hairstyle|mullet": {
+   "path": "catalog-v1/male/anime/white/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23092,
+   "sha256": "ae6294833ea39f5bd23868fc60894595e040cefa70f2fc48990f392ace653ab7"
+  },
+  "male|Anime|white|hairstyle|shaggy": {
+   "path": "catalog-v1/male/anime/white/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 23748,
+   "sha256": "60f61fad9a4051cddf1981e6882e8b0cdd69c0dba4cdb44b9c0e6fb5667b89fe"
+  },
+  "male|Anime|white|hairstyle|undercut": {
+   "path": "catalog-v1/male/anime/white/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 21502,
+   "sha256": "0519412edf01d2dbac725b6728a46453e9c8c9beaad9775bd57b823e10470115"
+  },
+  "male|Realistic|asian|body|average": {
+   "path": "catalog-v1/male/realistic/asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8460,
+   "sha256": "cec0bebcf45235cf161ec6d9ac8039119adcfa853e8fdac889aafff654178038"
+  },
+  "male|Realistic|asian|body|large": {
+   "path": "catalog-v1/male/realistic/asian/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10376,
+   "sha256": "f7b8af74427aca4ee1218303466f8a5cc5660f84d03f446b89bc5656a447ff75"
+  },
+  "male|Realistic|asian|body|muscular": {
+   "path": "catalog-v1/male/realistic/asian/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8924,
+   "sha256": "4be5e3e5a5aa373575df8a00ba92df99c00909ca66f864d751b6b55a9650c79e"
+  },
+  "male|Realistic|asian|body|slim": {
+   "path": "catalog-v1/male/realistic/asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8588,
+   "sha256": "d2642776b500e32230fc8dd5bda03491452af403a5306fd45b3fb400c5d938be"
+  },
+  "male|Realistic|asian|body|stout": {
+   "path": "catalog-v1/male/realistic/asian/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9228,
+   "sha256": "31488ecbe7df455574fd496774a0f1f9a3368284bc3476459a73fbed2c72c6aa"
+  },
+  "male|Realistic|asian|breast|average": {
+   "path": "catalog-v1/male/realistic/asian/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 6986,
+   "sha256": "4985819d7f6d14d5f6a33f078f76e63a4fd039c86ab41635ca8204aee1149e01"
+  },
+  "male|Realistic|asian|breast|big": {
+   "path": "catalog-v1/male/realistic/asian/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8338,
+   "sha256": "159fa180e954187124967bcf5209e979062d2c27c763d36fe04dbc3d98b9e9d4"
+  },
+  "male|Realistic|asian|breast|huge": {
+   "path": "catalog-v1/male/realistic/asian/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 7874,
+   "sha256": "c7954fd65efdda20275d79d679c95e1b0ae3abdde8b87262e0c0d328e8067058"
+  },
+  "male|Realistic|asian|breast|micro": {
+   "path": "catalog-v1/male/realistic/asian/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8178,
+   "sha256": "05864088df02296b93d28f7bb09362d54894947989c1a9960adefb7164d49f77"
+  },
+  "male|Realistic|asian|breast|small": {
+   "path": "catalog-v1/male/realistic/asian/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 7052,
+   "sha256": "284a1995f499f347c391b3bc9876caf7198319021f7f5850ecd86c252af17c4a"
+  },
+  "male|Realistic|asian|ethnicity|asian": {
+   "path": "catalog-v1/male/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13662,
+   "sha256": "4e78652bf5a5be78eb5cddbe7f9a41ef1643778807cd5876cd3e98b69db441e8"
+  },
+  "male|Realistic|asian|hairstyle|bald": {
+   "path": "catalog-v1/male/realistic/asian/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10616,
+   "sha256": "fcf3ec9ac9059ce44b01b0fe6be863f146b126976d1960cba545889f04b188fd"
+  },
+  "male|Realistic|asian|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/realistic/asian/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11644,
+   "sha256": "e288d77a946a9f408e7c801b5acdb5e76ca495f087f6ffbf759df391dfafec0c"
+  },
+  "male|Realistic|asian|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/realistic/asian/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11152,
+   "sha256": "fa341b8c7aa4efaa56ff298833c61c26cf4608683cb1693530df12418ac429c5"
+  },
+  "male|Realistic|asian|hairstyle|fade": {
+   "path": "catalog-v1/male/realistic/asian/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11798,
+   "sha256": "5dc46bce9e784fe68c43171a0d0f95fe06d58217c8629381d09a992c17ee3550"
+  },
+  "male|Realistic|asian|hairstyle|long": {
+   "path": "catalog-v1/male/realistic/asian/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11284,
+   "sha256": "5dd0c32a0df96d4a9a0f83d053e7e907589b39fe090c36f024dc7a0c4baec3d7"
+  },
+  "male|Realistic|asian|hairstyle|mullet": {
+   "path": "catalog-v1/male/realistic/asian/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9588,
+   "sha256": "5fb9b2449ac34a81f9a9e28de1a47648fc5a23403280412932886f1617fa11c3"
+  },
+  "male|Realistic|asian|hairstyle|shaggy": {
+   "path": "catalog-v1/male/realistic/asian/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10006,
+   "sha256": "230bbd07dcf8837828e819f310117244f6e93770b970f0e92b49604f697a8394"
+  },
+  "male|Realistic|asian|hairstyle|undercut": {
+   "path": "catalog-v1/male/realistic/asian/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11364,
+   "sha256": "f4589200b2b9ca9ec510302a20cd883c58d85bd06f216208023b887623c2ca21"
+  },
+  "male|Realistic|black|body|average": {
+   "path": "catalog-v1/male/realistic/black/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9324,
+   "sha256": "a077d590722171c9b4740a7a4ed07ce07080c5ce14e07a025ad2681d0105bf4d"
+  },
+  "male|Realistic|black|body|large": {
+   "path": "catalog-v1/male/realistic/black/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11926,
+   "sha256": "693b81691fa4f68864beddf53dbd0145eb4c439dfd92630ffb42f051376bba6e"
+  },
+  "male|Realistic|black|body|muscular": {
+   "path": "catalog-v1/male/realistic/black/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9504,
+   "sha256": "dc8f56f3622e0021ce510bf7d2a939330322eea8156aa966d9bb7b508853412b"
+  },
+  "male|Realistic|black|body|slim": {
+   "path": "catalog-v1/male/realistic/black/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8598,
+   "sha256": "1393114b81fe6ba7893fcc700ac3f80803ed35a8d7306ca8ff7ac73515e9ccbc"
+  },
+  "male|Realistic|black|body|stout": {
+   "path": "catalog-v1/male/realistic/black/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9442,
+   "sha256": "671835bf1f57c3eae98910948ccbfaa3aa473f67ed796b2cf48e9861070db26b"
+  },
+  "male|Realistic|black|breast|average": {
+   "path": "catalog-v1/male/realistic/black/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10150,
+   "sha256": "9127d2ec459bb3f8327606c729c6b1015dbcd3813171989bb76da5bf3dc36554"
+  },
+  "male|Realistic|black|breast|big": {
+   "path": "catalog-v1/male/realistic/black/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8240,
+   "sha256": "7054204c67c17d0b06d34d9ec5a6154d9320440a356a1149df466080e667ae4e"
+  },
+  "male|Realistic|black|breast|huge": {
+   "path": "catalog-v1/male/realistic/black/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8604,
+   "sha256": "7f4f79b72d15c09b3dc5423d2881cad719480e27031f7932ad8e3b260e18a33e"
+  },
+  "male|Realistic|black|breast|micro": {
+   "path": "catalog-v1/male/realistic/black/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9232,
+   "sha256": "d92214668f1352b4a729ee6dee53b13d0f8abdcaad97cb6b4a6adb87d0835bb6"
+  },
+  "male|Realistic|black|breast|small": {
+   "path": "catalog-v1/male/realistic/black/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8048,
+   "sha256": "ef199c1f1a702d446fae9cb0431b4fe8c8bc28595cb3b012c83a5948cde778dd"
+  },
+  "male|Realistic|black|ethnicity|black": {
+   "path": "catalog-v1/male/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10482,
+   "sha256": "9710f36d717dbe7ac0962232e7e311ab5cd95fd5c20b19c669060f6fbc4c57e0"
+  },
+  "male|Realistic|black|hairstyle|bald": {
+   "path": "catalog-v1/male/realistic/black/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9038,
+   "sha256": "00ce8971f253990527027c3b7b29ff75a8847e48e78ce5c7ddd91971364e133c"
+  },
+  "male|Realistic|black|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/realistic/black/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11968,
+   "sha256": "60bc3033cbb013b71406c9e45ba57eaffefd4c896111b0613c8a91a36c80b466"
+  },
+  "male|Realistic|black|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/realistic/black/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12288,
+   "sha256": "1d982c9b6dfbe57890dddc162495a7109acdf664d0cc146475cc851dcc3fe036"
+  },
+  "male|Realistic|black|hairstyle|fade": {
+   "path": "catalog-v1/male/realistic/black/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10574,
+   "sha256": "93050f335d519f18798aca5b18ee88401f0fe6daecb95644a1aa01ec0f44aba2"
+  },
+  "male|Realistic|black|hairstyle|long": {
+   "path": "catalog-v1/male/realistic/black/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15492,
+   "sha256": "4ff87d63d1c55fd94eed9080fb93428afb1fc576590a4a8c7235b3d9c8e82ce2"
+  },
+  "male|Realistic|black|hairstyle|mullet": {
+   "path": "catalog-v1/male/realistic/black/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9960,
+   "sha256": "0c11e5b7ffcf19085e37710dfd2bfc8a00ac4c2239c6f9635e50db5f96e95f3c"
+  },
+  "male|Realistic|black|hairstyle|shaggy": {
+   "path": "catalog-v1/male/realistic/black/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10804,
+   "sha256": "99478b53065801ee46d0fe56c74ee00911605bff1ad1d206bc48b697a8a34405"
+  },
+  "male|Realistic|black|hairstyle|undercut": {
+   "path": "catalog-v1/male/realistic/black/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10628,
+   "sha256": "f15c37ab5fd017aeaabc560540dd1a70dbbf46ccf569b406cae6d08c0120f3eb"
+  },
+  "male|Realistic|latina|body|average": {
+   "path": "catalog-v1/male/realistic/latina/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8298,
+   "sha256": "535c10aec24cf8bb29437e452c89f81099fe1cb7e61d285790d58682d16afe21"
+  },
+  "male|Realistic|latina|body|large": {
+   "path": "catalog-v1/male/realistic/latina/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12210,
+   "sha256": "eabf3dbc90e7509cc81b9a860b9e53bd2fcd537fe4615ed044eaa83e881b2d71"
+  },
+  "male|Realistic|latina|body|muscular": {
+   "path": "catalog-v1/male/realistic/latina/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10468,
+   "sha256": "46a18391e5b2a625cb6055028ab69a630bec9c95a032df653f138f823cda467c"
+  },
+  "male|Realistic|latina|body|slim": {
+   "path": "catalog-v1/male/realistic/latina/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8592,
+   "sha256": "241138fd6490d38bbd3463b4c37f66ef07267e6f597ef8761db00b2694b7c7a8"
+  },
+  "male|Realistic|latina|body|stout": {
+   "path": "catalog-v1/male/realistic/latina/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8676,
+   "sha256": "753c4d41b6504a0109e1221072402540267f2105b9cb41d6e7214b1de8f42341"
+  },
+  "male|Realistic|latina|breast|average": {
+   "path": "catalog-v1/male/realistic/latina/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 7140,
+   "sha256": "46a2a22938df39a8df2c653b7352e1182c17d27666fdbc98c9928672833a71fd"
+  },
+  "male|Realistic|latina|breast|big": {
+   "path": "catalog-v1/male/realistic/latina/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8420,
+   "sha256": "c84a96171a5eaab419279aebba27d20dd2d2f540a327aa2ce5a59fcf4c2df97a"
+  },
+  "male|Realistic|latina|breast|huge": {
+   "path": "catalog-v1/male/realistic/latina/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8244,
+   "sha256": "97f5325d9bbba5431e0763982dc625baa4a06696c3684e87edc74108e157fa42"
+  },
+  "male|Realistic|latina|breast|micro": {
+   "path": "catalog-v1/male/realistic/latina/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9546,
+   "sha256": "7d0ca0c7ccc519153bea0e0d47a755e8c3756fe33319be3ba440cb628c9403a2"
+  },
+  "male|Realistic|latina|breast|small": {
+   "path": "catalog-v1/male/realistic/latina/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8442,
+   "sha256": "7750abebd72a5504629e4f871a985fbd779217d2737bce27ca12e8480246a575"
+  },
+  "male|Realistic|latina|ethnicity|latina": {
+   "path": "catalog-v1/male/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10820,
+   "sha256": "1d5016e9c5f07e9cd20b186c1880c1c023965dd15b47dfbcf1a0ba117d099cbc"
+  },
+  "male|Realistic|latina|hairstyle|bald": {
+   "path": "catalog-v1/male/realistic/latina/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9012,
+   "sha256": "9cb2fc1cbab100d555427f610068a5028483cf05c9de4a616b8e28188be0d60d"
+  },
+  "male|Realistic|latina|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/realistic/latina/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12198,
+   "sha256": "2020996e019015ff9ce8be92cc82f9e993af879f8ddb1e8b702ca0b7a02659b3"
+  },
+  "male|Realistic|latina|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/realistic/latina/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8702,
+   "sha256": "e941e78ed9ba698413312e3fc067691d5dc3911f628348fe043d7bf1ba09bb5c"
+  },
+  "male|Realistic|latina|hairstyle|fade": {
+   "path": "catalog-v1/male/realistic/latina/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11372,
+   "sha256": "37e7a7b2a6552db21153dcbcefe0c44c0b1973ef33178ba0fcc5ef2c2c294a2e"
+  },
+  "male|Realistic|latina|hairstyle|long": {
+   "path": "catalog-v1/male/realistic/latina/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11842,
+   "sha256": "eeed2d4e60984eaca3b714a6628dadcfbe575359cf53d72d261fdaf5b9f93bed"
+  },
+  "male|Realistic|latina|hairstyle|mullet": {
+   "path": "catalog-v1/male/realistic/latina/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9688,
+   "sha256": "88ceeee30a532cba9b4f4e5a6d11c5575c5648c63efdafe350c4e7343d62183b"
+  },
+  "male|Realistic|latina|hairstyle|shaggy": {
+   "path": "catalog-v1/male/realistic/latina/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9092,
+   "sha256": "f3ccf4b432be635eb50a194ab4908412a45f6b76cabb9b8c3de3c90f1bbddb63"
+  },
+  "male|Realistic|latina|hairstyle|undercut": {
+   "path": "catalog-v1/male/realistic/latina/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14298,
+   "sha256": "f88ee144cb1f19c5e76ba5f7108a9e888df8081860c0e174393f7cf64c26fddf"
+  },
+  "male|Realistic|middle-eastern|body|average": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10358,
+   "sha256": "c9e1b7df2db7b5f7fada489c58d636dd2fdfd5e6b80a82ef13e092083e6099dd"
+  },
+  "male|Realistic|middle-eastern|body|large": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11310,
+   "sha256": "d7dbe22e4219d02bf18e283601b76a0bbaca1b78a0787512187c78fd90919c66"
+  },
+  "male|Realistic|middle-eastern|body|muscular": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11366,
+   "sha256": "5a83282fc2fe3476c5cc3448a1e8a5c9c2a9b91ccbd763d7e22bf6b8b6625e11"
+  },
+  "male|Realistic|middle-eastern|body|slim": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8006,
+   "sha256": "98e77458aa8836ffd060709c7cca1c2beecdc16efc6d028f84cf6a98c86baac0"
+  },
+  "male|Realistic|middle-eastern|body|stout": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9194,
+   "sha256": "176416722ad056d9a0d8575f257310dfa3f9c40aa942a89fb1481079136959a4"
+  },
+  "male|Realistic|middle-eastern|breast|average": {
+   "path": "catalog-v1/male/realistic/middle-eastern/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8234,
+   "sha256": "3882b53a29c960f804fa30f08e5f5ac2f37e30547e3d93391b7ba292500bb90b"
+  },
+  "male|Realistic|middle-eastern|breast|big": {
+   "path": "catalog-v1/male/realistic/middle-eastern/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13702,
+   "sha256": "9a98487a306cddff898ac82ab740d9f76ecc7324a35b2b06f1c657d90923ae14"
+  },
+  "male|Realistic|middle-eastern|breast|huge": {
+   "path": "catalog-v1/male/realistic/middle-eastern/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8746,
+   "sha256": "de8915d9bb372d3a0a9f3040a9fcd10aac3a27470a9d5c6578fc3f0a4f27c5ab"
+  },
+  "male|Realistic|middle-eastern|breast|micro": {
+   "path": "catalog-v1/male/realistic/middle-eastern/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 7536,
+   "sha256": "fced5597e7d277753a6a213622152814bfd4d17c714ce6b94f94a45571bc6c08"
+  },
+  "male|Realistic|middle-eastern|breast|small": {
+   "path": "catalog-v1/male/realistic/middle-eastern/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8392,
+   "sha256": "3c3726a90525e5af03d82e0e3bc59e6751e633bf6ad0c54dd91d6bf1031900b1"
+  },
+  "male|Realistic|middle-eastern|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11946,
+   "sha256": "f7cf582878f40f80166b753976e3d14d725c7f44497de8e704df0107c702ff7d"
+  },
+  "male|Realistic|middle-eastern|hairstyle|bald": {
+   "path": "catalog-v1/male/realistic/middle-eastern/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11470,
+   "sha256": "94b5aa0b92bee831628bc8f6c1fd65c7d1c45ddc95af93ce04d34a77ff6999e2"
+  },
+  "male|Realistic|middle-eastern|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/realistic/middle-eastern/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13196,
+   "sha256": "ef0abd2e0d3626ee4e5ba6b33c9f53a67ba55f3edc291cb2bcd41f3ec792956c"
+  },
+  "male|Realistic|middle-eastern|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/realistic/middle-eastern/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12136,
+   "sha256": "1f397fd6bcbf6e60170c14a23d198fca4f96977047a626b3554db7ef3f9057d2"
+  },
+  "male|Realistic|middle-eastern|hairstyle|fade": {
+   "path": "catalog-v1/male/realistic/middle-eastern/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11050,
+   "sha256": "ab255a761beda268c2b16fcd71aa64fb1e859c6eb52a1e4883d868ef722335a8"
+  },
+  "male|Realistic|middle-eastern|hairstyle|long": {
+   "path": "catalog-v1/male/realistic/middle-eastern/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18314,
+   "sha256": "8d9eaa08f90824a453bd8b632c44a421abf3d44a43f4d1eb9d4a9fd0489172e5"
+  },
+  "male|Realistic|middle-eastern|hairstyle|mullet": {
+   "path": "catalog-v1/male/realistic/middle-eastern/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11340,
+   "sha256": "bf26b03ef8f4945c02e6fbbedb6b422e8664f4e7c453d9c8634e9077936544cc"
+  },
+  "male|Realistic|middle-eastern|hairstyle|shaggy": {
+   "path": "catalog-v1/male/realistic/middle-eastern/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10836,
+   "sha256": "1e945248aa032d31957d41b776edff513d0d85f92b092968c58fbcd0f5584184"
+  },
+  "male|Realistic|middle-eastern|hairstyle|undercut": {
+   "path": "catalog-v1/male/realistic/middle-eastern/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13536,
+   "sha256": "6bcd0df860dac014011844d8ceb195bb38edd0d261b9d331f09079d863ae09c0"
+  },
+  "male|Realistic|south-asian|body|average": {
+   "path": "catalog-v1/male/realistic/south-asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9168,
+   "sha256": "f36f0e751c2f713eb0876c8245efb44ff70d3d0dd9ba1e720d93a53613c3e9c2"
+  },
+  "male|Realistic|south-asian|body|large": {
+   "path": "catalog-v1/male/realistic/south-asian/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8860,
+   "sha256": "d3cfede1f098dc7ea8446711f52b0392da029a47193ceca8eb81ee00ffe2b4b5"
+  },
+  "male|Realistic|south-asian|body|muscular": {
+   "path": "catalog-v1/male/realistic/south-asian/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9312,
+   "sha256": "9c92adba5a209c5f6c086639283fb1c161bcf43b7f1716aaa489ce609e182d1b"
+  },
+  "male|Realistic|south-asian|body|slim": {
+   "path": "catalog-v1/male/realistic/south-asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8148,
+   "sha256": "98c404454a6efd8197e9d7f495b9c6f2596dc3782729dd441b21bdb6772b01e4"
+  },
+  "male|Realistic|south-asian|body|stout": {
+   "path": "catalog-v1/male/realistic/south-asian/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10840,
+   "sha256": "22cbbb39163b22f906bf41ab536e7fdfe836bd9cfb59250efa830b0d5eae7734"
+  },
+  "male|Realistic|south-asian|breast|average": {
+   "path": "catalog-v1/male/realistic/south-asian/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 7958,
+   "sha256": "914fee0ab22c8b9a9c4ab110a307f35e3a0c712af94f4e1bc36230ef9981a78c"
+  },
+  "male|Realistic|south-asian|breast|big": {
+   "path": "catalog-v1/male/realistic/south-asian/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 7904,
+   "sha256": "194a7776085b56c17267c7343025e3118f2fa802bd5d8b1f13ffcb67cd3a5181"
+  },
+  "male|Realistic|south-asian|breast|huge": {
+   "path": "catalog-v1/male/realistic/south-asian/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8504,
+   "sha256": "f167ff932206578da3e02c818efc2980d8a83ccad97092e6c07b94b8a83bf3a8"
+  },
+  "male|Realistic|south-asian|breast|micro": {
+   "path": "catalog-v1/male/realistic/south-asian/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 7152,
+   "sha256": "55eacd8e5d5aa4aa7246bffe5824b60e7822953a411c98e939f75d7edaaf17b9"
+  },
+  "male|Realistic|south-asian|breast|small": {
+   "path": "catalog-v1/male/realistic/south-asian/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8370,
+   "sha256": "007d54d292e95fc2fec4d0d7b185021cff7b9404e40692623f56deb570e6b418"
+  },
+  "male|Realistic|south-asian|ethnicity|south-asian": {
+   "path": "catalog-v1/male/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11636,
+   "sha256": "b367725415899111c10b12765d2a3c2d9d35efa4ef4c0997312b977b0ce625d8"
+  },
+  "male|Realistic|south-asian|hairstyle|bald": {
+   "path": "catalog-v1/male/realistic/south-asian/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12756,
+   "sha256": "bf2a2704ca7393d632614f2e28d541c926878efc0653f9c3c14d2134f24678a7"
+  },
+  "male|Realistic|south-asian|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/realistic/south-asian/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12770,
+   "sha256": "3f090d7687524c8ea640a70b4eb8a60b724598f5a79e50f7280f47d12ca4186a"
+  },
+  "male|Realistic|south-asian|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/realistic/south-asian/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13020,
+   "sha256": "c5b7a03e627e37405c2be3193d2d9f0b5c2fe97c5a0aeef30e896a0ad91c62f3"
+  },
+  "male|Realistic|south-asian|hairstyle|fade": {
+   "path": "catalog-v1/male/realistic/south-asian/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12276,
+   "sha256": "ff692c85c3a08a6eb50258c4efcf63856d0285046081507f1bbbd155e318e5bf"
+  },
+  "male|Realistic|south-asian|hairstyle|long": {
+   "path": "catalog-v1/male/realistic/south-asian/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13940,
+   "sha256": "6b4b794994b9a8a470f5c3a66423b2548ec88dd886f94848c7e94986c90db7c1"
+  },
+  "male|Realistic|south-asian|hairstyle|mullet": {
+   "path": "catalog-v1/male/realistic/south-asian/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12104,
+   "sha256": "c5051d6d1b14755436b6a3456e456bd5f83695ce9a11bf788350fbcb62922ebc"
+  },
+  "male|Realistic|south-asian|hairstyle|shaggy": {
+   "path": "catalog-v1/male/realistic/south-asian/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15004,
+   "sha256": "749b9778a5bf5223b0eb57448c6d27d2fe78d06725e0342f4706be44666594e6"
+  },
+  "male|Realistic|south-asian|hairstyle|undercut": {
+   "path": "catalog-v1/male/realistic/south-asian/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12432,
+   "sha256": "e50efc744d327312157f2e3403079c7401f89bd6ea08e0a487cb4caa8cb1d449"
+  },
+  "male|Realistic|white|body|average": {
+   "path": "catalog-v1/male/realistic/white/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8340,
+   "sha256": "9e786819e993c1c8b2380c76082db9fe2a03b742533d10ba2a1ebb75addcd28c"
+  },
+  "male|Realistic|white|body|large": {
+   "path": "catalog-v1/male/realistic/white/body-large.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9082,
+   "sha256": "2abe168f62af974ec7185958c1b6e99711be627931890ceae79a60cefbcc77bc"
+  },
+  "male|Realistic|white|body|muscular": {
+   "path": "catalog-v1/male/realistic/white/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9502,
+   "sha256": "5ad67225f8d2a39b118eac0f94f47c1d8e2b2170d560b405f68affd5af2d0aa6"
+  },
+  "male|Realistic|white|body|slim": {
+   "path": "catalog-v1/male/realistic/white/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8688,
+   "sha256": "6b0aa48ee00c16f08230f8913a1720d232602cb771844bfb8472beb7bb2f3d70"
+  },
+  "male|Realistic|white|body|stout": {
+   "path": "catalog-v1/male/realistic/white/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10314,
+   "sha256": "b495cf0018039239c464295919b8a9f36970acddbbfffd3ee030412bdc727c79"
+  },
+  "male|Realistic|white|breast|average": {
+   "path": "catalog-v1/male/realistic/white/breast-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8188,
+   "sha256": "11bd7543abdcfeddd76a849d436193c19134cae300622d89b6a850e60b946728"
+  },
+  "male|Realistic|white|breast|big": {
+   "path": "catalog-v1/male/realistic/white/breast-big.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8310,
+   "sha256": "59196903f2446c58302e6e893f23098bfdf9d643e0be3026e6e81f6213e2bcd7"
+  },
+  "male|Realistic|white|breast|huge": {
+   "path": "catalog-v1/male/realistic/white/breast-huge.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 7628,
+   "sha256": "b7be89f0bc5c0768decdbf77cb093eefe581419ec57e4931651314b09579b1f9"
+  },
+  "male|Realistic|white|breast|micro": {
+   "path": "catalog-v1/male/realistic/white/breast-micro.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10104,
+   "sha256": "d8fb33894921ba2d13ce32581e4c68dac1e3167c3498276f46b121cabcef4c3a"
+  },
+  "male|Realistic|white|breast|small": {
+   "path": "catalog-v1/male/realistic/white/breast-small.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8434,
+   "sha256": "c6b1d2e66923510cd6ee30b6f5192a4af993519e4ec8bd043f4601b100c65111"
+  },
+  "male|Realistic|white|ethnicity|white": {
+   "path": "catalog-v1/male/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13008,
+   "sha256": "3da152d5653539c1d0d656cf3d781330c7763273688add127e7bf6a6e9f5688f"
+  },
+  "male|Realistic|white|hairstyle|bald": {
+   "path": "catalog-v1/male/realistic/white/hairstyle-bald.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9404,
+   "sha256": "6412aa98a43857b6f186720f67857c82b2708999ac3a68712219ddc97e686e87"
+  },
+  "male|Realistic|white|hairstyle|bro-flow": {
+   "path": "catalog-v1/male/realistic/white/hairstyle-bro-flow.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11930,
+   "sha256": "e01848c70818af8d85e78c6bba434fa967040171334b784f1663d3633598f6cb"
+  },
+  "male|Realistic|white|hairstyle|buzz-cut": {
+   "path": "catalog-v1/male/realistic/white/hairstyle-buzz-cut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9844,
+   "sha256": "1163e91368fa84c22362da6aa5c9ba491be97bcd15ea1231443feb29c16c3218"
+  },
+  "male|Realistic|white|hairstyle|fade": {
+   "path": "catalog-v1/male/realistic/white/hairstyle-fade.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11980,
+   "sha256": "36b20bcd85fef1b0d20d1b2b2ae20966a44736b6bf35639f0c2c9230b2f94c01"
+  },
+  "male|Realistic|white|hairstyle|long": {
+   "path": "catalog-v1/male/realistic/white/hairstyle-long.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13838,
+   "sha256": "ca04dcd3c2b3600cc35722a8b851ac8b47ffb95996e23f4ee6a5b77274eaa826"
+  },
+  "male|Realistic|white|hairstyle|mullet": {
+   "path": "catalog-v1/male/realistic/white/hairstyle-mullet.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14642,
+   "sha256": "bb19500282a96cc38a82b03d362216b3fb121ec92269330e289123ab3e23166e"
+  },
+  "male|Realistic|white|hairstyle|shaggy": {
+   "path": "catalog-v1/male/realistic/white/hairstyle-shaggy.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11550,
+   "sha256": "c224047037acca8d7862cab1c0d24f489facb9375d8dc04ff5c0adfa736f5df4"
+  },
+  "male|Realistic|white|hairstyle|undercut": {
+   "path": "catalog-v1/male/realistic/white/hairstyle-undercut.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12248,
+   "sha256": "884173022a1ef8bcc0ac41c06f9f56bee068958eef8f616d13cb4df58a2a3ce9"
+  },
+  "female|Realistic|white|ethnicity|asian": {
+   "path": "catalog-v1/female/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14626,
+   "sha256": "8002d860e710249cdd32fd1d4157536942fdd1993cc0d87e461c12a5f808f39d"
+  },
+  "female|Realistic|white|ethnicity|black": {
+   "path": "catalog-v1/female/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24134,
+   "sha256": "971ef631c6d390c7df979208d8e7cfe42500f65d560e190d73206d53556652c5"
+  },
+  "female|Realistic|white|ethnicity|latina": {
+   "path": "catalog-v1/female/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 28432,
+   "sha256": "5b3a42446799f7382aecc463ed2f69517b26aa18780bf45446fd5e822cfea988"
+  },
+  "female|Realistic|white|ethnicity|south-asian": {
+   "path": "catalog-v1/female/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16142,
+   "sha256": "efa9afd547f072b6277b8d15b8ad234ec05f8675162ca98b5e65ed3211d823c4"
+  },
+  "female|Realistic|white|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15938,
+   "sha256": "ab5ef290abbe36ad5db850c92abf25d181d30f89b517440609a60d87dd57a70a"
+  },
+  "female|Realistic|asian|ethnicity|white": {
+   "path": "catalog-v1/female/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19188,
+   "sha256": "b9b3cb2aab54894f6c891feb745eb8944815f47963691a5394c9e501d3055453"
+  },
+  "female|Realistic|asian|ethnicity|black": {
+   "path": "catalog-v1/female/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24134,
+   "sha256": "971ef631c6d390c7df979208d8e7cfe42500f65d560e190d73206d53556652c5"
+  },
+  "female|Realistic|asian|ethnicity|latina": {
+   "path": "catalog-v1/female/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 28432,
+   "sha256": "5b3a42446799f7382aecc463ed2f69517b26aa18780bf45446fd5e822cfea988"
+  },
+  "female|Realistic|asian|ethnicity|south-asian": {
+   "path": "catalog-v1/female/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16142,
+   "sha256": "efa9afd547f072b6277b8d15b8ad234ec05f8675162ca98b5e65ed3211d823c4"
+  },
+  "female|Realistic|asian|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15938,
+   "sha256": "ab5ef290abbe36ad5db850c92abf25d181d30f89b517440609a60d87dd57a70a"
+  },
+  "female|Realistic|black|ethnicity|white": {
+   "path": "catalog-v1/female/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19188,
+   "sha256": "b9b3cb2aab54894f6c891feb745eb8944815f47963691a5394c9e501d3055453"
+  },
+  "female|Realistic|black|ethnicity|asian": {
+   "path": "catalog-v1/female/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14626,
+   "sha256": "8002d860e710249cdd32fd1d4157536942fdd1993cc0d87e461c12a5f808f39d"
+  },
+  "female|Realistic|black|ethnicity|latina": {
+   "path": "catalog-v1/female/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 28432,
+   "sha256": "5b3a42446799f7382aecc463ed2f69517b26aa18780bf45446fd5e822cfea988"
+  },
+  "female|Realistic|black|ethnicity|south-asian": {
+   "path": "catalog-v1/female/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16142,
+   "sha256": "efa9afd547f072b6277b8d15b8ad234ec05f8675162ca98b5e65ed3211d823c4"
+  },
+  "female|Realistic|black|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15938,
+   "sha256": "ab5ef290abbe36ad5db850c92abf25d181d30f89b517440609a60d87dd57a70a"
+  },
+  "female|Realistic|latina|ethnicity|white": {
+   "path": "catalog-v1/female/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19188,
+   "sha256": "b9b3cb2aab54894f6c891feb745eb8944815f47963691a5394c9e501d3055453"
+  },
+  "female|Realistic|latina|ethnicity|asian": {
+   "path": "catalog-v1/female/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14626,
+   "sha256": "8002d860e710249cdd32fd1d4157536942fdd1993cc0d87e461c12a5f808f39d"
+  },
+  "female|Realistic|latina|ethnicity|black": {
+   "path": "catalog-v1/female/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24134,
+   "sha256": "971ef631c6d390c7df979208d8e7cfe42500f65d560e190d73206d53556652c5"
+  },
+  "female|Realistic|latina|ethnicity|south-asian": {
+   "path": "catalog-v1/female/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16142,
+   "sha256": "efa9afd547f072b6277b8d15b8ad234ec05f8675162ca98b5e65ed3211d823c4"
+  },
+  "female|Realistic|latina|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15938,
+   "sha256": "ab5ef290abbe36ad5db850c92abf25d181d30f89b517440609a60d87dd57a70a"
+  },
+  "female|Realistic|south-asian|ethnicity|white": {
+   "path": "catalog-v1/female/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19188,
+   "sha256": "b9b3cb2aab54894f6c891feb745eb8944815f47963691a5394c9e501d3055453"
+  },
+  "female|Realistic|south-asian|ethnicity|asian": {
+   "path": "catalog-v1/female/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14626,
+   "sha256": "8002d860e710249cdd32fd1d4157536942fdd1993cc0d87e461c12a5f808f39d"
+  },
+  "female|Realistic|south-asian|ethnicity|black": {
+   "path": "catalog-v1/female/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24134,
+   "sha256": "971ef631c6d390c7df979208d8e7cfe42500f65d560e190d73206d53556652c5"
+  },
+  "female|Realistic|south-asian|ethnicity|latina": {
+   "path": "catalog-v1/female/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 28432,
+   "sha256": "5b3a42446799f7382aecc463ed2f69517b26aa18780bf45446fd5e822cfea988"
+  },
+  "female|Realistic|south-asian|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15938,
+   "sha256": "ab5ef290abbe36ad5db850c92abf25d181d30f89b517440609a60d87dd57a70a"
+  },
+  "female|Realistic|middle-eastern|ethnicity|white": {
+   "path": "catalog-v1/female/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19188,
+   "sha256": "b9b3cb2aab54894f6c891feb745eb8944815f47963691a5394c9e501d3055453"
+  },
+  "female|Realistic|middle-eastern|ethnicity|asian": {
+   "path": "catalog-v1/female/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14626,
+   "sha256": "8002d860e710249cdd32fd1d4157536942fdd1993cc0d87e461c12a5f808f39d"
+  },
+  "female|Realistic|middle-eastern|ethnicity|black": {
+   "path": "catalog-v1/female/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 24134,
+   "sha256": "971ef631c6d390c7df979208d8e7cfe42500f65d560e190d73206d53556652c5"
+  },
+  "female|Realistic|middle-eastern|ethnicity|latina": {
+   "path": "catalog-v1/female/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 28432,
+   "sha256": "5b3a42446799f7382aecc463ed2f69517b26aa18780bf45446fd5e822cfea988"
+  },
+  "female|Realistic|middle-eastern|ethnicity|south-asian": {
+   "path": "catalog-v1/female/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16142,
+   "sha256": "efa9afd547f072b6277b8d15b8ad234ec05f8675162ca98b5e65ed3211d823c4"
+  },
+  "female|Anime|white|ethnicity|asian": {
+   "path": "catalog-v1/female/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19840,
+   "sha256": "cfc3fc73b72c2b80c0a5c54b088816ff94e52ce0bd0cae4fb461460628e6c7d0"
+  },
+  "female|Anime|white|ethnicity|black": {
+   "path": "catalog-v1/female/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18476,
+   "sha256": "088fd12e33fa79053fbc6b85567b2b0963eb34f53f0bf25a357520bb9e9cd729"
+  },
+  "female|Anime|white|ethnicity|latina": {
+   "path": "catalog-v1/female/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18364,
+   "sha256": "d0fb2c7c58a95fbd1217534604ac0c1eaa9be02636b5cb337768d92cb98abb49"
+  },
+  "female|Anime|white|ethnicity|south-asian": {
+   "path": "catalog-v1/female/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22972,
+   "sha256": "7a2112a2585c1a095641ccb5840eb2077fe74de3bcdde5ea3b6123dad91f67c0"
+  },
+  "female|Anime|white|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26552,
+   "sha256": "27baad027f65f7ccebd471bb088a53108d8ee7211e6373ed6ba246f962b051ca"
+  },
+  "female|Anime|asian|ethnicity|white": {
+   "path": "catalog-v1/female/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25210,
+   "sha256": "cbb19a21f5e78c98f243f51e1e911469be212c9aa71609b2ada23b2ae3580053"
+  },
+  "female|Anime|asian|ethnicity|black": {
+   "path": "catalog-v1/female/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18476,
+   "sha256": "088fd12e33fa79053fbc6b85567b2b0963eb34f53f0bf25a357520bb9e9cd729"
+  },
+  "female|Anime|asian|ethnicity|latina": {
+   "path": "catalog-v1/female/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18364,
+   "sha256": "d0fb2c7c58a95fbd1217534604ac0c1eaa9be02636b5cb337768d92cb98abb49"
+  },
+  "female|Anime|asian|ethnicity|south-asian": {
+   "path": "catalog-v1/female/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22972,
+   "sha256": "7a2112a2585c1a095641ccb5840eb2077fe74de3bcdde5ea3b6123dad91f67c0"
+  },
+  "female|Anime|asian|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26552,
+   "sha256": "27baad027f65f7ccebd471bb088a53108d8ee7211e6373ed6ba246f962b051ca"
+  },
+  "female|Anime|black|ethnicity|white": {
+   "path": "catalog-v1/female/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25210,
+   "sha256": "cbb19a21f5e78c98f243f51e1e911469be212c9aa71609b2ada23b2ae3580053"
+  },
+  "female|Anime|black|ethnicity|asian": {
+   "path": "catalog-v1/female/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19840,
+   "sha256": "cfc3fc73b72c2b80c0a5c54b088816ff94e52ce0bd0cae4fb461460628e6c7d0"
+  },
+  "female|Anime|black|ethnicity|latina": {
+   "path": "catalog-v1/female/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18364,
+   "sha256": "d0fb2c7c58a95fbd1217534604ac0c1eaa9be02636b5cb337768d92cb98abb49"
+  },
+  "female|Anime|black|ethnicity|south-asian": {
+   "path": "catalog-v1/female/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22972,
+   "sha256": "7a2112a2585c1a095641ccb5840eb2077fe74de3bcdde5ea3b6123dad91f67c0"
+  },
+  "female|Anime|black|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26552,
+   "sha256": "27baad027f65f7ccebd471bb088a53108d8ee7211e6373ed6ba246f962b051ca"
+  },
+  "female|Anime|latina|ethnicity|white": {
+   "path": "catalog-v1/female/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25210,
+   "sha256": "cbb19a21f5e78c98f243f51e1e911469be212c9aa71609b2ada23b2ae3580053"
+  },
+  "female|Anime|latina|ethnicity|asian": {
+   "path": "catalog-v1/female/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19840,
+   "sha256": "cfc3fc73b72c2b80c0a5c54b088816ff94e52ce0bd0cae4fb461460628e6c7d0"
+  },
+  "female|Anime|latina|ethnicity|black": {
+   "path": "catalog-v1/female/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18476,
+   "sha256": "088fd12e33fa79053fbc6b85567b2b0963eb34f53f0bf25a357520bb9e9cd729"
+  },
+  "female|Anime|latina|ethnicity|south-asian": {
+   "path": "catalog-v1/female/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22972,
+   "sha256": "7a2112a2585c1a095641ccb5840eb2077fe74de3bcdde5ea3b6123dad91f67c0"
+  },
+  "female|Anime|latina|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26552,
+   "sha256": "27baad027f65f7ccebd471bb088a53108d8ee7211e6373ed6ba246f962b051ca"
+  },
+  "female|Anime|south-asian|ethnicity|white": {
+   "path": "catalog-v1/female/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25210,
+   "sha256": "cbb19a21f5e78c98f243f51e1e911469be212c9aa71609b2ada23b2ae3580053"
+  },
+  "female|Anime|south-asian|ethnicity|asian": {
+   "path": "catalog-v1/female/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19840,
+   "sha256": "cfc3fc73b72c2b80c0a5c54b088816ff94e52ce0bd0cae4fb461460628e6c7d0"
+  },
+  "female|Anime|south-asian|ethnicity|black": {
+   "path": "catalog-v1/female/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18476,
+   "sha256": "088fd12e33fa79053fbc6b85567b2b0963eb34f53f0bf25a357520bb9e9cd729"
+  },
+  "female|Anime|south-asian|ethnicity|latina": {
+   "path": "catalog-v1/female/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18364,
+   "sha256": "d0fb2c7c58a95fbd1217534604ac0c1eaa9be02636b5cb337768d92cb98abb49"
+  },
+  "female|Anime|south-asian|ethnicity|middle-eastern": {
+   "path": "catalog-v1/female/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 26552,
+   "sha256": "27baad027f65f7ccebd471bb088a53108d8ee7211e6373ed6ba246f962b051ca"
+  },
+  "female|Anime|middle-eastern|ethnicity|white": {
+   "path": "catalog-v1/female/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 25210,
+   "sha256": "cbb19a21f5e78c98f243f51e1e911469be212c9aa71609b2ada23b2ae3580053"
+  },
+  "female|Anime|middle-eastern|ethnicity|asian": {
+   "path": "catalog-v1/female/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 19840,
+   "sha256": "cfc3fc73b72c2b80c0a5c54b088816ff94e52ce0bd0cae4fb461460628e6c7d0"
+  },
+  "female|Anime|middle-eastern|ethnicity|black": {
+   "path": "catalog-v1/female/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18476,
+   "sha256": "088fd12e33fa79053fbc6b85567b2b0963eb34f53f0bf25a357520bb9e9cd729"
+  },
+  "female|Anime|middle-eastern|ethnicity|latina": {
+   "path": "catalog-v1/female/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18364,
+   "sha256": "d0fb2c7c58a95fbd1217534604ac0c1eaa9be02636b5cb337768d92cb98abb49"
+  },
+  "female|Anime|middle-eastern|ethnicity|south-asian": {
+   "path": "catalog-v1/female/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 22972,
+   "sha256": "7a2112a2585c1a095641ccb5840eb2077fe74de3bcdde5ea3b6123dad91f67c0"
+  },
+  "male|Realistic|white|ethnicity|asian": {
+   "path": "catalog-v1/male/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13662,
+   "sha256": "4e78652bf5a5be78eb5cddbe7f9a41ef1643778807cd5876cd3e98b69db441e8"
+  },
+  "male|Realistic|white|ethnicity|black": {
+   "path": "catalog-v1/male/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10482,
+   "sha256": "9710f36d717dbe7ac0962232e7e311ab5cd95fd5c20b19c669060f6fbc4c57e0"
+  },
+  "male|Realistic|white|ethnicity|latina": {
+   "path": "catalog-v1/male/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10820,
+   "sha256": "1d5016e9c5f07e9cd20b186c1880c1c023965dd15b47dfbcf1a0ba117d099cbc"
+  },
+  "male|Realistic|white|ethnicity|south-asian": {
+   "path": "catalog-v1/male/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11636,
+   "sha256": "b367725415899111c10b12765d2a3c2d9d35efa4ef4c0997312b977b0ce625d8"
+  },
+  "male|Realistic|white|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11946,
+   "sha256": "f7cf582878f40f80166b753976e3d14d725c7f44497de8e704df0107c702ff7d"
+  },
+  "male|Realistic|asian|ethnicity|white": {
+   "path": "catalog-v1/male/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13008,
+   "sha256": "3da152d5653539c1d0d656cf3d781330c7763273688add127e7bf6a6e9f5688f"
+  },
+  "male|Realistic|asian|ethnicity|black": {
+   "path": "catalog-v1/male/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10482,
+   "sha256": "9710f36d717dbe7ac0962232e7e311ab5cd95fd5c20b19c669060f6fbc4c57e0"
+  },
+  "male|Realistic|asian|ethnicity|latina": {
+   "path": "catalog-v1/male/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10820,
+   "sha256": "1d5016e9c5f07e9cd20b186c1880c1c023965dd15b47dfbcf1a0ba117d099cbc"
+  },
+  "male|Realistic|asian|ethnicity|south-asian": {
+   "path": "catalog-v1/male/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11636,
+   "sha256": "b367725415899111c10b12765d2a3c2d9d35efa4ef4c0997312b977b0ce625d8"
+  },
+  "male|Realistic|asian|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11946,
+   "sha256": "f7cf582878f40f80166b753976e3d14d725c7f44497de8e704df0107c702ff7d"
+  },
+  "male|Realistic|black|ethnicity|white": {
+   "path": "catalog-v1/male/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13008,
+   "sha256": "3da152d5653539c1d0d656cf3d781330c7763273688add127e7bf6a6e9f5688f"
+  },
+  "male|Realistic|black|ethnicity|asian": {
+   "path": "catalog-v1/male/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13662,
+   "sha256": "4e78652bf5a5be78eb5cddbe7f9a41ef1643778807cd5876cd3e98b69db441e8"
+  },
+  "male|Realistic|black|ethnicity|latina": {
+   "path": "catalog-v1/male/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10820,
+   "sha256": "1d5016e9c5f07e9cd20b186c1880c1c023965dd15b47dfbcf1a0ba117d099cbc"
+  },
+  "male|Realistic|black|ethnicity|south-asian": {
+   "path": "catalog-v1/male/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11636,
+   "sha256": "b367725415899111c10b12765d2a3c2d9d35efa4ef4c0997312b977b0ce625d8"
+  },
+  "male|Realistic|black|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11946,
+   "sha256": "f7cf582878f40f80166b753976e3d14d725c7f44497de8e704df0107c702ff7d"
+  },
+  "male|Realistic|latina|ethnicity|white": {
+   "path": "catalog-v1/male/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13008,
+   "sha256": "3da152d5653539c1d0d656cf3d781330c7763273688add127e7bf6a6e9f5688f"
+  },
+  "male|Realistic|latina|ethnicity|asian": {
+   "path": "catalog-v1/male/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13662,
+   "sha256": "4e78652bf5a5be78eb5cddbe7f9a41ef1643778807cd5876cd3e98b69db441e8"
+  },
+  "male|Realistic|latina|ethnicity|black": {
+   "path": "catalog-v1/male/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10482,
+   "sha256": "9710f36d717dbe7ac0962232e7e311ab5cd95fd5c20b19c669060f6fbc4c57e0"
+  },
+  "male|Realistic|latina|ethnicity|south-asian": {
+   "path": "catalog-v1/male/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11636,
+   "sha256": "b367725415899111c10b12765d2a3c2d9d35efa4ef4c0997312b977b0ce625d8"
+  },
+  "male|Realistic|latina|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11946,
+   "sha256": "f7cf582878f40f80166b753976e3d14d725c7f44497de8e704df0107c702ff7d"
+  },
+  "male|Realistic|south-asian|ethnicity|white": {
+   "path": "catalog-v1/male/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13008,
+   "sha256": "3da152d5653539c1d0d656cf3d781330c7763273688add127e7bf6a6e9f5688f"
+  },
+  "male|Realistic|south-asian|ethnicity|asian": {
+   "path": "catalog-v1/male/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13662,
+   "sha256": "4e78652bf5a5be78eb5cddbe7f9a41ef1643778807cd5876cd3e98b69db441e8"
+  },
+  "male|Realistic|south-asian|ethnicity|black": {
+   "path": "catalog-v1/male/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10482,
+   "sha256": "9710f36d717dbe7ac0962232e7e311ab5cd95fd5c20b19c669060f6fbc4c57e0"
+  },
+  "male|Realistic|south-asian|ethnicity|latina": {
+   "path": "catalog-v1/male/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10820,
+   "sha256": "1d5016e9c5f07e9cd20b186c1880c1c023965dd15b47dfbcf1a0ba117d099cbc"
+  },
+  "male|Realistic|south-asian|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/realistic/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11946,
+   "sha256": "f7cf582878f40f80166b753976e3d14d725c7f44497de8e704df0107c702ff7d"
+  },
+  "male|Realistic|middle-eastern|ethnicity|white": {
+   "path": "catalog-v1/male/realistic/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13008,
+   "sha256": "3da152d5653539c1d0d656cf3d781330c7763273688add127e7bf6a6e9f5688f"
+  },
+  "male|Realistic|middle-eastern|ethnicity|asian": {
+   "path": "catalog-v1/male/realistic/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13662,
+   "sha256": "4e78652bf5a5be78eb5cddbe7f9a41ef1643778807cd5876cd3e98b69db441e8"
+  },
+  "male|Realistic|middle-eastern|ethnicity|black": {
+   "path": "catalog-v1/male/realistic/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10482,
+   "sha256": "9710f36d717dbe7ac0962232e7e311ab5cd95fd5c20b19c669060f6fbc4c57e0"
+  },
+  "male|Realistic|middle-eastern|ethnicity|latina": {
+   "path": "catalog-v1/male/realistic/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10820,
+   "sha256": "1d5016e9c5f07e9cd20b186c1880c1c023965dd15b47dfbcf1a0ba117d099cbc"
+  },
+  "male|Realistic|middle-eastern|ethnicity|south-asian": {
+   "path": "catalog-v1/male/realistic/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11636,
+   "sha256": "b367725415899111c10b12765d2a3c2d9d35efa4ef4c0997312b977b0ce625d8"
+  },
+  "male|Anime|white|ethnicity|asian": {
+   "path": "catalog-v1/male/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17200,
+   "sha256": "41b256ba1e1e8b96128636c46a643821239bd8f1c96511ebd760906095e63b1f"
+  },
+  "male|Anime|white|ethnicity|black": {
+   "path": "catalog-v1/male/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14820,
+   "sha256": "1ecb05a60e1cae41b42d295342b3bdec5e193c32129ed3cf96214db3d9ce21db"
+  },
+  "male|Anime|white|ethnicity|latina": {
+   "path": "catalog-v1/male/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20438,
+   "sha256": "a19a430132dca75fc97b76d3f4e7097be63a73dad5f4175c349da7e6ff104270"
+  },
+  "male|Anime|white|ethnicity|south-asian": {
+   "path": "catalog-v1/male/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17470,
+   "sha256": "bbcef78a2aa8d69ca14ba31c2834ad81f7b5ec73be949b1f5adb44de0cd91c64"
+  },
+  "male|Anime|white|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18534,
+   "sha256": "0deb95fab0505470a8f6ee4062936e2c21d25908c19124588f0cf8819eed31fa"
+  },
+  "male|Anime|asian|ethnicity|white": {
+   "path": "catalog-v1/male/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20294,
+   "sha256": "d99bece5fd72001e7216a2b8d9a7444e5c7ee8599060202108712c67f8d75f19"
+  },
+  "male|Anime|asian|ethnicity|black": {
+   "path": "catalog-v1/male/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14820,
+   "sha256": "1ecb05a60e1cae41b42d295342b3bdec5e193c32129ed3cf96214db3d9ce21db"
+  },
+  "male|Anime|asian|ethnicity|latina": {
+   "path": "catalog-v1/male/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20438,
+   "sha256": "a19a430132dca75fc97b76d3f4e7097be63a73dad5f4175c349da7e6ff104270"
+  },
+  "male|Anime|asian|ethnicity|south-asian": {
+   "path": "catalog-v1/male/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17470,
+   "sha256": "bbcef78a2aa8d69ca14ba31c2834ad81f7b5ec73be949b1f5adb44de0cd91c64"
+  },
+  "male|Anime|asian|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18534,
+   "sha256": "0deb95fab0505470a8f6ee4062936e2c21d25908c19124588f0cf8819eed31fa"
+  },
+  "male|Anime|black|ethnicity|white": {
+   "path": "catalog-v1/male/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20294,
+   "sha256": "d99bece5fd72001e7216a2b8d9a7444e5c7ee8599060202108712c67f8d75f19"
+  },
+  "male|Anime|black|ethnicity|asian": {
+   "path": "catalog-v1/male/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17200,
+   "sha256": "41b256ba1e1e8b96128636c46a643821239bd8f1c96511ebd760906095e63b1f"
+  },
+  "male|Anime|black|ethnicity|latina": {
+   "path": "catalog-v1/male/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20438,
+   "sha256": "a19a430132dca75fc97b76d3f4e7097be63a73dad5f4175c349da7e6ff104270"
+  },
+  "male|Anime|black|ethnicity|south-asian": {
+   "path": "catalog-v1/male/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17470,
+   "sha256": "bbcef78a2aa8d69ca14ba31c2834ad81f7b5ec73be949b1f5adb44de0cd91c64"
+  },
+  "male|Anime|black|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18534,
+   "sha256": "0deb95fab0505470a8f6ee4062936e2c21d25908c19124588f0cf8819eed31fa"
+  },
+  "male|Anime|latina|ethnicity|white": {
+   "path": "catalog-v1/male/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20294,
+   "sha256": "d99bece5fd72001e7216a2b8d9a7444e5c7ee8599060202108712c67f8d75f19"
+  },
+  "male|Anime|latina|ethnicity|asian": {
+   "path": "catalog-v1/male/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17200,
+   "sha256": "41b256ba1e1e8b96128636c46a643821239bd8f1c96511ebd760906095e63b1f"
+  },
+  "male|Anime|latina|ethnicity|black": {
+   "path": "catalog-v1/male/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14820,
+   "sha256": "1ecb05a60e1cae41b42d295342b3bdec5e193c32129ed3cf96214db3d9ce21db"
+  },
+  "male|Anime|latina|ethnicity|south-asian": {
+   "path": "catalog-v1/male/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17470,
+   "sha256": "bbcef78a2aa8d69ca14ba31c2834ad81f7b5ec73be949b1f5adb44de0cd91c64"
+  },
+  "male|Anime|latina|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18534,
+   "sha256": "0deb95fab0505470a8f6ee4062936e2c21d25908c19124588f0cf8819eed31fa"
+  },
+  "male|Anime|south-asian|ethnicity|white": {
+   "path": "catalog-v1/male/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20294,
+   "sha256": "d99bece5fd72001e7216a2b8d9a7444e5c7ee8599060202108712c67f8d75f19"
+  },
+  "male|Anime|south-asian|ethnicity|asian": {
+   "path": "catalog-v1/male/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17200,
+   "sha256": "41b256ba1e1e8b96128636c46a643821239bd8f1c96511ebd760906095e63b1f"
+  },
+  "male|Anime|south-asian|ethnicity|black": {
+   "path": "catalog-v1/male/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14820,
+   "sha256": "1ecb05a60e1cae41b42d295342b3bdec5e193c32129ed3cf96214db3d9ce21db"
+  },
+  "male|Anime|south-asian|ethnicity|latina": {
+   "path": "catalog-v1/male/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20438,
+   "sha256": "a19a430132dca75fc97b76d3f4e7097be63a73dad5f4175c349da7e6ff104270"
+  },
+  "male|Anime|south-asian|ethnicity|middle-eastern": {
+   "path": "catalog-v1/male/anime/eth-middle-eastern.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18534,
+   "sha256": "0deb95fab0505470a8f6ee4062936e2c21d25908c19124588f0cf8819eed31fa"
+  },
+  "male|Anime|middle-eastern|ethnicity|white": {
+   "path": "catalog-v1/male/anime/eth-white.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20294,
+   "sha256": "d99bece5fd72001e7216a2b8d9a7444e5c7ee8599060202108712c67f8d75f19"
+  },
+  "male|Anime|middle-eastern|ethnicity|asian": {
+   "path": "catalog-v1/male/anime/eth-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17200,
+   "sha256": "41b256ba1e1e8b96128636c46a643821239bd8f1c96511ebd760906095e63b1f"
+  },
+  "male|Anime|middle-eastern|ethnicity|black": {
+   "path": "catalog-v1/male/anime/eth-black.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14820,
+   "sha256": "1ecb05a60e1cae41b42d295342b3bdec5e193c32129ed3cf96214db3d9ce21db"
+  },
+  "male|Anime|middle-eastern|ethnicity|latina": {
+   "path": "catalog-v1/male/anime/eth-latina.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 20438,
+   "sha256": "a19a430132dca75fc97b76d3f4e7097be63a73dad5f4175c349da7e6ff104270"
+  },
+  "male|Anime|middle-eastern|ethnicity|south-asian": {
+   "path": "catalog-v1/male/anime/eth-south-asian.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 17470,
+   "sha256": "bbcef78a2aa8d69ca14ba31c2834ad81f7b5ec73be949b1f5adb44de0cd91c64"
+  },
+  "male|Realistic|white|chest|slim": {
+   "path": "catalog-v1/male/realistic/white/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8688,
+   "sha256": "6b0aa48ee00c16f08230f8913a1720d232602cb771844bfb8472beb7bb2f3d70"
+  },
+  "male|Realistic|white|chest|toned": {
+   "path": "catalog-v1/male/realistic/white/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8340,
+   "sha256": "9e786819e993c1c8b2380c76082db9fe2a03b742533d10ba2a1ebb75addcd28c"
+  },
+  "male|Realistic|white|chest|muscular": {
+   "path": "catalog-v1/male/realistic/white/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9502,
+   "sha256": "5ad67225f8d2a39b118eac0f94f47c1d8e2b2170d560b405f68affd5af2d0aa6"
+  },
+  "male|Realistic|white|chest|broad": {
+   "path": "catalog-v1/male/realistic/white/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10314,
+   "sha256": "b495cf0018039239c464295919b8a9f36970acddbbfffd3ee030412bdc727c79"
+  },
+  "male|Realistic|asian|chest|slim": {
+   "path": "catalog-v1/male/realistic/asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8588,
+   "sha256": "d2642776b500e32230fc8dd5bda03491452af403a5306fd45b3fb400c5d938be"
+  },
+  "male|Realistic|asian|chest|toned": {
+   "path": "catalog-v1/male/realistic/asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8460,
+   "sha256": "cec0bebcf45235cf161ec6d9ac8039119adcfa853e8fdac889aafff654178038"
+  },
+  "male|Realistic|asian|chest|muscular": {
+   "path": "catalog-v1/male/realistic/asian/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8924,
+   "sha256": "4be5e3e5a5aa373575df8a00ba92df99c00909ca66f864d751b6b55a9650c79e"
+  },
+  "male|Realistic|asian|chest|broad": {
+   "path": "catalog-v1/male/realistic/asian/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9228,
+   "sha256": "31488ecbe7df455574fd496774a0f1f9a3368284bc3476459a73fbed2c72c6aa"
+  },
+  "male|Realistic|black|chest|slim": {
+   "path": "catalog-v1/male/realistic/black/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8598,
+   "sha256": "1393114b81fe6ba7893fcc700ac3f80803ed35a8d7306ca8ff7ac73515e9ccbc"
+  },
+  "male|Realistic|black|chest|toned": {
+   "path": "catalog-v1/male/realistic/black/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9324,
+   "sha256": "a077d590722171c9b4740a7a4ed07ce07080c5ce14e07a025ad2681d0105bf4d"
+  },
+  "male|Realistic|black|chest|muscular": {
+   "path": "catalog-v1/male/realistic/black/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9504,
+   "sha256": "dc8f56f3622e0021ce510bf7d2a939330322eea8156aa966d9bb7b508853412b"
+  },
+  "male|Realistic|black|chest|broad": {
+   "path": "catalog-v1/male/realistic/black/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9442,
+   "sha256": "671835bf1f57c3eae98910948ccbfaa3aa473f67ed796b2cf48e9861070db26b"
+  },
+  "male|Realistic|latina|chest|slim": {
+   "path": "catalog-v1/male/realistic/latina/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8592,
+   "sha256": "241138fd6490d38bbd3463b4c37f66ef07267e6f597ef8761db00b2694b7c7a8"
+  },
+  "male|Realistic|latina|chest|toned": {
+   "path": "catalog-v1/male/realistic/latina/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8298,
+   "sha256": "535c10aec24cf8bb29437e452c89f81099fe1cb7e61d285790d58682d16afe21"
+  },
+  "male|Realistic|latina|chest|muscular": {
+   "path": "catalog-v1/male/realistic/latina/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10468,
+   "sha256": "46a18391e5b2a625cb6055028ab69a630bec9c95a032df653f138f823cda467c"
+  },
+  "male|Realistic|latina|chest|broad": {
+   "path": "catalog-v1/male/realistic/latina/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8676,
+   "sha256": "753c4d41b6504a0109e1221072402540267f2105b9cb41d6e7214b1de8f42341"
+  },
+  "male|Realistic|south-asian|chest|slim": {
+   "path": "catalog-v1/male/realistic/south-asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8148,
+   "sha256": "98c404454a6efd8197e9d7f495b9c6f2596dc3782729dd441b21bdb6772b01e4"
+  },
+  "male|Realistic|south-asian|chest|toned": {
+   "path": "catalog-v1/male/realistic/south-asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9168,
+   "sha256": "f36f0e751c2f713eb0876c8245efb44ff70d3d0dd9ba1e720d93a53613c3e9c2"
+  },
+  "male|Realistic|south-asian|chest|muscular": {
+   "path": "catalog-v1/male/realistic/south-asian/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9312,
+   "sha256": "9c92adba5a209c5f6c086639283fb1c161bcf43b7f1716aaa489ce609e182d1b"
+  },
+  "male|Realistic|south-asian|chest|broad": {
+   "path": "catalog-v1/male/realistic/south-asian/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10840,
+   "sha256": "22cbbb39163b22f906bf41ab536e7fdfe836bd9cfb59250efa830b0d5eae7734"
+  },
+  "male|Realistic|middle-eastern|chest|slim": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8006,
+   "sha256": "98e77458aa8836ffd060709c7cca1c2beecdc16efc6d028f84cf6a98c86baac0"
+  },
+  "male|Realistic|middle-eastern|chest|toned": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 10358,
+   "sha256": "c9e1b7df2db7b5f7fada489c58d636dd2fdfd5e6b80a82ef13e092083e6099dd"
+  },
+  "male|Realistic|middle-eastern|chest|muscular": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11366,
+   "sha256": "5a83282fc2fe3476c5cc3448a1e8a5c9c2a9b91ccbd763d7e22bf6b8b6625e11"
+  },
+  "male|Realistic|middle-eastern|chest|broad": {
+   "path": "catalog-v1/male/realistic/middle-eastern/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 9194,
+   "sha256": "176416722ad056d9a0d8575f257310dfa3f9c40aa942a89fb1481079136959a4"
+  },
+  "male|Anime|white|chest|slim": {
+   "path": "catalog-v1/male/anime/white/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12088,
+   "sha256": "c65e2b8f4de61ff1edac36564dae5e6858a52ef2a8ae0b0f78b126c33d476c1c"
+  },
+  "male|Anime|white|chest|toned": {
+   "path": "catalog-v1/male/anime/white/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13968,
+   "sha256": "363d3e0afaac42937c4bd8602095b47b02c360558ac5ed611880f14af258650a"
+  },
+  "male|Anime|white|chest|muscular": {
+   "path": "catalog-v1/male/anime/white/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13532,
+   "sha256": "f8af517f1e3ea28a7dc824b130188d4dfc6fa7131d0b94a05459184946cae5d6"
+  },
+  "male|Anime|white|chest|broad": {
+   "path": "catalog-v1/male/anime/white/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15150,
+   "sha256": "54a3b19d2d14e304078fb021c75f83096be62d3b41dd663dd26a5cacce738984"
+  },
+  "male|Anime|asian|chest|slim": {
+   "path": "catalog-v1/male/anime/asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13956,
+   "sha256": "3a28d9d2a90092e2e3402e9fc4afdccdf9261c35ba4d649de4083abbe5cbcc1f"
+  },
+  "male|Anime|asian|chest|toned": {
+   "path": "catalog-v1/male/anime/asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11410,
+   "sha256": "562481b77db778100526af019aa8d77e9f906ac1a46daef72542e4ae95bf84fe"
+  },
+  "male|Anime|asian|chest|muscular": {
+   "path": "catalog-v1/male/anime/asian/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16752,
+   "sha256": "f27ba011e0dbad3d3bc3e5a61a299c4f699f991b33c9598d70a072efcd7426a5"
+  },
+  "male|Anime|asian|chest|broad": {
+   "path": "catalog-v1/male/anime/asian/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12938,
+   "sha256": "8d3a0833c8f30567a9b7ae2cf6b717e01b3fb6fa3182904d7569b9270568d2f7"
+  },
+  "male|Anime|black|chest|slim": {
+   "path": "catalog-v1/male/anime/black/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13092,
+   "sha256": "96afc79891811d60e7073f245a0e4134fd9238ca77077c64fe1a32b86a7ae00e"
+  },
+  "male|Anime|black|chest|toned": {
+   "path": "catalog-v1/male/anime/black/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12522,
+   "sha256": "522ce6bd2d8fd9e48179de6b8194c3de2d77038771516693f2959a863df016f3"
+  },
+  "male|Anime|black|chest|muscular": {
+   "path": "catalog-v1/male/anime/black/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 8642,
+   "sha256": "9d2eecb85b1bbdedb87d0b5bff7de3b3daa0571b5543312c9e147a672489a8a6"
+  },
+  "male|Anime|black|chest|broad": {
+   "path": "catalog-v1/male/anime/black/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 11900,
+   "sha256": "04e064450341adffde8357d6a4286121198c8d1659868ed038e732ab20e937a6"
+  },
+  "male|Anime|latina|chest|slim": {
+   "path": "catalog-v1/male/anime/latina/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13772,
+   "sha256": "e881bd9157acb050f30490a51576f32db75d79c882871fd8ce164c1b3040f954"
+  },
+  "male|Anime|latina|chest|toned": {
+   "path": "catalog-v1/male/anime/latina/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15964,
+   "sha256": "e6bc2170e0b63b07dec7caddddf0bc88bbb0e6a2144a15c1082c9c37ebc668d6"
+  },
+  "male|Anime|latina|chest|muscular": {
+   "path": "catalog-v1/male/anime/latina/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 12510,
+   "sha256": "fee5de4614cd58835098580dc9a2ebd316a0aa401a6eaeb0746cfaf0e7ee53e5"
+  },
+  "male|Anime|latina|chest|broad": {
+   "path": "catalog-v1/male/anime/latina/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15730,
+   "sha256": "68648bb60d936b6f201fb89c8405398fc4af58d051aefddd9a3fa4fbabb7ef94"
+  },
+  "male|Anime|south-asian|chest|slim": {
+   "path": "catalog-v1/male/anime/south-asian/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14676,
+   "sha256": "0eb108cb587082758564fe27d4bf43d6b02478f665b87b0e94a90bc43f60293d"
+  },
+  "male|Anime|south-asian|chest|toned": {
+   "path": "catalog-v1/male/anime/south-asian/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18342,
+   "sha256": "6cc46b32d6b6529e98dc5998ccb9a24c1a79dd1fbc8306502fe1ad4f80449f85"
+  },
+  "male|Anime|south-asian|chest|muscular": {
+   "path": "catalog-v1/male/anime/south-asian/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 14348,
+   "sha256": "1024421fadfc287eeb403f0221863dda990c0b54acfecb8c65e5060426fd5591"
+  },
+  "male|Anime|south-asian|chest|broad": {
+   "path": "catalog-v1/male/anime/south-asian/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 13714,
+   "sha256": "2a8ea5a6e653e9bba32e98b29e281229e0690ac08461836f0f685b7489636444"
+  },
+  "male|Anime|middle-eastern|chest|slim": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-slim.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15224,
+   "sha256": "3298de51754718f1c4f5ed4de81b14f5414008e4571adebc524e1da000bc2a13"
+  },
+  "male|Anime|middle-eastern|chest|toned": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-average.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 15640,
+   "sha256": "d35a38d6e5b7fdd2279a36d34d5bea8907ac19a8807316570e30f254e45dc3c3"
+  },
+  "male|Anime|middle-eastern|chest|muscular": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-muscular.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 16422,
+   "sha256": "33c536011c6bb306ed54df995797e89d63fc9368b8bb7dc4e927e3cd07a752c2"
+  },
+  "male|Anime|middle-eastern|chest|broad": {
+   "path": "catalog-v1/male/anime/middle-eastern/body-stout.webp",
+   "w": 320,
+   "h": 480,
+   "bytes": 18078,
+   "sha256": "bc7ce0038ce2f21496c73d0dd1a29649f30685c6503a909398925e677c257532"
+  }
+ },
+ "shared_reference_assets": [
+  {
+   "option": "female|Realistic|body|athletic",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|body|average",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|body|bbw",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|body|curvy",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|body|slim",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|breast|average",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|breast|big",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|breast|flat",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|breast|huge",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|breast|small",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|butt|athletic",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|butt|big",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|butt|huge",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|butt|slim",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  },
+  {
+   "option": "female|Realistic|butt|small",
+   "distinct_images": 2,
+   "note": "参考站该组合按族裔返回同一张图（字节相同），非我方跨族裔顶替"
+  }
+ ],
+ "missing": [],
+ "reference_evidence": [
+  {
+   "file": "female-realistic-white-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-realistic-asian-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-realistic-black-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-realistic-latina-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-realistic-south-asian-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-realistic-middle-eastern-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-realistic-white-s1.json",
+   "unique_images": 21
+  },
+  {
+   "file": "male-realistic-white-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-realistic-asian-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-realistic-black-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-realistic-latino-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-realistic-south-asian-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-realistic-middle-eastern-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-realistic-white-s1.json",
+   "unique_images": 16
+  },
+  {
+   "file": "female-anime-white-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-anime-asian-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-anime-black-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-anime-latina-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-anime-south-asian-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-anime-middle-eastern-s2.json",
+   "unique_images": 30
+  },
+  {
+   "file": "female-anime-white-s1.json",
+   "unique_images": 21
+  },
+  {
+   "file": "male-anime-white-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-anime-asian-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-anime-black-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-anime-latino-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-anime-south-asian-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-anime-middle-eastern-s2.json",
+   "unique_images": 25
+  },
+  {
+   "file": "male-anime-white-s1.json",
+   "unique_images": 16
+  },
+  {
+   "file": "entry-male-realistic.webp",
+   "url": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/95433b88-d0d7-48ab-fda8-9c4f40b17600/width=1080,quality=90,format=webp",
+   "bytes": 30820,
+   "sha256": "e291c17181e2946f3c225315c912cac5e78a2d63d111173f6294aa03804c13d4",
+   "note": "joi.com male entry card; alpha flattened onto #161616, 540x960 webp q84"
+  },
+  {
+   "file": "entry-male-anime.webp",
+   "url": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/f7576e00-5e3d-4f39-b9ac-170cd9816900/width=1080,quality=90,format=webp",
+   "bytes": 53788,
+   "sha256": "2e51b2a338a177570a99131e747ecb272b64807bb4dedad5c1d30e9c3e432b14",
+   "note": "joi.com male entry card; alpha flattened onto #161616, 540x960 webp q84"
+  }
+ ]
+}

@@ -537,11 +537,19 @@ final class Live extends BaseController
         $persona = $this->personaService->createFromAi($userId, $data, false);
 
         // 词条组合预生成池：命中直接秒回（cover_url 已就位，前端按已完成展示），未命中走实时生成
+        // 池判定与 key 都用**原始请求**：池库存是旧向导口径建的，只有旧口径请求（无任何新键）
+        // 才允许领，且 hash 必须与改动前公式算出的完全一致（老库存在按旧 key 存着）。
+        // 出图/入队字段一律取**实际落库的 source_fields**：首创与再生成因此共用同一份已归一字段。
+        $stored = json_decode((string) ($persona['source_fields'] ?? ''), true);
+        $fields = is_array($stored) ? $stored : [];
+
         $imageTask = null;
         $instant = false;
         try {
             $imageService = new CharacterImageService();
-            $poolUrl = $imageService->claimFromPool($imageService->poolHashFor($data));
+            $poolUrl = $imageService->poolEligible($data)
+                ? $imageService->claimFromPool($imageService->poolHashFor($data))
+                : null;
             if ($poolUrl !== null) {
                 $instant = true;
                 Db::connect('live_mysql')->table('lp_persona')
@@ -549,11 +557,11 @@ final class Live extends BaseController
                     ->update(['cover_url' => $poolUrl, 'updated_at' => date('Y-m-d H:i:s')]);
                 $persona['cover_url'] = $poolUrl;
             } else {
-                $imageTask = $imageService->enqueue($userId, $persona, $data);
+                $imageTask = $imageService->enqueue($userId, $persona, $fields);
             }
         } catch (\Throwable $e) {
             // 池表未部署/异常：回退现有实时生成路径
-            $imageTask = (new CharacterImageService())->enqueue($userId, $persona, $data);
+            $imageTask = (new CharacterImageService())->enqueue($userId, $persona, $fields);
         }
 
         return $this->jsonSuccess([
@@ -653,7 +661,7 @@ final class Live extends BaseController
             }
         }
 
-        // 从 source_fields 还原属性 → 重建 prompt 入队
+        // 从 source_fields 还原属性 → 重建 prompt 入队（接口契约只有 {persona_id}，不改写落库字段）
         $fields = json_decode((string) $persona['source_fields'], true) ?: [];
         $task = (new CharacterImageService())->enqueue($userId, ['id' => $personaId], $fields);
 

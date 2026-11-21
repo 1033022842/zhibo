@@ -1,0 +1,305 @@
+{
+ "style": "realistic",
+ "eth": "white",
+ "gender": "female",
+ "url": "https://joi.com/generate/character?g=female&s=realistic&e=white&step=2",
+ "captured_at": "2026-11-21T09:52:54.459Z",
+ "data": {
+  "url": "https://joi.com/generate/character?g=female&s=realistic&e=white&step=2",
+  "imgs": [
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/c4654455-71ee-4e47-e76f-dd0791ec5300/width=32,quality=45,format=auto",
+    "alt": "Slim",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 3,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/c4654455-71ee-4e47-e76f-dd0791ec5300/width=640,quality=80,format=auto",
+    "alt": "Slim",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 3,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/e942efc9-b277-446a-efba-c2bdad385f00/width=32,quality=45,format=auto",
+    "alt": "Athletic",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 81,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/e942efc9-b277-446a-efba-c2bdad385f00/width=640,quality=80,format=auto",
+    "alt": "Athletic",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 81,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/b2a792a7-7b8f-45db-d888-75a7c358c000/width=32,quality=45,format=auto",
+    "alt": "Average",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 160,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/b2a792a7-7b8f-45db-d888-75a7c358c000/width=640,quality=80,format=auto",
+    "alt": "Average",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 160,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/29d5e78e-2a23-4463-aa01-601105718100/width=32,quality=45,format=auto",
+    "alt": "Curvy",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 238,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/29d5e78e-2a23-4463-aa01-601105718100/width=640,quality=80,format=auto",
+    "alt": "Curvy",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 238,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/db0d7292-3d15-4595-74a5-34e3b3dc5400/width=32,quality=45,format=auto",
+    "alt": "BBW",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 317,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/db0d7292-3d15-4595-74a5-34e3b3dc5400/width=640,quality=80,format=auto",
+    "alt": "BBW",
+    "box": [
+     70,
+     116
+    ],
+    "y": 159,
+    "x": 317,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/126bec98-8139-419c-4ba7-5dee18276000/width=32,quality=45,format=auto",
+    "alt": "Flat",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 3,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/126bec98-8139-419c-4ba7-5dee18276000/width=640,quality=80,format=auto",
+    "alt": "Flat",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 3,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/e676cc2d-5a24-4852-4dc1-87a45e05d600/width=32,quality=45,format=auto",
+    "alt": "Small",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 81,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/e676cc2d-5a24-4852-4dc1-87a45e05d600/width=640,quality=80,format=auto",
+    "alt": "Small",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 81,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/1319181c-1f4a-4d98-3af6-84f23b9b2900/width=32,quality=45,format=auto",
+    "alt": "Average",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 160,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/1319181c-1f4a-4d98-3af6-84f23b9b2900/width=640,quality=80,format=auto",
+    "alt": "Average",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 160,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/2b92c310-6d85-4bbf-9b87-cb76e3fc4600/width=32,quality=45,format=auto",
+    "alt": "Big",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 238,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/2b92c310-6d85-4bbf-9b87-cb76e3fc4600/width=640,quality=80,format=auto",
+    "alt": "Big",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 238,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/e76103ac-70cc-45d6-7a0c-caa110a75400/width=32,quality=45,format=auto",
+    "alt": "Huge",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 317,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/e76103ac-70cc-45d6-7a0c-caa110a75400/width=640,quality=80,format=auto",
+    "alt": "Huge",
+    "box": [
+     70,
+     116
+    ],
+    "y": 374,
+    "x": 317,
+    "nat": [
+     320,
+     480
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/471c44d5-d82f-4000-529e-fcaa38595200/width=32,quality=45,format=auto",
+    "alt": "Small",
+    "box": [
+     70,
+     116
+    ],
+    "y": 589,
+    "x": 3,
+    "nat": [
+     32,
+     48
+    ]
+   },
+   {
+    "src": "https://imagedelivery.net/XCC9OTLycTbXl7Ir7oXy0g/471c44d5-d82f-4000-529e-fcaa38595200/width=640,quality=80,

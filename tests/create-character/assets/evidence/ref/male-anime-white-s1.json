@@ -1,0 +1,466 @@
+{
+ "gender": "male",
+ "style": "anime",
+ "eth": "white",
+ "step": "1",
+ "captured_at": "2026-11-21T09:56:39.273Z",
+ "url": "https://joi.com/generate/character?g=male&s=anime&e=white&step=1",
+ "data": {
+  "url": "https://joi.com/generate/character?g=male&s=anime&e=white&step=1",
+  "scrollH": 844,
+  "images": [
+   {
+    "id": "62dfba51-3989-481a-bbdb-3da2b9301900",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "White",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 12,
+    "y": 159
+   },
+   {
+    "id": "43828c83-7634-4092-3e07-42c0f9e4d700",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Asian",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 137,
+    "y": 159
+   },
+   {
+    "id": "e6ab4c1e-1fef-418a-83c2-d1660c1d3100",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Black",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 261,
+    "y": 159
+   },
+   {
+    "id": "f3256bb4-791b-4127-b89e-543d81ff3c00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Latino",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 12,
+    "y": 342
+   },
+   {
+    "id": "53eb7363-a6e2-47b2-9f79-bf2b051c7b00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "South Asian",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 137,
+    "y": 342
+   },
+   {
+    "id": "da914ef6-7166-4bb4-deeb-3bc78bcc2000",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Middle Eastern",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     117,
+     175
+    ],
+    "x": 261,
+    "y": 342
+   },
+   {
+    "id": "960dd99c-b9b3-4e87-6069-31837cfd5700",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Slim",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9996,
+    "y": 67
+   },
+   {
+    "id": "a3ff7f2e-67d6-43f4-5153-274706ad9d00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Average",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9988,
+    "y": 67
+   },
+   {
+    "id": "96a0d774-a1ec-408c-4c5b-1319ac350f00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Muscular",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9980,
+    "y": 67
+   },
+   {
+    "id": "ace03e81-f023-490b-b660-c05ffa1c6a00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Stout",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9972,
+    "y": 67
+   },
+   {
+    "id": "4a478c57-6aeb-4164-659f-2ffa37149a00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Large",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9964,
+    "y": 67
+   },
+   {
+    "id": "54003fa4-acff-4e5c-e76d-5395f0223c00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Micro",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9996,
+    "y": 123
+   },
+   {
+    "id": "e40e4a02-0ca9-40ad-5797-ffc6caaa8c00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Small",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9988,
+    "y": 123
+   },
+   {
+    "id": "41d4e439-5180-4d79-21ef-b5ccd0b7a800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Average",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9980,
+    "y": 123
+   },
+   {
+    "id": "9cf96dc1-fe8b-41ac-d65d-f5ea63b0b800",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Big",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9972,
+    "y": 123
+   },
+   {
+    "id": "3111917e-6c08-456e-46bf-bc50eec4ee00",
+    "variant": "width=640,quality=80,format=auto",
+    "alt": "Huge",
+    "nat": [
+     320,
+     480
+    ],
+    "box": [
+     0,
+     2
+    ],
+    "x": -9964,
+    "y": 123
+   }
+  ],
+  "cards": [
+   {
+    "label": "Sign up",
+    "alt": "",
+    "box": [
+     73,
+     38
+    ],
+    "x": 255,
+    "y": 11
+   },
+   {
+    "label": "Log in",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "LanguageEnglish - EN",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "More",
+    "alt": "",
+    "box": [
+     0,
+     0
+    ],
+    "x": 0,
+    "y": 0
+   },
+   {
+    "label": "White White",
+    "alt": "White",
+    "box": [
+     121,
+     179
+    ],
+    "x": 10,
+    "y": 157
+   },
+   {
+    "label": "Asian Asian",
+    "alt": "Asian",
+    "box": [
+     121,
+     179
+    ],
+    "x": 135,
+    "y": 157
+   },
+   {
+    "label": "Black Black",
+    "alt": "Black",
+    "box": [
+     121,
+     179
+    ],
+    "x": 259,
+    "y": 157
+   },
+   {
+    "label": "Latino Latino",
+    "alt": "Latino",
+    "box": [
+     121,
+     179
+    ],
+    "x": 10,
+    "y": 340
+   },
+   {
+    "label": "South Asian South Asian",
+    "alt": "South Asian",
+    "box": [
+     121,
+     179
+    ],
+    "x": 135,
+    "y": 340
+   },
+   {
+    "label": "Middle Eastern Middle Eastern",
+    "alt": "Middle Eastern",
+    "box": [
+     121,
+     179
+    ],
+    "x": 259,
+    "y": 340
+   },
+   {
+    "label": "Slim Slim",
+    "alt": "Slim",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9998,
+    "y": 54
+   },
+   {
+    "label": "Average Average",
+    "alt": "Average",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9990,
+    "y": 54
+   },
+   {
+    "label": "Muscular Muscular",
+    "alt": "Muscular",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9982,
+    "y": 54
+   },
+   {
+    "label": "Stout Stout",
+    "alt": "Stout",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9974,
+    "y": 54
+   },
+   {
+    "label": "Large Large",
+    "alt": "Large",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9966,
+    "y": 54
+   },
+   {
+    "label": "Micro Micro",
+    "alt": "Micro",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9998,
+    "y": 110
+   },
+   {
+    "label": "Small Small",
+    "alt": "Small",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9990,
+    "y": 110
+   },
+   {
+    "label": "Average Average",
+    "alt": "Average",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9982,
+    "y": 110
+   },
+   {
+    "label": "Big Big",
+    "alt": "Big",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9974,
+    "y": 110
+   },
+   {
+    "label": "Huge Huge",
+    "alt": "Huge",
+    "box": [
+     4,
+     6
+    ],
+    "x": -9966,
+    "y": 110
+   },
+   {
+    "label": "Next",
+    "alt": "",
+    "box": [
+     180,
+     44
+    ],
+    "x": 105,
+    "y": 784
+   }
+  ]
+ }
+}

@@ -107,17 +107,66 @@ final class PersonaService
     {
         // 新版向导（createCharacter）直接送英文文案值（如 race=Caucasian、body=Athletic、
         // age=精确整数），聊天侧 persona_desc 可直接拼接；旧向导的数字编码照旧兼容。
-        $aiKeys = ['type', 'race', 'age', 'eye', 'hair', 'hairstyle',
-                   'body', 'breast', 'hip', 'personality', 'profession',
+        $data = CharacterFields::withLegacyAliases($data);
+
+        // chest 是男性独立词表（前端 v8 男分支），与 breast 并列落库，互不翻译
+        $aiKeys = ['type', 'style', 'race', 'age', 'eye', 'hair', 'hairstyle',
+                   'body', 'breast', 'chest', 'hip', 'personality', 'profession',
                    'hobby', 'relation', 'clothing', 'voice', 'kinks'];
 
         $fields = [];
         foreach ($aiKeys as $key) {
-            if (isset($data[$key]) && $data[$key] !== '' && $data[$key] !== null) {
-                $fields[$key] = $data[$key];
+            if (!isset($data[$key]) || $data[$key] === '' || $data[$key] === null) {
+                continue;
             }
+            if (is_array($data[$key]) || is_bool($data[$key])) {
+                continue; // public API 异常入参：不落库、不拼接
+            }
+            $fields[$key] = $data[$key];
+        }
+
+        // 新版向导字段：gender / appearance_description / personality_description /
+        // ethnicity / butt_size / age_range / chest（归一后与旧字段 race/hip/age 并存，
+        // 读值时新字段优先、旧字段回退，见 CharacterFields）
+        $fields = array_merge($fields, CharacterFields::normalize($data));
+
+        // 偏好标签：数组或逗号分隔字符串，逐条清理去重
+        $preferences = $this->normalizePreferences($data['preferences'] ?? null);
+        if ($preferences !== []) {
+            $fields['preferences'] = $preferences;
         }
 
         return empty($fields) ? null : json_encode($fields, JSON_UNESCAPED_UNICODE);
+    }
+
+    /** 偏好标签：最多 20 条、每条 60 字符，去重保序；非数组/空值返回 [] */
+    private function normalizePreferences($value): array
+    {
+        if (is_string($value)) {
+            $value = preg_split('/[,，;；\n]+/u', $value) ?: [];
+        }
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($value as $item) {
+            if ($item === null || is_array($item) || is_bool($item)) {
+                continue;
+            }
+            $s = CharacterFields::sanitizeDescription((string) $item);
+            $s = trim(preg_replace('/\s+/u', ' ', $s) ?? '');
+            if ($s === '') {
+                continue;
+            }
+            if (mb_strlen($s, 'UTF-8') > CharacterFields::MAX_PREFERENCE_LEN) {
+                $s = mb_substr($s, 0, CharacterFields::MAX_PREFERENCE_LEN, 'UTF-8');
+            }
+            $out[$s] = true;
+            if (count($out) >= CharacterFields::MAX_PREFERENCES) {
+                break;
+            }
+        }
+        return array_keys($out);
     }
 }
