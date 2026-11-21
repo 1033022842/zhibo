@@ -93,13 +93,18 @@
     var gifts = giftsCache || [];
     var cards = gifts.map(function (g) {
       return '<button type="button" class="cg-item" data-id="' + esc(g.id) + '" data-price="' + esc(g.price) + '" data-name="' + esc(g.name) + '" data-icon="' + esc(g.icon) + '">' +
-        '<img src="' + esc(g.icon) + '" alt="" loading="lazy">' +
+        '<img src="' + esc(g.icon) + '" alt="" loading="lazy" data-gift-icon="1">' +
         '<div class="cg-name">' + esc(g.name) + '</div>' +
         '<div class="cg-price"><svg width="11" height="11" viewBox="0 0 24 24" fill="#fbbf24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' + esc(g.price) + '</div>' +
         '</button>';
     }).join('');
     var el = document.createElement('div');
     el.id = 'cg-panel';
+    /* 后台配的图标地址可能是失效的历史路径（403）：收起破图，只留礼物名与价格 */
+    el.addEventListener('error', function (e) {
+      var t = e.target
+      if (t && t.getAttribute && t.getAttribute('data-gift-icon')) t.style.visibility = 'hidden'
+    }, true);
     el.innerHTML =
       '<div class="cg-mask" data-close="1"></div>' +
       '<div class="cg-box">' +

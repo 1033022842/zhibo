@@ -110,7 +110,7 @@ async function state(page) {
   const veil = await page.isVisible('#chatlist-veil')
   veil ? ok('遮罩可见') : fail('遮罩不可见')
   const myAi = await page.isVisible('.fy-list-my-ai')
-  myAi ? ok('抽屉里有 My AI 入口') : fail('抽屉缺少 My AI 入口')
+  myAi === false ? ok('抽屉不再有独立 My AI 入口') : fail('抽屉仍有 My AI 胶囊')
   await page.screenshot({ path: path.join(SHOTS, '390_chat_open.png') })
 
   // 再点汉堡应关闭
@@ -142,16 +142,16 @@ async function state(page) {
   await page.goto(`${BASE}/index.html`, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(1800)
   await dismissCreatorOverlay(page)
-  const item = page.locator('a.fy-bnav-item', { hasText: 'My AI' }).first()
+  const item = page.locator('a.fy-bnav-item', { hasText: 'Studio' }).first()
   const n = await item.count()
-  n ? ok('首页底栏有 My AI 入口') : fail('首页底栏缺少 My AI 入口')
+  n ? ok('首页底栏恢复 Studio 入口') : fail('首页底栏缺少 Studio 入口')
   if (n) {
     const href = await item.getAttribute('href')
-    ;/charactersIndex\.html/.test(String(href)) ? ok(`My AI 指向 ${href}`) : fail(`My AI 链接异常 ${href}`)
+    ;/Image\.html/.test(String(href)) ? ok(`Studio 指向 ${href}`) : fail(`Studio 链接异常 ${href}`)
     await page.screenshot({ path: path.join(SHOTS, '390_index_nav.png') })
     await item.click()
     await page.waitForTimeout(1500)
-    page.url().includes('charactersIndex.html') ? ok('底栏 My AI 进入我的角色页') : fail(`未进入我的角色页 ${page.url()}`)
+    page.url().includes('Image.html') ? ok('底栏 Studio 进入作图页') : fail(`未进入作图页 ${page.url()}`)
   }
   await ctx.close()
 }

@@ -1174,7 +1174,10 @@
                 if (!rows.length) {
                     var emptyBox = messagesBox()
                     var curConv = String(activeConvId || '')
-                    if (emptyBox && emptyBox.getAttribute('data-ice-conv') === curConv && !emptyBox.querySelector('.fy-msg-col')) {
+                    /* 同一会话且容器里已经有内容（开场白/问候）就绝不再清空——
+                       旧逻辑判断的是「有没有 .fy-msg-col」，而开场白本身就是 .fy-msg-col，
+                       于是第二次 loadChatHistory 会把刚显示的开场白抹掉（闪现后消失）。 */
+                    if (emptyBox && emptyBox.getAttribute('data-ice-conv') === curConv && emptyBox.children.length > 0) {
                         historyLoadedOnce = true
                         return
                     }
@@ -1182,6 +1185,7 @@
                         emptyBox.innerHTML = ''
                         emptyBox.setAttribute('data-ice-conv', curConv)
                     }
+                    window.__iceConv = ''
                     historyLoadedOnce = true
                     showIceBreaker()
                     return
@@ -2739,7 +2743,7 @@
         });
         // 当前会话置为选中态，保证刷新后归档键不丢
         var $active = $('#message-list').find('a.chat-obj[data-id="' + activeConvId + '"]').first()
-        if ($active.length) $active.addClass('px-[6px] bg-[#303030] border border-zinc-600').addClass('active')
+        if ($active.length) $active.addClass('active')
     }
     // 只刷人设（名字/资料/轮播），不碰消息区——用于补人设时不打断已渲染的开场问候
     function paintPersona(info) {
@@ -2968,8 +2972,7 @@
           .then(function (r) { return r.json() })
           .then(function (d) {
             var convs = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
-            getInfo(buildConvItems(convs, local))
-            ensureCurrentInList(local)
+            renderConvListWithMyPersona(convs, local)
             // URL 不带 ?id= 时补上，刷新后仍停留在同一会话
             if (String(getParam('id') || '') === '' && activeConvId !== '') {
                 syncConversationUrl(activeConvId)
@@ -3069,6 +3072,53 @@
         return items
     }
 
+    /* 自建角色（my-N）直接进会话列表——即使还没聊过也要能点进去 */
+    function renderConvListWithMyPersona(convs, local) {
+        var base = buildConvItems(convs, local)
+        var paint = function (extra) {
+            getInfo(extra.concat(base))
+            ensureCurrentInList(local)
+        }
+        if (!token) { paint([]); return }
+        fetch('/api/live/customOneList', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, cache: 'no-store' })
+            .then(function (r) { return r.json() })
+            .then(function (d) {
+                var mine = (d && d.code === '00000' && Array.isArray(d.data)) ? d.data : []
+                var have = {}
+                for (var b = 0; b < base.length; b++) have[String(base[b].id)] = 1
+                var extra = []
+                for (var i = 0; i < mine.length; i++) {
+                    var t = mine[i] || {}
+                    if (t.id === undefined || t.id === null) continue
+                    var key = 'my-' + t.id
+                    if (have[key] || have[String(t.id)]) continue
+                    have[key] = 1
+                    var item = emptyConv(key, t.name || 'My AI')
+                    var img = String(t.photo || '')
+                    if (img && img.indexOf('://') < 0) img = img.replace(/^\./, '')
+                    item.image = img
+                    item.description = myPersonaTraits(t)
+                    item.time = ''
+                    extra.push(item)
+                }
+                paint(extra)
+            })
+            .catch(function () { paint([]) })
+    }
+
+    /* 自建角色的一句话简介（与 loadMyPersona 的 desc 同源，但不带 HTML） */
+    function myPersonaTraits(t) {
+        var sf = (t && t.source_fields) || {}
+        var bits = []
+        if (sf.age) bits.push(sf.age + ' years old')
+        if (sf.race) bits.push(sf.race)
+        if (sf.personality) bits.push(sf.personality + ' personality')
+        if (sf.hairstyle || sf.hair) bits.push(((sf.hairstyle || '') + ' ' + (sf.hair || '')).trim() + ' hair')
+        if (sf.body) bits.push(sf.body + ' body')
+        if (sf.relation) bits.push('relationship: ' + sf.relation)
+        return 'You created this AI companion. ' + (bits.join(', ') || 'a sweet and loving companion')
+    }
+
     // '2026-09-16 14:37:02' → 今天显示 14:37，其它显示 09-16
     function shortTime(s) {
         s = String(s || '')
@@ -3110,10 +3160,10 @@
         var sameConv = convId === activeConvId
         activeConvId = convId
         $('#message-list').find('a.chat-obj').each(function() {
-            $(this).removeClass('px-[6px] bg-[#303030] border border-zinc-600').removeClass('active')
+            $(this).removeClass('active')
         })
         var $cur = $('#message-list').find('a.chat-obj[data-id="' + convId + '"]').first()
-        if ($cur.length) $cur.addClass('px-[6px] bg-[#303030] border border-zinc-600').addClass('active')
+        if ($cur.length) $cur.addClass('active')
         syncConversationUrl(convId)
         getDetail(chatItemById(convId))
         if (!token) {
@@ -3122,7 +3172,9 @@
             return
         }
         // 立即清空消息区并显示加载动画：旧角色的消息不再滞留（历史接口回来自然替换），消除"卡住不切换"的观感
-        if (!skipHistory || !sameConv) {
+        // 只在「真正换了会话」时清空：同一会话重复进入（bootChat 会跑两次）若也清空，
+        // 会把刚生成的开场白连同 typing 一起抹掉，表现为开场白闪现后消失、只剩转圈。
+        if (!sameConv) {
             var swBox = messagesBox()
             if (swBox) {
                 swBox.innerHTML = ''

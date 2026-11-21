@@ -47,8 +47,8 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./_shared/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261121trial2"></script>
-	<script src="./js/chat-gift.js?v=20261121gift2"></script>
+    <script src="./js/chat.js?v=20261121trial3"></script>
+	<script src="./js/chat-gift.js?v=20261121gift3"></script>
     
 
 
@@ -62,7 +62,7 @@
 
     
   <link rel="stylesheet" href="./assets/fy.css?v=20261112promo1">
-		<script src="./js/shell-new.js?v=20261121v9"></script>
+		<script src="./js/shell-new.js?v=20261121v10"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 	
 
@@ -250,7 +250,7 @@ aside.list-container{background:#1a1a1a!important;left:100px;padding-top:24px!im
 /* 会话条目 */
 .fy-conv{display:flex;align-items:center;gap:12px;padding:8px;border-radius:14px;margin-top:2px;text-decoration:none}
 .fy-conv:hover{background:#232323}
-a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!important}
+a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!important;padding:9px 10px!important}
 .fy-conv-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:top;flex:0 0 auto}
 .fy-conv-main{flex:1 1 auto;min-width:0}
 .fy-conv-top{display:flex;align-items:center;gap:8px}
@@ -370,6 +370,26 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 .fy-list-my-ai{margin-left:auto;font-size:12px;line-height:1;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:5px 10px;white-space:nowrap}
 #chatlist-close-btn{display:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:999px;background:rgba(255,255,255,.08);color:#fff;border:0;font-size:14px;line-height:1}
 @media (max-width:1023px){#chatlist-close-btn{display:inline-flex}}
+</style>
+<style id="fyCandyListCss">
+.fy-list-head{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 10px}
+.fy-list-title{font-family:'Poppins',sans-serif;font-size:22px;font-weight:700;line-height:30px;color:#fff;letter-spacing:-.2px}
+#chatlist-close-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;background:transparent;color:#8f8f8f;font-size:18px;line-height:1;cursor:pointer;padding:0}
+#chatlist-close-btn:hover{color:#fff}
+@media(min-width:1024px){#chatlist-close-btn{display:none}}
+.fy-list-search{position:relative;margin:0 0 12px}
+.fy-list-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:#9a9a9a;pointer-events:none}
+.fy-list-search input{width:100%;height:42px;border-radius:10px;background:#2b2b2b;border:0;padding:0 12px 0 38px;color:#fff;font-family:'Poppins',sans-serif;font-size:15px;outline:0}
+.fy-list-search input::placeholder{color:#9a9a9a}
+#message-list .chat-obj.fy-conv{display:flex;align-items:center;gap:14px;padding:9px 10px;margin:0 0 8px;border-radius:10px;background:#303030;border:1px solid #3f3f46;text-decoration:none;transition:background .15s ease}
+#message-list .chat-obj.fy-conv:hover{background:#3a3a3a}
+#message-list .chat-obj.fy-conv.active{border-color:#e75275;background:#3a2b30}
+#message-list .fy-conv-avatar{width:50px;height:50px;border-radius:50%;object-fit:cover;object-position:top center;flex:0 0 auto;background:#1c1c1c}
+#message-list .fy-conv-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+#message-list .fy-conv-top{display:block}
+#message-list .fy-conv-name{display:block;color:#fff;font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#message-list .fy-conv-preview{color:#b4b4b4;font-family:'Poppins',sans-serif;font-size:13px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#message-list .fy-conv-side{display:none}
 </style>
 </head>
   <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
@@ -1489,35 +1509,15 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 </div>
 
         <div id="chatlist-veil"></div>
-        <aside class="scrollbar fixed bg-[#1A1A1A] bottom-0 left-0 lg:left-[100px] top-12 w-full lg:w-[340px] overflow-y-auto px-3 pt-3 lg:pt-6 pb-[100px] lg:pb-6 xl:block lg:block z-10 list-container hidden" data-main-target="chatListContainer" style="left: 100px;">
-  <div class="flex justify-between items-center w-full gap-3">
+                <aside class="scrollbar fixed bg-[#111111] bottom-0 left-0 lg:left-[100px] top-12 w-full lg:w-[340px] overflow-y-auto px-3 pt-3 lg:pt-5 pb-[100px] lg:pb-6 xl:block lg:block z-10 list-container hidden" data-main-target="chatListContainer" style="left: 100px;">
+  <div class="fy-list-head">
     <div class="fy-list-title">Chat</div>
-    <a class="fy-list-my-ai" href="./charactersIndex.html" title="My AI">My AI</a>
     <button type="button" id="chatlist-close-btn" data-chatlist-close aria-label="Close list">&#10005;</button>
-    <div class="flex items-center gap-2">
-      <a class="fy-create-btn" href="./createCharacter.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Create new</span></a>
-      <a class="flex" href="./Girls.html">
-        <img src="./Chat_files/cross-ec898236eb501d13f4d1343d4a90ed1c0afec71efde2ed1e606916d52f2c5331.svg" class="block lg:hidden cursor-pointer">
-      </a>
-    </div>
   </div>
-  <div class="fy-filters">
-    <button type="button" class="fy-filter active">All</button>
-    <button type="button" class="fy-filter">Unread</button>
-    <button type="button" class="fy-filter">Favorites</button>
+  <div class="fy-list-search">
+    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
+    <input id="search-field" type="text" placeholder="Search for a profile..." autocomplete="off">
   </div>
-  <form class="relative flex flex-1" action="/ai-girlfriend/priya-mehta#" method="GET">
-    <label for="search-field" class="sr-only">Search</label>
-    <svg class="ml-2 pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"></path>
-    </svg>
-    <input id="search-field" class="h-12 rounded-md block w-full bg-neutral-800 border-0 py-0 pl-8 pr-3 text-white placeholder:text-gray-400 focus:ring-0 sm:text-sm" placeholder="Search for a profile..." type="text" autocomplete="off" name="search">
-    <button type="button" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center">
-      <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-      </svg>
-    </button>
-  </form>
   <div id="message-list">
     <script type="text/template" id="user-template">
       <a data-turbo-stream="false" class="fy-conv chat-obj" data-id="{{id}}" data-method="get" style="cursor: pointer;">
