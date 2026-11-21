@@ -357,7 +357,21 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
     <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
 		<style>[data-main-target="registrationModal"],[data-main-target="signInModal"]{display:none!important}</style>
 		<script src="./js/welcome-bonus.js?v=20261114welcome1"></script>
-	</head>
+<style id="fyChatListDrawerCss">
+@media (max-width:1023px){
+  body.chatlist-open aside.list-container{
+    display:block!important;position:fixed!important;left:0!important;top:48px!important;bottom:0!important;
+    width:100%!important;max-width:100%!important;z-index:120!important;padding-top:12px!important;
+  }
+  #chatlist-veil{display:none;position:fixed;left:0;right:0;bottom:0;top:48px;background:rgba(0,0,0,.55);z-index:110}
+  body.chatlist-open #chatlist-veil{display:block}
+  body.chatlist-open{overflow:hidden}
+}
+.fy-list-my-ai{margin-left:auto;font-size:12px;line-height:1;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:5px 10px;white-space:nowrap}
+#chatlist-close-btn{display:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:999px;background:rgba(255,255,255,.08);color:#fff;border:0;font-size:14px;line-height:1}
+@media (max-width:1023px){#chatlist-close-btn{display:inline-flex}}
+</style>
+</head>
   <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
     
           
@@ -1474,9 +1488,12 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
   </div>
 </div>
 
+        <div id="chatlist-veil"></div>
         <aside class="scrollbar fixed bg-[#1A1A1A] bottom-0 left-0 lg:left-[100px] top-12 w-full lg:w-[340px] overflow-y-auto px-3 pt-3 lg:pt-6 pb-[100px] lg:pb-6 xl:block lg:block z-10 list-container hidden" data-main-target="chatListContainer" style="left: 100px;">
   <div class="flex justify-between items-center w-full gap-3">
     <div class="fy-list-title">Chat</div>
+    <a class="fy-list-my-ai" href="./charactersIndex.html" title="My AI">My AI</a>
+    <button type="button" id="chatlist-close-btn" data-chatlist-close aria-label="Close list">&#10005;</button>
     <div class="flex items-center gap-2">
       <a class="fy-create-btn" href="./createCharacter.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Create new</span></a>
       <a class="flex" href="./Girls.html">
@@ -1529,22 +1546,22 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 
           <div class="flex px-5 py-2 justify-between w-full h-[70px] fixed bottom-0 z-50 border-t border-white border-opacity-20 bg-black-default lg:hidden">
   <!-- Discover Icon -->
-  <a href="/" class="flex flex-col items-center">
+  <a href="./index.html" class="flex flex-col items-center">
     <img src="./Chat_files/explore-271b6507dab3d31b26d45e198ec8046b2b8f148862ca272167fb8ce5455002e8.svg" ,="" class="w-6 h-6">
     <span class=" text-[#A1A1A1] text-[10px] mt-1">Explore</span>
   </a>
   <!-- Generate Image Icon -->
-  <a href="/generate-image" class="flex flex-col items-center relative">
+  <a href="./Image.html" class="flex flex-col items-center relative">
     <img src="./Chat_files/generate-e0a4445659c35cbc82e7046cf089cf881179d55eaa82d4bf32dae229a06666c1.svg" class="w-6 h-6">
     <span class=" text-[#A1A1A1] text-[10px] mt-1">Generate</span>
   </a>
   <!-- Create AI Icon -->
-  <a href="/characters/new" class="flex flex-col items-center">
+  <a href="./createCharacter.html" class="flex flex-col items-center">
     <img src="./Chat_files/mobile-magic-wand-d445265367be8ddfbfe1c22810893d0ea4dbdaf1eadd7c4496861113d5388d78.svg" class="w-6 h-6">
     <span class=" text-[#A1A1A1] text-[10px] mt-1">Create</span>
   </a>
   <!-- Chat Icon -->
-    <a data-action="click-&gt;main#openRegistrationModal" class="flex flex-col items-center cursor-pointer">
+    <a data-chatlist-open class="flex flex-col items-center cursor-pointer">
       <img src="./Chat_files/chat-dbf86a760f2ab098a3a5d34346fb0a7c8619ed5050e90bd062c835416f510a0f.svg" class="w-6 h-6">
       <span class="text-[#A1A1A1] text-[10px] mt-1">Chat</span>
     </a>
@@ -1558,3 +1575,4 @@ a.chat-obj.active{background:#252525!important;border:0!important;padding:8px!im
 
     </div>
       >
+<script src="./js/chat-mobile-list.js?v=20261121v9"></script>

@@ -1464,9 +1464,9 @@
      - createCharacter.html 页面不渲染底栏（会遮住页面文字） */
   var BOTTOM_ITEMS = [
     { href: './Home.html', label: 'Home', icon: 'bHome', activeIcon: 'bHomeActive', key: 'home' },
-    { href: './createCharacter.html', label: 'Explore', icon: 'bExplore', activeIcon: 'bExploreActive', key: 'explore' },
+    { href: './Girls.html', label: 'Explore', icon: 'bExplore', activeIcon: 'bExploreActive', key: 'explore' },
     { create: true, label: 'Create', icon: 'bCreate' },
-    { href: './Image.html', label: 'Studio', icon: 'bDirector', key: 'generate', requireAuth: true },
+    { href: './charactersIndex.html', label: 'My AI', icon: 'bGirlfriend', activeIcon: 'bGirlfriend', key: 'myai' },
     { href: './purchasePoints.html', label: 'Tokens', icon: 'bTokens', activeIcon: 'bTokensActive', key: 'tokens' }
   ]
 
@@ -1498,7 +1498,8 @@
     if (/purchasepoints\.html$|\/tokens\.html$|\/subscriptions\.html$/.test(p)) return 'tokens'
     if (/\/image\.html$/.test(p)) return 'generate'
     /* Explore 落点：createCharacter.html（该页本身不显示底栏，但 characters/Girls 列表页要高亮） */
-    if (/\/(girls|characters|charactersIndex)\.html$/.test(p)) return 'explore'
+    if (/\/charactersindex\.html$/.test(p)) return 'myai'
+    if (/\/(girls|characters)\.html$/.test(p)) return 'explore'
     if (/\/chat\.html$/.test(p)) return 'create'
     return ''
   }
