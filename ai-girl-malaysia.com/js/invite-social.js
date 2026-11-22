@@ -99,4 +99,35 @@
     }
     toast(ok ? 'Link copied' : 'Copy failed, long-press the link above')
   }, true)
+
+  /* Baseline template carries another site's domain (heygirl.live) in invite
+     links and JSON-LD. On sugus/kelymi/kiss that sends users to the wrong site.
+     Normalise everything to the current origin. */
+  function normalizeOrigin() {
+    var origin = location.origin
+    var re = /https?:\\?\/\\?\/[a-z0-9.-]*heygirl\.live/gi
+    var brand = location.hostname.replace(/^www\./, '')
+    function fix(t) {
+      var out = String(t).replace(re, origin)
+      if (location.hostname.indexOf('heygirl') === -1) out = out.replace(/heygirl\.live/gi, brand)
+      return out
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('script[type="application/ld+json"]'), function (el) {
+      if (el.textContent && /heygirl\.live/i.test(el.textContent)) el.textContent = fix(el.textContent)
+    })
+    Array.prototype.forEach.call(document.querySelectorAll('a[href*="heygirl.live"]'), function (a) {
+      a.setAttribute('href', fix(a.getAttribute('href')))
+    })
+    Array.prototype.forEach.call(document.querySelectorAll('[data-invite-share-target="linkDisplay"], #invite-link-display'), function (el) {
+      if (el.textContent && /heygirl\.live/i.test(el.textContent)) el.textContent = fix(el.textContent)
+    })
+    if (location.hostname.indexOf('heygirl') === -1) {
+      Array.prototype.forEach.call(document.querySelectorAll('body *'), function (el) {
+        if (!el.children.length && el.textContent && /heygirl\.live/i.test(el.textContent)) el.textContent = fix(el.textContent)
+      })
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', normalizeOrigin)
+  else normalizeOrigin()
+  window.addEventListener('load', normalizeOrigin)
 })()
