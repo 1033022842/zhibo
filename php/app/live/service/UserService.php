@@ -17,7 +17,7 @@ use think\facade\Log;
 final class UserService
 {
     /** 新人注册礼：注册成功即送代币（走 WalletService 双录流水，biz_type=welcome_bonus） */
-    public const WELCOME_BONUS_TOKENS = 50.00;
+    public const WELCOME_BONUS_TOKENS = 20.00;
 
     /** 在线判定窗口（秒）：这个时间内有过带 token 的接口请求就算在线 */
     public const ONLINE_WINDOW = 300;
