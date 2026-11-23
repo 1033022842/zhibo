@@ -147,6 +147,9 @@ def norm_text(content):
     s = TLD_RE.sub(".<TLD>", s)
     # apply_brand 的替换粒度不同：上游 "Sugus.ai" → 客户可能只替换成 "Kelymi"（无域名后缀）
     s = re.sub(r"<B>\.<TLD>", "<B>", s)
+    # kiss 的 apply_brand 用「Sugus→Kisss」这种部分替换，会留下 "Kisss.ai"/"Kisss" 与上游 "Sugus.ai" 对不上
+    s = re.sub(r"<B>s\.<TLD>", "<B>", s)
+    s = re.sub(r"<B>s(?=[.\s\"'<]|$)", "<B>", s)
     return s
 
 
