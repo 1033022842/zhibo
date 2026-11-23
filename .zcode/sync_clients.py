@@ -38,7 +38,7 @@ CLIENTS = {
     # heygirl：网站机直连；服务器 brand kit 已就绪（/opt/brand-kit）
     "heygirl": {
         "host": creds.get("heygirl")["host"], "user": creds.get("heygirl")["user"],
-        "password": creds.get("heygirl")["password"],
+        "key": creds.get("heygirl")["key"],   # SSH 走密钥（密码登录已在服务器禁用）
         "site": "/www/wwwroot/douyin/ai-girl-malaysia.com",
         "brand": "heygirl",                        # 服务器上 apply_brand 的客户名；None=不打品牌
         "brand_kit": "/opt/brand-kit",
@@ -69,12 +69,10 @@ CLIENTS = {
         # blob 校验时这张与品牌版比对，不与上游比对
         "blob_branded_abs": {"assets/brand/share_card.png": "/opt/brand-kit/brand/heygirl/assets/share_card_heygirl.png"},
     },
-    # sugus（上游自己的生产）：走 99.11 跳板（99.11 有 n99_pull key 可连 172）
+    # sugus（上游自己的生产）：2026-11-23 起密钥直连（本机公钥已装到 sugus），不再走 99.11 跳板
     "sugus": {
-        "jump": {"host": creds.get("heygirl")["host"], "user": creds.get("heygirl")["user"],
-                 "password": creds.get("heygirl")["password"]},
         "host": creds.get("sugus")["host"], "user": creds.get("sugus")["user"],
-        "key_on_jump": creds.get("sugus")["key"],
+        "key": creds.get("sugus")["key"],
         "site": "/www/wwwroot/douyin/ai-girl-malaysia.com",
         "brand": None, "brand_kit": None,
         "verify_url": "http://172.81.98.55/ai/Home.html",
@@ -88,7 +86,7 @@ CLIENTS = {
     # kelymi（第三项目）：2026-10-18 初始化；服务器 brand kit 已就绪（/opt/brand-kit）
     "kelymi": {
         "host": creds.get("kelymi")["host"], "user": creds.get("kelymi")["user"],
-        "password": creds.get("kelymi")["password"],
+        "key": creds.get("kelymi")["key"],
         "site": "/www/wwwroot/douyin/ai-girl-malaysia.com",
         "brand": "kelymi",
         "brand_kit": "/opt/brand-kit",
@@ -105,7 +103,7 @@ CLIENTS = {
     # 迁到新服务器 111.90.150.230，SSH 端口非标准 20203（配置里用 "port" 指定）
     "kiss": {
         "host": creds.get("kiss")["host"], "port": creds.get("kiss")["port"], "user": creds.get("kiss")["user"],
-        "password": creds.get("kiss")["password"],
+        "key": creds.get("kiss")["key"],
         "site": "/www/wwwroot/douyin/ai-girl-malaysia.com",
         "brand": "kiss",
         "brand_kit": "/opt/brand-kit",
@@ -315,8 +313,16 @@ def report_preflight(problems, client):
 def connect(cfg):
     """SSH 连接：端口默认 22，配置里给了 "port" 就用它（kiss 是 20203）"""
     cli = paramiko.SSHClient(); cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    cli.connect(cfg["host"], int(cfg.get("port", 22)), cfg["user"], cfg.get("password", ""),
-                 timeout=30, look_for_keys=False, allow_agent=False)
+    kw = dict(timeout=30, banner_timeout=30, look_for_keys=False, allow_agent=False)
+    key = cfg.get("key") or os.environ.get("DOUYIN_SSH_KEY")
+    if key:
+        # 2026-11-23 起四站已禁用密码登录，统一密钥登录
+        kw["key_filename"] = os.path.expanduser(key)
+        cli.connect(cfg["host"], int(cfg.get("port", 22)), cfg["user"], **kw)
+    else:
+        kw.pop("banner_timeout", None)
+        cli.connect(cfg["host"], int(cfg.get("port", 22)), cfg["user"],
+                    cfg.get("password", ""), **kw)
     return cli
 
 def _md5_local(path):

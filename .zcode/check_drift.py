@@ -48,7 +48,9 @@ TLD_RE = re.compile(r"\.(ai|live|autos|com|sbs|cam|fun|one|chat)", re.I)
 # 这类域名差异不是代码漂移，统一抹成 <CDN> 再比。
 CDN_RE = re.compile(r"https?://[\w.-]*(?:b-cdn\.net|cloudfront\.net|akamaihd\.net)", re.I)
 # 静态资源引用：<CDN>/ai/assets/x 与 ./assets/x 等价
-MAIL_RE = re.compile(r"support@[\w.-]*mail[.]\w+", re.I)
+# 客服邮箱：上游 support@sugusmail.ai、客户 support@heygirl.live…
+# 早期只匹配 …mail.xx，换品牌域名后漏网 → 漂移误报
+MAIL_RE = re.compile(r"support@[\w.-]+", re.I)
 RES_RE = re.compile(r"(?:<CDN>/ai|\.)/(assets|_shared|js|media)/([^\"'\s)]+)")
 
 SCOPE_PREFIXES = (
@@ -126,10 +128,50 @@ def norm_text(content):
     s = s.replace(chr(13) + chr(10), chr(10))
     s = MAIL_RE.sub("<MAIL>", s)
     s = CDN_RE.sub("<CDN>", s)
+    # CDN 上的资源与站内相对路径等价：<CDN>/ai/tokens_files/x == ./tokens_files/x
+    # （apply_brand 会把 ./js、./assets、./<page>_files 等全部改成 CDN 绝对地址）
+    s = s.replace("<CDN>/ai/", "./")
     # 资源引用统一：<CDN>/ai/assets/x、./assets/x 都是同一个文件 → <A>/assets/x
     s = RES_RE.sub(lambda m: "<A>/" + m.group(1) + "/" + m.group(2), s)
+    # 品牌映射表：'sugus.ai': ['Sugus','ai'] / 'heygirl.ai': ['heygirl.Ai','ai']
+    # 品牌词切分不同（Sugus vs heygirl.Ai）会留下结构性差异，整段抹平
+    s = re.sub(r"'[\w.-]+\.(?:ai|live|autos|com)':\s*\[[^\]]*\]", "<BRANDMAP>", s)
     s = BRAND_RE.sub("<B>", s)
     return TLD_RE.sub(".<TLD>", s)
+
+
+SITE_OWNED = (
+    "php/config/",          # 支付/渠道凭据、站点开关，各站独立配置
+    "js/brand.js",          # 品牌配色与文案
+    "js/site-shell.js",     # 部分站有自己的站点外壳
+)
+
+
+def is_site_owned(page):
+    rel = page.split(SITE_DIR + "/", 1)[-1]
+    return any(rel == x or rel.startswith(x) for x in SITE_OWNED)
+
+
+def is_outdated(rel, body, depth=40):
+    """线上文件是不是「上游某个历史版本」？是 → 只是没同步，不是有人手改。"""
+    try:
+        md5 = norm_md5(body)
+        revs = sh(f'git rev-list -n {depth} "{REV}" -- "{rel}"')[1].split()
+        for r in revs:
+            rc, out, _ = sh(f'git show "{r}:{rel}"')
+            if rc == 0 and norm_md5(out.encode("utf-8", "replace")) == md5:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def is_override_page(client, page):
+    """客户覆盖文件（client_overrides/image-<client>/<相对路径>）本来就是该站专属版本：
+    版本串、品牌映射、CDN 地址都会和上游不同，不能当成「有人手改了服务器」。"""
+    d = os.path.join(REPO, "client_overrides", "image-" + client)
+    rel = page.split(SITE_DIR + "/", 1)[-1]
+    return os.path.exists(os.path.join(d, rel))
 
 
 def norm_md5(content):
@@ -143,15 +185,30 @@ class Site:
         self.cfg = cfg
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # 2026-11-23 起四站已禁用密码登录：优先用配置里的 key（deploy_creds 的
+        # key 字段 / DOUYIN_SSH_KEY），没有 key 才回退密码（老机器兼容）。
+        kw = dict(timeout=30, banner_timeout=30, auth_timeout=30,
+                  look_for_keys=False, allow_agent=False)
+        key_env = os.environ.get("DOUYIN_SSH_KEY")
         if cfg.get("jump"):
             j = cfg["jump"]
-            self.ssh.connect(j["host"], 22, j["user"], j["password"],
-                             timeout=30, look_for_keys=False, allow_agent=False)
+            jkey = j.get("key") or key_env
+            jkw = dict(kw)
+            if jkey:
+                jkw["key_filename"] = os.path.expanduser(jkey)
+                self.ssh.connect(j["host"], int(j.get("port", 22)), j["user"], **jkw)
+            else:
+                self.ssh.connect(j["host"], 22, j["user"], j.get("password", ""), **jkw)
             self.jump = True
         else:
-            self.ssh.connect(cfg["host"], int(cfg.get("port", 22)), cfg["user"],
-                             cfg.get("password", ""), timeout=30, banner_timeout=30,
-                             auth_timeout=30, look_for_keys=False, allow_agent=False)
+            key = cfg.get("key") or key_env
+            if key:
+                kw["key_filename"] = os.path.expanduser(key)
+                self.ssh.connect(cfg["host"], int(cfg.get("port", 22)), cfg["user"], **kw)
+            else:
+                kw.pop("banner_timeout", None)
+                self.ssh.connect(cfg["host"], int(cfg.get("port", 22)), cfg["user"],
+                                 cfg.get("password", ""), **kw)
             self.jump = False
 
     def _run(self, remote_cmd, timeout=300):
@@ -359,6 +416,10 @@ def main():
             got_md5 = site.md5_map(list(expect.keys()), normalize=True)
             same, drift, missing = 0, [], []
             for p in expect:
+                if is_override_page(name, p):
+                    continue          # 客户覆盖文件，天然与上游不同
+                if is_site_owned(p):
+                    continue          # 站点自有配置（品牌/支付凭据），本就不跟上游一致
                 got = got_md5.get(p)
                 if got is None:
                     missing.append(p)
@@ -381,11 +442,12 @@ def main():
                 continue
             # 一次算出「只差版本号」的文件：服务端对正文做 ?v= 抹平后再算 md5，
             # 与上游 strip_versions 后的归一 md5 比对。避免逐文件 fetch（221 个要跑几分钟）。
+            # 服务端 normalize 的口径和本地 norm_text 未必完全一致，导致误报。
+            # 漂移候选通常只有十几个，直接拉正文在本地用同一份 norm_text 重算，最可靠。
             exp_nover = {}
             for p in drift:
-                body = strip_versions(expect[p]).replace(b"\r\n", b"\n")
-                text = BRAND_RE.sub("<B>", body.decode("utf-8", "replace"))
-                exp_nover[p] = hashlib.md5(text.encode("utf-8")).hexdigest()
+                exp_nover[p] = hashlib.md5(
+                    norm_text(strip_versions(expect[p])).encode("utf-8")).hexdigest()
             try:
                 got_nover = site.md5_map(drift, normalize=True, strip_ver=True)
             finally:
@@ -395,15 +457,42 @@ def main():
                 g = got_nover.get(p)
                 if g is not None and g == exp_nover[p]:
                     ver_only.append(p)
+                    continue
+                real.append(p)
+            # 本地复核：拉正文用 norm_text 重算，规避服务端归一化口径差异的误报
+            confirmed = []
+            outdated = []
+            site2 = Site(cfg)   # 上一段 finally 已关闭连接，复核另开一条
+            try:
+              for p in real:
+                body = site2.fetch(p) if hasattr(site2, "fetch") else None
+                if body is None:
+                    confirmed.append(p)
+                    continue
+                if hashlib.md5(norm_text(strip_versions(body)).encode("utf-8")).hexdigest() != exp_nover[p]:
+                    # 内容不同：再判一次方向 —— 若等于上游某历史版本，说明只是还没同步
+                    rel = p.split(SITE_DIR + "/", 1)[-1]
+                    if is_outdated(rel, body):
+                        outdated.append(p)
+                    else:
+                        confirmed.append(p)
                 else:
-                    real.append(p)
-            drift = real
+                    ver_only.append(p)
+            finally:
+              site2.close()
+            drift = confirmed
+            if outdated and not a.quiet:
+                print(f"  ℹ️ 待同步（线上还是历史版本）{len(outdated)}: " + ", ".join(
+                    x.split(SITE_DIR + "/", 1)[-1] for x in outdated[:6]))
 
         # HTML 版本号体检（单独一轮，不逐字节比 HTML）
         html_problems = []
         try:
             site = Site(cfg)
-            html_problems = check_html_versions(site)
+            html_problems = [p for p in check_html_versions(site)
+                             if not is_override_page(name, p[0])
+                             # 客户站没部署某些新模块属正常，缺失不算漂移
+                             and "缺失" not in str(p)]
             site.close()
         except Exception as e:
             if not a.quiet:
@@ -411,7 +500,9 @@ def main():
 
         # 注意：「缺失」不计入漂移 —— 客户站可能根本没部署上游某些功能模块，
         # 那不是「有人手改了文件」。只有「有但内容不同」才算漂移。
-        summary[name] = "ok" if (not drift and not html_problems) else "drift"
+        # 只有「服务器上有这个文件、但内容与上游真的不同」才算漂移。
+        # HTML 版本号差异大多只是「服务器还没同步到最新一版」，单独提示不判漂移。
+        summary[name] = "ok" if not drift else "drift"
         if not a.quiet:
             print(f"  {'✅' if (not drift and not html_problems) else '❌'} "
                   f"一致 {same} | 仅版本号 {len(ver_only)} | "

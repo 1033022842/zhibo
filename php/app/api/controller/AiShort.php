@@ -75,7 +75,7 @@ final class AiShort extends BaseController
         $rows = $this->db()->table('lp_short_preset')
             ->where('status', 1)
             ->field('code, title, category, kind, duration_sec, price_tokens, cover_url, preview_url, '
-                . 'persona_thumb, reference_image, task_type')
+                . 'persona_thumb, reference_image, male_thumb, male_reference, task_type')
             ->order('weigh', 'desc')
             ->order('id', 'asc')
             ->select()
@@ -85,12 +85,14 @@ final class AiShort extends BaseController
             'total' => count($rows),
             'list'  => array_map(function (array $r) {
                 $ref = trim((string) ($r['reference_image'] ?? ''));
+                $mref = trim((string) ($r['male_reference'] ?? ''));
+                $tt = (string) ($r['task_type'] ?? '');
                 return [
                     'code'         => (string) $r['code'],
                     'title'        => (string) $r['title'],
                     'category'     => (string) $r['category'],
                     'kind'         => (string) $r['kind'],
-                    'task_type'    => (string) ($r['task_type'] ?? ''),
+                    'task_type'    => $tt,
                     'duration_sec' => (int) $r['duration_sec'],
                     // 卡片代币价：-1=跟随站点全局单价（前端按 quota 展示），0=免费，>0=固定价
                     'price_tokens' => isset($r['price_tokens']) ? (float) $r['price_tokens'] : -1.0,
@@ -107,6 +109,11 @@ final class AiShort extends BaseController
                     // 模板自带固定参考图时，前端可不要求用户上传
                     'reference_image' => $this->absUrl($ref),
                     'fixed_reference' => $ref !== '',
+                    // 双参考图：女人设 + 男参考图（Ref2VA 卡需要两张）
+                    'male_thumb'     => $this->absUrl((string) ($r['male_thumb'] ?? '')),
+                    'male_reference' => $this->absUrl($mref),
+                    'fixed_male'     => $mref !== '',
+                    'needs_male'     => in_array($tt, ['Ref2VA', 'Hybrid'], true) && $mref === '',
                 ];
             }, $rows),
         ]);
@@ -147,6 +154,8 @@ final class AiShort extends BaseController
             'cover_url'     => $this->absUrl((string) $r['cover_url']),
             'persona_thumb' => $this->absUrl((string) ($r['persona_thumb'] ?? '')),
             'reference_image' => $this->absUrl(trim((string) ($r['reference_image'] ?? ''))),
+            'male_thumb'      => $this->absUrl((string) ($r['male_thumb'] ?? '')),
+            'male_reference'  => $this->absUrl(trim((string) ($r['male_reference'] ?? ''))),
             'preview_url'   => $this->absUrl((string) $r['preview_url']),
         ]);
     }
@@ -267,11 +276,38 @@ final class AiShort extends BaseController
             return $this->jsonFail(ResultCode::PARAM_ERROR, 'Only jpg / png / webp images are supported.');
         }
 
+        // 双参考图卡片（male_thumb 非空）：男图必填，否则 <Picture 2> 没有对应图片，出片会崩
+        $dualCard = trim((string) ($preset['male_thumb'] ?? '')) !== '';
+        if ($dualCard && !$this->request->file('image2')) {
+            $refund();
+            return $this->jsonFail(ResultCode::PARAM_ERROR, 'Please upload his picture too.');
+        }
+
         try {
             $upload = new \app\common\library\Upload($file);
             $upload->setTopic('custom_video');
             $attachment = $upload->upload(null, 0, $userId);
             $imageUrl = (string) $attachment['url'];
+
+            // 第二张参考图（男）：Ref2VA 卡片需要 <Picture 1>=女 + <Picture 2>=男。
+            // 可选：老卡片（I2VA/legacy）不传时行为完全不变。
+            $maleUrl = '';
+            $maleFile = $this->request->file('image2');
+            if ($maleFile) {
+                if ((int) $maleFile->getSize() > 10 * 1024 * 1024) {
+                    $refund();
+                    return $this->jsonFail(ResultCode::PARAM_ERROR, 'Image must be under 10MB.');
+                }
+                $mExt = strtolower((string) $maleFile->getOriginalExtension());
+                if (!in_array($mExt, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+                    $refund();
+                    return $this->jsonFail(ResultCode::PARAM_ERROR, 'Only jpg / png / webp images are supported.');
+                }
+                $mupload = new \app\common\library\Upload($maleFile);
+                $mupload->setTopic('custom_video');
+                $mattachment = $mupload->upload(null, 0, $userId);
+                $maleUrl = (string) $mattachment['url'];
+            }
 
             $task = new AiTask();
             $task->task_no     = StrHelper::orderNo('AS');
@@ -288,6 +324,7 @@ final class AiShort extends BaseController
                 'label'        => (string) $preset['title'],
                 'duration_sec' => $duration,
                 'image_url'    => $imageUrl,
+                'male_url'     => $maleUrl,
                 'paid_tokens'  => $paidTokens,
                 'retry'        => 0,
             ], JSON_UNESCAPED_UNICODE);
@@ -605,6 +642,8 @@ final class AiShort extends BaseController
                 'unet_name'        => (string) ($p['unet_name'] ?? ''),
                 'resolution'       => (string) ($p['resolution'] ?? ''),
                 'image_url'        => $this->absUrl((string) ($c['image_url'] ?? '')),
+                // 男参考图（双参考图卡片才有），worker 接 ref_images.ref_image_1
+                'male_url'         => $this->absUrl((string) ($c['male_url'] ?? '')),
                 'created_at'       => $t['created_at'],
             ];
         }, $tasks));
@@ -910,18 +949,31 @@ final class AiShort extends BaseController
     }
 
     /**
+     * 卡片降价（2026-11-23 起）：原价的 1/3，四舍五入到 5 的倍数，最低 5。
+     * 例：30→10、40→15、50→15、60→20、70→25、80→25、90→30、100→35。
+     * 0（免费卡）原样返回，不做加成。
+     */
+    private function slashPrice(float $price): float
+    {
+        if ($price <= 0) return 0.0;
+        return max(5.0, 5.0 * round($price / 15));
+    }
+
+    /**
      * 单卡最终单价（按优先级）：卡片固定价 > 确定性随机价 > 站点全局单价
      * $cardPriceTokens 传 lp_short_preset.price_tokens：-1=未设，0=免费，>0=固定价
      *
      * 随机定价只作用于视频卡：需求是把「视频卡 vs 全局 50」改成 30~100 随机，
      * 图片卡全局价是 10，套同一区间会莫名涨 3~10 倍，所以仍走全局图价。
+     * 卡片价统一过 slashPrice 降到 1/3（5 的倍数）；全局单价（非卡片功能）不动。
      */
     private function priceForCard(string $kind, float $cardPriceTokens, string $code): float
     {
-        if ($cardPriceTokens >= 0) return $cardPriceTokens;
+        if ($cardPriceTokens == 0) return 0.0;
+        if ($cardPriceTokens > 0) return $this->slashPrice($cardPriceTokens);
         if ($kind !== 'image') {
             [$min, $max] = $this->cardPriceRange();
-            if ($min > 0 && $code !== '') return $this->randomCardPrice($code, $min, $max);
+            if ($min > 0 && $code !== '') return $this->slashPrice($this->randomCardPrice($code, $min, $max));
         }
         return $this->genPrice($kind);
     }

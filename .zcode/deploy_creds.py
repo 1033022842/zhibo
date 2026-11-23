@@ -4,7 +4,8 @@
 
 凭据来源（低的被高的覆盖）：
   1) 本文件 _BASE 里的主机、端口、用户、库名（非敏感，便于脚本复用）
-  2) .zcode/secrets/sites.json（本地文件，已 gitignore，通常只写 password）
+  2) .zcode/secrets/sites.json（本地文件，已 gitignore，可写 key / password / db_*）
+     —— 2026-11-23 起 SSH 一律走密钥（服务器已禁用密码登录），key 默认 ~/.ssh/douyin_ops
   3) 环境变量 DOUYIN_<NAME>_<FIELD>，如 DOUYIN_HEYGIRL_PASSWORD
 
 本地文件只需写与内置值不同的字段，例如：:
@@ -39,23 +40,26 @@ _FIELDS = ("host", "port", "user", "password", "db", "db_user", "db_password", "
 
 # 非敏感连接信息：主机 / SSH 端口 / 登录用户 / 数据库名。
 # 密码、私钥路径等敏感字段一律留空，由本地文件或环境变量补齐。
+DEFAULT_KEY = os.environ.get("DOUYIN_SSH_KEY", os.path.expanduser("~/.ssh/douyin_ops"))
+
 _BASE = {
     "heygirl": {"host": "172.81.99.11", "port": 22, "user": "root",
-                "db": "live_platform", "db_user": "root"},
+                "db": "live_platform", "db_user": "root", "key": DEFAULT_KEY},
     "kelymi": {"host": "172.81.99.42", "port": 22, "user": "root",
-               "db": "live_platform", "db_user": "root"},
+               "db": "live_platform", "db_user": "root", "key": DEFAULT_KEY},
     # 2026-11-10 旧机（103.217.252.52）故障后迁到新服务器，SSH 端口 20203
     # kiss 的库用户与其他三站不同，是 live_platform
     "kiss": {"host": "111.90.150.230", "port": 20203, "user": "root",
-             "db": "live_platform", "db_user": "live_platform"},
+             "db": "live_platform", "db_user": "live_platform", "key": DEFAULT_KEY},
     # sugus 走 heygirl 跳板 + 内网 key，直连密码仅个别脚本用
+    # 服务器内已装有本机公钥，可用 DEFAULT_KEY 直连；跳板场景见 sync_clients 的 "jump"
     "sugus": {"host": "172.81.98.55", "port": 22, "user": "root",
-              "db": "zhibo", "db_user": "zhibo", "key": "/root/.ssh/n99_pull"},
+              "db": "zhibo", "db_user": "zhibo", "key": DEFAULT_KEY},
     # 2026-11-20 新客户 w16.com，SSH 端口 20203（与 kiss 同段机房）
     "w16": {"host": "101.99.80.144", "port": 20203, "user": "root",
             "db": "live_platform", "db_user": "root"},
-    "gpu166": {"host": "38.247.166.124", "port": 22, "user": "administrator"},
-    "upload_host": {"host": "155.103.194.69", "port": 22, "user": "root"},
+    "gpu166": {"host": "38.247.166.124", "port": 22, "user": "administrator", "key": DEFAULT_KEY},
+    "upload_host": {"host": "155.103.194.69", "port": 22, "user": "root", "key": DEFAULT_KEY},
 }
 
 
@@ -172,3 +176,12 @@ if __name__ == "__main__":
         cfg = SITES[name]
         ready = "已配置密码" if cfg.get("password") else "缺 password"
         print(f"{name:<12} {cfg.get('user')}@{cfg.get('host')}:{cfg.get('port', 22)}  [{ready}]")
+
+def key_path(name: str) -> str:
+    """SSH 私钥路径（已展开 ~）。2026-11-23 起服务器禁用密码登录，统一走这里。"""
+    return os.path.expanduser(SITES[name]["key"])
+
+
+def ssh_kwargs(name: str) -> dict:
+    """paramiko connect 的密钥参数（供各脚本复用）。"""
+    return {"key_filename": key_path(name), "look_for_keys": False, "allow_agent": False}
