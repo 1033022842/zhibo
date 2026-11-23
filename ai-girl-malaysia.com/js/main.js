@@ -10,7 +10,7 @@
         gatewayScript.id = 'live-login-gateway-script'
         var mainScriptUrl = document.currentScript && document.currentScript.src
             ? document.currentScript.src : new URL('./js/main.js', location.href).href
-        gatewayScript.src = new URL('./login-gateway.js?v=20261120modal1', mainScriptUrl).href
+        gatewayScript.src = new URL('./login-gateway.js?v=20261123login1', mainScriptUrl).href
         gatewayScript.onerror = function () {
             var queued = window.__liveLoginRequest
             delete window.__liveLoginRequest

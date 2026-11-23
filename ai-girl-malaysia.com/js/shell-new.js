@@ -79,7 +79,7 @@
   ;(function loginModal() {
     if (window.__fyLoginModal) return
     window.__fyLoginModal = true
-    var SRC = './js/login-gateway.js?v=20261120trial1'
+    var SRC = './js/login-gateway.js?v=20261123login1'
     var loading = null
     function onLoginPage() {
       return /\/login\.html$/i.test(location.pathname)

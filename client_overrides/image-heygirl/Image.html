@@ -4,11 +4,11 @@
 <!-- saved from url=(0031)/characters/new -->
 <html lang="en">
 	<head>
-    <link rel="preconnect" href="https://media.sugus.ai" crossorigin>
-    <link rel="dns-prefetch" href="https://media.sugus.ai">
-		<link rel="icon" type="image/png" href="./sugus-favicon-v3.png">
-		<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon-v3.png">
-		<meta name="apple-mobile-web-app-title" content="Sugus.ai">
+    <link rel="preconnect" href="https://media.heygirl.live" crossorigin>
+    <link rel="dns-prefetch" href="https://media.heygirl.live">
+		<link rel="icon" type="image/png" href="./heygirl-favicon-v4.png?v=20261013">
+		<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon-heygirl-v4.png?v=20261013">
+		<meta name="apple-mobile-web-app-title" content="heygirl.Ai">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<style type="text/css">
 			.turbo-progress-bar {
@@ -66,6 +66,9 @@
 .gs-card:hover .gs-card__media{transform:scale(1.04)}
 .gs-card__creator{position:absolute;z-index:3;top:6px;left:8px;display:flex;flex-direction:column;gap:5px}
 .gs-card__mark{width:40px;height:52px;border:1.5px solid #fff;border-radius:8px;background:#d9d9d9 center/cover no-repeat;transform:rotate(-6deg);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+/* 双参考图卡片：左上角并排两张（女 + 男），错位叠一点，像两张参考图钉在封面上 */
+.gs-card__creator--pair{flex-direction:row;align-items:flex-start}
+.gs-card__creator--pair .gs-card__mark--male{margin-left:-14px;margin-top:12px;transform:rotate(6deg)}
 .gs-card__details{position:absolute;z-index:3;left:0;right:0;bottom:0;min-height:82px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;background:linear-gradient(177deg,rgba(26,26,26,0) 2.49%,rgba(26,26,26,.15) 21.79%,rgba(26,26,26,.5) 49.91%,#1a1a1a 97.51%)}
 .gs-card__title{width:100%;margin:0;color:#fff;font-size:15px;line-height:19px;font-weight:700;text-transform:capitalize;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;-webkit-user-select:none;user-select:none}
 .gs-card__creator-name{width:100%;margin:0;color:#fff;opacity:.7;font-size:12px;line-height:15px;text-transform:capitalize}
@@ -104,9 +107,23 @@
 .gs-gen__tabs{display:flex;gap:4px;height:36px;padding:4px;border-radius:12px;background:#1a1a1e}
 .gs-gen .gs-gen__tab{flex:1;border:0;border-radius:8px;background:transparent;color:#a1a1aa;font-size:12px;font-weight:600;cursor:pointer}
 .gs-gen .gs-gen__tab.on{background:#222228;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-.gs-gen__stage{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.gs-gen__stage{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:8px;margin-top:8px}
 .gs-gen__frame{position:relative;aspect-ratio:3/4;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#000;overflow:hidden}
 .gs-gen__frame img,.gs-gen__frame video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.gs-gen__frame .gs-pair{position:absolute;inset:0;display:flex;align-items:center;gap:6px;padding:8px;z-index:1}
+.gs-gen__frame .gs-pair__slot{position:relative;flex:1 1 0;min-width:0;aspect-ratio:3/4;border-radius:9px;overflow:hidden;background:#111;border:1px solid rgba(255,255,255,.14)}
+/* 单人卡：一格铺满整框，保持原来的满幅观感 */
+.gs-gen__frame .gs-pair.is-single .gs-pair__slot{aspect-ratio:auto;align-self:stretch;height:auto}
+.gs-gen__frame .gs-pair.is-single{position:absolute}
+/* 双人卡：输入框高度由两张 3:4 的小图决定，不再强行 3:4 留大片空白 */
+.gs-gen__frame.is-dual{aspect-ratio:auto;display:block}
+/* 双人卡：上传格给多点宽度，两个头像才看得清 */
+.gs-gen__stage.is-dual{grid-template-columns:1.3fr .7fr}
+.gs-gen__frame.is-dual .gs-pair{position:relative;inset:auto;height:auto}
+.gs-gen__frame .gs-pair__slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.gs-gen__frame .gs-pair__slot .gs-gen__upload{left:50%;bottom:8px;height:26px;padding:0 8px;font-size:10px;max-width:calc(100% - 12px)}
+.gs-gen__frame .gs-pair__tag{position:absolute;top:6px;left:6px;z-index:2;padding:1px 6px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:600;letter-spacing:.02em}
+.gs-gen__frame .gs-pair__slot.is-missing{border-color:rgba(255,120,120,.5)}
 .gs-gen__frame--out img{filter:blur(16px);transform:scale(1.12);transition:filter .3s,transform .3s}
 .gs-gen__frame--out img.is-sharp{filter:none;transform:none}
 .gs-gen .gs-gen__upload{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:2}
@@ -156,6 +173,9 @@
 .gs-gen .gs-gen__submit{height:38px;font-size:12px}
 .gs-gen__hint{font-size:9px;margin-top:6px}
 .gs-gen__note{font-size:10px}
+/* 双人卡在手机上：两格并排会窄到看不清，改成上下两段，上传格用满宽度 */
+.gs-gen__stage.is-dual{grid-template-columns:minmax(0,1fr)}
+.gs-gen__stage.is-dual .gs-gen__frame.is-dual{padding:0}
 }
 </style>
 		<!--<meta http-equiv="origin-trial" content="3NNj0GXVktLOmVKwWUDendk4Vq2qgMVDBDX+Sni48ATJl9JBj+zF+9W2HGB3pvt6qowOihTbQgTeBm9SKbdTwYAAABfeyJvcmlnaW4iOiJodHRwczovL3JlY2FwdGNoYS5uZXQ6NDQzIiwiZmVhdHVyZSI6IlRwY2QiLCJleHBpcnkiOjE3MzUzNDM5OTksImlzVGhpcmRQYXJ0eSI6dHJ1ZX0=">-->
@@ -168,7 +188,7 @@
 		<!---->
 		<!---->
 		
-		<title>Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams</title>
+		<title>heygirl.live: AI Girlfriend App | Chat, Voice, Images & Live Streams</title>
 		<meta name="description" content="Create your own AI girlfriend or chat instantly with realistic AI characters. Enjoy uncensored chats, voice calls, custom image generation, live streams and private short dramas — all in a safe, private and secure space with discreet billing.">
 		<!-- Facebook Open Graph data -->
 
@@ -182,9 +202,9 @@
 		<script src="./_shared/jquery-3.6.0.min.js"></script>
 		<script src="./assets/layer/3.1.1/layer.js"></script>
 		<script src="./js/event.js"></script>
-		<script src="./js/main.js?v=20261113policy1"></script>
-		<script src="./js/shell-new.js?v=20261113policy1"></script>
-		<script src="./js/welcome-bonus.js?v=20261110uinfo1"></script>
+		<script src="./js/main.js?v=20261123login2"></script>
+		<script src="./js/shell-new.js?v=20261123login4"></script>
+		<script src="./js/welcome-bonus.js?v=20261123bonus1"></script>
 		<script src="./js/pending-order.js?v=20261018b"></script>
 	
 
@@ -194,10 +214,10 @@
 
 	<script src="./js/ui-dialog.js?v=20260928d"></script>
 	<script>window.MEDIA_CDN="https://media.heygirl.live/pub/hey/"</script>
-	<script src="./js/customVideo.js?v=20261121vidpay"></script>
+	<script src="./js/customVideo.js?v=20261123pair"></script>
 <script src="./js/tracking.js?v=20261108trk3"></script>
-    <meta property="og:image" content="https://www.sugus.ai/ai/assets/brand/share_card.png">
-    <meta property="og:title" content="Sugus.ai: AI Girlfriend App | Chat, Voice, Images & Live Streams">
+    <meta property="og:image" content="https://heygirl.live/ai/assets/brand/share_card.png">
+    <meta property="og:title" content="heygirl.live: AI Girlfriend App | Chat, Voice, Images & Live Streams">
     <meta property="og:description" content="Create your own AI girlfriend or chat instantly with realistic AI characters. Enjoy uncensored chats, voice calls, custom image generation, live streams and private short dramas — all in a safe, private and secure space with discreet billing.">
 </head>
 	<body class="bg-main characters new stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
@@ -218,7 +238,7 @@
 					<li class="relative w-full"><a href="./Game.html" title="Games" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg></a></li>
 				</ul>
 				<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
-					<li class="relative w-full"><a href="mailto:support@sugusmail.ai" title="Contact Us" data-contact-us="1" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg></a></li>
+					<li class="relative w-full"><a href="mailto:support@heygirl.live" title="Contact Us" data-contact-us="1" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg></a></li>
 					<li class="relative w-full"><a href="./Inviter.html" title="Affiliate Program" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg></a></li>
 					<li class="relative w-full"><a href="./Subscriptions.html" title="Become Premium" class="relative h-[48px] w-[52px] hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex mx-auto cursor-pointer"><img class="w-6 h-6" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"></a></li>
 				</ul>
@@ -239,7 +259,7 @@
 					<li class="relative w-full"><a href="./Game.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Games</span></a></li>
 				</ul>
 				<ul role="list" class="flex flex-col gap-2 pt-6 px-6 border-[#363636] border-t items-center justify-end">
-					<li class="relative w-full"><a href="mailto:support@sugusmail.ai" data-contact-us="1" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Contact Us</span></a></li>
+					<li class="relative w-full"><a href="mailto:support@heygirl.live" data-contact-us="1" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Contact Us</span></a></li>
 					<li class="relative w-full"><a href="./Inviter.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg><span class="text-start text-grey-medium text-xxs font-medium leading-4">Affiliate Program</span></a></li>
 					<li class="relative w-full"><a href="./Subscriptions.html" class="relative h-[40px] w-full hover:bg-zinc-700 rounded-[10px] border border-white border-opacity-10 justify-start px-3 items-center gap-2 flex cursor-pointer"><img class="w-4 h-4" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"><span class="text-start text-pink-default text-xxs font-medium leading-4">Become Premium</span></a></li>
 				</ul>
@@ -276,7 +296,7 @@
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./charactersIndex.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/love-lady-760605daa886b7e49e77d5d26c1047bc0f815c005a978a5c76810db20bc355dd.svg"><span class="text-start text-grey-medium text-xs leading-5 font-semibold">My AI</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./purchasePoints.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 21 8 9l4-6 4 6z"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Tokens</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Game.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Games</span></a></li>
-<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="mailto:support@sugusmail.ai" data-contact-us="1" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Contact Us</span></a></li>
+<li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="mailto:support@heygirl.live" data-contact-us="1" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Contact Us</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Inviter.html" class="w-full flex justify-start items-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#E75275" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg><span class="text-start text-grey-medium text-xs leading-5 font-semibold">Affiliate Program</span></a></li>
 <li class="relative w-full py-4 border-b border-white border-opacity-10"><a href="./Subscriptions.html" class="w-full flex justify-start items-center gap-2"><img class="w-5 h-5" src="./characters_files/premium1-e465052b5a9b526cb7a071ff7f325ebdcb1a106e9add7d713e4a19b7a6b8fa52.svg"><span class="text-start text-pink-default text-xs leading-5 font-semibold">Become Premium</span></a></li></ul>
 					<div class="hidden p-5 bg-[#1A1A1A] flex-col justify-end items-start gap-[17px] inline-flex">
@@ -327,7 +347,7 @@
 				</svg>
 			</button>
 			<a href="./Home.html">
-				<img src="sugus-wordmark.png" class="h-[30px] md:h-[30px] w-auto">
+				<img src="heygirl-wordmark.png" class="h-[30px] md:h-[30px] w-auto">
 			</a>
 			<!-- Separator -->
 			<div class="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true"></div>
@@ -568,7 +588,7 @@
 					<div class="hidden lg:flex h-full relative">
 						<div id="user-login-image">
 
-							<div class="absolute bottom-0 w-full mb-8 flex justify-center items-center"><span style="font-family:Poppins,-apple-system,'Segoe UI',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.3px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.75),0 0 3px rgba(0,0,0,.5);pointer-events:none">Sugus.ai</span></div>
+							<div class="absolute bottom-0 w-full mb-8 flex justify-center items-center"><span style="font-family:Poppins,-apple-system,'Segoe UI',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.3px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.75),0 0 3px rgba(0,0,0,.5);pointer-events:none">heygirl.Ai</span></div>
 
 							<img class="rounded-tl-[10px] rounded-bl-[10px] w-[412px] h-[573px] object-cover object-top" src="./Girls_files/image1-510c9159fd51d7802ef2de3bc1e6edcbd5c5dc0a87ef225a5871143c46eaba02.webp">
 						</div>
@@ -875,12 +895,26 @@
 						</div>
 						<div class="gs-gen__stage">
 							<div class="gs-gen__frame" id="gsGenInput">
-								<img id="gsGenPreview" alt="" style="display:none">
-								<button type="button" class="gs-gen__upload" id="gsGenUpload">
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7 9m5-5l5 5"></path><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"></path></svg>
-									<span id="gsGenUploadText">upload image</span>
-								</button>
-								<input type="file" id="gsGenFile" accept="image/jpeg,image/png,image/webp" style="display:none">
+								<div class="gs-pair">
+									<div class="gs-pair__slot" id="gsSlotHer">
+										<span class="gs-pair__tag">Her</span>
+										<img id="gsGenPreview" alt="">
+										<button type="button" class="gs-gen__upload" id="gsGenUpload">
+											<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7 9m5-5l5 5"></path><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"></path></svg>
+											<span id="gsGenUploadText">upload</span>
+										</button>
+										<input type="file" id="gsGenFile" accept="image/jpeg,image/png,image/webp" style="display:none">
+									</div>
+									<div class="gs-pair__slot" id="gsSlotHim">
+										<span class="gs-pair__tag">Him</span>
+										<img id="gsGenPreview2" alt="">
+										<button type="button" class="gs-gen__upload" id="gsGenUpload2">
+											<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7 9m5-5l5 5"></path><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"></path></svg>
+											<span id="gsGenUpload2Text">upload</span>
+										</button>
+										<input type="file" id="gsGenFile2" accept="image/jpeg,image/png,image/webp" style="display:none">
+									</div>
+								</div>
 							</div>
 							<div class="gs-gen__frame gs-gen__frame--out" id="gsGenOut">
 								<img id="gsGenOutImg" alt="">
@@ -993,7 +1027,7 @@
 							<input value="female" data-gender-interest-modal-target="hiddenField" autocomplete="off" type="hidden" name="gender_interest" id="gender_interest">
 							<input value="" autocomplete="off" type="hidden" name="query_string" id="query_string">
 							<div class="flex flex-col justify-start items-center">
-								<img src="sugus-wordmark@2x.png" class="h-[30px] lg:h-[61px] mb-0 lg:mb-3">
+								<img src="heygirl-wordmark@2x.png" class="h-[30px] lg:h-[61px] mb-0 lg:mb-3">
 								<div class="text-white text-[20px] font-semibold leading-[30px] mb-6">I'm Interested in:</div>
 								<div class="flex flex-col lg:flex-row justify-start items-start gap-2.5 lg:gap-6 mb-3.5 lg:mb-7">
 									<button type="button" data-value="female" class="relative rounded-3xl border-[3px] border-black-stroke overflow-hidden group h-[120px] w-[250px] lg:w-full lg:h-full transition-all duration-300 ease-in-out" data-action="click-&gt;gender-interest-modal#submitGenderInterest">
