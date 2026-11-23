@@ -297,7 +297,26 @@
     <meta name="description" content="Create your own AI girlfriend or chat instantly with realistic AI characters. Enjoy uncensored chats, voice calls, custom image generation, live streams and private short dramas — all in a safe, private and secure space with discreet billing.">
     <meta property="og:description" content="Create your own AI girlfriend or chat instantly with realistic AI characters. Enjoy uncensored chats, voice calls, custom image generation, live streams and private short dramas — all in a safe, private and secure space with discreet billing.">
 		<script src="./js/welcome-bonus.js?v=20261114welcome1"></script>
-	</head>
+	<style id="login-candy-override">
+    /* 2026-11-23：登录弹窗版式对齐 candy.ai（左图 380 + 右表单，24px 标题 / 46px 控件） */
+    .container { max-width: 880px; background: #141316; border-radius: 14px; box-shadow: 0 30px 90px rgba(0,0,0,.6); }
+    .left-img { width: 380px; min-height: 560px; }
+    .form-area { padding: 38px 40px 28px; min-width: 0; }
+    .form-title { font-size: 24px; line-height: 32px; font-weight: 700; letter-spacing: 0; margin-bottom: 22px; }
+    .input-group { margin-bottom: 14px; }
+    .input-group input { height: 46px; border-radius: 10px; background: #EFEDF7; color: #151219; font-size: 15px; padding: 0 44px 0 46px; }
+    .input-group input::placeholder { color: #6b6b7b; }
+    .input-group .icon, .input-group .toggle-pw { color: #4c4657; }
+    .form-btn { height: 46px; padding: 0; margin-top: 6px; border-radius: 10px; background: linear-gradient(92deg,#FF4E6A,#FF8095); font-size: 15px; font-weight: 600; }
+    .form-btn:hover { background: linear-gradient(92deg,#ff5c76,#ff8fa2); }
+    .switch-link { margin-top: 18px; font-size: 14px; color: #9c9caa; }
+    .switch-link a { color: #FF6B84; }
+    .skip-link { font-size: 13px; margin-top: 12px; color: #8f8a97; }
+    .form-area .email-code-group > input { background: #EFEDF7 !important; color: #151219 !important; border-radius: 10px !important; font-size: 15px !important; }
+    .form-area .email-code-group > input::placeholder { color: #6b6b7b !important; }
+    @media (max-width: 800px) { .container { max-width: 430px; } }
+</style>
+</head>
 <body>
   <div class="container">
     <div class="left-img"></div>
@@ -386,5 +405,34 @@
   </script>
 	<script src="./js/promo-popup.js?v=20261110uinfo1"></script>
 	<script src="./js/creator-guide.js?v=20261107guide3"></script>
+<style>
+    /* 左图左下角双色字标（对齐 candy.ai 的 candy.ai 字标） */
+    .left-img { position: relative; }
+    #loginBrand { position: absolute; left: 26px; bottom: 22px; z-index: 2; font-size: 27px; font-weight: 800;
+      letter-spacing: -.4px; color: #fff; text-shadow: 0 2px 16px rgba(0,0,0,.7), 0 0 3px rgba(0,0,0,.5); }
+    #loginBrand i { font-style: normal; color: #FF4E6A; }
+</style>
+<script>
+(function () {
+  var MAP = { 'sugus.ai': ['Sugus','.ai'], 'heygirl.live': ['HeyGirl','.live'], 'kelymi.autos': ['Kelymi','.autos'], 'kisss.ai': ['Kisss','.ai'] };
+  var host = (location.hostname || '').replace(/^www\./, '');
+  var brand = MAP[host];
+  if (!brand) return;
+  function paint() {
+    var art = document.querySelector('.left-img');
+    if (!art || document.getElementById('loginBrand')) return;
+    var span = document.createElement('span');
+    span.id = 'loginBrand';
+    span.appendChild(document.createTextNode(brand[0]));
+    var i = document.createElement('i');
+    i.textContent = brand[1];
+    span.appendChild(i);
+    art.appendChild(span);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint);
+  else paint();
+  setTimeout(paint, 400);
+})();
+</script>
 </body>
 </html>

@@ -5,8 +5,8 @@
  *   1. 登录态下拉一次 userInfo，把 has_recharged 写到 window.__userRecharged，
  *      并广播 live:userstate —— shell-new.js 的 syncStudioEntry 监听后原地刷新
  *      「AI Video Studio」入口（充值过才解锁，见 shell-new.js studioEntryVisible）。
- *   2. 后端注册即送 50 代币（ledger biz_type=welcome_bonus）。userInfo 返回
- *      welcome_bonus=true 且本浏览器未看过引导窗时，弹 candy 同款「50 FREE
+ *   2. 后端注册即送 20 代币（ledger biz_type=welcome_bonus）。userInfo 返回
+ *      welcome_bonus=true 且本浏览器未看过引导窗时，弹 candy 同款「20 FREE
  *      Tokens」引导窗（一张图 + 文案 + CTA）。CTA 按客户分流：sugus / heygirl 去
  *      Image.html（AI 工作室），kelymi / kiss 仍去 createCharacter.html。
  *   3. 登录窗口（Login.html 静态页 + 站内 Sign in 弹窗）的大图从
@@ -36,7 +36,7 @@
   function lsSet(k, v) { try { localStorage.setItem(k, v) } catch (e) {} }
 
   /* ---------- 0. 随机配图（assets/welcome/art-NN.jpg）----------
-     登录页 Sign in 窗口的大图与 50 币弹窗头图都从这里随机取，
+     登录页 Sign in 窗口的大图与 20 币弹窗头图都从这里随机取，
      连两次不重复（记住上一次的下标，在其余 n-1 张里抽）。
      素材源：C:\Users\a1033\Pictures\随机图，等比压到 720x960 后入库。 */
   var ART_DIR = './assets/welcome/'
@@ -219,8 +219,8 @@
       +       '<img src="' + esc(pickArt()) + '" alt="" onerror="this.style.display=\'none\'">'
       +     '</div>'
       +     '<div class="wb-body">'
-      +       '<h2 class="wb-title">50 FREE Tokens!</h2>'
-      +       '<p class="wb-sub">We just dropped <b>50 free tokens</b> into your wallet.<br>'
+      +       '<h2 class="wb-title">20 FREE Tokens!</h2>'
+      +       '<p class="wb-sub">We just dropped <b>20 free tokens</b> into your wallet.<br>'
       +       subLine + '</p>'
       +       (toStudio
                 ? '<div class="wb-cta-wrap"><span class="wb-cta-18">18+</span>'

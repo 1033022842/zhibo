@@ -136,18 +136,22 @@
     var style = document.createElement('style')
     style.id = 'live-login-gateway-style'
     style.textContent =
-      '.live-login-methods{margin:22px 0 12px;font-family:inherit}' +
-      '.live-login-divider{display:flex;align-items:center;gap:12px;margin-bottom:16px;color:#999;font-size:12px}' +
-      '.live-login-divider:before,.live-login-divider:after{content:"";height:1px;flex:1;background:#3a3a3a}' +
-      '.live-login-methods button{box-sizing:border-box;font:inherit;cursor:pointer;border-radius:10px;min-height:44px}' +
-      '.live-email-entry{width:100%;background:transparent;border:1px solid #E75275;color:#f4a2b4;font-size:14px;padding:11px}' +
-      // 社交登录：整行按钮，风格对齐 candy.ai（白底 Google / 品牌色 Discord / 天蓝 Telegram）
-      '.live-social-row{display:flex;flex-direction:column;gap:10px;margin-top:10px}' +
-      '.live-social-row button{display:flex;align-items:center;justify-content:center;width:100%;' +
-      'gap:12px;padding:11px 16px;border:none;border-radius:10px;font-size:14px;font-weight:500;' +
-      'line-height:1.4;transition:filter .15s ease,transform .1s ease}' +
+      '.live-login-methods{margin:22px 0 4px;font-family:inherit;display:flex;flex-direction:column}' +
+      '.live-login-divider{display:flex;align-items:center;gap:12px;margin-bottom:16px;color:#8f8a97;font-size:13px}' +
+      '.live-login-divider:before,.live-login-divider:after{content:"";height:1px;flex:1;background:rgba(255,255,255,.12)}' +
+      '.live-login-methods button{box-sizing:border-box;font:inherit;cursor:pointer;border-radius:10px;min-height:46px}' +
+      '.live-email-entry{order:9;width:100%;background:transparent;border:1px solid rgba(255,255,255,.16);color:#fff;' +
+        'font-size:14px;font-weight:500;height:46px;padding:0 14px}' +
+      '.live-email-entry:hover:not(:disabled){background:rgba(255,255,255,.06)}' +
+      // 社交登录：整行 Google + 两列 Discord/Telegram，尺寸对齐 candy.ai（高 46、圆角 10、14px）
+      '.live-social-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}' +
+      '.live-social-row .live-provider-google{grid-column:1 / -1}' +
+      '.live-social-row button{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;height:46px;' +
+      'gap:10px;padding:0 12px;border:none;border-radius:10px;font-size:14px;font-weight:600;' +
+      'line-height:1.2;transition:filter .15s ease,transform .1s ease}' +
       '.live-social-row button svg{width:22px;height:22px;flex:0 0 22px;display:block;pointer-events:none}' +
-      '.live-social-row button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.live-social-row button span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.live-social-row .live-provider-discord,.live-social-row .live-provider-telegram{font-size:13px}' +
       // 品牌配色（与 candy.ai 一致）
       '.live-social-row .live-provider-google{background:#fff;color:#344054}' +
       '.live-social-row .live-provider-discord{background:#5865F2;color:#fff}' +
@@ -180,30 +184,69 @@
       '#email-signin-dialog .email-signin-close{background:#292929;color:#ccc;border:1px solid #444}' +
       '#email-signin-dialog .email-signin-submit{flex:1;background:#E75275;color:white;border:0;font-weight:600}' +
       '#email-signin-status{font-size:13px;line-height:1.5;min-height:20px;color:#f4a2b4}' +
-      '#live-login-dialog{box-sizing:border-box;width:min(420px,calc(100% - 24px));max-height:calc(100dvh - 24px);' +
-        'margin:auto;padding:24px;border:1px solid #402f36;border-radius:18px;background:#1b171a;color:#fff;' +
-        'font-family:inherit;overflow:auto;overscroll-behavior:contain}' +
-      '#live-login-dialog::backdrop{background:rgba(0,0,0,.68);backdrop-filter:blur(5px)}' +
+      /* 登录弹窗：版式对齐 candy.ai（左图 380px + 右表单，标题 24px、控件高 46px、圆角 10px） */
+      '[data-main-target="signInModal"].live-legacy-off{display:none!important}' +
+      '#live-login-dialog{box-sizing:border-box;width:min(850px,calc(100% - 32px));max-height:calc(100dvh - 32px);' +
+        'margin:auto;padding:0;border:0;border-radius:12px;background:#141316;color:#fff;' +
+        'font-family:inherit;overflow:hidden;position:relative;' +
+        'box-shadow:0 30px 90px rgba(0,0,0,.6)}' +
+      '#live-login-dialog::backdrop{background:rgba(0,0,0,.72);backdrop-filter:blur(3px)}' +
+      '#live-login-dialog[open]{display:grid;grid-template-columns:380px minmax(0,1fr)}' +
       '#live-login-dialog [hidden]{display:none!important}' +
-      '#live-login-dialog h2{margin:0 32px 18px 0;font-size:25px;font-weight:750;line-height:1.2}' +
-      '#live-login-dialog form{display:grid;gap:12px;margin:0}' +
-      '#live-login-dialog label{display:grid;gap:5px;text-align:left;font-size:13px;color:#e2d4da}' +
-      '#live-login-dialog input{width:100%;min-width:0;box-sizing:border-box;background:#292329;color:#fff;' +
-        'border:1px solid #51424b;border-radius:9px;padding:10px;font:inherit;font-size:16px}' +
-      '#live-login-dialog input:focus-visible,#live-login-dialog button:focus-visible{outline:2px solid #f6a0b6;outline-offset:2px}' +
+      '#live-login-dialog .live-login-art{position:relative;display:none;overflow:hidden;background:#1d1a20;min-height:100%}' +
+      '#live-login-dialog .live-login-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}' +
+      '#live-login-dialog .live-login-art:after{content:"";position:absolute;inset:0;' +
+        'background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)}' +
+      '#live-login-dialog .live-login-brand{position:absolute;left:26px;bottom:22px;z-index:1;' +
+        'font-size:27px;font-weight:800;letter-spacing:-.4px;color:#fff;' +
+        'text-shadow:0 2px 16px rgba(0,0,0,.7),0 0 3px rgba(0,0,0,.5)}' +
+      '#live-login-dialog .live-login-brand i{font-style:normal;color:#FF4E6A}' +
+      '#live-login-dialog .live-login-body{display:flex;flex-direction:column;padding:36px 40px 24px;min-width:0;overflow:auto;max-height:calc(100dvh - 32px)}' +
+      '#live-login-dialog h2{margin:0 34px 22px 0;font-size:24px;font-weight:700;line-height:32px;letter-spacing:-.2px}' +
+      '#live-login-dialog form{display:grid;gap:14px;margin:0}' +
+      /* 标签文字只留给读屏：视觉上按 candy.ai 用 placeholder + 左侧图标 */
+      '#live-login-dialog label{display:grid;gap:7px;text-align:left;font-size:0;font-weight:500;color:#b3aeb9}' +
+      '#live-login-dialog label > input,#live-login-dialog label .live-login-row input{font-size:15px}' +
+      '#live-login-dialog input{width:100%;min-width:0;box-sizing:border-box;height:46px;background:#EFEDF7;color:#151219;' +
+        'border:1px solid transparent;border-radius:10px;padding:0 14px;font:inherit;font-size:15px;font-weight:500}' +
+      '#live-login-dialog input::placeholder{color:#7d778c}' +
+      '#live-login-dialog input[type=email],#live-login-dialog input[type=password]{padding-left:46px;' +
+        'background-repeat:no-repeat;background-position:14px center;background-size:20px 20px}' +
+      '#live-login-dialog input[type=email]{background-image:url("data:image/svg+xml;utf8,' + EMAIL_ICON + '")}' +
+      '#live-login-dialog input[type=password]{background-image:url("data:image/svg+xml;utf8,' + LOCK_ICON + '")}' +
+      '#live-login-dialog input:focus-visible{outline:0;border-color:#FF4E6A;box-shadow:0 0 0 3px rgba(255,78,106,.22)}' +
+      '#live-login-dialog input:-webkit-autofill{-webkit-text-fill-color:#151219;box-shadow:0 0 0 60px #EFEDF7 inset}' +
+      '#live-login-dialog input:focus-visible,#live-login-dialog button:focus-visible{outline-offset:2px}' +
       '#live-login-dialog button{font:inherit;cursor:pointer}' +
-      '#live-login-dialog button:disabled{opacity:.5;cursor:wait}' +
-      '#live-login-dialog .live-login-close{position:absolute;right:12px;top:10px;width:36px;height:36px;border:0;' +
-        'border-radius:50%;background:#332c32;color:#eee;font-size:24px;line-height:1}' +
-      '#live-login-dialog .live-login-submit{border:0;border-radius:9px;min-height:44px;color:#fff;' +
-        'background:#c93a64;font-size:15px;font-weight:700}' +
+      '#live-login-dialog button:disabled{opacity:.55;cursor:wait}' +
+      '#live-login-dialog .live-login-close{position:absolute;right:14px;top:12px;z-index:2;width:32px;height:32px;border:0;' +
+        'border-radius:50%;background:rgba(255,255,255,.09);color:#e9e6ee;font-size:20px;line-height:1}' +
+      '#live-login-dialog .live-login-close:hover{background:rgba(255,255,255,.16)}' +
+      '#live-login-dialog .live-forgot-wrap{display:flex;justify-content:flex-end;margin:-4px 0 2px}' +
+      '#live-login-dialog .live-login-submit{border:0;border-radius:10px;height:46px;color:#fff;' +
+        'background:linear-gradient(92deg,#FF4E6A 0%,#FF8095 100%);font-size:15px;font-weight:600;' +
+        'box-shadow:0 6px 20px rgba(255,78,106,.28);transition:filter .15s ease,transform .1s ease}' +
+      '#live-login-dialog .live-login-submit:hover:not(:disabled){filter:brightness(1.05)}' +
+      '#live-login-dialog .live-login-submit:active:not(:disabled){transform:scale(.99)}' +
       '#live-login-dialog .live-login-row{display:flex;align-items:center;gap:8px}' +
-      '#live-login-dialog .live-login-row button{padding:8px;border:1px solid #f6a0b6;border-radius:8px;color:#f6a0b6;' +
-        'background:none;white-space:nowrap}' +
-      '#live-login-dialog .live-login-link,#live-login-dialog a{border:0;padding:0;background:none;color:#f6a0b6;text-decoration:underline}' +
-      '#live-login-dialog .live-login-footer{text-align:center;font-size:13px;margin:14px 0 0;color:#dfd2d9}' +
-      '#live-login-status{margin:0;color:#f6a0b6;font-size:13px;line-height:1.45}' +
-      '#live-login-status:empty{display:none}'
+      '#live-login-dialog .live-login-row button{height:36px;padding:0 12px;border:1px solid rgba(255,255,255,.2);' +
+        'border-radius:9px;color:#e7e3ec;background:none;white-space:nowrap;font-size:13px}' +
+      '#live-login-dialog .live-login-link,#live-login-dialog a{border:0;padding:0;background:none;color:#c9c4d2;' +
+        'font-size:13px;text-decoration:none}' +
+      '#live-login-dialog .live-login-link:hover,#live-login-dialog a:hover{color:#fff;text-decoration:underline}' +
+      '#live-login-dialog .live-login-footer{text-align:center;font-size:14px;margin:18px 0 0;padding-top:16px;' +
+        'color:#9c96a4;border-top:1px solid rgba(255,255,255,.08)}' +
+      '#live-login-dialog .live-login-footer .live-login-link{font-size:14px;font-weight:600;color:#FF7C90}' +
+      '#live-login-dialog .live-dialog-methods{margin-top:2px}' +
+      '#live-login-status{margin:0;color:#FF8FA3;font-size:13px;line-height:1.45}' +
+      '#live-login-status:empty{display:none}' +
+      '@media (min-width:821px){#live-login-dialog .live-login-art{display:block}}' +
+      '@media (max-width:820px){' +
+        '#live-login-dialog{box-sizing:border-box;width:auto;max-width:430px;max-height:calc(100dvh - 24px);margin:auto;left:0;right:0}' +
+        '#live-login-dialog[open]{display:block}' +
+        '#live-login-dialog .live-login-body{padding:26px 24px 20px}' +
+        '#live-login-dialog h2{font-size:22px;line-height:28px;margin-bottom:18px}' +
+      '}'
     document.head.appendChild(style)
   }
 
@@ -285,6 +328,41 @@
   }
 
   /* 共用弹窗：不依赖页面残留的镜像表单；所有页面沿用同一套登录 API、会话和社交流程。 */
+  /* 输入框左侧图标（内联 SVG，避免额外请求；# 需转义成 %23） */
+  var EMAIL_ICON = '<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%234C4657%22 ' +
+    'stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%222.5%22 y=%224.5%22 width=%2219%22 height=%2215%22 rx=%222.5%22/>' +
+    '<path d=%22M3.5 6.5l8.5 6 8.5-6%22/></svg>'
+  var LOCK_ICON = '<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%234C4657%22 ' +
+    'stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%224%22 y=%2210%22 width=%2216%22 height=%2211%22 rx=%222.5%22/>' +
+    '<path d=%22M8 10V7.5a4 4 0 018 0V10%22/></svg>'
+
+  /* 登录弹窗左侧配图：与 20 币欢迎弹窗共用同一批 art（assets/welcome/art-01..11.jpg） */
+  var ART_DIR = './assets/welcome/'
+  var ART_COUNT = 11
+  function pickArt() {
+    var n = String(Math.floor(Math.random() * ART_COUNT) + 1)
+    while (n.length < 2) n = '0' + n
+    return ART_DIR + 'art-' + n + '.jpg'
+  }
+
+  /* 左侧图片底部品牌字（两色：白 + 品牌粉，仿 candy.ai 的 candy.ai 字标） */
+  var BRANDS = {
+    'sugus.ai': ['Sugus', 'ai'],
+    'heygirl.live': ['HeyGirl', 'live'],
+    'kelymi.autos': ['Kelymi', 'autos'],
+    'kisss.ai': ['Kisss', 'ai']
+  }
+  function brandMarkup() {
+    var host = String(location.hostname || '').replace(/^www\./i, '').toLowerCase()
+    var pair = BRANDS[host]
+    if (!pair) {
+      var parts = host.split('.')
+      var first = parts[0] || 'AI'
+      pair = [first.charAt(0).toUpperCase() + first.slice(1), parts.slice(1).join('.') || 'ai']
+    }
+    return pair[0] + '<i>.' + pair[1] + '</i>'
+  }
+
   function createLoginDialog() {
     var dialog = document.getElementById('live-login-dialog')
     if (dialog) return dialog
@@ -292,7 +370,10 @@
     dialog = document.createElement('dialog')
     dialog.id = 'live-login-dialog'
     dialog.setAttribute('aria-labelledby', 'live-login-title')
-    dialog.innerHTML = '<button class="live-login-close" type="button" aria-label="Close">&times;</button>' +
+    dialog.innerHTML = '<div class="live-login-art"><img alt="" src="' + pickArt() + '">' +
+        '<span class="live-login-brand">' + brandMarkup() + '</span></div>' +
+      '<div class="live-login-body">' +
+      '<button class="live-login-close" type="button" aria-label="Close">&times;</button>' +
       '<h2 id="live-login-title"></h2><form data-turbo="false">' +
       '<label data-signup-only hidden>Username<input name="username" autocomplete="username" maxlength="20"></label>' +
       '<label>Email<input type="email" name="email" autocomplete="email" maxlength="128" required autofocus></label>' +
@@ -305,9 +386,18 @@
       '<p id="live-login-status" role="status" aria-live="polite"></p>' +
       '<button class="live-login-submit" type="submit"></button></form><div class="live-dialog-methods"></div>' +
       '<p class="live-login-footer" data-signup-only hidden>By signing up, you agree to the <a href="/ai/terms.html">Terms of Service</a>.</p>' +
-      '<p class="live-login-footer"><span class="live-login-prompt"></span> <button class="live-login-link live-login-switch" type="button"></button></p>'
+      '<p class="live-login-footer"><span class="live-login-prompt"></span> <button class="live-login-link live-login-switch" type="button"></button></p>' +
+      '</div>'
     document.body.appendChild(dialog)
     var form = dialog.querySelector('form')
+    // 标签文字视觉隐藏后，把标签文本搬进 placeholder（对齐 candy.ai 的无标签输入框）
+    form.querySelectorAll('input').forEach(function (inp) {
+      if (inp.placeholder) return
+      var label = inp.closest('label')
+      var text = label && label.firstChild && label.firstChild.nodeType === 3 ? label.firstChild.textContent : ''
+      text = String(text || '').trim()
+      if (text) inp.placeholder = text
+    })
     var status = dialog.querySelector('#live-login-status')
     var submit = dialog.querySelector('.live-login-submit')
     var send = dialog.querySelector('.live-login-send')
@@ -517,7 +607,7 @@
     tg.className = 'live-provider-telegram'
     tg.title = 'Continue with Telegram'
     tg.innerHTML = (ICONS.telegram || '') + '<span></span>'
-    tg.querySelector('span').textContent = 'Continue with Telegram'
+    tg.querySelector('span').textContent = 'Telegram'
 
     var code = ''
     var browser = ''
@@ -633,7 +723,9 @@
         social.type = 'button'
         social.className = 'live-provider-' + provider.id
         social.innerHTML = (ICONS[provider.id] || '') + '<span></span>'
-        social.querySelector('span').textContent = 'Continue with ' + (LABELS[provider.id] || provider.label)
+        social.querySelector('span').textContent = provider.id === 'google'
+          ? 'Continue with ' + (LABELS[provider.id] || provider.label)
+          : (LABELS[provider.id] || provider.label)
         social.onclick = function () { startOAuth(provider, social) }
         row.appendChild(social)
       })
@@ -799,7 +891,31 @@
     })
   }
 
+  /**
+   * 老站（kelymi / kiss 等模板）的登录弹窗是 Alpine 直接显示 `[data-main-target="signInModal"]`，
+   * 不走点击事件，所以拦不住。这里监听它「变成可见」的瞬间：只要是纯登录（没有带上
+   * profile_id / prompt 的生成上下文），就关掉旧的、打开新版 candy 风格弹窗。
+   */
+  function upgradeLegacyModal() {
+    if (window.__liveLegacyWatch) return
+    // 老站（kelymi / kiss 等）的登录弹窗由 Alpine 直接显示，turbo-frame 还可能整个重建。
+    // 用常驻轮询最稳：发现它可见就强隐藏，并改开新版弹窗。
+    window.__liveLegacyWatch = setInterval(function () {
+      var legacy = document.querySelector('[data-main-target="signInModal"]')
+      if (!legacy) return
+      var shown = String(legacy.className || '').indexOf('hidden') < 0 && legacy.offsetWidth > 0
+      if (!shown) return
+      legacy.classList.add('live-legacy-off')
+      try { legacy.style.setProperty('display', 'none', 'important') } catch (e) {}
+      var live = document.getElementById('live-login-dialog')
+      if (live && live.open) return
+      try { openLogin({ mode: 'signin' }) } catch (e) { if (window.console) console.warn('[login] open failed', e) }
+    }, 600)
+  }
+
   function ready() {
+    // 老站弹窗替换先跑：initialize() 依赖 /loginOptions 网络请求，失败时不能连带跳过替换
+    try { upgradeLegacyModal() } catch (e) { if (window.console) console.warn('[login] legacy swap failed', e) }
     bindLoginEntries()
     initialize()
     callback()

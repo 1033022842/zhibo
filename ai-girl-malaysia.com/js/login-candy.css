@@ -1,0 +1,23 @@
+/* 老模板（kelymi / kiss）登录弹窗：套用 candy.ai 版式。
+   只作用于 [data-main-target="signInModal"]，新版 #live-login-dialog 不受影响。 */
+[data-main-target="signInModal"]{background:rgba(0,0,0,.72)!important;backdrop-filter:blur(6px)!important}
+[data-main-target="signInModal"]>div{display:grid!important;grid-template-columns:380px minmax(0,1fr)!important;
+  background:#141316!important;border-radius:12px!important;overflow:hidden!important;
+  width:min(850px,calc(100% - 32px))!important;box-shadow:0 30px 90px rgba(0,0,0,.6)!important}
+[data-main-target="signInModal"] #user-login-image{position:relative!important;width:380px!important;height:auto!important}
+[data-main-target="signInModal"] #user-login-image img{width:380px!important;height:100%!important;min-height:560px!important;
+  object-fit:cover!important;object-position:top center!important;border-radius:0!important}
+[data-main-target="signInModal"] #user-login-image span{font-size:26px!important;font-weight:800!important;
+  letter-spacing:-.5px!important;text-shadow:0 2px 18px rgba(0,0,0,.5)!important}
+[data-main-target="signInModal"] input[type="email"],[data-main-target="signInModal"] input[type="password"],
+[data-main-target="signInModal"] input[type="text"]{height:46px!important;background:#EFEDF7!important;color:#151219!important;
+  border:0!important;border-radius:10px!important;font-size:15px!important;padding:0 14px!important}
+[data-main-target="signInModal"] input::placeholder{color:#6b6b7b!important}
+[data-main-target="signInModal"] button[type="submit"]{height:46px!important;border-radius:10px!important;
+  background:linear-gradient(92deg,#FF4E6A,#FF8095)!important;color:#fff!important;font-size:15px!important;font-weight:600!important;border:0!important}
+[data-main-target="signInModal"] .live-login-divider{color:#8f8a97!important;font-size:13px!important}
+[data-main-target="signInModal"] h2,[data-main-target="signInModal"] .text-\[24px\]{font-size:24px!important;line-height:32px!important}
+@media (max-width:820px){
+  [data-main-target="signInModal"]>div{grid-template-columns:minmax(0,1fr)!important;width:min(430px,calc(100% - 24px))!important}
+  [data-main-target="signInModal"] #user-login-image{display:none!important}
+}
