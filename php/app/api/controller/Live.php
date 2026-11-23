@@ -1575,6 +1575,40 @@ final class Live extends BaseController
             }
         }
 
+        // 照片动作路由（第一版）：只加「动作」，不改角色回复本身。
+        // 高置信请求 + 角色确有素材 → 前端在气泡旁画「看照片」卡片，点击复用场景按钮链路；
+        // 无素材 → 明确告知没有，前端不画卡。后台 chat_photo_cta=0 可整条关掉。
+        if (!$refused && \app\live\service\ChatPhotoIntent::isEnabled()) {
+            $photoIntent = \app\live\service\ChatPhotoIntent::detect((string) $message);
+            if ($photoIntent === 'photo') {
+                $mediaRoleKey = '';
+                if (preg_match('/^home-\d+$/', (string) $roleKey)) {
+                    $mediaRoleKey = (string) $roleKey;
+                } elseif ($contentId > 0) {
+                    $mediaRoleKey = 'home-' . (int) $contentId;
+                }
+                $photoCount = 0;
+                if ($mediaRoleKey !== '') {
+                    $scan = $this->scanChatMedia($mediaRoleKey);
+                    $photoCount = count($scan['images']);
+                    if ($photoCount === 0 && $scan['persona'] !== '') {
+                        $photoCount = 1;
+                    }
+                }
+                if ($photoCount > 0) {
+                    $result['action'] = [
+                        'type'       => 'photo',
+                        'role_key'   => $mediaRoleKey,
+                        'count'      => $photoCount,
+                        'need_login' => $userId <= 0,
+                        'label'      => $userId > 0 ? 'View photo' : 'Sign in to see photos',
+                    ];
+                } else {
+                    $result['action'] = ['type' => 'none', 'reason' => 'no_media'];
+                }
+            }
+        }
+
         return $this->jsonSuccess($result);
     }
 

@@ -391,6 +391,16 @@ a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!importan
 #message-list .fy-conv-preview{color:#b4b4b4;font-family:'Poppins',sans-serif;font-size:13px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #message-list .fy-conv-side{display:none}
 </style>
+<style id="fyPhotoCtaCss">
+  #fy-photo-cta{margin:4px 0 10px}
+  .fy-photo-card{display:flex;align-items:center;gap:10px;width:min(290px,100%);padding:10px 12px;border-radius:14px;background:#1c1a1b;border:1px solid #e75275;color:#fff;text-align:left;cursor:pointer;transition:background .15s ease;font:inherit}
+  .fy-photo-card:hover{background:#2a2224}
+  .fy-photo-ic{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#e75275;color:#fff;flex:0 0 34px}
+  .fy-photo-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .fy-photo-tx b{font-size:14px;font-weight:600;line-height:1.2}
+  .fy-photo-tx i{font-size:11.5px;color:#b9b3b5;font-style:normal;line-height:1.25;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fy-photo-arrow{margin-left:auto;color:#8a8285;font-size:18px;line-height:1}
+</style>
 </head>
   <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
     
@@ -1576,3 +1586,4 @@ a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!importan
     </div>
       >
 <script src="./js/chat-mobile-list.js?v=20261121v9"></script>
+<script src="./js/chat-photo-cta.js?v=20261123ph1"></script>
