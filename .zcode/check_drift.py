@@ -33,6 +33,13 @@ import sys
 
 import paramiko
 
+# Windows 控制台默认 GBK，打印 ✅/❌ 会直接 UnicodeEncodeError 崩掉
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 SITE_DIR = "ai-girl-malaysia.com"
@@ -137,13 +144,19 @@ def norm_text(content):
     # 品牌词切分不同（Sugus vs heygirl.Ai）会留下结构性差异，整段抹平
     s = re.sub(r"'[\w.-]+\.(?:ai|live|autos|com)':\s*\[[^\]]*\]", "<BRANDMAP>", s)
     s = BRAND_RE.sub("<B>", s)
-    return TLD_RE.sub(".<TLD>", s)
+    s = TLD_RE.sub(".<TLD>", s)
+    # apply_brand 的替换粒度不同：上游 "Sugus.ai" → 客户可能只替换成 "Kelymi"（无域名后缀）
+    s = re.sub(r"<B>\.<TLD>", "<B>", s)
+    return s
 
 
 SITE_OWNED = (
-    "php/config/",          # 支付/渠道凭据、站点开关，各站独立配置
-    "js/brand.js",          # 品牌配色与文案
-    "js/site-shell.js",     # 部分站有自己的站点外壳
+    "php/config/",           # 支付/渠道凭据、站点开关，各站独立配置
+    "js/brand.js",           # 品牌配色与文案
+    "js/crypto-pay.js",      # kelymi 自建加密货币支付
+    "js/face_swap.js",       # kiss 自建换脸模块
+    "js/site-shell.js",      # 部分站有自己的站点外壳
+    "php/app/api/controller/Home.php",   # 站点首页数据源（kelymi 有加密货币入口）
 )
 
 
