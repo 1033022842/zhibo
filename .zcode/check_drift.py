@@ -126,12 +126,21 @@ def upstream_blob(path):
     return out.encode("utf-8", "replace") if rc == 0 else None
 
 
+COMMENT_RE = re.compile(r"/\*.*?\*/|(?m)^\s*//.*$", re.S)
+
+
+def strip_comments(s: str) -> str:
+    """品牌化会连注释一起替换（"AI 女友端"→"Candy Shorts"），比对前剥掉，避免注释噪声算漂移。"""
+    return COMMENT_RE.sub("", s or "")
+
+
 def norm_text(content):
     """归一化：apply_brand 会改品牌词 / 域名后缀 / CDN 资源地址 / 资源引用形式，
     这些都不是「有人手改了代码」，比对前统一抹平，否则全站误报。"""
     if not content:
         return ""
-    s = content.decode("utf-8", "replace")
+    s = content.decode("utf-8", "replace") if isinstance(content, bytes) else str(content)
+    s = strip_comments(s)
     s = s.replace(chr(13) + chr(10), chr(10))
     s = MAIL_RE.sub("<MAIL>", s)
     s = CDN_RE.sub("<CDN>", s)
@@ -143,6 +152,8 @@ def norm_text(content):
     # 品牌映射表：'sugus.ai': ['Sugus','ai'] / 'heygirl.ai': ['heygirl.Ai','ai']
     # 品牌词切分不同（Sugus vs heygirl.Ai）会留下结构性差异，整段抹平
     s = re.sub(r"'[\w.-]+\.(?:ai|live|autos|com)':\s*\[[^\]]*\]", "<BRANDMAP>", s)
+    # kiss 把通用的 Site* 前缀换成品牌名（window.SiteSeries → window.CandySeries）
+    s = re.sub(r"\b(?:Site|Candy)(?=[A-Z])", "<P>", s)
     s = BRAND_RE.sub("<B>", s)
     s = TLD_RE.sub(".<TLD>", s)
     # apply_brand 的替换粒度不同：上游 "Sugus.ai" → 客户可能只替换成 "Kelymi"（无域名后缀）
@@ -436,6 +447,8 @@ def main():
                     continue          # 客户覆盖文件，天然与上游不同
                 if is_site_owned(p):
                     continue          # 站点自有配置（品牌/支付凭据），本就不跟上游一致
+                if not cfg.get("sync_php", False) and p.startswith("php/"):
+                    continue          # 该站不部署 PHP，线上是手工补丁产物，不参与漂移判定
                 got = got_md5.get(p)
                 if got is None:
                     missing.append(p)
