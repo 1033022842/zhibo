@@ -591,8 +591,8 @@
             return
         }
 
-        // 非会员：目录可见、视频一律锁定
-        if (state.vipRequired) {
+        // 非会员：目录可见；前 N 集（ep.free）依然可播，其余锁定
+        if (state.vipRequired && !ep.free) {
             stageAttrs(true, false, false)
             stage.innerHTML = vipGateHtml(ep.poster || state.poster, episodeLabel(ep))
             return
@@ -652,7 +652,7 @@
     }
 
     function feedSlideHtml(ep, index) {
-        var vipLocked = state.vipRequired
+        var vipLocked = state.vipRequired && !ep.free
         var locked = vipLocked || !ep.unlocked
         var hasVideo = !!ep.video_url
 
@@ -781,7 +781,7 @@
         }
 
         var meta = count + (count === 1 ? ' episode' : ' episodes')
-        if (state.vipRequired) {
+        if (state.vipRequired && state.freeEpisodes <= 0) {
             meta += ' · Members only'
         } else if (state.freeEpisodes > 0) {
             meta += ' · first ' + state.freeEpisodes + ' free'
@@ -797,8 +797,8 @@
             var isCurrent = Number(ep.id) === Number(state.currentId)
 
             var right
-            if (state.vipRequired) {
-                // 非会员（含未登录）：每集只显示一把锁，不暴露免费集与价格
+            if (state.vipRequired && !ep.free) {
+                // 非会员（含未登录）：免费集之外每集只显示一把锁
                 right = SVG_LOCK
             } else if (ep.unlocked && ep.free) {
                 right = '<span class="cs-free">Free</span>'

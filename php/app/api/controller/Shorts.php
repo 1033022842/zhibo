@@ -173,8 +173,8 @@ final class Shorts extends BaseController
                 'poster'         => $this->absoluteUrl((string) $short['poster']),
                 // 弹窗标题上方的 SPICY 标签
                 'spicy'          => (int) ($short['spicy'] ?? 0) ? 1 : 0,
-                // 非会员不展示「前 N 集免费」，避免误解
-                'free_episodes'  => $isVip ? $freeEpisodes : 0,
+                // 非会员也展示「前 N 集免费」：与分集 free 标记一致
+                'free_episodes'  => $freeEpisodes,
                 'episode_count'  => count($episodes),
                 'is_vip'         => $isVip ? 1 : 0,
                 'vip_required'   => $isVip ? 0 : 1,
@@ -576,8 +576,23 @@ final class Shorts extends BaseController
         $no = (int) $row['episode_no'];
         $price = max(0, (int) $row['price']);
 
-        // 非会员：目录照常返回，但没有任何可播放内容，也不能显示免费集 / 价格
+        // 非会员：前 free_episodes 集免费可看（引流），其余集只给目录、不给视频地址
         if (!$isVip) {
+            if ($no <= $freeEpisodes) {
+                return [
+                    'id'           => $id,
+                    'short_id'     => (int) $row['short_id'],
+                    'episode_no'   => $no,
+                    'title'        => (string) $row['title'],
+                    'poster'       => $this->absoluteUrl((string) $row['poster']),
+                    'duration'     => (string) $row['duration'],
+                    'price'        => 0,
+                    'free'         => 1,
+                    'unlocked'     => 1,
+                    'vip_required' => 0,
+                    'video_url'    => $this->absoluteUrl((string) $row['video_url']),
+                ];
+            }
             return [
                 'id'           => $id,
                 'short_id'     => (int) $row['short_id'],
