@@ -28,6 +28,7 @@
   function injectCss() {
     if (document.getElementById(CSS_ID)) return;
     var css = ''
+      + '.fy-scenario--under-gen{margin:12px 24px 0}'
       + '.fy-scenario{margin:14px 18px 0;padding:14px 16px;background:#1b1b1b;border:1px solid #2b2b2b;border-radius:12px}'
       + '.fy-scenario-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9a9a9a;font-weight:600}'
       + '.fy-scenario-h::before{content:"";width:6px;height:6px;border-radius:50%;background:#e75275;flex:0 0 auto}'
@@ -84,12 +85,19 @@
     var old = document.getElementById(BLOCK_ID);
     if (old) old.remove();
     var wrap = document.createElement('div');
-    wrap.className = 'fy-scenario';
+    wrap.className = 'fy-scenario fy-scenario--under-gen';
     wrap.id = BLOCK_ID;
     wrap.innerHTML = '<div class="fy-scenario-h">Scenario</div>'
       + '<div class="fy-scenario-t clamp" id="fy-scenario-t"></div>'
       + '<div class="fy-scenario-more" id="fy-scenario-more">Read more</div>';
-    root.appendChild(wrap);
+    // 需求：Scenario 卡片放到右栏 “Generate Image” 按钮下方（不再跟在简介后面）
+    var genLink = document.querySelector('#profile-partial-turbo a[href*="Image.html"]');
+    var genBox = genLink ? (genLink.closest('.flex-1') || genLink.parentElement) : null;
+    if (genBox && genBox.parentNode) {
+      genBox.parentNode.insertBefore(wrap, genBox.nextSibling);
+    } else {
+      root.appendChild(wrap);
+    }
     var body = wrap.querySelector('#fy-scenario-t');
     body.textContent = text;
     var more = wrap.querySelector('#fy-scenario-more');
