@@ -1205,7 +1205,7 @@
 				var glyph = tags.length
 					? '<div class="c-card-top"><span class="c-card-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h7l10 10-7 7L3 11z"/><circle cx="7.5" cy="8.5" r=".75" fill="currentColor" stroke="none"/></svg><span>' + esc(tags[0]) + '</span></span></div>'
 					: ''
-				return '<li><a class="c-card' + cls + '" draggable="false" data-cid="' + esc(c.id) + '" href="./Chat.html?id=' + encodeURIComponent('home-' + c.id) + '">' +
+				return '<li><a class="c-card' + cls + '" draggable="false" data-cid="' + esc(c.id) + '" href="' + esc(c.link_url && /Chat\.html/.test(c.link_url) ? c.link_url : ('./Chat.html?id=' + encodeURIComponent('home-' + c.id))) + '">' +
 					cover +
 					prev +
 					'<div class="c-card-scrim"></div>' +
