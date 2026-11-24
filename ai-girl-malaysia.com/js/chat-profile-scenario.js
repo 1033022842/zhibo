@@ -132,6 +132,59 @@
     });
   }
 
+
+  /* 会话列表加载完会把「上一次会话」设成 active，从而把 URL 指定的角色顶掉。
+     这里主动把目标项点一下，让 chat.js 自己走正确的加载流程。 */
+  function lockActiveList(key) {
+    var tries = 0;
+    var tick = function () {
+      if (currentRoleKey() !== key) return;
+      var items = document.querySelectorAll('#message-list a.chat-obj');
+      var target = null;
+      for (var i = 0; i < items.length; i++) {
+        if ((items[i].getAttribute('data-id') || '') === key) { target = items[i]; break; }
+      }
+      if (target && !target.classList.contains('active')) {
+        target.click();
+        return;
+      }
+      tries += 1;
+      if (tries < 12) setTimeout(tick, 500);
+    };
+    setTimeout(tick, 300);
+  }
+
+  /* 头部名字/头像一旦被别的会话覆盖，立刻写回（20 秒后交还给页面） */
+  function guardHeader(d, key) {
+    var name = (d.name || '').trim();
+    if (!name) return;
+    var hits = 0;
+    var apply = function () {
+      if (currentRoleKey() !== key) return false;
+      var h = document.getElementById('chat-name');
+      var n = document.getElementById('name');
+      if (h && h.textContent.trim() !== name) h.textContent = name;
+      if (n && n.textContent.trim() !== name) n.textContent = name;
+      if (d.cover) {
+        ['chat-img', 'chat-img-mobile'].forEach(function (id) {
+          var im = document.getElementById(id);
+          if (im && im.getAttribute('src') !== d.cover) im.setAttribute('src', d.cover);
+        });
+      }
+      return true;
+    };
+    var host = document.getElementById('chat-name');
+    if (!host || !host.parentNode) return;
+    var obs = new MutationObserver(function () {
+      if (currentRoleKey() !== key) { obs.disconnect(); return; }
+      apply();
+      hits += 1;
+      if (hits > 60) obs.disconnect();
+    });
+    obs.observe(host.parentNode, { childList: true, subtree: true, characterData: true });
+    setTimeout(function () { obs.disconnect(); }, 20000);
+  }
+
   function syncHeader(d, key) {
     if (!d) return;
     var tries = 0;
@@ -176,6 +229,8 @@
         renderChips(root, d);
         renderScenario(root, (d.scenario || '').trim());
         syncHeader(d, key);
+        lockActiveList(key);
+        guardHeader(d, key);
       })
       .catch(function () { /* 面板资料失败不影响聊天 */ });
   }
