@@ -1669,7 +1669,7 @@
 
 			// 三分类数据一次性并发拉取，切 Tab 零等待
 			/* ---------- Private Content 会员栏（VIP 可见 · 代币解锁） ---------- */
-			var privStore = {}, isVip = false
+			var privStore = {}, isVip = false, loggedIn = false
 			function privToken() { try { return localStorage.getItem('live_access_token') || '' } catch (e) { return '' } }
 			function privHeaders(extra) {
 				var h = extra || {}
@@ -1679,7 +1679,8 @@
 			}
 			function checkVip() {
 				var tk = privToken()
-				if (!tk) { isVip = false; renderPrivate(); return }
+				if (!tk) { isVip = false; loggedIn = false; renderPrivate(); return }
+				loggedIn = true
 				fetch('/api/vip/status', { headers: { Authorization: 'Bearer ' + tk } })
 					.then(function (r) { return r.json() })
 					.then(function (d) {
@@ -1765,7 +1766,7 @@
 				var sec = document.getElementById('privateShelf')
 				var grid = document.getElementById('privateGrid')
 				if (!sec || !grid) return
-				var list = (isVip && privStore[activeCat]) ? privStore[activeCat] : []
+				var list = ((isVip || loggedIn) && privStore[activeCat]) ? privStore[activeCat] : []
 				sec.style.display = list.length ? '' : 'none'
 				if (!list.length) return
 				grid.innerHTML = list.map(privCardHtml).join('') + viewAllHtml('c-viewall-tall', './private_content.html')
