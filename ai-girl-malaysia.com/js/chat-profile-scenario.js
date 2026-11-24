@@ -127,7 +127,13 @@
           var im = document.getElementById(id);
           if (im && im.getAttribute('src') !== d.cover) im.setAttribute('src', d.cover);
         });
+        var big = document.querySelector('#pfp-carousel .carousel-item img');
+        if (big && big.getAttribute('src') !== d.cover) big.setAttribute('src', d.cover);
       }
+      var nameEl = document.getElementById('name');
+      if (name && nameEl && nameEl.textContent.trim() !== name) nameEl.textContent = name;
+      var descEl = document.getElementById('infomation');
+      if (d.description && descEl && descEl.textContent.trim() !== d.description.trim()) descEl.textContent = d.description;
       tries += 1;
       if (tries < 4) setTimeout(apply, 700);
     };
