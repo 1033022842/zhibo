@@ -9,20 +9,28 @@
   var BLOCK_ID = 'fy-scenario';
   var apiBase = '/api/live';
 
-  function currentRoleKey() {
-    // 1) 优先取会话列表里当前选中的角色（页面实际在聊的对象）
-    var active = document.querySelector('#message-list a.chat-obj.active, #message-list a.chat-obj[data-active="1"]');
-    if (active) {
-      var did = (active.getAttribute('data-id') || '').trim();
-      if (did) return did;
-    }
-    // 2) 回退到地址栏 id
+  function urlRoleKey() {
     try {
       var p = new URLSearchParams(location.search);
-      var id = (p.get('id') || '').trim();
-      if (id) return id;
-    } catch (e) {}
-    return '';
+      return (p.get('id') || '').trim();
+    } catch (e) { return ''; }
+  }
+
+  function activeRoleKey() {
+    var active = document.querySelector('#message-list a.chat-obj.active, #message-list a.chat-obj[data-active="1"]');
+    if (!active) return '';
+    return (active.getAttribute('data-id') || '').trim();
+  }
+
+  function currentRoleKey() {
+    // 1) 地址栏的 home-* 才是用户点的那个角色：会话列表可能还停在旧角色上
+    var u = urlRoleKey();
+    if (/^home-\d+$/.test(u)) return u;
+    // 2) 其次用会话列表当前选中项
+    var a = activeRoleKey();
+    if (a) return a;
+    // 3) 最后回退到地址栏（my-* 等）
+    return u;
   }
 
   function injectCss() {
@@ -93,7 +101,11 @@
     // 需求：Scenario 卡片放到右栏 “Generate Image” 按钮下方（不再跟在简介后面）
     var genLink = document.querySelector('#profile-partial-turbo a[href*="Image.html"]');
     var genBox = genLink ? (genLink.closest('.flex-1') || genLink.parentElement) : null;
-    if (genBox && genBox.parentNode) {
+    // Generate Image 那一行（含 Call Me）的容器：卡片要落在整行之后，成为独立块
+    var row = genBox ? genBox.parentNode : null;
+    if (row && row.parentNode && row !== root) {
+      row.parentNode.insertBefore(wrap, row.nextSibling);
+    } else if (genBox && genBox.parentNode) {
       genBox.parentNode.insertBefore(wrap, genBox.nextSibling);
     } else {
       root.appendChild(wrap);
