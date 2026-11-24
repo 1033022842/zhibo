@@ -112,6 +112,28 @@
     });
   }
 
+  function syncHeader(d, key) {
+    if (!d) return;
+    var tries = 0;
+    var apply = function () {
+      if (currentRoleKey() !== key) return; // 用户已切到别的会话就别再改
+      var name = (d.name || '').trim();
+      if (name) {
+        var h = document.getElementById('chat-name');
+        if (h && h.textContent.trim() !== name) h.textContent = name;
+      }
+      if (d.cover) {
+        ['chat-img', 'chat-img-mobile'].forEach(function (id) {
+          var im = document.getElementById(id);
+          if (im && im.getAttribute('src') !== d.cover) im.setAttribute('src', d.cover);
+        });
+      }
+      tries += 1;
+      if (tries < 4) setTimeout(apply, 700);
+    };
+    apply();
+  }
+
   function load() {
     var key = currentRoleKey();
     if (!key) return;
@@ -127,6 +149,7 @@
         fillBasics(d);
         renderChips(root, d);
         renderScenario(root, (d.scenario || '').trim());
+        syncHeader(d, key);
       })
       .catch(function () { /* 面板资料失败不影响聊天 */ });
   }
