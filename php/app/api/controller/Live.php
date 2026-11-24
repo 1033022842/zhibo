@@ -750,6 +750,59 @@ final class Live extends BaseController
     }
 
     /**
+     * AI 前端：角色资料（右侧 Profile 面板用；游客可读）
+     * role_key 支持 home-12 / 12 / my-279
+     */
+    public function personaProfile()
+    {
+        $raw = trim((string) $this->request->param('role_key', ''));
+        $out = [
+            'role_key'    => $raw,
+            'name'        => '',
+            'age'         => '',
+            'ethnicity'   => '',
+            'personality' => '',
+            'hobbies'     => '',
+            'relationship' => '',
+            'scenario'    => '',
+            'description' => '',
+            'cover'       => '',
+        ];
+        $contentId = 0;
+        if (preg_match('/^(?:home-)?(\d+)$/', $raw, $m)) {
+            $contentId = (int) $m[1];
+        }
+        if ($contentId > 0) {
+            $row = \think\facade\Db::connect('live_mysql')
+                ->table('lp_ai_content')
+                ->where('id', $contentId)
+                ->find();
+            if ($row) {
+                $out['name']        = (string) ($row['title'] ?? '');
+                $out['description'] = (string) ($row['description'] ?? '');
+                $out['cover']       = (string) ($row['cover_url'] ?? '');
+                $p = $row['personality'] ? json_decode((string) $row['personality'], true) : [];
+                if (is_array($p)) {
+                    $map = [
+                        '年龄' => 'age',
+                        '族裔' => 'ethnicity',
+                        '性格' => 'personality',
+                        '爱好' => 'hobbies',
+                        '关系' => 'relationship',
+                        '场景' => 'scenario',
+                    ];
+                    foreach ($map as $k => $field) {
+                        if (isset($p[$k]) && is_string($p[$k]) && $p[$k] !== '') {
+                            $out[$field] = $p[$k];
+                        }
+                    }
+                }
+            }
+        }
+        return $this->jsonSuccess($out);
+    }
+
+    /**
      * AI 前端：文件上传（角色封面图）
      */
     public function upload()

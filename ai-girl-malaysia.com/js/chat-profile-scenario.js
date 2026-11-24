@@ -1,0 +1,141 @@
+/* Chat 右侧 Profile 面板：真实角色资料 + Scenario
+ * 零侵入：不改 chat.js，只读 /api/live/personaProfile 填充面板。
+ * role_key 取地址栏 id：home-12 / 12 / my-279
+ */
+(function () {
+  'use strict';
+
+  var CSS_ID = 'fyScenarioCss';
+  var BLOCK_ID = 'fy-scenario';
+  var apiBase = '/api/live';
+
+  function currentRoleKey() {
+    // 1) 优先取会话列表里当前选中的角色（页面实际在聊的对象）
+    var active = document.querySelector('#message-list a.chat-obj.active, #message-list a.chat-obj[data-active="1"]');
+    if (active) {
+      var did = (active.getAttribute('data-id') || '').trim();
+      if (did) return did;
+    }
+    // 2) 回退到地址栏 id
+    try {
+      var p = new URLSearchParams(location.search);
+      var id = (p.get('id') || '').trim();
+      if (id) return id;
+    } catch (e) {}
+    return '';
+  }
+
+  function injectCss() {
+    if (document.getElementById(CSS_ID)) return;
+    var css = ''
+      + '.fy-scenario{margin:14px 18px 0;padding:14px 16px;background:#1b1b1b;border:1px solid #2b2b2b;border-radius:12px}'
+      + '.fy-scenario-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9a9a9a;font-weight:600}'
+      + '.fy-scenario-h::before{content:"";width:6px;height:6px;border-radius:50%;background:#e75275;flex:0 0 auto}'
+      + '.fy-scenario-t{margin-top:8px;font-size:13px;line-height:1.62;color:#e6e6e6;white-space:pre-wrap}'
+      + '.fy-scenario-t.clamp{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}'
+      + '.fy-scenario-more{margin-top:8px;font-size:12px;color:#e75275;cursor:pointer;user-select:none}'
+      + '.fy-profile-meta{margin:12px 18px 0;display:flex;flex-wrap:wrap;gap:8px}'
+      + '.fy-profile-chip{padding:5px 10px;border-radius:999px;background:#232323;color:#ddd;font-size:12px}'
+      + '.fy-profile-chip b{color:#fff;font-weight:600}';
+    var s = document.createElement('style');
+    s.id = CSS_ID;
+    s.textContent = css;
+    document.head.appendChild(s);
+  }
+
+  function panelRoot() {
+    var pc = document.querySelector('.profile-container');
+    if (!pc) return null;
+    var turbo = pc.querySelector('#profile-partial-turbo') || pc;
+    return turbo;
+  }
+
+  function fillBasics(d) {
+    // 面板里已有静态占位（#age / #ethnicity / #hobbies / #relationship），有真实值就覆盖
+    var set = function (id, v) {
+      if (!v) return;
+      var el = document.getElementById(id);
+      if (el) el.textContent = v;
+    };
+    set('age', d.age);
+    set('ethnicity', d.ethnicity);
+    set('hobbies', d.hobbies);
+    set('relationship', d.relationship);
+  }
+
+  function renderChips(root, d) {
+    if (root.querySelector('.fy-profile-meta')) return;
+    var chips = [];
+    if (d.age) chips.push('<span class="fy-profile-chip">Age <b>' + esc(d.age) + '</b></span>');
+    if (d.ethnicity) chips.push('<span class="fy-profile-chip">Ethnicity <b>' + esc(d.ethnicity) + '</b></span>');
+    if (d.personality) chips.push('<span class="fy-profile-chip">Personality <b>' + esc(d.personality) + '</b></span>');
+    if (d.hobbies) chips.push('<span class="fy-profile-chip">Into <b>' + esc(d.hobbies) + '</b></span>');
+    if (!chips.length) return;
+    var box = document.createElement('div');
+    box.className = 'fy-profile-meta';
+    box.innerHTML = chips.join('');
+    var firstSection = root.querySelector('.flex-col.justify-start.items-start.gap-6');
+    if (firstSection) firstSection.parentNode.insertBefore(box, firstSection);
+    else root.appendChild(box);
+  }
+
+  function renderScenario(root, text) {
+    if (!text) return;
+    var old = document.getElementById(BLOCK_ID);
+    if (old) old.remove();
+    var wrap = document.createElement('div');
+    wrap.className = 'fy-scenario';
+    wrap.id = BLOCK_ID;
+    wrap.innerHTML = '<div class="fy-scenario-h">Scenario</div>'
+      + '<div class="fy-scenario-t clamp" id="fy-scenario-t"></div>'
+      + '<div class="fy-scenario-more" id="fy-scenario-more">Read more</div>';
+    root.appendChild(wrap);
+    var body = wrap.querySelector('#fy-scenario-t');
+    body.textContent = text;
+    var more = wrap.querySelector('#fy-scenario-more');
+    // 内容不超长就不显示按钮
+    requestAnimationFrame(function () {
+      if (body.scrollHeight <= body.clientHeight + 2) {
+        body.classList.remove('clamp');
+        more.style.display = 'none';
+      }
+    });
+    more.addEventListener('click', function () {
+      var clamped = body.classList.toggle('clamp');
+      more.textContent = clamped ? 'Read more' : 'Show less';
+    });
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function load() {
+    var key = currentRoleKey();
+    if (!key) return;
+    var url = apiBase + '/personaProfile?role_key=' + encodeURIComponent(key);
+    fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        var d = (res && res.data) || null;
+        if (!d) return;
+        var root = panelRoot();
+        if (!root) return;
+        injectCss();
+        fillBasics(d);
+        renderChips(root, d);
+        renderScenario(root, (d.scenario || '').trim());
+      })
+      .catch(function () { /* 面板资料失败不影响聊天 */ });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', load);
+  } else {
+    load();
+  }
+  // 弱网/首屏时序兜底：面板可能晚于脚本渲染
+  window.addEventListener('load', function () { setTimeout(load, 600); });
+})();

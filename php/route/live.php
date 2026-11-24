@@ -35,6 +35,7 @@ Route::get('live/customRoleImageStatus', '\app\api\controller\Live@customRoleIma
 Route::post('live/customRoleSave',       '\app\api\controller\Live@customRoleSave')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customRoleRegenerate', '\app\api\controller\Live@customRoleRegenerate')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/customOneList',    '\app\api\controller\Live@customOneList')->middleware(\app\live\middleware\Auth::class);
+Route::get('live/personaProfile',    '\app\api\controller\Live@personaProfile');
 Route::post('live/upload',           '\app\api\controller\Live@upload')->middleware(\app\live\middleware\Auth::class);
 Route::post('live/uploadMediaAsset',  '\app\api\controller\Live@uploadMediaAsset')->middleware(\app\live\middleware\Auth::class);
 Route::get('live/mediaAssetList',    '\app\api\controller\Live@mediaAssetList')->middleware(\app\live\middleware\Auth::class);
