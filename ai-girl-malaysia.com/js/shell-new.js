@@ -1373,6 +1373,28 @@
       .then(done, done)
   }
 
+  /* 充值回跳 / 切回标签页 / 从后台恢复时也刷一次余额：
+     第三方支付是服务端回调，前端不会产生任何 /api/live POST，
+     不补这段就会出现「后台已到账、页面还是 0」。 */
+  ;(function () {
+    var last = 0
+    function touch() {
+      var now = Date.now()
+      if (now - last < 1500) return
+      last = now
+      try { if (localStorage.getItem('live_access_token')) window.refreshTokenBalance() } catch (e) {}
+    }
+    window.addEventListener('focus', touch)
+    window.addEventListener('pageshow', touch)
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) touch()
+    })
+    try {
+      var q = String(location.search || '')
+      if (/[?&](paid|payment|pay)_?(success|done|return)=?1?/i.test(q) || /[?&]return=1/.test(q)) setTimeout(touch, 300)
+    } catch (e) {}
+  })();
+
   // 站内 API（/api/live/）请求完成后自动刷新顶栏余额（聊天扣费/解锁/充值后实时更新），300ms 防抖合并
   ;(function () {
     if (window.__fyFetchHooked) return
