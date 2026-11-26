@@ -187,6 +187,10 @@ body.fy-composer-hidden .fy-composer{transform:translateY(130%);opacity:0;pointe
 .dot-elastic::before,.dot-elastic::after{content:"";position:absolute;top:0;left:11px;opacity:.85}
 .dot-elastic::before{animation:fyDotElastic .9s .15s infinite ease}
 .dot-elastic::after{left:22px;animation:fyDotElastic .9s .3s infinite ease}
+/* Profile 头图轮播：第 2 张压一层角色动态图，激活时才加载 */
+#pfp-carousel .carousel-item{position:relative}
+#pfp-carousel .fy-pfp-loop{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:top;background:#000;opacity:0;transition:opacity .25s ease;pointer-events:none}
+#pfp-carousel .fy-pfp-loop.is-on{opacity:1}
 @keyframes fyDotElastic{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
 
 /* ---- 底部输入区（candy 玻璃圆角卡片，774px 居中） ---- */
@@ -1040,6 +1044,7 @@ a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!importan
     </div>
     <div class="carousel-item">
         <img src="./Chat_files/35470499-b738b11a-c799-49fc-82a2-8328b7e58ee3" class="w-full object-top object-cover h-[483px]">
+        <video class="fy-pfp-loop" muted loop playsinline preload="none" aria-hidden="true"></video>
     </div>
 </div>
 <div class="carousel-dots absolute bottom-[20px] left-1/2 transform -translate-x-1/2">
@@ -1589,3 +1594,4 @@ a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!importan
 <script src="./js/chat-photo-cta.js?v=20261123ph1"></script>
 
 <script src="./js/chat-profile-scenario.js?v=20261125prof6"></script>
+<script src="./js/chat-pfp-loop.js?v=20261126loop2"></script>

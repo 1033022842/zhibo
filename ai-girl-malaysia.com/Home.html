@@ -181,6 +181,10 @@
 			/* 悬停预览视频：默认透明，桌面端加载就绪后淡入 */
 			.c-card .c-card-prev{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0;transition:opacity .3s ease;pointer-events:none;background:transparent}
 			.c-card.is-prev-on .c-card-prev{opacity:1}
+			/* 卡片动态图：静态封面先显示，hover/聚焦时才注入 loop_url 并淡入（触屏设备不自动播） */
+			.c-card .c-card-loop{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0;transition:opacity .25s ease;pointer-events:none;background:transparent}
+			.c-card .c-card-loop.is-on,.c-card.is-on .c-card-loop{opacity:1}
+			@media (hover:none){.c-card .c-card-loop{display:none}}
 			.c-card-scrim{z-index:2;position:absolute;left:0;right:0;bottom:0;height:48%;
 				background:linear-gradient(to top,rgba(8,6,10,.78),rgba(8,6,10,.3) 55%,transparent)}
 			.c-card-badge{position:absolute;left:0;top:0;z-index:20;display:flex;align-items:center;gap:5px;
@@ -1150,6 +1154,8 @@
 				if (!a) return
 				if (prevActive && prevActive.card === a) return
 				prevHoverCard = a
+				/* 有 loop_url 的卡片优先播角色动态图，旧 preview 逻辑让位，避免两路视频抢带宽 */
+				if (a.querySelector('.c-card-loop')) return
 				var v = a.querySelector('.c-card-prev')
 				if (!v || prevBroken[a.getAttribute('data-cid')]) return
 				/* 换卡：立刻停掉上一张并释放解码缓冲，避免多路视频同时下载造成卡顿 */
@@ -1190,6 +1196,88 @@
 			document.addEventListener('visibilitychange', function () { if (document.hidden) prevStop(true) })
 			document.addEventListener('pointerdown', function () { if (prevActive) prevStop(true) }, true)
 
+			/* ---------- 卡片动态图（loop_url）：静态封面先显示，hover/聚焦才加载并淡入 ---------- */
+			var canHoverLoop = false
+			try { canHoverLoop = window.matchMedia('(hover:hover) and (pointer:fine)').matches } catch (e) { canHoverLoop = false }
+			var loopActive = null
+			var loopBroken = {}
+			function loopVideoOf(card) { return card ? card.querySelector('.c-card-loop') : null }
+			function loopStop(release) {
+				var cur = loopActive
+				loopActive = null
+				if (!cur) return
+				var v = cur.video
+				if (v) {
+					try { v.pause() } catch (e) {}
+					v.classList.remove('is-on')
+					cur.card.classList.remove('is-on')
+					if (release) { v.removeAttribute('src'); try { v.load() } catch (e) {} }
+				}
+			}
+			function loopPlay(card) {
+				// 触屏/无 hover 设备不自动播，省流量
+				if (!canHoverLoop || !card) return
+				var v = loopVideoOf(card)
+				if (!v) return
+				if (loopActive && loopActive.card === card && loopActive.video === v) return
+				var cid = card.getAttribute('data-cid') || ''
+				if (loopBroken[cid]) return
+				// 已有的 preview_url 静帧预览正在播时不叠加第二路视频
+				if (card.classList.contains('is-prev-on') && card.querySelector('.c-card-prev')) return
+				loopStop(false)
+				if (!v.getAttribute('src')) {
+					var ds = v.getAttribute('data-src')
+					if (!ds) return
+					v.addEventListener('canplay', function () {
+						if (!loopActive || loopActive.video !== v) return
+						v.classList.add('is-on')
+						card.classList.add('is-on')
+					})
+					v.addEventListener('error', function () {
+						loopBroken[cid] = 1
+						v.classList.remove('is-on')
+						card.classList.remove('is-on')
+						if (loopActive && loopActive.video === v) loopStop(true)
+					})
+					v.setAttribute('src', ds)
+				}
+				v.muted = true
+				loopActive = { card: card, video: v }
+				var pr = v.play()
+				if (pr && pr.catch) pr.catch(function () {})
+				if (v.readyState >= 3) { v.classList.add('is-on'); card.classList.add('is-on') }
+			}
+			/* 事件委托：卡片每次整块重渲染（筛选/换分类）都不需要重新绑，也不给单卡加监听。
+			   选择器限定在首页列表容器 .c-home 内（#row 与 #shelves 都在其中）。 */
+			function loopCardOf(t) {
+				if (!t || !t.closest) return null
+				return t.closest('.c-home .c-card')
+			}
+			document.addEventListener('mouseover', function (e) {
+				var card = loopCardOf(e.target)
+				if (!card) return
+				if (e.relatedTarget && card.contains(e.relatedTarget)) return
+				loopPlay(card)
+			})
+			document.addEventListener('mouseout', function (e) {
+				var card = loopCardOf(e.target)
+				if (!card) return
+				if (e.relatedTarget && card.contains(e.relatedTarget)) return
+				if (loopActive && loopActive.card === card) loopStop(false)
+			})
+			document.addEventListener('focusin', function (e) {
+				var card = loopCardOf(e.target)
+				if (!card) return
+				loopPlay(card)
+			})
+			document.addEventListener('focusout', function (e) {
+				var card = loopCardOf(e.target)
+				if (!card) return
+				if (e.relatedTarget && card.contains(e.relatedTarget)) return
+				if (loopActive && loopActive.card === card) loopStop(false)
+			})
+			document.addEventListener('visibilitychange', function () { if (document.hidden) loopStop(false) })
+
 			/* ---------- 卡片 ---------- */
 			function cardHtml(c, cls, isNew) {
 				cls = cls ? ' ' + cls : ''
@@ -1197,6 +1285,10 @@
 					? '<img class="cover" src="' + esc(fixUrl(c.cover_url)) + '" alt="' + esc(c.name) + '" loading="lazy" onerror="this.style.display=\'none\'">'
 					: ''
 				// 悬停预览视频：只写 data-src，桌面端鼠标进入时才真正下载
+				// 动态图（loop_url）：同样只写 data-src，hover/focus 时才挂 src，首屏不被视频拖慢
+				var loop = c.loop_url
+					? '<video class="c-card-loop" muted loop playsinline preload="none" data-src="' + esc(c.loop_url) + '"></video>'
+					: ''
 				var prev = c.preview_url
 					? '<video class="c-card-prev" muted loop playsinline preload="none" aria-hidden="true" poster="' + esc(fixUrl(c.cover_url || '')) + '" data-src="' + esc(fixUrl(c.preview_url)) + '"></video>'
 					: ''
@@ -1207,6 +1299,7 @@
 					: ''
 				return '<li><a class="c-card' + cls + '" draggable="false" data-cid="' + esc(c.id) + '" href="' + esc(c.link_url && /Chat\.html/.test(c.link_url) ? c.link_url : ('./Chat.html?id=' + encodeURIComponent('home-' + c.id))) + '">' +
 					cover +
+					loop +
 					prev +
 					'<div class="c-card-scrim"></div>' +
 					badge +

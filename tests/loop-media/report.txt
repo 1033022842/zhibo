@@ -1,0 +1,37 @@
+--- HOME /api/v1/home/characters mock: 3 items, loop_url=/tests/loop-media/loop-1s.mp4
+[PASS] home.card.rendered :: cards=3
+[PASS] home.card.in-list-container(.c-home) :: closest(.c-home)=true
+[PASS] home.video.present :: video.c-card-loop exists
+[PASS] home.video.data-src :: data-src=/tests/loop-media/loop-1s.mp4
+[PASS] home.video.preload-none :: preload=none
+[PASS] home.video.src.empty-before-hover :: src=""
+[PASS] home.video.paused-before-hover :: paused=true
+[PASS] home.video.src.set-after-hover :: src=/tests/loop-media/loop-1s.mp4
+[PASS] home.video.playing-after-hover :: paused=false
+[PASS] home.video.canplay+duration :: readyState=4
+[PASS] home.video.fade-in(.is-on) :: is-on=true opacity=0.997521
+[PASS] home.video.hover-assert :: waitForFunction src!=empty && !paused
+[PASS] home.video.paused-after-mouseleave :: paused=true
+[PASS] home.video.src.kept-after-leave :: src=/tests/loop-media/loop-1s.mp4
+--- CHAT /api/live/personaProfile mock: Victoria / cover=/tests/loop-media/poster.png / loop_url=/tests/loop-media/loop-1s.mp4
+[PASS] chat.carousel.two-items :: items=2
+[PASS] chat.slide1.active-initially :: active0=true active1=false
+[PASS] chat.slide1.img.cover :: img[0].src=/tests/loop-media/poster.png
+[PASS] chat.slide2.img.cover(poster) :: img[1].src=/tests/loop-media/poster.png
+[PASS] chat.slide2.video.src.empty-before-active :: src=""
+[PASS] chat.slide2.video.data-src :: data-src=/tests/loop-media/loop-1s.mp4
+[PASS] chat.slide2.activated-by-click :: active0=false active1=true
+[PASS] chat.slide2.video.src.after-activate :: src=/tests/loop-media/loop-1s.mp4
+[PASS] chat.slide2.video.playing :: paused=false
+[PASS] chat.slide2.video.fade-in :: is-on=true opacity=1 readyState=4
+[PASS] chat.slide2.single-video :: videos=1
+[PASS] chat.slide2.fade-wait :: waitForFunction is-on && opacity>0.99
+[PASS] chat.slide2.waitForSrc :: waitForFunction src non-empty
+[PASS] chat.slide2.paused-after-switch-back :: active0=true paused=true
+[PASS] home.mobile.hover-none :: hover:hover=false pointer:fine=false
+[PASS] home.mobile.video.display-none :: display=none
+[PASS] home.mobile.no-autoplay-on-tap :: src="" is-on=false url=/Home.html
+[PASS] chat.empty-loop.src.stays-empty :: src=""
+[PASS] chat.empty-loop.slide2-static-poster :: img[1].src=/tests/loop-media/poster.png
+--- pageerrors: none
+--- RESULT: ALL PASS
