@@ -1166,7 +1166,13 @@
 					if (!a.isConnected || prevHoverCard !== a) return
 					prevActive = { card: a, video: v }
 					if (!v.getAttribute('src')) {
-						v.addEventListener('error', function () {
+						v.addEventListener('ended', function () {
+						v.classList.remove('is-on')
+						card.classList.remove('is-on')
+						try { v.currentTime = 0 } catch (e) {}
+						if (loopActive && loopActive.video === v) loopActive = null
+					})
+					v.addEventListener('error', function () {
 							prevBroken[a.getAttribute('data-cid')] = 1
 							if (prevActive && prevActive.card === a) prevStop(true)
 						})
@@ -1263,7 +1269,7 @@
 				var card = loopCardOf(e.target)
 				if (!card) return
 				if (e.relatedTarget && card.contains(e.relatedTarget)) return
-				if (loopActive && loopActive.card === card) loopStop(false)
+				/* 移出不打断播放，等这一轮播完自然淡回静态图 */
 			})
 			document.addEventListener('focusin', function (e) {
 				var card = loopCardOf(e.target)
@@ -1274,7 +1280,7 @@
 				var card = loopCardOf(e.target)
 				if (!card) return
 				if (e.relatedTarget && card.contains(e.relatedTarget)) return
-				if (loopActive && loopActive.card === card) loopStop(false)
+				/* 移出不打断播放，等这一轮播完自然淡回静态图 */
 			})
 			document.addEventListener('visibilitychange', function () { if (document.hidden) loopStop(false) })
 
@@ -1287,7 +1293,7 @@
 				// 悬停预览视频：只写 data-src，桌面端鼠标进入时才真正下载
 				// 动态图（loop_url）：同样只写 data-src，hover/focus 时才挂 src，首屏不被视频拖慢
 				var loop = c.loop_url
-					? '<video class="c-card-loop" muted loop playsinline preload="none" data-src="' + esc(c.loop_url) + '"></video>'
+					? '<video class="c-card-loop" muted playsinline preload="none" data-src="' + esc(c.loop_url) + '"></video>'
 					: ''
 				var prev = c.preview_url
 					? '<video class="c-card-prev" muted loop playsinline preload="none" aria-hidden="true" poster="' + esc(fixUrl(c.cover_url || '')) + '" data-src="' + esc(fixUrl(c.preview_url)) + '"></video>'
