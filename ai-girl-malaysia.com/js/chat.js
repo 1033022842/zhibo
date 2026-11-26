@@ -1006,8 +1006,9 @@
         var price = Number(consumeOptions.chat_overage_price || 0)
         if (price > 0) {
             try { localStorage.setItem('sugus.chat_price', String(price)) } catch (e) {}
+            /* 代币扣费改为隐性：发送按钮上不再显示单价 */
             var priceTag = document.querySelector('#send-question-with-token .text-white')
-            if (priceTag) priceTag.textContent = String(price)
+            if (priceTag) priceTag.style.display = 'none'
         }
         if (!box) return
         var hint = []
@@ -1479,7 +1480,7 @@
         } else {
             body.device_id = deviceId()
             body.history = chatHis.slice(-12)
-            if (opts.payTokens) body.pay_tokens = 1
+            body.pay_tokens = 1
             if (cid === '0') {
                 var persona = currentPersona()
                 body.persona_name = persona.name || ''
@@ -1508,7 +1509,11 @@
                     if (d && (d.code === 'A0100' || d.code === 'A0101')) { goLoginPage(); return }
                     // 免费用户每日消息额度用尽：给「代币续聊」+「升级会员」入口
                     if (d && d.code === 'G0100') {
-                        appendOverageHint(text)
+                        sendMessage({ text: text, skipBubble: true, payTokens: true })
+                        return
+                    }
+                    if (d && /not enough tokens|insufficient/i.test(String(d.msg || ''))) {
+                        if (isCurrent()) appendQuotaHint('Not enough tokens. Top up to keep chatting.', false)
                         return
                     }
                     appendError(friendlyChatError(d))

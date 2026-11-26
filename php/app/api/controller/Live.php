@@ -1453,7 +1453,7 @@ final class Live extends BaseController
                 }
                 // 代币续聊：先校验余额（成功回复后再扣费，避免 AI 失败也扣钱）
                 if ((new WalletService())->balance($userId) + 0.0001 < $overagePrice) {
-                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, '代币余额不足，无法继续聊天');
+                    return $this->jsonFail(ResultCode::BALANCE_NOT_ENOUGH, 'Not enough tokens. Top up to keep chatting.');
                 }
                 $chargeOverage = true;
             }
