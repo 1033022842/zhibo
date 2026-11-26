@@ -93,6 +93,8 @@ CLIENTS = {
         "verify_url": "https://kelymi.autos/ai/Home.html",
         "verify_expect": "Kelymi",
         "repo": r"D:\ever\kelymi",   # 2026-10-18 按 SOP 三.A 初始化（douyin 基线 + brand kit）
+        # 2026-11-26 起后端 PHP 一并同步（此前后端靠手工 SFTP，落后仓库多版）
+        "sync_php": True,
         # 法务页不推服务器：客户有品牌版（品牌脚本刻意跳过 privacy/terms），见 2026-11-13
         "exclude": [
             "ai-girl-malaysia.com/privacy.html",
@@ -111,6 +113,8 @@ CLIENTS = {
         "verify_url": "https://kisss.ai/ai/Home.html",
         "verify_expect": "Kiss",
         "repo": r"D:\ever\kiss",   # 2026-10-20 按 SOP 三.A 初始化（douyin 基线 + brand kit）
+        # 2026-11-26 起后端 PHP 一并同步（此前 kiss 后端落后，userInfo 500 就是由此而来）
+        "sync_php": True,
         # 换脸前台文件不同步（apply_brand 也会兜底删除，这里避免白推）
         # 法务页同理：客户有品牌版（品牌脚本刻意跳过 privacy/terms），见 2026-11-13
         "exclude": [
