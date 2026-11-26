@@ -106,6 +106,7 @@ final class Home extends BaseController
                 'cover_url'   => (string) $row->cover_url,
                 // 卡片悬停预览视频（桌面端才下载，前端按 hover 能力决定要不要加载）
                 'preview_url' => '/storage/chat_gifts/home-' . (int) $row->id . '/preview_sd.mp4',
+                'loop_url'    => '/storage/ai_media/' . (string) $row->name . '/loop.mp4',
                 'tags'        => $tags,
                 'section'     => (string) $row->section,
                 'link_url'    => (string) $row->link_url,

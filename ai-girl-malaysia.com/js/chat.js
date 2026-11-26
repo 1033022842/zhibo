@@ -628,14 +628,12 @@
         var status = document.getElementById('guest-chat-quota')
         if (!status) return
         if (token) { status.hidden = true; return }
-        if (guestRemaining === null) { status.hidden = true; return }
-        status.hidden = false
+        // 平常不显示任何额度信息，只有 5 条用完时才提示一次
+        status.hidden = guestRemaining !== 0
+        if (status.hidden) return
         var label = status.querySelector('span')
         var button = status.querySelector('button')
-        if (guestRemaining > 0) {
-            if (label) label.textContent = guestRemaining + (guestRemaining === 1 ? ' free message left' : ' free messages left')
-            if (button) button.hidden = true
-        } else {
+        {
             if (label) label.textContent = 'Your 5 free messages are used up. Sign in to keep chatting.'
             if (button) button.hidden = false
         }

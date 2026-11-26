@@ -103,12 +103,32 @@
 		if (!v || !item) return;
 		var src = v.getAttribute('data-src') || loopUrl;
 		if (!src) return;
-		if (!v.getAttribute('src')) v.setAttribute('src', src);
+		if (v.getAttribute('src') !== src) {
+			v.setAttribute('src', src);
+			try { v.load() } catch (e) {}   /* preload=none 时必须显式 load，否则永不发起请求 */
+		}
 		v.muted = true;
+		v.preload = 'auto';
 		item.classList.add(MODE_CLASS);
 		var p = v.play();
 		if (p && p.catch) p.catch(function () {});
 		if (v.readyState >= 3) v.classList.add('is-on');
+		/* 公网/签名 URL 首包慢，readyState 一次不够：等真正播起来再显示 */
+		if (!v.getAttribute('data-bound')) {
+			v.setAttribute('data-bound', '1');
+			var show = function () { v.classList.add('is-on'); };
+			v.addEventListener('loadeddata', show);
+			v.addEventListener('playing', show);
+			v.addEventListener('canplay', show);
+			var tries = 0;
+			var timer = setInterval(function () {
+				tries++;
+				if (v.readyState >= 2 || tries > 40) {
+					clearInterval(timer);
+					if (v.readyState >= 2) show();
+				}
+			}, 250);
+		}
 	}
 
 	function stopVideo(drop) {
@@ -213,13 +233,20 @@
 			var t = e.target;
 			if (!t || !t.closest) return;
 			var dot = t.closest('#pfp-carousel .carousel-dots .dot');
-			if (!dot) return;
+			var navPrev = t.closest('#pfp-carousel #prevBtn, #prevBtn');
+			var navNext = t.closest('#pfp-carousel #nextBtn, #nextBtn');
+			if (!dot && !navPrev && !navNext) return;
 			e.preventDefault();
 			e.stopPropagation();
-			var ds = dots();
-			var idx = Array.prototype.indexOf.call(ds, dot);
-			if (idx < 0) idx = parseInt(dot.getAttribute('data-index'), 10) || 0;
-			setMode(idx === 0 ? 'photo' : 'video');
+			if (dot) {
+				var ds = dots();
+				var idx = Array.prototype.indexOf.call(ds, dot);
+				if (idx < 0) idx = parseInt(dot.getAttribute('data-index'), 10) || 0;
+				setMode(idx === 0 ? 'photo' : 'video');
+				return;
+			}
+			/* 左右箭头：在「人设图 / 动图」之间来回切 */
+			setMode(mode === 'video' ? 'photo' : 'video');
 		}, true);
 	}
 

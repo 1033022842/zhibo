@@ -767,6 +767,7 @@ final class Live extends BaseController
             'scenario'    => '',
             'description' => '',
             'cover'       => '',
+            'loop_url'    => '',
         ];
         $contentId = 0;
         if (preg_match('/^(?:home-)?(\d+)$/', $raw, $m)) {
@@ -781,6 +782,8 @@ final class Live extends BaseController
                 $out['name']        = (string) ($row['title'] ?? '');
                 $out['description'] = (string) ($row['description'] ?? '');
                 $out['cover']       = (string) ($row['cover_url'] ?? '');
+                // 动态图（loop.mp4）：相对路径交由全局中间件转签名 URL
+                $out['loop_url']    = '/storage/ai_media/' . $out['name'] . '/loop.mp4';
                 $p = $row['personality'] ? json_decode((string) $row['personality'], true) : [];
                 if (is_array($p)) {
                     $map = [

@@ -103,13 +103,8 @@
     var genBox = genLink ? (genLink.closest('.flex-1') || genLink.parentElement) : null;
     // Generate Image 那一行（含 Call Me）的容器：卡片要落在整行之后，成为独立块
     var row = genBox ? genBox.parentNode : null;
-    if (row && row.parentNode && row !== root) {
-      row.parentNode.insertBefore(wrap, row.nextSibling);
-    } else if (genBox && genBox.parentNode) {
-      genBox.parentNode.insertBefore(wrap, genBox.nextSibling);
-    } else {
-      root.appendChild(wrap);
-    }
+    /* 独立块：永远挂在右栏面板根容器的最后，不再嵌进角色信息/图片的 div */
+    root.appendChild(wrap);
     var body = wrap.querySelector('#fy-scenario-t');
     body.textContent = text;
     var more = wrap.querySelector('#fy-scenario-more');
