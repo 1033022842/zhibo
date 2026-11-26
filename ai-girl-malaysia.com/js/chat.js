@@ -623,17 +623,22 @@
         return s
     }
 
-    // 不显示剩余条数：只有额度用尽时才亮出「试用结束，去登录」这一条提示
+    // 游客也有 5 条免费：前几条显示剩余，用尽后提示登录（不再自动弹登录窗）
     function renderGuestQuota() {
         var status = document.getElementById('guest-chat-quota')
         if (!status) return
         if (token) { status.hidden = true; return }
-        status.hidden = guestRemaining !== 0
-        if (status.hidden) return
+        if (guestRemaining === null) { status.hidden = true; return }
+        status.hidden = false
         var label = status.querySelector('span')
         var button = status.querySelector('button')
-        if (label) label.textContent = 'Free trial complete. Sign in to keep chatting.'
-        if (button) button.hidden = false
+        if (guestRemaining > 0) {
+            if (label) label.textContent = guestRemaining + (guestRemaining === 1 ? ' free message left' : ' free messages left')
+            if (button) button.hidden = true
+        } else {
+            if (label) label.textContent = 'Your 5 free messages are used up. Sign in to keep chatting.'
+            if (button) button.hidden = false
+        }
     }
 
     function loadGuestQuota() {
@@ -1454,7 +1459,10 @@
         var text = fromInput ? (input.value || '').trim() : String(opts.text || '').trim()
         if (text === '' || sending) return
         var isGuest = !token
-        if (isGuest && (guestRemaining === 0 || opts.payTokens)) { goLoginPage(); return }
+        if (isGuest && (guestRemaining === 0 || opts.payTokens)) {
+            appendQuotaHint('You have used your 5 free messages. Sign in to keep chatting.', false)
+            return
+        }
         var trialId = ''
         if (isGuest) {
             try { trialId = guestChatId() } catch (e) { appendError('This browser does not support guest chat. Please sign in.'); return }
@@ -1498,11 +1506,13 @@
                         if (d && d.code === 'G0103') {
                             guestRemaining = 0
                             renderGuestQuota()
-                            if (isCurrent()) goLoginPage()
+                            if (isCurrent()) appendQuotaHint('You have used your 5 free messages. Sign in to keep chatting.', false)
                         } else if (d && d.code === 'A0100') {
                             if (isCurrent()) goLoginPage()
                         } else if (isCurrent()) {
-                            appendError(d && d.code === 'G0100' ? 'Please wait for your current reply.' : friendlyChatError(d))
+                            if (guestRemaining === 0) appendQuotaHint('Your 5 free messages are used up. Sign in to keep chatting.', false)
+                            else if (d && d.code === 'G0100') appendQuotaHint('Please wait for your current reply.', false)
+                            else appendError(friendlyChatError(d))
                         }
                         return
                     }
