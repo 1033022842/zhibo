@@ -93,7 +93,7 @@
     var old = document.getElementById(BLOCK_ID);
     if (old) old.remove();
     var wrap = document.createElement('div');
-    wrap.className = 'fy-scenario fy-scenario--under-gen';
+    wrap.className = 'fy-scenario';
     wrap.id = BLOCK_ID;
     wrap.innerHTML = '<div class="fy-scenario-h">Scenario</div>'
       + '<div class="fy-scenario-t clamp" id="fy-scenario-t"></div>'
@@ -101,10 +101,17 @@
     // 需求：Scenario 卡片放到右栏 “Generate Image” 按钮下方（不再跟在简介后面）
     var genLink = document.querySelector('#profile-partial-turbo a[href*="Image.html"]');
     var genBox = genLink ? (genLink.closest('.flex-1') || genLink.parentElement) : null;
-    // Generate Image 那一行（含 Call Me）的容器：卡片要落在整行之后，成为独立块
-    var row = genBox ? genBox.parentNode : null;
-    /* 独立块：永远挂在右栏面板根容器的最后，不再嵌进角色信息/图片的 div */
-    root.appendChild(wrap);
+    // 需求：Scenario 作为独立卡片放在年龄/属性胶囊之前（#age 所在容器的上一级）
+    var ageEl = document.querySelector('#profile-partial-turbo #age') || document.getElementById('age');
+    var ageHolder = ageEl ? (ageEl.closest('.flex-wrap') || ageEl.parentNode) : null;
+    if (ageHolder && ageHolder.parentNode) {
+      // 插在属性区（含 age 的那一整块）之前，保持独立卡片形态
+      ageHolder.parentNode.insertBefore(wrap, ageHolder);
+    } else if (ageEl && ageEl.parentNode) {
+      ageEl.parentNode.insertBefore(wrap, ageEl);
+    } else {
+      root.appendChild(wrap);
+    }
     var body = wrap.querySelector('#fy-scenario-t');
     body.textContent = text;
     var more = wrap.querySelector('#fy-scenario-more');
@@ -180,6 +187,10 @@
     setTimeout(function () { obs.disconnect(); }, 20000);
   }
 
+  function revealName() {
+    try { document.documentElement.classList.remove('fy-await-name') } catch (e) {}
+  }
+
   function syncHeader(d, key) {
     if (!d) return;
     var tries = 0;
@@ -189,6 +200,7 @@
       if (name) {
         var h = document.getElementById('chat-name');
         if (h && h.textContent.trim() !== name) h.textContent = name;
+        revealName();
       }
       if (d.cover) {
         ['chat-img', 'chat-img-mobile'].forEach(function (id) {
