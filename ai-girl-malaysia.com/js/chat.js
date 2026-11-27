@@ -307,6 +307,7 @@
             var nm = it && (it.title || it.name)
             if (!nm) return
             var h = document.getElementById('chat-name'); if (h) h.textContent = nm
+            try { document.documentElement.classList.remove('fy-await-name') } catch (e2) {}
             var n = document.getElementById('name'); if (n) n.textContent = nm
         } catch (e) {}
     }
