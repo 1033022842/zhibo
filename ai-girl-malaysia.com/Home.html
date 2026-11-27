@@ -1599,7 +1599,8 @@
 				var tags = Array.isArray(c.tags) ? c.tags : []
 				// 结构与 Explore 页写入的 pageList 一致，Chat.html 靠 ?id= 在 pageList 里取这条
 				var entry = {
-					id: 'home-' + c.id,
+					// 用 link_url 里的 chat id（可能与该卡的 home_character id 不同），否则回退
+					id: 'home-' + ((c.link_url && /id=home-(\d+)/.exec(c.link_url) || [])[1] || c.id),
 					title: c.name || '',
 					image: fixUrl(c.cover_url) || '',
 					description: c.description || c.tagline || '',

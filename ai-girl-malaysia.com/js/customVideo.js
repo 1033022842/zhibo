@@ -20,6 +20,11 @@
         })
     }
 
+    /* 只做属性安全转义：保留 & 原样，避免 &amp; 让签名 URL 变成 403 */
+    function urlAttr(u) {
+        return String(u == null ? '' : u).replace(/&amp;/g, '&').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    }
+
     function $(id) { return document.getElementById(id) }
 
     function toast(msg, type) {
@@ -247,7 +252,7 @@
     }
 
     /* ---------- 提交 ---------- */
-    function submit() {
+    function submit(confirmed) {
         if (!selFile) { toast('Please upload her picture first', 'warn'); return }
         if (!selPreset) {
             toast(mode === 'outfit' ? 'Please pick a shop outfit for her' : 'Please pick a style', 'warn')
@@ -266,6 +271,7 @@
         if (mode !== 'outfit') fd.append('style', selPreset.key)
         // 换装：把所选服饰的商品 id 带上（后端校验归属并用商品标题+描述拼「换上这套衣服」指令）
         if (mode === 'outfit' && selPreset && selPreset.item_id) fd.append('item_id', String(selPreset.item_id))
+        if (confirmed) fd.append('confirm_paid', '1')
 
         authJson(API + '/submit', { method: 'POST', body: fd }).then(function (d) {
             btn.disabled = false
@@ -273,6 +279,11 @@
             if (!d || d.code !== '00000') {
                 // 免费次数用尽且代币不足：引导去充值
                 if (d && d.code === 'C0100') { showTopUp(d.msg); return }
+                // C0102：需要用户确认本次代币消耗，确认后带 confirm_paid=1 重提
+                if (d && d.code === 'C0102') {
+                    if (window.confirm(d.msg + '\n\nContinue?')) { submit(true); return }
+                    return
+                }
                 toast((d && d.msg) || 'Submit failed', 'error')
                 return
             }
@@ -313,8 +324,8 @@
         var body
         if (t.status === 'completed' && t.video_url) {
             body = t.kind === 'image'
-                ? '<a href="' + esc(t.video_url) + '" target="_blank"><img src="' + esc(t.video_url) + '" style="width:100%;display:block;background:#000" alt="outfit"></a>'
-                : '<video controls playsinline preload="metadata" src="' + esc(t.video_url) + '"></video>'
+                ? '<a href="' + urlAttr(t.video_url) + '" target="_blank"><img src="' + urlAttr(t.video_url) + '" style="width:100%;display:block;background:#000" alt="outfit"></a>'
+                : '<video controls playsinline preload="metadata" src="' + urlAttr(t.video_url) + '"></video>'
         } else if (t.status === 'failed') {
             body = '<div class="cv-wait-body">Generation failed — please retry later.</div>'
         } else {
@@ -325,7 +336,7 @@
             '<span class="cv-badge ' + m.cls + '">' + m.label + '</span></div>' +
             body +
             '<div class="ft"><span>' + esc((t.created_at || '').replace('T', ' ').slice(0, 16)) + '</span>' +
-            (t.status === 'completed' && t.video_url ? '<a href="' + esc(t.video_url) + '" download>⬇ Download</a>' : '') +
+            (t.status === 'completed' && t.video_url ? '<a href="' + urlAttr(t.video_url) + '" download>⬇ Download</a>' : '') +
             '</div></div>'
     }
 

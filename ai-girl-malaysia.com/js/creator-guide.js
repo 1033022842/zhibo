@@ -6,7 +6,7 @@
  *     views. It opens again when the login token changes (i.e. next login).
  *   · 未登录（含登录页）从不弹。
  *   · Clicking "Don't show again" disables it permanently (localStorage: creator_guide_seen_v2=1)
- *   · Closing (X / Maybe later) suppresses it for the rest of the day
+ *   · Closing (X / Maybe later) does not disable it
  *   · "Start creating" goes to the Creator Center ./crowdfunding.html
  *   · 创作中心（crowdfunding.html）不自动弹，但可通过 CreatorGuide.open() 手动打开完整指引
  */
@@ -22,10 +22,6 @@
   var SKIP_AUTO = /crowdfunding\.html$/i.test(location.pathname || '');
 
   var KEY = 'creator_guide_seen_v2';
-  var DAY_KEY = 'creator_guide_day_v1';
-  function todayKey() { var d = new Date(); return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) }
-  function seenToday() { try { return localStorage.getItem(DAY_KEY) === todayKey() } catch (e) { return false } }
-  function markToday() { try { localStorage.setItem(DAY_KEY, todayKey()) } catch (e) {} }
   var CENTER_URL = './crowdfunding.html';
   // Force open via ?guide=1
   var FORCE = /[?&]guide=1/.test(location.search);
@@ -81,7 +77,6 @@
    * 是否到弹出时机（登录后才弹；同一登录/会话/间隔/永久只弹一次）
    */
   function freqAllows(freq, hours) {
-    if (seenToday()) return false;
     var tok = getToken();
     if (tok === '') return false;
 
@@ -155,7 +150,7 @@
       var t = e.target;
       if (t === overlay) { hide(); return; }
       var act = t && t.getAttribute ? t.getAttribute('data-cg') : null;
-      if (act === 'close') { markToday(); hide(); }
+      if (act === 'close') { hide(); }
       else if (act === 'never') { setSeen(); hide(); }
       else if (act === 'start') {
         hide();

@@ -34,8 +34,6 @@
 
   function lsGet(k) { try { return localStorage.getItem(k) } catch (e) { return null } }
   function lsSet(k, v) { try { localStorage.setItem(k, v) } catch (e) {} }
-  /* 当天只弹一次：关掉后本地日期内不再弹 */
-  function todayKey() { var d = new Date(); return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) }
 
   /* ---------- 0. 随机配图（assets/welcome/art-NN.jpg）----------
      登录页 Sign in 窗口的大图与 20 币弹窗头图都从这里随机取，
@@ -200,7 +198,7 @@
   function showBonusModal(user) {
     if (SKIP_PAGES.test(location.pathname || '')) return
     if (document.getElementById('wb-overlay')) return
-    var seenKey = SEEN_PREFIX + user.id + '_' + todayKey()
+    var seenKey = SEEN_PREFIX + user.id
     var toStudio = isStudioCta()
     var ctaHref = toStudio ? CTA_STUDIO : CTA_CHARACTER
     var ctaLabel = toStudio ? 'Open AI Studio ✨' : 'Create Your AI Girlfriend ✨'
