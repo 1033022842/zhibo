@@ -29,6 +29,12 @@
   var CTA_STUDIO = './Image.html'
   var STUDIO_CLIENT_HOST = /(^|\.)(sugus|heygirl)\.[a-z.]+$/i
   var SEEN_PREFIX = 'wb_popup_seen_'
+  function ckGet(k) { try { var m = document.cookie.match(new RegExp('(?:^|; )' + k + '=([^;]*)')); return m ? decodeURIComponent(m[1]) : null } catch (e) { return null } }
+  function ckSet(k, v) { try { document.cookie = k + '=' + encodeURIComponent(v) + ';max-age=31536000;path=/;SameSite=Lax' } catch (e) {} }
+  function seenBefore(k) { return lsGet(k) === '1' || ckGet(k) === '1' }
+  function markSeen(k) { lsSet(k, '1'); ckSet(k, '1') }
+
+
   /* 登录/注册页不弹：登录后马上会跳走，弹窗留到落地页再看 */
   var SKIP_PAGES = /\/(login|register|registerFromAi)\.html$/i
 
@@ -112,7 +118,7 @@
     var d = data || {}
     window.__userRecharged = d.has_recharged === true
     try { document.dispatchEvent(new Event('live:userstate')) } catch (e) {}
-    if (d.welcome_bonus === true && d.id && lsGet(SEEN_PREFIX + d.id) !== '1') {
+    if (d.welcome_bonus === true && d.id && !seenBefore(SEEN_PREFIX + d.id)) {
       showBonusModal(d)
     }
   }
@@ -206,7 +212,7 @@
       ? 'Spend them in the AI Studio — generate photos &amp; videos of her.'
       : 'Spend them to create your own AI girlfriend — she\'s waiting for you.'
     var close = function () {
-      lsSet(seenKey, '1')
+      markSeen(seenKey)
       var el = document.getElementById('wb-overlay')
       if (el && el.parentNode) el.parentNode.removeChild(el)
     }
@@ -236,7 +242,7 @@
     ;(document.body || document.documentElement).appendChild(overlay)
     overlay.querySelector('.wb-close').addEventListener('click', close)
     overlay.querySelector('.wb-later').addEventListener('click', close)
-    overlay.querySelector('.wb-cta').addEventListener('click', function () { lsSet(seenKey, '1') })
+    overlay.querySelector('.wb-cta').addEventListener('click', function () { markSeen(seenKey) })
     overlay.addEventListener('click', function (e) { if (e.target === overlay) close() })
   }
 

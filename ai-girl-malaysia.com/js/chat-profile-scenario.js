@@ -105,8 +105,10 @@
     var ageEl = document.querySelector('#profile-partial-turbo #age') || document.getElementById('age');
     var ageHolder = ageEl ? (ageEl.closest('.flex-wrap') || ageEl.parentNode) : null;
     if (ageHolder && ageHolder.parentNode) {
-      // 插在属性区（含 age 的那一整块）之前，保持独立卡片形态
-      ageHolder.parentNode.insertBefore(wrap, ageHolder);
+      // 需求：Scenario 独立卡片，位置在 Age 那一段之后、Generate Image 之前
+      var after = ageHolder.nextSibling;
+      if (genBox && genBox.parentNode === ageHolder.parentNode) after = genBox;
+      ageHolder.parentNode.insertBefore(wrap, after);
     } else if (ageEl && ageEl.parentNode) {
       ageEl.parentNode.insertBefore(wrap, ageEl);
     } else {
