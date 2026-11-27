@@ -28,6 +28,7 @@ use app\live\service\UserPersonaService;
 use app\live\service\PaymentOptionService;
 use app\live\service\RegistrationSettingService;
 use app\live\service\AchievementService;
+use app\live\service\PersonaProfileService;
 use app\live\service\PersonaService;
 use app\live\service\QuotaService;
 use app\live\service\VipService;
@@ -752,56 +753,40 @@ final class Live extends BaseController
     /**
      * AI 前端：角色资料（右侧 Profile 面板用；游客可读）
      * role_key 支持 home-12 / 12 / my-279
+     *
+     * home-N 与纯数字 N 属两套 id 空间，同号会撞人（如 home-99=Chelsea / 99=Rita），
+     * 必须按前缀分表查询；home 行缺失时不回落到 lp_ai_content 同号内容。
      */
     public function personaProfile()
     {
         $raw = trim((string) $this->request->param('role_key', ''));
-        $out = [
-            'role_key'    => $raw,
-            'name'        => '',
-            'age'         => '',
-            'ethnicity'   => '',
-            'personality' => '',
-            'hobbies'     => '',
-            'relationship' => '',
-            'scenario'    => '',
-            'description' => '',
-            'cover'       => '',
-            'loop_url'    => '',
-        ];
-        $contentId = 0;
-        if (preg_match('/^(?:home-)?(\d+)$/', $raw, $m)) {
-            $contentId = (int) $m[1];
-        }
-        if ($contentId > 0) {
-            $row = \think\facade\Db::connect('live_mysql')
-                ->table('lp_ai_content')
-                ->where('id', $contentId)
-                ->find();
-            if ($row) {
-                $out['name']        = (string) ($row['title'] ?? '');
-                $out['description'] = (string) ($row['description'] ?? '');
-                $out['cover']       = (string) ($row['cover_url'] ?? '');
-                // 动态图（loop.mp4）：相对路径交由全局中间件转签名 URL
-                $out['loop_url']    = '/storage/ai_media/' . $out['name'] . '/loop.mp4';
-                $p = $row['personality'] ? json_decode((string) $row['personality'], true) : [];
-                if (is_array($p)) {
-                    $map = [
-                        '年龄' => 'age',
-                        '族裔' => 'ethnicity',
-                        '性格' => 'personality',
-                        '爱好' => 'hobbies',
-                        '关系' => 'relationship',
-                        '场景' => 'scenario',
-                    ];
-                    foreach ($map as $k => $field) {
-                        if (isset($p[$k]) && is_string($p[$k]) && $p[$k] !== '') {
-                            $out[$field] = $p[$k];
-                        }
-                    }
-                }
+        $out = PersonaProfileService::blankProfile($raw);
+        $parsed = PersonaProfileService::parseRoleKey($raw);
+
+        if ($parsed['kind'] === PersonaProfileService::KIND_HOME) {
+            $row = null;
+            if ($parsed['id'] > 0) {
+                // 与 Home::characters 同源：只认启用的首页角色
+                $row = Db::connect('live_mysql')
+                    ->table('lp_home_character')
+                    ->where('id', $parsed['id'])
+                    ->where('status', 1)
+                    ->field('name, age, description, tagline, cover_url')
+                    ->find();
             }
+            PersonaProfileService::applyHomeRow($out, $row ?: null);
+            return $this->jsonSuccess($out);
         }
+
+        if ($parsed['kind'] === PersonaProfileService::KIND_CONTENT && $parsed['id'] > 0) {
+            $row = Db::connect('live_mysql')
+                ->table('lp_ai_content')
+                ->where('id', $parsed['id'])
+                ->find();
+            PersonaProfileService::applyContentRow($out, $row ?: null);
+        }
+
+        // my-N / 空 / 非法 role_key：无服务端资料（自建角色由前端本地缓存补）
         return $this->jsonSuccess($out);
     }
 

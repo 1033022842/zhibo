@@ -233,6 +233,9 @@
     fetch(url, { headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (res) {
+        // 过期响应保护：弱网下用户已切到别的角色时，旧角色的名字/封面/简介/Scenario
+        // 不允许再刷到当前面板（home-N 与数字 N 同号，串一次就是另一个人的资料）
+        if (currentRoleKey() !== key) return;
         var d = (res && res.data) || null;
         if (!d) return;
         var root = panelRoot();
