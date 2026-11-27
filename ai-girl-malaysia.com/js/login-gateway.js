@@ -195,13 +195,13 @@
       '#live-login-dialog [hidden]{display:none!important}' +
       '#live-login-dialog .live-login-art{position:relative;display:none;overflow:hidden;background:#1d1a20;min-height:100%}' +
       '#live-login-dialog .live-login-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}' +
-      '#live-login-dialog .live-login-art:after{content:"";position:absolute;inset:0;' +
+      '#live-login-dialog .live-login-art:after{content:"";position:absolute;inset:0;z-index:1;' +
         'background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)}' +
-      '#live-login-dialog .live-login-brand{position:absolute;left:26px;bottom:22px;z-index:1;' +
+      '#live-login-dialog .live-login-brand{position:absolute;left:26px;bottom:22px;z-index:3;' +
         'font-size:27px;font-weight:800;letter-spacing:-.4px;color:#fff;' +
         'text-shadow:0 2px 16px rgba(0,0,0,.7),0 0 3px rgba(0,0,0,.5)}' +
       '#live-login-dialog .live-login-brand i{font-style:normal;color:#FF4E6A}' +
-      '#live-login-dialog .live-login-wordmark{height:22px;width:auto;display:block}' +
+      '#live-login-dialog .live-login-brand .live-login-wordmark{position:static!important;inset:auto!important;display:block!important;height:22px!important;width:126px!important;object-fit:contain;object-position:left center}' +
       '#live-login-dialog .live-login-body{display:flex;flex-direction:column;padding:36px 40px 24px;min-width:0;overflow:auto;max-height:calc(100dvh - 32px)}' +
       '#live-login-dialog h2{margin:0 34px 22px 0;font-size:24px;font-weight:700;line-height:32px;letter-spacing:-.2px}' +
       '#live-login-dialog form{display:grid;gap:14px;margin:0}' +
@@ -364,11 +364,11 @@
     return pair[0] + '<i>.' + pair[1] + '</i>'
   }
   /* 站点头像字标：有 wordmark 图就用图（与首页左上角一致），没有则回退两色文字 */
-  var WORDMARK_HOSTS = { 'kisss.ai': './sugus-wordmark.png' }
+  var WORDMARK_HOSTS = { 'kisss.ai': './kisss-wordmark.png?v=20261126', 'sugus.ai': './sugus-wordmark.png', 'heygirl.live': './heygirl-wordmark.png?v=20261126' }
   function brandNode() {
     var host = String(location.hostname || '').replace(/^www\./i, '').toLowerCase()
     var src = WORDMARK_HOSTS[host]
-    if (src) return '<img class="live-login-wordmark" src="' + src + '" alt="">'
+    if (src) return '<img class="live-login-wordmark" src="' + src + '" alt="" style="height:22px;width:126px;object-fit:contain;object-position:left center;display:block">'
     return brandMarkup()
   }
 
