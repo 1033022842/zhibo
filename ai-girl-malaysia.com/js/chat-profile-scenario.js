@@ -248,7 +248,11 @@
         lockActiveList(key);
         guardHeader(d, key);
       })
-      .catch(function () { /* 面板资料失败不影响聊天 */ });
+      .catch(function () {
+        // 面板资料失败不影响聊天；但遮罩要继续挡着静态默认角色会变成「空白页」，
+        // 所以失败即放行，让 chat.js 自己的会话/缓存数据先把内容画出来
+        revealName();
+      });
   }
 
   if (document.readyState === 'loading') {

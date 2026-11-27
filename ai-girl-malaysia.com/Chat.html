@@ -405,9 +405,10 @@ a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!importan
   .fy-photo-tx i{font-size:11.5px;color:#b9b3b5;font-style:normal;line-height:1.25;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .fy-photo-arrow{margin-left:auto;color:#8a8285;font-size:18px;line-height:1}
 </style>
-<!-- 首帧避免显示缓存里的旧角色名：先隐藏，等 personaProfile 校准后再显示 -->
+<!-- 首帧避免显示缓存里的旧角色名：先隐藏，等 personaProfile 校准后再显示
+     兜底 12s（原 6s 太短：CDN 慢时 personaProfile 8s 才回来，遮罩先摘就会露出静态默认角色 Priya） -->
 <style id="fyAwaitNameCss">html.fy-await-name #chat-name,html.fy-await-name #name,html.fy-await-name #chat-img,html.fy-await-name #chat-img-mobile,html.fy-await-name #pfp-carousel,html.fy-await-name #infomation{visibility:hidden}</style>
-<script id="fyAwaitNameJs">(function(){try{document.documentElement.className+=" fy-await-name";setTimeout(function(){document.documentElement.classList.remove("fy-await-name")},6000)}catch(e){}})();</script>
+<script id="fyAwaitNameJs">(function(){try{document.documentElement.className+=" fy-await-name";setTimeout(function(){document.documentElement.classList.remove("fy-await-name")},12000)}catch(e){}})();</script>
 </head>
   <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
     
@@ -1593,5 +1594,5 @@ a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!importan
 <script src="./js/chat-mobile-list.js?v=20261121v9"></script>
 <script src="./js/chat-photo-cta.js?v=20261123ph1"></script>
 
-<script src="./js/chat-profile-scenario.js?v=20261127prof14"></script>
+<script src="./js/chat-profile-scenario.js?v=20261127prof15"></script>
 <script src="./js/chat-pfp-loop.js?v=20261126loop6"></script>
