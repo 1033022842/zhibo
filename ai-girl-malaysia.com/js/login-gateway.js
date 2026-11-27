@@ -201,6 +201,7 @@
         'font-size:27px;font-weight:800;letter-spacing:-.4px;color:#fff;' +
         'text-shadow:0 2px 16px rgba(0,0,0,.7),0 0 3px rgba(0,0,0,.5)}' +
       '#live-login-dialog .live-login-brand i{font-style:normal;color:#FF4E6A}' +
+      '#live-login-dialog .live-login-wordmark{height:22px;width:auto;display:block}' +
       '#live-login-dialog .live-login-body{display:flex;flex-direction:column;padding:36px 40px 24px;min-width:0;overflow:auto;max-height:calc(100dvh - 32px)}' +
       '#live-login-dialog h2{margin:0 34px 22px 0;font-size:24px;font-weight:700;line-height:32px;letter-spacing:-.2px}' +
       '#live-login-dialog form{display:grid;gap:14px;margin:0}' +
@@ -362,6 +363,14 @@
     }
     return pair[0] + '<i>.' + pair[1] + '</i>'
   }
+  /* 站点头像字标：有 wordmark 图就用图（与首页左上角一致），没有则回退两色文字 */
+  var WORDMARK_HOSTS = { 'kisss.ai': './sugus-wordmark.png' }
+  function brandNode() {
+    var host = String(location.hostname || '').replace(/^www\./i, '').toLowerCase()
+    var src = WORDMARK_HOSTS[host]
+    if (src) return '<img class="live-login-wordmark" src="' + src + '" alt="">'
+    return brandMarkup()
+  }
 
   function createLoginDialog() {
     var dialog = document.getElementById('live-login-dialog')
@@ -371,7 +380,7 @@
     dialog.id = 'live-login-dialog'
     dialog.setAttribute('aria-labelledby', 'live-login-title')
     dialog.innerHTML = '<div class="live-login-art"><img alt="" src="' + pickArt() + '">' +
-        '<span class="live-login-brand">' + brandMarkup() + '</span></div>' +
+        '<span class="live-login-brand">' + brandNode() + '</span></div>' +
       '<div class="live-login-body">' +
       '<button class="live-login-close" type="button" aria-label="Close">&times;</button>' +
       '<h2 id="live-login-title"></h2><form data-turbo="false">' +

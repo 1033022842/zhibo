@@ -33,6 +33,20 @@
     return u;
   }
 
+  /* 首帧遮罩：URL 指定了角色时，先遮住会被“上一个会话”先渲染的名字/头像，等 personaProfile 回来再露 */
+  var MASK_CLS = 'fy-persona-wait'
+  function maskOn() { if (urlRoleKey()) document.body.classList.add(MASK_CLS) }
+  function maskOff() { document.body.classList.remove(MASK_CLS) }
+
+  var MASK_STYLE_ID = 'fy-persona-mask-css'
+  function injectMaskCss() {
+    if (document.getElementById(MASK_STYLE_ID)) return
+    var st = document.createElement('style')
+    st.id = MASK_STYLE_ID
+    st.textContent = 'body.' + MASK_CLS + ' #chat-name,body.' + MASK_CLS + ' #chat-img,body.' + MASK_CLS + ' #chat-img-mobile,body.' + MASK_CLS + ' #name,body.' + MASK_CLS + ' #infomation,body.' + MASK_CLS + ' #pfp-carousel{visibility:hidden!important}'
+    document.head.appendChild(st)
+  }
+
   function injectCss() {
     if (document.getElementById(CSS_ID)) return;
     var css = ''
@@ -226,10 +240,15 @@
         syncHeader(d, key);
         lockActiveList(key);
         guardHeader(d, key);
+        setTimeout(maskOff, 120);
       })
-      .catch(function () { /* 面板资料失败不影响聊天 */ });
+      .catch(function () { /* 面板资料失败不影响聊天 */ })
+      .then(function () { setTimeout(maskOff, 600); });
   }
 
+  injectMaskCss();
+  maskOn();
+  setTimeout(maskOff, 4000);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', load);
   } else {
