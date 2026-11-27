@@ -2835,6 +2835,15 @@
 
     function getDetail(info) {
         if(!info) return
+        // fyHomeRoleFix: home-N 的名字/封面以 lp_home_character 目录为准，
+        // 否则接口按 lp_ai_content 同号返回会串成另一个角色（如 home-88 → Alexandra）
+        try {
+            var hr0 = homeRoleMap()[String(info.id || '')]
+            if (hr0 && hr0.name) {
+                info.title = hr0.name
+                if (hr0.cover_url) info.image = hr0.cover_url
+            }
+        } catch (e0) {}
         try { (window.__chatTrace = window.__chatTrace || []).push('getDetail id=' + String(info.id) + ' title=' + String(info.title)) } catch (e) {}
         paintPersona(info)
         $('#messages-list').html(cacheTemplate);
