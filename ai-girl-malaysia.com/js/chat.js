@@ -276,6 +276,9 @@
     // 首页角色服务端目录（lp_home_character）：home-N 的权威人设来源，免疫 localStorage 被清/被替换
     var homeRolesLoading = false
     var homeRolesCbs = []
+  // 随机开场只在这批欧美角色里挑（不含平台旧角色/R18 内容）
+  var EU48_NAMES = {Alexandra:1,Amber:1,Audrey:1,Aurora:1,Brenna:1,Brooke:1,Callie:1,Camille:1,Catalina:1,Celeste:1,Charlotte:1,Chelsea:1,Claire:1,Elise:1,Evelyn:1,Fiona:1,Freya:1,Giselle:1,Grace:1,Harper:1,Hazel:1,Iris:1,Isabella:1,Jade:1,Lottie:1,Madison:1,Margot:1,Marina:1,Melody:1,Natalia:1,Ophelia:1,Paige:1,Poppy:1,Quinn:1,Raven:1,Rosalie:1,Roxanne:1,Sable:1,Scarlett:1,Serena:1,Sierra:1,Skye:1,Sloane:1,Tessa:1,Tiffany:1,Valentina:1,Veronica:1,Victoria:1};
+
     function homeRoleMap() {
         return window.__homeRoleMap || (window.__homeRoleMap = {})
     }
@@ -298,6 +301,29 @@
                 .catch(function () { if (++done === cats.length) { homeRolesLoading = false; flushHomeRoles() } })
         })
     }
+    function applyNameNow(id) {
+        try {
+            var it = chatItemById(id)
+            var nm = it && (it.title || it.name)
+            if (!nm) return
+            var h = document.getElementById('chat-name'); if (h) h.textContent = nm
+            var n = document.getElementById('name'); if (n) n.textContent = nm
+        } catch (e) {}
+    }
+
+    function randomHomeKey() {
+        var map = homeRoleMap()
+        var eu = []
+        Object.keys(map).forEach(function (k) {
+            var it = map[k]
+            if (it && EU48_NAMES[String(it.name || '').trim()]) eu.push(k)
+        })
+        var pool = eu.length ? eu : Object.keys(map)
+        var key = pool.length ? pool[Math.floor(Math.random() * pool.length)] : ''
+        if (key) applyNameNow(key)
+        return key
+    }
+
     function flushHomeRoles() {
         var cbs = homeRolesCbs; homeRolesCbs = []
         cbs.forEach(function (cb) { try { cb() } catch (e) {} })
@@ -2873,13 +2899,13 @@
         if (activeConvId === '') {
             var homeKeys = Object.keys(homeRoleMap())
             if (homeKeys.length > 0) {
-                activeConvId = homeKeys[Math.floor(Math.random() * homeKeys.length)]
+                activeConvId = randomHomeKey()
             } else {
                 // homeRoleMap 由 bootChat 的 loadHomeRoles 异步预热：等它就绪再随机开场（最多 8 秒）
                 waitForHomeRoles(function (map) {
                     var keys = Object.keys(map)
                     if (keys.length > 0 && activeConvId === '') {
-                        activeConvId = keys[Math.floor(Math.random() * keys.length)]
+                        activeConvId = randomHomeKey()
                         getDetail(chatItemById(activeConvId))
                     }
                     continueChannelDetail(readPageList())
@@ -3148,7 +3174,7 @@
         if (!$cur.length) {
             // 没匹配到当前会话：随机挑一条（原来是固定第一条，永远落在最近聊过的那个角色）
             var all = $('#message-list').find('a.chat-obj')
-            $cur = all.length ? $(all[Math.floor(Math.random() * all.length)]) : $()
+            $cur = (activeConvId || !all.length) ? $() : $(all[Math.floor(Math.random() * all.length)])
         }
         var cid = String($cur.data('id') || '')
         if (cid !== '') { selectConversation(cid, true); return }

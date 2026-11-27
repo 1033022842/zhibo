@@ -220,9 +220,13 @@
     apply();
   }
 
-  function load() {
+  function load(retry) {
     var key = currentRoleKey();
-    if (!key) return;
+    // 随机开场：chat.js 决定角色后才把 ?id=home-N 写回地址栏，这里等它就绪
+    if (!key) {
+      if ((retry || 0) < 25) setTimeout(function () { load((retry || 0) + 1) }, 240);
+      return;
+    }
     var url = apiBase + '/personaProfile?role_key=' + encodeURIComponent(key);
     fetch(url, { headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.json(); })

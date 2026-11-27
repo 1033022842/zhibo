@@ -47,7 +47,7 @@
     <meta name="action-cable-url" content="wss://sugus.ai/cable">
     <script src="./_shared/jquery-3.6.0.min.js"></script>
     <script src="./js/ui-dialog.js?v=20260927a"></script>
-    <script src="./js/chat.js?v=20261126free9"></script>
+    <script src="./js/chat.js?v=20261127eu2"></script>
 	<script src="./js/chat-gift.js?v=20261121gift3"></script>
     
 
@@ -406,8 +406,6 @@ a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!importan
   .fy-photo-arrow{margin-left:auto;color:#8a8285;font-size:18px;line-height:1}
 </style>
 <!-- 首帧避免显示缓存里的旧角色名：先隐藏，等 personaProfile 校准后再显示 -->
-<style id="fyAwaitNameCss">html.fy-await-name #chat-name,html.fy-await-name #name{visibility:hidden}</style>
-<script id="fyAwaitNameJs">(function(){try{if(/[?&]id=home-\d+/.test(location.search)){document.documentElement.className+=" fy-await-name";setTimeout(function(){document.documentElement.classList.remove("fy-await-name")},2500)}}catch(e){}})();</script>
 </head>
   <body class="bg-main conversations show stimulus-reflex-disconnected" id="app" data-controller="main" data-onesignal-enabled="false" data-main-is-sidebar-opened-value="false" data-main-is-current-user-signed-in="" data-main-selected-character-id-from-generate-image="">
     
@@ -1592,5 +1590,5 @@ a.chat-obj.active{background:#3a2b30!important;border:1px solid #e75275!importan
 <script src="./js/chat-mobile-list.js?v=20261121v9"></script>
 <script src="./js/chat-photo-cta.js?v=20261123ph1"></script>
 
-<script src="./js/chat-profile-scenario.js?v=20261127prof10"></script>
+<script src="./js/chat-profile-scenario.js?v=20261127prof12"></script>
 <script src="./js/chat-pfp-loop.js?v=20261126loop6"></script>
